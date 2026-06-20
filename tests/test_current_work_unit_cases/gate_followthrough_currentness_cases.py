@@ -145,6 +145,115 @@ def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_readin
     assert work_unit["state"]["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
 
 
+def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_selector_residue_for_new_unit() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T05:46:03+00:00"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "explicit_work_unit_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+                    "current_work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "explicit_work_unit_fingerprint_matches_current": False,
+                    "fingerprint_or_source_signature_unchanged": False,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "explicit_publication_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+                "selected_publication_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": [
+                    "stale_submission_minimal_authority",
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+                "latest_record_path": (
+                    f"/workspace/studies/{study_id}/artifacts/controller/"
+                    "gate_clearing_batch/latest.json"
+                ),
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "analysis-campaign",
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+            "action_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+            "source_eval_id": source_eval_id,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_gate_actionable_repair_delta_or_typed_blocker",
+            "owner_route_currentness_basis": {
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+                "explicit_publication_work_unit_id": "analysis_claim_evidence_repair",
+                "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "target_surface": {
+                "ref_kind": "publication_work_unit",
+                "route_target": "analysis-campaign",
+                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "blocker_id": "no_selected_dispatch_for_authorized_stage_packet",
+            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+            "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "source_ref": (
+                f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
+                "default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+            ),
+        },
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "analysis-campaign"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert work_unit["work_unit_fingerprint"] == "publication-blockers::2a234f3e48d8beb5"
+    assert work_unit["state"]["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+
+
 def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_zero_dispatch_closeout() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

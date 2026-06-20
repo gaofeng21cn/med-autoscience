@@ -42,6 +42,13 @@ def owner_action_from_gate_followthrough_current_work_unit(
     if currentness.get("lacks_specific_blocker_object") is True:
         return None
     followthrough_work_unit_id = _non_empty_text(followthrough.get("work_unit_id"))
+    selected_publication_work_unit = _mapping_copy(
+        followthrough.get("selected_publication_work_unit")
+    )
+    selected_work_unit_id = (
+        _non_empty_text(currentness.get("selected_publication_work_unit_id"))
+        or _non_empty_text(selected_publication_work_unit.get("unit_id"))
+    )
     explicit_work_unit_id = (
         _non_empty_text(currentness.get("explicit_publication_work_unit_id"))
         or followthrough_work_unit_id
@@ -52,9 +59,21 @@ def owner_action_from_gate_followthrough_current_work_unit(
         _non_empty_text(currentness.get("current_publication_work_unit_id"))
         or _non_empty_text(current_publication_work_unit.get("unit_id"))
     )
+    selected_work_unit_overrides_current = (
+        selected_work_unit_id is not None and selected_work_unit_id != current_work_unit_id
+    )
+    if selected_work_unit_overrides_current:
+        current_publication_work_unit = selected_publication_work_unit
+        current_work_unit_id = selected_work_unit_id
     if current_work_unit_id is None:
         return None
-    work_unit_fingerprint = _non_empty_text(currentness.get("current_work_unit_fingerprint"))
+    work_unit_fingerprint = (
+        _non_empty_text(currentness.get("selected_work_unit_fingerprint"))
+        or _non_empty_text(currentness.get("selected_publication_work_unit_fingerprint"))
+        or _non_empty_text(currentness.get("explicit_work_unit_fingerprint"))
+        if selected_work_unit_overrides_current
+        else None
+    ) or _non_empty_text(currentness.get("current_work_unit_fingerprint"))
     derived = _publication_eval_specificity_work_unit_for_gate_followthrough(
         payload=payload,
         current_work_unit_id=current_work_unit_id,

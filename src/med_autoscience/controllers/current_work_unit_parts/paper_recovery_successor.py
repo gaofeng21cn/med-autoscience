@@ -100,11 +100,13 @@ def _action_with_gate_followthrough_currentness_supersedes_terminal_selector_res
         return False
     if _blocker_reason(blocker) not in TERMINAL_SELECTOR_RESIDUE_BLOCKERS:
         return False
-    if not _same_work_unit_identity(blocker, action):
-        return False
     if not _gate_followthrough_successor_current(action=action, progress=progress):
         return False
-    return True
+    if _same_work_unit_identity(blocker, action):
+        return True
+    if not gate_followthrough_successor_action_ready(action):
+        return False
+    return _action_matches_gate_followthrough_selected_successor(action=action, progress=progress)
 
 
 def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
@@ -216,15 +218,66 @@ def _gate_followthrough_successor_current(
         or text(action_basis.get("work_unit_fingerprint"))
         or text(action_basis.get("source_fingerprint"))
     )
+    selected_work_unit = (
+        work_unit_id(currentness.get("selected_publication_work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("selected_publication_work_unit")).get("unit_id"))
+    )
+    if selected_work_unit == action_work_unit:
+        followthrough_fingerprint = (
+            text(currentness.get("selected_work_unit_fingerprint"))
+            or text(currentness.get("selected_publication_work_unit_fingerprint"))
+            or text(currentness.get("explicit_work_unit_fingerprint"))
+        )
+    else:
+        followthrough_fingerprint = None
     followthrough_fingerprint = (
-        text(followthrough.get("work_unit_fingerprint"))
+        followthrough_fingerprint
+        or text(followthrough.get("work_unit_fingerprint"))
         or text(currentness.get("current_work_unit_fingerprint"))
-        or text(currentness.get("explicit_work_unit_fingerprint"))
     )
     return not (
         action_fingerprint is not None
         and followthrough_fingerprint is not None
         and action_fingerprint != followthrough_fingerprint
+    )
+
+
+def _action_matches_gate_followthrough_selected_successor(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    followthrough = mapping(progress.get("gate_clearing_batch_followthrough"))
+    currentness = mapping(followthrough.get("work_unit_currentness"))
+    action_work_unit = work_unit_id(action.get("work_unit_id")) or work_unit_id(
+        action.get("next_work_unit")
+    )
+    if action_work_unit is None:
+        return False
+    selected_work_unit = (
+        work_unit_id(currentness.get("selected_publication_work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("selected_publication_work_unit")).get("unit_id"))
+    )
+    if selected_work_unit != action_work_unit:
+        return False
+    action_basis = mapping(action.get("owner_route_currentness_basis")) or mapping(
+        action.get("currentness_basis")
+    )
+    action_fingerprint = (
+        text(action.get("work_unit_fingerprint"))
+        or text(action.get("action_fingerprint"))
+        or text(action_basis.get("work_unit_fingerprint"))
+        or text(action_basis.get("source_fingerprint"))
+    )
+    selected_fingerprint = (
+        text(currentness.get("selected_work_unit_fingerprint"))
+        or text(currentness.get("selected_publication_work_unit_fingerprint"))
+        or text(currentness.get("explicit_work_unit_fingerprint"))
+    )
+    return not (
+        action_fingerprint is not None
+        and selected_fingerprint is not None
+        and action_fingerprint != selected_fingerprint
     )
 
 
