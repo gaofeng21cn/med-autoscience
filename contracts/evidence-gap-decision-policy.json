@@ -3,141 +3,86 @@
   "version": "evidence-gap-decision-policy.v1",
   "owner": "MedAutoScience",
   "state": "active_contract",
-  "purpose": "Machine-readable policy for classifying evidence gaps so progress-first execution can continue through soft gaps while hard gates still fail closed.",
-  "machine_boundary": "This contract defines EvidenceGapDecision classification, typed blocker eligibility, claim boundaries, and examples. It does not declare paper progress, live runtime readiness, publication readiness, submission readiness, production readiness, provider liveness, owner receipt closure, or quality verdicts.",
   "schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
-  "examples_ref": "contracts/evidence-gap-decision-examples.json",
-  "source_design_ref": "docs/runtime/designs/progress_first_evidence_gap_policy.md",
-  "applies_to": [
-    "current_owner_delta",
-    "paper_autonomy_obligation",
-    "paper_recovery_state",
-    "DomainProgressTransitionRuntime policy result",
-    "owner receipt / typed blocker / human gate intake",
-    "live-runtime evidence tails and completion audits"
+  "purpose": "Classify incomplete evidence into authority gates, human gates, assumptions, soft quality gaps, observability backlog, and evidence tails so current AI owner work can continue unless a real authority boundary is missing.",
+  "machine_boundary": "This policy governs MAS evidence-gap classification and derived read-model surfaces. It does not declare paper progress, owner receipt closure, provider admission, publication readiness, submission readiness, live runtime readiness, or production readiness.",
+  "external_practice_basis": [
+    {
+      "source": "Kubernetes ValidatingAdmissionPolicy validationActions",
+      "pattern": "Deny/Warn/Audit separates hard rejection from warning and audit-only accounting.",
+      "local_adaptation": "authority_gate and human_gate are Deny-like hard gates; soft_quality_gap is Warn-like; observability_backlog and evidence_tail are Audit-like tracking surfaces."
+    },
+    {
+      "source": "Open Policy Agent decision logs",
+      "pattern": "Policy decisions carry traceable decision identifiers and enough input metadata for offline audit.",
+      "local_adaptation": "evidence_gap_decision keeps identity, evidence refs, diagnostic refs, claim boundary, and decision_trace."
+    },
+    {
+      "source": "Temporal Signals/Queries/Updates",
+      "pattern": "Queries observe state, Signals/Updates mutate durable workflow state, and synchronous tracked Updates are used when validation or human acknowledgement matters.",
+      "local_adaptation": "soft/read-model gaps remain queryable ledgers; human_gate is a durable human decision gate."
+    }
   ],
   "gap_classes": {
     "authority_gate": {
-      "role": "hard_gate_missing_domain_or_runtime_authority",
-      "blocks_current_owner_action": true,
       "typed_blocker_countable": true,
-      "allowed_decisions": [
-        "materialize_typed_blocker"
-      ],
-      "required_evidence_ref_families": [
-        "source_data_or_evidence",
-        "owner_route_identity",
-        "forbidden_write_boundary",
-        "irreversible_mutation_authorization",
-        "publication_gate",
-        "mas_hard_gate"
-      ],
-      "cannot_be_satisfied_by": [
-        "docs_updated",
-        "contract_landed",
-        "focused_tests_passed",
-        "queue_empty",
-        "read_model_currentness",
-        "provider_completion"
+      "blocks_current_owner_action": true,
+      "blocks_completion_or_readiness_claim": true,
+      "examples": [
+        "OPL event/outbox/StageRun readback missing",
+        "provider admission authorization missing",
+        "owner-route currentness missing",
+        "write permission or forbidden-write boundary missing",
+        "source data or privacy authority missing"
       ]
     },
     "human_gate": {
-      "role": "hard_gate_requiring_human_or_operator_answer",
-      "blocks_current_owner_action": true,
       "typed_blocker_countable": true,
-      "allowed_decisions": [
-        "open_human_gate",
-        "materialize_typed_blocker"
-      ],
-      "required_evidence_ref_families": [
-        "human_gate_ref",
-        "owner_gate_decision_ref",
-        "operator_decision_ref",
-        "resume_token_ref"
-      ],
-      "cannot_be_satisfied_by": [
-        "agent_inference",
-        "self_review",
-        "queue_empty",
-        "projection_clean"
+      "blocks_current_owner_action": true,
+      "blocks_completion_or_readiness_claim": true,
+      "examples": [
+        "submission authorization missing",
+        "irreversible mutation authorization missing",
+        "PI or human owner decision missing"
       ]
     },
     "proceed_with_assumption": {
-      "role": "bounded_assumption_that_allows_current_owner_action_to_continue",
-      "blocks_current_owner_action": false,
       "typed_blocker_countable": false,
-      "allowed_decisions": [
-        "proceed_with_recorded_assumption"
-      ],
-      "requires": [
-        "assumption_ref",
-        "revisit_trigger",
-        "scope_boundary"
-      ],
-      "cannot_be_reported_as": [
-        "owner_receipt",
-        "paper_progress",
-        "quality_verdict",
-        "readiness_evidence"
+      "blocks_current_owner_action": false,
+      "blocks_completion_or_readiness_claim": true,
+      "examples": [
+        "non-critical explanatory reference missing",
+        "minor bibliography helper ref missing"
       ]
     },
     "soft_quality_gap": {
-      "role": "quality_followup_that_does_not_block_current_nonterminal_progress",
-      "blocks_current_owner_action": false,
       "typed_blocker_countable": false,
-      "allowed_decisions": [
-        "continue_with_quality_followup"
-      ],
-      "requires": [
-        "followup_work_order_ref",
-        "owner_or_reviewer_scope",
-        "acceptance_signal_for_future_repair"
-      ],
-      "cannot_be_reported_as": [
-        "typed_blocker_count",
-        "publication_gate_failure",
-        "paper_progress",
-        "quality_verdict"
+      "blocks_current_owner_action": false,
+      "blocks_completion_or_readiness_claim": true,
+      "examples": [
+        "reviewer polish tail",
+        "paper structure concern",
+        "ledger field that can be repaired after drafting"
       ]
     },
     "observability_backlog": {
-      "role": "diagnostic_or_monitoring_followup_without_current_owner_blocking_power",
-      "blocks_current_owner_action": false,
       "typed_blocker_countable": false,
-      "allowed_decisions": [
-        "continue_with_observability_followup"
-      ],
-      "requires": [
-        "followup_work_order_ref",
-        "diagnostic_scope",
-        "nonblocking_boundary"
-      ],
-      "cannot_be_reported_as": [
-        "typed_blocker_count",
-        "runtime_readiness",
-        "provider_running",
-        "paper_progress"
+      "blocks_current_owner_action": false,
+      "blocks_completion_or_readiness_claim": true,
+      "examples": [
+        "telemetry freshness gap",
+        "token or cost trace gap",
+        "portal report freshness gap"
       ]
     },
     "evidence_tail": {
-      "role": "open_evidence_required_before_completion_or_readiness_claim",
+      "typed_blocker_countable": false,
       "blocks_current_owner_action": false,
       "blocks_completion_or_readiness_claim": true,
-      "typed_blocker_countable": false,
-      "allowed_decisions": [
-        "record_evidence_tail"
-      ],
-      "requires": [
-        "accepted_evidence_ref_family",
-        "next_owner",
-        "forbidden_substitutes",
-        "claim_boundary"
-      ],
-      "cannot_be_reported_as": [
-        "typed_blocker_count",
-        "current_owner_action_blocked",
-        "live_runtime_ready",
-        "paper_progress"
+      "examples": [
+        "production soak evidence tail",
+        "direct-hosted parity tail",
+        "live readiness tail"
       ]
     }
   },
@@ -157,50 +102,22 @@
       "soft_quality_gap",
       "observability_backlog",
       "evidence_tail"
-    ],
-    "forbidden_write_boundary_can_materialize_typed_blocker": true,
-    "stop_loss_materialized_can_materialize_typed_blocker": true,
-    "soft_gap_materialization_policy": "record_followup_or_tail_without_incrementing_typed_blocker_count",
-    "typed_blocker_count_source": "EvidenceGapDecision.typed_blocker_policy.typed_blocker_countable"
-  },
-  "claim_boundary": {
-    "paper_progress_claim_allowed": false,
-    "live_runtime_readiness_claim_allowed": false,
-    "publication_readiness_claim_allowed": false,
-    "production_readiness_claim_allowed": false,
-    "contract_landed_can_claim_ready": false,
-    "docs_updated_can_claim_ready": false,
-    "focused_tests_passed_can_claim_ready": false
+    ]
   },
   "forbidden_claim_terms": [
-    "live_runtime_ready",
+    "owner_receipt_closed",
     "paper_progress",
     "publication_ready",
     "submission_ready",
+    "live_runtime_ready",
     "production_ready",
-    "provider_running",
-    "owner_receipt_closed",
-    "quality_verdict",
-    "domain_ready",
-    "current_package_fresh"
+    "provider_running"
   ],
   "forbidden_completion_interpretations": [
     "docs_updated",
     "contract_landed",
     "focused_tests_passed",
     "evidence_gap_policy_landed",
-    "evidence_tail_recorded",
-    "queue_empty",
-    "projection_clean",
-    "read_model_currentness",
-    "provider_completion",
-    "DHD_dry_run",
-    "DHD_observe_only"
-  ],
-  "non_claims": [
-    "This policy landing does not start providers.",
-    "This policy landing does not run DHD apply, hydrate, tick, or redrive.",
-    "This policy landing does not write study truth, publication_eval/latest.json, controller_decisions/latest.json, owner receipts, typed blockers, paper body, or Yang runtime artifacts.",
-    "This policy landing does not close live evidence tails."
+    "evidence_tail_recorded"
   ]
 }

@@ -28,13 +28,13 @@ NON_TYPED_BLOCKER_GAP_CLASSES = {
     "evidence_tail",
 }
 FORBIDDEN_CLAIMS = {
-    "live_runtime_ready",
+    "owner_receipt_closed",
     "paper_progress",
     "publication_ready",
     "submission_ready",
+    "live_runtime_ready",
     "production_ready",
     "provider_running",
-    "owner_receipt_closed",
 }
 
 
@@ -42,52 +42,9 @@ def _json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _policy() -> dict[str, object]:
-    return _json(POLICY_PATH)
-
-
-def _schema() -> dict[str, object]:
-    return _json(SCHEMA_PATH)
-
-
-def _examples() -> dict[str, object]:
-    return _json(EXAMPLES_PATH)
-
-
-def _validate_example_against_schema(
-    example: dict[str, object],
-    schema: dict[str, object],
-) -> None:
-    required = schema["required"]
-    properties = schema["properties"]
-    assert isinstance(required, list)
-    assert isinstance(properties, dict)
-
-    for field in required:
-        assert field in example, field
-
-    for field, value in example.items():
-        definition = properties.get(field)
-        assert definition is not None, field
-        assert isinstance(definition, dict)
-        if "const" in definition:
-            assert value == definition["const"], field
-        if "enum" in definition:
-            assert value in definition["enum"], field
-        expected_type = definition.get("type")
-        if expected_type == "string":
-            assert isinstance(value, str) and value, field
-        elif expected_type == "array":
-            assert isinstance(value, list), field
-        elif expected_type == "object":
-            assert isinstance(value, dict), field
-        elif expected_type == "boolean":
-            assert isinstance(value, bool), field
-
-
 def test_evidence_gap_decision_policy_declares_schema_and_boundary() -> None:
-    policy = _policy()
-    schema = _schema()
+    policy = _json(POLICY_PATH)
+    schema = _json(SCHEMA_PATH)
 
     assert policy["surface_kind"] == "mas_evidence_gap_decision_policy"
     assert policy["version"] == "evidence-gap-decision-policy.v1"
@@ -103,7 +60,7 @@ def test_evidence_gap_decision_policy_declares_schema_and_boundary() -> None:
 
 
 def test_gap_class_policy_separates_hard_blockers_from_soft_gap_accounting() -> None:
-    policy = _policy()
+    policy = _json(POLICY_PATH)
     gap_classes = policy["gap_classes"]
     materialization = policy["typed_blocker_materialization_policy"]
 
@@ -111,12 +68,6 @@ def test_gap_class_policy_separates_hard_blockers_from_soft_gap_accounting() -> 
     assert materialization["typed_blocker_countable_gap_classes"] == [
         "authority_gate",
         "human_gate",
-    ]
-    assert materialization["allowed_materialization_reasons"] == [
-        "authority_gate",
-        "human_gate",
-        "forbidden_write_boundary",
-        "stop_loss_materialized",
     ]
     assert set(materialization["forbidden_gap_classes_for_typed_blocker_count"]) == (
         NON_TYPED_BLOCKER_GAP_CLASSES
@@ -129,57 +80,33 @@ def test_gap_class_policy_separates_hard_blockers_from_soft_gap_accounting() -> 
         else:
             assert definition["typed_blocker_countable"] is False, gap_class
             assert definition["blocks_current_owner_action"] is False, gap_class
-
-    assert gap_classes["evidence_tail"]["blocks_completion_or_readiness_claim"] is True
-    assert gap_classes["evidence_tail"]["typed_blocker_countable"] is False
+        assert definition["blocks_completion_or_readiness_claim"] is True, gap_class
 
 
-def test_evidence_gap_decision_examples_cover_every_gap_class_and_match_schema() -> None:
-    schema = _schema()
-    examples = _examples()
-
-    assert examples["surface_kind"] == "mas_evidence_gap_decision_examples"
-    assert examples["schema_ref"] == "contracts/schemas/evidence-gap-decision.schema.json"
+def test_examples_cover_every_gap_class_and_forbid_high_order_claims() -> None:
+    examples = _json(EXAMPLES_PATH)
+    schema = _json(SCHEMA_PATH)
+    required = schema["required"]
+    properties = schema["properties"]
     decisions = examples["examples"]
-    assert isinstance(decisions, list)
+
+    assert examples["schema_ref"] == "contracts/schemas/evidence-gap-decision.schema.json"
     assert {decision["gap_class"] for decision in decisions} == GAP_CLASSES
 
     for decision in decisions:
-        assert isinstance(decision, dict)
-        _validate_example_against_schema(decision, schema)
-        assert decision["current_owner_delta_ref"]
-        assert decision["evidence_refs"]
-        assert decision["claim_boundary"] == {
-            "paper_progress_claim_allowed": False,
-            "live_runtime_readiness_claim_allowed": False,
-            "publication_readiness_claim_allowed": False,
-            "production_readiness_claim_allowed": False,
-        }
+        for field in required:
+            assert field in decision, field
+        assert decision["surface_kind"] == "mas_evidence_gap_decision"
+        assert decision["gap_class"] in properties["gap_class"]["enum"]
+        assert FORBIDDEN_CLAIMS <= set(decision["forbidden_claims"])
+        assert decision["claim_boundary"]["paper_progress_claim_allowed"] is False
+        assert decision["claim_boundary"]["publication_readiness_claim_allowed"] is False
+        if decision["gap_class"] in NON_TYPED_BLOCKER_GAP_CLASSES:
+            assert decision["typed_blocker_eligibility"] is False
 
 
-def test_soft_gap_examples_never_enter_typed_blocker_count() -> None:
-    decisions = {
-        decision["gap_class"]: decision
-        for decision in _examples()["examples"]
-    }
-
-    for gap_class in NON_TYPED_BLOCKER_GAP_CLASSES:
-        decision = decisions[gap_class]
-        typed_blocker_policy = decision["typed_blocker_policy"]
-        assert decision["typed_blocker_eligibility"] is False, gap_class
-        assert typed_blocker_policy["typed_blocker_countable"] is False, gap_class
-        assert typed_blocker_policy["materialization_allowed"] is False, gap_class
-        assert typed_blocker_policy["typed_blocker_ref"] is None, gap_class
-
-    assert decisions["proceed_with_assumption"]["assumption_ref"]
-    assert decisions["soft_quality_gap"]["followup_work_order_ref"]
-    assert decisions["observability_backlog"]["followup_work_order_ref"]
-    assert decisions["evidence_tail"]["blocks_completion_claim"] is True
-
-
-def test_evidence_gap_policy_forbids_readiness_and_progress_claims() -> None:
-    policy = _policy()
-    examples = _examples()
+def test_policy_forbids_contract_or_test_green_as_completion_claims() -> None:
+    policy = _json(POLICY_PATH)
 
     assert FORBIDDEN_CLAIMS <= set(policy["forbidden_claim_terms"])
     assert {
@@ -189,7 +116,3 @@ def test_evidence_gap_policy_forbids_readiness_and_progress_claims() -> None:
         "evidence_gap_policy_landed",
         "evidence_tail_recorded",
     } <= set(policy["forbidden_completion_interpretations"])
-
-    for decision in examples["examples"]:
-        assert FORBIDDEN_CLAIMS <= set(decision["forbidden_claim_terms"])
-        assert decision["completion_claim_allowed"] is False

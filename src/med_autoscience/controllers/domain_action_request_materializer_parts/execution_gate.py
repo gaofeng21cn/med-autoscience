@@ -23,8 +23,10 @@ def projection(
     blocked_reason: str | None,
     developer_mode_payload: Mapping[str, Any],
     supported_mode: str,
+    evidence_gap_projection: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     supervisor_reason = developer_supervisor_gate_reason(blocked_reason)
+    evidence_gap_gate = _evidence_gap_gate(evidence_gap_projection)
     developer_mode_gate = {
         "gate_kind": "developer_supervisor",
         "blocked": dispatch_status == "blocked" and supervisor_reason is not None,
@@ -44,6 +46,7 @@ def projection(
         "blocked": dispatch_status == "blocked",
         "reason": blocked_reason,
         "developer_supervisor_gate": developer_mode_gate,
+        "evidence_gap_gate": evidence_gap_gate,
     }
 
 
@@ -70,3 +73,21 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _evidence_gap_gate(value: Mapping[str, Any] | None) -> dict[str, Any]:
+    projection = _mapping(value)
+    summary = _mapping(projection.get("evidence_gap_decision_summary"))
+    hard_gate_count = int(summary.get("hard_gate_count") or 0)
+    human_gate_count = int(summary.get("human_gate_count") or 0)
+    return {
+        "gate_kind": "evidence_gap_decision",
+        "blocked": hard_gate_count > 0 or human_gate_count > 0,
+        "hard_gate_count": hard_gate_count,
+        "human_gate_count": human_gate_count,
+        "soft_gap_count": int(summary.get("soft_gap_count") or 0),
+        "observability_backlog_count": int(summary.get("observability_backlog_count") or 0),
+        "evidence_tail_count": int(summary.get("evidence_tail_count") or 0),
+        "current_action_can_continue": summary.get("current_action_can_continue") is True,
+        "forbidden_claims": list(summary.get("forbidden_claims") or []),
+    }

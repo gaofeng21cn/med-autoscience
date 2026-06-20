@@ -18,6 +18,7 @@ from tests.domain_action_request_materializer_cases.shared import (
 )
 from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
 from tests.domain_action_request_materializer_cases.request_handoff_dispatch_cases import *  # noqa: F403,F401
+from tests.domain_action_request_materializer_cases.test_evidence_gap_decision import *  # noqa: F403,F401
 from tests.domain_action_request_materializer_cases.unsupported_action_boundary import *
 from tests.study_runtime_test_helpers import make_profile, write_study
 

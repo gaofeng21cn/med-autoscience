@@ -1,47 +1,43 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "contracts/schemas/evidence-gap-decision.schema.json",
-  "title": "MAS EvidenceGapDecision",
+  "title": "MAS Evidence Gap Decision",
   "type": "object",
   "required": [
     "surface_kind",
-    "version",
-    "decision_id",
-    "owner",
-    "state",
+    "schema_version",
+    "source_surface_kind",
     "gap_class",
-    "gap_id",
-    "current_owner_delta_ref",
-    "current_owner_delta_identity",
-    "evidence_refs",
-    "decision",
+    "severity",
+    "current_action_can_continue",
+    "allowed_next_actions",
+    "forbidden_claims",
+    "owner",
+    "repair_owner",
+    "escalation_policy",
     "typed_blocker_eligibility",
-    "typed_blocker_policy",
-    "completion_claim_allowed",
     "claim_boundary",
-    "forbidden_claim_terms"
+    "identity",
+    "evidence_refs",
+    "diagnostic_refs",
+    "confidence",
+    "decision_trace"
   ],
+  "additionalProperties": true,
   "properties": {
     "surface_kind": {
       "const": "mas_evidence_gap_decision"
     },
-    "version": {
-      "type": "string"
+    "schema_version": {
+      "type": "integer",
+      "const": 1
     },
-    "decision_id": {
-      "type": "string"
-    },
-    "owner": {
-      "const": "MedAutoScience"
-    },
-    "state": {
-      "enum": [
-        "active_gap_decision",
-        "closed_by_owner_evidence",
-        "superseded_by_current_owner_delta"
-      ]
+    "source_surface_kind": {
+      "type": "string",
+      "minLength": 1
     },
     "gap_class": {
+      "type": "string",
       "enum": [
         "authority_gate",
         "human_gate",
@@ -51,179 +47,89 @@
         "evidence_tail"
       ]
     },
-    "gap_id": {
+    "severity": {
+      "type": "string",
+      "enum": [
+        "hard_gate",
+        "soft",
+        "backlog",
+        "tail",
+        "assumption"
+      ]
+    },
+    "current_action_can_continue": {
+      "type": "boolean"
+    },
+    "allowed_next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repair_owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "escalation_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "typed_blocker_eligibility": {
+      "type": "boolean"
+    },
+    "claim_boundary": {
+      "type": "object"
+    },
+    "identity": {
+      "type": "object"
+    },
+    "missing_ref_family": {
       "type": "string"
     },
-    "current_owner_delta_ref": {
+    "reason": {
       "type": "string"
     },
-    "current_owner_delta_identity": {
-      "type": "object",
-      "required": [
-        "study_id",
-        "work_unit_id",
-        "work_unit_fingerprint"
-      ],
-      "properties": {
-        "study_id": {
-          "type": "string"
-        },
-        "quest_id": {
-          "type": "string"
-        },
-        "work_unit_id": {
-          "type": "string"
-        },
-        "work_unit_fingerprint": {
-          "type": "string"
-        },
-        "route_identity_key": {
-          "type": "string"
-        },
-        "attempt_idempotency_key": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
+    "assumption": {
+      "type": [
+        "object",
+        "null"
+      ]
     },
     "evidence_refs": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "minItems": 1
+      }
     },
-    "decision": {
-      "enum": [
-        "materialize_typed_blocker",
-        "open_human_gate",
-        "proceed_with_recorded_assumption",
-        "continue_with_quality_followup",
-        "continue_with_observability_followup",
-        "record_evidence_tail"
-      ]
-    },
-    "typed_blocker_eligibility": {
-      "type": "boolean"
-    },
-    "typed_blocker_policy": {
-      "type": "object",
-      "required": [
-        "typed_blocker_countable",
-        "materialization_allowed",
-        "materialization_reason",
-        "typed_blocker_ref"
-      ],
-      "properties": {
-        "typed_blocker_countable": {
-          "type": "boolean"
-        },
-        "materialization_allowed": {
-          "type": "boolean"
-        },
-        "materialization_reason": {
-          "enum": [
-            "authority_gate",
-            "human_gate",
-            "forbidden_write_boundary",
-            "stop_loss_materialized",
-            "not_allowed"
-          ]
-        },
-        "typed_blocker_ref": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "assumption_ref": {
-      "type": "string"
-    },
-    "followup_work_order_ref": {
-      "type": "string"
-    },
-    "blocks_completion_claim": {
-      "type": "boolean"
-    },
-    "completion_claim_allowed": {
-      "type": "boolean"
-    },
-    "claim_boundary": {
-      "type": "object",
-      "required": [
-        "paper_progress_claim_allowed",
-        "live_runtime_readiness_claim_allowed",
-        "publication_readiness_claim_allowed",
-        "production_readiness_claim_allowed"
-      ],
-      "properties": {
-        "paper_progress_claim_allowed": {
-          "type": "boolean"
-        },
-        "live_runtime_readiness_claim_allowed": {
-          "type": "boolean"
-        },
-        "publication_readiness_claim_allowed": {
-          "type": "boolean"
-        },
-        "production_readiness_claim_allowed": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
-    },
-    "forbidden_claim_terms": {
+    "diagnostic_refs": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "minItems": 1
-    }
-  },
-  "additionalProperties": false,
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "gap_class": {
-            "enum": [
-              "authority_gate",
-              "human_gate"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "typed_blocker_eligibility": {
-            "const": true
-          }
-        }
       }
     },
-    {
-      "if": {
-        "properties": {
-          "gap_class": {
-            "enum": [
-              "proceed_with_assumption",
-              "soft_quality_gap",
-              "observability_backlog",
-              "evidence_tail"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "typed_blocker_eligibility": {
-            "const": false
-          }
-        }
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "decision_trace": {
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     }
-  ]
+  }
 }

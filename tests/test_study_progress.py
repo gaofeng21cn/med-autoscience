@@ -32,4 +32,5 @@ from tests.study_progress_cases.repair_progress_projection import *
 from tests.study_progress_cases.publication_eval_ai_reviewer_currentness_projection import *
 from tests.study_progress_cases.progress_first_projection import *
 from tests.study_progress_cases.progress_first_paper_delta_cases import *
+from tests.study_progress_cases.evidence_gap_projection import *
 from tests.study_progress_cases.current_executable_owner_action import *
