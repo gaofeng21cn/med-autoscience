@@ -60,6 +60,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_log_readback import (
+    candidate_with_transition_log_readback as _candidate_with_log_readback,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_stage_run_identity import (
     candidate_with_stage_run_admission_identity as _candidate_with_stage_run_admission_identity,
 )
@@ -156,8 +159,21 @@ def current_control_provider_admission_candidates(
             study_payload=study,
         )
         if candidate is not None:
+            candidate = candidate_with_authority_boundaries(candidate)
+            candidate = _candidate_with_transition_log_readback(
+                candidate,
+                study_root=study_root,
+            )
             candidates.append(candidate_with_authority_boundaries(candidate))
     return candidates
+
+
+def _candidate_with_transition_log_readback(
+    candidate: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, Any]:
+    return _candidate_with_log_readback(candidate, study_root=study_root)
 
 
 def provider_admission_candidate_from_current_control_action(
@@ -926,17 +942,20 @@ def _candidate_with_transition_request_identity(candidate: Mapping[str, Any]) ->
     stage_run_identity = _mapping(request.get("stage_run_identity"))
     source_refs = dict(_mapping(payload.get("source_refs")))
     route_key = (
-        _non_empty_text(payload.get("route_identity_key"))
+        _non_empty_text(stage_run_identity.get("route_identity_key"))
         or _non_empty_text(source_refs.get("route_identity_key"))
-        or _non_empty_text(stage_run_identity.get("route_identity_key"))
+        or _non_empty_text(payload.get("route_identity_key"))
         or request_key
     )
     attempt_key = (
-        _non_empty_text(payload.get("attempt_idempotency_key"))
+        _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
         or _non_empty_text(source_refs.get("attempt_idempotency_key"))
-        or _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
+        or _non_empty_text(payload.get("attempt_idempotency_key"))
         or route_key
     )
+    if request_key is not None and _non_empty_text(request.get("recommended_transition_kind")) is not None:
+        route_key = request_key
+        attempt_key = request_key
     if route_key is not None:
         payload["route_identity_key"] = route_key
     if attempt_key is not None:
