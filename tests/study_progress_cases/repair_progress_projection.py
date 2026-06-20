@@ -78,6 +78,66 @@ def test_repair_progress_projection_carries_recheck_and_gate_done_flags(tmp_path
     assert repair_progress["gate_replay_refs"] == [str(gate_request)]
 
 
+def test_repair_progress_projection_uses_accepted_receipt_identity_over_evidence_unit(
+    tmp_path: Path,
+) -> None:
+    repair_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("current\n", encoding="utf-8")
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "repair-source-current",
+            "repair_work_unit": {
+                "unit_id": "analysis_claim_evidence_repair",
+                "source_eval_id": "eval-current",
+            },
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                ],
+            },
+            "gate_replay_done": True,
+        },
+    )
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "action_fingerprint": "publication-blockers::0915410f804b3697",
+            "canonical_artifact_delta_refs": [
+                {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+            "repair_execution_evidence_ref": str(evidence_path),
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+
+    repair_progress = repair_projection.build_repair_progress_projection(study_root=study_root)
+
+    assert repair_progress["paper_delta_observed"] is True
+    assert repair_progress["accepted_owner_receipt"] is True
+    assert repair_progress["owner_receipt_ref"] == str(receipt_path)
+    assert repair_progress["work_unit_id"] == "medical_prose_write_repair"
+    assert repair_progress["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+    assert repair_progress["action_fingerprint"] == "publication-blockers::0915410f804b3697"
+
+
 def test_repair_progress_projection_accepts_executed_quality_batch_owner_result(
     tmp_path: Path,
 ) -> None:

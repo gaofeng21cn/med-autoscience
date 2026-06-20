@@ -1274,6 +1274,95 @@ def test_terminal_anti_loop_does_not_rematerialize_consumed_gate_replay_successo
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
 
+def test_same_work_unit_repair_receipt_supersedes_no_selected_dispatch_owner_gate() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    current_work_unit = _typed_blocker_work_unit(
+        study_id=study_id,
+        owner="one-person-lab",
+        action_type="run_quality_repair_batch",
+        work_unit_id="medical_prose_write_repair",
+        blocker_type="no_selected_dispatch_for_authorized_stage_packet",
+    ) | {
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "currentness_basis": {
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+        },
+    }
+    current_work_unit["state"]["typed_blocker"] |= {
+        "typed_blocker_ref": (
+            "artifacts/supervision/consumer/default_executor_execution/"
+            "sat_08da46bea43329723d2fbbea.closeout.json"
+        ),
+        "stage_packet_ref": (
+            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+            "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/"
+            "33abc53e0c18295f5fa03738.json"
+        ),
+        "work_unit_fingerprint": fingerprint,
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": current_work_unit,
+            "study_intervention_events": [
+                {
+                    "surface": "study_intervention_event",
+                    "intent": "owner_gate_decision",
+                    "payload": {
+                        "decision": "admit_identity_bound_stage_packet",
+                        "current_owner_identity": {
+                            "study_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "work_unit_fingerprint": fingerprint,
+                            "blocker_type": "stage_packet_not_current_selected_dispatch",
+                        },
+                        "owner_gate_decision_ref": "owner-gate-decision:dm003-stage-packet",
+                        "provider_admission_allowed": True,
+                    },
+                }
+            ],
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "status": "progress_delta_observed",
+                "paper_delta_observed": True,
+                "progress_delta_candidate": True,
+                "accepted_owner_receipt": True,
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "source_eval_id": "publication-eval::003::current",
+                "owner_receipt_ref": receipt_ref,
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "gate_replay_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_receipt_recorded"
+    assert state["conditions"] == [
+        {
+            "condition": "same_work_unit_owner_receipt_recorded",
+            "action_type": "run_quality_repair_batch",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_owner_receipt"
+    assert state["next_safe_action"]["owner_receipt_ref"] == receipt_ref
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["evidence_refs"] == [receipt_ref]
+
+
 def test_paper_progress_stall_terminal_uses_gate_followthrough_successor_action() -> None:
     fingerprint = "sha256:7ede1907479d87ea1a88c4468749d0e63017d93b7b2d518cdcd9be95d4ee0e96"
     repair_fingerprint = "publication-blockers::0915410f804b3697"

@@ -89,9 +89,25 @@ def build_paper_recovery_state(
     diagnostic = _mapping(diagnostic_report)
     current_work_unit = _mapping(progress.get("current_work_unit"))
     obligation = _obligation(progress, current_work_unit=current_work_unit)
+    current_action = _current_executable_owner_action(progress)
 
     owner_gate_event = _matching_owner_gate_decision_event(progress, obligation=obligation)
     if owner_gate_event is not None:
+        owner_receipt = _same_work_unit_owner_receipt(
+            progress,
+            current_work_unit=current_work_unit,
+            current_action=current_action,
+            obligation=obligation,
+        )
+        if owner_receipt is not None:
+            owner_receipt_state = _owner_receipt_state(
+                progress,
+                obligation=obligation,
+                owner_receipt=owner_receipt,
+                diagnostic_report=diagnostic,
+            )
+            if owner_receipt_state is not None:
+                return owner_receipt_state
         owner_gate_payload = _mapping(owner_gate_event.get("payload"))
         decision = _text(owner_gate_payload.get("decision"))
         phase = "human_gate"
@@ -138,7 +154,6 @@ def build_paper_recovery_state(
         )
 
     typed_blocker = _current_typed_blocker(current_work_unit)
-    current_action = _current_executable_owner_action(progress)
     consumed_terminal_closeout = _matching_provider_admission_terminal_closeout_consumed(
         progress,
         obligation=obligation,
@@ -185,57 +200,14 @@ def build_paper_recovery_state(
         obligation=obligation,
     )
     if owner_receipt is not None:
-        successor_action = _successor_owner_action_from_consumed_owner_receipt(
-            progress,
-            owner_receipt=owner_receipt,
-        )
-        if successor_action is not None:
-            successor_owner = _text(successor_action.get("owner")) or _text(
-                successor_action.get("next_owner")
-            )
-            return _state(
-                progress,
-                obligation=obligation,
-                phase="owner_action_ready",
-                conditions=[
-                    {
-                        "condition": "consumed_owner_receipt_routeback_successor",
-                        "source_condition": _text(owner_receipt.get("condition"))
-                        or "owner_receipt_recorded",
-                    }
-                ],
-                next_safe_action=_next_action(
-                    "materialize_successor_owner_action",
-                    provider_admission_allowed=True,
-                    owner=successor_owner,
-                    successor_owner_action=successor_action,
-                ),
-                current_owner=successor_owner,
-                diagnostic_report=diagnostic,
-            )
-        owner = _text(obligation.get("owner"))
-        owner_receipt_ref = _text(owner_receipt.get("owner_receipt_ref"))
-        condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
-        return _state(
+        owner_receipt_state = _owner_receipt_state(
             progress,
             obligation=obligation,
-            phase="owner_receipt_recorded",
-            conditions=[
-                {
-                    "condition": condition,
-                    "action_type": _text(obligation.get("action_type")),
-                }
-            ],
-            next_safe_action=_next_action(
-                "consume_owner_receipt",
-                provider_admission_allowed=False,
-                owner=owner,
-                owner_receipt_ref=owner_receipt_ref,
-            ),
-            current_owner=owner,
-            evidence_refs=[owner_receipt_ref] if owner_receipt_ref is not None else [],
+            owner_receipt=owner_receipt,
             diagnostic_report=diagnostic,
         )
+        if owner_receipt_state is not None:
+            return owner_receipt_state
     typed_blocker_superseded_by_current_action = bool(
         typed_blocker
         and current_action
@@ -718,6 +690,66 @@ def _state(
         diagnostic_report=diagnostic_report,
     )
     return cleaned
+
+
+def _owner_receipt_state(
+    progress: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+    owner_receipt: Mapping[str, Any],
+    diagnostic_report: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    successor_action = _successor_owner_action_from_consumed_owner_receipt(
+        progress,
+        owner_receipt=owner_receipt,
+    )
+    if successor_action is not None:
+        successor_owner = _text(successor_action.get("owner")) or _text(
+            successor_action.get("next_owner")
+        )
+        return _state(
+            progress,
+            obligation=obligation,
+            phase="owner_action_ready",
+            conditions=[
+                {
+                    "condition": "consumed_owner_receipt_routeback_successor",
+                    "source_condition": _text(owner_receipt.get("condition"))
+                    or "owner_receipt_recorded",
+                }
+            ],
+            next_safe_action=_next_action(
+                "materialize_successor_owner_action",
+                provider_admission_allowed=True,
+                owner=successor_owner,
+                successor_owner_action=successor_action,
+            ),
+            current_owner=successor_owner,
+            diagnostic_report=diagnostic_report,
+        )
+    owner = _text(obligation.get("owner"))
+    owner_receipt_ref = _text(owner_receipt.get("owner_receipt_ref"))
+    condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
+    return _state(
+        progress,
+        obligation=obligation,
+        phase="owner_receipt_recorded",
+        conditions=[
+            {
+                "condition": condition,
+                "action_type": _text(obligation.get("action_type")),
+            }
+        ],
+        next_safe_action=_next_action(
+            "consume_owner_receipt",
+            provider_admission_allowed=False,
+            owner=owner,
+            owner_receipt_ref=owner_receipt_ref,
+        ),
+        current_owner=owner,
+        evidence_refs=[owner_receipt_ref] if owner_receipt_ref is not None else [],
+        diagnostic_report=diagnostic_report,
+    )
 
 
 def _obligation(
@@ -1228,7 +1260,14 @@ def _same_work_unit_owner_receipt(
     current_action: Mapping[str, Any],
     obligation: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if _current_work_unit_status(current_work_unit) != "executable_owner_action":
+    current_status = _current_work_unit_status(current_work_unit)
+    typed_blocker = _current_typed_blocker(current_work_unit)
+    if current_status == "typed_blocker" and _typed_blocker_reason(typed_blocker) not in {
+        "no_selected_dispatch_for_authorized_stage_packet",
+        "stage_packet_not_current_selected_dispatch",
+    }:
+        return None
+    if current_status not in {"executable_owner_action", "typed_blocker"}:
         return None
     if _executable_action_is_gate_followthrough_successor(
         progress,

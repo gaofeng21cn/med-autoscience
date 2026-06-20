@@ -30,6 +30,7 @@ def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
     progress_delta_candidate = _progress_delta_candidate(evidence=evidence)
     paper_delta_observed = bool(changed_refs) and progress_delta_candidate and accepted
     owner_receipt_ref = str(receipt_path) if receipt else str(quality_batch_path) if accepted and quality_batch else None
+    receipt_identity = _accepted_receipt_work_unit_identity(receipt) if accepted else {}
     return {
         "surface_kind": "repair_progress_projection",
         "schema_version": 1,
@@ -39,12 +40,16 @@ def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
         "progress_delta_candidate": progress_delta_candidate,
         "accepted_owner_receipt": accepted,
         "status": "progress_delta_observed" if paper_delta_observed else "not_observed",
-        "work_unit_id": _text(_mapping(evidence.get("repair_work_unit")).get("unit_id"))
+        "work_unit_id": _text(receipt_identity.get("work_unit_id"))
+        or _text(_mapping(evidence.get("repair_work_unit")).get("unit_id"))
         or _text(receipt.get("work_unit_id"))
         or _text(quality_identity.get("work_unit_id")),
-        "work_unit_fingerprint": _text(quality_identity.get("work_unit_fingerprint"))
+        "work_unit_fingerprint": _text(receipt_identity.get("work_unit_fingerprint"))
+        or _text(quality_identity.get("work_unit_fingerprint"))
         or _text(receipt.get("work_unit_fingerprint")),
-        "action_fingerprint": _text(quality_identity.get("work_unit_fingerprint"))
+        "action_fingerprint": _text(receipt_identity.get("action_fingerprint"))
+        or _text(receipt_identity.get("work_unit_fingerprint"))
+        or _text(quality_identity.get("work_unit_fingerprint"))
         or _text(receipt.get("action_fingerprint")),
         "source_fingerprint": _text(evidence.get("source_fingerprint")),
         "source_eval_id": _text(_mapping(evidence.get("repair_work_unit")).get("source_eval_id"))
@@ -89,6 +94,20 @@ def _accepted_progress_receipt(*, receipt: Mapping[str, Any]) -> bool:
     if receipt.get("quality_authorized") is True or receipt.get("submission_authorized") is True:
         return False
     return _text(receipt.get("typed_blocker")) is None and _text(receipt.get("blocked_reason")) is None
+
+
+def _accepted_receipt_work_unit_identity(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    if not receipt:
+        return {}
+    return {
+        key: value
+        for key, value in {
+            "work_unit_id": _text(receipt.get("work_unit_id")),
+            "work_unit_fingerprint": _text(receipt.get("work_unit_fingerprint")),
+            "action_fingerprint": _text(receipt.get("action_fingerprint")),
+        }.items()
+        if value is not None
+    }
 
 
 def _accepted_quality_batch_owner_result(
