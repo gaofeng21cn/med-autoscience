@@ -41,12 +41,14 @@ PAPER_PROGRESS_TRANSITION_REQUESTS = Path(
 )
 CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
     "complete_medical_paper_readiness_surface": {"MedAutoScience"},
+    "request_opl_stage_attempt": {"write"},
     "return_to_ai_reviewer_workflow": {"ai_reviewer"},
     "run_quality_repair_batch": {"analysis-campaign", "write"},
     "run_gate_clearing_batch": {"finalize", "gate_clearing_batch", "write"},
 }
 CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS = {
     "complete_medical_paper_readiness_surface": "MedAutoScience",
+    "request_opl_stage_attempt": "write",
     "return_to_ai_reviewer_workflow": "ai_reviewer",
     "run_quality_repair_batch": "write",
     "run_gate_clearing_batch": "gate_clearing_batch",

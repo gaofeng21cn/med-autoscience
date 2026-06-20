@@ -207,7 +207,28 @@ def provider_admission_candidate_from_current_control_action(
     dispatch_path = _current_control_action_dispatch_path(action, study_root=study_root, action_type=action_type)
     dispatch_payload = _read_json_object(dispatch_path) if dispatch_path is not None else None
     if dispatch_payload is None:
-        return None
+        accepted_owner_gate_dispatch_path = _accepted_owner_gate_stage_packet_dispatch_path(
+            action,
+            study_root=study_root,
+        )
+        accepted_owner_gate_dispatch_payload = (
+            _read_json_object(accepted_owner_gate_dispatch_path)
+            if accepted_owner_gate_dispatch_path is not None
+            else None
+        )
+        if accepted_owner_gate_dispatch_payload is not None:
+            dispatch_path = accepted_owner_gate_dispatch_path
+            dispatch_payload = accepted_owner_gate_dispatch_payload
+    if dispatch_payload is None:
+        return _request_only_transition_action_candidate(
+            action,
+            study_root=study_root,
+            status_study_id=status_study_id,
+            current_action_identity=current_identity,
+            status_payload=_mapping(status_payload),
+            current_control_ref=current_control_ref,
+            study_payload=study,
+        )
     if _non_empty_text(dispatch_payload.get("dispatch_status")) != "ready":
         return None
     if _non_empty_text(dispatch_payload.get("action_type")) != action_type:
@@ -335,6 +356,183 @@ def provider_admission_candidate_from_current_control_action(
     )
 
 
+def _accepted_owner_gate_stage_packet_dispatch_path(
+    action: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> Path | None:
+    source = (
+        _non_empty_text(action.get("mas_owner_action_source"))
+        or _non_empty_text(action.get("source"))
+        or _non_empty_text(action.get("source_surface"))
+        or _non_empty_text(_mapping(action.get("owner_route_currentness_basis")).get("source"))
+    )
+    if source != ACCEPTED_OWNER_GATE_DECISION_SOURCE:
+        return None
+    basis = _mapping(action.get("owner_route_currentness_basis")) or _mapping(
+        action.get("currentness_basis")
+    )
+    refs = (
+        _non_empty_text(action.get("stage_packet_ref")),
+        *_text_items(action.get("stage_packet_refs")),
+        _non_empty_text(basis.get("stage_packet_ref")),
+        *_text_items(basis.get("stage_packet_refs")),
+    )
+    for ref in refs:
+        if ref is None:
+            continue
+        path = _resolve_stage_packet_ref(ref, study_root=study_root)
+        if path.exists():
+            return path
+    return None
+
+
+def _resolve_stage_packet_ref(ref: str, *, study_root: Path) -> Path:
+    path = Path(ref).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    root = Path(study_root).expanduser().resolve()
+    study_id = root.name
+    if len(path.parts) >= 2 and path.parts[:2] == ("studies", study_id):
+        return (root.parent.parent / path).resolve()
+    return (root / path).resolve()
+
+
+def _request_only_transition_action_candidate(
+    action: Mapping[str, Any],
+    *,
+    study_root: Path,
+    status_study_id: str | None,
+    current_action_identity: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+    current_control_ref: str | None,
+    study_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action_type = _non_empty_text(action.get("action_type"))
+    if action_type != "request_opl_stage_attempt":
+        return None
+    source = (
+        _non_empty_text(action.get("mas_owner_action_source"))
+        or _non_empty_text(action.get("source"))
+        or _non_empty_text(action.get("source_surface"))
+        or _non_empty_text(_mapping(action.get("owner_route_currentness_basis")).get("source"))
+    )
+    if source != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return None
+    study_id = _non_empty_text(action.get("study_id")) or status_study_id
+    if status_study_id is not None and study_id != status_study_id:
+        return None
+    if study_id is None:
+        return None
+    current_identity = _mapping(current_action_identity)
+    if not current_identity:
+        return None
+    study = _mapping(study_payload)
+    work_unit_id = _non_empty_text(action.get("work_unit_id")) or _non_empty_text(
+        action.get("next_work_unit")
+    )
+    action_basis = _mapping(action.get("owner_route_currentness_basis")) or _mapping(
+        action.get("currentness_basis")
+    )
+    current_identity_basis = _mapping(current_identity.get("currentness_basis"))
+    action_fingerprint = _first_currentness_fingerprint(
+        action.get("action_fingerprint"),
+        action.get("work_unit_fingerprint"),
+        action.get("source_fingerprint"),
+        action_basis.get("work_unit_fingerprint"),
+        action_basis.get("source_fingerprint"),
+        current_identity.get("work_unit_fingerprint"),
+        current_identity.get("action_fingerprint"),
+        current_identity_basis.get("work_unit_fingerprint"),
+        current_identity_basis.get("source_fingerprint"),
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    if work_unit_id is None or action_fingerprint is None:
+        return None
+    if not _matches_current_action(
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=action_fingerprint,
+        current_action_identity=current_identity,
+    ):
+        return None
+    owner = _non_empty_text(action.get("next_executable_owner")) or _non_empty_text(
+        action.get("owner")
+    )
+    executable_owner = _current_control_executable_owner(action_type=action_type, owner=owner)
+    if executable_owner is None:
+        return None
+    currentness_basis = {
+        **dict(current_identity_basis),
+        **dict(action_basis),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+    }
+    currentness_basis = {key: value for key, value in currentness_basis.items() if value is not None}
+    execution = {
+        "source": source,
+        "current_control_ref": current_control_ref,
+        "study_id": study_id,
+        "quest_id": _non_empty_text(action.get("quest_id"))
+        or _non_empty_text(study.get("quest_id"))
+        or _non_empty_text(status_payload.get("quest_id")),
+        "action_type": action_type,
+        "execution_status": "transition_request_pending",
+        "provider_attempt_or_lease_required": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_transition_runtime_required": True,
+        "provider_completion_is_domain_completion": False,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "next_executable_owner": executable_owner,
+        "required_output_surface": _non_empty_text(action.get("required_output_surface")),
+        "mas_owner_action_source": source,
+        "owner_route_current": True,
+        "owner_route": {
+            "next_owner": executable_owner,
+            "allowed_actions": [action_type],
+            "work_unit_fingerprint": action_fingerprint,
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
+                "mas_owner_action_source": source,
+                "owner_route_currentness_basis": currentness_basis,
+            },
+        },
+    }
+    candidate = provider_admission_candidate_from_execution(
+        execution,
+        execution_ref=current_control_ref,
+        status_study_id=status_study_id,
+        current_action_identity=current_identity,
+    )
+    if candidate is None:
+        return None
+    candidate.pop("dispatch_path", None)
+    candidate["source"] = source
+    candidate["current_control_ref"] = current_control_ref
+    candidate["mas_owner_action_source"] = source
+    candidate["provider_admission_pending"] = False
+    candidate["provider_attempt_or_lease_required"] = False
+    candidate["provider_admission_requires_opl_runtime_result"] = True
+    candidate["opl_transition_runtime_required"] = True
+    candidate["currentness_basis"] = currentness_basis
+    candidate["source_refs"] = {
+        **_mapping(candidate.get("source_refs")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "current_control_ref": current_control_ref,
+        "mas_owner_action_source": source,
+    }
+    return candidate_with_authority_boundaries(candidate)
+
+
 def _current_identity_fingerprint_for_action(
     *,
     action_type: str,
@@ -404,12 +602,13 @@ def provider_admission_candidate_from_execution(
     work_unit_id = handoff_work_unit_id(execution)
     work_unit_fingerprint = _work_unit_fingerprint(execution)
     dispatch_path = handoff_dispatch_path(execution)
+    transition_runtime_only = _execution_requests_transition_runtime(execution)
     if (
         study_id is None
         or action_type is None
         or work_unit_id is None
         or work_unit_fingerprint is None
-        or dispatch_path is None
+        or (dispatch_path is None and not transition_runtime_only)
     ):
         return None
     current_identity = _mapping(current_action_identity)
@@ -461,7 +660,7 @@ def provider_admission_candidate_from_execution(
             canonical_fingerprint=work_unit_fingerprint,
         ),
         "action_fingerprint": _non_empty_text(execution.get("action_fingerprint")) or work_unit_fingerprint,
-        "dispatch_path": dispatch_path,
+        **({"dispatch_path": dispatch_path} if dispatch_path is not None else {}),
         "dispatch_authority": _non_empty_text(execution.get("dispatch_authority")),
         "mas_owner_action_source": _non_empty_text(execution.get("mas_owner_action_source")),
         "owner_callable_surface": _non_empty_text(execution.get("owner_callable_surface")),
