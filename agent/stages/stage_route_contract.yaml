@@ -84,6 +84,14 @@ ordinary_progress_handoff_policy:
       - memory_accept_reject
       - production_ready
       - physical_delete
+  # Progress-first quality-loop foldback:
+  # Review/repair budget exhaustion is not a default safe stop-loss. It must
+  # trigger severity-based decision: fatal_blocker -> TypedBlocker/human_gate/
+  # route or owner redesign; nonfatal -> CarryForwardRiskReceipt + next owner.
+  # CarryForwardRiskReceipt fields and MAS/OPL authority boundary are specified
+  # in docs/runtime/control/progress_first_quality_loop.md. This comment is
+  # intentionally non-payload to avoid changing packaged contract mirrors while
+  # this docs lane cannot update src/** resources.
   artifact_tier_policy:
     tiers:
       - T0_progress_delta
