@@ -10,6 +10,7 @@ from med_autoscience.controllers.ai_reviewer_publication_eval_records import (
     current_manuscript_binding,
     latest_current_ai_reviewer_publication_eval_record,
 )
+from med_autoscience.controllers.current_publication_eval import read_current_publication_eval_with_ref
 from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.test_ai_reviewer_publication_eval_workflow import (
@@ -57,6 +58,81 @@ def _ready_publication_quality_readiness() -> dict[str, Any]:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_newer_gate_projection_keeps_controller_route_current_against_stale_ai_reviewer_record(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript after paper-line repair.\n"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text(manuscript_text, encoding="utf-8")
+
+    stale_ai_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript,
+        manuscript_text=manuscript_text,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        eval_id=(
+            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap"
+            "::ai-reviewer-record::20260616T042403Z::sat_07183cd27fc9f913b03dfcee"
+        ),
+        emitted_at="2026-06-16T04:26:43+00:00",
+    )
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    _write_json(response_root / "20260616T042643Z_publication_eval_record.json", stale_ai_record)
+
+    latest_gate_eval = _publication_eval_record(study_root)
+    mechanical_provenance = dict(latest_gate_eval["assessment_provenance"])
+    mechanical_provenance.update(
+        {
+            "owner": "mechanical_projection",
+            "source_kind": "publication_gate_report",
+            "ai_reviewer_required": True,
+            "mechanical_projection_used_as_quality_authority": False,
+        }
+    )
+    gate_action = dict(latest_gate_eval["recommended_actions"][0])
+    gate_action.update(
+        {
+            "action_id": "publication-eval-action::return_to_controller::publication-blockers::2a234f3e48d8beb5",
+            "action_type": "return_to_controller",
+            "priority": "now",
+            "requires_controller_decision": True,
+            "work_unit_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+            "next_work_unit": {
+                "unit_id": "analysis_claim_evidence_repair",
+                "lane": "analysis-campaign",
+                "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+            },
+        }
+    )
+    gate_action.pop("route_target", None)
+    gate_action.pop("route_key_question", None)
+    gate_action.pop("route_rationale", None)
+    latest_gate_eval.update(
+        {
+            "eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap"
+                "::003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T05:34:37+00:00"
+            ),
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "emitted_at": "2026-06-20T05:34:37+00:00",
+            "assessment_provenance": mechanical_provenance,
+            "recommended_actions": [gate_action],
+        }
+    )
+    stable_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(stable_eval_path, latest_gate_eval)
+
+    payload, ref = read_current_publication_eval_with_ref(study_root=study_root)
+
+    assert ref == stable_eval_path.resolve()
+    assert payload["eval_id"] == latest_gate_eval["eval_id"]
+    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
 
 
 def test_current_ai_reviewer_record_binds_stage_native_current_body_before_root_paper(

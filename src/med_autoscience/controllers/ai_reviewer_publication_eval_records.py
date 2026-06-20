@@ -132,8 +132,6 @@ def record_supersedes_publication_eval(
 ) -> bool:
     if not publication_eval:
         return True
-    if _publication_eval_requires_ai_reviewer_authority(publication_eval):
-        return True
     if _text(record.get("eval_id")) == _text(publication_eval.get("eval_id")):
         return record_has_stronger_currentness_trace(record=record, publication_eval=publication_eval)
     record_timestamp = publication_eval_timestamp(record)
