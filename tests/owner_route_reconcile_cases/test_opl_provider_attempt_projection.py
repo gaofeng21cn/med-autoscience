@@ -1063,3 +1063,89 @@ def test_terminal_provider_attempt_closeout_inspects_compact_attempt_before_pref
         ("family-runtime", "attempt", "list", "--json"),
         ("family-runtime", "attempt", "inspect", "sat-compact-terminal", "--json"),
     ]
+
+
+def test_terminal_provider_attempt_closeout_prioritizes_preferred_attempt_within_budget(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    idempotency_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    commands: list[tuple[str, ...]] = []
+
+    unrelated_attempt = {
+        "stage_attempt_id": "sat-unrelated-terminal",
+        "domain_id": "medautoscience",
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "study_id": study_id,
+        "status": "completed",
+        "updated_at": "2026-06-20T03:00:00Z",
+        "closeout_receipt_status": "accepted_typed_closeout",
+        "workspace_locator": {
+            "workspace_root": str(profile.workspace_root),
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+        },
+    }
+    preferred_attempt = {
+        "stage_attempt_id": "sat-preferred-terminal",
+        "domain_id": "medautoscience",
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "study_id": study_id,
+        "status": "completed",
+        "updated_at": "2026-06-20T02:28:40Z",
+        "closeout_receipt_status": "accepted_typed_closeout",
+        "workspace_locator": {
+            "workspace_root": str(profile.workspace_root),
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": idempotency_key,
+            "attempt_idempotency_key": idempotency_key,
+        },
+    }
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "attempt", "list", "--json"):
+            return {
+                "family_runtime_stage_attempts": {
+                    "attempts": [unrelated_attempt, preferred_attempt]
+                }
+            }
+        if args == ("family-runtime", "attempt", "inspect", "sat-preferred-terminal", "--json"):
+            return {"family_runtime_stage_attempt": {"attempt": preferred_attempt}}
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.terminal_provider_attempt_closeout_for_study(
+        profile=profile,
+        study_id=study_id,
+        max_inspect_count=1,
+        preferred_actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "attempt_idempotency_key": idempotency_key,
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["stage_attempt_id"] == "sat-preferred-terminal"
+    assert result["attempt_idempotency_key"] == idempotency_key
+    assert commands == [
+        ("family-runtime", "attempt", "list", "--json"),
+        ("family-runtime", "attempt", "inspect", "sat-preferred-terminal", "--json"),
+    ]

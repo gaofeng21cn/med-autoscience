@@ -30,6 +30,7 @@ from .delivery_inspection import attach_delivery_inspection_projection
 from .opl_current_control_state_handoff import (
     merge_live_attempt_observability_into_handoff,
     opl_current_control_state_live_attempt_handoff_projection,
+    refresh_handoff_with_terminal_closeout_candidates,
 )
 from .operator_view import _study_command_surfaces
 from .opl_supervisor_decision_readback import (
@@ -163,6 +164,27 @@ def refresh_existing_projection_current_owner_surfaces(
     else:
         updated["opl_current_control_state_handoff"] = None
         handoff = {}
+    handoff = _refresh_existing_handoff_with_terminal_closeout(
+        profile=profile,
+        payload=updated,
+        handoff=handoff,
+        study_root=study_root,
+    )
+    updated["opl_current_control_state_handoff"] = handoff if handoff else None
+    updated = _sync_handoff_provider_admission_fields(updated, handoff=handoff)
+    if _mapping_copy(updated.get("provider_admission_terminal_closeout_consumed")):
+        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+        updated = sync_progress_first_owner_action_admission(updated)
+        updated = sync_current_execution_evidence(updated, handoff=handoff)
+        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+        updated = apply_paper_recovery_state_user_visible_status(updated)
+        updated["user_visible_projection"] = build_user_visible_projection(updated)
+        return attach_delivery_inspection_projection_fn(
+            updated,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
     if _handoff_has_bound_running_provider_attempt(handoff) and not _running_handoff_conflicts_current_surface(
         payload=updated,
         handoff=handoff,
@@ -425,7 +447,104 @@ def _apply_current_control_currentness_to_existing_projection(
             for item in handoff.get("provider_admission_candidates") or []
             if isinstance(item, Mapping)
         ]
+    if "transition_request_pending_count" in handoff:
+        updated["transition_request_pending_count"] = int(
+            handoff.get("transition_request_pending_count") or 0
+        )
+    if "transition_request_candidates" in handoff:
+        updated["transition_request_candidates"] = [
+            dict(item)
+            for item in handoff.get("transition_request_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if consumed:
+        updated["provider_admission_terminal_closeout_consumed"] = consumed
+        updated["provider_admission_pending_count"] = 0
+        updated["provider_admission_candidates"] = []
+        updated["transition_request_pending_count"] = 0
+        updated["transition_request_candidates"] = []
     return updated
+
+
+def _sync_handoff_provider_admission_fields(
+    payload: dict[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if "provider_admission_pending_count" in handoff:
+        updated["provider_admission_pending_count"] = int(
+            handoff.get("provider_admission_pending_count") or 0
+        )
+    if "provider_admission_candidates" in handoff:
+        updated["provider_admission_candidates"] = [
+            dict(item)
+            for item in handoff.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+    if "transition_request_pending_count" in handoff:
+        updated["transition_request_pending_count"] = int(
+            handoff.get("transition_request_pending_count") or 0
+        )
+    if "transition_request_candidates" in handoff:
+        updated["transition_request_candidates"] = [
+            dict(item)
+            for item in handoff.get("transition_request_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if consumed:
+        updated["provider_admission_terminal_closeout_consumed"] = consumed
+        updated["provider_admission_pending_count"] = 0
+        updated["provider_admission_candidates"] = []
+        updated["transition_request_pending_count"] = 0
+        updated["transition_request_candidates"] = []
+    return updated
+
+
+def _refresh_existing_handoff_with_terminal_closeout(
+    *,
+    profile: WorkspaceProfile,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    study_id = _non_empty_text(payload.get("study_id"))
+    if study_id is None:
+        return dict(handoff)
+    candidates = [
+        dict(item)
+        for item in payload.get("transition_request_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    if not candidates:
+        candidate_payload = dict(payload)
+        for key in (
+            "provider_admission_terminal_closeout_consumed",
+            "paper_autonomy_supervisor_decision",
+            "provider_admission_blocked_by_supervisor_decision",
+        ):
+            candidate_payload.pop(key, None)
+        fields = provider_admission_projection_fields(
+            payload=candidate_payload,
+            handoff=handoff,
+            study_root=study_root,
+        )
+        candidates = [
+            dict(item)
+            for item in fields.get("transition_request_candidates") or []
+            if isinstance(item, Mapping)
+        ]
+    if not candidates:
+        return dict(handoff)
+    refreshed = refresh_handoff_with_terminal_closeout_candidates(
+        profile=profile,
+        study_id=study_id,
+        handoff=handoff,
+        candidates=candidates,
+    )
+    return dict(refreshed or handoff)
 
 
 def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -> dict[str, Any]:

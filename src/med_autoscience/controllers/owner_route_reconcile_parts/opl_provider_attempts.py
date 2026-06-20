@@ -547,7 +547,10 @@ def _candidate_terminal_attempts(
             stage_attempt_id=_text(attempt.get("stage_attempt_id")),
         )
     ]
+    preferred = _preferred_action_keys(preferred_actions)
     matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
+    if preferred:
+        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
     return matched
 
 

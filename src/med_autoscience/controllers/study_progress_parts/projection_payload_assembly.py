@@ -69,6 +69,7 @@ from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
 )
 from .provider_admission_projection import provider_admission_projection_fields
+from .opl_current_control_state_handoff import refresh_handoff_with_terminal_closeout_candidates
 from .repair_progress_projection import build_repair_progress_projection
 from .research_pack_progress_projection import build_research_pack_progress_summary_projection
 from .shared import _mapping_copy, _non_empty_text, _read_json_object
@@ -333,24 +334,26 @@ def assemble_study_progress_payload(
         or refreshed_current_work_unit != _mapping_copy(payload.get("current_work_unit"))
     ):
         payload = refreshed_probe
-        payload.update(
-            provider_admission_projection_fields(
-                payload=payload,
-                handoff=handoff,
-                study_root=study_root,
-            )
+        payload = _apply_provider_admission_fields_with_terminal_probe(
+            payload=payload,
+            handoff=handoff,
+            study_root=study_root,
+            profile=profile,
+            study_id=study_id,
         )
+        handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
         payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
             {**payload, "execution_owner_guard": execution_owner_guard}
         )
     else:
-        payload.update(
-            provider_admission_projection_fields(
-                payload=payload,
-                handoff=handoff,
-                study_root=study_root,
-            )
+        payload = _apply_provider_admission_fields_with_terminal_probe(
+            payload=payload,
+            handoff=handoff,
+            study_root=study_root,
+            profile=profile,
+            study_id=study_id,
         )
+        handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
     payload = _sync_progress_first_owner_action_admission(payload)
     payload["paper_recovery_state"] = build_paper_recovery_state(payload)
     payload = _normalize_paper_recovery_execution_projection(
@@ -400,6 +403,13 @@ def assemble_study_progress_payload(
                 study_root=study_root,
             )
         )
+    payload = _apply_provider_admission_fields_with_terminal_probe(
+        payload=payload,
+        handoff=_mapping_copy(payload.get("opl_current_control_state_handoff")),
+        study_root=study_root,
+        profile=profile,
+        study_id=study_id,
+    )
     return attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,
@@ -416,6 +426,98 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     return _apply_terminal_delivery_user_visible_status(updated)
 
 
+def _apply_provider_admission_fields_with_terminal_probe(
+    *,
+    payload: dict[str, Any],
+    handoff: Mapping[str, Any],
+    study_root: Path,
+    profile: Any | None,
+    study_id: str,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if profile is not None:
+        refreshed_handoff = refresh_handoff_with_terminal_closeout_candidates(
+            profile=profile,
+            study_id=study_id,
+            handoff=handoff,
+            candidates=_transition_request_candidates_from_payload(updated),
+        )
+        if refreshed_handoff and refreshed_handoff != dict(handoff):
+            updated["opl_current_control_state_handoff"] = refreshed_handoff
+            updated.pop("provider_admission_terminal_closeout_consumed", None)
+            handoff = refreshed_handoff
+            consumed = _mapping_copy(refreshed_handoff.get("provider_admission_terminal_closeout_consumed"))
+            if consumed:
+                return {
+                    **updated,
+                    "provider_admission_pending_count": 0,
+                    "provider_admission_candidates": [],
+                    "transition_request_pending_count": 0,
+                    "transition_request_candidates": [],
+                    "provider_admission_terminal_closeout_consumed": consumed,
+                }
+    provider_fields = provider_admission_projection_fields(
+        payload=_provider_admission_candidate_payload(updated),
+        handoff=handoff,
+        study_root=study_root,
+    )
+    updated.update(provider_fields)
+    if profile is None or int(updated.get("transition_request_pending_count") or 0) <= 0:
+        return updated
+    candidates = [
+        dict(item)
+        for item in updated.get("transition_request_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    refreshed_handoff = refresh_handoff_with_terminal_closeout_candidates(
+        profile=profile,
+        study_id=study_id,
+        handoff=handoff,
+        candidates=candidates,
+    )
+    if not refreshed_handoff or refreshed_handoff == dict(handoff):
+        return updated
+    updated["opl_current_control_state_handoff"] = refreshed_handoff
+    updated.pop("provider_admission_terminal_closeout_consumed", None)
+    consumed = _mapping_copy(refreshed_handoff.get("provider_admission_terminal_closeout_consumed"))
+    if consumed:
+        return {
+            **updated,
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "provider_admission_terminal_closeout_consumed": consumed,
+        }
+    updated.update(
+        provider_admission_projection_fields(
+            payload=updated,
+            handoff=refreshed_handoff,
+            study_root=study_root,
+        )
+    )
+    return updated
+
+
+def _transition_request_candidates_from_payload(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in payload.get("transition_request_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+
+
+def _provider_admission_candidate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    candidate_payload = dict(payload)
+    for key in (
+        "provider_admission_terminal_closeout_consumed",
+        "paper_autonomy_supervisor_decision",
+        "provider_admission_blocked_by_supervisor_decision",
+    ):
+        candidate_payload.pop(key, None)
+    return candidate_payload
+
+
 def _refresh_rebuilt_current_owner_action_surfaces(
     *,
     payload: dict[str, Any],
@@ -425,6 +527,7 @@ def _refresh_rebuilt_current_owner_action_surfaces(
     execution_owner_guard: Mapping[str, Any],
     study_root: Path,
 ) -> dict[str, Any]:
+    effective_handoff = _mapping_copy(payload.get("opl_current_control_state_handoff")) or handoff
     rebuilt_action = build_current_executable_owner_action(payload)
     if not rebuilt_action:
         return payload
@@ -433,13 +536,13 @@ def _refresh_rebuilt_current_owner_action_surfaces(
     refreshed = _refresh_current_execution_surfaces(
         payload={**payload, "current_executable_owner_action": rebuilt_action},
         status=status,
-        handoff=handoff,
+        handoff=effective_handoff,
         runtime_health_snapshot=runtime_health_snapshot,
     )
     refreshed.update(
         provider_admission_projection_fields(
             payload=refreshed,
-            handoff=handoff,
+            handoff=effective_handoff,
             study_root=study_root,
         )
     )

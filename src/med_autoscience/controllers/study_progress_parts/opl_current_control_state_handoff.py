@@ -468,7 +468,7 @@ def _latest_opl_terminal_provider_attempt_closeout_projection(
     closeout = terminal_provider_attempt_closeout_for_study(
         profile=profile,
         study_id=study_id,
-        timeout_seconds=3.0,
+        timeout_seconds=8.0,
         max_inspect_count=2,
         preferred_actions=preferred_actions,
     )
@@ -480,6 +480,51 @@ def _latest_opl_terminal_provider_attempt_closeout_projection(
     ):
         return None
     return closeout
+
+
+def refresh_handoff_with_terminal_closeout_candidates(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    handoff: Mapping[str, Any] | None,
+    candidates: list[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    if handoff is None:
+        return None
+    preferred_actions = [
+        dict(item)
+        for item in candidates
+        if isinstance(item, Mapping) and _transition_request_candidate_can_anchor_terminal_probe(item)
+    ]
+    if not preferred_actions:
+        return dict(handoff)
+    closeout = terminal_provider_attempt_closeout_for_study(
+        profile=profile,
+        study_id=study_id,
+        timeout_seconds=8.0,
+        max_inspect_count=2,
+        preferred_actions=preferred_actions,
+    )
+    if not closeout:
+        return dict(handoff)
+    if not any(
+        _terminal_closeout_matches_handoff_action(terminal=closeout, action=action)
+        for action in preferred_actions
+    ):
+        return dict(handoff)
+    refreshed = {
+        **dict(handoff),
+        "latest_terminal_stage_log": closeout,
+        "active_stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
+        "active_run_id": (
+            f"opl-stage-attempt://{stage_attempt_id}"
+            if (stage_attempt_id := _non_empty_text(closeout.get("stage_attempt_id"))) is not None
+            else None
+        ),
+        "transition_request_pending_count": len(preferred_actions),
+        "transition_request_candidates": preferred_actions,
+    }
+    return _apply_matching_terminal_closeout_to_handoff(refreshed)
 
 
 def _current_control_provider_admission_candidates(
