@@ -13,6 +13,9 @@ from med_autoscience.controllers.opl_execution_boundary import (
     OPL_EXECUTION_AUTHORIZATION_OWNER,
     OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT,
 )
+from med_autoscience.controllers.paper_autonomy_supervisor import (
+    build_supervisor_decision as _build_supervisor_decision,
+)
 from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching import (
     action_matches_obligation as _current_action_matches_obligation,
     current_work_unit_matches_obligation as _current_work_unit_matches_obligation,
@@ -613,7 +616,12 @@ def build_paper_recovery_state(
                 progress,
                 obligation=obligation,
                 phase="owner_action_ready",
-                conditions=[{"condition": "current_mas_owner_callable_ready"}],
+                conditions=[
+                    {
+                        "condition": "current_mas_owner_callable_ready",
+                        "reason": _runtime_recovery_blocking_reason(progress),
+                    }
+                ],
                 next_safe_action=_next_action(
                     "run_mas_owner_callable",
                     provider_admission_allowed=False,
@@ -684,12 +692,46 @@ def _state(
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
     cleaned = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
-    cleaned["supervisor_decision"] = _supervisor_decision_for_projection(
+    cleaned["supervisor_decision"] = _supervisor_decision_for_state(
         progress,
         paper_recovery_state=cleaned,
         diagnostic_report=diagnostic_report,
     )
     return cleaned
+
+
+def _supervisor_decision_for_state(
+    progress: Mapping[str, Any],
+    *,
+    paper_recovery_state: Mapping[str, Any],
+    diagnostic_report: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if _mas_policy_projection_can_supersede_stale_supervisor_decision(paper_recovery_state):
+        return _build_supervisor_decision(
+            progress,
+            paper_recovery_state=paper_recovery_state,
+            diagnostic_report=diagnostic_report,
+        )
+    projection = _supervisor_decision_for_projection(
+        progress,
+        paper_recovery_state=paper_recovery_state,
+        diagnostic_report=diagnostic_report,
+    )
+    return projection
+
+
+def _mas_policy_projection_can_supersede_stale_supervisor_decision(
+    paper_recovery_state: Mapping[str, Any],
+) -> bool:
+    phase = _text(paper_recovery_state.get("phase"))
+    if phase in {"owner_receipt_recorded", "terminal_closeout_ready"}:
+        return True
+    next_action_kind = _text(_mapping(paper_recovery_state.get("next_safe_action")).get("kind"))
+    return phase == "owner_action_ready" and next_action_kind in {
+        "run_mas_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
+        "materialize_successor_owner_action",
+    }
 
 
 def _owner_receipt_state(
@@ -1719,6 +1761,26 @@ def _provider_admission_readback(progress: Mapping[str, Any]) -> dict[str, Any]:
 
 def _current_work_unit_status(current_work_unit: Mapping[str, Any]) -> str | None:
     return _text(current_work_unit.get("status"))
+
+
+def _runtime_recovery_blocking_reason(progress: Mapping[str, Any]) -> str | None:
+    runtime_health = _mapping(progress.get("runtime_health_snapshot"))
+    blocking_reasons = _text_items(runtime_health.get("blocking_reasons"))
+    if "runtime_recovery_retry_budget_exhausted" in blocking_reasons:
+        return "runtime_recovery_retry_budget_exhausted"
+    if _text(runtime_health.get("canonical_runtime_action")) != "external_supervisor_required":
+        return None
+    retry_budget = _int_or_none(runtime_health.get("retry_budget_remaining"))
+    if retry_budget is not None and retry_budget <= 0:
+        return "runtime_recovery_retry_budget_exhausted"
+    return None
+
+
+def _int_or_none(value: object) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _has_running_provider_attempt(

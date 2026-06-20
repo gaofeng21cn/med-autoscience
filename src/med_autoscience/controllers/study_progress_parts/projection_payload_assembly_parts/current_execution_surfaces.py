@@ -742,6 +742,10 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
         return {}
     if not _handoff_current_work_unit_is_owner_receipt(handoff):
         return {}
+    if paper_recovery_consumed_owner_receipt_successor(
+        _mapping_copy(_mapping_copy(payload).get("paper_recovery_state"))
+    ):
+        return {}
     consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
     if _non_empty_text(consumed.get("typed_blocker_ref")) is None and not _mapping_copy(
         consumed.get("typed_blocker")
@@ -1165,6 +1169,8 @@ def _paper_recovery_successor_action_for_owner_receipt_handoff(
         )
     if not paper_recovery_successor_action_ready(successor_action):
         return {}
+    if paper_recovery_consumed_owner_receipt_successor(recovery):
+        return dict(successor_action)
     if _provider_admission_terminal_closeout_consumed_current_work_unit(
         handoff
     ) and not _paper_recovery_successor_allowed_for_consumed_closeout(
