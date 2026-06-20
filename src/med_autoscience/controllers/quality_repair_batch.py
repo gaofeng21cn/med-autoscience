@@ -724,15 +724,21 @@ def run_quality_repair_batch(
     )
     if upstream_route_context.has_explicit_controller_route_context(resolved_route_context):
         explicit_work_unit_id = _route_context_work_unit_id(resolved_route_context)
-        controller_route_context = (
-            _controller_route_context_for_publication_work_unit_payload(
-                publication_work_unit_payload=publication_work_unit_payload,
-                gate_report=gate_report,
-                source_eval_id=current_eval_id,
-            )
-            if explicit_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
-            else None
+        current_publication_route_context = _controller_route_context_for_publication_work_unit_payload(
+            publication_work_unit_payload=publication_work_unit_payload,
+            gate_report=gate_report,
+            source_eval_id=current_eval_id,
         )
+        current_publication_work_unit_id = _route_context_work_unit_id(current_publication_route_context)
+        controller_route_context = None
+        if explicit_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+            controller_route_context = current_publication_route_context
+        elif (
+            explicit_work_unit_id == "medical_prose_write_repair"
+            and current_publication_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+            and current_publication_work_unit_id != explicit_work_unit_id
+        ):
+            controller_route_context = current_publication_route_context
     else:
         if _same_line_paper_repair_required(summary_payload):
             controller_route_context = _controller_route_context_for_publication_work_unit(
