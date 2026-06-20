@@ -139,6 +139,7 @@ def _stage_route_arbiter_decisions(
             if (
                 readback_required
                 and _request_only_transition_request_candidate(candidate)
+                and not _paper_recovery_block_requires_supervisor_decision_readback(paper_recovery_block)
                 and not _paper_recovery_block_is_hard_blocker(paper_recovery_block)
             ):
                 decisions.append(
@@ -861,6 +862,17 @@ def _paper_recovery_block_is_hard_blocker(block: Mapping[str, Any]) -> bool:
         return True
     next_safe_action = _mapping(block.get("next_safe_action"))
     return _non_empty_text(next_safe_action.get("kind")) == "resolve_typed_blocker"
+
+
+def _paper_recovery_block_requires_supervisor_decision_readback(block: Mapping[str, Any]) -> bool:
+    supervisor_decision = _mapping(block.get("supervisor_decision"))
+    next_safe_action = _mapping(supervisor_decision.get("next_safe_action"))
+    return (
+        _non_empty_text(supervisor_decision.get("decision"))
+        == "opl_supervisor_decision_readback_required"
+        or _non_empty_text(next_safe_action.get("kind"))
+        == "opl_supervisor_decision_readback_required"
+    )
 
 
 def _request_only_transition_can_bypass_paper_recovery_block(
