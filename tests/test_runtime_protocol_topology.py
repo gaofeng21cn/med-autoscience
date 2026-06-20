@@ -138,6 +138,50 @@ def test_resolve_paper_root_context_accepts_projected_quest_paper_root(tmp_path:
     assert context.study_root == study_root.resolve()
 
 
+def test_resolve_paper_root_context_accepts_stage_native_body_authority_paper_root(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "003-dpcc"
+    paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text(
+        "\n".join(
+            [
+                "schema_version: 1",
+                "study_id: 003-dpcc",
+                "quest_id: 003-dpcc-managed",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    quest_root = workspace_root / "runtime" / "quests" / "003-dpcc-managed"
+    quest_root.mkdir(parents=True)
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: 003-dpcc-managed\n"
+        "runtime_reentry_gate:\n"
+        "  study_id: 003-dpcc\n",
+        encoding="utf-8",
+    )
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.paper_root == paper_root.resolve()
+    assert context.worktree_root == paper_root.parent.resolve()
+    assert context.quest_root == quest_root.resolve()
+    assert context.quest_id == "003-dpcc-managed"
+    assert context.study_id == "003-dpcc"
+    assert context.study_root == study_root.resolve()
+
+
 def test_resolve_paper_root_context_parses_quest_id_with_inline_comment(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     paper_root = (

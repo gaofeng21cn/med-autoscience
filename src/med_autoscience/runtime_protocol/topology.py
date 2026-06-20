@@ -123,6 +123,72 @@ def _is_canonical_quest_paper_root(paper_root: Path) -> bool:
     return True
 
 
+def _resolve_stage_native_body_authority_binding(
+    paper_root: Path,
+) -> tuple[Path, Path, Path, str, str, Path] | None:
+    resolved_paper_root = _resolve_path(paper_root)
+    if resolved_paper_root.name != "paper":
+        return None
+    if len(resolved_paper_root.parents) < 6:
+        return None
+    current_body_root = resolved_paper_root.parent
+    if (
+        current_body_root.name != "current_body"
+        or current_body_root.parent.name != "paper_authority_cutover"
+        or current_body_root.parent.parent.name != "_body_authority"
+        or current_body_root.parent.parent.parent.name != "stage_outputs"
+        or current_body_root.parent.parent.parent.parent.name != "artifacts"
+    ):
+        return None
+    study_root = current_body_root.parent.parent.parent.parent.parent.resolve()
+    if not (study_root / "study.yaml").exists():
+        return None
+    workspace_root = study_root.parent.parent.resolve()
+    study_payload = _load_yaml_mapping(study_root / "study.yaml")
+    study_id = _extract_string_field(study_payload, "study_id") or study_root.name
+    binding = _resolve_study_binding_from_runtime_binding(
+        workspace_root=workspace_root,
+        quest_id="",
+    )
+    quest_id = ""
+    if (study_root / "runtime_binding.yaml").exists():
+        runtime_binding = _load_yaml_mapping(study_root / "runtime_binding.yaml")
+        quest_id = _extract_string_field(runtime_binding, "quest_id") or ""
+        bound_study_id = _extract_string_field(runtime_binding, "study_id")
+        if bound_study_id and bound_study_id != study_id:
+            raise ValueError(
+                f"conflicting study_id declarations between {study_root / 'study.yaml'} "
+                f"and {study_root / 'runtime_binding.yaml'}: {study_id!r} != {bound_study_id!r}"
+            )
+    if not quest_id and binding is not None and binding[1].resolve() == study_root:
+        quest_id = binding[0]
+    if not quest_id:
+        quest_id = study_id
+    quest_root = (workspace_root / "runtime" / "quests" / quest_id).resolve()
+    if not quest_root.exists():
+        binding = _resolve_study_binding_from_runtime_binding(
+            workspace_root=workspace_root,
+            quest_id=quest_id,
+        )
+        if binding is None:
+            raise FileNotFoundError(f"unable to resolve quest root `{quest_id}` for stage-native paper root {paper_root}")
+        study_id, study_root = binding
+        quest_root = (workspace_root / "runtime" / "quests" / quest_id).resolve()
+    quest_yaml_path = quest_root / "quest.yaml"
+    if quest_yaml_path.exists():
+        quest_payload = _load_yaml_mapping(quest_yaml_path)
+        declared_quest_id = _extract_string_field(quest_payload, "quest_id")
+        declared_study_id = _extract_declared_study_id(quest_payload, quest_yaml_path=quest_yaml_path)
+        if declared_quest_id:
+            quest_id = declared_quest_id
+        if declared_study_id and declared_study_id != study_id:
+            raise ValueError(
+                f"conflicting study_id declarations between {study_root / 'study.yaml'} "
+                f"and {quest_yaml_path}: {study_id!r} != {declared_study_id!r}"
+            )
+    return resolved_paper_root, current_body_root.resolve(), quest_root, quest_id, study_id, study_root.resolve()
+
+
 def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
     resolved = _resolve_path(paper_root)
     authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(resolved)
@@ -285,6 +351,9 @@ def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, str
     )
     if authoritative_paper_root is not None:
         resolved_paper_root = authoritative_paper_root
+    stage_native_binding = _resolve_stage_native_body_authority_binding(resolved_paper_root)
+    if stage_native_binding is not None:
+        return stage_native_binding
     if _is_canonical_quest_paper_root(resolved_paper_root):
         quest_root = resolved_paper_root.parent
         binding = resolve_study_root_from_quest_root(quest_root)
