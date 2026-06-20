@@ -136,7 +136,8 @@
       ],
       "template_seed_ids": [
         "partial_dependence_ice_panel",
-        "partial_dependence_interaction_contour_panel"
+        "partial_dependence_interaction_contour_panel",
+        "shap_dependence_panel"
       ],
       "ai_adaptation_notes": "AI should include support/rug or warning when response is extrapolated beyond observed data."
     },

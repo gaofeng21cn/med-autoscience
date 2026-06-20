@@ -113,8 +113,16 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     by_id = {item["template_id"]: item for item in payload["templates"]}
     assert by_id["roc_curve_binary"]["analysis_responsibility"] == "validated_summary_required"
     assert by_id["roc_curve_binary"]["analysis_input_state"] == "validated_display_payload"
+    assert by_id["roc_curve_binary"]["medical_family_ids"] == ["discrimination_curve"]
+    assert "roc_pr_curve" in by_id["roc_curve_binary"]["publication_quality_profile"]["starter_recipe_ids"]
+    assert "categorical_accessible" in by_id["roc_curve_binary"]["publication_quality_profile"]["palette_token_ids"]
+    assert "layout_readability" in by_id["roc_curve_binary"]["publication_quality_profile"]["qa_gate_ids"]
     assert by_id["umap_scatter_grouped"]["analysis_responsibility"] == "computed_in_template"
     assert by_id["umap_scatter_grouped"]["analysis_input_state"] == "raw_feature_matrix"
+    assert by_id["umap_scatter_grouped"]["medical_family_ids"] == ["dimension_reduction_scatter"]
+    assert "embedding_scatter" in by_id["umap_scatter_grouped"]["publication_quality_profile"][
+        "starter_recipe_ids"
+    ]
 
 
 def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request() -> None:
@@ -136,6 +144,12 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["recommended_template"]["migration_status"] == "canonical"
     assert payload["recommended_template"]["canonical_family_id"] == "roc_curve_binary"
     assert payload["recommended_template"]["analysis_responsibility"] == "validated_summary_required"
+    assert payload["recommended_template"]["medical_family_ids"] == ["discrimination_curve"]
+    assert payload["recommended_template"]["publication_quality_profile"]["starter_templates_are_floor_not_ceiling"] is True
+    assert "palette" in payload["recommended_template"]["publication_quality_profile"]["ai_may_change"]
+    assert "source_data_and_statistics_refs" in payload["recommended_template"]["publication_quality_profile"][
+        "ai_must_preserve"
+    ]
     assert payload["recommended_template"]["analysis_boundary"]["compatible_with_request"] is True
     assert payload["figure_intent"]["figure_contract"]["backend_policy"]["selected_backend"] == "r_ggplot2"
     assert payload["figure_intent"]["figure_contract"]["backend_policy"]["blocks_agent_progress"] is False
@@ -146,6 +160,9 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["template_surface_policy"][
         "nature_skills_backend_question_not_used_on_default_mas_evidence_path"
     ] is True
+    assert payload["template_surface_policy"]["medical_figure_family_mapping_required"] is True
+    assert payload["template_surface_policy"]["starter_recipe_profile_required"] is True
+    assert payload["template_surface_policy"]["style_palette_qa_profile_required"] is True
     assert payload["recommended_template"]["adaptation_required"] is False
     assert payload["next_callable"] == "display-pack-preflight"
 
@@ -216,6 +233,7 @@ def test_compile_display_figure_intent_emits_claim_first_contract_without_blocki
         ("km plot", "kaplan_meier_grouped", "Time-to-Event"),
         ("heatmap", "heatmap_group_comparison", "Matrix Pattern"),
         ("shap beeswarm", "shap_summary_beeswarm", "Model Explanation"),
+        ("shap dependence", "shap_dependence_panel", "Model Explanation"),
         ("umap", "umap_scatter_grouped", "Data Geometry"),
         ("roc", "roc_curve_binary", "Prediction Performance"),
     ],

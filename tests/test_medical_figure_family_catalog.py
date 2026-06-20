@@ -65,7 +65,7 @@ def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
     assert {"statistical_estimand", "source_data_and_statistics_refs", "auditability"} <= set(
         policy["default_ai_must_preserve"]
     )
-    assert len(catalog.starter_recipes) == 72
+    assert len(catalog.starter_recipes) == 74
     assert set(catalog.starter_recipes_by_id) == {
         recipe_ref
         for family in catalog.families_by_id.values()
@@ -78,6 +78,12 @@ def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
     assert "threshold" in roc_recipe.required_data_roles
     assert "roc_curve_binary" in roc_recipe.recommended_template_seed_ids
     assert "layout_readability" in roc_recipe.qa_gate_ids
+    assert catalog.starter_recipes_by_id["model_complexity_audit_panel"].family_id == (
+        "model_complexity_audit"
+    )
+    assert catalog.starter_recipes_by_id["genomic_consequence_composite"].family_id == (
+        "genomic_consequence_summary"
+    )
 
 
 def test_representative_medical_figure_families_are_present() -> None:
@@ -93,7 +99,9 @@ def test_representative_medical_figure_families_are_present() -> None:
     expected_categories = {
         "kaplan_meier_with_risk_table": "survival_and_time_to_event",
         "annotated_heatmap": "omics_and_molecular",
+        "genomic_consequence_summary": "omics_and_molecular",
         "shap_summary": "ml_explainability_and_causal",
+        "model_complexity_audit": "diagnosis_and_prediction",
         "consort_trial_flow": "study_design_and_flow",
         "prisma_review_flow": "study_design_and_flow",
         "multipanel_storyboard": "publication_shells",
@@ -154,6 +162,23 @@ def test_catalog_validates_references_across_style_palette_gate_and_sources() ->
         "viridis",
         "okabe_ito",
     }
+
+
+def test_current_display_templates_have_medical_family_seed_coverage() -> None:
+    catalog = load_medical_figure_family_catalog()
+    seed_index = {
+        seed_id: family.family_id
+        for family in catalog.families_by_id.values()
+        for seed_id in family.template_seed_ids
+    }
+
+    required_current_template_ids = {
+        "generalizability_subgroup_composite_panel",
+        "genomic_alteration_consequence_panel",
+        "shap_dependence_panel",
+        "model_complexity_audit_panel",
+    }
+    assert required_current_template_ids <= set(seed_index)
 
 
 def test_catalog_rejects_unknown_family_references(tmp_path: Path) -> None:

@@ -36,6 +36,11 @@ def _analysis_responsibility_rows(manifest: dict[str, Any]) -> str:
 
 def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
     quality = manifest.get("quality_audit") if isinstance(manifest.get("quality_audit"), dict) else {}
+    profile_coverage = (
+        manifest.get("publication_quality_profile_coverage")
+        if isinstance(manifest.get("publication_quality_profile_coverage"), dict)
+        else {}
+    )
     renderer_completion = (
         manifest.get("renderer_policy_completion")
         if isinstance(manifest.get("renderer_policy_completion"), dict)
@@ -82,6 +87,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - publication-ready claim authorized: `{str(quality.get("publication_ready_claim_authorized", False)).lower()}`
 - blocked templates after current render: `{quality.get("blocked_template_count", 0)}`
 - lower-bound review required: `{quality.get("lower_bound_review_required_count", 0)}`
+- gallery lower-bound admission: `{quality.get("gallery_lower_bound_admission_status", "")}`
+- publication quality profile coverage: `{profile_coverage.get("complete_profile_template_count", 0)}/{profile_coverage.get("current_template_count", 0)}` ({profile_coverage.get("complete_profile_percent", 0)}%)
 - publication polish policy: `{policy.get("policy_id", "")}`
 
 ## Analysis Responsibility

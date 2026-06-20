@@ -29,6 +29,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - publication-ready claim authorized: `false`
 - blocked templates after current render: `0`
 - lower-bound review required: `28`
+- gallery lower-bound admission: `gallery_lower_bound_passed_requires_paper_audit`
+- publication quality profile coverage: `31/31` (100%)
 - publication polish policy: `mas_publication_polish_policy.v1`
 
 ## Analysis Responsibility

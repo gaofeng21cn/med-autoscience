@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 import hashlib
-import importlib
-import inspect
 import json
 import tempfile
 
@@ -17,14 +15,9 @@ from med_autoscience.publication_display_contract import (
 from med_autoscience.display_pack_gallery_parts.publication_payloads import (
     PUBLICATION_R_DISPLAY_PAYLOADS,
 )
-
-PYTHON_PAYLOAD_FIXTURE_MODULES = (
-    "tests.display_surface_materialization_cases.illustration_payload_fixtures",
+from med_autoscience.display_pack_gallery_parts.core_payloads import (
+    CORE_R_DISPLAY_PAYLOADS,
 )
-ILLUSTRATION_PAYLOAD_BUILDERS = {
-    "workflow_fact_sheet_panel": "_make_workflow_fact_sheet_panel_payload",
-    "design_evidence_composite_shell": "_make_design_evidence_composite_shell_payload",
-}
 MANUAL_GALLERY_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "cohort_flow_figure": {
         "schema_version": 1,
@@ -337,30 +330,6 @@ def _style_context_for(template_id: str) -> dict[str, Any]:
         },
         "readability_override": {},
     }
-def _workspace_fixture_display_payloads() -> dict[str, dict[str, Any]]:
-    from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
-        build_display_surface_workspace,
-    )
-
-    with tempfile.TemporaryDirectory(prefix="mas-gallery-workspace-") as tmp_dir:
-        paper_root = build_display_surface_workspace(
-            Path(tmp_dir),
-            include_extended_evidence=True,
-        )
-        payloads: dict[str, dict[str, Any]] = {}
-        for path in paper_root.glob("*_inputs.json"):
-            envelope = json.loads(path.read_text(encoding="utf-8"))
-            if not isinstance(envelope, dict):
-                continue
-            for display in envelope.get("displays", []):
-                if not isinstance(display, dict):
-                    continue
-                template_id = str(display.get("template_id") or "").strip()
-                if "::" in template_id:
-                    template_id = template_id.split("::")[-1]
-                if template_id:
-                    payloads.setdefault(template_id, display)
-        return payloads
 
 
 def _generic_r_gallery_payload(record: TemplateRecord) -> dict[str, Any]:
@@ -441,19 +410,16 @@ def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, 
     }
     payloads.update({
         key: json.loads(json.dumps(value))
+        for key, value in CORE_R_DISPLAY_PAYLOADS.items()
+    })
+    payloads.update({
+        key: json.loads(json.dumps(value))
         for key, value in GALLERY_R_DISPLAY_PAYLOADS.items()
     })
     payloads.update({
         key: json.loads(json.dumps(value))
         for key, value in PUBLICATION_R_DISPLAY_PAYLOADS.items()
     })
-    payloads.update(
-        {
-            key: json.loads(json.dumps(value))
-            for key, value in _workspace_fixture_display_payloads().items()
-            if key not in payloads
-        }
-    )
     for record in records:
         if record.renderer_family != "r_ggplot2":
             continue
@@ -470,40 +436,10 @@ def _load_r_gallery_payload(template_id: str, seed_payloads: dict[str, dict[str,
     payload["render_context"] = _style_context_for(template_id)
     return payload
 def _load_python_payload_fixtures() -> dict[str, dict[str, Any]]:
-    payloads: dict[str, dict[str, Any]] = {}
-    for module_name in PYTHON_PAYLOAD_FIXTURE_MODULES:
-        module = importlib.import_module(module_name)
-        for name, value in vars(module).items():
-            if not callable(value) or not name.startswith("_make_"):
-                continue
-            try:
-                signature = inspect.signature(value)
-            except (TypeError, ValueError):
-                continue
-            if any(parameter.default is inspect._empty for parameter in signature.parameters.values()):
-                continue
-            try:
-                payload = value()
-            except Exception:
-                continue
-            if not isinstance(payload, dict):
-                continue
-            template_id = str(payload.get("template_id") or payload.get("shell_id") or "").strip()
-            if "::" in template_id:
-                template_id = template_id.split("::")[-1]
-            if template_id:
-                payloads.setdefault(template_id, payload)
-        for template_id, builder_name in ILLUSTRATION_PAYLOAD_BUILDERS.items():
-            builder = getattr(module, builder_name, None)
-            if callable(builder):
-                try:
-                    payload = builder()
-                except Exception:
-                    continue
-                if isinstance(payload, dict):
-                    payloads.setdefault(template_id, payload)
-    payloads.update(MANUAL_GALLERY_DISPLAY_PAYLOADS)
-    return payloads
+    return {
+        key: json.loads(json.dumps(value))
+        for key, value in MANUAL_GALLERY_DISPLAY_PAYLOADS.items()
+    }
 
 
 def _python_display_payload(record: TemplateRecord, fixture_payloads: dict[str, dict[str, Any]]) -> dict[str, Any]:

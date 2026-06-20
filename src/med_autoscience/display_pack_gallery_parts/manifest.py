@@ -226,6 +226,7 @@ def build_manifest(
             "table_shell": "Template accepts reviewed table values only.",
             "raw_request_fail_closed": True,
         },
+        "publication_quality_profile_coverage": _publication_quality_profile_coverage(records),
         "layout_sidecar_readback": layout_sidecar_readback,
         "ai_adaptation_policy": ai_adaptation_policy(),
         "figure_contract_policy": figure_contract_policy(),
@@ -247,6 +248,9 @@ def build_manifest(
             "template_analysis_responsibility_required": True,
             "raw_analysis_inputs_must_match_computed_workflow_templates": True,
             "validated_summary_templates_fail_closed_on_raw_analysis_requests": True,
+            "medical_figure_family_mapping_required": True,
+            "starter_recipe_profile_required": True,
+            "style_palette_qa_profile_required": True,
         },
         "templates": [
             _template_payload(
@@ -312,6 +316,8 @@ def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str,
         "canonical_family_wording": canonical_family_wording(record),
         "analysis_responsibility": record.analysis_responsibility,
         "analysis_input_state": record.analysis_input_state,
+        "medical_family_ids": list(record.medical_family_ids),
+        "publication_quality_profile": dict(record.publication_quality_profile),
         "migration_status": record.migration_status,
         "default_visible": record.default_visible,
         "visual_gallery_visible": record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2",
@@ -332,4 +338,42 @@ def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str,
         "layout_ref": asset.layout_ref,
         "pdf_ref": asset.pdf_ref,
         "svg_ref": asset.svg_ref,
+    }
+
+
+def _publication_quality_profile_coverage(records: list[TemplateRecord]) -> dict[str, Any]:
+    missing_family = sorted(record.template_id for record in records if not record.medical_family_ids)
+    missing_recipe = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("starter_recipe_ids")
+    )
+    missing_style = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("style_profile_ids")
+    )
+    missing_palette = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("palette_token_ids")
+    )
+    missing_qa = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("qa_gate_ids")
+    )
+    complete_count = len(records) - len(
+        set(missing_family) | set(missing_recipe) | set(missing_style) | set(missing_palette) | set(missing_qa)
+    )
+    return {
+        "schema_version": 1,
+        "current_template_count": len(records),
+        "complete_profile_template_count": complete_count,
+        "complete_profile_percent": round(100 * complete_count / len(records)) if records else 0,
+        "medical_family_missing_template_ids": missing_family,
+        "starter_recipe_missing_template_ids": missing_recipe,
+        "style_profile_missing_template_ids": missing_style,
+        "palette_token_missing_template_ids": missing_palette,
+        "qa_gate_missing_template_ids": missing_qa,
     }

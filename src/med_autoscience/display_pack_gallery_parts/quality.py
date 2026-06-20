@@ -70,6 +70,17 @@ KIND_BASELINE_WARNINGS: dict[str, tuple[str, ...]] = {
 def _baseline_quality_gates(record: TemplateRecord, asset: RenderedAsset) -> list[str]:
     gates = [
         "template_family_canonicalized",
+        "medical_figure_family_mapped" if record.medical_family_ids else "medical_figure_family_missing",
+        "starter_recipe_profile_present"
+        if record.publication_quality_profile.get("starter_recipe_ids")
+        else "starter_recipe_profile_missing",
+        "style_palette_qa_profile_present"
+        if (
+            record.publication_quality_profile.get("style_profile_ids")
+            and record.publication_quality_profile.get("palette_token_ids")
+            and record.publication_quality_profile.get("qa_gate_ids")
+        )
+        else "style_palette_qa_profile_missing",
         "square_gallery_preview",
         "vector_export_available" if asset.pdf_ref or asset.svg_ref else "vector_export_missing",
         "semantic_palette_context",
@@ -95,6 +106,16 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         blockers.append(f"render_status_{asset.status}")
     if record.renderer_family == "n/a" or record.kind == "table_shell":
         blockers.append("non_visual_template_not_gallery_card")
+    if not record.medical_family_ids:
+        blockers.append("medical_figure_family_mapping_missing")
+    if not record.publication_quality_profile.get("starter_recipe_ids"):
+        blockers.append("starter_recipe_profile_missing")
+    if not record.publication_quality_profile.get("style_profile_ids"):
+        blockers.append("style_profile_mapping_missing")
+    if not record.publication_quality_profile.get("palette_token_ids"):
+        blockers.append("palette_token_mapping_missing")
+    if not record.publication_quality_profile.get("qa_gate_ids"):
+        blockers.append("qa_gate_mapping_missing")
     if "vector_export_missing" in _baseline_quality_gates(record, asset):
         warnings.append("vector_export_missing")
     if record.kind == "illustration_shell" and record.renderer_family == "python":
@@ -118,6 +139,8 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         "category": record.canonical_family_category,
         "renderer_family": record.renderer_family,
         "renderer_policy": renderer_policy_payload(record),
+        "medical_family_ids": list(record.medical_family_ids),
+        "publication_quality_profile": dict(record.publication_quality_profile),
         "status": status,
         "publication_ready_claim_authorized": False,
         "quality_gates": _baseline_quality_gates(record, asset),
@@ -180,6 +203,7 @@ def build_quality_audit(
     )
     blocked_count = sum(1 for audit in template_audits if audit["blockers"])
     ready_like_count = len(template_audits) - blocked_count
+    profile_coverage = _publication_quality_profile_coverage(records)
     completion_by_category = _category_completion(
         records=records,
         visual_records=visual_records,
@@ -195,6 +219,12 @@ def build_quality_audit(
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
         "blocked_template_count": blocked_count,
+        "gallery_lower_bound_admission_status": (
+            "gallery_lower_bound_passed_requires_paper_audit"
+            if blocked_count == 0 and profile_coverage["complete_profile_percent"] == 100
+            else "gallery_lower_bound_blocked"
+        ),
+        "publication_quality_profile_coverage": profile_coverage,
         "renderer_policy_completion": renderer_policy_completion(
             records
         ),
@@ -207,6 +237,13 @@ def build_quality_audit(
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
             "current_surface": "canonical_current_templates_not_input_data_specific_variants",
             "required_before_paper_use": publication_polish_policy()["required_before_paper_use"],
+            "gallery_lower_bound_admission_requires": [
+                "current_template_has_medical_family_mapping",
+                "current_template_has_starter_recipe_profile",
+                "current_template_has_style_palette_qa_profile",
+                "default_gallery_render_has_square_preview",
+                "default_gallery_render_has_vector_export_when_possible",
+            ],
         },
         "figure_contract_policy": figure_contract_policy(),
         "publication_polish_policy": publication_polish_policy(),
@@ -312,6 +349,43 @@ def _category_completion(
             }
         )
     return rows
+
+
+def _publication_quality_profile_coverage(records: list[TemplateRecord]) -> dict[str, Any]:
+    missing_family = sorted(record.template_id for record in records if not record.medical_family_ids)
+    missing_recipe = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("starter_recipe_ids")
+    )
+    missing_style = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("style_profile_ids")
+    )
+    missing_palette = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("palette_token_ids")
+    )
+    missing_qa = sorted(
+        record.template_id
+        for record in records
+        if not record.publication_quality_profile.get("qa_gate_ids")
+    )
+    incomplete = set(missing_family) | set(missing_recipe) | set(missing_style) | set(missing_palette) | set(missing_qa)
+    complete_count = len(records) - len(incomplete)
+    return {
+        "schema_version": 1,
+        "current_template_count": len(records),
+        "complete_profile_template_count": complete_count,
+        "complete_profile_percent": round(100 * complete_count / len(records)) if records else 0,
+        "medical_family_missing_template_ids": missing_family,
+        "starter_recipe_missing_template_ids": missing_recipe,
+        "style_profile_missing_template_ids": missing_style,
+        "palette_token_missing_template_ids": missing_palette,
+        "qa_gate_missing_template_ids": missing_qa,
+    }
 
 
 def build_quality_audit_markdown(audit: dict[str, Any]) -> str:

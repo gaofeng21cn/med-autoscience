@@ -15,6 +15,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     read_template_records,
     visual_gallery_records,
 )
+from med_autoscience.display_pack_gallery_parts.payloads import _load_seed_r_payloads
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
@@ -48,12 +49,25 @@ def test_canonical_template_catalog_maps_full_template_inventory() -> None:
         "table_shell": 1,
         "validated_summary_required": 25,
     }
+    for template_id in catalog.canonical_template_ids:
+        entry = catalog.entries_by_template_id[template_id]
+        profile = entry.publication_quality_profile
+        assert entry.medical_family_ids
+        assert profile["medical_family_ids"] == list(entry.medical_family_ids)
+        assert profile["starter_recipe_ids"]
+        assert profile["style_profile_ids"]
+        assert profile["palette_token_ids"]
+        assert profile["qa_gate_ids"]
+        assert profile["starter_templates_are_floor_not_ceiling"] is True
+        assert "layout" in profile["ai_may_change"]
+        assert "source_data_and_statistics_refs" in profile["ai_must_preserve"]
 
     migrated_alias = catalog.entries_by_template_id["time_dependent_roc_comparison_panel"]
     assert migrated_alias.migration_status == "migrated_alias"
     assert migrated_alias.canonical_template_id == "time_dependent_roc_horizon"
     assert migrated_alias.default_visible is False
     assert migrated_alias.analysis_responsibility == "validated_summary_required"
+    assert migrated_alias.medical_family_ids == ("discrimination_curve",)
 
     current_template = catalog.entries_by_template_id["time_dependent_roc_horizon"]
     assert current_template.migration_status == "canonical"
@@ -102,6 +116,29 @@ def test_gallery_family_ontology_exposes_canonical_wording_without_alias_noise()
     assert "time_dependent_roc_horizon" not in wording
 
 
+def test_default_gallery_r_templates_have_runtime_seed_payloads_without_generic_fallback() -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    gallery_records = gallery_display_records(records)
+    seed_payloads = _load_seed_r_payloads(records)
+
+    assert len(gallery_records) == 28
+    assert {
+        "calibration_curve_binary",
+        "cumulative_incidence_grouped",
+        "forest_effect_main",
+        "heatmap_group_comparison",
+        "pr_curve_binary",
+        "roc_curve_binary",
+        "time_dependent_roc_horizon",
+    } <= set(seed_payloads)
+    assert {
+        record.template_id
+        for record in gallery_records
+        if seed_payloads[record.template_id].get("caption")
+        == "Synthetic gallery preview payload for local visual inspection only."
+    } == set()
+
+
 def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None:
     module_path = REPO_ROOT / "scripts" / "build-display-pack-gallery.py"
     spec = importlib.util.spec_from_file_location("build_display_pack_gallery", module_path)
@@ -136,6 +173,9 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "analysis_responsibility_source": "display_pack_canonical_template_catalog",
         "analysis_responsibility_required": True,
         "raw_analysis_input_policy": "raw_analysis_inputs_must_route_to_computed_in_template_workflows_or_upstream_analysis_materialization",
+        "medical_figure_family_mapping_required": True,
+        "starter_recipe_profile_required": True,
+        "style_palette_qa_profile_required": True,
         "renderer_policy": {
             "policy_version": 1,
             "data_evidence_first_class_renderer": "r_ggplot2",
@@ -164,6 +204,17 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["figure_contract_policy"]["policy_id"] == "mas_nature_skills_informed_figure_contract.v1"
     assert manifest["publication_polish_policy"]["policy_id"] == "mas_publication_polish_policy.v1"
     assert manifest["publication_polish_policy"]["palette_scale_policy"]["per_plot_palette_drift_allowed"] is False
+    assert manifest["publication_quality_profile_coverage"] == {
+        "schema_version": 1,
+        "current_template_count": 31,
+        "complete_profile_template_count": 31,
+        "complete_profile_percent": 100,
+        "medical_family_missing_template_ids": [],
+        "starter_recipe_missing_template_ids": [],
+        "style_profile_missing_template_ids": [],
+        "palette_token_missing_template_ids": [],
+        "qa_gate_missing_template_ids": [],
+    }
     assert manifest["analysis_responsibility_counts"] == {
         "computed_in_template": 3,
         "illustration_shell": 2,
@@ -201,7 +252,15 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     template_by_id = {item["template_id"]: item for item in manifest["templates"]}
     assert template_by_id["umap_scatter_grouped"]["analysis_responsibility"] == "computed_in_template"
     assert template_by_id["umap_scatter_grouped"]["analysis_input_state"] == "raw_feature_matrix"
+    assert template_by_id["umap_scatter_grouped"]["medical_family_ids"] == ["dimension_reduction_scatter"]
+    assert "embedding_scatter" in template_by_id["umap_scatter_grouped"]["publication_quality_profile"][
+        "starter_recipe_ids"
+    ]
     assert template_by_id["roc_curve_binary"]["analysis_responsibility"] == "validated_summary_required"
+    assert template_by_id["roc_curve_binary"]["medical_family_ids"] == ["discrimination_curve"]
+    assert "roc_pr_curve" in template_by_id["roc_curve_binary"]["publication_quality_profile"][
+        "starter_recipe_ids"
+    ]
     assert {item["template_id"] for item in manifest["non_visual_inventory"]} == {
         "cohort_flow_figure",
         "submission_graphical_abstract",
@@ -236,6 +295,9 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["overall_status"] == "not_publication_ready"
     assert manifest["quality_audit"]["publication_ready_claim_authorized"] is False
     assert manifest["quality_audit"]["blocked_template_count"] == 28
+    assert manifest["quality_audit"]["publication_quality_profile_coverage"][
+        "complete_profile_percent"
+    ] == 100
     assert manifest["quality_audit"]["figure_contract_policy"]["policy_id"] == (
         "mas_nature_skills_informed_figure_contract.v1"
     )
@@ -255,6 +317,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "Retired alias / duplicate ids | 35" in status_markdown
     assert "Current Python evidence templates | 0" in status_markdown
     assert "publication-ready claim authorized: `false`" in status_markdown
+    assert "publication quality profile coverage: `31/31` (100%)" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
     assert "| `computed_in_template` | 3 |" in status_markdown
     assert "| `validated_summary_required` | 25 |" in status_markdown

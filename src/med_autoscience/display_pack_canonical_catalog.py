@@ -8,6 +8,9 @@ from typing import Any
 from med_autoscience.display_pack_analysis_responsibility import (
     normalize_analysis_responsibility,
 )
+from med_autoscience.display_pack_publication_quality_profile import (
+    publication_quality_profile_for_medical_families,
+)
 
 
 @dataclass(frozen=True)
@@ -22,6 +25,8 @@ class CanonicalTemplateFamily:
     migration_reason: str
     analysis_responsibility: str
     analysis_input_state: str
+    medical_family_ids: tuple[str, ...]
+    publication_quality_profile: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -38,6 +43,8 @@ class CanonicalTemplateEntry:
     migration_reason: str
     analysis_responsibility: str
     analysis_input_state: str
+    medical_family_ids: tuple[str, ...]
+    publication_quality_profile: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -92,6 +99,8 @@ def _parse_family(raw_family: dict[str, Any]) -> CanonicalTemplateFamily:
     canonical_template_id = _expect_str(raw_family, "canonical_template_id")
     if canonical_template_id in aliases:
         raise ValueError(f"canonical template `{canonical_template_id}` must not also be listed as an alias")
+    medical_family_ids = _expect_str_tuple(raw_family, "medical_family_ids")
+    publication_quality_profile = publication_quality_profile_for_medical_families(medical_family_ids)
     return CanonicalTemplateFamily(
         family_id=_expect_str(raw_family, "family_id"),
         category=_expect_str(raw_family, "category"),
@@ -105,6 +114,8 @@ def _parse_family(raw_family: dict[str, Any]) -> CanonicalTemplateFamily:
             raw_family.get("analysis_responsibility")
         ),
         analysis_input_state=_expect_str(raw_family, "analysis_input_state"),
+        medical_family_ids=medical_family_ids,
+        publication_quality_profile=publication_quality_profile,
     )
 
 
@@ -144,6 +155,8 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
             migration_reason=family.migration_reason,
             analysis_responsibility=family.analysis_responsibility,
             analysis_input_state=family.analysis_input_state,
+            medical_family_ids=family.medical_family_ids,
+            publication_quality_profile=family.publication_quality_profile,
         )
         if family.canonical_template_id in entries_by_template_id:
             raise ValueError(f"duplicate canonical template id `{family.canonical_template_id}`")
@@ -165,6 +178,8 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
                 migration_reason=family.migration_reason,
                 analysis_responsibility=family.analysis_responsibility,
                 analysis_input_state=family.analysis_input_state,
+                medical_family_ids=family.medical_family_ids,
+                publication_quality_profile=family.publication_quality_profile,
             )
             alias_template_ids.append(alias)
 
@@ -196,6 +211,8 @@ def default_canonical_entry(template_id: str, *, category: str, title: str) -> C
         migration_reason="No pack-local canonical catalog entry was found for this template.",
         analysis_responsibility="validated_summary_required",
         analysis_input_state="validated_display_payload",
+        medical_family_ids=(),
+        publication_quality_profile={},
     )
 
 

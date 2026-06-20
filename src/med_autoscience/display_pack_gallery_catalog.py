@@ -45,6 +45,8 @@ class TemplateRecord:
     migration_reason: str
     analysis_responsibility: str
     analysis_input_state: str
+    medical_family_ids: tuple[str, ...]
+    publication_quality_profile: dict[str, object]
 
 
 def read_template_records(pack_root: Path, template_root: Path) -> list[TemplateRecord]:
@@ -82,6 +84,8 @@ def read_template_records(pack_root: Path, template_root: Path) -> list[Template
                 migration_reason=canonical.migration_reason,
                 analysis_responsibility=canonical.analysis_responsibility,
                 analysis_input_state=canonical.analysis_input_state,
+                medical_family_ids=canonical.medical_family_ids,
+                publication_quality_profile=canonical.publication_quality_profile,
             )
         )
     if catalog is not None:
@@ -164,6 +168,9 @@ def figure_family_policy() -> dict[str, object]:
         "analysis_responsibility_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
         "analysis_responsibility_required": True,
         "raw_analysis_input_policy": "raw_analysis_inputs_must_route_to_computed_in_template_workflows_or_upstream_analysis_materialization",
+        "medical_figure_family_mapping_required": True,
+        "starter_recipe_profile_required": True,
+        "style_palette_qa_profile_required": True,
         "renderer_policy": default_surface_renderer_policy(),
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
     }
@@ -197,6 +204,8 @@ def gallery_template_family_ontology(records: list[TemplateRecord]) -> list[dict
                 "canonical_family_wording": canonical_family_wording(record),
                 "analysis_responsibility": record.analysis_responsibility,
                 "analysis_input_state": record.analysis_input_state,
+                "medical_family_ids": list(record.medical_family_ids),
+                "publication_quality_profile": dict(record.publication_quality_profile),
                 "renderer_policy": renderer_policy_payload(record),
             }
         )

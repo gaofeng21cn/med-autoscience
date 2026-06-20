@@ -38,20 +38,26 @@ def _normalized(value: str) -> str:
     return " ".join(_TOKEN_RE.findall(value.casefold()))
 
 
+def _tokens(value: str) -> tuple[str, ...]:
+    return tuple(_TOKEN_RE.findall(value.casefold()))
+
+
 def _term_score(query: str, term: str) -> int:
-    normalized_query = _normalized(query)
-    normalized_term = _normalized(term)
+    query_tokens = _tokens(query)
+    term_tokens = _tokens(term)
+    normalized_query = " ".join(query_tokens)
+    normalized_term = " ".join(term_tokens)
     if not normalized_query or not normalized_term:
         return 0
     if normalized_query == normalized_term:
         return 100
-    if normalized_term in normalized_query:
-        return 80 + min(len(normalized_term), 20)
     if normalized_query in normalized_term:
-        return 60 + min(len(normalized_query), 20)
-    query_tokens = set(normalized_query.split())
-    term_tokens = set(normalized_term.split())
-    overlap = query_tokens & term_tokens
+        return 90 + min(len(normalized_query), 20)
+    if normalized_term in normalized_query:
+        if len(term_tokens) == 1 and len(query_tokens) > 1:
+            return 30 + min(len(normalized_term), 10)
+        return 80 + min(len(normalized_term), 20)
+    overlap = set(query_tokens) & set(term_tokens)
     return 20 * len(overlap) if overlap else 0
 
 

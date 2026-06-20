@@ -187,6 +187,8 @@ def _template_summary(
         "figure_archetype": canonical.figure_archetype,
         "analysis_responsibility": canonical.analysis_responsibility,
         "analysis_input_state": canonical.analysis_input_state,
+        "medical_family_ids": list(canonical.medical_family_ids),
+        "publication_quality_profile": dict(canonical.publication_quality_profile),
         "analysis_boundary": analysis_boundary_payload(
             mode=canonical.analysis_responsibility,
             input_state=canonical.analysis_input_state,
@@ -433,6 +435,9 @@ def display_pack_figure_plan(
             "explicit_alias_requests_migrate_to_canonical": True,
             "nature_skills_backend_question_not_used_on_default_mas_evidence_path": True,
             "figure_contract_required_before_paper_facing_render": True,
+            "medical_figure_family_mapping_required": True,
+            "starter_recipe_profile_required": True,
+            "style_palette_qa_profile_required": True,
             **analysis_template_surface_policy_flags(),
         },
         "requested_template_migration": template_migration,

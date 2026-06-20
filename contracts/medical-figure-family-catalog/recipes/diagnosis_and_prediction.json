@@ -264,6 +264,38 @@
         "journal_export"
       ],
       "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "model_complexity_audit_panel",
+      "category_id": "diagnosis_and_prediction",
+      "family_id": "model_complexity_audit",
+      "title": "Model complexity audit panel",
+      "purpose": "Create a compact audit panel for model complexity, operating points, and support counts before clinical interpretation.",
+      "starter_kind": "audit_panel",
+      "panel_grammar": "small_multiples_with_threshold_and_support_annotations",
+      "required_data_roles": [
+        "model",
+        "complexity_metric",
+        "threshold",
+        "operating_metric",
+        "support_count"
+      ],
+      "recommended_template_seed_ids": [
+        "model_complexity_audit_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "source_data_traceability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
     }
   ]
 }

@@ -280,7 +280,8 @@
       ],
       "template_seed_ids": [
         "oncoplot_mutation_landscape_panel",
-        "genomic_alteration_landscape_panel"
+        "genomic_alteration_landscape_panel",
+        "genomic_alteration_consequence_panel"
       ],
       "ai_adaptation_notes": "AI may split by pathway or alteration class when gene count is too high."
     },
@@ -329,6 +330,54 @@
         "cnv_recurrence_summary_panel"
       ],
       "ai_adaptation_notes": "AI may use linear chromosome tracks instead of circos when labels must remain readable."
+    },
+    {
+      "family_id": "genomic_consequence_summary",
+      "category_id": "omics_and_molecular",
+      "title": "Genomic Alteration Consequence Summary",
+      "intent": "Show downstream molecular, pathway, or clinical consequences of genomic alterations without duplicating the primary alteration landscape.",
+      "canonical_variants": [
+        "alteration_consequence",
+        "multiomic_consequence",
+        "pathway_integrated_consequence"
+      ],
+      "data_roles": [
+        "alteration",
+        "gene",
+        "pathway",
+        "effect_metric",
+        "cohort_or_group"
+      ],
+      "starter_recipe_refs": [
+        "genomic_consequence_composite"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "diverging_centered",
+        "sequential_perceptual"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility",
+        "source_data_traceability"
+      ],
+      "loose_match_terms": [
+        "genomic consequence",
+        "multiomic consequence",
+        "alteration consequence",
+        "pathway integrated genomic"
+      ],
+      "external_refs": [
+        "complexheatmap"
+      ],
+      "template_seed_ids": [
+        "genomic_alteration_consequence_panel"
+      ],
+      "ai_adaptation_notes": "AI may choose heatmap, dotplot, or compact multipanel composition depending on whether consequence direction, pathway grouping, or alteration type is the claim-bearing signal."
     }
   ]
 }
