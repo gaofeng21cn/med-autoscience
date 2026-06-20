@@ -226,7 +226,10 @@ def current_control_typed_blocker_successor_action(
     if source not in CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES:
         return False
     if source == "gate_clearing_batch_followthrough.actionable_current_work_unit":
-        if not _gate_followthrough_action_has_exact_current_identity(action):
+        if not (
+            _gate_followthrough_action_has_exact_current_identity(action)
+            or _gate_followthrough_action_has_selected_successor_identity(action)
+        ):
             return False
         blocker = _mapping_copy(typed_blocker)
         return gate_followthrough_action_supersedes_publication_gate_replay_blocker(
@@ -268,6 +271,26 @@ def _gate_followthrough_action_has_exact_current_identity(action: Mapping[str, A
     if explicit_work_unit is None or action_work_unit is None:
         return False
     if explicit_work_unit != action_work_unit:
+        return False
+    basis_fingerprint = _non_empty_text(basis.get("work_unit_fingerprint"))
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    if basis_fingerprint is None or action_fingerprint is None:
+        return False
+    return basis_fingerprint == action_fingerprint
+
+
+def _gate_followthrough_action_has_selected_successor_identity(action: Mapping[str, Any]) -> bool:
+    basis = _mapping_copy(action.get("owner_route_currentness_basis"))
+    selected_work_unit = _non_empty_text(basis.get("selected_publication_work_unit_id"))
+    explicit_work_unit = _non_empty_text(basis.get("explicit_publication_work_unit_id"))
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    if action_work_unit is None:
+        return False
+    if selected_work_unit is not None and selected_work_unit != action_work_unit:
+        return False
+    if selected_work_unit is None and explicit_work_unit != action_work_unit:
         return False
     basis_fingerprint = _non_empty_text(basis.get("work_unit_fingerprint"))
     action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(

@@ -54,6 +54,7 @@ def owner_action_from_gate_followthrough_current_work_unit(
         or followthrough_work_unit_id
         or _non_empty_text(_mapping_copy(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
     )
+    explicit_publication_work_unit = _mapping_copy(followthrough.get("explicit_publication_work_unit"))
     current_publication_work_unit = _mapping_copy(followthrough.get("current_publication_work_unit"))
     current_work_unit_id = (
         _non_empty_text(currentness.get("current_publication_work_unit_id"))
@@ -64,6 +65,8 @@ def owner_action_from_gate_followthrough_current_work_unit(
     )
     if selected_work_unit_overrides_current:
         current_publication_work_unit = selected_publication_work_unit
+        if not current_publication_work_unit and selected_work_unit_id == explicit_work_unit_id:
+            current_publication_work_unit = explicit_publication_work_unit
         current_work_unit_id = selected_work_unit_id
     if current_work_unit_id is None:
         return None
@@ -98,6 +101,7 @@ def owner_action_from_gate_followthrough_current_work_unit(
             "work_unit_id": current_work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "explicit_publication_work_unit_id": explicit_work_unit_id,
+            "selected_publication_work_unit_id": selected_work_unit_id,
         }
     )
     return _compact(
