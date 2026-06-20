@@ -11,7 +11,8 @@
     "transition_runtime_contract": "contracts/opl_domain_progress_transition_runtime_contract.json",
     "replay_status": "contracts/paper_progress_replay_live_evidence_status.json",
     "runtime_inventory": "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
-    "fresh_opl_repo_ref": "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7"
+    "fresh_mas_repo_ref": "repo:med-autoscience@20838681e158931eab2ef7d88c708855a56770bd",
+    "fresh_opl_repo_ref": "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0"
   },
   "overall": {
     "status": "partial",
@@ -182,6 +183,374 @@
         "attempt_idempotency_key"
       ]
     }
+  },
+  "blueprint_l0_l7_functional_acceptance": {
+    "surface_kind": "mas_opl_progress_runtime_blueprint_l0_l7_functional_acceptance",
+    "blueprint_ref": "docs/runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md",
+    "goal_slice": "repo_source_control_plane_only",
+    "repo_source_control_plane_completion_status": "done",
+    "repo_source_control_plane_completion_percent": 100,
+    "overall_blueprint_completion_status": "partial",
+    "overall_blueprint_completion_claim_allowed": false,
+    "live_acceptance_executed": false,
+    "live_only_completion_status": "deferred_not_run",
+    "claim_boundary": {
+      "repo_source_control_plane_complete_can_be_claimed": true,
+      "overall_blueprint_complete_can_be_claimed": false,
+      "runtime_ready_can_be_claimed": false,
+      "paper_line_ready_can_be_claimed": false,
+      "live_only_deferred_blocks_repo_source_control_plane": false,
+      "tests_or_contracts_can_claim_live_acceptance": false
+    },
+    "fresh_repo_evidence": {
+      "mas_repo_ref": "repo:med-autoscience@20838681e158931eab2ef7d88c708855a56770bd",
+      "opl_repo_ref": "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0",
+      "mas_root_status": "main==origin/main clean at preflight",
+      "opl_root_status": "main==origin/main clean at preflight",
+      "related_worktree_closeout_scope": "evidence-gap-core, evidence-gap-integration, projection/readback/adapter/outbox/runtime primitive lanes are absorbed or absent; display-pack-canonical-shrink is unrelated and not part of this goal slice"
+    },
+    "verification_scope": {
+      "forbidden_live_commands_not_run": [
+        "DHD apply",
+        "provider start",
+        "hydrate",
+        "tick",
+        "redrive",
+        "owner-route reconcile"
+      ],
+      "forbidden_artifact_writes_not_done": [
+        "Yang runtime/study/paper artifacts",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json"
+      ],
+      "repo_source_required_verification_refs": [
+        "tests/test_paper_progress_transition_runtime_completion_audit.py",
+        "tests/test_opl_domain_progress_transition_runtime_contract.py",
+        "tests/test_opl_transition_readback_contract.py",
+        "tests/test_paper_progress_transition_replay_fixtures.py",
+        "tests/test_paper_progress_policy_adapter.py",
+        "tests/study_progress_cases/evidence_gap_projection.py",
+        "tests/domain_action_request_materializer_cases/test_evidence_gap_decision.py",
+        "tests/test_adapter_retirement_boundary.py",
+        "tests/test_adapter_retirement_boundary_cases/test_live_runtime_gap_work_order_contract.py",
+        "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#tests/src/cli/cases/family-runtime-current-control-provider-admission.test.ts"
+      ]
+    },
+    "rows": [
+      {
+        "level": "L0",
+        "functional_surface": "ideal_blueprint_and_entrypoint_convergence",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "blueprint exists as active target design",
+            "OPL/MAS owner split and forbidden interpretations are machine-audited",
+            "completion audit separates repo/source/control-plane from live acceptance"
+          ],
+          "evidence_refs": [
+            "docs/runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md",
+            "contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance",
+            "tests/test_paper_progress_transition_runtime_completion_audit.py::test_blueprint_l0_l7_functional_acceptance_matrix_splits_repo_and_live_scope"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "target design, owner split, and false completion boundaries existed before this closeout slice"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "fresh runtime/paper-line acceptance is outside L0"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L1",
+        "functional_surface": "opl_domain_progress_transition_runtime_contract",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "command/event/outbox envelope",
+            "aggregate identity and idempotency",
+            "projection metadata authority=false",
+            "NonAdvancingApply as first-class outcome",
+            "complete transaction readback shape"
+          ],
+          "evidence_refs": [
+            "contracts/opl_domain_progress_transition_runtime_contract.json",
+            "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
+            "tests/test_opl_domain_progress_transition_runtime_contract.py",
+            "tests/test_opl_transition_readback_contract.py",
+            "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#src/family-runtime-domain-progress-transition-runtime.ts",
+            "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts",
+            "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#tests/src/cli/cases/family-runtime-current-control-provider-admission.test.ts::family-runtime records NonAdvancingApply when authorized stage packet lacks OPL transition request"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "OPL runtime primitive, current-control NonAdvancingApply publication, and MAS-facing ABI helpers are present in source"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "same-transition OPL command/event/outbox/StageRun live readback for DM002/DM003"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L2",
+        "functional_surface": "mas_paper_progress_policy_adapter_boundary",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "MAS emits clean transition request and paper policy / owner answer shape",
+            "MAS adapter does not self-sign OPL event/outbox/StageRun/provider admission",
+            "projection metadata remains diagnostic and authority=false"
+          ],
+          "evidence_refs": [
+            "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
+            "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_opl_domain_progress_transition_runtime_contract.py::test_policy_adapter_request_uses_runtime_contract_and_remains_mas_request_only",
+            "contracts/paper_progress_replay_live_evidence_status.json#/projection_metadata_completion_gate"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "MAS policy adapter rejects provider-admission authority for owner-callable recovery and keeps event/outbox/StageRun fields outside MAS requests"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "fresh MAS owner answer after OPL transition runtime consumption"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L3",
+        "functional_surface": "historical_replay_and_bad_trace_fixtures",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "DM002/DM003 bad trajectories replay to exactly-one outcome or NonAdvancingApply",
+            "stale dispatch, owner receipt not advancing, pending-count misread, typed-blocker redrive, and closeout/StageRun split are fixtures",
+            "forbidden interpretations are rejected"
+          ],
+          "evidence_refs": [
+            "tests/test_paper_progress_transition_replay_fixtures.py",
+            "tests/test_paper_recovery_provider_admission_state.py",
+            "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage",
+            "tests/study_progress_cases/evidence_gap_projection.py::test_evidence_gap_projection_does_not_infer_from_runtime_pending_counts",
+            "tests/domain_action_request_materializer_cases/test_evidence_gap_decision.py"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "replay and EvidenceGap fixtures classify request-only or pending-count evidence as non-authoritative"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "fresh DM002/DM003 live readback replacing replay fixture evidence"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L4",
+        "functional_surface": "dhd_owner_route_export_consume_only_projection",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "DHD, owner-route, provider admission, export, current_work_unit, and study_progress consume OPL-backed readback only",
+            "readback shape requires identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata",
+            "request-only or bare event/outbox/StageRun fragments fail closed"
+          ],
+          "evidence_refs": [
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py",
+            "tests/test_provider_admission_current_control_arbiter.py",
+            "tests/test_provider_admission_current_control_cases/transition_request_consume_only_cases.py",
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+            "tests/test_mcp_opl_current_control_state_handoff_projection.py",
+            "tests/study_progress_cases/provider_admission_projection_cases/opl_running_readback.py"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "MAS consumption paths expose projection/readback proof but keep authority=false when live readback is incomplete"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "DHD apply exactly-one live outcome when explicitly delegated",
+            "provider admission arbiter consuming fresh OPL event/outbox/StageRun readback for current DM002/DM003 identity"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L5",
+        "functional_surface": "transactional_outbox_side_effect_boundary",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "provider start, owner callable, tool invocation, and human gate side effects are represented as OPL outbox-backed requirements",
+            "MAS cannot create OPL outbox records or treat provider completion as owner answer",
+            "live-readback acceptance contract requires same transaction identity"
+          ],
+          "evidence_refs": [
+            "contracts/opl_domain_progress_transition_runtime_contract.json#/live_readback_contract",
+            "contracts/runtime/mas-live-runtime-gap-work-orders.json",
+            "contracts/runtime/mas-runtime-live-tail-work-orders.json",
+            "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+            "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#src/family-runtime-domain-progress-transition-runtime.ts",
+            "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#tests/src/cli/cases/family-runtime-current-control-provider-admission.test.ts"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "repo contracts and tests define outbox/StageRun identity requirements and false completion boundaries"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "OPL outbox and StageRun identity live readback for the same transition request",
+            "provider start or owner callable side effect readback bound to the same current identity"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L6",
+        "functional_surface": "projection_demotion_legacy_retirement_rebuild_surfaces",
+        "classification": [
+          "already_done",
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "old dispatch, queue residue, local scheduler, private kernel, aliases, wrappers, and compat carriers are physically retired, tombstoned, or retained as minimal adapters",
+            "no-active-caller, tombstone/provenance, source-adapter, and rebuild surfaces are machine-readable",
+            "read models are rebuildable projections and cannot authorize next action/provider admission"
+          ],
+          "evidence_refs": [
+            "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+            "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::audit_runtime_surface_retirement_inventory",
+            "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
+            "tests/test_adapter_retirement_boundary.py",
+            "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py",
+            "tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py",
+            "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py",
+            "src/med_autoscience/controllers/evidence_gap_projection.py",
+            "tests/study_progress_cases/evidence_gap_projection.py"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "repo-source private-surface retirement is split from live readiness, with violation_count=0 and open live tails tracked separately"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "live OPL StateIndexKernel, Workbench Shell, Observability, RecoveryObligationStore, and owner-callable soak evidence where the inventory requires live tails"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      },
+      {
+        "level": "L7",
+        "functional_surface": "live_paper_line_acceptance_preflight_harness_only",
+        "classification": [
+          "repo_source_control_plane_required",
+          "live_only_deferred"
+        ],
+        "repo_source_control_plane_required": {
+          "status": "done",
+          "completion_percent": 100,
+          "required": [
+            "live acceptance preflight, runbook, work-order, evidence schema, readback intake, and rollup harness exist",
+            "harness rejects docs/tests/queue empty/dry-run/projection as live acceptance",
+            "harness requires current transition identity for accepted evidence families"
+          ],
+          "evidence_refs": [
+            "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary",
+            "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary",
+            "contracts/runtime/mas-live-runtime-evidence-rollup.json#/completion_claim_boundary",
+            "contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance",
+            "docs/runtime/control/controllers.md",
+            "docs/runtime/control/progress_first_stage_outcome.md",
+            "tests/test_adapter_retirement_boundary_cases/test_live_runtime_gap_work_order_contract.py",
+            "tests/test_adapter_retirement_boundary_cases/test_live_tail_work_order_contract.py",
+            "tests/test_adapter_retirement_boundary_cases/test_live_runtime_evidence_rollup_contract.py"
+          ],
+          "remaining_repo_source_gaps": []
+        },
+        "already_done": [
+          "acceptance harness and false-claim boundaries are in repo; live execution is intentionally not part of this slice"
+        ],
+        "live_only_deferred": {
+          "status": "deferred_not_run",
+          "required_evidence": [
+            "fresh DM002 study_progress and accepted outcome evidence",
+            "fresh DM003 study_progress and accepted outcome evidence",
+            "DHD apply exactly-one live outcome when explicitly delegated",
+            "same-identity OPL current-control or StageRun readback when provider/running/admission is claimed",
+            "MAS owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta"
+          ],
+          "blocks_repo_source_control_plane_completion": false
+        }
+      }
+    ],
+    "remaining_live_only_deferred": [
+      "OPL outbox and StageRun identity live readback for the same transition request",
+      "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
+      "DHD apply exactly-one live outcome when explicitly delegated",
+      "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
+      "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
+      "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+      "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family"
+    ]
   },
   "status_values": [
     "done",
@@ -863,10 +1232,10 @@
         "external_repo:one-person-lab/tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts"
       ],
       "observed_refs": [
-        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#src/family-runtime-domain-progress-transition-runtime.ts",
-        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts",
-        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts::DomainProgressTransitionRuntime result and read model expose stable identity causality authority and outcome readback",
-        "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts::DomainProgressTransitionRuntime live readback fail-closes outbox identity mismatch inside a physical transaction"
+        "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#src/family-runtime-domain-progress-transition-runtime.ts",
+        "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts",
+        "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts::DomainProgressTransitionRuntime result and read model expose stable identity causality authority and outcome readback",
+        "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0#tests/src/cli/cases/family-runtime-domain-progress-transition-runtime.test.ts::DomainProgressTransitionRuntime live readback fail-closes outbox identity mismatch inside a physical transaction"
       ],
       "missing_evidence_tails": [
         "MAS_same_transition_request_consumes_opl_runtime_live_readback_ref",

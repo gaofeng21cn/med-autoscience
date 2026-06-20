@@ -786,17 +786,13 @@ def test_transition_runtime_completion_audit_records_fresh_opl_repo_evidence_wit
     audit = _audit()
     gates = {gate["gate_id"]: gate for gate in audit["gate_evidence_status"]}
     opl_gate = gates["lane_2_opl_runtime_repo_readback_shape"]
+    opl_ref = "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0"
 
+    assert audit["source_of_truth"]["fresh_opl_repo_ref"] == opl_ref
     assert opl_gate["status"] == "satisfied_with_opl_repo_evidence"
     assert {
-        (
-            "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#"
-            "src/family-runtime-domain-progress-transition-runtime.ts"
-        ),
-        (
-            "external_repo:one-person-lab@3aaf41766f7c454fb6938633b05f4e18c9d061b7#"
-            "src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts"
-        ),
+        f"{opl_ref}#src/family-runtime-domain-progress-transition-runtime.ts",
+        f"{opl_ref}#src/family-runtime-domain-progress-transition-runtime-parts/live-readback.ts",
     } <= set(opl_gate["observed_refs"])
     assert {
         "MAS_same_transition_request_consumes_opl_runtime_live_readback_ref",
@@ -805,3 +801,83 @@ def test_transition_runtime_completion_audit_records_fresh_opl_repo_evidence_wit
     } <= set(opl_gate["missing_evidence_tails"])
     assert "OPL_repo_tests_as_MAS_live_acceptance" in opl_gate["false_completion_boundary"]
     assert audit["completion_claim_allowed"] is False
+
+
+def test_blueprint_l0_l7_functional_acceptance_matrix_splits_repo_and_live_scope() -> None:
+    audit = _audit()
+    matrix = audit["blueprint_l0_l7_functional_acceptance"]
+    rows = {row["level"]: row for row in matrix["rows"]}
+
+    assert matrix["surface_kind"] == (
+        "mas_opl_progress_runtime_blueprint_l0_l7_functional_acceptance"
+    )
+    assert matrix["blueprint_ref"] == (
+        "docs/runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md"
+    )
+    assert matrix["goal_slice"] == "repo_source_control_plane_only"
+    assert matrix["repo_source_control_plane_completion_status"] == "done"
+    assert matrix["repo_source_control_plane_completion_percent"] == 100
+    assert matrix["overall_blueprint_completion_status"] == "partial"
+    assert matrix["overall_blueprint_completion_claim_allowed"] is False
+    assert matrix["live_acceptance_executed"] is False
+    assert matrix["live_only_completion_status"] == "deferred_not_run"
+    assert matrix["fresh_repo_evidence"]["mas_repo_ref"] == (
+        "repo:med-autoscience@20838681e158931eab2ef7d88c708855a56770bd"
+    )
+    assert matrix["fresh_repo_evidence"]["opl_repo_ref"] == (
+        "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0"
+    )
+
+    assert set(rows) == {"L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"}
+    for level, row in rows.items():
+        required = row["repo_source_control_plane_required"]
+        assert required["status"] == "done", level
+        assert required["completion_percent"] == 100, level
+        assert required["required"], level
+        assert required["evidence_refs"], level
+        assert required["remaining_repo_source_gaps"] == [], level
+        assert row["live_only_deferred"]["status"] == "deferred_not_run", level
+        assert row["live_only_deferred"]["required_evidence"], level
+        assert row["live_only_deferred"][
+            "blocks_repo_source_control_plane_completion"
+        ] is False
+
+    assert matrix["claim_boundary"] == {
+        "repo_source_control_plane_complete_can_be_claimed": True,
+        "overall_blueprint_complete_can_be_claimed": False,
+        "runtime_ready_can_be_claimed": False,
+        "paper_line_ready_can_be_claimed": False,
+        "live_only_deferred_blocks_repo_source_control_plane": False,
+        "tests_or_contracts_can_claim_live_acceptance": False,
+    }
+    assert {
+        "DHD apply",
+        "provider start",
+        "hydrate",
+        "tick",
+        "redrive",
+        "owner-route reconcile",
+    } == set(matrix["verification_scope"]["forbidden_live_commands_not_run"])
+    assert {
+        "Yang runtime/study/paper artifacts",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+    } == set(matrix["verification_scope"]["forbidden_artifact_writes_not_done"])
+
+    assert "live_only_deferred" in rows["L7"]["classification"]
+    assert rows["L7"]["functional_surface"] == (
+        "live_paper_line_acceptance_preflight_harness_only"
+    )
+    assert {
+        "fresh DM002 study_progress and accepted outcome evidence",
+        "fresh DM003 study_progress and accepted outcome evidence",
+        "DHD apply exactly-one live outcome when explicitly delegated",
+    } <= set(rows["L7"]["live_only_deferred"]["required_evidence"])
+    assert {
+        "OPL outbox and StageRun identity live readback for the same transition request",
+        "DHD apply exactly-one live outcome when explicitly delegated",
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
+    } <= set(matrix["remaining_live_only_deferred"])
+    assert audit["completion_claim_allowed"] is False
+    assert audit["non_claims"]["domain_progress_transition_runtime_live_complete"] is False
+    assert audit["non_claims"]["dm002_dm003_live_paper_progress"] is False

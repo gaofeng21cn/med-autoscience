@@ -202,6 +202,21 @@ OPL 基座必须把以下能力做成一等 primitive：
 | L6 projection demotion / legacy retirement | old dispatch、queue residue、local scheduler、private kernel 只剩 tombstone/provenance/diagnostic。 | no active caller、replacement parity、no-forbidden-write proof、fresh owner/stable blocker gate。 | private residue 物理全删，除非有 live gate。 |
 | L7 live paper-line acceptance | DM002/DM003 fresh apply/readback 给出 exactly-one live outcome。 | running proof / owner receipt / stable blocker / human gate / route-back / paper delta。 | publication-ready / submission-ready，除非质量门另证。 |
 
+## 本轮功能面验收矩阵
+
+本轮 goal 只关闭 repo/source/control-plane 功能面；live evidence / runtime-paper acceptance 不作为完成门，且未运行 `DHD apply`、provider start、hydrate、tick、redrive、owner-route reconcile，未写 Yang runtime/study/paper artifacts。机器读根是 `contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance`。
+
+| Level | 功能面 | repo/source/control-plane required | already done | live-only deferred |
+| --- | --- | --- | --- | --- |
+| L0 | 理想蓝图与入口收敛 | `done`：蓝图、owner split、forbidden interpretations、completion audit 分栏已落盘。 | 目标设计和 false completion boundaries 已存在，本轮补 machine acceptance matrix。 | 不涉及 live acceptance。 |
+| L1 | OPL runtime contract | `done`：command/event/outbox、aggregate identity、idempotency、projection metadata、`NonAdvancingApply`、complete transaction readback shape 已有 source/contract/tests。 | OPL `DomainProgressTransitionRuntime` 与 current-control NonAdvancingApply primitive 已在 OPL main。 | DM002/DM003 same-transition OPL command/event/outbox/StageRun live readback。 |
+| L2 | MAS adapter 收薄 | `done`：MAS 只输出 clean transition request / policy / owner-answer shape，不自签 OPL event/outbox/StageRun/provider admission。 | `PaperProgressPolicyAdapter` 和 projection metadata demotion tests 已覆盖。 | fresh MAS owner answer after OPL runtime consumption。 |
+| L3 | historical replay | `done`：DM002/DM003 坏轨迹、pending-count 误读、owner receipt 不推进、typed blocker redrive、closeout/StageRun split 进入 replay/contract tests。 | replay fixtures 与 EvidenceGap explicit-input tests 已覆盖。 | fresh DM002/DM003 live readback 取代 replay fixture evidence。 |
+| L4 | DHD / owner-route / export consume-only | `done`：DHD、provider admission、owner-route/export/current projections 只消费完整 OPL-backed readback；不完整 readback fail closed / authority=false。 | MAS readback validator、provider-admission arbiter、current_work_unit/study_progress projection tests 已覆盖。 | DHD apply exactly-one live outcome 与 current DM002/DM003 provider-admission live readback。 |
+| L5 | transactional outbox side effect | `done`：side-effect acceptance contract、outbox/StageRun identity、false claim boundary、live evidence work orders 已落盘；MAS 不创建 OPL outbox。 | OPL runtime source/tests 和 MAS contracts 已定义 transaction identity boundary。 | OPL outbox/StageRun live readback 与 provider/owner callable side effect readback。 |
+| L6 | projection demotion / legacy retirement | `done`：legacy queue/dispatch/local scheduler/private kernel/alias/wrapper/compat carrier 已物理退役、tombstone/provenance 或 retained-minimal-adapter 分类；no-active/rebuild/source-adapter/readback surfaces 已落盘。 | runtime retirement inventory repo-source completion 为 done，EvidenceGap projection 不再从 pending count 推断 authority。 | OPL StateIndexKernel、Workbench Shell、Observability、RecoveryObligationStore、owner-callable soak 等 live tails。 |
+| L7 | live paper-line acceptance harness | `done` 仅限 preflight/runbook/contract/readback acceptance harness：work orders、evidence schema、rollup、identity gate、false live-claim boundary 已落盘。 | live acceptance harness 已存在并拒绝 docs/tests/queue empty/dry-run/projection 作为 live proof。 | fresh DM002/DM003 accepted outcome、DHD apply exactly-one、same-identity OPL current-control/StageRun readback、MAS owner receipt/stable blocker/human gate/route-back/paper delta。 |
+
 ## OPL 基座优化要求
 
 OPL 侧应把这次 MAS 经验提升为 Foundry Agent 的通用基座能力：
