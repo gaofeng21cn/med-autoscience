@@ -225,6 +225,9 @@ def _read_model_rebuild_matches_live_sections(
         actual = _mapping(read_model.get(section))
         if section == "causality":
             actual = _read_model_causality_core(actual)
+        if section == "projection_metadata":
+            actual = _read_model_projection_metadata_core(actual)
+            expected = _read_model_projection_metadata_core(expected)
         if actual != dict(expected):
             return False
     return True
@@ -233,6 +236,16 @@ def _read_model_rebuild_matches_live_sections(
 def _read_model_causality_core(causality: Mapping[str, Any]) -> dict[str, Any]:
     envelope_fields = {"runtime_readback_status", "transaction_complete", "fail_closed_reason"}
     return {key: value for key, value in dict(causality).items() if key not in envelope_fields}
+
+
+def _read_model_projection_metadata_core(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    envelope_fields = {
+        "projection_role",
+        "read_model_projection_consumable",
+        "runtime_readback_status",
+        "transaction_complete",
+    }
+    return {key: value for key, value in dict(metadata).items() if key not in envelope_fields}
 
 
 def candidate_opl_transition_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:

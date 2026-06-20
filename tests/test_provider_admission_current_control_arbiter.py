@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback as _opl_transition_readback,
     provider_candidate as _provider_candidate,
     provider_candidate_with_opl_readback as _provider_candidate_with_opl_readback,
 )
@@ -134,6 +135,108 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert consumption["event_or_outbox_fragment_is_provider_admission_authority"] is False
 
 
+def test_provider_admission_current_control_provider_readback_consumes_same_identity_transition_request(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    idempotency_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    provider_candidate = _provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        action_type="run_quality_repair_batch",
+        next_executable_owner="write",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+    provider_candidate["route_identity_key"] = idempotency_key
+    provider_candidate["attempt_idempotency_key"] = idempotency_key
+    provider_candidate["idempotency_key"] = idempotency_key
+    provider_candidate["opl_domain_progress_transition_live_readback"] = _opl_transition_readback(
+        study_id,
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=idempotency_key,
+        attempt_idempotency_key=idempotency_key,
+        request_idempotency_key=idempotency_key,
+    )
+    transition_request = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint=action_fingerprint,
+        ),
+        "status": "transition_request_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+        "idempotency_key": idempotency_key,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "idempotency_key": idempotency_key,
+            "study_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[transition_request, provider_candidate],
+        generated_at="2026-06-20T09:45:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "typed_blocker",
+                    "owner": "one-person-lab",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                    "state": {
+                        "state_kind": "typed_blocker",
+                        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                        "source": "accepted_closeout_consumed_pending",
+                    },
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    assert len(result["provider_admission_candidates"]) == 1
+    assert result["transition_request_candidates"] == []
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    study = next(item for item in result["studies"] if item["study_id"] == study_id)
+    assert study["provider_admission_pending_count"] == 1
+    assert study.get("transition_request_pending_count", 0) == 0
+
+
 def test_provider_admission_current_control_suppresses_candidate_blocked_by_paper_recovery_state(
     tmp_path: Path,
 ) -> None:
@@ -145,15 +248,19 @@ def test_provider_admission_current_control_suppresses_candidate_blocked_by_pape
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
     action_fingerprint = "publication-blockers::0915410f804b3697"
-    candidate = _provider_candidate_with_opl_readback(
-        profile,
-        study_id,
-        action_fingerprint=action_fingerprint,
-        work_unit_id=work_unit_id,
-        action_type="run_quality_repair_batch",
-        next_executable_owner="write",
-        required_output_surface="artifacts/controller/repair_execution_evidence/latest.json",
-    )
+    candidate = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint=action_fingerprint,
+        ),
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "next_executable_owner": "write",
+        "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+    }
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,

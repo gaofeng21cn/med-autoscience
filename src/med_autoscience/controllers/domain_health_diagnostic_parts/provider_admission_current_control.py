@@ -71,6 +71,9 @@ def materialize_provider_admission_current_control_state(
         )
         for candidate in candidates
     ]
+    candidates = _candidates_without_transition_requests_consumed_by_provider_readback(
+        candidates
+    )
     scanned_studies = _scanned_studies_with_candidate_closeout_projection(
         scanned_studies,
         candidates=candidates,
@@ -317,6 +320,60 @@ def _merge_candidate_payloads(
             if base:
                 merged[key] = {**base, **dict(value)}
     return merged
+
+
+def _candidates_without_transition_requests_consumed_by_provider_readback(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    provider_readback_keys = {
+        _transition_request_readback_identity_key(candidate)
+        for candidate in candidates
+        if provider_admission_opl_transition_readback(candidate)
+    }
+    if not provider_readback_keys:
+        return [dict(candidate) for candidate in candidates]
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if not (
+            _transition_request_readback_identity_key(candidate) in provider_readback_keys
+            and _transition_request_only_candidate(candidate)
+        )
+    ]
+
+
+def _transition_request_readback_identity_key(
+    candidate: Mapping[str, Any],
+) -> tuple[str | None, ...]:
+    transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not transition_request:
+        transition_request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    return (
+        *_candidate_key(candidate),
+        _non_empty_text(candidate.get("route_identity_key")),
+        _non_empty_text(candidate.get("attempt_idempotency_key")),
+        _non_empty_text(candidate.get("idempotency_key"))
+        or _non_empty_text(transition_request.get("idempotency_key")),
+    )
+
+
+def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(candidate):
+        return False
+    if candidate.get("provider_admission_requires_opl_runtime_result") is not True:
+        return False
+    return bool(
+        _mapping(candidate.get("opl_domain_progress_transition_request"))
+        or _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    )
 
 
 def _arbiter_decision_retains_transition_request(decision: Mapping[str, Any]) -> bool:

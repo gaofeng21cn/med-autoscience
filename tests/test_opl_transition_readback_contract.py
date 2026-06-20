@@ -208,6 +208,47 @@ def test_replay_ready_complete_transaction_is_consumable_readback_projection() -
     ) == {}
 
 
+def test_live_readback_accepts_read_model_projection_metadata_core_shape() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    readback = _live_readback()
+    readback["projection_metadata"] = {
+        **readback["projection_metadata"],
+        "projection_role": "complete_runtime_readback",
+        "read_model_projection_consumable": True,
+        "runtime_readback_status": "complete_transaction",
+        "transaction_complete": True,
+    }
+    readback["read_model_readback"]["projection_metadata"] = {
+        key: value
+        for key, value in readback["projection_metadata"].items()
+        if key
+        in {
+            "surface_kind",
+            "runtime_id",
+            "authority",
+            "derived_from_event_id",
+            "observed_generation",
+            "derived_generation",
+            "lag_status",
+            "read_model_rebuild_owner",
+        }
+    }
+    candidate = {
+        "study_id": STUDY_ID,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FINGERPRINT,
+        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "opl_domain_progress_transition_runtime_live_readback": readback,
+    }
+
+    assert module.valid_opl_transition_readback(readback) is True
+    assert module.provider_admission_opl_transition_readback(candidate) == readback
+
+
 def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_without_provider_admission() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
