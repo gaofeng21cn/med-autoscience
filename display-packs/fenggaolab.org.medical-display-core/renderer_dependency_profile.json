@@ -33,6 +33,22 @@
           "name": "grid",
           "required": true,
           "role": "grob layout inspection for sidecars"
+        },
+        {
+          "name": "Rtsne",
+          "required": true,
+          "template_ids": [
+            "tsne_scatter_grouped"
+          ],
+          "role": "real t-SNE embedding computation from feature_matrix inputs"
+        },
+        {
+          "name": "uwot",
+          "required": true,
+          "template_ids": [
+            "umap_scatter_grouped"
+          ],
+          "role": "real UMAP embedding computation from feature_matrix inputs"
         }
       ],
       "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",

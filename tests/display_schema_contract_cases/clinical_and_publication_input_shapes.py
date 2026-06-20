@@ -9,31 +9,25 @@ def test_schema_contract_tracks_current_clinical_and_publication_shapes() -> Non
     publication_shells_class = fx.publication_shells_class
 
     assert _full_id("time_dependent_roc_horizon") in time_to_event_class.template_ids
-    assert _full_id("time_dependent_roc_comparison_panel") in time_to_event_class.template_ids
-    assert _full_id("time_to_event_landmark_performance_panel") in time_to_event_class.template_ids
-    assert _full_id("time_to_event_stratified_cumulative_incidence_panel") in time_to_event_class.template_ids
-    assert "time_dependent_roc_comparison_inputs_v1" in time_to_event_class.input_schema_ids
-    assert "time_to_event_landmark_performance_inputs_v1" in time_to_event_class.input_schema_ids
-
-    assert fx.time_to_event_panel.template_ids == (_full_id("time_to_event_discrimination_calibration_panel"),)
-    assert fx.time_to_event_panel.collection_required_fields["discrimination_points"] == ("label", "c_index")
-    assert fx.time_to_event_panel.collection_required_fields["calibration_summary"] == (
-        "group_label",
-        "group_order",
-        "n",
-        "events_5y",
-        "predicted_risk_5y",
-        "observed_risk_5y",
+    assert _full_id("time_dependent_roc_comparison_panel") not in time_to_event_class.template_ids
+    assert _full_id("time_to_event_landmark_performance_panel") not in time_to_event_class.template_ids
+    assert "time_dependent_roc_comparison_inputs_v1" not in time_to_event_class.input_schema_ids
+    assert "time_to_event_landmark_performance_inputs_v1" not in time_to_event_class.input_schema_ids
+    assert fx.time_to_event_grouped.template_ids == (
+        _full_id("kaplan_meier_grouped"),
+        _full_id("cumulative_incidence_grouped"),
+    )
+    assert fx.time_to_event_grouped.collection_required_fields["groups"] == ("label", "times", "values")
+    assert fx.time_to_event_multihorizon.template_ids == (_full_id("time_to_event_multihorizon_calibration_panel"),)
+    assert "panel_time_horizon_months_must_be_strictly_increasing" in (
+        fx.time_to_event_multihorizon.additional_constraints
     )
 
-    assert _full_id("binary_calibration_decision_curve_panel") in clinical_utility_class.template_ids
-    assert fx.binary_calibration_decision.template_ids == (_full_id("binary_calibration_decision_curve_panel"),)
-    assert fx.binary_calibration_decision.collection_required_fields["calibration_series"] == ("label", "x", "y")
-    assert "decision_focus_window_must_be_strictly_increasing" in fx.binary_calibration_decision.additional_constraints
+    assert _full_id("decision_curve_binary") in clinical_utility_class.template_ids
+    assert _full_id("time_to_event_decision_curve") in clinical_utility_class.template_ids
+    assert fx.time_to_event_decision.template_ids == (_full_id("time_to_event_decision_curve"),)
+    assert fx.time_to_event_decision.collection_required_fields["treated_fraction_series"] == ("label", "x", "y")
 
-    assert fx.performance_heatmap.template_ids == (_full_id("performance_heatmap"),)
-    assert fx.performance_heatmap.collection_required_fields["cells"] == ("x", "y", "value")
-    assert "declared_heatmap_grid_must_be_complete_and_unique" in fx.performance_heatmap.additional_constraints
     assert fx.confusion_heatmap.template_ids == (_full_id("confusion_matrix_heatmap_binary"),)
     assert "binary_confusion_matrix_must_have_exactly_two_row_labels" in fx.confusion_heatmap.additional_constraints
 
@@ -49,7 +43,5 @@ def test_schema_contract_tracks_current_clinical_and_publication_shapes() -> Non
     assert _full_id("generalizability_subgroup_composite_panel") in fx.generalizability_class.template_ids
     assert "generalizability_subgroup_composite_inputs_v1" in fx.generalizability_class.input_schema_ids
 
-    assert fx.performance_table.template_ids == (_full_id("table2_time_to_event_performance_summary"),)
-    assert fx.performance_table.collection_required_fields["rows"] == ("row_id", "label", "values")
-    assert fx.generic_performance_table.template_ids == (_full_id("performance_summary_table_generic"),)
-    assert "row_header_label" in fx.generic_performance_table.required_top_level_fields
+    assert fx.baseline_table.template_ids == (_full_id("table1_baseline_characteristics"),)
+    assert fx.baseline_table.collection_required_fields["variables"] == ("variable_id", "label", "values")

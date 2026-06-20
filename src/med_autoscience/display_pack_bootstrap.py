@@ -37,6 +37,11 @@ _PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID: dict[str, tuple[str, ...]] = {
         "PaperPlotHub `prerl_passk_qwen4b` https://paperplothub.tech/p/prerl_passk_qwen4b",
     ),
 }
+_INPUT_SCHEMA_REF_BY_TEMPLATE_ID: dict[str, str] = {
+    "pca_scatter_grouped": "dimensionality_reduction_inputs_v1",
+    "tsne_scatter_grouped": "dimensionality_reduction_inputs_v1",
+    "umap_scatter_grouped": "dimensionality_reduction_inputs_v1",
+}
 
 
 @dataclass(frozen=True)
@@ -88,7 +93,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 paper_family_ids=spec.paper_family_ids,
                 audit_family=audit_family_map[spec.evidence_class],
                 renderer_family=spec.renderer_family,
-                input_schema_ref=spec.input_schema_id,
+                input_schema_ref=_INPUT_SCHEMA_REF_BY_TEMPLATE_ID.get(short_id, spec.input_schema_id),
                 qc_profile_ref=spec.layout_qc_profile,
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,

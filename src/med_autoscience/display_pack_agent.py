@@ -497,6 +497,7 @@ def _load_renderer_dependency_profile(pack_root: Path) -> dict[str, Any]:
 def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...]:
     packages: set[str] = set()
     for record in records:
+        template_id = record.template_manifest.template_id
         profile = _load_renderer_dependency_profile(record.pack_root)
         for item in _list(profile.get("profiles")):
             item_map = _mapping(item)
@@ -504,6 +505,9 @@ def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...
                 continue
             for package in _list(item_map.get("r_packages")):
                 package_map = _mapping(package)
+                template_ids = tuple(_text(value) for value in _list(package_map.get("template_ids")) if _text(value))
+                if template_ids and template_id not in template_ids:
+                    continue
                 if package_map.get("required") is True and _text(package_map.get("name")):
                     packages.add(_text(package_map.get("name")))
     return tuple(sorted(packages))
@@ -533,7 +537,7 @@ def _r_runtime_status(records: list[LoadedDisplayTemplate], *, check_runtime_dep
         )
         for line in completed.stdout.splitlines():
             name, _, value = line.partition(" ")
-            if name:
+            if name in packages:
                 package_status[name] = value.strip() == "TRUE"
         for package in packages:
             package_status.setdefault(package, False)

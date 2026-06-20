@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from .shared import Any, Path, _evidence_payload_path, display_registry, load_json
-from .validation_atlas_primary import _validate_embedding_display_payload
+from .validation_atlas_primary import _validate_dimensionality_reduction_display_payload
 from .validation_curves_extended import _validate_model_complexity_audit_display_payload, _validate_time_to_event_display_payload, _validate_time_to_event_multihorizon_calibration_display_payload
 from .validation_curves_primary import _validate_binary_curve_display_payload, _validate_risk_layering_display_payload, _validate_time_to_event_decision_curve_display_payload
 from .validation_effects import _validate_coefficient_path_panel_display_payload, _validate_forest_display_payload
@@ -22,7 +22,7 @@ _VALIDATOR_BY_SCHEMA_ID: dict[str, _EvidenceDisplayValidator] = {
     "time_to_event_multihorizon_calibration_inputs_v1": _validate_time_to_event_multihorizon_calibration_display_payload,
     "time_to_event_grouped_inputs_v1": _validate_time_to_event_display_payload,
     "time_to_event_decision_curve_inputs_v1": _validate_time_to_event_decision_curve_display_payload,
-    "embedding_grouped_inputs_v1": _validate_embedding_display_payload,
+    "dimensionality_reduction_inputs_v1": _validate_dimensionality_reduction_display_payload,
     "heatmap_group_comparison_inputs_v1": _validate_heatmap_display_payload,
     "confusion_matrix_heatmap_binary_inputs_v1": _validate_confusion_matrix_heatmap_binary_display_payload,
     "pathway_enrichment_dotplot_panel_inputs_v1": _validate_pathway_enrichment_dotplot_panel_display_payload,

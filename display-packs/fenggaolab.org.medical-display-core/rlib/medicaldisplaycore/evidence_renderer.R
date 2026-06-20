@@ -9,6 +9,34 @@ suppressPackageStartupMessages({
   if (is.null(left)) right else left
 }
 
+source_renderer_helper <- function(file_name) {
+  frame_files <- vapply(sys.frames(), function(frame) {
+    value <- frame$ofile %||% ""
+    trimws(as.character(value))
+  }, character(1))
+  for (source_path in rev(frame_files[nzchar(frame_files)])) {
+    helper_path <- file.path(dirname(normalizePath(source_path, mustWork = FALSE)), file_name)
+    if (file.exists(helper_path)) {
+      source(helper_path)
+      return(invisible(TRUE))
+    }
+  }
+  fallback_paths <- c(
+    file.path("display-packs", "fenggaolab.org.medical-display-core", "rlib", "medicaldisplaycore", file_name),
+    file.path("..", "..", "rlib", "medicaldisplaycore", file_name),
+    file_name
+  )
+  for (helper_path in fallback_paths) {
+    if (file.exists(helper_path)) {
+      source(helper_path)
+      return(invisible(TRUE))
+    }
+  }
+  stop(sprintf("renderer helper `%s` was not found", file_name))
+}
+
+source_renderer_helper("embedding_workflow.R")
+
 normalize_template_id <- function(value) {
   template_id <- trimws(as.character(value %||% ""))
   if (!nzchar(template_id)) {
@@ -1018,9 +1046,9 @@ build_metrics <- function(template_id, display_payload, panel_box) {
       groups = display_payload$groups,
       annotation = trimws(as.character(display_payload$annotation %||% ""))
     ),
-    umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
-    pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
-    tsne_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    umap_scatter_grouped = build_dimensionality_reduction_metrics(template_id, display_payload, panel_box),
+    pca_scatter_grouped = build_dimensionality_reduction_metrics(template_id, display_payload, panel_box),
+    tsne_scatter_grouped = build_dimensionality_reduction_metrics(template_id, display_payload, panel_box),
     heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
     confusion_matrix_heatmap_binary = list(
       matrix_cells = display_payload$cells,
@@ -1176,9 +1204,9 @@ build_evidence_plot <- function(template_id, payload) {
     time_dependent_roc_horizon = plot_binary_curve(payload),
     kaplan_meier_grouped = plot_kaplan_meier(payload),
     cumulative_incidence_grouped = plot_kaplan_meier(payload),
-    umap_scatter_grouped = plot_embedding_scatter(payload),
-    pca_scatter_grouped = plot_embedding_scatter(payload),
-    tsne_scatter_grouped = plot_embedding_scatter(payload),
+    umap_scatter_grouped = plot_dimensionality_reduction_embedding(template_id, payload),
+    pca_scatter_grouped = plot_dimensionality_reduction_embedding(template_id, payload),
+    tsne_scatter_grouped = plot_dimensionality_reduction_embedding(template_id, payload),
     heatmap_group_comparison = plot_heatmap(payload),
     confusion_matrix_heatmap_binary = plot_confusion_matrix_heatmap(payload),
     forest_effect_main = plot_forest(payload),

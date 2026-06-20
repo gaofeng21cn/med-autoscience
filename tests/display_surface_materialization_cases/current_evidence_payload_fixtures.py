@@ -224,13 +224,44 @@ def _coefficient_path_display() -> dict[str, Any]:
     }
 
 
-def _embedding_displays() -> list[dict[str, Any]]:
-    specs = [("Figure15", "pca_scatter_grouped", "PC1", "PC2"), ("Figure16", "tsne_scatter_grouped", "t-SNE 1", "t-SNE 2"), ("Figure17", "umap_scatter_grouped", "UMAP 1", "UMAP 2")]
+def _embedding_feature_matrix() -> list[dict[str, Any]]:
+    values = [
+        ("Subtype A", (-1.2, 0.6, -0.4)),
+        ("Subtype A", (-0.9, 0.4, -0.3)),
+        ("Transition", (0.0, 0.0, 0.1)),
+        ("Subtype B", (0.8, -0.5, 0.5)),
+        ("Subtype B", (1.1, -0.7, 0.7)),
+    ]
     return [
-        {"display_id": display_id, "template_id": _full(template_id), "title": f"{template_id.split('_')[0].upper()} embedding by subtype", "caption": "Two-dimensional embedding with subtype labels.", "x_label": x_label, "y_label": y_label, "points": [
-            {"x": -1.2, "y": 0.6, "group": "Subtype A"}, {"x": -0.9, "y": 0.4, "group": "Subtype A"}, {"x": 0.8, "y": -0.5, "group": "Subtype B"}, {"x": 1.1, "y": -0.7, "group": "Subtype B"},
-        ]}
-        for display_id, template_id, x_label, y_label in specs
+        {
+            "sample_id": f"S{index:02d}",
+            "group": group,
+            "features": {"signal_a": row[0], "signal_b": row[1], "signal_c": row[2]},
+        }
+        for index, (group, row) in enumerate(values, start=1)
+    ]
+
+
+def _embedding_displays() -> list[dict[str, Any]]:
+    specs = [
+        ("Figure15", "pca_scatter_grouped", "PC1", "PC2", {"center": True, "scale": True}),
+        ("Figure16", "tsne_scatter_grouped", "t-SNE 1", "t-SNE 2", {"seed": 42, "perplexity": 1, "max_iter": 500}),
+        ("Figure17", "umap_scatter_grouped", "UMAP 1", "UMAP 2", {"seed": 42, "n_neighbors": 3, "min_dist": 0.2}),
+    ]
+    return [
+        {
+            "display_id": display_id,
+            "template_id": _full(template_id),
+            "title": f"{template_id.split('_')[0].upper()} embedding by subtype",
+            "caption": "Dimensionality-reduction embedding computed from the shared feature matrix.",
+            "x_label": x_label,
+            "y_label": y_label,
+            "embedding_input_mode": "feature_matrix",
+            "source_feature_matrix_digest": "fixture-shared-embedding-matrix-v1",
+            "feature_matrix": _embedding_feature_matrix(),
+            "embedding_options": embedding_options,
+        }
+        for display_id, template_id, x_label, y_label, embedding_options in specs
     ]
 
 
@@ -314,7 +345,7 @@ def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
         "forest_effect_inputs.json": {"schema_version": 1, "input_schema_id": "forest_effect_inputs_v1", "displays": [_forest_display()]},
         "coefficient_path_panel_inputs.json": {"schema_version": 1, "input_schema_id": "coefficient_path_panel_inputs_v1", "displays": [_coefficient_path_display()]},
         "generalizability_subgroup_composite_inputs.json": {"schema_version": 1, "input_schema_id": "generalizability_subgroup_composite_inputs_v1", "displays": [_make_generalizability_subgroup_composite_panel_display()]},
-        "embedding_grouped_inputs.json": {"schema_version": 1, "input_schema_id": "embedding_grouped_inputs_v1", "displays": _embedding_displays()},
+        "dimensionality_reduction_inputs.json": {"schema_version": 1, "input_schema_id": "dimensionality_reduction_inputs_v1", "displays": _embedding_displays()},
         "heatmap_group_comparison_inputs.json": {"schema_version": 1, "input_schema_id": "heatmap_group_comparison_inputs_v1", "displays": [_heatmap_display()]},
         "confusion_matrix_heatmap_binary_inputs.json": {"schema_version": 1, "input_schema_id": "confusion_matrix_heatmap_binary_inputs_v1", "displays": [_confusion_matrix_display()]},
         "genomic_alteration_landscape_panel_inputs.json": {"schema_version": 1, "input_schema_id": "genomic_alteration_landscape_panel_inputs_v1", "displays": [_genomic_base("genomic_alteration_landscape_panel", "Figure20")]},

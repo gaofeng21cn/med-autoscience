@@ -44,13 +44,13 @@ def test_current_schema_contract_has_no_python_evidence_or_empty_evidence_schema
 def test_current_key_schema_contracts_remain_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
-    threshold_governance = module.get_input_schema_contract("time_to_event_threshold_governance_inputs_v1")
+    time_to_event_decision = module.get_input_schema_contract("time_to_event_decision_curve_inputs_v1")
     multihorizon = module.get_input_schema_contract("time_to_event_multihorizon_calibration_inputs_v1")
     shap_waterfall = module.get_input_schema_contract("shap_waterfall_local_explanation_panel_inputs_v1")
     generalizability = module.get_input_schema_contract("generalizability_subgroup_composite_inputs_v1")
 
-    assert threshold_governance.template_ids == (_full_id("time_to_event_threshold_governance_panel"),)
-    assert "threshold_values_must_be_strictly_increasing_probability" in threshold_governance.additional_constraints
+    assert time_to_event_decision.template_ids == (_full_id("time_to_event_decision_curve"),)
+    assert "treated_fraction_values_must_be_finite" in time_to_event_decision.additional_constraints
     assert multihorizon.template_ids == (_full_id("time_to_event_multihorizon_calibration_panel"),)
     assert "panel_time_horizon_months_must_be_strictly_increasing" in multihorizon.additional_constraints
     assert shap_waterfall.template_ids == (_full_id("shap_waterfall_local_explanation_panel"),)

@@ -341,6 +341,54 @@ def test_display_pack_preflight_reports_missing_paper_style_profile(tmp_path: Pa
     }
 
 
+def test_display_pack_preflight_checks_embedding_backend_dependencies_only_for_matching_templates(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from med_autoscience import display_pack_agent as agent
+
+    paper_root = _styled_paper_root(tmp_path)
+    observed_exprs: list[str] = []
+
+    class _Completed:
+        returncode = 0
+        stdout = "ggplot2 TRUE\nggsci TRUE\ngrid TRUE\njsonlite TRUE\nRtsne FALSE\nuwot FALSE\n"
+        stderr = ""
+
+    def _fake_run(argv, *, capture_output, text, check, timeout):  # noqa: ANN001
+        observed_exprs.append(argv[2])
+        return _Completed()
+
+    monkeypatch.setattr(agent.shutil, "which", lambda name: "/usr/bin/Rscript" if name == "Rscript" else None)
+    monkeypatch.setattr(agent.subprocess, "run", _fake_run)
+
+    roc = display_pack_preflight(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        template_id="roc_curve_binary",
+        check_runtime_dependencies=True,
+    )
+    tsne = display_pack_preflight(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        template_id="tsne_scatter_grouped",
+        check_runtime_dependencies=True,
+    )
+
+    assert roc["r_runtime"]["packages"] == {
+        "ggplot2": True,
+        "ggsci": True,
+        "grid": True,
+        "jsonlite": True,
+    }
+    assert roc["r_runtime"]["status"] == "present"
+    assert tsne["r_runtime"]["packages"]["Rtsne"] is False
+    assert tsne["r_runtime"]["status"] == "missing_dependency"
+    assert "uwot" not in tsne["r_runtime"]["packages"]
+    assert "requireNamespace(\"Rtsne\"" in observed_exprs[-1]
+    assert "requireNamespace(\"uwot\"" not in observed_exprs[-1]
+
+
 def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_path: Path) -> None:
     paper_root = tmp_path / "paper"
     payload_path = tmp_path / "roc-payload.json"

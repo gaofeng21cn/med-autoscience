@@ -43,6 +43,87 @@ def _validate_embedding_display_payload(
         "points": normalized_points,
     }
 
+def _validate_dimensionality_reduction_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    input_mode = _require_non_empty_string(
+        payload.get("embedding_input_mode"),
+        label=f"{path.name} display `{expected_display_id}` embedding_input_mode",
+    )
+    if input_mode != "feature_matrix":
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` current dimensionality-reduction templates "
+            "must use embedding_input_mode `feature_matrix`"
+        )
+    feature_rows = payload.get("feature_matrix")
+    if not isinstance(feature_rows, list) or len(feature_rows) < 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` feature_matrix must contain at least three samples")
+    normalized_rows: list[dict[str, Any]] = []
+    expected_feature_names: tuple[str, ...] | None = None
+    seen_sample_ids: set[str] = set()
+    for index, item in enumerate(feature_rows):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` feature_matrix[{index}] must be an object")
+        sample_id = _require_non_empty_string(
+            item.get("sample_id"),
+            label=f"{path.name} display `{expected_display_id}` feature_matrix[{index}].sample_id",
+        )
+        if sample_id in seen_sample_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` feature_matrix sample_id values must be unique")
+        seen_sample_ids.add(sample_id)
+        group = _require_non_empty_string(
+            item.get("group"),
+            label=f"{path.name} display `{expected_display_id}` feature_matrix[{index}].group",
+        )
+        features = item.get("features")
+        if not isinstance(features, dict) or len(features) < 2:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` feature_matrix[{index}].features "
+                "must contain at least two named numeric features"
+            )
+        feature_names = tuple(str(key).strip() for key in features)
+        if any(not name for name in feature_names):
+            raise ValueError(f"{path.name} display `{expected_display_id}` feature names must be non-empty")
+        if expected_feature_names is None:
+            expected_feature_names = feature_names
+        elif feature_names != expected_feature_names:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` all feature_matrix rows must use the same feature names"
+            )
+        normalized_features = {
+            name: _require_numeric_value(
+                features[name],
+                label=f"{path.name} display `{expected_display_id}` feature_matrix[{index}].features.{name}",
+            )
+            for name in feature_names
+        }
+        normalized_rows.append({"sample_id": sample_id, "group": group, "features": normalized_features})
+    normalized: dict[str, Any] = {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "embedding_input_mode": input_mode,
+        "source_feature_matrix_digest": str(payload.get("source_feature_matrix_digest") or "").strip(),
+        "feature_matrix": normalized_rows,
+    }
+    embedding_options = payload.get("embedding_options")
+    if isinstance(embedding_options, dict):
+        normalized["embedding_options"] = dict(embedding_options)
+    return normalized
+
 def _validate_celltype_signature_heatmap_display_payload(
     *,
     path: Path,

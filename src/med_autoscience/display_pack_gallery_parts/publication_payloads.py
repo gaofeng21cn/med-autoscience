@@ -11,18 +11,87 @@ def _matrix_cells(rows: list[str], columns: list[str], values: list[list[float]]
     ]
 
 
-def _embedding_points(*, x_shift: float, y_shift: float, label_prefix: str) -> list[dict[str, Any]]:
-    cluster_a = [(-1.35, 0.58), (-1.10, 0.72), (-0.92, 0.45), (-0.76, 0.62), (-1.22, 0.30), (-0.58, 0.34)]
-    cluster_b = [(0.64, -0.42), (0.82, -0.58), (1.08, -0.33), (1.25, -0.72), (0.48, -0.18), (1.42, -0.48)]
-    bridge = [(-0.20, 0.10), (0.02, -0.04), (0.26, -0.16)]
-    points: list[dict[str, Any]] = []
-    for x, y in cluster_a:
-        points.append({"x": x + x_shift, "y": y + y_shift, "group": f"{label_prefix} A"})
-    for x, y in cluster_b:
-        points.append({"x": x + x_shift, "y": y + y_shift, "group": f"{label_prefix} B"})
-    for x, y in bridge:
-        points.append({"x": x + x_shift, "y": y + y_shift, "group": "Transition"})
-    return points
+def _embedding_feature_matrix() -> list[dict[str, Any]]:
+    latent_points = (
+        ("Subtype A", -1.90, 0.32),
+        ("Subtype A", -1.72, 0.62),
+        ("Subtype A", -1.48, 0.84),
+        ("Subtype A", -1.25, 0.98),
+        ("Subtype A", -0.98, 0.86),
+        ("Subtype A", -0.78, 0.58),
+        ("Subtype A", -0.63, 0.24),
+        ("Transition", -0.42, -0.06),
+        ("Transition", -0.20, -0.27),
+        ("Transition", 0.02, -0.34),
+        ("Transition", 0.24, -0.27),
+        ("Transition", 0.45, -0.08),
+        ("Subtype B", 0.64, 0.18),
+        ("Subtype B", 0.82, 0.52),
+        ("Subtype B", 1.04, 0.82),
+        ("Subtype B", 1.28, 0.98),
+        ("Subtype B", 1.54, 0.86),
+        ("Subtype B", 1.76, 0.58),
+        ("Subtype B", 1.94, 0.25),
+        ("Subtype A", -1.58, -0.28),
+        ("Subtype A", -1.18, -0.48),
+        ("Subtype B", 1.18, -0.48),
+        ("Subtype B", 1.58, -0.28),
+        ("Transition", 0.02, 0.18),
+    )
+    feature_names = (
+        "immune_signal",
+        "stromal_signal",
+        "proliferation",
+        "hypoxia",
+        "metabolic_shift",
+        "antigen_presentation",
+        "cell_cycle_curvature",
+        "microenvironment_bridge",
+    )
+    rows: list[dict[str, Any]] = []
+    for index, (group, latent_x, latent_y) in enumerate(latent_points, start=1):
+        values = (
+            latent_x + 0.18 * latent_y,
+            latent_y + 0.08 * latent_x,
+            latent_x * latent_y,
+            latent_y**2 - 0.35 * latent_x,
+            (latent_x**2) * 0.45 - latent_y,
+            -0.45 * latent_x + 0.70 * latent_y,
+            (latent_x**2 + latent_y**2) * 0.32,
+            latent_y - 0.55 * abs(latent_x),
+        )
+        rows.append(
+            {
+                "sample_id": f"S{index:02d}",
+                "group": group,
+                "features": {name: value for name, value in zip(feature_names, values, strict=True)},
+            }
+        )
+    return rows
+
+
+def _embedding_workflow_payload(
+    *,
+    display_id: str,
+    template_id: str,
+    title: str,
+    caption: str,
+    x_label: str,
+    y_label: str,
+    embedding_options: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "display_id": display_id,
+        "template_id": template_id,
+        "title": title,
+        "caption": caption,
+        "x_label": x_label,
+        "y_label": y_label,
+        "embedding_input_mode": "feature_matrix",
+        "source_feature_matrix_digest": "gallery-shared-synthetic-embedding-matrix-v1",
+        "feature_matrix": _embedding_feature_matrix(),
+        "embedding_options": embedding_options,
+    }
 
 
 def _shap_dependence_points() -> list[dict[str, float]]:
@@ -336,15 +405,15 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
             ]
         ],
     },
-    "pca_scatter_grouped": {
-        "display_id": "Figure15",
-        "template_id": "pca_scatter_grouped",
-        "title": "PCA embedding by subtype",
-        "caption": "Principal component projection with subtype-level separation.",
-        "x_label": "PC1",
-        "y_label": "PC2",
-        "points": _embedding_points(x_shift=0.0, y_shift=0.0, label_prefix="Subtype"),
-    },
+    "pca_scatter_grouped": _embedding_workflow_payload(
+        display_id="Figure15",
+        template_id="pca_scatter_grouped",
+        title="PCA embedding by subtype",
+        caption="Principal component projection computed from the shared high-dimensional feature matrix.",
+        x_label="PC1",
+        y_label="PC2",
+        embedding_options={"center": True, "scale": True},
+    ),
     "risk_layering_monotonic_bars": {
         "display_id": "Figure22",
         "template_id": "risk_layering_monotonic_bars",
@@ -498,22 +567,22 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
             {"subgroup_id": "stage_high", "subgroup_label": "High stage", "group_n": 128, "estimate": 0.81, "lower": 0.76, "upper": 0.87},
         ],
     },
-    "tsne_scatter_grouped": {
-        "display_id": "Figure16",
-        "template_id": "tsne_scatter_grouped",
-        "title": "t-SNE embedding by subtype",
-        "caption": "Neighborhood-preserving projection with subtype-level separation.",
-        "x_label": "t-SNE 1",
-        "y_label": "t-SNE 2",
-        "points": _embedding_points(x_shift=-0.05, y_shift=0.08, label_prefix="Subtype"),
-    },
-    "umap_scatter_grouped": {
-        "display_id": "Figure17",
-        "template_id": "umap_scatter_grouped",
-        "title": "UMAP embedding by subtype",
-        "caption": "Manifold projection with subtype-level separation.",
-        "x_label": "UMAP 1",
-        "y_label": "UMAP 2",
-        "points": _embedding_points(x_shift=0.10, y_shift=-0.04, label_prefix="Subtype"),
-    },
+    "tsne_scatter_grouped": _embedding_workflow_payload(
+        display_id="Figure16",
+        template_id="tsne_scatter_grouped",
+        title="t-SNE embedding by subtype",
+        caption="Neighborhood-preserving t-SNE projection computed from the shared high-dimensional feature matrix.",
+        x_label="t-SNE 1",
+        y_label="t-SNE 2",
+        embedding_options={"seed": 1, "perplexity": 3, "theta": 0.2, "max_iter": 1500, "initial_dims": 8},
+    ),
+    "umap_scatter_grouped": _embedding_workflow_payload(
+        display_id="Figure17",
+        template_id="umap_scatter_grouped",
+        title="UMAP embedding by subtype",
+        caption="UMAP manifold projection computed from the shared high-dimensional feature matrix.",
+        x_label="UMAP 1",
+        y_label="UMAP 2",
+        embedding_options={"seed": 2, "n_neighbors": 10, "min_dist": 0.30, "metric": "euclidean"},
+    ),
 }

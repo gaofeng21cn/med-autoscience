@@ -338,7 +338,7 @@ def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
                     "template_id": "umap_scatter_grouped",
                     "renderer_family": "r_ggplot2",
                     "paper_role": "main_text",
-                    "input_schema_id": "embedding_grouped_inputs_v1",
+                    "input_schema_id": "dimensionality_reduction_inputs_v1",
                     "qc_profile": "publication_embedding_scatter",
                     "qc_result": {"status": "pass"},
                     "export_paths": ["paper/figures/F8.png", "paper/figures/F8.pdf"],

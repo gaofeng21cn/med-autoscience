@@ -8,7 +8,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "time_to_event_decision_curve_inputs_v1": "time_to_event_decision_curve_inputs.json",
     "risk_layering_monotonic_inputs_v1": "risk_layering_monotonic_inputs.json",
     "model_complexity_audit_panel_inputs_v1": "model_complexity_audit_panel_inputs.json",
-    "embedding_grouped_inputs_v1": "embedding_grouped_inputs.json",
+    "dimensionality_reduction_inputs_v1": "dimensionality_reduction_inputs.json",
     "omics_volcano_panel_inputs_v1": "omics_volcano_panel_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "confusion_matrix_heatmap_binary_inputs_v1": "confusion_matrix_heatmap_binary_inputs.json",

@@ -2,41 +2,16 @@ from .shared import *
 
 def test_schema_contract_tracks_effect_and_explanation_input_shapes() -> None:
     fx = _load_schema_contract_fixture()
-    correlation = fx.correlation
     forest = fx.forest
     generalizability_subgroup = fx.generalizability_subgroup
-    compact_effect_estimate = fx.compact_effect_estimate
     effect_estimate_class = fx.effect_estimate_class
     coefficient_path = fx.coefficient_path
     shap = fx.shap
     shap_dependence = fx.shap_dependence
     shap_waterfall = fx.shap_waterfall
 
-    assert correlation.template_ids == (_full_id("correlation_heatmap"),)
-    assert correlation.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
-    assert correlation.display_required_fields == (
-        "display_id",
-        "template_id",
-        "title",
-        "caption",
-        "x_label",
-        "y_label",
-        "cells",
-    )
-    assert correlation.collection_required_fields["cells"] == ("x", "y", "value")
-    assert correlation.additional_constraints == (
-        "matrix_must_be_square",
-        "matrix_must_include_diagonal",
-        "matrix_must_be_symmetric",
-    )
-
-    assert forest.template_ids == (
-        _full_id("forest_effect_main"),
-        _full_id("subgroup_forest"),
-        _full_id("multivariable_forest"),
-    )
+    assert forest.template_ids == (_full_id("forest_effect_main"),)
     assert generalizability_subgroup.template_ids == (_full_id("generalizability_subgroup_composite_panel"),)
-    assert compact_effect_estimate.template_ids == (_full_id("compact_effect_estimate_panel"),)
     assert generalizability_subgroup.display_required_fields == (
         "display_id",
         "template_id",
@@ -77,45 +52,8 @@ def test_schema_contract_tracks_effect_and_explanation_input_shapes() -> None:
         in generalizability_subgroup.additional_constraints
     )
     assert "subgroup_rows_must_satisfy_lower_le_estimate_le_upper" in generalizability_subgroup.additional_constraints
-    assert compact_effect_estimate.display_required_fields == (
-        "display_id",
-        "template_id",
-        "title",
-        "caption",
-        "x_label",
-        "reference_value",
-        "panels",
-    )
-    assert compact_effect_estimate.collection_required_fields["panels"] == (
-        "panel_id",
-        "panel_label",
-        "title",
-        "rows",
-    )
-    assert compact_effect_estimate.nested_collection_required_fields["panels.rows"] == (
-        "row_id",
-        "row_label",
-        "estimate",
-        "lower",
-        "upper",
-    )
-    assert compact_effect_estimate.nested_collection_optional_fields["panels.rows"] == ("support_n",)
-    assert compact_effect_estimate.additional_constraints == (
-        "panels_must_be_non_empty",
-        "panel_count_must_be_between_two_and_four",
-        "panel_ids_must_be_unique",
-        "panel_labels_must_be_unique",
-        "reference_value_must_be_finite",
-        "panel_rows_must_be_non_empty",
-        "panel_row_ids_must_be_unique_within_panel",
-        "panel_row_labels_must_be_unique_within_panel",
-        "panel_row_values_must_be_finite",
-        "panel_row_intervals_must_wrap_estimate",
-        "panel_row_support_n_must_be_positive_when_present",
-        "panel_row_orders_must_match_across_panels",
-    )
-    assert _full_id("compact_effect_estimate_panel") in effect_estimate_class.template_ids
-    assert "compact_effect_estimate_panel_inputs_v1" in effect_estimate_class.input_schema_ids
+    assert _full_id("compact_effect_estimate_panel") not in effect_estimate_class.template_ids
+    assert "compact_effect_estimate_panel_inputs_v1" not in effect_estimate_class.input_schema_ids
     assert coefficient_path.template_ids == (_full_id("coefficient_path_panel"),)
     assert coefficient_path.display_required_fields == (
         "display_id",
@@ -234,3 +172,5 @@ def test_schema_contract_tracks_effect_and_explanation_input_shapes() -> None:
         "panel_contribution_values_must_be_finite_and_non_zero",
         "panel_prediction_value_must_equal_baseline_plus_contributions",
     )
+    assert _full_id("shap_bar_importance") not in fx.model_explanation_class.template_ids
+    assert _full_id("shap_multicohort_importance_panel") not in fx.model_explanation_class.template_ids
