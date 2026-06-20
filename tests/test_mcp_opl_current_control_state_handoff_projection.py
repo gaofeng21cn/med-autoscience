@@ -1013,6 +1013,24 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
                     "provider_admission_candidates": [candidate],
                     "transition_request_pending_count": 0,
                     "transition_request_candidates": [],
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "request_opl_stage_attempt",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "state": {
+                            "state_kind": "executable_owner_action",
+                            "source": "opl_current_control_state.provider_admission_candidates",
+                        },
+                    },
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "write",
+                        "next_work_unit": work_unit_id,
+                    },
                     "action_queue": [candidate],
                 }
             ],
@@ -1037,6 +1055,13 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
                 f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json",
                 f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json",
             ],
+            "next_forced_delta": {
+                "owner_action": {
+                    "next_owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": "ai_reviewer_recheck_after_medical_prose_write_repair",
+                },
+            },
             "route_impact": {
                 "next_owner": "medautoscience",
                 "domain_ready_verdict": "domain_gate_pending",
@@ -1056,6 +1081,16 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
     assert consumed["action_type"] == "request_opl_stage_attempt"
     assert consumed["closeout_action_type"] == "run_quality_repair_batch"
     assert consumed["attempt_idempotency_key"] == idempotency_key
+    assert projection["next_owner"] == "ai_reviewer"
+    assert projection["current_work_unit"]["owner"] == "ai_reviewer"
+    assert projection["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert projection["current_work_unit"]["work_unit_id"] == (
+        "ai_reviewer_recheck_after_medical_prose_write_repair"
+    )
+    assert projection["current_execution_envelope"]["owner"] == "ai_reviewer"
+    assert projection["current_execution_envelope"]["next_work_unit"] == (
+        "ai_reviewer_recheck_after_medical_prose_write_repair"
+    )
 
 
 def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapper_domain_owner_closeout(
@@ -1120,6 +1155,24 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
                     "provider_admission_candidates": [candidate],
                     "transition_request_pending_count": 0,
                     "transition_request_candidates": [],
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "request_opl_stage_attempt",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                        "state": {
+                            "state_kind": "executable_owner_action",
+                            "source": "opl_current_control_state.provider_admission_candidates",
+                        },
+                    },
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "write",
+                        "next_work_unit": work_unit_id,
+                    },
                     "action_queue": [candidate],
                 }
             ],
@@ -1169,6 +1222,13 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
                 "evidence_refs": [
                     f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json",
                 ],
+                "next_forced_delta": {
+                    "owner_action": {
+                        "next_owner": "ai_reviewer",
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "work_unit_id": "ai_reviewer_recheck_after_medical_prose_write_repair",
+                    },
+                },
             },
             "closeout_refs": [
                 f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/{stage_attempt_id}.closeout.json",
@@ -1189,6 +1249,16 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
     assert consumed["closeout_action_type"] == "run_quality_repair_batch"
     assert consumed["attempt_idempotency_key"] == idempotency_key
     assert projection["latest_terminal_stage_log"]["status"] == "closed_with_domain_owner_refs"
+    assert projection["next_owner"] == "ai_reviewer"
+    assert projection["current_work_unit"]["owner"] == "ai_reviewer"
+    assert projection["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert projection["current_work_unit"]["work_unit_id"] == (
+        "ai_reviewer_recheck_after_medical_prose_write_repair"
+    )
+    assert projection["current_execution_envelope"]["owner"] == "ai_reviewer"
+    assert projection["current_execution_envelope"]["next_work_unit"] == (
+        "ai_reviewer_recheck_after_medical_prose_write_repair"
+    )
 
 
 def test_study_progress_opl_current_control_state_handoff_uses_transition_request_for_terminal_probe(

@@ -58,7 +58,13 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         if provider_admission_pending
         else "opl_transition_readback_required"
     )
-    current_execution_envelope = _mapping(provider_identity.get("current_execution_envelope")) or {
+    current_execution_envelope = _current_execution_envelope_with_domain_owner(
+        _mapping(provider_identity.get("current_execution_envelope")),
+        next_executable_owner=next_executable_owner,
+        route_key=route_key,
+        attempt_key=attempt_key,
+        work_unit_id=_non_empty_text(provider_identity.get("work_unit_id")),
+    ) or {
         "state_kind": "executable_owner_action",
         "owner": next_executable_owner or "one-person-lab",
         "next_work_unit": _non_empty_text(provider_identity.get("work_unit_id")),
@@ -103,11 +109,36 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         "opl_domain_progress_transition_result": dict(opl_readback) if opl_readback else None,
         "why_not_applied": [blocked_reason],
         "blocked_reason": blocked_reason,
-        "next_owner": "one-person-lab",
+        "next_owner": next_executable_owner or "one-person-lab",
         "external_supervisor_required": True,
         "owner_route": owner_route,
         "current_execution_envelope": current_execution_envelope,
     }
+
+
+def _current_execution_envelope_with_domain_owner(
+    envelope: Mapping[str, Any],
+    *,
+    next_executable_owner: str | None,
+    route_key: str | None,
+    attempt_key: str | None,
+    work_unit_id: str | None,
+) -> dict[str, Any]:
+    if not envelope:
+        return {}
+    payload = dict(envelope)
+    if next_executable_owner is not None:
+        payload["owner"] = next_executable_owner
+    payload.setdefault("state_kind", "executable_owner_action")
+    payload.setdefault("next_work_unit", work_unit_id)
+    payload.setdefault("typed_blocker", None)
+    payload.setdefault("parked_state", None)
+    payload.setdefault("source", "mas_provider_admission_identity")
+    if route_key is not None:
+        payload.setdefault("route_identity_key", route_key)
+    if attempt_key is not None:
+        payload.setdefault("attempt_idempotency_key", attempt_key)
+    return payload
 
 
 def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> dict[str, Any]:

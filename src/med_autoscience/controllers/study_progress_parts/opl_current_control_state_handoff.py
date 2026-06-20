@@ -886,6 +886,15 @@ def _apply_top_level_transition_requests_to_handoff(
     projection: Mapping[str, Any],
     candidates: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    if projection.get("running_provider_attempt") is True:
+        request_candidates_for_running = [
+            dict(item)
+            for item in candidates
+            if _transition_request_candidate_can_anchor_terminal_probe(item)
+            and not provider_admission_opl_transition_readback(item)
+        ]
+        if any(_handoff_candidate_matches_projection(candidate, projection) for candidate in request_candidates_for_running):
+            return _handoff_without_same_identity_pending(projection, request_candidates_for_running)
     request_candidates = [
         dict(item)
         for item in candidates
@@ -911,6 +920,106 @@ def _apply_top_level_transition_requests_to_handoff(
     updated["next_owner"] = _non_empty_text(current.get("next_owner")) or updated.get("next_owner")
     updated["blocked_reason"] = _non_empty_text(current.get("blocked_reason")) or updated.get("blocked_reason")
     return updated
+
+
+def _handoff_without_same_identity_pending(
+    projection: Mapping[str, Any],
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    updated = dict(projection)
+    matching_identity_keys = {
+        key
+        for candidate in candidates
+        if _handoff_candidate_matches_projection(candidate, projection)
+        for key in _handoff_candidate_runtime_identity_keys(candidate)
+    }
+    if not matching_identity_keys:
+        return updated
+    provider_candidates = [
+        dict(item)
+        for item in updated.get("provider_admission_candidates") or []
+        if not _handoff_candidate_runtime_identity_keys(item).intersection(matching_identity_keys)
+    ]
+    transition_candidates = [
+        dict(item)
+        for item in updated.get("transition_request_candidates") or []
+        if not _handoff_candidate_runtime_identity_keys(item).intersection(matching_identity_keys)
+    ]
+    updated["provider_admission_candidates"] = provider_candidates
+    updated["provider_admission_pending_count"] = len(provider_candidates)
+    updated["transition_request_candidates"] = transition_candidates
+    updated["transition_request_pending_count"] = len(transition_candidates)
+    updated["blocked_reason"] = None
+    updated["external_supervisor_required"] = False
+    return updated
+
+
+def _handoff_candidate_runtime_identity_keys(candidate: Mapping[str, Any]) -> set[str]:
+    readback = candidate_opl_transition_readback(candidate) or provider_admission_opl_transition_readback(
+        candidate
+    )
+    readback_identity = _observability_mapping(readback.get("identity"))
+    stage_run_identity = _observability_mapping(readback_identity.get("stage_run_identity"))
+    idempotency_readback = _observability_mapping(readback.get("idempotency_readback"))
+    provider_identity = _observability_mapping(candidate.get("provider_admission_identity"))
+    source_refs = _observability_mapping(candidate.get("source_refs"))
+    return {
+        key
+        for key in (
+            _transition_request_identity_key(candidate),
+            _non_empty_text(candidate.get("route_identity_key")),
+            _non_empty_text(candidate.get("attempt_idempotency_key")),
+            _non_empty_text(candidate.get("idempotency_key")),
+            _non_empty_text(provider_identity.get("route_identity_key")),
+            _non_empty_text(provider_identity.get("attempt_idempotency_key")),
+            _non_empty_text(provider_identity.get("idempotency_key")),
+            _non_empty_text(source_refs.get("route_identity_key")),
+            _non_empty_text(source_refs.get("attempt_idempotency_key")),
+            _non_empty_text(source_refs.get("idempotency_key")),
+            _non_empty_text(stage_run_identity.get("route_identity_key")),
+            _non_empty_text(stage_run_identity.get("attempt_idempotency_key")),
+            _non_empty_text(readback_identity.get("idempotency_key")),
+            _non_empty_text(idempotency_readback.get("idempotency_key")),
+        )
+        if key is not None
+    }
+
+
+def _handoff_candidate_matches_projection(
+    candidate: Mapping[str, Any],
+    projection: Mapping[str, Any],
+) -> bool:
+    for key in ("study_id", "action_type"):
+        candidate_value = _non_empty_text(candidate.get(key))
+        projection_value = _non_empty_text(projection.get(key))
+        if candidate_value is not None and projection_value is not None and candidate_value != projection_value:
+            return False
+    candidate_work_unit = _work_unit_identity(candidate.get("work_unit_id")) or _work_unit_identity(
+        candidate.get("next_work_unit")
+    )
+    projection_work_unit = _work_unit_identity(projection.get("work_unit_id")) or _work_unit_identity(
+        projection.get("next_work_unit")
+    )
+    if candidate_work_unit is not None and projection_work_unit is not None and candidate_work_unit != projection_work_unit:
+        return False
+    candidate_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    projection_fingerprint = _non_empty_text(projection.get("work_unit_fingerprint")) or _non_empty_text(
+        projection.get("action_fingerprint")
+    )
+    if (
+        candidate_fingerprint is not None
+        and projection_fingerprint is not None
+        and candidate_fingerprint != projection_fingerprint
+    ):
+        return False
+    for key in ("route_identity_key", "attempt_idempotency_key", "idempotency_key"):
+        candidate_value = _non_empty_text(candidate.get(key))
+        projection_value = _non_empty_text(projection.get(key))
+        if candidate_value is not None and projection_value is not None and candidate_value == projection_value:
+            return True
+    return candidate_work_unit is not None and projection_work_unit is not None and candidate_work_unit == projection_work_unit
 
 
 def _copy_stage_packet_ref_family_to_projection(
@@ -1473,7 +1582,98 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
             if matching_transition_requests
             else None,
         )
+    updated = _apply_terminal_closeout_next_owner(updated, terminal=terminal)
     return _apply_terminal_closeout_owner_answer_gate(updated)
+
+
+def _apply_terminal_closeout_next_owner(
+    projection: dict[str, Any],
+    *,
+    terminal: Mapping[str, Any],
+) -> dict[str, Any]:
+    next_owner = _terminal_closeout_next_owner(terminal) or _terminal_closeout_next_owner(projection)
+    if next_owner is None:
+        return projection
+    owner_action = _terminal_closeout_next_owner_action(terminal) or _terminal_closeout_next_owner_action(projection)
+    updated = dict(projection)
+    updated["next_owner"] = next_owner
+    owner_route = _observability_mapping(updated.get("owner_route"))
+    if owner_route:
+        owner_route["next_owner"] = next_owner
+        updated["owner_route"] = owner_route
+    current = _observability_mapping(updated.get("current_work_unit"))
+    if current and _non_empty_text(current.get("status")) in {"executable_owner_action", "owner_receipt_recorded"}:
+        current["owner"] = next_owner
+        _apply_owner_action_identity_to_current_work_unit(current, owner_action=owner_action)
+        updated["current_work_unit"] = current
+    envelope = _observability_mapping(updated.get("current_execution_envelope"))
+    if envelope and _non_empty_text(envelope.get("state_kind")) in {"executable_owner_action", "owner_receipt_recorded"}:
+        envelope["owner"] = next_owner
+        next_work_unit = _work_unit_identity(owner_action.get("work_unit_id")) or _work_unit_identity(
+            owner_action.get("next_work_unit")
+        )
+        if next_work_unit is not None:
+            envelope["next_work_unit"] = next_work_unit
+        updated["current_execution_envelope"] = envelope
+    return updated
+
+
+def _terminal_closeout_next_owner_action(value: Mapping[str, Any]) -> dict[str, Any]:
+    paper_log = _observability_mapping(value.get("paper_stage_log"))
+    next_forced = _observability_mapping(value.get("next_forced_delta")) or _observability_mapping(
+        paper_log.get("next_forced_delta")
+    )
+    return _observability_mapping(next_forced.get("owner_action"))
+
+
+def _apply_owner_action_identity_to_current_work_unit(
+    current: dict[str, Any],
+    *,
+    owner_action: Mapping[str, Any],
+) -> None:
+    if not owner_action:
+        return
+    action_type = _non_empty_text(owner_action.get("action_type"))
+    if action_type is not None:
+        current["action_type"] = action_type
+    work_unit = _work_unit_identity(owner_action.get("work_unit_id")) or _work_unit_identity(
+        owner_action.get("next_work_unit")
+    )
+    if work_unit is not None:
+        current["work_unit_id"] = work_unit
+    fingerprint = _non_empty_text(owner_action.get("work_unit_fingerprint")) or _non_empty_text(
+        owner_action.get("action_fingerprint")
+    )
+    if fingerprint is not None:
+        current["work_unit_fingerprint"] = fingerprint
+        current["action_fingerprint"] = fingerprint
+    state = _observability_mapping(current.get("state"))
+    if state:
+        if action_type is not None:
+            state["action_type"] = action_type
+        if work_unit is not None:
+            state["next_work_unit"] = work_unit
+        current["state"] = state
+
+
+def _terminal_closeout_next_owner(value: Mapping[str, Any]) -> str | None:
+    owner_action = _terminal_closeout_next_owner_action(value)
+    paper_log = _observability_mapping(value.get("paper_stage_log"))
+    next_forced = _observability_mapping(value.get("next_forced_delta")) or _observability_mapping(
+        paper_log.get("next_forced_delta")
+    )
+    owner_route = _observability_mapping(value.get("owner_route"))
+    return (
+        _non_empty_text(owner_action.get("next_owner"))
+        or _non_empty_text(owner_action.get("owner"))
+        or _non_empty_text(next_forced.get("next_owner"))
+        or _non_empty_text(next_forced.get("owner"))
+        or _non_empty_text(value.get("next_executable_owner"))
+        or _non_empty_text(value.get("next_owner"))
+        or _non_empty_text(value.get("owner"))
+        or _non_empty_text(owner_route.get("next_owner"))
+        or _non_empty_text(paper_log.get("current_owner"))
+    )
 
 
 def _handoff_candidate_list(value: object) -> list[dict[str, Any]]:
@@ -1599,6 +1799,8 @@ def _terminal_closeout_has_owner_answer(
 ) -> bool:
     if _observability_mapping(projection.get("latest_typed_default_executor_closeout")):
         return True
+    if _non_empty_text(terminal.get("closeout_receipt_status")) == "accepted_typed_closeout":
+        return True
     if _observability_mapping(projection.get("typed_blocker")):
         return True
     if _observability_mapping(terminal.get("typed_blocker")):
@@ -1629,7 +1831,9 @@ def _terminal_stage_log_has_next_owner_handoff(
     terminal: Mapping[str, Any],
     paper_stage_log: Mapping[str, Any],
 ) -> bool:
-    next_forced_delta = _observability_mapping(paper_stage_log.get("next_forced_delta"))
+    next_forced_delta = _observability_mapping(terminal.get("next_forced_delta")) or _observability_mapping(
+        paper_stage_log.get("next_forced_delta")
+    )
     owner_action = _observability_mapping(next_forced_delta.get("owner_action"))
     if (
         _non_empty_text(owner_action.get("action_type")) is not None
@@ -1723,6 +1927,8 @@ def _terminal_closeout_matches_action_bound_identity(
     terminal: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
+    if _terminal_closeout_request_wrapper_identity_matches_candidate(terminal=terminal, action=action):
+        return True
     if not _terminal_closeout_action_identity_matches_candidate(
         terminal=terminal,
         action=action,
@@ -1745,8 +1951,6 @@ def _terminal_closeout_matches_action_bound_identity(
         return True
     terminal_stage_packet_refs = _stage_packet_refs(terminal)
     if terminal_stage_packet_refs and terminal_stage_packet_refs.intersection(_stage_packet_refs(action)):
-        return True
-    if _terminal_closeout_request_wrapper_identity_matches_candidate(terminal=terminal, action=action):
         return True
     # Identity-bound admissions are backed by OPL runtime readback or explicit
     # dispatch identity; weak action/work-unit/fingerprint matching is legacy-only.

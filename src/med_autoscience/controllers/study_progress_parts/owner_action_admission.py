@@ -203,9 +203,6 @@ def provider_attempt_proof_for_current_action(
 def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None:
     if handoff.get("running_provider_attempt") is not True:
         return None
-    readback = _provider_admission_opl_transition_readback(handoff)
-    if not readback:
-        return None
     if _handoff_has_matching_terminal_closeout(handoff):
         return None
     active_stage_attempt_id = _text(handoff.get("active_stage_attempt_id"))
@@ -213,13 +210,20 @@ def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None
     active_workflow_id = _text(handoff.get("active_workflow_id"))
     if active_stage_attempt_id is None and active_run_id is None and active_workflow_id is None:
         return None
+    readback = _provider_admission_opl_transition_readback(handoff)
     return {
         "running_provider_attempt": True,
         "active_stage_attempt_id": active_stage_attempt_id,
         "active_run_id": active_run_id,
         "active_workflow_id": active_workflow_id,
-        "opl_transition_readback_source": "opl_domain_progress_transition_runtime_live_readback",
-        "opl_transition_readback_identity": _provider_attempt_readback_identity(readback),
+        **(
+            {
+                "opl_transition_readback_source": "opl_domain_progress_transition_runtime_live_readback",
+                "opl_transition_readback_identity": _provider_attempt_readback_identity(readback),
+            }
+            if readback
+            else {}
+        ),
     }
 
 

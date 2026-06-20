@@ -219,6 +219,8 @@ def test_provider_admission_current_control_backfills_owner_from_transition_requ
     assert provider_candidate["owner"] == "ai_reviewer"
     assert provider_candidate["next_executable_owner"] == "ai_reviewer"
     [study] = result["studies"]
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["current_execution_envelope"]["owner"] == "ai_reviewer"
     assert study["owner_route"]["next_owner"] == "ai_reviewer"
     assert study["provider_admission_candidates"][0]["next_executable_owner"] == "ai_reviewer"
     [action] = result["action_queue"]

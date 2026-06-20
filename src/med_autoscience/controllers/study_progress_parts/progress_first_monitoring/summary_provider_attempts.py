@@ -11,7 +11,11 @@ from .summary_work_units import work_unit_id
 def strict_running_provider_liveness(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is not True:
         return False
-    if _text(handoff.get("active_run_id")) is None:
+    if (
+        _text(handoff.get("active_run_id")) is None
+        and _text(handoff.get("active_stage_attempt_id")) is None
+        and _text(handoff.get("active_workflow_id")) is None
+    ):
         return False
     if handoff_has_matching_terminal_closeout(handoff):
         return False
