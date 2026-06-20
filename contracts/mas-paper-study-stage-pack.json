@@ -254,7 +254,18 @@
         },
         {
           "role": "residual_reviewer_issues_user_review",
-          "artifact_ref": "manuscript/inspection_package/residual_reviewer_issues.md"
+          "artifact_ref": "manuscript/inspection_package/residual_reviewer_issues.md",
+          "role_policy": {
+            "surface_kind": "stage_artifact_role_policy",
+            "role": "residual_reviewer_issues_user_review",
+            "human_inspection_only": true,
+            "language": "zh-CN",
+            "can_authorize_quality_verdict": false,
+            "can_authorize_publication_readiness": false,
+            "can_authorize_submission_readiness": false,
+            "can_block_auto_advance": false,
+            "does_not_create_owner_receipt": true
+          }
         }
       ]
     },

@@ -149,12 +149,13 @@ def _build_stage_artifact_state(
             "ref": ref,
             "source": "mas_paper_study_stage_pack_stable_role",
             "role_contract_ref": role_contract_ref,
+            **({"role_policy": dict(role_policy)} if role_policy else {}),
             "interface_is_artifact_role": True,
             "ref_is_locator_only": True,
             "body_included": False,
             "native_contract_required": True,
         }
-        for role, ref, role_contract_ref in _required_output_surfaces(stage_spec)
+        for role, ref, role_contract_ref, role_policy in _required_output_surfaces(stage_spec)
     ]
     current_declared_observed_refs = [
         {
@@ -366,6 +367,11 @@ def _validate_paper_study_stage_pack(payload: Mapping[str, Any]) -> None:
                 raise ValueError(f"paper/study stage {stage_id} has invalid artifact role")
             if _text(role.get("artifact_ref")) is None:
                 raise ValueError(f"paper/study stage {stage_id} has invalid artifact ref")
+            _validate_stage_artifact_role_policy(
+                stage_id=stage_id,
+                role_name=_text(role.get("role")) or "",
+                role_policy=role.get("role_policy"),
+            )
     boundary = payload.get("authority_boundary")
     if not isinstance(boundary, Mapping):
         raise ValueError("paper/study stage pack missing authority boundary")
@@ -379,6 +385,36 @@ def _validate_paper_study_stage_pack(payload: Mapping[str, Any]) -> None:
 
 def _paper_study_stage_specs(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
     return tuple(stage for stage in payload["stages"] if isinstance(stage, Mapping))
+
+
+def _validate_stage_artifact_role_policy(
+    *,
+    stage_id: str,
+    role_name: str,
+    role_policy: object,
+) -> None:
+    if role_name != "residual_reviewer_issues_user_review":
+        return
+    if not isinstance(role_policy, Mapping):
+        raise ValueError(
+            f"paper/study stage {stage_id} residual reviewer role missing role_policy"
+        )
+    expected = {
+        "surface_kind": "stage_artifact_role_policy",
+        "role": role_name,
+        "human_inspection_only": True,
+        "language": "zh-CN",
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
+        "can_block_auto_advance": False,
+        "does_not_create_owner_receipt": True,
+    }
+    actual = {key: role_policy.get(key) for key in expected}
+    if actual != expected:
+        raise ValueError(
+            f"paper/study stage {stage_id} residual reviewer role_policy mismatch"
+        )
 
 
 def _artifact_classification(
@@ -675,16 +711,26 @@ def _fail_closed_reason(
     return status
 
 
-def _required_output_surfaces(stage_spec: Mapping[str, Any]) -> tuple[tuple[str, str, str], ...]:
+def _required_output_surfaces(
+    stage_spec: Mapping[str, Any],
+) -> tuple[tuple[str, str, str, Mapping[str, Any] | None], ...]:
     stage_id = _required_text(stage_spec.get("stage_id"), "stage_id")
-    surfaces: list[tuple[str, str, str]] = []
+    surfaces: list[tuple[str, str, str, Mapping[str, Any] | None]] = []
     for index, item in enumerate(_mapping_items(stage_spec.get("stable_artifact_roles"))):
         role = _required_text(item.get("role"), "role")
         ref = _required_text(item.get("artifact_ref"), "artifact_ref")
         role_contract_ref = (
             f"{_PAPER_STUDY_STAGE_PACK_REF}#/stages/{stage_id}/stable_artifact_roles/{index}"
         )
-        surfaces.append((role, ref, role_contract_ref))
+        role_policy = item.get("role_policy")
+        surfaces.append(
+            (
+                role,
+                ref,
+                role_contract_ref,
+                role_policy if isinstance(role_policy, Mapping) else None,
+            )
+        )
     return tuple(surfaces)
 
 

@@ -122,6 +122,53 @@ def test_paper_study_stage_pack_defines_publication_handoff_done_gate() -> None:
     assert terminal_stage["advance_gate"]["completion_signal"] == "handoff_owner_receipt"
 
 
+def test_stage_artifact_index_marks_residual_reviewer_issues_as_human_inspection_only(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    stage_pack_path = Path(__file__).resolve().parents[1] / PAPER_STUDY_STAGE_PACK_REF
+    stage_pack = json.loads(stage_pack_path.read_text(encoding="utf-8"))
+    contract_review_stage = next(
+        stage
+        for stage in stage_pack["stages"]
+        if stage["stage_id"] == "07-independent_review_and_revision"
+    )
+    contract_residual_role = next(
+        ref
+        for ref in contract_review_stage["stable_artifact_roles"]
+        if ref["role"] == "residual_reviewer_issues_user_review"
+    )
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+    review_stage = next(
+        stage
+        for stage in index["stages"]
+        if stage["stage_id"] == "07-independent_review_and_revision"
+    )
+    residual_role = next(
+        ref
+        for ref in review_stage["required_output_refs"]
+        if ref["role"] == "residual_reviewer_issues_user_review"
+    )
+
+    assert residual_role["ref"] == "manuscript/inspection_package/residual_reviewer_issues.md"
+    assert contract_residual_role["role_policy"] == {
+        "surface_kind": "stage_artifact_role_policy",
+        "role": "residual_reviewer_issues_user_review",
+        "human_inspection_only": True,
+        "language": "zh-CN",
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
+        "can_block_auto_advance": False,
+        "does_not_create_owner_receipt": True,
+    }
+    assert residual_role["role_policy"] == contract_residual_role["role_policy"]
+    assert review_stage["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert review_stage["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+
 def test_stage_artifact_index_consumes_opl_physical_stage_folder_kernel(
     monkeypatch,
     tmp_path: Path,
