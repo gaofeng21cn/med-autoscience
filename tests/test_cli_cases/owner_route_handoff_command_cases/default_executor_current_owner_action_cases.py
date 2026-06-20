@@ -263,6 +263,74 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_stale_r
     assert tasks[0]["payload"]["work_unit_id"] == current_work_unit_id
 
 
+def test_domain_handler_export_carries_current_work_unit_stage_packet_for_ai_reviewer_successor(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    current_work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    expected_stage_packet_ref = f"mas://current-work-unit/{study_id}/{current_work_unit_id}/stage-packet"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        _ai_reviewer_blocking_eval(study_root),
+    )
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
+    _write_json(
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface_kind": "opl_current_control_state",
+            "schema_version": 1,
+            "generated_at": "2026-06-20T20:08:12Z",
+            "studies": [],
+            "action_queue": [],
+        },
+    )
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_work_unit_id,
+        work_unit_fingerprint=fingerprint,
+        owner="ai_reviewer",
+        source="paper_recovery_state.next_safe_action.successor_owner_action",
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["action_type"] == "return_to_ai_reviewer_workflow"
+    assert task["stage_packet_ref"] == expected_stage_packet_ref
+    assert task["stage_packet_refs"] == [expected_stage_packet_ref]
+    assert task["checkpoint_refs"] == [expected_stage_packet_ref]
+    assert task["payload"]["stage_packet_ref"] == expected_stage_packet_ref
+    assert task["payload"]["stage_packet_refs"] == [expected_stage_packet_ref]
+    assert task["payload"]["checkpoint_refs"] == [expected_stage_packet_ref]
+    action = task["payload"]["current_control_action"]
+    assert action["stage_packet_ref"] == expected_stage_packet_ref
+    assert action["stage_packet_refs"] == [expected_stage_packet_ref]
+    assert action["checkpoint_refs"] == [expected_stage_packet_ref]
+    assert action["owner_route"]["source_refs"]["stage_packet_ref"] == expected_stage_packet_ref
+
+
 def test_domain_handler_export_projects_readiness_blocker_derived_repair_from_reconcile_study_queue(
     tmp_path: Path,
     capsys,

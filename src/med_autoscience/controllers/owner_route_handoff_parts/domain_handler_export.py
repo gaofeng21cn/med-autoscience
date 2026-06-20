@@ -621,12 +621,9 @@ def _current_control_transition_identity_refs(
     study_id: str,
     action_type: str | None,
 ) -> dict[str, Any]:
-    stage_packet_ref = text(action.get("stage_packet_ref"))
-    stage_packet_refs = [
-        ref
-        for ref in (text(item) for item in action.get("stage_packet_refs") or [])
-        if ref is not None
-    ]
+    explicit_refs = _current_control_action_stage_packet_refs(action)
+    stage_packet_ref = text(explicit_refs.get("stage_packet_ref"))
+    stage_packet_refs = list(explicit_refs.get("stage_packet_refs") or [])
     dispatch_ref = text(action.get("dispatch_ref"))
     dispatch_refs = _current_control_transition_dispatch_refs(
         profile=profile,
@@ -636,19 +633,24 @@ def _current_control_transition_identity_refs(
     )
     if dispatch_ref is None:
         dispatch_ref = text(dispatch_refs.get("dispatch_ref"))
-    if stage_packet_ref is None:
-        stage_packet_ref = text(dispatch_refs.get("stage_packet_ref"))
+    dispatch_stage_packet_ref = text(dispatch_refs.get("stage_packet_ref"))
+    if dispatch_stage_packet_ref is not None and (
+        stage_packet_ref is None
+        or _is_generated_current_work_unit_stage_packet_ref(stage_packet_ref)
+    ):
+        stage_packet_ref = dispatch_stage_packet_ref
+        stage_packet_refs = [
+            ref
+            for ref in stage_packet_refs
+            if not _is_generated_current_work_unit_stage_packet_ref(ref)
+        ]
     for ref in dispatch_refs.get("stage_packet_refs") or []:
         text_ref = text(ref)
         if text_ref is not None and text_ref not in stage_packet_refs:
             stage_packet_refs.append(text_ref)
     if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
         stage_packet_refs.insert(0, stage_packet_ref)
-    checkpoint_refs = [
-        ref
-        for ref in (text(item) for item in action.get("checkpoint_refs") or [])
-        if ref is not None
-    ]
+    checkpoint_refs = list(explicit_refs.get("checkpoint_refs") or [])
     if not checkpoint_refs:
         checkpoint_refs = list(stage_packet_refs)
     return {
@@ -661,6 +663,82 @@ def _current_control_transition_identity_refs(
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _is_generated_current_work_unit_stage_packet_ref(ref: str | None) -> bool:
+    return bool(ref and ref.startswith("mas://current-work-unit/") and ref.endswith("/stage-packet"))
+
+
+def _current_control_action_stage_packet_refs(action: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = mapping(action.get("source_refs"))
+    owner_route_refs = mapping(mapping(action.get("owner_route")).get("source_refs"))
+    handoff_packet = mapping(action.get("handoff_packet"))
+    handoff_refs = mapping(handoff_packet.get("source_refs"))
+    current_control_action = mapping(action.get("current_control_action"))
+    current_control_refs = mapping(current_control_action.get("source_refs"))
+    stage_packet_ref = _first_text_value(
+        action.get("stage_packet_ref"),
+        source_refs.get("stage_packet_ref"),
+        owner_route_refs.get("stage_packet_ref"),
+        handoff_packet.get("stage_packet_ref"),
+        handoff_refs.get("stage_packet_ref"),
+        current_control_action.get("stage_packet_ref"),
+        current_control_refs.get("stage_packet_ref"),
+    )
+    stage_packet_refs = _dedupe_text_items(
+        action.get("stage_packet_refs"),
+        source_refs.get("stage_packet_refs"),
+        owner_route_refs.get("stage_packet_refs"),
+        handoff_packet.get("stage_packet_refs"),
+        handoff_refs.get("stage_packet_refs"),
+        current_control_action.get("stage_packet_refs"),
+        current_control_refs.get("stage_packet_refs"),
+    )
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.insert(0, stage_packet_ref)
+    checkpoint_refs = _dedupe_text_items(
+        action.get("checkpoint_refs"),
+        source_refs.get("checkpoint_refs"),
+        owner_route_refs.get("checkpoint_refs"),
+        handoff_packet.get("checkpoint_refs"),
+        handoff_refs.get("checkpoint_refs"),
+        current_control_action.get("checkpoint_refs"),
+        current_control_refs.get("checkpoint_refs"),
+    ) or list(stage_packet_refs)
+    return {
+        key: value
+        for key, value in {
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": stage_packet_refs,
+            "checkpoint_refs": checkpoint_refs,
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _first_text_value(*values: object) -> str | None:
+    for value in values:
+        result = text(value)
+        if result is not None:
+            return result
+    return None
+
+
+def _dedupe_text_items(*values: object) -> list[str]:
+    refs: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            text_value = text(value)
+            if text_value is not None and text_value not in refs:
+                refs.append(text_value)
+            continue
+        if not isinstance(value, list | tuple | set):
+            continue
+        for item in value:
+            text_value = text(item)
+            if text_value is not None and text_value not in refs:
+                refs.append(text_value)
+    return refs
 
 
 def _current_control_transition_dispatch_refs(

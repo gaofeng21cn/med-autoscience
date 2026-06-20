@@ -477,6 +477,22 @@ def _request_only_transition_action_candidate(
     )
     if work_unit_id is None or action_fingerprint is None:
         return None
+    route_identity_key = _first_present_text(
+        action.get("route_identity_key"),
+        current_identity.get("route_identity_key"),
+        action_basis.get("route_identity_key"),
+        current_identity_basis.get("route_identity_key"),
+    )
+    attempt_idempotency_key = _first_present_text(
+        action.get("attempt_idempotency_key"),
+        current_identity.get("attempt_idempotency_key"),
+        action_basis.get("attempt_idempotency_key"),
+        current_identity_basis.get("attempt_idempotency_key"),
+        action.get("idempotency_key"),
+        current_identity.get("idempotency_key"),
+    )
+    if attempt_idempotency_key is None:
+        attempt_idempotency_key = route_identity_key
     stage_packet_ref = _request_only_transition_stage_packet_ref(
         action=action,
         current_action_identity=current_identity,
@@ -526,6 +542,9 @@ def _request_only_transition_action_candidate(
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
         "next_executable_owner": executable_owner,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
+        "idempotency_key": attempt_idempotency_key,
         "required_output_surface": _non_empty_text(action.get("required_output_surface")),
         "stage_packet_ref": stage_packet_ref,
         "stage_packet_refs": stage_packet_refs,
@@ -543,6 +562,8 @@ def _request_only_transition_action_candidate(
                 "mas_owner_action_source": source,
                 "stage_packet_ref": stage_packet_ref,
                 "stage_packet_refs": stage_packet_refs,
+                "route_identity_key": route_identity_key,
+                "attempt_idempotency_key": attempt_idempotency_key,
                 "owner_route_currentness_basis": currentness_basis,
             },
         },
@@ -564,6 +585,11 @@ def _request_only_transition_action_candidate(
     candidate["provider_admission_requires_opl_runtime_result"] = True
     candidate["opl_transition_runtime_required"] = True
     candidate["currentness_basis"] = currentness_basis
+    if route_identity_key is not None:
+        candidate["route_identity_key"] = route_identity_key
+    if attempt_idempotency_key is not None:
+        candidate["attempt_idempotency_key"] = attempt_idempotency_key
+        candidate["idempotency_key"] = attempt_idempotency_key
     candidate["stage_packet_ref"] = stage_packet_ref
     candidate["stage_packet_refs"] = stage_packet_refs
     candidate["checkpoint_refs"] = stage_packet_refs
@@ -576,6 +602,8 @@ def _request_only_transition_action_candidate(
         "mas_owner_action_source": source,
         "stage_packet_ref": stage_packet_ref,
         "stage_packet_refs": stage_packet_refs,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
     }
     return candidate_with_authority_boundaries(candidate)
 
@@ -609,6 +637,16 @@ def _request_only_transition_stage_packet_refs(
         if ref is not None and ref not in refs:
             refs.append(ref)
     return refs
+
+
+def _first_present_text(*values: object) -> str | None:
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            return text
+        for item in _text_items(value):
+            return item
+    return None
 
 
 def _current_identity_fingerprint_for_action(

@@ -210,6 +210,11 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     owner_route_currentness_basis = {
         key: value for key, value in owner_route_currentness_basis.items() if value is not None
     }
+    stage_refs = _current_action_stage_packet_refs(
+        current,
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+    )
     source_refs = {
         key: value
         for key, value in {
@@ -218,8 +223,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "mas_owner_action_source": _non_empty_text(current.get("source")),
             "source_eval_id": source_eval_id,
             "eval_bound_work_unit_fingerprint": eval_bound_fingerprint,
-            "stage_packet_ref": _non_empty_text(current.get("stage_packet_ref")),
-            "stage_packet_refs": _text_items(current.get("stage_packet_refs")),
+            **stage_refs,
             "owner_route_currentness_basis": owner_route_currentness_basis,
         }.items()
         if value is not None
@@ -246,10 +250,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "mas_owner_action_source": _non_empty_text(current.get("source")),
         "source_surface": _study_current_action_source_surface(current),
         "source_ref": _non_empty_text(current.get("source_ref")),
-        "stage_packet_ref": _non_empty_text(current.get("stage_packet_ref")),
-        "stage_packet_refs": _text_items(current.get("stage_packet_refs")),
-        "dispatch_path": _non_empty_text(current.get("dispatch_path"))
-        or _non_empty_text(current.get("stage_packet_ref")),
+        **stage_refs,
+        "dispatch_path": _non_empty_text(current.get("dispatch_path")),
         "source_eval_id": _non_empty_text(owner_route_currentness_basis.get("source_eval_id")),
         "source_fingerprint": _non_empty_text(
             owner_route_currentness_basis.get("source_fingerprint")
@@ -266,6 +268,75 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "source_refs": source_refs,
         },
     }
+
+
+def _current_action_stage_packet_refs(
+    current: Mapping[str, Any],
+    *,
+    study_id: str | None,
+    work_unit_id: str,
+) -> dict[str, Any]:
+    source_refs = _mapping(current.get("source_refs"))
+    owner_route_refs = _mapping(_mapping(current.get("owner_route")).get("source_refs"))
+    stage_packet_ref = _first_non_empty_text(
+        current.get("stage_packet_ref"),
+        source_refs.get("stage_packet_ref"),
+        owner_route_refs.get("stage_packet_ref"),
+    )
+    stage_packet_refs = [
+        ref
+        for ref in (
+            *(_text_items(current.get("stage_packet_refs"))),
+            *(_text_items(source_refs.get("stage_packet_refs"))),
+            *(_text_items(owner_route_refs.get("stage_packet_refs"))),
+        )
+        if ref is not None
+    ]
+    if (
+        stage_packet_ref is None
+        and study_id is not None
+        and _current_action_uses_generated_stage_packet_ref(current)
+    ):
+        stage_packet_ref = (
+            f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet"
+        )
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.insert(0, stage_packet_ref)
+    checkpoint_refs = [
+        ref
+        for ref in (
+            *(_text_items(current.get("checkpoint_refs"))),
+            *(_text_items(source_refs.get("checkpoint_refs"))),
+            *(_text_items(owner_route_refs.get("checkpoint_refs"))),
+        )
+        if ref is not None
+    ] or list(stage_packet_refs)
+    return {
+        key: value
+        for key, value in {
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": list(dict.fromkeys(stage_packet_refs)),
+            "checkpoint_refs": list(dict.fromkeys(checkpoint_refs)),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _current_action_uses_generated_stage_packet_ref(current: Mapping[str, Any]) -> bool:
+    return (
+        _non_empty_text(current.get("source"))
+        or _non_empty_text(current.get("source_surface"))
+        or _non_empty_text(_mapping(current.get("currentness_basis")).get("source"))
+        or _non_empty_text(_mapping(current.get("owner_route_currentness_basis")).get("source"))
+    ) == "paper_recovery_state.next_safe_action.successor_owner_action"
+
+
+def _first_non_empty_text(*values: object) -> str | None:
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            return text
+    return None
 
 
 def _study_current_action_source_surface(current: Mapping[str, Any]) -> str:

@@ -368,6 +368,12 @@ def opl_current_control_state_study_handoff_projection(
                     "attempt_idempotency_key",
                     "idempotency_key",
                     "provider_admission_identity",
+                    "dispatch_ref",
+                    "dispatch_path",
+                    "stage_packet_ref",
+                    "stage_packet_refs",
+                    "checkpoint_refs",
+                    "source_refs",
                     "opl_domain_progress_transition_runtime_live_readback",
                 ),
             ),
@@ -869,6 +875,7 @@ def _apply_top_level_provider_admissions_to_handoff(
     work_unit_id = _work_unit_identity(current.get("work_unit_id"))
     if work_unit_id is not None:
         updated["work_unit_id"] = work_unit_id
+    _copy_stage_packet_ref_family_to_projection(updated, current)
     if _non_empty_text(current.get("status")) == "provider_admission_pending" and provider_candidates:
         updated["blocked_reason"] = None
         updated.pop("typed_blocker", None)
@@ -900,9 +907,52 @@ def _apply_top_level_transition_requests_to_handoff(
     work_unit_id = _work_unit_identity(current.get("work_unit_id"))
     if work_unit_id is not None:
         updated["work_unit_id"] = work_unit_id
+    _copy_stage_packet_ref_family_to_projection(updated, current)
     updated["next_owner"] = _non_empty_text(current.get("next_owner")) or updated.get("next_owner")
     updated["blocked_reason"] = _non_empty_text(current.get("blocked_reason")) or updated.get("blocked_reason")
     return updated
+
+
+def _copy_stage_packet_ref_family_to_projection(
+    projection: dict[str, Any],
+    source: Mapping[str, Any],
+) -> None:
+    source_refs = _observability_mapping(source.get("source_refs"))
+    stage_packet_ref = _non_empty_text(source.get("stage_packet_ref")) or _non_empty_text(
+        source_refs.get("stage_packet_ref")
+    )
+    stage_packet_refs = _stage_ref_items(source.get("stage_packet_refs")) or _stage_ref_items(
+        source_refs.get("stage_packet_refs")
+    )
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.insert(0, stage_packet_ref)
+    checkpoint_refs = _stage_ref_items(source.get("checkpoint_refs")) or _stage_ref_items(
+        source_refs.get("checkpoint_refs")
+    ) or list(stage_packet_refs)
+    for key in ("dispatch_ref", "dispatch_path"):
+        value = _non_empty_text(source.get(key)) or _non_empty_text(source_refs.get(key))
+        if value is not None:
+            projection[key] = value
+    if stage_packet_ref is not None:
+        projection["stage_packet_ref"] = stage_packet_ref
+    if stage_packet_refs:
+        projection["stage_packet_refs"] = stage_packet_refs
+    if checkpoint_refs:
+        projection["checkpoint_refs"] = checkpoint_refs
+
+
+def _stage_ref_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    refs: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None and text not in refs:
+            refs.append(text)
+    return refs
 
 
 def _apply_action_queue_provider_readbacks_to_handoff(
@@ -1673,6 +1723,11 @@ def _terminal_closeout_matches_action_bound_identity(
     terminal: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
+    if not _terminal_closeout_action_identity_matches_candidate(
+        terminal=terminal,
+        action=action,
+    ):
+        return False
     terminal_stage_attempt_id = _non_empty_text(terminal.get("stage_attempt_id"))
     if terminal_stage_attempt_id is not None and terminal_stage_attempt_id in _action_stage_run_ids(action):
         return True
@@ -1813,7 +1868,7 @@ def _terminal_closeout_action_identity_matches_candidate(
     action_work_unit = _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
         action.get("next_work_unit")
     )
-    if terminal_work_unit is None or action_work_unit is None or terminal_work_unit != action_work_unit:
+    if terminal_work_unit is not None and action_work_unit is not None and terminal_work_unit != action_work_unit:
         return False
     terminal_fingerprint = _non_empty_text(terminal.get("work_unit_fingerprint")) or _non_empty_text(
         terminal.get("action_fingerprint")
@@ -1821,9 +1876,9 @@ def _terminal_closeout_action_identity_matches_candidate(
     action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
         action.get("action_fingerprint")
     )
-    if terminal_fingerprint is None or action_fingerprint is None:
+    if terminal_fingerprint is not None and action_fingerprint is not None and terminal_fingerprint != action_fingerprint:
         return False
-    return terminal_fingerprint == action_fingerprint
+    return True
 
 
 def _terminal_closeout_request_wrapper_identity_matches_candidate(

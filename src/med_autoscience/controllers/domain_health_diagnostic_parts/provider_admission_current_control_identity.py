@@ -115,11 +115,10 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
     route_key = route_identity_key(candidate)
     attempt_key = attempt_idempotency_key(candidate)
     dispatch_ref = _non_empty_text(candidate.get("dispatch_ref")) or _non_empty_text(candidate.get("dispatch_path"))
-    stage_packet_ref = _non_empty_text(candidate.get("stage_packet_ref"))
-    stage_packet_refs = _text_items(candidate.get("stage_packet_refs"))
-    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
-        stage_packet_refs.append(stage_packet_ref)
-    checkpoint_refs = _text_items(candidate.get("checkpoint_refs")) or list(stage_packet_refs)
+    stage_refs = _stage_packet_ref_family(candidate)
+    stage_packet_ref = _non_empty_text(stage_refs.get("stage_packet_ref"))
+    stage_packet_refs = _text_items(stage_refs.get("stage_packet_refs"))
+    checkpoint_refs = _text_items(stage_refs.get("checkpoint_refs"))
     authority_boundary = provider_admission_authority_boundary(
         candidate.get("authority_boundary")
     )
@@ -360,17 +359,72 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
         payload["provider_admission_pending"] = True
         payload["provider_attempt_or_lease_required"] = True
         payload["provider_admission_requires_opl_runtime_result"] = False
-    stage_packet_ref = _non_empty_text(payload.get("stage_packet_ref"))
-    if stage_packet_ref is not None:
-        refs = [
-            item
-            for item in payload.get("stage_packet_refs") or []
-            if _non_empty_text(item) is not None
-        ]
-        if stage_packet_ref not in refs:
-            refs.append(stage_packet_ref)
-        payload["stage_packet_refs"] = refs
+    payload.update(_stage_packet_ref_family(payload))
     return payload
+
+
+def _stage_packet_ref_family(payload: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = _mapping(payload.get("source_refs"))
+    owner_route_refs = _mapping(_mapping(payload.get("owner_route")).get("source_refs"))
+    handoff_packet = _mapping(payload.get("handoff_packet"))
+    handoff_refs = _mapping(handoff_packet.get("source_refs"))
+    current_control_action = _mapping(payload.get("current_control_action"))
+    current_control_refs = _mapping(current_control_action.get("source_refs"))
+    stage_packet_ref = _first_non_empty_text(
+        payload.get("stage_packet_ref"),
+        source_refs.get("stage_packet_ref"),
+        owner_route_refs.get("stage_packet_ref"),
+        handoff_packet.get("stage_packet_ref"),
+        handoff_refs.get("stage_packet_ref"),
+        current_control_action.get("stage_packet_ref"),
+        current_control_refs.get("stage_packet_ref"),
+    )
+    stage_packet_refs = _dedupe_text_items(
+        payload.get("stage_packet_refs"),
+        source_refs.get("stage_packet_refs"),
+        owner_route_refs.get("stage_packet_refs"),
+        handoff_packet.get("stage_packet_refs"),
+        handoff_refs.get("stage_packet_refs"),
+        current_control_action.get("stage_packet_refs"),
+        current_control_refs.get("stage_packet_refs"),
+    )
+    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
+        stage_packet_refs.insert(0, stage_packet_ref)
+    checkpoint_refs = _dedupe_text_items(
+        payload.get("checkpoint_refs"),
+        source_refs.get("checkpoint_refs"),
+        owner_route_refs.get("checkpoint_refs"),
+        handoff_packet.get("checkpoint_refs"),
+        handoff_refs.get("checkpoint_refs"),
+        current_control_action.get("checkpoint_refs"),
+        current_control_refs.get("checkpoint_refs"),
+    ) or list(stage_packet_refs)
+    return {
+        key: value
+        for key, value in {
+            "stage_packet_ref": stage_packet_ref,
+            "stage_packet_refs": stage_packet_refs,
+            "checkpoint_refs": checkpoint_refs,
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _first_non_empty_text(*values: object) -> str | None:
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            return text
+    return None
+
+
+def _dedupe_text_items(*values: object) -> list[str]:
+    refs: list[str] = []
+    for value in values:
+        for item in _text_items(value):
+            if item not in refs:
+                refs.append(item)
+    return refs
 
 
 def _transition_request_identity_keys(candidate: Mapping[str, Any]) -> dict[str, str]:

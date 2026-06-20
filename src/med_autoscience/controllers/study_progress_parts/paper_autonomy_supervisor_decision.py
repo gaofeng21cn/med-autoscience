@@ -192,14 +192,92 @@ def _payload_has_bound_opl_transition_readback(
     supervisor_decision: Mapping[str, Any],
 ) -> bool:
     obligation = _mapping(supervisor_decision.get("paper_autonomy_obligation"))
+    obligations = [obligation]
+    successor_obligation = _successor_owner_action_obligation(
+        payload,
+        supervisor_decision=supervisor_decision,
+    )
+    if successor_obligation:
+        obligations.append(successor_obligation)
     return any(
         _candidate_has_matching_opl_readback(
             item,
-            obligation=obligation,
+            obligation=expected,
         )
         for field in ("provider_admission_candidates", "transition_request_candidates")
         for item in payload.get(field) or []
         if isinstance(item, Mapping)
+        for expected in obligations
+        if expected
+    )
+
+
+def _successor_owner_action_obligation(
+    payload: Mapping[str, Any],
+    *,
+    supervisor_decision: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _text(supervisor_decision.get("decision")) != "materialize_recovery_action":
+        return {}
+    recovery = _mapping(payload.get("paper_recovery_state"))
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
+        return {}
+    successor = _mapping(next_safe_action.get("successor_owner_action"))
+    if not successor:
+        return {}
+    current_action = _mapping(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    action_type = _first_text(
+        successor.get("action_type"),
+        current_action.get("action_type"),
+        current_work_unit.get("action_type"),
+    )
+    work_unit_id = _first_text(
+        successor.get("work_unit_id"),
+        successor.get("next_work_unit"),
+        current_action.get("work_unit_id"),
+        current_action.get("next_work_unit"),
+        current_work_unit.get("work_unit_id"),
+    )
+    work_unit_fingerprint = _first_text(
+        successor.get("work_unit_fingerprint"),
+        successor.get("action_fingerprint"),
+        current_action.get("work_unit_fingerprint"),
+        current_action.get("action_fingerprint"),
+        current_work_unit.get("work_unit_fingerprint"),
+        current_work_unit.get("action_fingerprint"),
+    )
+    if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
+        return {}
+    return _clean_mapping(
+        {
+            "study_id": _first_text(
+                payload.get("study_id"),
+                current_work_unit.get("study_id"),
+                current_action.get("study_id"),
+            ),
+            "quest_id": _first_text(
+                payload.get("quest_id"),
+                current_work_unit.get("quest_id"),
+                current_action.get("quest_id"),
+            ),
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "route_identity_key": _first_text(
+                successor.get("route_identity_key"),
+                current_action.get("route_identity_key"),
+                current_work_unit.get("route_identity_key"),
+            ),
+            "attempt_idempotency_key": _first_text(
+                successor.get("attempt_idempotency_key"),
+                current_action.get("attempt_idempotency_key"),
+                current_work_unit.get("attempt_idempotency_key"),
+                current_action.get("idempotency_key"),
+                current_work_unit.get("idempotency_key"),
+            ),
+        }
     )
 
 

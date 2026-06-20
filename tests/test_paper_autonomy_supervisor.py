@@ -407,6 +407,94 @@ def test_materialize_recovery_action_gate_requires_bound_opl_readback() -> None:
     }
 
 
+def test_materialize_recovery_action_allows_bound_successor_readback() -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    old_work_unit_id = "ai_reviewer_record_gate_consumption"
+    old_fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+    successor_work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    successor_fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    supervisor_decision = {
+        "decision": "materialize_recovery_action",
+        "paper_autonomy_obligation": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": old_work_unit_id,
+            "work_unit_fingerprint": old_fingerprint,
+        },
+    }
+    payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "owner": "ai_reviewer",
+                "successor_owner_action": {
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": successor_work_unit_id,
+                    "work_unit_fingerprint": successor_fingerprint,
+                },
+            },
+            "supervisor_decision": supervisor_decision,
+        },
+        "current_executable_owner_action": {
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "next_owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": successor_work_unit_id,
+            "work_unit_fingerprint": successor_fingerprint,
+            "action_fingerprint": successor_fingerprint,
+        },
+        "current_work_unit": {
+            "status": "executable_owner_action",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": successor_work_unit_id,
+            "work_unit_fingerprint": successor_fingerprint,
+            "action_fingerprint": successor_fingerprint,
+        },
+        "provider_admission_candidates": [
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "status": "provider_admission_pending",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": successor_work_unit_id,
+                "work_unit_fingerprint": successor_fingerprint,
+                "action_fingerprint": successor_fingerprint,
+                "provider_admission_pending": True,
+                "provider_admission_requires_opl_runtime_result": False,
+                "opl_transition_readback_source": (
+                    "opl_domain_progress_transition_runtime_live_readback"
+                ),
+                "opl_domain_progress_transition_result": opl_transition_readback(
+                    study_id,
+                    action_fingerprint=successor_fingerprint,
+                    work_unit_id=successor_work_unit_id,
+                ),
+            }
+        ],
+    }
+
+    allowed = provider_admission_supervisor_gate(payload)
+
+    assert allowed == {
+        "blocked": False,
+        "admission_allowed": True,
+        "supervisor_decision": supervisor_decision,
+    }
+
+
 def test_projection_consumes_identity_bound_opl_supervisor_decision_readback() -> None:
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
