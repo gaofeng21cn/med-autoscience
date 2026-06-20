@@ -13,6 +13,9 @@ from ...current_work_unit_parts.paper_recovery_successor import (
     action_supersedes_terminal_selector_residue,
     paper_recovery_successor_supersedes_terminal_selector_residue,
 )
+from ...paper_recovery_state_parts.successor_owner_resolution import (
+    paper_recovery_successor_consumed_by_gate_followthrough,
+)
 from ..current_executable_owner_action_parts.paper_recovery import (
     owner_action_from_paper_recovery_state,
     paper_recovery_successor_action_ready,
@@ -297,6 +300,11 @@ def _build_recovery_state_unless_successor_current(
         and not _terminal_typed_blocker_supersedes_recovery_successor(
             recovery_payload,
             recovery=recovery,
+        )
+        and not paper_recovery_successor_consumed_by_gate_followthrough(
+            recovery_payload,
+            recovery=recovery,
+            current_action=_mapping_copy(current_action),
         )
     ):
         return recovery

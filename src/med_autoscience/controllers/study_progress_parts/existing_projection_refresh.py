@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
+from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution import (
+    paper_recovery_successor_consumed_by_gate_followthrough,
+)
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     provider_admission_opl_transition_readback,
@@ -430,6 +433,10 @@ def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -
         current_action = build_current_executable_owner_action(payload)
         if _non_empty_text(_mapping_copy(current_action).get("source")) == (
             "paper_recovery_state.next_safe_action.successor_owner_action"
+        ) and not paper_recovery_successor_consumed_by_gate_followthrough(
+            payload,
+            recovery=recovery,
+            current_action=_mapping_copy(current_action),
         ):
             return recovery
     return build_paper_recovery_state(payload)

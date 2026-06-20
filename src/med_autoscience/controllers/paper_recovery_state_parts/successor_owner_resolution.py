@@ -73,6 +73,37 @@ def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
     return _paper_recovery_successor_action_ready(action)
 
 
+def paper_recovery_successor_consumed_by_gate_followthrough(
+    progress: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any] | None = None,
+    current_action: Mapping[str, Any] | None = None,
+) -> bool:
+    action = _mapping(current_action)
+    if not action:
+        recovery_payload = _mapping(recovery) or _mapping(progress.get("paper_recovery_state"))
+        action = _mapping(_mapping(recovery_payload.get("next_safe_action")).get("successor_owner_action"))
+    if not action:
+        return False
+    source_surface = _first_text(
+        action.get("source_surface"),
+        _mapping(action.get("target_surface")).get("source_surface"),
+        _mapping(action.get("paper_recovery_successor")).get("source_surface"),
+    )
+    if source_surface != "study_progress.next_forced_delta.owner_action":
+        return False
+    return _gate_replay_successor_already_consumed(
+        progress,
+        action_type=_text(action.get("action_type")),
+        work_unit_id=_text(action.get("work_unit_id")),
+        source_eval_id=_text(action.get("source_eval_id")),
+        target_surface_ref=_first_text(
+            _mapping(action.get("target_surface")).get("surface_ref"),
+            action.get("source_ref"),
+        ),
+    )
+
+
 def current_owner_successor_action(
     progress: Mapping[str, Any],
     *,
@@ -352,6 +383,14 @@ def _successor_owner_action_from_next_forced_delta_after_progress(
         return None
     target_surface = _mapping(next_delta.get("target_surface"))
     source_eval_id = _first_text(next_delta.get("eval_id"), next_delta.get("source_eval_id"))
+    if _gate_replay_successor_already_consumed(
+        progress,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+        target_surface_ref=_text(target_surface.get("surface_ref")),
+    ):
+        return None
     fingerprint = control_identity.stable_route_currentness_fingerprint(
         study_id=_text(progress.get("study_id")),
         source="study_progress.next_forced_delta.owner_action",
@@ -386,6 +425,56 @@ def _successor_owner_action_from_next_forced_delta_after_progress(
             "action_fingerprint": fingerprint,
         },
     }
+
+
+def _gate_replay_successor_already_consumed(
+    progress: Mapping[str, Any],
+    *,
+    action_type: str | None,
+    work_unit_id: str | None,
+    source_eval_id: str | None,
+    target_surface_ref: str | None,
+) -> bool:
+    if action_type != "run_gate_clearing_batch" or work_unit_id is None:
+        return False
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    if not followthrough:
+        return False
+    if _text(followthrough.get("status")) != "executed":
+        return False
+    if _text(followthrough.get("gate_replay_status")) != "blocked":
+        return False
+    followthrough_eval = _text(followthrough.get("source_eval_id"))
+    if source_eval_id is not None and followthrough_eval != source_eval_id:
+        return False
+    followthrough_work_unit = _first_text(
+        followthrough.get("work_unit_id"),
+        _mapping(followthrough.get("explicit_publication_work_unit")).get("unit_id"),
+        _mapping(followthrough.get("current_publication_work_unit")).get("unit_id"),
+    )
+    if followthrough_work_unit is not None and followthrough_work_unit != work_unit_id:
+        return False
+    latest_record_path = _text(followthrough.get("latest_record_path"))
+    if target_surface_ref is not None and latest_record_path is not None:
+        if not _same_ref_path(latest_record_path, target_surface_ref):
+            return False
+    return True
+
+
+def _same_ref_path(left: str | None, right: str | None) -> bool:
+    left_text = _strip_ref_fragment(left)
+    right_text = _strip_ref_fragment(right)
+    if left_text is None or right_text is None:
+        return False
+    if left_text == right_text:
+        return True
+    left_path = Path(left_text)
+    right_path = Path(right_text)
+    if left_path.is_absolute() and not right_path.is_absolute():
+        return left_text.endswith(f"/{right_text}")
+    if right_path.is_absolute() and not left_path.is_absolute():
+        return right_text.endswith(f"/{left_text}")
+    return False
 
 
 def _matching_terminal_closeout(
@@ -620,6 +709,7 @@ __all__ = [
     "current_owner_successor_action",
     "executable_action_is_gate_followthrough_successor",
     "paper_recovery_successor_action_ready",
+    "paper_recovery_successor_consumed_by_gate_followthrough",
     "successor_owner_action_from_current_action",
     "successor_owner_action_from_terminal_blocker",
     "successor_owner_gate_from_terminal_blocker",
