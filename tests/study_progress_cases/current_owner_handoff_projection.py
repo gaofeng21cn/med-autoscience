@@ -903,6 +903,90 @@ def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_
     assert result["user_visible_projection"]["next_owner"] == "ai_reviewer"
 
 
+def test_owner_receipt_recovery_visibility_supersedes_stale_anti_loop_lane() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+    )
+    receipt_ref = "/tmp/studies/002/artifacts/controller/gate_clearing_batch/latest.json"
+    stale_next_step = (
+        "等待 one-person-lab owner 处理当前 handoff，"
+        "关闭 anti_loop_budget_exhausted 或产出 typed blocker。"
+    )
+    payload = {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_stage": "queued",
+        "next_system_action": stale_next_step,
+        "next_step": stale_next_step,
+        "why_not_progressing": "owner_receipt_recorded",
+        "current_blockers": ["anti_loop_budget_exhausted"],
+        "current_work_unit": {
+            "status": "owner_receipt_recorded",
+            "owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+            "state": {
+                "state_kind": "owner_receipt_recorded",
+                "next_safe_action_kind": "consume_owner_receipt",
+                "owner_receipt_ref": receipt_ref,
+            },
+        },
+        "current_execution_envelope": {
+            "state_kind": "owner_receipt_recorded",
+            "owner": "gate_clearing_batch",
+            "typed_blocker": None,
+        },
+        "paper_recovery_state": {
+            "phase": "owner_receipt_recorded",
+            "current_authority": {"owner": "gate_clearing_batch"},
+            "next_safe_action": {
+                "kind": "consume_owner_receipt",
+                "owner": "gate_clearing_batch",
+                "provider_admission_allowed": False,
+                "owner_receipt_ref": receipt_ref,
+            },
+        },
+        "intervention_lane": {
+            "lane_id": "current_owner_action_ready",
+            "summary": stale_next_step,
+            "route_target": "one-person-lab",
+            "route_key_question": "anti_loop_budget_exhausted",
+            "handoff_source": "opl_current_control_state.next_owner",
+        },
+        "operator_verdict": {
+            "lane_id": "current_owner_action_ready",
+            "summary": stale_next_step,
+            "route_key_question": "anti_loop_budget_exhausted",
+        },
+        "operator_status_card": {
+            "current_focus": "anti_loop_budget_exhausted",
+            "paper_recovery_phase": "owner_receipt_recorded",
+        },
+        "user_visible_projection": {
+            "next_step": stale_next_step,
+            "why_not_progressing": "owner_receipt_recorded",
+            "current_blockers": ["anti_loop_budget_exhausted"],
+        },
+    }
+
+    result = module.apply_paper_recovery_state_user_visible_status(payload)
+
+    assert result["next_system_action"] == "Consume the current owner receipt through MAS owner authority."
+    assert result["next_step"] == result["next_system_action"]
+    assert result["intervention_lane"]["lane_id"] == "paper_recovery_owner_receipt_recorded"
+    assert result["intervention_lane"]["recommended_action_id"] == "consume_owner_receipt"
+    assert result["intervention_lane"]["authority_owner"] == "gate_clearing_batch"
+    assert "route_target" not in result["intervention_lane"]
+    assert "anti_loop_budget_exhausted" not in result["intervention_lane"].get("summary", "")
+    assert "route_key_question" not in result["intervention_lane"]
+    assert result["operator_status_card"]["current_focus"] == result["next_system_action"]
+    assert result["operator_verdict"]["summary"] == result["next_system_action"]
+    assert "route_key_question" not in result["operator_verdict"]
+    assert "handoff_source" not in result["operator_verdict"]
+    assert result["user_visible_projection"]["next_step"] == result["next_system_action"]
+    assert result["user_visible_projection"]["why_not_progressing"] == "owner_receipt_recorded"
+
+
 def test_stale_opl_handoff_refresh_uses_route_target_when_owner_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
