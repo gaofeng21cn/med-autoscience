@@ -139,7 +139,10 @@ def _stage_route_arbiter_decisions(
             if (
                 readback_required
                 and _request_only_transition_request_candidate(candidate)
-                and not _paper_recovery_block_requires_supervisor_decision_readback(paper_recovery_block)
+                and (
+                    not _paper_recovery_block_requires_supervisor_decision_readback(paper_recovery_block)
+                    or _accepted_owner_gate_transition_request_candidate(candidate)
+                )
                 and not _paper_recovery_block_is_hard_blocker(paper_recovery_block)
             ):
                 decisions.append(
@@ -884,6 +887,8 @@ def _request_only_transition_can_bypass_paper_recovery_block(
         return False
     if _paper_recovery_block_is_hard_blocker(block):
         return False
+    if _accepted_owner_gate_transition_request_candidate(candidate):
+        return True
     next_safe_action = _mapping(block.get("next_safe_action"))
     if _non_empty_text(next_safe_action.get("kind")) == "materialize_successor_owner_action":
         return any(
