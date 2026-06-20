@@ -409,8 +409,6 @@ def _request_only_transition_action_candidate(
     study_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     action_type = _non_empty_text(action.get("action_type"))
-    if action_type != "request_opl_stage_attempt":
-        return None
     source = (
         _non_empty_text(action.get("mas_owner_action_source"))
         or _non_empty_text(action.get("source"))
@@ -418,6 +416,18 @@ def _request_only_transition_action_candidate(
         or _non_empty_text(_mapping(action.get("owner_route_currentness_basis")).get("source"))
     )
     if source != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return None
+    if action_type is None:
+        return None
+    if (
+        action_type != "request_opl_stage_attempt"
+        and not _mapping(action.get("opl_domain_progress_transition_request"))
+        and not _mapping(
+            _mapping(action.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    ):
         return None
     study_id = _non_empty_text(action.get("study_id")) or status_study_id
     if status_study_id is not None and study_id != status_study_id:

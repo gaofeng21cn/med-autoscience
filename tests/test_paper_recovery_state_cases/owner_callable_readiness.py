@@ -1313,6 +1313,109 @@ def test_terminal_anti_loop_uses_safe_next_forced_delta_successor_after_paper_de
     assert successor["work_unit_fingerprint"].startswith(f"route-currentness::{study_id}::")
 
 
+def test_consumed_anti_loop_closeout_yields_repair_owner_receipt_before_domain_blocked() -> None:
+    fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "stage-attempt-sat_a9b2ffcc8f97a24837d729bf::2026-06-11T12:41:21+00:00"
+    )
+    current_work_unit = _typed_blocker_work_unit(
+        study_id=study_id,
+        owner="one-person-lab",
+        action_type="run_gate_clearing_batch",
+        work_unit_id=work_unit_id,
+        blocker_type="anti_loop_budget_exhausted",
+    ) | {
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "currentness_basis": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "stage_attempt_id": "sat_67e10efde628859185249aa0",
+        },
+    }
+    current_work_unit["state"]["typed_blocker"] |= {
+        "latest_owner_answer_ref": (
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+        ),
+        "latest_owner_answer_kind": "typed_blocker",
+        "owner_answer_shape": "typed_blocker_ref",
+        "work_unit_fingerprint": fingerprint,
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": current_work_unit,
+            "paper_progress_delta": {"count": 1},
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "status": "progress_delta_observed",
+                "paper_delta_observed": True,
+                "progress_delta_candidate": True,
+                "accepted_owner_receipt": True,
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_done": True,
+                "work_unit_id": "dm002_same_line_publication_paper_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "action_fingerprint": "publication-blockers::497d1260db522f01",
+                "source_eval_id": source_eval_id,
+                "owner_receipt_ref": receipt_ref,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "gate_replay_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+            },
+            "opl_current_control_state_handoff": {
+                "provider_admission_terminal_closeout_consumed": {
+                    "surface_kind": "provider_admission_terminal_closeout_consumed",
+                    "status": "blocked",
+                    "stage_attempt_id": "sat_67e10efde628859185249aa0",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "blocker_type": "anti_loop_budget_exhausted",
+                    "typed_blocker_ref": (
+                        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                        "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+                    ),
+                    "typed_blocker": {
+                        "blocker_type": "anti_loop_budget_exhausted",
+                        "blocked_reason": "anti_loop_budget_exhausted",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                }
+            },
+            "opl_paper_autonomy_supervisor_decision_readback": {
+                "opl_supervisor_decision_engine_readback_consumed": True,
+                "status": "consumed",
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_receipt_recorded"
+    assert state["conditions"] == [
+        {
+            "condition": "repair_progress_owner_receipt_supersedes_terminal_stop_loss",
+            "action_type": "run_gate_clearing_batch",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_owner_receipt"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["next_safe_action"]["owner_receipt_ref"] == receipt_ref
+    assert state["evidence_refs"] == [receipt_ref]
+
+
 def test_terminal_anti_loop_does_not_rematerialize_consumed_gate_replay_successor() -> None:
     fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
     study_id = "002-dm-china-us-mortality-attribution"

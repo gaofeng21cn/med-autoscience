@@ -163,6 +163,19 @@ def build_paper_recovery_state(
         obligation=obligation,
     )
     if consumed_terminal_closeout is not None:
+        owner_receipt = _repair_progress_owner_receipt_superseding_terminal_stop_loss(
+            progress,
+            closeout=consumed_terminal_closeout,
+        )
+        if owner_receipt is not None:
+            owner_receipt_state = _owner_receipt_state(
+                progress,
+                obligation=obligation,
+                owner_receipt=owner_receipt,
+                diagnostic_report=diagnostic,
+            )
+            if owner_receipt_state is not None:
+                return owner_receipt_state
         closeout_typed_blocker = _typed_blocker_from_closeout(
             consumed_terminal_closeout,
             obligation=obligation,
@@ -253,6 +266,19 @@ def build_paper_recovery_state(
         )
     if typed_blocker and not typed_blocker_superseded_by_current_action:
         blocker_reason = _typed_blocker_reason(typed_blocker)
+        owner_receipt = _repair_progress_owner_receipt_superseding_terminal_stop_loss(
+            progress,
+            closeout=typed_blocker,
+        )
+        if owner_receipt is not None:
+            owner_receipt_state = _owner_receipt_state(
+                progress,
+                obligation=obligation,
+                owner_receipt=owner_receipt,
+                diagnostic_report=diagnostic,
+            )
+            if owner_receipt_state is not None:
+                return owner_receipt_state
         owner = _typed_blocker_recovery_owner(
             typed_blocker,
             current_work_unit=current_work_unit,
@@ -1372,6 +1398,75 @@ def _same_work_unit_owner_receipt(
             "owner_receipt_ref": followup_receipt_ref,
         }
     return None
+
+
+def _repair_progress_owner_receipt_superseding_terminal_stop_loss(
+    progress: Mapping[str, Any],
+    *,
+    closeout: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    typed_blocker = _mapping(closeout.get("typed_blocker"))
+    blocker_reason = _typed_blocker_reason({**typed_blocker, **_mapping(closeout)})
+    if blocker_reason != "anti_loop_budget_exhausted":
+        return None
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return None
+    if repair.get("paper_delta_observed") is not True:
+        return None
+    if repair.get("accepted_owner_receipt") is not True:
+        return None
+    if repair.get("gate_replay_done") is not True:
+        return None
+    if repair.get("ai_reviewer_recheck_done") is not True:
+        return None
+    owner_receipt_ref = _text(repair.get("owner_receipt_ref"))
+    if owner_receipt_ref is None:
+        return None
+    if _text(repair.get("work_unit_id")) is None:
+        return None
+    if _text(closeout.get("stage_attempt_id")) is None and not _closeout_refs(closeout):
+        return None
+    if _repair_progress_receipt_already_consumed_by_same_gate_replay(
+        progress,
+        repair=repair,
+        closeout=closeout,
+    ):
+        return None
+    return {
+        "condition": "repair_progress_owner_receipt_supersedes_terminal_stop_loss",
+        "owner_receipt_ref": owner_receipt_ref,
+    }
+
+
+def _repair_progress_receipt_already_consumed_by_same_gate_replay(
+    progress: Mapping[str, Any],
+    *,
+    repair: Mapping[str, Any],
+    closeout: Mapping[str, Any],
+) -> bool:
+    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
+    if _text(followthrough.get("status")) != "executed":
+        return False
+    if _text(followthrough.get("gate_replay_status")) != "blocked":
+        return False
+    currentness = _mapping(followthrough.get("work_unit_currentness"))
+    if _text(currentness.get("current_actionability_status")) == "actionable":
+        current_work_unit = _first_text(
+            currentness.get("current_publication_work_unit_id"),
+            _mapping(followthrough.get("current_publication_work_unit")).get("unit_id"),
+        )
+        closeout_work_unit = _text(closeout.get("work_unit_id"))
+        if current_work_unit is not None and current_work_unit != closeout_work_unit:
+            return False
+    followthrough_work_unit = _text(followthrough.get("work_unit_id"))
+    closeout_work_unit = _text(closeout.get("work_unit_id"))
+    if closeout_work_unit is not None and followthrough_work_unit not in {None, closeout_work_unit}:
+        return False
+    latest_record = _text(followthrough.get("latest_record_path"))
+    if latest_record is None:
+        return True
+    return latest_record in set(_text_items(repair.get("gate_replay_refs")))
 
 
 def _owner_receipt_recorded_current_work_unit(

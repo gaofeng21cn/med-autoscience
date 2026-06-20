@@ -579,6 +579,27 @@ def _typed_blocker_stop_projection(
     source_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     updated = dict(payload)
+    recovery = build_paper_recovery_state(updated)
+    if _paper_recovery_supersedes_typed_blocker_stop(recovery):
+        updated["paper_recovery_state"] = recovery
+        updated["current_executable_owner_action"] = build_current_executable_owner_action(updated)
+        updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+            status={},
+            progress=updated,
+            current_executable_owner_action=_mapping_copy(
+                updated.get("current_executable_owner_action")
+            ),
+        )
+        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+            status={},
+            progress=updated,
+            actions=[],
+            current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+        )
+        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+        updated = _sync_owner_action_admission_into_monitoring(updated)
+        updated = sync_current_execution_evidence(updated, handoff={})
+        return updated
     if _mapping_copy(source_payload.get("current_work_unit")):
         updated["current_work_unit"] = _mapping_copy(source_payload.get("current_work_unit"))
     if _mapping_copy(source_payload.get("current_execution_envelope")):
@@ -603,6 +624,18 @@ def _typed_blocker_stop_projection(
     updated = sync_current_execution_evidence(updated, handoff={})
     updated["paper_recovery_state"] = build_paper_recovery_state(updated)
     return updated
+
+
+def _paper_recovery_supersedes_typed_blocker_stop(recovery: Mapping[str, Any]) -> bool:
+    phase = _non_empty_text(recovery.get("phase"))
+    next_action = _mapping_copy(recovery.get("next_safe_action"))
+    if phase == "owner_receipt_recorded":
+        return _non_empty_text(next_action.get("kind")) == "consume_owner_receipt"
+    return phase == "owner_action_ready" and _non_empty_text(next_action.get("kind")) in {
+        "materialize_successor_owner_action",
+        "run_mas_owner_callable",
+        "materialize_mas_transition_request_or_owner_callable",
+    }
 
 
 def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) -> bool:
