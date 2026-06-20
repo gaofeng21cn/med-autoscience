@@ -643,7 +643,7 @@ The platform should report progress on three separate axes:
 ### 3. Inventory progress
 
 - How many audited templates, shells, and tables are registered today?
-- Current strict audited inventory is `84` evidence templates, `7` illustration shells, `7` table shells, `98` total templates.
+- Current strict audited inventory is read from generated surfaces: [Display Pack Gallery status](../examples/display_pack_gallery_status.md), [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md), and [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). This roadmap does not hand-maintain counts.
 
 No single count should be used as a substitute for all three.
 
@@ -673,7 +673,7 @@ Roadmap progress does not authorize source readiness, publication quality, submi
 If these docs appear to disagree:
 
 1. this roadmap defines the **top-level platform target**;
-2. [medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md) defines the **strict engineering audited truth**;
-3. [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md) defines the **current generated inventory**.
+2. [display_pack_gallery_status.md](../examples/display_pack_gallery_status.md) and [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md) define the compact current user-facing inventory;
+3. [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md) defines the full generated descriptor inventory.
 
 That division of responsibility is intentional and should be preserved.

@@ -26,14 +26,12 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 ## Current Audited Inventory Snapshot
 
-截至当前审计真相：
+当前数量不再在 backlog 手写维护。请读取生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md) 和 [medical_display_arsenal.md](./medical_display_arsenal.md)：
 
-- Evidence figure templates: `55`
-- Illustration shells: `4`
-- Table shells: `7`
-- Total audited templates: `66`
-
-这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。未证明优于 R/ggplot2 的 Python evidence 已从当前 pack 清理，旧 Python evidence template id 不维护为当前库存或候选池。
+- Gallery evidence figures 是当前默认 R/ggplot2 数据证据图；
+- current canonical templates 是 agent discover / figure plan 默认推荐面；
+- retired alias / duplicate ids 只用于显式旧 ID 迁移；
+- 未证明优于 R/ggplot2 的 Python evidence 不维护为当前库存、隐藏库存或候选池。
 
 ## Historical Anchor-Driven Cleanup
 

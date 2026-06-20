@@ -7,18 +7,17 @@ Machine boundary: 本文是人读结构评估。机器真相继续归 `display-p
 
 ## 当前结论
 
-`R/ggplot2-first` 已在 core pack 收口为当前默认路径：55 个 data evidence templates 全部是 `renderer_family = "r_ggplot2"`、`execution_mode = "subprocess"`、`entrypoint = "Rscript render.R --request {request_json}"`。Python evidence 不再作为隐藏库存、显式请求库存或 Gallery 对比图保留。
+`R/ggplot2-first` 已在 core pack 收口为当前默认路径：默认 evidence Gallery 只展示 canonical current R/ggplot2 数据证据图，Python evidence 不再作为隐藏库存、显式请求库存或 Gallery 对比图保留。当前数量由生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md) 给出。
 
-当前 `fenggaolab.org.medical-display-core` 的真实 inventory 是：
+当前 `fenggaolab.org.medical-display-core` 的真实 inventory 按生成状态读取：
 
 | 口径 | 数量 | 当前真实状态 |
 | --- | ---: | --- |
-| Evidence figure template descriptor | 55 | 已在 `templates/*/template.toml` 注册，均为当前 R evidence。 |
-| `renderer_family = "r_ggplot2"` | 55 | 当前全部 evidence templates 的一等默认 renderer。 |
-| `renderer_family = "python"` evidence | 0 | 当前 pack 不保留 Python evidence。 |
-| `execution_mode = "subprocess"` evidence | 55 | 全部 evidence templates 均由 template-local `render.R` 调用。 |
-| Python illustration shells | 4 | 仅用于 design / flow / graphical abstract composition，不承担统计证据 authority。 |
-| Table shells | 7 | 由 table shell renderer 生成，不属于 evidence figure。 |
+| Gallery evidence figures | 见 generated status | 默认 R/ggplot2 subprocess 数据证据图。 |
+| Current canonical templates | 见 generated status | 当前 agent discover / figure plan 默认推荐面。 |
+| Python evidence templates | 见 generated status | 必须为 `0`，除非未来按 re-entry 规则正式入库。 |
+| Current non-visual canonical inventory | 见 generated status | 设计/流程/table 等不混入 ggplot2 evidence Gallery 的库存。 |
+| Retired alias / duplicate ids | 见 generated status | 只做显式旧 ID 迁移，不是 current template。 |
 
 因此，现状应读作：**当前医学数据证据图只保留 R/ggplot2 版本；Python 只保留在设计/流程/graphical abstract shell 和 table-shell 支撑路径。**
 

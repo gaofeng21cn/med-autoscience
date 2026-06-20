@@ -19,6 +19,7 @@ from med_autoscience.display_pack_gallery_parts.rendering import (
     _render_python_template,
     _render_r_template,
 )
+from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -102,6 +103,11 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     _strip_trailing_whitespace(paths.QUALITY_AUDIT_PATH)
+    paths.STATUS_PATH.write_text(
+        build_gallery_status_markdown(manifest),
+        encoding="utf-8",
+    )
+    _strip_trailing_whitespace(paths.STATUS_PATH)
     _export_pdf()
     if args.publish_docs:
         _copy_docs_gallery()
@@ -121,9 +127,11 @@ def main(argv: list[str] | None = None) -> int:
                 "html_path": str(paths.HTML_PATH),
                 "pdf_path": str(paths.PDF_PATH),
                 "quality_audit_path": str(paths.QUALITY_AUDIT_PATH),
+                "status_path": str(paths.STATUS_PATH),
                 "docs_pdf_path": str(paths.DOCS_PDF_PATH) if args.publish_docs else "",
                 "docs_reference_path": str(paths.DOCS_REFERENCE_PATH) if args.publish_docs else "",
                 "docs_quality_audit_path": str(paths.DOCS_QUALITY_AUDIT_PATH) if args.publish_docs else "",
+                "docs_status_path": str(paths.DOCS_STATUS_PATH) if args.publish_docs else "",
                 "manifest_path": str(paths.MANIFEST_PATH),
             },
             ensure_ascii=False,

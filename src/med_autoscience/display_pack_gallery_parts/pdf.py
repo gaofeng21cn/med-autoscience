@@ -42,3 +42,4 @@ def _copy_docs_gallery() -> None:
     shutil.copy2(paths.PDF_PATH, paths.DOCS_PDF_PATH)
     shutil.copy2(paths.REFERENCE_PATH, paths.DOCS_REFERENCE_PATH)
     shutil.copy2(paths.QUALITY_AUDIT_PATH, paths.DOCS_QUALITY_AUDIT_PATH)
+    shutil.copy2(paths.STATUS_PATH, paths.DOCS_STATUS_PATH)

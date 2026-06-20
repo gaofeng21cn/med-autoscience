@@ -11,12 +11,12 @@ This guide defines the current deterministic lower-bound audit surface for MAS m
 
 A display counts as current implemented inventory only when it is present in the active pack descriptors and can be reached through the current registry/schema/materialization/QC path.
 
-Current `fenggaolab.org.medical-display-core` inventory:
+Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
 
-- `55` evidence figures, all `r_ggplot2` subprocess renderers;
-- `0` Python evidence figures;
-- `4` Python illustration shells for design / flow / graphical-abstract composition;
-- `7` table shells.
+- current counts: [Display Pack Gallery status](../examples/display_pack_gallery_status.md);
+- human visual reference: [ggplot2_template_reference.md](../examples/ggplot2_template_reference.md) and `ggplot2_template_gallery.pdf`;
+- full descriptor inventory: [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md);
+- compact capability index: [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md).
 
 Python evidence templates are absent from current inventory, hidden defaults, explicit-request inventory, Gallery comparison cards, and runtime fallback templates unless a future current audited template proves advantage over R/ggplot2.
 
@@ -45,19 +45,7 @@ Future Python evidence may re-enter only after documented advantage over the R/g
 
 ## Current Audit Families
 
-| Family | Current templates |
-| --- | --- |
-| Prediction performance | `roc_curve_binary`, `pr_curve_binary`, `calibration_curve_binary` |
-| Clinical utility | `decision_curve_binary`, `clinical_impact_curve_binary`, `binary_calibration_decision_curve_panel`, `time_to_event_threshold_governance_panel`, `time_to_event_decision_curve` |
-| Time-to-event | `risk_layering_monotonic_bars`, `kaplan_meier_grouped`, `cumulative_incidence_grouped`, `time_dependent_roc_horizon`, `time_dependent_roc_comparison_panel`, `time_to_event_landmark_performance_panel`, `time_to_event_multihorizon_calibration_panel`, `time_to_event_stratified_cumulative_incidence_panel`, `time_to_event_discrimination_calibration_panel`, `time_to_event_risk_group_summary` |
-| Data geometry | `umap_scatter_grouped`, `pca_scatter_grouped`, `tsne_scatter_grouped`, `phate_scatter_grouped`, `diffusion_map_scatter_grouped`, `celltype_signature_heatmap`, `omics_volcano_panel` |
-| Matrix pattern | `heatmap_group_comparison`, `performance_heatmap`, `confusion_matrix_heatmap_binary`, `correlation_heatmap`, `clustered_heatmap`, `gsva_ssgsea_heatmap`, `pathway_enrichment_dotplot_panel`, `celltype_marker_dotplot_panel`, `oncoplot_mutation_landscape_panel`, `cnv_recurrence_summary_panel`, `genomic_alteration_landscape_panel`, `genomic_alteration_consequence_panel`, `genomic_alteration_multiomic_consequence_panel`, `genomic_alteration_pathway_integrated_composite_panel`, `genomic_program_governance_summary_panel` |
-| Effect estimate | `forest_effect_main`, `subgroup_forest`, `multivariable_forest`, `compact_effect_estimate_panel`, `coefficient_path_panel`, `broader_heterogeneity_summary_panel`, `interaction_effect_summary_panel` |
-| Model explanation | `shap_summary_beeswarm`, `shap_bar_importance`, `shap_multicohort_importance_panel`, `shap_dependence_panel`, `shap_waterfall_local_explanation_panel`, `shap_force_like_summary_panel` |
-| Model audit | `model_complexity_audit_panel` |
-| Generalizability | `generalizability_subgroup_composite_panel` |
-| Illustration shells | `cohort_flow_figure`, `submission_graphical_abstract`, `workflow_fact_sheet_panel`, `design_evidence_composite_shell` |
-| Table shells | `table1_baseline_characteristics`, `table2_phenotype_gap_summary`, `table3_transition_site_support_summary`, `table2_time_to_event_performance_summary`, `table3_clinical_interpretation_summary`, `performance_summary_table_generic`, `grouped_risk_event_summary_table` |
+Current audit-family membership is no longer maintained as a duplicate table in this guide. Use the generated Gallery status and reference for the user-facing current surface, and the generated template catalog for full descriptor inventory. This avoids treating input-schema variants or retired aliases as separate current templates.
 
 ## Visual QA Boundary
 

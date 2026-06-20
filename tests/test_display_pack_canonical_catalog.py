@@ -15,6 +15,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     read_template_records,
     visual_gallery_records,
 )
+from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
 
@@ -215,3 +216,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "core_conclusion_and_evidence_chain_locked" in manifest["quality_audit"]["quality_policy"][
         "required_before_paper_use"
     ]
+
+    status_markdown = build_gallery_status_markdown(manifest)
+    assert "Gallery evidence figures | 28" in status_markdown
+    assert "Current canonical templates | 31" in status_markdown
+    assert "Retired alias / duplicate ids | 35" in status_markdown
+    assert "Current Python evidence templates | 0" in status_markdown
+    assert "publication-ready claim authorized: `false`" in status_markdown
+    assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
