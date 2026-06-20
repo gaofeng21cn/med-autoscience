@@ -627,6 +627,11 @@ def _provider_admission_scanned_currentness_studies(
         current_execution_envelope = _mapping(progress_payload.get("current_execution_envelope"))
         domain_transition = _mapping(progress_payload.get("domain_transition"))
         paper_recovery_state = _mapping(progress_payload.get("paper_recovery_state"))
+        study_intervention_events = [
+            dict(item)
+            for item in progress_payload.get("study_intervention_events") or []
+            if isinstance(item, Mapping)
+        ]
         progress_first_monitoring_summary = _mapping(
             progress_payload.get("progress_first_monitoring_summary")
         )
@@ -677,6 +682,7 @@ def _provider_admission_scanned_currentness_studies(
                 **({"current_owner_ticket": dict(current_owner_ticket)} if current_owner_ticket else {}),
                 **({"domain_transition": dict(domain_transition)} if domain_transition else {}),
                 **({"paper_recovery_state": dict(paper_recovery_state)} if paper_recovery_state else {}),
+                **({"study_intervention_events": study_intervention_events} if study_intervention_events else {}),
                 **({"progress_first_monitoring_summary": dict(progress_first_monitoring_summary)}
                    if progress_first_monitoring_summary else {}),
                 **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),

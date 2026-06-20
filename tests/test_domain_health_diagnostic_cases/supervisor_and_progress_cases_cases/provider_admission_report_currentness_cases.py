@@ -989,6 +989,242 @@ def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_acc
     )
 
 
+def test_domain_health_diagnostic_retains_owner_gate_transition_request_over_owner_receipt_current_work_unit(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    dispatch_refs = _dispatch_refs(
+        profile,
+        study_id=study_id,
+        action_type=action_type,
+        packet_name="accepted-owner-gate-receipt",
+        fingerprint=fingerprint,
+    )
+    dump_json(
+        profile.workspace_root / dispatch_refs["stage_packet_ref"],
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            **dispatch_refs,
+        },
+    )
+
+    def fake_impl(**_: object) -> dict[str, object]:
+        transition_request = {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "recommended_transition_kind": "StartProviderAttempt",
+            "idempotency_key": "paper-policy-request:owner-gate-dm003-receipt",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        }
+        candidate = {
+            "surface": "opl_provider_admission_candidate",
+            "schema_version": 1,
+            "status": "transition_request_pending",
+            "source": "opl_current_control_state.study_current_executable_owner_action",
+            "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "dispatch_path": str(profile.workspace_root / dispatch_refs["stage_packet_ref"]),
+            "stage_packet_ref": dispatch_refs["stage_packet_ref"],
+            "stage_packet_refs": dispatch_refs["stage_packet_refs"],
+            "route_identity_key": dispatch_refs["route_identity_key"],
+            "attempt_idempotency_key": dispatch_refs["attempt_idempotency_key"],
+            "currentness_basis": {
+                "source": "paper_recovery_state.accepted_owner_gate_decision",
+                "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+                "truth_epoch": "truth-event-000035",
+                "runtime_health_epoch": "runtime-health-event-006980",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "provider_admission_pending": False,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_domain_progress_transition_request": transition_request,
+            "paper_progress_policy_result": {
+                "opl_domain_progress_transition_request": transition_request,
+            },
+        }
+        paper_recovery_state = {
+            "surface_kind": "paper_recovery_state",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "phase": "admission_pending",
+            "current_authority": {
+                "owner": "write",
+                "authority": "med-autoscience",
+                "obligation": {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "write",
+                    "action_type": action_type,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "conditions": [
+                {
+                    "condition": "accepted_owner_gate_decision",
+                    "decision": "admit_identity_bound_stage_packet",
+                },
+            ],
+            "next_safe_action": {
+                "kind": "admit_identity_bound_stage_packet",
+                "owner": "write",
+                "provider_admission_allowed": True,
+            },
+            "evidence_refs": [
+                "owner-gate-decision:owner-gate-dm003-receipt",
+                dispatch_refs["stage_packet_ref"],
+            ],
+            "supervisor_decision": {
+                "decision": "opl_supervisor_decision_readback_required",
+                "next_safe_action": {
+                    "kind": "opl_supervisor_decision_readback_required",
+                    "provider_admission_allowed": False,
+                },
+            },
+        }
+        return {
+            "schema_version": 1,
+            "scanned_at": "2026-06-20T00:42:00+00:00",
+            "runtime_root": str(profile.runtime_root),
+            "managed_study_opl_provider_admission_candidates": [],
+            "provider_admission_pending_count": 0,
+            "transition_request_pending_count": 0,
+            "action_fingerprints": [],
+            "current_execution_evidence": {
+                "provider_admission_candidates": [],
+                "transition_request_candidates": [],
+                "progress_currentness": {
+                    study_id: {
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "study_root": str(study_root),
+                        "study_intervention_events": [
+                            {
+                                "surface": "study_intervention_event",
+                                "intent": "owner_gate_decision",
+                                "event_id": "intervention-event-accepted-owner-gate",
+                                "payload": {
+                                    "decision": "admit_identity_bound_stage_packet",
+                                    "provider_admission_allowed": True,
+                                    "owner_gate_decision_ref": (
+                                        "owner-gate-decision:owner-gate-dm003-receipt"
+                                    ),
+                                    "current_owner_identity": {
+                                        "study_id": study_id,
+                                        "action_type": action_type,
+                                        "work_unit_id": work_unit_id,
+                                        "work_unit_fingerprint": fingerprint,
+                                        "blocker_type": (
+                                            "no_selected_dispatch_for_authorized_stage_packet"
+                                        ),
+                                    },
+                                    "stage_packet_ref": dispatch_refs["stage_packet_ref"],
+                                    "stage_packet_refs": dispatch_refs["stage_packet_refs"],
+                                },
+                            }
+                        ],
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "status": "owner_receipt_recorded",
+                            "study_id": study_id,
+                            "owner": "write",
+                            "action_type": action_type,
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "currentness_basis": {
+                                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                                "truth_epoch": "truth-event-000035",
+                                "runtime_health_epoch": "runtime-health-event-006980",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                            },
+                            "state": {
+                                "state_kind": "owner_receipt_recorded",
+                                "owner_receipt_ref": (
+                                    "artifacts/controller/repair_execution_receipts/latest.json"
+                                ),
+                            },
+                        },
+                        "paper_recovery_state": paper_recovery_state,
+                        "transition_request_candidates": [candidate],
+                        "current_execution_envelope": {
+                            "state_kind": "owner_receipt_recorded",
+                            "owner": "write",
+                            "next_work_unit": work_unit_id,
+                        },
+                    },
+                },
+            },
+        }
+
+    monkeypatch.setattr(module, "_run_domain_health_diagnostic_for_runtime_impl", fake_impl)
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 1
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    candidates = result["managed_study_opl_transition_request_candidates"]
+    assert len(candidates) == 1
+    assert candidates[0]["work_unit_id"] == work_unit_id
+    assert candidates[0]["mas_owner_action_source"] == "paper_recovery_state.accepted_owner_gate_decision"
+    assert candidates[0]["provider_admission_requires_opl_runtime_result"] is True
+    assert result["current_execution_evidence"]["transition_request_candidates"] == candidates
+    control = result["provider_admission_current_control_state"]
+    assert control["provider_admission_pending_count"] == 0
+    assert control["transition_request_pending_count"] == 1
+    assert control["stage_route_arbiter"]["decision_counts"] == {
+        "opl_transition_readback_required": 1,
+    }
+    assert (
+        control["stage_route_arbiter_decisions"][0]["decision"]
+        == "opl_transition_readback_required"
+    )
+
+
 def test_provider_admission_report_sync_keeps_owner_gate_transition_request_over_typed_blocker() -> None:
     report_module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"

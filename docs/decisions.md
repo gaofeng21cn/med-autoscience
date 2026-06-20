@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-20：DHD 顶层必须保留 request-only transition pending
+
+- 决策：当 `study_progress` 的 progress currentness 中已经存在同一 identity 的 MAS `opl_domain_progress_transition_request` / request-only transition candidate，但尚无 OPL `DomainProgressTransitionRuntime` event / outbox / StageRun readback 时，DHD 顶层必须保留 `transition_request_pending_count=1` 和 `managed_study_opl_transition_request_candidates[]`。`current_work_unit.status=owner_receipt_recorded`、accepted owner-gate residue、旧 typed blocker residue 或 current execution envelope 不得把该 request-only candidate 吞成顶层 `transition_request_pending_count=0`。
+- 决策：该顶层 pending 仍不是 provider admission、provider running proof、owner receipt、paper progress 或 submission readiness。它只能说明 MAS 已把当前 owner-gate / paper recovery successor 投影为等待 OPL runtime readback 的 request-only handoff；provider admission 必须继续由同 identity OPL event/outbox/StageRun readback 支撑。
+- 理由：DM003 暴露出 `study_progress` 能看到 accepted owner-gate recovery successor，但 DHD 从 progress currentness 重建 scanned study 时丢失 `study_intervention_events`，导致 current-control arbiter 看不到 accepted owner-gate evidence；同时 `owner_receipt_recorded` current_work_unit basis 会覆盖 `paper_recovery_state.accepted_owner_gate_decision` source，最终把真实 request-only transition 误报为顶层无 pending。根因是 DHD progress-currentness 聚合缺口，不是 Yang artifact 或论文正文可手写修复的问题。
+- 影响：这是 DHD readback / currentness 修复，不执行 live DHD apply、hydrate、tick、redrive、provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。真实论文推进仍必须由后续 fresh OPL readback-backed admission、strict running proof、terminal closeout、owner receipt、stable typed blocker supersession、human gate、route-back evidence 或 canonical semantic paper/gate/artifact delta 证明。
+
 ## 2026-06-19：DHD 必须消费完整 OPL provider-admission readback
 
 - 决策：当同一 study、action、work-unit 和 fingerprint 已经携带完整 OPL `DomainProgressTransitionRuntime` provider-admission readback，DHD current-control / provider-admission report 必须把它读成当前 `provider_admission_pending`，并优先于旧 MAS `paper_recovery_state` blocker、current typed-blocker residue、unsupported dispatch closeout 和 request-only transition residue。旧 residue 只能作为历史 drilldown 或被同 identity readback 消费，不能把顶层 DHD 再压回 `provider_admission_pending_count=0` 或同时报告 provider admission 与 transition request。

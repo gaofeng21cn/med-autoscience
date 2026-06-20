@@ -522,15 +522,20 @@ def _candidate_progress_currentness_basis(
     existing = _mapping(candidate.get("currentness_basis"))
     action_matches = _identity_core_matches(current_action, identity=candidate)
     work_unit_matches = _identity_core_matches(current_work_unit, identity=candidate)
+    accepted_owner_gate_source = _non_empty_text(existing.get("source")) == (
+        "paper_recovery_state.accepted_owner_gate_decision"
+    ) or _non_empty_text(candidate.get("mas_owner_action_source")) == (
+        "paper_recovery_state.accepted_owner_gate_decision"
+    )
     action_basis = (
         _mapping(current_action.get("owner_route_currentness_basis"))
         or _mapping(current_action.get("currentness_basis"))
         if action_matches
         else {}
     )
-    work_unit_basis = (
-        _mapping(current_work_unit.get("currentness_basis")) if work_unit_matches else {}
-    )
+    work_unit_basis = {}
+    if work_unit_matches and not accepted_owner_gate_source:
+        work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
     basis = {
         **dict(work_unit_basis),
         **dict(action_basis),
