@@ -91,6 +91,18 @@ def provider_admission_projection_fields(
         )
         for candidate in candidates
     ]
+    owner_receipt_consumed = _owner_receipt_recorded_consumes_transition_request(
+        payload=payload,
+        candidates=normalized_candidates,
+    )
+    if owner_receipt_consumed is not None:
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "owner_receipt_transition_request_consumed": owner_receipt_consumed,
+        }
     non_advancing_consumed = _non_advancing_apply_consumed(normalized_candidates)
     if non_advancing_consumed is not None:
         return {
@@ -299,6 +311,148 @@ def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str
     payload["provider_admission_requires_opl_runtime_result"] = True
     payload["opl_transition_runtime_required"] = True
     return payload
+
+
+def _owner_receipt_recorded_consumes_transition_request(
+    *,
+    payload: Mapping[str, Any],
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "owner_receipt_recorded":
+        return None
+    if _mapping_copy(payload.get("current_executable_owner_action")):
+        return None
+    matching = [
+        candidate
+        for candidate in candidates
+        if _request_only_owner_action_candidate(candidate)
+        and _same_action_identity(current_work_unit, candidate)
+    ]
+    if not matching and not _owner_receipt_consumes_accepted_owner_gate_recovery(
+        payload=payload,
+        current_work_unit=current_work_unit,
+    ):
+        return None
+    state = _mapping_copy(current_work_unit.get("state"))
+    required_output = _mapping_copy(current_work_unit.get("required_output_contract"))
+    owner_receipt_ref = (
+        _non_empty_text(state.get("owner_receipt_ref"))
+        or _non_empty_text(required_output.get("owner_receipt_ref"))
+        or _first_text(current_work_unit.get("acceptance_refs"))
+    )
+    candidate = matching[0] if matching else {}
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    currentness_basis = _mapping_copy(current_work_unit.get("currentness_basis"))
+    recovery_obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "owner_receipt_transition_request_consumed",
+            "source": "current_work_unit.owner_receipt_recorded",
+            "owner_receipt_ref": owner_receipt_ref,
+            "action_type": _non_empty_text(current_work_unit.get("action_type"))
+            or _non_empty_text(candidate.get("action_type")),
+            "work_unit_id": _non_empty_text(current_work_unit.get("work_unit_id"))
+            or _non_empty_text(candidate.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+            or _non_empty_text(current_work_unit.get("action_fingerprint"))
+            or _non_empty_text(candidate.get("work_unit_fingerprint"))
+            or _non_empty_text(candidate.get("action_fingerprint"))
+            or _non_empty_text(recovery_obligation.get("work_unit_fingerprint")),
+            "transition_request_source": _non_empty_text(candidate.get("source")),
+            "transition_request_idempotency_key": _non_empty_text(
+                _mapping_copy(candidate.get("opl_domain_progress_transition_request")).get(
+                    "idempotency_key"
+                )
+            )
+            or _non_empty_text(_mapping_copy(candidate.get("currentness_basis")).get("idempotency_key"))
+            or _non_empty_text(currentness_basis.get("idempotency_key"))
+            or _non_empty_text(candidate.get("attempt_idempotency_key"))
+            or _non_empty_text(candidate.get("route_identity_key")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _owner_receipt_consumes_accepted_owner_gate_recovery(
+    *,
+    payload: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) != "admission_pending":
+        return False
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "admit_identity_bound_stage_packet":
+        return False
+    if next_safe_action.get("provider_admission_allowed") is not True:
+        return False
+    has_condition = any(
+        _non_empty_text(_mapping_copy(item).get("condition")) == "accepted_owner_gate_decision"
+        and _non_empty_text(_mapping_copy(item).get("decision")) == "admit_identity_bound_stage_packet"
+        for item in recovery.get("conditions") or []
+    )
+    if not has_condition:
+        return False
+    refs = _text_items(recovery.get("evidence_refs"))
+    if not any(ref.startswith("owner-gate-decision:") for ref in refs):
+        return False
+    if not any("stage_packet" in ref or "default_executor_dispatches" in ref for ref in refs):
+        return False
+    obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
+    if obligation and not _same_action_identity(current_work_unit, obligation):
+        return False
+    return _same_action_identity(current_work_unit, _accepted_owner_gate_identity_from_recovery(recovery))
+
+
+def _accepted_owner_gate_identity_from_recovery(recovery: Mapping[str, Any]) -> dict[str, Any]:
+    obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    return {
+        key: value
+        for key, value in {
+            "action_type": _non_empty_text(obligation.get("action_type"))
+            or _non_empty_text(recovery.get("action_type"))
+            or _non_empty_text(next_safe_action.get("action_type")),
+            "work_unit_id": _non_empty_text(obligation.get("work_unit_id"))
+            or _non_empty_text(recovery.get("work_unit_id"))
+            or _non_empty_text(next_safe_action.get("work_unit_id"))
+            or _non_empty_text(next_safe_action.get("next_work_unit")),
+            "work_unit_fingerprint": _non_empty_text(obligation.get("work_unit_fingerprint"))
+            or _non_empty_text(recovery.get("work_unit_fingerprint"))
+            or _non_empty_text(recovery.get("action_fingerprint"))
+            or _non_empty_text(next_safe_action.get("work_unit_fingerprint"))
+            or _non_empty_text(next_safe_action.get("action_fingerprint")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _first_text(value: object) -> str | None:
+    if isinstance(value, str):
+        return _non_empty_text(value)
+    if not isinstance(value, list | tuple | set):
+        return None
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None:
+            return text
+    return None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None:
+            result.append(text)
+    return result
 
 
 def _handoff_running_proof_consumes_provider_admission(

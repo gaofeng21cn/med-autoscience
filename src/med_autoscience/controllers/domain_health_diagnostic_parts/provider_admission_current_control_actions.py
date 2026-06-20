@@ -52,6 +52,7 @@ CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS = {
     "run_gate_clearing_batch": "gate_clearing_batch",
 }
 OPL_RUNTIME_ROUTE_OWNERS = {"one-person-lab"}
+ACCEPTED_OWNER_GATE_DECISION_SOURCE = "paper_recovery_state.accepted_owner_gate_decision"
 CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
     "complete_medical_paper_readiness_surface": {"consumer_default_executor_dispatch"},
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
@@ -245,7 +246,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "source_ref": _non_empty_text(current.get("source_ref")),
         "stage_packet_ref": _non_empty_text(current.get("stage_packet_ref")),
         "stage_packet_refs": _text_items(current.get("stage_packet_refs")),
-        "dispatch_path": _non_empty_text(current.get("stage_packet_ref")),
+        "dispatch_path": _non_empty_text(current.get("dispatch_path"))
+        or _non_empty_text(current.get("stage_packet_ref")),
         "source_eval_id": _non_empty_text(owner_route_currentness_basis.get("source_eval_id")),
         "source_fingerprint": _non_empty_text(
             owner_route_currentness_basis.get("source_fingerprint")
@@ -484,6 +486,10 @@ def _current_action_from_accepted_owner_gate_admission(
         "work_unit_fingerprint": fingerprint,
         "action_fingerprint": fingerprint,
         "source_ref": stage_packet_ref or _first_text(recovery.get("evidence_refs")),
+        "dispatch_path": _current_control_action_dispatch_path_for_action_type(
+            action_type=action_type,
+            study=study,
+        ),
         "stage_packet_ref": stage_packet_ref,
         "stage_packet_refs": stage_packet_refs,
         "required_output_surface": _required_output_surface(current_work_unit),
@@ -491,6 +497,31 @@ def _current_action_from_accepted_owner_gate_admission(
         "currentness_basis": basis,
     }
     return {key: value for key, value in action.items() if value not in (None, "", [], {})}
+
+
+def _current_control_action_dispatch_path_for_action_type(
+    *,
+    action_type: str,
+    study: Mapping[str, Any],
+) -> str | None:
+    study_root_text = _non_empty_text(study.get("study_root"))
+    study_id = _non_empty_text(study.get("study_id"))
+    if study_root_text is not None:
+        return str(
+            (
+                Path(study_root_text).expanduser().resolve()
+                / DEFAULT_EXECUTOR_DISPATCHES
+                / f"{action_type}.json"
+            )
+        )
+    if study_id is None:
+        return None
+    return str(
+        Path("studies")
+        / study_id
+        / DEFAULT_EXECUTOR_DISPATCHES
+        / f"{action_type}.json"
+    )
 
 
 def accepted_owner_gate_admission_matches_selected_dispatch_blocker(
@@ -878,6 +909,9 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         recovery_identity = _paper_recovery_successor_identity(status_payload)
         if recovery_identity:
             return recovery_identity
+    accepted_owner_gate_identity = _accepted_owner_gate_current_action_identity(status_payload)
+    if accepted_owner_gate_identity:
+        return accepted_owner_gate_identity
     if current_work_unit:
         identity = _current_work_unit_identity(current_work_unit)
         if identity:
@@ -966,6 +1000,47 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         "work_unit_fingerprints": fingerprints,
         "source_ref": source_ref,
         "source": _non_empty_text(current.get("source")),
+        "next_owner": _non_empty_text(current.get("next_owner")),
+        "currentness_basis": basis if basis else None,
+    }
+
+
+def _accepted_owner_gate_current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any]:
+    current = _mapping(status_payload.get("current_executable_owner_action"))
+    if _non_empty_text(current.get("source")) != ACCEPTED_OWNER_GATE_DECISION_SOURCE:
+        return {}
+    action_type = _current_action_action_type(current)
+    work_unit_id = _non_empty_text(current.get("work_unit_id")) or _non_empty_text(
+        current.get("next_work_unit")
+    )
+    current_action_basis = _mapping(current.get("owner_route_currentness_basis")) or _mapping(
+        current.get("currentness_basis")
+    )
+    fingerprint = _first_currentness_fingerprint(
+        current.get("work_unit_fingerprint"),
+        current.get("action_fingerprint"),
+        current.get("source_fingerprint"),
+        current_action_basis.get("work_unit_fingerprint"),
+        current_action_basis.get("source_fingerprint"),
+        study_id=_non_empty_text(status_payload.get("study_id")),
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    if action_type is None or work_unit_id is None or fingerprint is None:
+        return {}
+    basis = _current_action_currentness_basis(
+        status_payload=status_payload,
+        current=current,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=fingerprint,
+    )
+    return {
+        "action_ids": [action_type, work_unit_id],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "work_unit_fingerprints": [fingerprint],
+        "source_ref": _non_empty_text(current.get("source_ref")),
+        "source": ACCEPTED_OWNER_GATE_DECISION_SOURCE,
         "next_owner": _non_empty_text(current.get("next_owner")),
         "currentness_basis": basis if basis else None,
     }
@@ -1209,7 +1284,7 @@ def _current_control_action_dispatch_path(
 ) -> Path | None:
     explicit = handoff_dispatch_path(action)
     if explicit is not None:
-        return Path(explicit).expanduser().resolve()
+        return _resolve_dispatch_ref(explicit, study_root=study_root)
     root = Path(study_root).expanduser().resolve()
     for relative_root in (
         PAPER_PROGRESS_TRANSITION_REQUESTS,
@@ -1219,6 +1294,17 @@ def _current_control_action_dispatch_path(
         if candidate.exists():
             return candidate
     return root / PAPER_PROGRESS_TRANSITION_REQUESTS / f"{action_type}.json"
+
+
+def _resolve_dispatch_ref(ref: str, *, study_root: Path) -> Path:
+    path = Path(ref).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    root = Path(study_root).expanduser().resolve()
+    study_id = root.name
+    if len(path.parts) >= 2 and path.parts[:2] == ("studies", study_id):
+        return (root.parent.parent / path).resolve()
+    return (root / path).resolve()
 
 
 def _merge_owner_route_currentness(
