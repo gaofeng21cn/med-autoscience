@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-20：EvidenceGapDecision 区分 hard gate、soft gap 与 evidence tail
+
+- 决策：MAS 新增 `EvidenceGapDecision` 合同和核心 API，将 evidence gap 固定分为 `authority_gate`、`human_gate`、`proceed_with_assumption`、`soft_quality_gap`、`observability_backlog`、`evidence_tail` 六类。
+- 决策：typed blocker count 只允许来自 `authority_gate` 和 `human_gate` 这类 current action hard gate；soft quality、assumption、observability 和 evidence tail 进入对应 ledger/backlog，不阻断当前 owner action。
+- 决策：所有 gap class 都携带 forbidden claim boundary，不能把 gap 记录、合同落地、focused tests 或 read-model projection 写成 paper progress、owner receipt、publication-ready、submission-ready、live-runtime-ready、provider-running 或 production-ready。
+- 理由：progress-first 需要让 AI 自主处理可后补的小缺口，同时保留 MAS/OPL authority、human decision、数据/隐私和不可逆操作的 fail-closed 边界。
+- 影响：`study_progress` 和 `domain_action_request_materializer` 已消费该决策面；本变更不执行 live DHD apply、hydrate、tick、redrive、provider start，不写真实 study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。
+
 ## 2026-06-20：DHD 顶层必须保留 request-only transition pending
 
 - 决策：当 `study_progress` 的 progress currentness 中已经存在同一 identity 的 MAS `opl_domain_progress_transition_request` / request-only transition candidate，但尚无 OPL `DomainProgressTransitionRuntime` event / outbox / StageRun readback 时，DHD 顶层必须保留 `transition_request_pending_count=1` 和 `managed_study_opl_transition_request_candidates[]`。`current_work_unit.status=owner_receipt_recorded`、accepted owner-gate residue、旧 typed blocker residue 或 current execution envelope 不得把该 request-only candidate 吞成顶层 `transition_request_pending_count=0`。

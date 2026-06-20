@@ -9,6 +9,9 @@ import med_autoscience.controllers.pi_action_projection as pi_action_projection
 from med_autoscience.controllers.production_blocker_impact_projection import (
     build_production_blocker_impact_projection,
 )
+from med_autoscience.controllers.evidence_gap_projection import (
+    attach_evidence_gap_projection,
+)
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 from med_autoscience.controllers import study_domain_transition_table
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
@@ -362,6 +365,7 @@ def assemble_study_progress_payload(
         sync_progress_first_owner_action_admission=_sync_progress_first_owner_action_admission,
         build_paper_recovery_state=build_paper_recovery_state,
     )
+    payload = attach_evidence_gap_projection(payload)
     payload = _apply_paper_recovery_state_user_visible_status(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)

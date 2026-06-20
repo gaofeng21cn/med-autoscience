@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/schemas/evidence-gap-decision.schema.json",
+  "title": "MAS Evidence Gap Decision",
+  "type": "object",
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "source_surface_kind",
+    "gap_class",
+    "severity",
+    "current_action_can_continue",
+    "allowed_next_actions",
+    "forbidden_claims",
+    "owner",
+    "repair_owner",
+    "escalation_policy",
+    "typed_blocker_eligibility",
+    "claim_boundary",
+    "identity",
+    "evidence_refs",
+    "diagnostic_refs",
+    "confidence",
+    "decision_trace"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "surface_kind": {
+      "const": "mas_evidence_gap_decision"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "source_surface_kind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gap_class": {
+      "type": "string",
+      "enum": [
+        "authority_gate",
+        "human_gate",
+        "proceed_with_assumption",
+        "soft_quality_gap",
+        "observability_backlog",
+        "evidence_tail"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "hard_gate",
+        "soft",
+        "backlog",
+        "tail",
+        "assumption"
+      ]
+    },
+    "current_action_can_continue": {
+      "type": "boolean"
+    },
+    "allowed_next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repair_owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "escalation_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "typed_blocker_eligibility": {
+      "type": "boolean"
+    },
+    "claim_boundary": {
+      "type": "object"
+    },
+    "identity": {
+      "type": "object"
+    },
+    "missing_ref_family": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "assumption": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "diagnostic_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "decision_trace": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

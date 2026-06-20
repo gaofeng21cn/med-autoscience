@@ -1,0 +1,330 @@
+{
+  "surface_kind": "mas_evidence_gap_decision_examples",
+  "schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+  "examples": [
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "schema_version": 1,
+      "source_surface_kind": "opl_stage_run_currentness",
+      "gap_class": "authority_gate",
+      "severity": "hard_gate",
+      "current_action_can_continue": false,
+      "allowed_next_actions": [
+        "repair_authority_surface",
+        "collect_owner_receipt_or_typed_blocker",
+        "rerun_currentness_readback"
+      ],
+      "forbidden_claims": [
+        "owner_receipt_closed",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "live_runtime_ready",
+        "production_ready",
+        "provider_running"
+      ],
+      "owner": "med-autoscience",
+      "repair_owner": "mas_authority_owner",
+      "escalation_policy": "typed_blocker_required",
+      "typed_blocker_eligibility": true,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "owner_receipt_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "submission_readiness_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "identity": {
+        "study_id": "DM003",
+        "quest_id": "quest-dm003"
+      },
+      "missing_ref_family": "OPL event/outbox/StageRun provider admission currentness readback",
+      "reason": "authority_surface_missing_or_not_current",
+      "assumption": null,
+      "evidence_refs": [
+        "runtime/status.json"
+      ],
+      "diagnostic_refs": [
+        "artifacts/diagnostics/currentness.json"
+      ],
+      "confidence": "high",
+      "decision_trace": [
+        "classify_missing_evidence_by_authority_boundary",
+        "gap_class:authority_gate",
+        "current_action_can_continue:False"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "schema_version": 1,
+      "source_surface_kind": "submission_authorization",
+      "gap_class": "human_gate",
+      "severity": "hard_gate",
+      "current_action_can_continue": false,
+      "allowed_next_actions": [
+        "request_human_decision",
+        "record_human_gate"
+      ],
+      "forbidden_claims": [
+        "owner_receipt_closed",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "live_runtime_ready",
+        "production_ready",
+        "provider_running",
+        "human_approved",
+        "irreversible_action_authorized"
+      ],
+      "owner": "med-autoscience",
+      "repair_owner": "human_owner",
+      "escalation_policy": "human_decision_required",
+      "typed_blocker_eligibility": true,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "owner_receipt_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "submission_readiness_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "identity": {
+        "study_id": "DM003"
+      },
+      "missing_ref_family": "human irreversible submission approval",
+      "reason": "human_or_irreversible_decision_required",
+      "assumption": null,
+      "evidence_refs": [
+        "submission/package.json"
+      ],
+      "diagnostic_refs": [
+        "artifacts/diagnostics/submission.json"
+      ],
+      "confidence": "high",
+      "decision_trace": [
+        "classify_missing_evidence_by_authority_boundary",
+        "gap_class:human_gate",
+        "current_action_can_continue:False"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "schema_version": 1,
+      "source_surface_kind": "source_reference_note",
+      "gap_class": "proceed_with_assumption",
+      "severity": "assumption",
+      "current_action_can_continue": true,
+      "allowed_next_actions": [
+        "continue_current_action",
+        "record_assumption"
+      ],
+      "forbidden_claims": [
+        "owner_receipt_closed",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "live_runtime_ready",
+        "production_ready",
+        "provider_running",
+        "evidence_complete",
+        "assumption_free"
+      ],
+      "owner": "med-autoscience",
+      "repair_owner": "current_executor",
+      "escalation_policy": "explicit_assumption_only",
+      "typed_blocker_eligibility": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "owner_receipt_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "submission_readiness_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "identity": {
+        "study_id": "DM003"
+      },
+      "missing_ref_family": "safe non-critical bibliography helper ref",
+      "reason": "safe_non_critical_ref_missing",
+      "assumption": {
+        "surface_kind": "mas_evidence_gap_assumption",
+        "status": "explicit_assumption",
+        "scope": "safe non-critical bibliography helper ref",
+        "does_not_authorize_claims": [
+          "owner_receipt_closed",
+          "paper_progress",
+          "publication_ready",
+          "submission_ready",
+          "live_runtime_ready",
+          "production_ready",
+          "provider_running"
+        ]
+      },
+      "evidence_refs": [
+        "refs/bibliography.json"
+      ],
+      "diagnostic_refs": [],
+      "confidence": "medium",
+      "decision_trace": [
+        "classify_missing_evidence_by_authority_boundary",
+        "gap_class:proceed_with_assumption",
+        "current_action_can_continue:True"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "schema_version": 1,
+      "source_surface_kind": "reviewer_polish",
+      "gap_class": "soft_quality_gap",
+      "severity": "soft",
+      "current_action_can_continue": true,
+      "allowed_next_actions": [
+        "continue_current_action",
+        "schedule_quality_repair"
+      ],
+      "forbidden_claims": [
+        "owner_receipt_closed",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "live_runtime_ready",
+        "production_ready",
+        "provider_running",
+        "quality_complete",
+        "reviewer_cleared"
+      ],
+      "owner": "med-autoscience",
+      "repair_owner": "quality_repair_owner",
+      "escalation_policy": "track_as_quality_repair",
+      "typed_blocker_eligibility": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "owner_receipt_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "submission_readiness_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "identity": {
+        "study_id": "DM003"
+      },
+      "missing_ref_family": "reviewer structure non-hard concern",
+      "reason": "non_hard_quality_concern",
+      "assumption": null,
+      "evidence_refs": [
+        "reviewer/concerns.json"
+      ],
+      "diagnostic_refs": [],
+      "confidence": "medium",
+      "decision_trace": [
+        "classify_missing_evidence_by_authority_boundary",
+        "gap_class:soft_quality_gap",
+        "current_action_can_continue:True"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "schema_version": 1,
+      "source_surface_kind": "telemetry_report",
+      "gap_class": "observability_backlog",
+      "severity": "backlog",
+      "current_action_can_continue": true,
+      "allowed_next_actions": [
+        "continue_current_action",
+        "schedule_observability_backlog"
+      ],
+      "forbidden_claims": [
+        "owner_receipt_closed",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "live_runtime_ready",
+        "production_ready",
+        "provider_running",
+        "observability_complete",
+        "trace_complete",
+        "cost_accounting_complete"
+      ],
+      "owner": "med-autoscience",
+      "repair_owner": "observability_owner",
+      "escalation_policy": "track_as_observability_backlog",
+      "typed_blocker_eligibility": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "owner_receipt_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "submission_readiness_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "identity": {
+        "study_id": "DM003"
+      },
+      "missing_ref_family": "telemetry token cost trace report freshness",
+      "reason": "non_blocking_observability_gap",
+      "assumption": null,
+      "evidence_refs": [
+        "runtime/telemetry.json"
+      ],
+      "diagnostic_refs": [],
+      "confidence": "medium",
+      "decision_trace": [
+        "classify_missing_evidence_by_authority_boundary",
+        "gap_class:observability_backlog",
+        "current_action_can_continue:True"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "schema_version": 1,
+      "source_surface_kind": "production_soak",
+      "gap_class": "evidence_tail",
+      "severity": "tail",
+      "current_action_can_continue": true,
+      "allowed_next_actions": [
+        "continue_current_action",
+        "collect_tail_evidence",
+        "withhold_readiness_claim"
+      ],
+      "forbidden_claims": [
+        "owner_receipt_closed",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "live_runtime_ready",
+        "production_ready",
+        "provider_running",
+        "evidence_complete"
+      ],
+      "owner": "med-autoscience",
+      "repair_owner": "runtime_evidence_owner",
+      "escalation_policy": "tail_evidence_required_before_readiness_claim",
+      "typed_blocker_eligibility": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "owner_receipt_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "submission_readiness_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "identity": {
+        "study_id": "DM003"
+      },
+      "missing_ref_family": "production soak direct-hosted parity live readiness tail",
+      "reason": "readiness_or_live_tail_evidence_missing",
+      "assumption": null,
+      "evidence_refs": [
+        "runtime/soak.json"
+      ],
+      "diagnostic_refs": [],
+      "confidence": "medium",
+      "decision_trace": [
+        "classify_missing_evidence_by_authority_boundary",
+        "gap_class:evidence_tail",
+        "current_action_can_continue:True"
+      ]
+    }
+  ]
+}

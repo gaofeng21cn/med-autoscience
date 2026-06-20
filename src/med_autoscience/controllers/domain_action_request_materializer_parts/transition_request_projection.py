@@ -111,6 +111,14 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
         "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or TARGET_RUNTIME_OWNER,
         "dispatch_status": _text(dispatch.get("dispatch_status")) or "transition_request_pending",
         "blocked_reason": _text(dispatch.get("blocked_reason")),
+        "evidence_gap_decision_summary": _mapping(dispatch.get("evidence_gap_decision_summary")) or None,
+        "evidence_gap_typed_blocker_count": dispatch.get("evidence_gap_typed_blocker_count"),
+        "soft_gap_ledger": list(dispatch.get("soft_gap_ledger") or []),
+        "assumption_ledger": list(dispatch.get("assumption_ledger") or []),
+        "observability_backlog": list(dispatch.get("observability_backlog") or []),
+        "evidence_tail_ledger": list(dispatch.get("evidence_tail_ledger") or []),
+        "current_action_can_continue": dispatch.get("current_action_can_continue"),
+        "forbidden_claims": list(dispatch.get("forbidden_claims") or []),
     }
     _apply_transition_projection_boundary(record)
     if not any(

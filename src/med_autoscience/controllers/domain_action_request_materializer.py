@@ -37,6 +37,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     current_owner_callable_adapters as current_owner_callable_adapters_part,
     current_writer_handoff,
     default_executor_prompt,
+    evidence_gap_decision as evidence_gap_decision_part,
     execution_gate,
     publication_owner_materialization,
     request_task_projection,
@@ -450,6 +451,11 @@ def _default_executor_dispatch(
     forbidden_surfaces = _default_executor_forbidden_surfaces(owner_route)
     required_output_target_surface = _request_output_target_surface_for_action_type(action_type)
     readiness_dispatch = _readiness_dispatch_enrichment(action, action_type, profile=profile)
+    evidence_gap_projection = evidence_gap_decision_part.projection_for_action(
+        action,
+        text=_text,
+        mapping=_mapping,
+    )
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
@@ -480,6 +486,7 @@ def _default_executor_dispatch(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+    prompt_contract.update(evidence_gap_decision_part.prompt_fields(evidence_gap_projection, mapping=_mapping))
     prompt_contract.update(readiness_dispatch)
     if required_output_target_surface is not None:
         prompt_contract["required_output_target_surface"] = required_output_target_surface
@@ -516,6 +523,13 @@ def _default_executor_dispatch(
         owner_route=owner_route,
         owner_route_attempt_envelope=owner_route_attempt_envelope,
     )
+    hard_evidence_gap_reason = evidence_gap_decision_part.blocked_reason(
+        evidence_gap_projection,
+        mapping=_mapping,
+    )
+    if hard_evidence_gap_reason is not None:
+        dispatch_status = "blocked"
+        blocked_reason = hard_evidence_gap_reason
     current_study = _current_scan_study(scan_payload, study_id)
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
@@ -554,6 +568,7 @@ def _default_executor_dispatch(
         prompt_contract=prompt_contract,
         developer_mode_payload=developer_mode_payload,
         readiness_dispatch=readiness_dispatch,
+        evidence_gap_projection=evidence_gap_projection,
         progress_first_closeout_admission=closeout_admission,
         generated_at=generated_at,
     )
@@ -601,6 +616,14 @@ def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str
     if _text(payload.get("dispatch_status")) == "ready" and not _has_opl_execution_proof(payload):
         payload["dispatch_status"] = "transition_request_pending"
         payload["blocked_reason"] = "opl_execution_authorization_required"
+        payload["evidence_gap_inputs"] = [
+            *evidence_gap_decision_part.inputs(payload),
+            {
+                "surface_kind": "opl_transition_runtime_authorization",
+                "missing_ref_family": "OPL runtime outbox StageRun authorization currentness",
+                "confidence": "high",
+            },
+        ]
         payload["owner_callable_surface"] = None
         payload["dispatch_ready_for_execution_authority"] = False
         payload["mas_dispatch_authority"] = False
@@ -611,7 +634,16 @@ def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str
     authority_boundary = dict(_mapping(payload.get("authority_boundary")))
     authority_boundary.update(_mas_transition_projection_authority_boundary())
     payload["authority_boundary"] = authority_boundary
-    return payload
+    projected = evidence_gap_decision_part.projection_for_action(
+        payload,
+        text=_text,
+        mapping=_mapping,
+    )
+    projected = {**payload, **projected}
+    prompt_contract = dict(_mapping(projected.get("prompt_contract")))
+    prompt_contract.update(evidence_gap_decision_part.prompt_fields(projected, mapping=_mapping))
+    projected["prompt_contract"] = prompt_contract
+    return projected
 
 
 def _transition_request_for_owner_callable_adapter(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -749,6 +781,7 @@ def _default_executor_dispatch_payload(
     prompt_contract: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     readiness_dispatch: Mapping[str, Any],
+    evidence_gap_projection: Mapping[str, Any],
     progress_first_closeout_admission: Mapping[str, Any],
     generated_at: str,
 ) -> dict[str, Any]:
@@ -804,6 +837,27 @@ def _default_executor_dispatch_payload(
             blocked_reason=blocked_reason,
             developer_mode_payload=developer_mode_payload,
             supported_mode=SUPPORTED_MODE,
+            evidence_gap_projection=evidence_gap_projection,
+        ),
+        "evidence_gap_decisions": list(evidence_gap_projection.get("evidence_gap_decisions") or []),
+        "evidence_gap_decision_summary": dict(_mapping(evidence_gap_projection.get("evidence_gap_decision_summary"))),
+        "current_action_can_continue": (
+            _mapping(evidence_gap_projection.get("evidence_gap_decision_summary")).get(
+                "current_action_can_continue"
+            )
+            is True
+        ),
+        "forbidden_claims": list(
+            _mapping(evidence_gap_projection.get("evidence_gap_decision_summary")).get("forbidden_claims")
+            or []
+        ),
+        "assumption_ledger": list(evidence_gap_projection.get("assumption_ledger") or []),
+        "soft_gap_ledger": list(evidence_gap_projection.get("soft_gap_ledger") or []),
+        "observability_backlog": list(evidence_gap_projection.get("observability_backlog") or []),
+        "evidence_tail_ledger": list(evidence_gap_projection.get("evidence_tail_ledger") or []),
+        "evidence_gap_typed_blockers": list(evidence_gap_projection.get("evidence_gap_typed_blockers") or []),
+        "evidence_gap_typed_blocker_count": int(
+            evidence_gap_projection.get("evidence_gap_typed_blocker_count") or 0
         ),
         "provider_admission_effect": execution_gate.provider_admission_effect(
             dispatch_status=dispatch_status,
@@ -967,7 +1021,7 @@ def _request_task(
     study_id = _text(action.get("study_id")) or "unknown-study"
     action_type = _text(action.get("action_type")) or "unknown_action"
     action_payload = {**dict(action), "study_root": str(_study_root(profile, study_id))}
-    return supervisor_request_packets.request_task(
+    task = supervisor_request_packets.request_task(
         action=action_payload,
         schema_version=SCHEMA_VERSION,
         developer_mode_payload=developer_mode_payload,
@@ -978,6 +1032,25 @@ def _request_task(
         forbidden_surfaces=FORBIDDEN_SURFACES,
         allowed_write_surfaces=ALLOWED_WRITE_SURFACES,
     )
+    evidence_gap_projection = evidence_gap_decision_part.projection_for_action(
+        action,
+        text=_text,
+        mapping=_mapping,
+    )
+    task.update(evidence_gap_decision_part.prompt_fields(evidence_gap_projection, mapping=_mapping))
+    hard_evidence_gap_reason = evidence_gap_decision_part.blocked_reason(
+        evidence_gap_projection,
+        mapping=_mapping,
+    )
+    if hard_evidence_gap_reason is not None:
+        task["dispatch_status"] = "blocked"
+        task["blocked_reason"] = hard_evidence_gap_reason
+    handoff = dict(_mapping(task.get("handoff_packet")))
+    handoff.update(evidence_gap_decision_part.prompt_fields(evidence_gap_projection, mapping=_mapping))
+    if hard_evidence_gap_reason is not None:
+        handoff["blocked_reason"] = hard_evidence_gap_reason
+    task["handoff_packet"] = handoff
+    return task
 
 
 def _with_transition_request_task_semantics(task: Mapping[str, Any]) -> dict[str, Any]:
