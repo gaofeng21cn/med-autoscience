@@ -71,6 +71,13 @@ def provider_admission_projection_fields(
             "transition_request_pending_count": 0,
             "transition_request_candidates": [],
         }
+    if _mas_owner_callable_controls_current_action(payload):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
     current_control_payload = _current_control_payload_for_provider_admission(
         payload=payload,
         handoff=handoff,
@@ -716,6 +723,26 @@ def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> 
         and right_work_unit is not None
         and left_fingerprint is not None
         and right_fingerprint is not None
+    )
+
+
+def _mas_owner_callable_controls_current_action(payload: Mapping[str, Any]) -> bool:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    next_action = _mapping_copy(recovery.get("next_safe_action"))
+    if _non_empty_text(next_action.get("kind")) != "run_mas_owner_callable":
+        return False
+    owner_callable = _mapping_copy(next_action.get("owner_callable"))
+    if _non_empty_text(owner_callable.get("callable_surface")) is None:
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    return bool(
+        current_action
+        and _non_empty_text(current_action.get("source"))
+        == "paper_recovery_state.next_safe_action.successor_owner_action"
+        and _same_action_identity(current_action, current_work_unit)
     )
 
 

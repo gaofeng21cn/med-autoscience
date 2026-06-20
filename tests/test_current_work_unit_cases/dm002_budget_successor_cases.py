@@ -284,6 +284,109 @@ def test_current_work_unit_derives_dm002_anti_loop_successor_from_repair_progres
     assert work_unit["authority_boundary"]["can_write_runtime_owned_surfaces"] is False
 
 
+def test_current_work_unit_consumes_repeat_suppressed_blocker_after_fresh_repair_receipt() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "002-dm-china-us-mortality-attribution::ai-reviewer-current-inputs::"
+        "2026-06-20T12:00:39+00:00"
+    )
+    blocker_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    progress = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "current_stage": "publication_supervision",
+        "repair_progress_projection": {
+            "surface_kind": "repair_progress_projection",
+            "source": "mas_owner_repair_execution_evidence",
+            "status": "progress_delta_observed",
+            "paper_delta_observed": True,
+            "progress_delta_candidate": True,
+            "accepted_owner_receipt": True,
+            "gate_replay_done": True,
+            "ai_reviewer_recheck_done": True,
+            "work_unit_id": "dm002_same_line_publication_paper_repair",
+            "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+            "action_fingerprint": "publication-blockers::497d1260db522f01",
+            "source_eval_id": source_eval_id,
+            "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+            "repair_execution_evidence_ref": (
+                "artifacts/controller/repair_execution_evidence/latest.json"
+            ),
+            "gate_replay_refs": [
+                "artifacts/controller/gate_clearing_batch/latest.json",
+                "artifacts/controller/gate_replay_requests/latest.json",
+            ],
+        },
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "schema_version": 1,
+            "status": "typed_blocker",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "stage_id": "publication_supervision",
+            "owner": "one-person-lab",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": blocker_fingerprint,
+            "action_fingerprint": blocker_fingerprint,
+            "state": {
+                "typed_blocker": {
+                    "blocker_kind": "anti_loop_budget_exhausted",
+                    "blocker_id": "anti_loop_budget_exhausted",
+                    "blocker_type": (
+                        "repeat_suppressed_after_opl_execution_authorization_required"
+                    ),
+                    "blocked_reason": (
+                        "repeat_suppressed_after_opl_execution_authorization_required"
+                    ),
+                    "reason": "anti_loop_budget_exhausted",
+                    "owner": "one-person-lab",
+                    "required_next_owner": "one-person-lab",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": blocker_fingerprint,
+                    "action_fingerprint": blocker_fingerprint,
+                    "source_eval_id": source_eval_id,
+                    "stage_attempt_id": "sat_67e10efde628859185249aa0",
+                    "source_ref": (
+                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_67e10efde628859185249aa0.closeout.json"
+                    ),
+                },
+            },
+        },
+    }
+
+    recovery = build_paper_recovery_state(progress)
+    assert recovery["phase"] == "owner_receipt_recorded"
+    assert recovery["next_safe_action"]["kind"] == "consume_owner_receipt"
+    assert recovery["conditions"][0]["condition"] == (
+        "repair_progress_owner_receipt_supersedes_terminal_stop_loss"
+    )
+    assert recovery["next_safe_action"]["owner_receipt_ref"] == (
+        "artifacts/controller/repair_execution_receipts/latest.json"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={**progress, "paper_recovery_state": recovery},
+        typed_blocker=progress["current_work_unit"]["state"]["typed_blocker"],
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "owner_receipt_recorded"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["source"] == "paper_recovery_state.owner_receipt_recorded"
+    assert work_unit["state"]["owner_receipt_ref"] == (
+        "artifacts/controller/repair_execution_receipts/latest.json"
+    )
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_uses_gate_followthrough_repair_after_dm002_budget_stop_loss() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

@@ -1454,7 +1454,10 @@ def _repair_progress_owner_receipt_superseding_terminal_stop_loss(
 ) -> dict[str, Any] | None:
     typed_blocker = _mapping(closeout.get("typed_blocker"))
     blocker_reason = _typed_blocker_reason({**typed_blocker, **_mapping(closeout)})
-    if blocker_reason != "anti_loop_budget_exhausted":
+    if blocker_reason not in {
+        "anti_loop_budget_exhausted",
+        "repeat_suppressed_after_opl_execution_authorization_required",
+    }:
         return None
     repair = _mapping(progress.get("repair_progress_projection"))
     if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":

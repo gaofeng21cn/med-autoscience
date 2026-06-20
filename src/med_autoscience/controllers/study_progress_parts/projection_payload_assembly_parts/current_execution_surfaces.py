@@ -104,7 +104,7 @@ def refresh_current_execution_surfaces(
         handoff_executable_action = provider_admission_action
     if handoff_executable_action is None:
         handoff_executable_action = provider_admission_action
-    payload_executable_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    payload_executable_action = _payload_executable_action_for_execution_refresh(payload)
     if (
         payload_executable_action
         and handoff_executable_action
@@ -116,6 +116,16 @@ def refresh_current_execution_surfaces(
             payload_executable_action,
             typed_blocker=_canonical_current_control_typed_blocker(handoff),
             progress=payload,
+        )
+    ):
+        handoff_executable_action = payload_executable_action
+    if (
+        payload_executable_action
+        and handoff_executable_action
+        and _paper_recovery_owner_callable_action(payload_executable_action)
+        and not _identities_conflict(
+            _identity_values(payload_executable_action),
+            _identity_values(handoff_executable_action),
         )
     ):
         handoff_executable_action = payload_executable_action
@@ -1211,6 +1221,28 @@ def _identity_values(value: Mapping[str, Any]) -> dict[str, str | None]:
         or _non_empty_text(runtime_health.get("attempt_idempotency_key"))
         or _non_empty_text(basis.get("attempt_idempotency_key")),
     }
+
+
+def _paper_recovery_owner_callable_action(action: Mapping[str, Any]) -> bool:
+    if _non_empty_text(action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    successor = _mapping_copy(action.get("paper_recovery_successor"))
+    return (
+        _non_empty_text(successor.get("source_next_safe_action_kind")) == "run_mas_owner_callable"
+        and _non_empty_text(successor.get("owner_callable_surface")) is not None
+    )
+
+
+def _payload_executable_action_for_execution_refresh(payload: Mapping[str, Any]) -> dict[str, Any]:
+    action = _mapping_copy(payload.get("current_executable_owner_action"))
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    next_action = _mapping_copy(recovery.get("next_safe_action"))
+    if _non_empty_text(next_action.get("kind")) != "run_mas_owner_callable":
+        return action
+    rebuilt = build_current_executable_owner_action(payload)
+    if _paper_recovery_owner_callable_action(_mapping_copy(rebuilt)):
+        return dict(rebuilt)
+    return action
 
 
 def _identities_conflict(left: Mapping[str, str | None], right: Mapping[str, str | None]) -> bool:

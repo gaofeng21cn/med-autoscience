@@ -430,6 +430,214 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
         study["current_execution_envelope"]["next_work_unit"]
         == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     )
+
+
+def test_runtime_owner_handoff_preserves_dm003_provider_admission_pending_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    provider_helpers = importlib.import_module("tests.provider_admission_current_control_helpers")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    quest_root = profile.runtime_root / "quests" / study_id
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    identity_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    candidate = provider_helpers.provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_type="request_opl_stage_attempt",
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        next_executable_owner="write",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+    candidate.update(
+        {
+            "route_identity_key": identity_key,
+            "attempt_idempotency_key": identity_key,
+            "idempotency_key": identity_key,
+            "owner": "write",
+            "provider_admission_pending": True,
+            "provider_attempt_or_lease_required": True,
+            "provider_admission_requires_opl_runtime_result": False,
+        }
+    )
+    candidate["opl_domain_progress_transition_live_readback"] = (
+        provider_helpers.opl_transition_readback(
+            study_id,
+            action_fingerprint=action_fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=identity_key,
+            attempt_idempotency_key=identity_key,
+            request_idempotency_key=identity_key,
+            stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+        )
+    )
+
+    result = module._materialize_opl_runtime_owner_handoff(
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [candidate],
+            "active_run_id": None,
+            "running_provider_attempt": False,
+        },
+        recorded_at="2026-06-20T19:11:23+00:00",
+        apply=True,
+    )
+
+    latest_handoff = json.loads(
+        (study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert result is not None
+    assert result["provider_admission_identity"]["route_identity_key"] == identity_key
+    assert result["provider_admission_identity"]["attempt_idempotency_key"] == identity_key
+    assert result["provider_admission_identity"]["work_unit_id"] == work_unit_id
+    assert result["provider_admission_identity"]["provider_admission_pending"] is True
+    assert result["provider_admission_candidates"][0]["route_identity_key"] == identity_key
+    assert latest_handoff["provider_admission_identity"]["route_identity_key"] == identity_key
+    assert latest_handoff["provider_admission_candidates"][0]["attempt_idempotency_key"] == identity_key
+    assert result["runtime_owner"] == "one-person-lab"
+    assert result["mas_materializes_runtime_supervision"] is False
+    assert result["provider_completion_is_domain_completion"] is False
+    assert result["typed_blocker"]["owner"] == "one-person-lab"
+
+
+def test_runtime_dry_run_handoff_preserves_dm003_current_control_provider_admission_identity(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    provider_helpers = importlib.import_module("tests.provider_admission_current_control_helpers")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    identity_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    candidate = provider_helpers.provider_candidate_with_opl_readback(
+        profile,
+        study_id,
+        action_type="request_opl_stage_attempt",
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        next_executable_owner="write",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+    candidate.update(
+        {
+            "route_identity_key": identity_key,
+            "attempt_idempotency_key": identity_key,
+            "idempotency_key": identity_key,
+            "owner": "write",
+            "provider_admission_pending": True,
+            "provider_attempt_or_lease_required": True,
+            "provider_admission_requires_opl_runtime_result": False,
+        }
+    )
+    candidate["opl_domain_progress_transition_live_readback"] = (
+        provider_helpers.opl_transition_readback(
+            study_id,
+            action_fingerprint=action_fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=identity_key,
+            attempt_idempotency_key=identity_key,
+            request_idempotency_key=identity_key,
+            stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+        )
+    )
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="blocked",
+            reason="quest_waiting_opl_runtime_owner_route",
+        ),
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / "quests" / study_id),
+    }
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "generated_at": "2026-06-20T19:11:23+00:00",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": "request_opl_stage_attempt",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "opl_current_control_state.provider_admission_candidates",
+                "source_surface": "opl_current_control_state.provider_admission_candidates",
+                "next_owner": "write",
+                "owner": "write",
+                "action_type": "request_opl_stage_attempt",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
+                "route_identity_key": identity_key,
+                "attempt_idempotency_key": identity_key,
+                "idempotency_key": identity_key,
+                "provider_admission_pending": True,
+                "provider_attempt_or_lease_required": True,
+                "provider_admission_requires_opl_runtime_result": False,
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [candidate],
+        },
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        diagnostic_scope="provider-admission",
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    assert handoff["provider_admission_identity"]["route_identity_key"] == identity_key
+    assert handoff["provider_admission_identity"]["attempt_idempotency_key"] == identity_key
+    assert handoff["provider_admission_identity"]["work_unit_id"] == work_unit_id
+    assert handoff["provider_admission_candidates"][0]["route_identity_key"] == identity_key
+    assert handoff["runtime_owner"] == "one-person-lab"
+    assert handoff["mas_materializes_runtime_supervision"] is False
+    assert handoff["provider_completion_is_domain_completion"] is False
 from .provider_admission_current_control_cases import *  # noqa: F403,F401,E402
 from .provider_admission_current_control_report_envelope_cases import *  # noqa: F403,F401,E402
 from .provider_admission_progress_currentness_cases import *  # noqa: F403,F401,E402

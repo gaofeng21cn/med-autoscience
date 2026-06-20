@@ -479,12 +479,15 @@ def _materialize_opl_runtime_owner_handoff(
     study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
     quest_id = _non_empty_text(status_payload.get("quest_id"))
     quest_root = _candidate_path(status_payload.get("quest_root"))
-    provider_admission_candidates = persisted_provider_admission_candidates(
-        study_root=Path(study_root),
-        status_payload=status_payload,
-    )
-    provider_admission_identity = (
-        provider_admission_candidates[0] if provider_admission_candidates else None
+    provider_admission_candidates = _current_status_provider_admission_candidates(status_payload)
+    if not provider_admission_candidates:
+        provider_admission_candidates = persisted_provider_admission_candidates(
+            study_root=Path(study_root),
+            status_payload=status_payload,
+        )
+    provider_admission_identity = _current_status_provider_admission_identity(
+        status_payload,
+        provider_admission_candidates=provider_admission_candidates,
     )
     payload = {
         "surface_kind": "mas_opl_runtime_owner_handoff",
@@ -534,6 +537,44 @@ def _materialize_opl_runtime_owner_handoff(
         handoff_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         payload["artifact_path"] = str(handoff_path)
     return payload
+
+
+def _current_status_provider_admission_candidates(
+    status_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        dict(candidate)
+        for candidate in status_payload.get("provider_admission_candidates") or []
+        if isinstance(candidate, Mapping)
+    ]
+
+
+def _current_status_provider_admission_identity(
+    status_payload: Mapping[str, Any],
+    *,
+    provider_admission_candidates: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    direct_identity = _mapping(status_payload.get("provider_admission_identity"))
+    if _provider_admission_identity_has_current_binding(direct_identity):
+        return direct_identity
+    for candidate in provider_admission_candidates:
+        embedded_identity = _mapping(candidate.get("provider_admission_identity"))
+        if _provider_admission_identity_has_current_binding(embedded_identity):
+            return {**candidate, **embedded_identity}
+    return provider_admission_candidates[0] if provider_admission_candidates else None
+
+
+def _provider_admission_identity_has_current_binding(identity: Mapping[str, Any]) -> bool:
+    return any(
+        _non_empty_text(identity.get(key)) is not None
+        for key in (
+            "study_id",
+            "action_type",
+            "work_unit_id",
+            "route_identity_key",
+            "attempt_idempotency_key",
+        )
+    )
 
 
 def _build_runtime_control_ports() -> RuntimeControlPorts:

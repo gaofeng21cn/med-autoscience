@@ -557,7 +557,13 @@ def _repair_progress_proves_safe_successor_delta(repair: Mapping[str, Any]) -> b
         return False
     if repair.get("paper_delta_observed") is not True:
         return False
-    if repair.get("accepted_owner_receipt") is not True:
+    if not (
+        repair.get("accepted_owner_receipt") is True
+        or (
+            repair.get("progress_delta_candidate") is True
+            and repair.get("gate_replay_done") is True
+        )
+    ):
         return False
     if repair.get("gate_replay_done") is not True:
         return False

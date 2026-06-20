@@ -86,6 +86,8 @@ def _has_opl_transition_boundary(value: Mapping[str, Any]) -> bool:
 
 
 def transition_request_pending(progress: Mapping[str, Any]) -> bool:
+    if _mas_owner_callable_controls_current_action(progress):
+        return False
     candidates = _provider_admission_candidates(progress)
     if any(
         _has_mas_transition_request(candidate) and not _has_opl_transition_readback(candidate)
@@ -99,6 +101,22 @@ def transition_request_pending(progress: Mapping[str, Any]) -> bool:
         and _has_mas_transition_request(current_work_unit)
         and not _has_opl_transition_readback(current_work_unit)
     )
+
+
+def _mas_owner_callable_controls_current_action(progress: Mapping[str, Any]) -> bool:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    if _text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    next_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_action.get("kind")) != "run_mas_owner_callable":
+        return False
+    owner_callable = _mapping(next_action.get("owner_callable"))
+    if _text(owner_callable.get("callable_surface")) is None:
+        return False
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    if _text(current_action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    return _same_action_identity(current_action, _mapping(progress.get("current_work_unit")))
 
 
 def _has_mas_transition_request(value: Mapping[str, Any]) -> bool:
@@ -143,6 +161,29 @@ def _has_mas_transition_request(value: Mapping[str, Any]) -> bool:
 
 def _current_work_unit_status(work_unit: Mapping[str, Any]) -> str | None:
     return _text(work_unit.get("status")) or _text(_mapping(work_unit.get("state")).get("state_kind"))
+
+
+def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    left_action = _text(left.get("action_type"))
+    right_action = _text(right.get("action_type"))
+    if left_action is not None and right_action is not None and left_action != right_action:
+        return False
+    left_work_unit = _text(left.get("work_unit_id")) or _text(left.get("next_work_unit"))
+    right_work_unit = _text(right.get("work_unit_id")) or _text(right.get("next_work_unit"))
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprint = _text(left.get("work_unit_fingerprint")) or _text(left.get("action_fingerprint"))
+    right_fingerprint = _text(right.get("work_unit_fingerprint")) or _text(right.get("action_fingerprint"))
+    if left_fingerprint is not None and right_fingerprint is not None and left_fingerprint != right_fingerprint:
+        return False
+    return (
+        left_action is not None
+        and right_action is not None
+        and left_work_unit is not None
+        and right_work_unit is not None
+        and left_fingerprint is not None
+        and right_fingerprint is not None
+    )
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:

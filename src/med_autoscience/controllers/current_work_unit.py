@@ -657,11 +657,14 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
     if _text(recovery.get("phase")) != "owner_action_ready":
         return None
     next_action = _mapping(recovery.get("next_safe_action"))
-    if _text(next_action.get("kind")) != "materialize_successor_owner_action":
+    next_action_kind = _text(next_action.get("kind"))
+    if next_action_kind not in {"materialize_successor_owner_action", "run_mas_owner_callable"}:
         return None
-    if not _mapping(next_action.get("successor_owner_action")):
+    if not _mapping(next_action.get("successor_owner_action")) and next_action_kind != "run_mas_owner_callable":
         return None
     successor = _mapping(next_action.get("successor_owner_action"))
+    if not successor:
+        successor = _paper_recovery_callable_successor(progress, recovery=recovery, next_action=next_action)
     action_type = _action_type(successor)
     work_unit_id = _work_unit_id(successor.get("work_unit_id")) or _work_unit_id(
         successor.get("next_work_unit")
@@ -676,7 +679,12 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
     )
     if action_type is None or work_unit_id is None or fingerprint is None or owner is None:
         return None
+    owner_callable = _mapping(next_action.get("owner_callable"))
+    owner_callable_surface = _text(owner_callable.get("callable_surface"))
+    if next_action_kind == "run_mas_owner_callable" and owner_callable_surface is None:
+        return None
     source_surface = _text(successor.get("source_surface")) or _text(successor.get("source"))
+    provider_admission_required = next_action_kind != "run_mas_owner_callable"
     currentness_basis = normalize_currentness_sources(
         _mapping(successor.get("owner_route_currentness_basis")),
         _mapping(successor.get("currentness_basis")),
@@ -713,21 +721,96 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
             "target_surface": _mapping(successor.get("target_surface")),
             "owner_receipt_required": True,
             "provider_admission_pending": False,
-            "transition_request_pending": True,
+            "transition_request_pending": provider_admission_required,
             "provider_attempt_or_lease_required": False,
-            "provider_admission_requires_opl_runtime_result": True,
-            "opl_transition_runtime_required": True,
+            "provider_admission_requires_opl_runtime_result": provider_admission_required,
+            "opl_transition_runtime_required": provider_admission_required,
             "paper_recovery_successor": {
                 "phase": _text(recovery.get("phase")),
-                "source_next_safe_action_kind": _text(next_action.get("kind")),
+                "source_next_safe_action_kind": next_action_kind,
                 "provider_admission_allowed": False,
-                "provider_admission_requires_opl_runtime_result": True,
-                "opl_transition_runtime_required": True,
+                "provider_admission_requires_opl_runtime_result": provider_admission_required,
+                "opl_transition_runtime_required": provider_admission_required,
                 "source_surface": source_surface,
+                "owner_callable_surface": owner_callable_surface,
             },
             "owner_route_currentness_basis": currentness_basis,
         }.items()
         if value not in (None, "", [], {})
+    }
+
+
+def _paper_recovery_callable_successor(
+    progress: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner_callable = _mapping(next_action.get("owner_callable"))
+    current_authority = _mapping(recovery.get("current_authority"))
+    obligation = _mapping(current_authority.get("obligation"))
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    action_type = (
+        _text(owner_callable.get("action_type"))
+        or _text(obligation.get("action_type"))
+        or _text(current_action.get("action_type"))
+        or _text(current_work_unit.get("action_type"))
+    )
+    work_unit_id = (
+        _work_unit_id(obligation.get("work_unit_id"))
+        or _work_unit_id(current_action.get("work_unit_id"))
+        or _work_unit_id(current_action.get("next_work_unit"))
+        or _work_unit_id(current_work_unit.get("work_unit_id"))
+        or _work_unit_id(current_work_unit.get("next_work_unit"))
+    )
+    fingerprint = (
+        _text(obligation.get("work_unit_fingerprint"))
+        or _text(obligation.get("action_fingerprint"))
+        or _text(current_action.get("work_unit_fingerprint"))
+        or _text(current_action.get("action_fingerprint"))
+        or _text(current_work_unit.get("work_unit_fingerprint"))
+        or _text(current_work_unit.get("action_fingerprint"))
+    )
+    owner = (
+        _text(next_action.get("owner"))
+        or _text(current_authority.get("owner"))
+        or _text(obligation.get("owner"))
+        or _text(current_action.get("owner"))
+        or _text(current_action.get("next_owner"))
+        or _text(current_work_unit.get("owner"))
+    )
+    callable_surface = _text(owner_callable.get("callable_surface"))
+    if action_type is None or work_unit_id is None or fingerprint is None or owner is None:
+        return {}
+    if callable_surface is None:
+        return {}
+    return {
+        "action_type": action_type,
+        "owner": owner,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_surface": "paper_recovery_state.next_safe_action.owner_callable",
+        "target_surface": {
+            "ref_kind": "mas_owner_callable",
+            "route_target": owner,
+            "surface_ref": callable_surface,
+            "owner_callable_surface": callable_surface,
+        },
+        "owner_route_currentness_basis": normalize_currentness_sources(
+            _mapping(obligation.get("currentness_basis")),
+            _mapping(current_action.get("owner_route_currentness_basis")),
+            _mapping(current_action.get("currentness_basis")),
+            _mapping(current_work_unit.get("currentness_basis")),
+            {
+                "source": "paper_recovery_state.next_safe_action.owner_callable",
+                "source_eval_id": _text(_mapping(progress.get("publication_eval")).get("eval_id")),
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+        ),
     }
 
 
@@ -1279,16 +1362,7 @@ def _safe_paper_recovery_successor_consumes_terminal_stop_loss(
     repair = _mapping(progress.get("repair_progress_projection"))
     if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
         return False
-    if not (
-        repair.get("paper_delta_observed") is True
-        and repair.get("accepted_owner_receipt") is True
-        and repair.get("gate_replay_done") is True
-        and (
-            _text(repair.get("repair_execution_evidence_ref")) is not None
-            or _text(repair.get("owner_receipt_ref")) is not None
-            or bool(_text_items(repair.get("gate_replay_refs")))
-        )
-    ):
+    if not _repair_progress_proves_safe_successor_delta(repair):
         return False
     blocker_eval = _text(blocker.get("source_eval_id")) or _text(
         _mapping(blocker.get("currentness_basis")).get("source_eval_id")
@@ -1340,15 +1414,28 @@ def _safe_next_forced_delta_action_consumes_repair_progress(
     repair = _mapping(progress.get("repair_progress_projection"))
     if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
         return False
-    return (
-        repair.get("paper_delta_observed") is True
-        and repair.get("accepted_owner_receipt") is True
-        and repair.get("gate_replay_done") is True
-        and (
-            _text(repair.get("repair_execution_evidence_ref")) is not None
-            or _text(repair.get("owner_receipt_ref")) is not None
-            or bool(_text_items(repair.get("gate_replay_refs")))
+    return _repair_progress_proves_safe_successor_delta(repair)
+
+
+def _repair_progress_proves_safe_successor_delta(repair: Mapping[str, Any]) -> bool:
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return False
+    if repair.get("paper_delta_observed") is not True:
+        return False
+    if not (
+        repair.get("accepted_owner_receipt") is True
+        or (
+            repair.get("progress_delta_candidate") is True
+            and repair.get("gate_replay_done") is True
         )
+    ):
+        return False
+    if repair.get("gate_replay_done") is not True:
+        return False
+    return (
+        _text(repair.get("repair_execution_evidence_ref")) is not None
+        or _text(repair.get("owner_receipt_ref")) is not None
+        or bool(_text_items(repair.get("gate_replay_refs")))
     )
 
 

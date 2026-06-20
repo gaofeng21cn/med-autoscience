@@ -45,6 +45,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_sup
     _with_fresh_progress_currentness,
     utc_now,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    provider_admission_opl_transition_readback,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.scopes import parse_diagnostic_scope
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.profiles import WorkspaceProfile
@@ -698,6 +701,29 @@ def run_domain_health_diagnostic_for_runtime(
                 managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
+        study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
+        candidate_status_payload = {
+            **status_payload,
+            **managed_study_progress_currentness.get(study_id, {}),
+        }
+        provider_admission_candidates: list[dict[str, Any]] = []
+        if scope.reads_provider_admission:
+            provider_admission_candidates = _provider_admission_candidates_for_status(
+                profile=profile,
+                study_root=study_root,
+                status_payload=candidate_status_payload,
+                refresh_currentness=False,
+            )
+        handoff_provider_admission_candidates = _handoff_provider_admission_candidates(
+            provider_admission_candidates
+        )
+        handoff_status_payload = status_payload
+        if handoff_provider_admission_candidates:
+            handoff_status_payload = {
+                **candidate_status_payload,
+                "provider_admission_pending_count": len(handoff_provider_admission_candidates),
+                "provider_admission_candidates": handoff_provider_admission_candidates,
+            }
         opl_runtime_owner_handoff = None
         if (
             scope.materializes_opl_handoff
@@ -705,7 +731,7 @@ def run_domain_health_diagnostic_for_runtime(
         ):
             opl_runtime_owner_handoff = runtime_control_ports.materialize_opl_runtime_owner_handoff(
                 study_root=study_root,
-                status_payload=status_payload,
+                status_payload=handoff_status_payload,
                 recorded_at=utc_now(),
                 apply=apply,
                 domain_health_diagnostic_report_path=(
@@ -717,20 +743,8 @@ def run_domain_health_diagnostic_for_runtime(
             )
         if opl_runtime_owner_handoff is not None:
             managed_study_opl_runtime_owner_handoffs.append(opl_runtime_owner_handoff)
-        study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
-        candidate_status_payload = {
-            **status_payload,
-            **managed_study_progress_currentness.get(study_id, {}),
-        }
         if scope.reads_provider_admission:
-            managed_study_opl_provider_admission_candidates.extend(
-                _provider_admission_candidates_for_status(
-                    profile=profile,
-                    study_root=study_root,
-                    status_payload=candidate_status_payload,
-                    refresh_currentness=False,
-                )
-            )
+            managed_study_opl_provider_admission_candidates.extend(provider_admission_candidates)
             managed_study_opl_transition_request_candidates.extend(
                 dict(item)
                 for item in status_payload.get("managed_study_opl_transition_request_candidates") or []
@@ -857,6 +871,18 @@ def _provider_admission_candidates_for_status(
         current_control_ref=str(current_control_path),
     )
     return _merge_current_provider_candidates(current_progress_candidates, candidates)
+
+
+def _handoff_provider_admission_candidates(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if _non_empty_text(candidate.get("status")) == "provider_admission_pending"
+        or candidate.get("provider_admission_pending") is True
+        or provider_admission_opl_transition_readback(candidate)
+    ]
 
 
 def _current_progress_provider_candidates(status_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
