@@ -154,6 +154,119 @@ def test_current_work_unit_projection_metadata_demotes_transition_authority() ->
     assert work_unit["projection_metadata"]["lag_status"] == "current"
 
 
+def test_current_work_unit_consumes_owner_receipt_domain_transition_successor_over_unresolved_stage_owner() -> None:
+    module = _module()
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "source_surface": "domain_transition",
+        "next_owner": "ai_reviewer",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        ),
+        "action_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        ),
+        "domain_transition_decision_type": "ai_reviewer_re_eval",
+        "domain_transition_controller_action": "return_to_ai_reviewer_workflow",
+        "owner_receipt_required": True,
+        "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            ),
+            "action_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            ),
+        },
+        "paper_recovery_successor": {
+            "phase": "owner_action_ready",
+            "source_next_safe_action_kind": "materialize_successor_owner_action",
+            "source_surface": "domain_transition",
+        },
+    }
+
+    work_unit = module.build_current_work_unit(
+        status={"study_id": "002-dm-china-us-mortality-attribution"},
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+            "current_executable_owner_action": action,
+            "current_work_unit": {},
+            "progress_first_monitoring_summary": {
+                "dispatch_consumption": {
+                    "consumption_status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "receipt_ref": "artifacts/publication_eval/latest.json",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": (
+                        "domain-transition::ai_reviewer_re_eval::"
+                        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                    ),
+                },
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "lane": "review",
+                },
+            },
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "conditions": [
+                    {
+                        "condition": "consumed_owner_receipt_domain_transition_successor",
+                        "source_condition": "current_work_unit_owner_receipt_recorded",
+                    }
+                ],
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "successor_owner_action": {
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "owner": "ai_reviewer",
+                        "work_unit_id": (
+                            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                        ),
+                        "work_unit_fingerprint": (
+                            "domain-transition::ai_reviewer_re_eval::"
+                            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                        ),
+                        "domain_transition_decision_type": "ai_reviewer_re_eval",
+                        "source_surface": "domain_transition",
+                    },
+                },
+            },
+        },
+        actions=[action],
+        current_executable_owner_action=action,
+        typed_blocker={},
+        blocked_reason=None,
+        next_owner="ai_reviewer",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "ai_reviewer"
+    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
+    assert work_unit["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+
+
 def test_current_work_unit_owner_receipt_blocks_stale_dispatch_revival() -> None:
     module = _module()
 

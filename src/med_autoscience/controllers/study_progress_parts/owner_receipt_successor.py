@@ -28,7 +28,10 @@ def paper_recovery_consumed_owner_receipt_successor(
         return False
     return any(
         _non_empty_text(_mapping_copy(item).get("condition"))
-        == "consumed_owner_receipt_routeback_successor"
+        in {
+            "consumed_owner_receipt_domain_transition_successor",
+            "consumed_owner_receipt_routeback_successor",
+        }
         for item in recovery.get("conditions") or []
         if isinstance(item, Mapping)
     )

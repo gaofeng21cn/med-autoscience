@@ -52,6 +52,7 @@ from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_reso
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
     successor_owner_action_from_gate_followthrough as _successor_owner_action_from_gate_followthrough,
     successor_owner_action_from_current_action as _successor_owner_action_from_current_action,
+    successor_owner_action_from_domain_transition as _successor_owner_action_from_domain_transition,
     successor_owner_action_from_terminal_blocker as _successor_owner_action_from_terminal_blocker,
     successor_owner_gate_from_terminal_blocker as _successor_owner_gate_from_terminal_blocker,
 )
@@ -745,6 +746,15 @@ def _owner_receipt_state(
         progress,
         owner_receipt=owner_receipt,
     )
+    source_condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
+    condition = "consumed_owner_receipt_routeback_successor"
+    if successor_action is None:
+        successor_action = _successor_owner_action_from_domain_transition(
+            progress,
+            owner_receipt_ref=_text(owner_receipt.get("owner_receipt_ref")),
+        )
+        if successor_action is not None:
+            condition = "consumed_owner_receipt_domain_transition_successor"
     if successor_action is not None:
         successor_owner = _text(successor_action.get("owner")) or _text(
             successor_action.get("next_owner")
@@ -755,9 +765,8 @@ def _owner_receipt_state(
             phase="owner_action_ready",
             conditions=[
                 {
-                    "condition": "consumed_owner_receipt_routeback_successor",
-                    "source_condition": _text(owner_receipt.get("condition"))
-                    or "owner_receipt_recorded",
+                    "condition": condition,
+                    "source_condition": source_condition,
                 }
             ],
             next_safe_action=_next_action(
@@ -771,14 +780,13 @@ def _owner_receipt_state(
         )
     owner = _text(obligation.get("owner"))
     owner_receipt_ref = _text(owner_receipt.get("owner_receipt_ref"))
-    condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
     return _state(
         progress,
         obligation=obligation,
         phase="owner_receipt_recorded",
         conditions=[
             {
-                "condition": condition,
+                "condition": source_condition,
                 "action_type": _text(obligation.get("action_type")),
             }
         ],

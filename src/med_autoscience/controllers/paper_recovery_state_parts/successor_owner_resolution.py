@@ -132,6 +132,51 @@ def successor_owner_action_from_gate_followthrough(
     return _successor_owner_action_from_gate_followthrough(progress)
 
 
+def successor_owner_action_from_domain_transition(
+    progress: Mapping[str, Any],
+    *,
+    owner_receipt_ref: str | None = None,
+) -> dict[str, Any] | None:
+    transition = _mapping(progress.get("domain_transition"))
+    decision_type = _text(transition.get("decision_type"))
+    action_type = _text(transition.get("controller_action"))
+    next_work_unit = _mapping(transition.get("next_work_unit"))
+    work_unit_id = _first_text(
+        next_work_unit.get("unit_id"),
+        next_work_unit.get("work_unit_id"),
+        transition.get("work_unit_id"),
+        transition.get("next_work_unit"),
+    )
+    owner = _first_text(transition.get("owner"), transition.get("route_target"))
+    if decision_type is None or action_type is None or work_unit_id is None or owner is None:
+        return None
+    if action_type not in {
+        "request_opl_stage_attempt",
+        "return_to_ai_reviewer_workflow",
+        "run_gate_clearing_batch",
+        "run_quality_repair_batch",
+    }:
+        return None
+    fingerprint = _first_text(
+        next_work_unit.get("work_unit_fingerprint"),
+        next_work_unit.get("action_fingerprint"),
+        transition.get("work_unit_fingerprint"),
+        transition.get("action_fingerprint"),
+    )
+    if fingerprint is None:
+        fingerprint = f"domain-transition::{decision_type}::{work_unit_id}"
+    return {
+        "action_type": action_type,
+        "owner": owner,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "domain_transition_decision_type": decision_type,
+        "domain_transition_controller_action": action_type,
+        "source_surface": "domain_transition",
+        "source_ref": owner_receipt_ref,
+    }
+
+
 def executable_action_is_gate_followthrough_successor(
     progress: Mapping[str, Any],
     *,
@@ -710,6 +755,7 @@ __all__ = [
     "executable_action_is_gate_followthrough_successor",
     "paper_recovery_successor_action_ready",
     "paper_recovery_successor_consumed_by_gate_followthrough",
+    "successor_owner_action_from_domain_transition",
     "successor_owner_action_from_current_action",
     "successor_owner_action_from_terminal_blocker",
     "successor_owner_gate_from_terminal_blocker",

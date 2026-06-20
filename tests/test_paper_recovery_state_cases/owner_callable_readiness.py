@@ -985,6 +985,149 @@ def test_consumed_gate_owner_receipt_materializes_actionable_gate_followthrough_
     }
 
 
+def test_owner_receipt_recorded_materializes_dm002_review_successor_from_domain_transition() -> None:
+    receipt_ref = (
+        "/workspace/studies/002-dm-china-us-mortality-attribution/artifacts/controller/"
+        "gate_clearing_batch/latest.json"
+    )
+    fingerprint = "publication-blockers::497d1260db522f01"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "owner_receipt_recorded",
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "quest_id": "002-dm-china-us-mortality-attribution",
+                "stage_id": "publication_supervision",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "required_output_contract": {
+                    "owner_receipt_consumed": True,
+                    "owner_receipt_ref": receipt_ref,
+                    "provider_completion_is_domain_completion": False,
+                    "domain_ready_authorized": False,
+                },
+                "acceptance_refs": [receipt_ref],
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner_receipt_ref": receipt_ref,
+                    "next_safe_action_kind": "consume_owner_receipt",
+                },
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "lane": "review",
+                    "summary": "Continue the current MAS controller-authorized domain route.",
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "consumed_owner_receipt_domain_transition_successor",
+            "source_condition": "current_work_unit_owner_receipt_recorded",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        ),
+        "domain_transition_decision_type": "ai_reviewer_re_eval",
+        "domain_transition_controller_action": "return_to_ai_reviewer_workflow",
+        "source_surface": "domain_transition",
+        "source_ref": receipt_ref,
+    }
+
+
+def test_owner_receipt_recorded_materializes_dm003_route_back_successor_from_domain_transition() -> None:
+    receipt_ref = (
+        "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/"
+        "repair_execution_receipts/latest.json"
+    )
+    fingerprint = "publication-blockers::0915410f804b3697"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "owner_receipt_recorded",
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "stage_id": "publication_supervision",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "required_output_contract": {
+                    "owner_receipt_consumed": True,
+                    "owner_receipt_ref": receipt_ref,
+                    "provider_completion_is_domain_completion": False,
+                    "domain_ready_authorized": False,
+                },
+                "acceptance_refs": [receipt_ref],
+                "state": {
+                    "state_kind": "owner_receipt_recorded",
+                    "owner_receipt_ref": receipt_ref,
+                    "next_safe_action_kind": "consume_owner_receipt",
+                },
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                    "summary": "Continue the current MAS controller-authorized domain route.",
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "consumed_owner_receipt_domain_transition_successor",
+            "source_condition": "current_work_unit_owner_receipt_recorded",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["successor_owner_action"] == {
+        "action_type": "request_opl_stage_attempt",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "domain_transition_decision_type": "route_back_same_line",
+        "domain_transition_controller_action": "request_opl_stage_attempt",
+        "source_surface": "domain_transition",
+        "source_ref": receipt_ref,
+    }
+
+
 def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -> None:
     fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
     current_work_unit = _typed_blocker_work_unit(

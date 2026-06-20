@@ -91,6 +91,12 @@ def owner_action_from_paper_recovery_state(
             "source_eval_id": source_eval_id,
             "action_type": action_type,
             "allowed_actions": [action_type],
+            "domain_transition_decision_type": _non_empty_text(
+                successor.get("domain_transition_decision_type")
+            ),
+            "domain_transition_controller_action": _non_empty_text(
+                successor.get("domain_transition_controller_action")
+            ),
             "owner_receipt_required": True,
             "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
             "target_surface": _compact(

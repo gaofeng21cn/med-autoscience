@@ -180,7 +180,15 @@ def build_current_work_unit(
         progress=progress_payload,
     ):
         action = stage_owner_answer_action
-    elif action is not None and _action_consumed_by_dispatch_receipt(action=action, progress=progress_payload):
+    elif (
+        action is not None
+        and not _domain_transition_successor_consumes_owner_receipt(
+            action=action,
+            status=status_payload,
+            progress=progress_payload,
+        )
+        and _action_consumed_by_dispatch_receipt(action=action, progress=progress_payload)
+    ):
         action = None
     if action is None:
         action = _action_from_envelope(current_execution_envelope)
@@ -391,6 +399,20 @@ def build_current_work_unit(
             source="terminal_closeout_typed_blocker",
         )
     if stage_owner_identity_blocker is not None:
+        if action is not None and _domain_transition_successor_consumes_owner_receipt(
+            action=action,
+            status=status_payload,
+            progress=progress_payload,
+        ):
+            return _action_work_unit(
+                action=action,
+                owner=_action_owner(action, next_owner=next_owner),
+                status_payload=status_payload,
+                progress_payload=progress_payload,
+                source_refs=resolved_source_refs,
+                currentness_basis=basis,
+                provider_admission=provider_admission,
+            )
         return _typed_blocker_work_unit(
             blocker=stage_owner_identity_blocker,
             action=action,
@@ -580,6 +602,8 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
             "source_ref": _text(successor.get("source_ref")),
+            "domain_transition_decision_type": _text(successor.get("domain_transition_decision_type")),
+            "domain_transition_controller_action": _text(successor.get("domain_transition_controller_action")),
             "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
             "owner_receipt_required": True,
             "paper_recovery_successor": {
@@ -837,7 +861,10 @@ def _paper_recovery_owner_action_ready_successor_consumes_receipt(
     successor = _mapping(next_action.get("successor_owner_action"))
     if not successor or not _same_action_identity(successor, action):
         return False
-    return _text(successor.get("source_surface")) == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    return _text(successor.get("source_surface")) in {
+        "domain_transition",
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
+    }
 
 
 def _paper_recovery_successor_supersedes_terminal_closeout_blocker(
@@ -869,9 +896,28 @@ def _domain_transition_successor_consumes_owner_receipt(
 ) -> bool:
     recovery = _mapping(progress.get("paper_recovery_state"))
     next_action = _mapping(recovery.get("next_safe_action"))
-    if _text(recovery.get("phase")) != "owner_receipt_recorded":
-        return False
-    if _text(next_action.get("kind")) != "consume_owner_receipt":
+    recovery_conditions = {
+        _text(_mapping(item).get("condition"))
+        for item in recovery.get("conditions") or []
+        if isinstance(item, Mapping)
+    }
+    if not (
+        (
+            _text(recovery.get("phase")) == "owner_receipt_recorded"
+            and _text(next_action.get("kind")) == "consume_owner_receipt"
+        )
+        or (
+            _text(recovery.get("phase")) == "owner_action_ready"
+            and _text(next_action.get("kind")) == "materialize_successor_owner_action"
+            and bool(
+                recovery_conditions
+                & {
+                    "consumed_owner_receipt_domain_transition_successor",
+                    "consumed_owner_receipt_routeback_successor",
+                }
+            )
+        )
+    ):
         return False
     transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
     if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
@@ -1005,6 +1051,12 @@ def _action_supersedes_typed_blocker(
     if _domain_transition_supersedes_provider_completion_blocker(
         action=action,
         blocker=payload,
+        progress=_mapping(progress),
+    ):
+        return True
+    if _domain_transition_successor_consumes_owner_receipt(
+        action=action,
+        status=_mapping(progress),
         progress=_mapping(progress),
     ):
         return True

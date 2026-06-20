@@ -209,6 +209,15 @@ def refresh_current_execution_surfaces(
         )
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
+        paper_recovery_successor_action = _paper_recovery_successor_action(updated)
+        if paper_recovery_successor_action:
+            return _with_paper_recovery_successor_execution_surfaces(
+                payload=updated,
+                status=status,
+                handoff=handoff,
+                runtime_health_snapshot=runtime_health_snapshot,
+                current_action=paper_recovery_successor_action,
+            )
         updated["current_work_unit"] = handoff_work_unit
         handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
         if handoff_envelope:
