@@ -365,10 +365,26 @@ def assemble_study_progress_payload(
         sync_progress_first_owner_action_admission=_sync_progress_first_owner_action_admission,
         build_paper_recovery_state=build_paper_recovery_state,
     )
+    payload = _refresh_rebuilt_current_owner_action_surfaces(
+        payload=payload,
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+        execution_owner_guard=execution_owner_guard,
+        study_root=study_root,
+    )
     payload = attach_evidence_gap_projection(payload)
     payload = _apply_paper_recovery_state_user_visible_status(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)
+    payload = _refresh_rebuilt_current_owner_action_surfaces(
+        payload=payload,
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+        execution_owner_guard=execution_owner_guard,
+        study_root=study_root,
+    )
     payload = _sync_study_macro_state_from_user_visible_projection(payload)
     if materialize_sidecar_observation:
         payload["evo_scientist_sidecar_observation"] = (
@@ -398,6 +414,40 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
+
+
+def _refresh_rebuilt_current_owner_action_surfaces(
+    *,
+    payload: dict[str, Any],
+    status: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    runtime_health_snapshot: Mapping[str, Any],
+    execution_owner_guard: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    rebuilt_action = build_current_executable_owner_action(payload)
+    if not rebuilt_action:
+        return payload
+    if rebuilt_action == _mapping_copy(payload.get("current_executable_owner_action")):
+        return payload
+    refreshed = _refresh_current_execution_surfaces(
+        payload={**payload, "current_executable_owner_action": rebuilt_action},
+        status=status,
+        handoff=handoff,
+        runtime_health_snapshot=runtime_health_snapshot,
+    )
+    refreshed.update(
+        provider_admission_projection_fields(
+            payload=refreshed,
+            handoff=handoff,
+            study_root=study_root,
+        )
+    )
+    refreshed = _sync_progress_first_owner_action_admission(refreshed)
+    refreshed["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
+        {**refreshed, "execution_owner_guard": execution_owner_guard}
+    )
+    return refreshed
 
 
 def _attach_fresh_domain_transition(
