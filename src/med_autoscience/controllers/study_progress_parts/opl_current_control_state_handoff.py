@@ -502,7 +502,7 @@ def _current_control_provider_admission_candidates(
         candidates.extend(
             dict(item)
             for item in matching.get("transition_request_candidates") or []
-            if isinstance(item, Mapping) and candidate_opl_transition_readback(item)
+            if isinstance(item, Mapping) and _transition_request_candidate_can_anchor_terminal_probe(item)
         )
     if not candidates:
         return []
@@ -512,6 +512,26 @@ def _current_control_provider_admission_candidates(
         provider_pending = provider_pending or int(matching.get("provider_admission_pending_count") or 0) > 0
         transition_pending = transition_pending or int(matching.get("transition_request_pending_count") or 0) > 0
     return candidates if provider_pending or transition_pending else []
+
+
+def _transition_request_candidate_can_anchor_terminal_probe(candidate: Mapping[str, Any]) -> bool:
+    if candidate_opl_transition_readback(candidate):
+        return True
+    if _non_empty_text(candidate.get("status")) != "transition_request_pending":
+        return False
+    return (
+        _non_empty_text(candidate.get("action_type")) is not None
+        and _work_unit_identity(candidate.get("work_unit_id")) is not None
+        and (
+            _non_empty_text(candidate.get("work_unit_fingerprint")) is not None
+            or _non_empty_text(candidate.get("action_fingerprint")) is not None
+        )
+        and (
+            _non_empty_text(candidate.get("attempt_idempotency_key")) is not None
+            or _non_empty_text(_observability_mapping(candidate.get("source_refs")).get("attempt_idempotency_key"))
+            is not None
+        )
+    )
 
 
 def _apply_top_level_provider_admissions_to_handoff(
@@ -1164,10 +1184,11 @@ def _action_requires_identity_bound_terminal_closeout(action: Mapping[str, Any])
     }:
         return False
     identity = _observability_mapping(action.get("provider_admission_identity"))
+    source_refs = _observability_mapping(action.get("source_refs"))
     if not identity:
-        identity_sources = (action,)
+        identity_sources = (action, source_refs)
     else:
-        identity_sources = (action, identity)
+        identity_sources = (action, identity, source_refs)
     return any(
         _non_empty_text(source.get(key)) is not None
         for source in identity_sources
@@ -1241,11 +1262,13 @@ def _action_route_identity_keys(action: Mapping[str, Any]) -> set[str]:
         _observability_mapping(readback.get("identity")).get("stage_run_identity")
     )
     identity = _observability_mapping(action.get("provider_admission_identity"))
+    source_refs = _observability_mapping(action.get("source_refs"))
     return {
         value
         for value in (
             _non_empty_text(action.get("route_identity_key")),
             _non_empty_text(identity.get("route_identity_key")),
+            _non_empty_text(source_refs.get("route_identity_key")),
             _non_empty_text(stage_run_identity.get("route_identity_key")),
         )
         if value is not None
@@ -1258,11 +1281,13 @@ def _action_attempt_idempotency_keys(action: Mapping[str, Any]) -> set[str]:
         _observability_mapping(readback.get("identity")).get("stage_run_identity")
     )
     identity = _observability_mapping(action.get("provider_admission_identity"))
+    source_refs = _observability_mapping(action.get("source_refs"))
     return {
         value
         for value in (
             _non_empty_text(action.get("attempt_idempotency_key")),
             _non_empty_text(identity.get("attempt_idempotency_key")),
+            _non_empty_text(source_refs.get("attempt_idempotency_key")),
             _non_empty_text(stage_run_identity.get("attempt_idempotency_key")),
         )
         if value is not None
@@ -1274,6 +1299,7 @@ def _action_idempotency_keys(action: Mapping[str, Any]) -> set[str]:
     readback_identity = _observability_mapping(readback.get("identity"))
     idempotency_readback = _observability_mapping(readback.get("idempotency_readback"))
     identity = _observability_mapping(action.get("provider_admission_identity"))
+    source_refs = _observability_mapping(action.get("source_refs"))
     return {
         value
         for value in (
@@ -1283,6 +1309,9 @@ def _action_idempotency_keys(action: Mapping[str, Any]) -> set[str]:
             _non_empty_text(identity.get("idempotency_key")),
             _non_empty_text(identity.get("route_identity_key")),
             _non_empty_text(identity.get("attempt_idempotency_key")),
+            _non_empty_text(source_refs.get("idempotency_key")),
+            _non_empty_text(source_refs.get("route_identity_key")),
+            _non_empty_text(source_refs.get("attempt_idempotency_key")),
             _non_empty_text(readback_identity.get("idempotency_key")),
             _non_empty_text(idempotency_readback.get("idempotency_key")),
         )
