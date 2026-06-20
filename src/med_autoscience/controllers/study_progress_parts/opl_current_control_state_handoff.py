@@ -278,14 +278,15 @@ def opl_current_control_state_study_handoff_projection(
         payload,
         study_id=study_id,
     )
-    if latest_terminal_stage_log is None:
-        latest_terminal_stage_log = _latest_opl_terminal_provider_attempt_closeout_projection(
-            profile=profile,
-            study_id=study_id,
-            payload=payload,
-            matching=matching,
-            matching_top_level_provider_admissions=matching_top_level_provider_admissions,
-        )
+    latest_opl_terminal_closeout = _latest_opl_terminal_provider_attempt_closeout_projection(
+        profile=profile,
+        study_id=study_id,
+        payload=payload,
+        matching=matching,
+        matching_top_level_provider_admissions=matching_top_level_provider_admissions,
+    )
+    if latest_opl_terminal_closeout is not None:
+        latest_terminal_stage_log = latest_opl_terminal_closeout
     if matching is None:
         if (
             latest_terminal_stage_log is None

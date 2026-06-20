@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import time
 
+from tests.provider_admission_current_control_helpers import opl_transition_readback
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -183,19 +184,11 @@ def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeyp
     monkeypatch.setattr(
         opl_attempts,
         "live_provider_attempt_for_study",
-        lambda **_: {
-            "surface_kind": "opl_current_control_state_provider_attempt",
-            "active_run_id": "opl-stage-attempt://sat-live",
-            "active_stage_attempt_id": "sat-live",
-            "active_workflow_id": "wf-live",
-            "running_provider_attempt": True,
-            "action_type": "run_quality_repair_batch",
-            "work_unit_id": "dm002_methods_write_pass",
-            "runtime_health": {
-                "health_status": "running",
-                "runtime_liveness_status": "live",
-            },
-        },
+        lambda **_: _live_provider_attempt_fixture(
+            study_id=study_id,
+            work_unit_id="dm002_methods_write_pass",
+            work_unit_fingerprint="domain-transition::route_back_same_line::dm002_methods_write_pass",
+        ),
     )
 
     result = scan.scan_domain_routes(
@@ -222,6 +215,41 @@ def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeyp
     assert envelope["owner"] == "supervisor_only/live_provider_attempt"
     assert envelope["next_work_unit"] == "dm002_methods_write_pass"
     assert envelope["typed_blocker"] is None
+
+
+def _live_provider_attempt_fixture(
+    *,
+    study_id: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+) -> dict[str, object]:
+    idempotency_key = f"provider-admission::{study_id}::{work_unit_fingerprint}"
+    return {
+        "surface_kind": "opl_current_control_state_provider_attempt",
+        "study_id": study_id,
+        "active_run_id": "opl-stage-attempt://sat-live",
+        "active_stage_attempt_id": "sat-live",
+        "active_workflow_id": "wf-live",
+        "running_provider_attempt": True,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+        "idempotency_key": idempotency_key,
+        "opl_domain_progress_transition_runtime_live_readback": opl_transition_readback(
+            study_id,
+            action_fingerprint=work_unit_fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=idempotency_key,
+            attempt_idempotency_key=idempotency_key,
+            request_idempotency_key=idempotency_key,
+        ),
+        "runtime_health": {
+            "health_status": "running",
+            "runtime_liveness_status": "live",
+        },
+    }
 
 
 def test_scan_passes_bounded_opl_probe_budget_to_provider_projection(monkeypatch, tmp_path: Path) -> None:

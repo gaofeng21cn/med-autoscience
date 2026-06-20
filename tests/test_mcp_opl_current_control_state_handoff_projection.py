@@ -724,6 +724,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_matching_opl_
     assert consumed["stage_attempt_id"] == "sat_91d23a554175ea9288d903ad"
     assert consumed["attempt_idempotency_key"] == idempotency_key
     assert projection["latest_terminal_stage_log"]["closeout_receipt_status"] == "accepted_typed_closeout"
+    assert projection["latest_terminal_stage_log"]["stage_attempt_id"] == "sat_91d23a554175ea9288d903ad"
     assert projection["latest_terminal_stage_log"]["route_impact"]["domain_ready_verdict"] == (
         "domain_gate_pending"
     )
