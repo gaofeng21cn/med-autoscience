@@ -80,6 +80,7 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "status": payload.get("status"),
         **path_fields,
         "evidence_gallery_template_count": payload.get("evidence_gallery_template_count"),
+        "reporting_flow_gallery_template_count": payload.get("reporting_flow_gallery_template_count"),
         "design_gallery_template_count": payload.get("design_gallery_template_count"),
         "visual_gallery_template_count": payload.get("visual_gallery_template_count"),
         "composition_recipe_gallery_count": payload.get("composition_recipe_gallery_count"),
@@ -109,6 +110,25 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 "layout_ref": item.get("layout_ref"),
             }
             for item in payload.get("templates", [])
+            if isinstance(item, dict)
+        ],
+        "reporting_flow_gallery_templates": [
+            {
+                "template_id": item.get("template_id"),
+                "canonical_family_id": item.get("canonical_family_id"),
+                "canonical_family_title": item.get("canonical_family_title"),
+                "canonical_family_category": item.get("canonical_family_category"),
+                "renderer_family": item.get("renderer_family"),
+                "analysis_responsibility": item.get("analysis_responsibility"),
+                "analysis_input_state": item.get("analysis_input_state"),
+                "medical_family_ids": item.get("medical_family_ids"),
+                "preview_image_ref": item.get("preview_image_ref"),
+                "image_ref": item.get("image_ref"),
+                "svg_ref": item.get("svg_ref"),
+                "pdf_ref": item.get("pdf_ref"),
+                "layout_ref": item.get("layout_ref"),
+            }
+            for item in payload.get("reporting_flow_gallery_templates", [])
             if isinstance(item, dict)
         ],
         "design_gallery_templates": [

@@ -7,7 +7,12 @@ from .atlas_primary import _check_publication_embedding_scatter
 from .curves_extended import _check_publication_model_complexity_audit, _check_publication_time_to_event_multihorizon_calibration_panel
 from .curves_primary import _check_publication_decision_curve, _check_publication_evidence_curve, _check_publication_risk_layering_bars, _check_publication_survival_curve
 from .effects_panels import _check_publication_coefficient_path_panel, _check_publication_forest_plot, _check_publication_generalizability_subgroup_composite_panel
-from .illustration_panels import _check_publication_illustration_flow, _check_submission_graphical_abstract
+from .illustration_panels import (
+    _check_publication_design_evidence_composite_shell,
+    _check_publication_illustration_flow,
+    _check_publication_workflow_fact_sheet_panel,
+    _check_submission_graphical_abstract,
+)
 from .omics_panels import _check_publication_celltype_marker_dotplot_panel, _check_publication_cnv_recurrence_summary_panel, _check_publication_genomic_alteration_consequence_panel, _check_publication_genomic_alteration_landscape_panel, _check_publication_heatmap, _check_publication_omics_volcano_panel, _check_publication_pathway_enrichment_dotplot_panel
 from .shap_summary_panels import _check_publication_shap_dependence_panel, _check_publication_shap_summary, _check_publication_shap_waterfall_local_explanation_panel
 
@@ -55,6 +60,8 @@ QC_PROFILE_RUNNERS = {
     "publication_model_complexity_audit": _check_publication_model_complexity_audit,
     "publication_time_to_event_multihorizon_calibration_panel": _check_publication_time_to_event_multihorizon_calibration_panel,
     "publication_generalizability_subgroup_composite_panel": _check_publication_generalizability_subgroup_composite_panel,
+    "publication_workflow_fact_sheet_panel": _check_publication_workflow_fact_sheet_panel,
+    "publication_design_evidence_composite_shell": _check_publication_design_evidence_composite_shell,
     "submission_graphical_abstract": _check_submission_graphical_abstract,
     "publication_shap_summary": _check_publication_shap_summary,
     "publication_shap_dependence_panel": _check_publication_shap_dependence_panel,

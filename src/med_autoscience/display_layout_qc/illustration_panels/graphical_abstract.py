@@ -19,6 +19,7 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
     issues.extend(_check_required_box_types(all_boxes, required_box_types=("title", "panel_label", "card_box", "footer_pill")))
+    layout_style = str(sidecar.metrics.get("layout_style") or "").strip()
 
     panel_boxes = tuple(box for box in sidecar.panel_boxes if box.box_type == "panel")
     if len(panel_boxes) < 3:
@@ -36,6 +37,7 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     footer_pills = _boxes_of_type(sidecar.layout_boxes, "footer_pill")
     panel_labels = _boxes_of_type(sidecar.layout_boxes, "panel_label")
     arrow_boxes = _boxes_of_type(sidecar.guide_boxes, "arrow_connector")
+    visual_glyphs = _boxes_of_type(sidecar.layout_boxes, "visual_glyph")
     text_boxes = tuple(
         box
         for box in sidecar.layout_boxes
@@ -45,6 +47,29 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     issues.extend(_check_pairwise_non_overlap(card_boxes, rule_id="graphical_abstract_card_overlap", target="card_box"))
     issues.extend(_check_pairwise_non_overlap(footer_pills, rule_id="graphical_abstract_footer_overlap", target="footer_pill"))
     issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="graphical_abstract_text_overlap", target="text"))
+    issues.extend(_check_pairwise_non_overlap(visual_glyphs, rule_id="graphical_abstract_visual_glyph_overlap", target="visual_glyph"))
+
+    if layout_style == "square_storyline":
+        if len(visual_glyphs) < len(panel_boxes):
+            issues.append(
+                _issue(
+                    rule_id="graphical_abstract_visual_glyphs_missing",
+                    message="square graphical abstract requires one visual glyph per panel",
+                    target="layout_boxes",
+                    expected={"minimum_count": len(panel_boxes)},
+                    observed={"count": len(visual_glyphs)},
+                )
+            )
+        if len(arrow_boxes) < max(0, len(panel_boxes) - 1):
+            issues.append(
+                _issue(
+                    rule_id="graphical_abstract_story_arrows_missing",
+                    message="square graphical abstract requires arrows between adjacent storyline panels",
+                    target="guide_boxes",
+                    expected={"minimum_count": max(0, len(panel_boxes) - 1)},
+                    observed={"count": len(arrow_boxes)},
+                )
+            )
 
     for card_box in card_boxes:
         if any(_box_within_box(card_box, panel_box) for panel_box in panel_boxes):
@@ -66,6 +91,17 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
                 message="graphical-abstract panel labels must stay within their panels",
                 target="panel_label",
                 box_refs=(panel_label.box_id,),
+            )
+        )
+    for visual_glyph in visual_glyphs:
+        if any(_box_within_box(visual_glyph, panel_box) for panel_box in panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="visual_glyph_out_of_panel",
+                message="graphical-abstract visual glyphs must stay within a panel",
+                target="visual_glyph",
+                box_refs=(visual_glyph.box_id,),
             )
         )
     for text_box in text_boxes:
@@ -122,6 +158,17 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
                     message="graphical-abstract arrows must not overlap panel text",
                     target="arrow_connector",
                     box_refs=(arrow_box.box_id, text_box.box_id),
+                )
+            )
+        for visual_glyph in visual_glyphs:
+            if not _boxes_overlap(arrow_box, visual_glyph):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="arrow_visual_glyph_overlap",
+                    message="graphical-abstract arrows must not overlap visual glyphs",
+                    target="arrow_connector",
+                    box_refs=(arrow_box.box_id, visual_glyph.box_id),
                 )
             )
     sorted_panels = tuple(sorted(panel_boxes, key=lambda box: (box.x0, box.y0, box.box_id)))

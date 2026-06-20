@@ -22,6 +22,7 @@ from ..shared_parts.submission_arrows import (
     _build_submission_graphical_abstract_arrow_lane_spec,
     _choose_shared_submission_graphical_abstract_arrow_lane,
 )
+from .render_submission_graphical_abstract_square import _render_square_submission_graphical_abstract
 
 
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
@@ -43,6 +44,16 @@ def _render_submission_graphical_abstract(
     shell_payload: dict[str, Any],
     render_context: dict[str, Any],
 ) -> None:
+    if str(shell_payload.get("layout_style") or "").strip() == "square_storyline":
+        _render_square_submission_graphical_abstract(
+            output_svg_path=output_svg_path,
+            output_png_path=output_png_path,
+            output_layout_path=output_layout_path,
+            shell_payload=shell_payload,
+            render_context=render_context,
+        )
+        return
+
     def read_float(mapping: dict[str, Any], key: str, default: float) -> float:
         value = mapping.get(key, default)
         if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -180,7 +191,12 @@ def _render_submission_graphical_abstract(
 
     panels_payload = list(shell_payload.get("panels") or [])
     footer_pills = list(shell_payload.get("footer_pills") or [])
-    panel_width_pt = (figure_width_pt - side_margin_pt * 2.0 - panel_gap_pt * 2.0) / 3.0
+    panel_count = max(1, len(panels_payload))
+    panel_width_pt = (
+        figure_width_pt
+        - side_margin_pt * 2.0
+        - panel_gap_pt * max(0, panel_count - 1)
+    ) / panel_count
     card_full_width_pt = panel_width_pt - panel_padding_pt * 2.0
 
     def build_card_spec(
@@ -596,23 +612,24 @@ def _render_submission_graphical_abstract(
         )
         arrow_pair_specs.append((index, left_panel, right_panel, lane_spec))
 
-    shared_arrow_y = _choose_shared_submission_graphical_abstract_arrow_lane(
-        [lane_spec for _, _, _, lane_spec in arrow_pair_specs]
-    )
-    for index, left_panel, right_panel, _lane_spec in arrow_pair_specs:
-        x_left = left_panel["x1"] + 5.0
-        x_right = right_panel["x0"] - 5.0
-        arrow_artist = FancyArrowPatch(
-            (x_left, shared_arrow_y),
-            (x_right, shared_arrow_y),
-            arrowstyle="simple",
-            mutation_scale=max(24.0, min(34.0, panel_gap_pt * 1.35)),
-            linewidth=0.0,
-            color=neutral_color,
-            alpha=0.72,
+    if arrow_pair_specs:
+        shared_arrow_y = _choose_shared_submission_graphical_abstract_arrow_lane(
+            [lane_spec for _, _, _, lane_spec in arrow_pair_specs]
         )
-        ax.add_patch(arrow_artist)
-        arrow_artists.append((f"panel_arrow_{index}", arrow_artist))
+        for index, left_panel, right_panel, _lane_spec in arrow_pair_specs:
+            x_left = left_panel["x1"] + 5.0
+            x_right = right_panel["x0"] - 5.0
+            arrow_artist = FancyArrowPatch(
+                (x_left, shared_arrow_y),
+                (x_right, shared_arrow_y),
+                arrowstyle="simple",
+                mutation_scale=max(24.0, min(34.0, panel_gap_pt * 1.35)),
+                linewidth=0.0,
+                color=neutral_color,
+                alpha=0.72,
+            )
+            ax.add_patch(arrow_artist)
+            arrow_artists.append((f"panel_arrow_{index}", arrow_artist))
 
     for pill in footer_pills:
         panel_box = panel_regions.get(str(pill["panel_id"]))
@@ -691,6 +708,7 @@ def _render_submission_graphical_abstract(
             "guide_boxes": guide_boxes,
             "metrics": {
                 "panels": panels_payload,
+                "panel_count": panel_count,
                 "footer_pills": footer_pills,
             },
             "render_context": render_context_payload,
@@ -700,5 +718,3 @@ def _render_submission_graphical_abstract(
     fig.savefig(output_svg_path, format="svg")
     fig.savefig(output_png_path, format="png", dpi=240)
     plt.close(fig)
-
-

@@ -10,7 +10,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | 指标 | 数量 |
 | --- | ---: |
 | Gallery evidence figures | 28 |
-| Gallery design / flow figures | 2 |
+| Gallery reporting flow figures | 1 |
+| Gallery design figures | 1 |
 | Gallery visual templates | 30 |
 | Current canonical templates | 31 |
 | Current non-visual canonical inventory | 3 |
@@ -20,13 +21,14 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
 
-`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery design / flow figures` 是 PDF/HTML 中真实渲染的 cohort flow、graphical abstract 等非数据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
+`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
 ## 渲染器与质量口径
 
 - gallery default surface: `canonical_current_visual_gallery_templates`
 - evidence gallery default surface: `canonical_current_r_ggplot2_evidence_templates`
-- design gallery default surface: `canonical_current_illustration_shell_templates`
+- reporting flow gallery default surface: `canonical_current_validated_reporting_flow_shells`
+- design gallery default surface: `canonical_current_non_statistical_illustration_shell_templates`
 - evidence figures default to R/ggplot2: `true`
 - Python illustration shells visible as design cards: `true`
 - Python evidence retained without advantage proof: `false`
@@ -47,9 +49,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Responsibility | Current templates |
 | --- | ---: |
 | `computed_in_template` | 3 |
-| `illustration_shell` | 2 |
+| `illustration_shell` | 1 |
 | `table_shell` | 1 |
-| `validated_summary_required` | 25 |
+| `validated_summary_required` | 26 |
 
 - raw analysis requests fail closed unless the selected template declares `computed_in_template`
 - `validated_summary_required` templates render upstream analysis outputs; they do not fit models, recompute curves, run differential testing, infer SHAP values, or call variants
@@ -88,11 +90,16 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern | 3 | 6 | wide_pattern_hero_with_narrow_right_or_bottom_consequence_panels |
 | `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 | 7 | atlas_embedding_or_spatial_hero_with_marker_composition_and_trajectory_support |
 
-## 非数据设计/流程图 Gallery
+## 数据驱动报告流程图 Gallery
 
 | Template | Display name | Renderer | Render status |
 | --- | --- | --- | --- |
 | `cohort_flow_figure` | Cohort Flow Figure | python | rendered |
+
+## 非数据设计图 Gallery
+
+| Template | Display name | Renderer | Render status |
+| --- | --- | --- | --- |
 | `submission_graphical_abstract` | Submission Graphical Abstract | python | rendered |
 
 ## 画册分类

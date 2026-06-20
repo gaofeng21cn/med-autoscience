@@ -28,6 +28,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     gallery_visual_records,
     gallery_template_family_ontology,
     non_visual_canonical_records,
+    reporting_flow_gallery_records,
     visual_gallery_records,
 )
 from med_autoscience.display_pack_renderer_policy import (
@@ -143,6 +144,7 @@ def build_manifest(
 ) -> dict[str, Any]:
     visual_records = gallery_display_records(records)
     design_records = design_gallery_records(records)
+    reporting_flow_records = reporting_flow_gallery_records(records)
     all_gallery_visual_records = gallery_visual_records(records)
     canonical_visual_records = visual_gallery_records(records)
     non_visual_records = non_visual_canonical_records(records)
@@ -155,7 +157,7 @@ def build_manifest(
     )
     design_rendered_count = sum(
         1
-        for record in design_records
+        for record in [*reporting_flow_records, *design_records]
         if rendered[record.template_id].status == "rendered"
     )
     internal_rendered_count = sum(
@@ -168,6 +170,7 @@ def build_manifest(
         visual_records=visual_records,
         non_visual_records=non_visual_records,
         design_records=design_records,
+        reporting_flow_records=reporting_flow_records,
         default_surface_excluded_records=default_excluded_records,
         rendered=rendered,
         baseline_rendered=baseline_rendered,
@@ -193,6 +196,7 @@ def build_manifest(
         "template_count": len(all_gallery_visual_records),
         "active_template_count": len(visual_records),
         "evidence_gallery_template_count": len(visual_records),
+        "reporting_flow_gallery_template_count": len(reporting_flow_records),
         "design_gallery_template_count": len(design_records),
         "visual_gallery_template_count": len(all_gallery_visual_records),
         "composition_recipe_gallery_count": composition_gallery_surface["composition_recipe_count"],
@@ -267,10 +271,12 @@ def build_manifest(
         "template_surface_policy": {
             "gallery_default_surface": "canonical_current_visual_gallery_templates",
             "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
-            "design_gallery_default_surface": "canonical_current_illustration_shell_templates",
+            "reporting_flow_gallery_default_surface": "canonical_current_validated_reporting_flow_shells",
+            "design_gallery_default_surface": "canonical_current_non_statistical_illustration_shell_templates",
             "active_inventory_is_canonical_current_templates": True,
             "canonical_representatives_are_evidence_gallery_card_filter": True,
             "illustration_shells_are_design_gallery_cards": True,
+            "validated_reporting_flow_shells_are_separate_gallery_cards": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
             "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": False,
             "explicit_alias_requests_migrate_to_canonical_template": True,
@@ -295,6 +301,14 @@ def build_manifest(
             )
             for record in visual_records
         ],
+        "reporting_flow_gallery_templates": [
+            _template_payload(
+                record,
+                rendered[record.template_id],
+                visual_gallery_visible=True,
+            )
+            for record in reporting_flow_records
+        ],
         "design_gallery_templates": [
             _template_payload(
                 record,
@@ -307,7 +321,7 @@ def build_manifest(
             _template_payload(
                 record,
                 rendered[record.template_id],
-                visual_gallery_visible=record in design_records,
+                visual_gallery_visible=record in [*reporting_flow_records, *design_records],
             )
             for record in non_visual_records
         ],

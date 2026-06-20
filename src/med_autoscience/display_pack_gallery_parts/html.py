@@ -8,6 +8,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     design_gallery_records,
     family_categories,
     gallery_display_records,
+    reporting_flow_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.composition_gallery import (
@@ -80,6 +81,7 @@ def _workflow_html() -> str:
 def _metrics_html(
     *,
     visible_count: int,
+    reporting_flow_count: int,
     design_count: int,
     composition_count: int,
     rendered_count: int,
@@ -87,9 +89,9 @@ def _metrics_html(
 ) -> str:
     metrics = (
         (str(composition_count), "页面级图页方案"),
+        (str(reporting_flow_count), "数据驱动报告流程图"),
         (str(design_count), "非数据设计图起点"),
         (str(visible_count), "R/ggplot2 证据图起点"),
-        (str(rendered_count), f"已渲染示例，{style_profile_id}"),
     )
     return "".join(
         f'<div class="metric"><strong>{html.escape(value)}</strong><span>{html.escape(label)}</span></div>'
@@ -117,23 +119,29 @@ def _palette_html(palette: dict[str, str]) -> str:
     )
 
 
-def _design_gallery_html(
+def _non_evidence_gallery_html(
     *,
-    design_records: list[TemplateRecord],
+    records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
+    section_id: str,
+    section_label: str,
+    title: str,
+    lead: str,
+    pane_label: str,
+    card_class: str,
 ) -> str:
-    if not design_records:
+    if not records:
         return ""
     cards: list[str] = []
-    for record in design_records:
+    for record in records:
         asset = rendered[record.template_id]
         copy = design_copy(record)
-        panes = _asset_html(asset, label="非数据设计/流程图")
+        panes = _asset_html(asset, label=pane_label)
         if asset.status != "rendered":
             panes = f'<div class="placeholder"><strong>{html.escape(record.display_name)}</strong><span>{html.escape(record.kind)} · {html.escape(record.renderer_family)}</span><em>{html.escape(asset.reason or "no renderer output")}</em></div>'
         cards.append(
             f"""
-<article class="card design-card" id="template-{html.escape(record.template_id)}">
+<article class="card {html.escape(card_class)}" id="template-{html.escape(record.template_id)}">
   {panes}
   <div class="card-body">
     <h4>{html.escape(record.display_name)}</h4>
@@ -146,10 +154,10 @@ def _design_gallery_html(
 </article>"""
         )
     return f"""
-<section class="section" id="design-shells">
-  <div class="section-label">第二部分</div>
-  <h2>非数据设计/流程图起点 <span>{len(design_records)} 个</span></h2>
-  <p class="section-lead">这些图件用于研究流程、队列筛选、graphical abstract 和机制性说明。它们允许 SVG、Python composition 或 imagegen-assisted art direction，以表现力为优先；涉及真实结果数字时必须保留来源引用，不能替代程序化数据证据图。</p>
+<section class="section" id="{html.escape(section_id)}">
+  <div class="section-label">{html.escape(section_label)}</div>
+  <h2>{html.escape(title)} <span>{len(records)} 个</span></h2>
+  <p class="section-lead">{html.escape(lead)}</p>
   <div class="cards design-cards">{''.join(cards)}
   </div>
 </section>"""
@@ -167,12 +175,13 @@ def _render_html(
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
     palette = default_style["palette"]
     visible_records = gallery_display_records(records)
+    reporting_flow_records = reporting_flow_gallery_records(records)
     design_records = design_gallery_records(records)
     composition_surface = composition_recipe_discovery_payload(include_recipes=True)
     composition_gallery = build_composition_gallery_surface(composition_surface, records)
     rendered_count = sum(
         1
-        for record in [*visible_records, *design_records]
+        for record in [*visible_records, *reporting_flow_records, *design_records]
         if rendered[record.template_id].status == "rendered"
     )
     nav = "\n".join(
@@ -181,7 +190,8 @@ def _render_html(
                 f'<a href="#how-to-read"><span>读法</span><strong>4</strong></a>'
                 f'<a href="#composition-recipes"><span>图页方案</span>'
                 f'<strong>{composition_gallery["composition_recipe_count"]}</strong></a>'
-                f'<a href="#design-shells"><span>设计/流程图</span><strong>{len(design_records)}</strong></a>'
+                f'<a href="#reporting-flows"><span>报告流程图</span><strong>{len(reporting_flow_records)}</strong></a>'
+                f'<a href="#design-shells"><span>设计图</span><strong>{len(design_records)}</strong></a>'
             )
         ]
         + [
@@ -228,7 +238,33 @@ def _render_html(
         )
 
     composition_section = render_composition_gallery_html(composition_gallery, rendered)
-    design_section = _design_gallery_html(design_records=design_records, rendered=rendered)
+    reporting_flow_section = _non_evidence_gallery_html(
+        records=reporting_flow_records,
+        rendered=rendered,
+        section_id="reporting-flows",
+        section_label="第二部分",
+        title="数据驱动报告流程图起点",
+        lead=(
+            "这些图件用于 cohort disposition、CONSORT/STROBE 式筛选流程、排除原因和分析集说明。"
+            "它们必须由结构化人数、节点关系和来源引用驱动；renderer 负责稳定版式，不负责发明统计事实。"
+        ),
+        pane_label="数据驱动报告流程图",
+        card_class="reporting-flow-card",
+    )
+    design_section = _non_evidence_gallery_html(
+        records=design_records,
+        rendered=rendered,
+        section_id="design-shells",
+        section_label="第三部分",
+        title="非数据设计图起点",
+        lead=(
+            "这些图件用于 graphical abstract、机制说明和编辑部视觉摘要。"
+            "它们允许 SVG、Python composition 或 imagegen-assisted art direction，以表达力和期刊风格为优先；"
+            "真实结果数字必须来自已审计证据引用。"
+        ),
+        pane_label="非数据设计图",
+        card_class="design-card",
+    )
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -247,14 +283,15 @@ def _render_html(
     <h1>{html.escape(GALLERY_TITLE)}</h1>
     <p class="subtitle">{html.escape(GALLERY_SUBTITLE)}</p>
     <p class="scope">{html.escape(GALLERY_SCOPE)}</p>
-    <div class="metrics">{_metrics_html(visible_count=len(visible_records), design_count=len(design_records), composition_count=composition_gallery["composition_recipe_count"], rendered_count=rendered_count, style_profile_id=str(default_style["style_profile_id"]))}</div>
+    <div class="metrics">{_metrics_html(visible_count=len(visible_records), reporting_flow_count=len(reporting_flow_records), design_count=len(design_records), composition_count=composition_gallery["composition_recipe_count"], rendered_count=rendered_count, style_profile_id=str(default_style["style_profile_id"]))}</div>
     <div class="palette-row">{_palette_html(palette)}</div>
   </section>
   {_workflow_html()}
   {composition_section}
+  {reporting_flow_section}
   {design_section}
   <section class="section" id="evidence-primitives">
-    <div class="section-label">第三部分</div>
+    <div class="section-label">第四部分</div>
     <h2>R/ggplot2 数据证据图起点 <span>{len(visible_records)} 个</span></h2>
     <p class="section-lead">这些证据图起点是 MAS 默认数据证据图入口。它们按医学表达目的组织，强调输入数据、统计语义、统一风格和可审计导出；AI 可在论文级语义约束下继续调整图形结构。</p>
     {''.join(sections)}

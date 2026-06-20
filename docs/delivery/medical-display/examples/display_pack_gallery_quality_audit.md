@@ -12,7 +12,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - overall_status: `not_publication_ready`
 - publication_ready_claim_authorized: `false`
 - visual template count: `28`
-- design visual template count: `2`
+- reporting flow visual template count: `1`
+- design visual template count: `1`
 - total Gallery visual template count: `30`
 - non-visual inventory count: `3`
 - lower-bound review required: `28`
@@ -64,11 +65,16 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern | 3 | 6 | `true` | `false` |
 | `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 | 7 | `true` | `false` |
 
-## 非数据设计/流程图起点
+## 数据驱动报告流程图起点
 
 | Template | Category | Renderer | Status | Warnings |
 | --- | --- | --- | --- | --- |
 | `cohort_flow_figure` | Publication Shells and Tables | python | `lower_bound_review_required` | `composition_density_risk`, `illustration_shell_style_review_required`, `python_renderer_style_alignment_required` |
+
+## 非数据设计图起点
+
+| Template | Category | Renderer | Status | Warnings |
+| --- | --- | --- | --- | --- |
 | `submission_graphical_abstract` | Publication Shells and Tables | python | `lower_bound_review_required` | `composition_density_risk`, `illustration_shell_style_review_required`, `python_renderer_style_alignment_required` |
 
 ## 高风险图族复核项

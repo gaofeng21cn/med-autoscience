@@ -517,16 +517,16 @@
       "family_id": "cohort_flow_figure",
       "category": "Publication Shells and Tables",
       "title": "Cohort Flow",
-      "figure_archetype": "cohort_flow_or_study_design_diagram",
+      "figure_archetype": "consort_strobe_participant_flow",
       "canonical_template_id": "cohort_flow_figure",
       "default_visible": true,
       "aliases": [
         "workflow_fact_sheet_panel",
         "design_evidence_composite_shell"
       ],
-      "migration_reason": "Design and workflow shells are expressive composition surfaces and should not compete with data-evidence plot templates.",
-      "analysis_responsibility": "illustration_shell",
-      "analysis_input_state": "not_statistical_evidence",
+      "migration_reason": "Cohort-flow variants are unified into one structured reporting-flow template driven by participant accounting and exclusion counts.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_reporting_flow_payload",
       "medical_family_ids": [
         "strobe_cohort_flow",
         "consort_trial_flow",

@@ -145,11 +145,25 @@ def design_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord
         record
         for record in non_visual_canonical_records(records)
         if record.kind == "illustration_shell"
+        and record.analysis_responsibility == "illustration_shell"
+    ]
+
+
+def reporting_flow_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in non_visual_canonical_records(records)
+        if record.kind == "illustration_shell"
+        and record.analysis_responsibility == "validated_summary_required"
     ]
 
 
 def gallery_visual_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
-    return [*gallery_display_records(records), *design_gallery_records(records)]
+    return [
+        *gallery_display_records(records),
+        *reporting_flow_gallery_records(records),
+        *design_gallery_records(records),
+    ]
 
 
 def non_visual_canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:

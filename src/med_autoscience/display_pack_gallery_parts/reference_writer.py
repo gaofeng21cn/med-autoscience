@@ -8,6 +8,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     TemplateRecord,
     design_gallery_records,
     gallery_display_records,
+    reporting_flow_gallery_records,
     visual_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
@@ -31,11 +32,12 @@ def _write_reference(
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
     visible_records = gallery_display_records(records)
     design_records = design_gallery_records(records)
+    reporting_flow_records = reporting_flow_gallery_records(records)
     canonical_visual_records = visual_gallery_records(records)
     categories = Counter(record.canonical_family_category for record in visible_records)
     rendered_count = sum(
         1
-        for record in [*visible_records, *design_records]
+        for record in [*visible_records, *reporting_flow_records, *design_records]
         if rendered[record.template_id].status == "rendered"
     )
     r_evidence_count = sum(
@@ -43,11 +45,11 @@ def _write_reference(
         for record in visible_records
         if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
     )
-    illustration_shell_count = len(design_records)
+    illustration_shell_count = len(reporting_flow_records) + len(design_records)
     design_lines = "\n".join(
         f"| `{record.template_id}` | {record.display_name} | {record.renderer_family} | "
         f"{rendered[record.template_id].status} |"
-        for record in design_records
+        for record in [*reporting_flow_records, *design_records]
     )
     category_lines = "\n".join(
         f"| {category} | {categories[category]} |"

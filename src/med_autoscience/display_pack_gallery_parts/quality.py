@@ -188,6 +188,7 @@ def build_quality_audit(
     visual_records: list[TemplateRecord],
     non_visual_records: list[TemplateRecord],
     design_records: list[TemplateRecord],
+    reporting_flow_records: list[TemplateRecord],
     default_surface_excluded_records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
@@ -227,8 +228,11 @@ def build_quality_audit(
         "publication_ready_claim_authorized": False,
         "quality_surface": "gallery_lower_bound_visual_audit",
         "visual_template_count": len(visual_records),
+        "reporting_flow_visual_template_count": len(reporting_flow_records),
         "design_visual_template_count": len(design_records),
-        "total_gallery_visual_template_count": len(visual_records) + len(design_records),
+        "total_gallery_visual_template_count": (
+            len(visual_records) + len(reporting_flow_records) + len(design_records)
+        ),
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
         "blocked_template_count": blocked_count,
@@ -250,6 +254,7 @@ def build_quality_audit(
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
             "current_surface": "canonical_current_gallery_templates_not_input_data_specific_variants",
             "composition_recipe_policy": "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards",
+            "reporting_flow_gallery_policy": "validated_reporting_flow_shells_are_programmatic_disposition_starting_points",
             "design_gallery_policy": "illustration_shells_are_visible_non_statistical_design_starting_points",
             "required_before_paper_use": publication_polish_policy()["required_before_paper_use"],
             "required_workflow_before_paper_use": figure_workflow_policy()["paper_use_acceptance"],
@@ -274,6 +279,14 @@ def build_quality_audit(
         "publication_polish_policy": publication_polish_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
+        "reporting_flow_gallery_templates": [
+            audit_template_quality(
+                record,
+                rendered[record.template_id],
+                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
+            )
+            for record in reporting_flow_records
+        ],
         "design_gallery_templates": [
             audit_template_quality(
                 record,
@@ -289,7 +302,13 @@ def build_quality_audit(
                 "canonical_family_title": record.canonical_family_title,
                 "kind": record.kind,
                 "renderer_family": record.renderer_family,
-                "status": "design_gallery_card" if record in design_records else "kept_out_of_image_gallery",
+                "status": (
+                    "reporting_flow_gallery_card"
+                    if record in reporting_flow_records
+                    else "design_gallery_card"
+                    if record in design_records
+                    else "kept_out_of_image_gallery"
+                ),
             }
             for record in non_visual_records
         ],
@@ -446,6 +465,13 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
         )
         for item in audit.get("design_gallery_templates", [])
     ) or "| none | none | none | none | none |"
+    reporting_flow_lines = "\n".join(
+        (
+            f"| `{item['template_id']}` | {item['category']} | {item['renderer_family']} | "
+            f"`{item['status']}` | {', '.join(f'`{warning}`' for warning in item['warnings']) or 'none'} |"
+        )
+        for item in audit.get("reporting_flow_gallery_templates", [])
+    ) or "| none | none | none | none | none |"
     composition_recipe_lines = "\n".join(
         (
             f"| `{item['recipe_id']}` | {item['title']} | {item['hero_panel_role']} | "
@@ -499,6 +525,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - overall_status: `{audit["overall_status"]}`
 - publication_ready_claim_authorized: `{str(audit["publication_ready_claim_authorized"]).lower()}`
 - visual template count: `{audit["visual_template_count"]}`
+- reporting flow visual template count: `{audit["reporting_flow_visual_template_count"]}`
 - design visual template count: `{audit["design_visual_template_count"]}`
 - total Gallery visual template count: `{audit["total_gallery_visual_template_count"]}`
 - non-visual inventory count: `{audit["non_visual_template_count"]}`
@@ -528,7 +555,13 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | --- | --- | --- | ---: | ---: | --- | --- |
 {composition_recipe_lines}
 
-## 非数据设计/流程图起点
+## 数据驱动报告流程图起点
+
+| Template | Category | Renderer | Status | Warnings |
+| --- | --- | --- | --- | --- |
+{reporting_flow_lines}
+
+## 非数据设计图起点
 
 | Template | Category | Renderer | Status | Warnings |
 | --- | --- | --- | --- | --- |

@@ -12,7 +12,8 @@
   "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
   "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
   "evidence_gallery_template_count": 28,
-  "design_gallery_template_count": 2,
+  "reporting_flow_gallery_template_count": 1,
+  "design_gallery_template_count": 1,
   "visual_gallery_template_count": 30,
   "composition_recipe_gallery_count": 6,
   "current_template_count": 31,
@@ -23,10 +24,12 @@
   "template_surface_policy": {
     "gallery_default_surface": "canonical_current_visual_gallery_templates",
     "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
-    "design_gallery_default_surface": "canonical_current_illustration_shell_templates",
+    "reporting_flow_gallery_default_surface": "canonical_current_validated_reporting_flow_shells",
+    "design_gallery_default_surface": "canonical_current_non_statistical_illustration_shell_templates",
     "active_inventory_is_canonical_current_templates": true,
     "canonical_representatives_are_evidence_gallery_card_filter": true,
     "illustration_shells_are_design_gallery_cards": true,
+    "validated_reporting_flow_shells_are_separate_gallery_cards": true,
     "canonical_non_visual_inventory_preserved_in_manifest": true,
     "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": false,
     "explicit_alias_requests_migrate_to_canonical_template": true,
@@ -98,15 +101,15 @@
   },
   "analysis_responsibility_counts": {
     "computed_in_template": 3,
-    "illustration_shell": 2,
+    "illustration_shell": 1,
     "table_shell": 1,
-    "validated_summary_required": 25
+    "validated_summary_required": 26
   },
   "quality_summary": {
     "overall_status": "not_publication_ready",
     "publication_ready_claim_authorized": false,
     "visual_template_count": 28,
-    "design_visual_template_count": 2,
+    "design_visual_template_count": 1,
     "total_gallery_visual_template_count": 30,
     "non_visual_template_count": 3,
     "blocked_template_count": 0,
@@ -1683,14 +1686,15 @@
       "layout_ref": "medical_display_gallery_assets/umap_scatter_grouped.layout.json"
     }
   ],
-  "design_gallery_templates": [
+  "reporting_flow_gallery_templates": [
     {
       "template_id": "cohort_flow_figure",
       "canonical_family_id": "cohort_flow_figure",
       "canonical_family_title": "Cohort Flow",
       "canonical_family_category": "Publication Shells and Tables",
       "renderer_family": "python",
-      "analysis_responsibility": "illustration_shell",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_reporting_flow_payload",
       "medical_family_ids": [
         "strobe_cohort_flow",
         "consort_trial_flow",
@@ -1703,7 +1707,9 @@
       "svg_ref": "medical_display_gallery_assets/cohort_flow_figure.design.svg",
       "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.design.pdf",
       "layout_ref": "medical_display_gallery_assets/cohort_flow_figure.design.layout.json"
-    },
+    }
+  ],
+  "design_gallery_templates": [
     {
       "template_id": "submission_graphical_abstract",
       "canonical_family_id": "submission_graphical_abstract",
@@ -1715,7 +1721,7 @@
         "graphical_abstract",
         "causal_dag"
       ],
-      "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.gallery.png",
+      "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
       "pdf_ref": "",

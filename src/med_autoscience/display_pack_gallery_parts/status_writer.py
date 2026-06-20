@@ -39,6 +39,18 @@ def _design_rows(manifest: dict[str, Any]) -> str:
     )
 
 
+def _reporting_flow_rows(manifest: dict[str, Any]) -> str:
+    inventory = manifest.get("reporting_flow_gallery_templates")
+    if not isinstance(inventory, list) or not inventory:
+        return "| none | none | none | none |"
+    return "\n".join(
+        f"| `{item.get('template_id', '')}` | {item.get('display_name', '')} | "
+        f"{item.get('renderer_family', '')} | {item.get('render_status', '')} |"
+        for item in inventory
+        if isinstance(item, dict)
+    )
+
+
 def _analysis_responsibility_rows(manifest: dict[str, Any]) -> str:
     counts = manifest.get("analysis_responsibility_counts")
     if not isinstance(counts, dict) or not counts:
@@ -118,7 +130,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | 指标 | 数量 |
 | --- | ---: |
 | Gallery evidence figures | {_count(manifest, "evidence_gallery_template_count")} |
-| Gallery design / flow figures | {_count(manifest, "design_gallery_template_count")} |
+| Gallery reporting flow figures | {_count(manifest, "reporting_flow_gallery_template_count")} |
+| Gallery design figures | {_count(manifest, "design_gallery_template_count")} |
 | Gallery visual templates | {_count(manifest, "visual_gallery_template_count")} |
 | Current canonical templates | {_count(manifest, "canonical_template_count")} |
 | Current non-visual canonical inventory | {_count(manifest, "non_visual_canonical_template_count")} |
@@ -128,12 +141,13 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Page-level composition recipes | {composition_surface.get("composition_recipe_count", 0)} |
 | Composition storyboard gallery pages | {composition_gallery.get("composition_recipe_count", 0)} |
 
-`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery design / flow figures` 是 PDF/HTML 中真实渲染的 cohort flow、graphical abstract 等非数据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
+`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
 ## 渲染器与质量口径
 
 - gallery default surface: `{manifest.get("template_surface_policy", {}).get("gallery_default_surface", "")}`
 - evidence gallery default surface: `{manifest.get("template_surface_policy", {}).get("evidence_gallery_default_surface", "")}`
+- reporting flow gallery default surface: `{manifest.get("template_surface_policy", {}).get("reporting_flow_gallery_default_surface", "")}`
 - design gallery default surface: `{manifest.get("template_surface_policy", {}).get("design_gallery_default_surface", "")}`
 - evidence figures default to R/ggplot2: `{str(manifest.get("template_surface_policy", {}).get("evidence_figures_default_to_r_ggplot2", False)).lower()}`
 - Python illustration shells visible as design cards: `{str(manifest.get("template_surface_policy", {}).get("python_illustration_shells_are_visible_design_gallery_cards", False)).lower()}`
@@ -173,7 +187,13 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | --- | --- | --- | ---: | ---: | --- |
 {composition_rows}
 
-## 非数据设计/流程图 Gallery
+## 数据驱动报告流程图 Gallery
+
+| Template | Display name | Renderer | Render status |
+| --- | --- | --- | --- |
+{_reporting_flow_rows(manifest)}
+
+## 非数据设计图 Gallery
 
 | Template | Display name | Renderer | Render status |
 | --- | --- | --- | --- |

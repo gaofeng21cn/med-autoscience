@@ -96,6 +96,7 @@ def _validate_submission_graphical_abstract_payload(path: Path, payload: dict[st
                             card.get("value"),
                             label=f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}].value",
                         ),
+                        "evidence_token": str(card.get("evidence_token") or "").strip(),
                         "detail": str(card.get("detail") or "").strip(),
                         "accent_role": accent_role,
                     }
@@ -116,6 +117,8 @@ def _validate_submission_graphical_abstract_payload(path: Path, payload: dict[st
                     panel.get("subtitle"),
                     label=f"{path.name} panels[{panel_index}].subtitle",
                 ),
+                "visual_role": str(panel.get("visual_role") or "").strip().lower(),
+                "evidence_token": str(panel.get("evidence_token") or "").strip(),
                 "rows": normalized_rows,
             }
         )
@@ -167,8 +170,7 @@ def _validate_submission_graphical_abstract_payload(path: Path, payload: dict[st
         "title": title,
         "caption": caption,
         "paper_role": str(payload.get("paper_role") or "submission_companion").strip() or "submission_companion",
+        "layout_style": str(payload.get("layout_style") or "horizontal_storyline").strip() or "horizontal_storyline",
         "panels": normalized_panels,
         "footer_pills": normalized_footer_pills,
     }
-
-

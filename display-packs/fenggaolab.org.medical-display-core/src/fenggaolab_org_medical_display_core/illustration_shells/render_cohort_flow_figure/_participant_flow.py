@@ -406,7 +406,7 @@ def _render_participant_flow(
                         y1=branch_y + 3.5,
                         canvas_width_pt=figure_width_pt,
                         canvas_height_pt=canvas_height_pt,
-                        box_id=f"participant_branch_{exclusion_id}",
+                        box_id=f"flow_branch_{exclusion_id}",
                         box_type="flow_branch_connector",
                     )
                 )
@@ -431,7 +431,7 @@ def _render_participant_flow(
                     y1=start[1],
                     canvas_width_pt=figure_width_pt,
                     canvas_height_pt=canvas_height_pt,
-                    box_id=f"participant_spine_{step_key}",
+                    box_id=f"flow_spine_{step_key}_to_{step_specs[index + 1]['step']['step_id']}",
                     box_type="flow_connector",
                 )
             )
@@ -568,6 +568,8 @@ def _render_participant_flow(
             "guide_boxes": guide_boxes,
             "metrics": {
                 "layout_mode": "participant_flow",
+                "reporting_flow_kind": "consort_strobe_participant_flow",
+                "analysis_responsibility": "structured_reporting_counts",
                 "steps": steps,
                 "exclusions": exclusions,
                 "endpoint_inventory": endpoint_inventory,

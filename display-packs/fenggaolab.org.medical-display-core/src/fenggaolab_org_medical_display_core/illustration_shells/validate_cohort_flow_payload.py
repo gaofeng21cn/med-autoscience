@@ -13,7 +13,7 @@ matplotlib.use("Agg")
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
     "full_right": "wide_top",
 }
-_COHORT_FLOW_LAYOUT_MODES = {"two_panel_flow", "single_panel_cards"}
+_COHORT_FLOW_LAYOUT_MODES = {"participant_flow", "two_panel_flow", "single_panel_cards"}
 _COHORT_FLOW_STEP_ROLE_LABELS: dict[str, str] = {
     "historical_reference": "Historical patient reference",
     "current_patient_surface": "Current patient surface",
@@ -223,7 +223,7 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
             }
         )
 
-    layout_mode = str(payload.get("layout_mode") or "two_panel_flow").strip().lower()
+    layout_mode = str(payload.get("layout_mode") or "participant_flow").strip().lower()
     if layout_mode not in _COHORT_FLOW_LAYOUT_MODES:
         allowed_modes = ", ".join(sorted(_COHORT_FLOW_LAYOUT_MODES))
         raise ValueError(f"{path.name} layout_mode must be one of: {allowed_modes}")

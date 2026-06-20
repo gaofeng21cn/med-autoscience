@@ -21,6 +21,9 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
     issues.extend(_check_required_box_types(all_boxes, required_box_types=("main_step",)))
+    if str(sidecar.metrics.get("layout_mode") or "").strip() == "participant_flow":
+        issues.extend(_check_participant_reporting_flow(sidecar))
+        return issues
 
     flow_nodes = sidecar.metrics.get("flow_nodes")
     if not isinstance(flow_nodes, list) or not flow_nodes:
@@ -300,6 +303,189 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
                 message="illustration flow requires rooted hierarchy connectors for Panel B",
                 target="guide_boxes",
                 expected=missing_hierarchy_connectors,
+            )
+        )
+
+    return issues
+
+
+def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    flow_nodes = sidecar.metrics.get("flow_nodes")
+    if not isinstance(flow_nodes, list) or not flow_nodes:
+        issues.append(
+            _issue(
+                rule_id="flow_nodes_missing",
+                message="participant flow qc requires flow_nodes metrics for readability checks",
+                target="metrics.flow_nodes",
+            )
+        )
+    else:
+        for index, item in enumerate(flow_nodes):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.flow_nodes[{index}] must be an object")
+            box_type = str(item.get("box_type") or "").strip()
+            rendered_height_pt = _require_numeric(
+                item.get("rendered_height_pt"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].rendered_height_pt",
+            )
+            rendered_width_pt = _require_numeric(
+                item.get("rendered_width_pt"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].rendered_width_pt",
+            )
+            line_count = _require_numeric(
+                item.get("line_count"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].line_count",
+            )
+            max_line_chars = _require_numeric(
+                item.get("max_line_chars"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].max_line_chars",
+            )
+            padding_pt = _require_numeric(
+                item.get("padding_pt"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].padding_pt",
+            )
+            minimum_height_pt = 70.0 if box_type == "main_step" else 52.0
+            minimum_padding_pt = 8.0 if box_type == "main_step" else 6.0
+            if rendered_height_pt < minimum_height_pt:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_height_too_small",
+                        message="participant flow node height is too small for manuscript-facing readability",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"rendered_height_pt": rendered_height_pt, "box_type": box_type},
+                        expected={"minimum_height_pt": minimum_height_pt},
+                    )
+                )
+            if rendered_width_pt < 160.0:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_width_too_small",
+                        message="participant flow node width is too small for manuscript-facing readability",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"rendered_width_pt": rendered_width_pt, "box_type": box_type},
+                        expected={"minimum_width_pt": 160.0},
+                    )
+                )
+            if padding_pt < minimum_padding_pt:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_padding_too_small",
+                        message="participant flow node padding is too small for manuscript-facing readability",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"padding_pt": padding_pt, "box_type": box_type},
+                        expected={"minimum_padding_pt": minimum_padding_pt},
+                    )
+                )
+            if line_count > 0 and max_line_chars > 48:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_text_density_high",
+                        message="participant flow node line length is too dense",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"line_count": line_count, "max_line_chars": max_line_chars},
+                        expected={"maximum_max_line_chars": 48},
+                    )
+                )
+
+    step_boxes = _boxes_of_type(sidecar.layout_boxes, "main_step")
+    exclusion_boxes = _boxes_of_type(sidecar.layout_boxes, "exclusion_box")
+    summary_boxes = _boxes_of_type(sidecar.layout_boxes, "summary_panel")
+    issues.extend(_check_pairwise_non_overlap(step_boxes, rule_id="main_step_overlap", target="main_step"))
+    issues.extend(_check_pairwise_non_overlap(exclusion_boxes, rule_id="exclusion_box_overlap", target="exclusion_box"))
+    issues.extend(_check_pairwise_non_overlap(summary_boxes, rule_id="summary_panel_overlap", target="summary_panel"))
+    for exclusion_box in exclusion_boxes:
+        for step_box in step_boxes:
+            if not _boxes_overlap(exclusion_box, step_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="exclusion_step_overlap",
+                    message="exclusion box must not overlap a main cohort step",
+                    target="exclusion_box",
+                    box_refs=(exclusion_box.box_id, step_box.box_id),
+                )
+            )
+    for summary_box in summary_boxes:
+        for step_box in step_boxes:
+            if not _boxes_overlap(summary_box, step_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="summary_step_overlap",
+                    message="summary panel must not overlap the participant flow stack",
+                    target="summary_panel",
+                    box_refs=(summary_box.box_id, step_box.box_id),
+                )
+            )
+
+    participant_panels = {
+        box.box_id: box for box in _boxes_of_type(sidecar.panel_boxes, "subfigure_panel")
+    }
+    participant_panel = participant_panels.get("participant_flow_main")
+    if participant_panel is None:
+        issues.append(
+            _issue(
+                rule_id="missing_participant_flow_panel",
+                message="participant flow requires one main panel container around flow nodes",
+                target="panel_boxes",
+                expected="participant_flow_main",
+            )
+        )
+    else:
+        for box in step_boxes + exclusion_boxes:
+            if _box_within_box(box, participant_panel):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="participant_flow_content_out_of_panel",
+                    message="participant flow content must stay within the main flow panel",
+                    target=box.box_type,
+                    box_refs=(box.box_id, participant_panel.box_id),
+                )
+            )
+
+    flow_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_connector")}
+    flow_branch_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_branch_connector")}
+    expected_step_ids = [
+        str(item.get("step_id") or "").strip()
+        for item in sidecar.metrics.get("steps", [])
+        if isinstance(item, dict)
+    ]
+    expected_step_ids = [item for item in expected_step_ids if item]
+    if not expected_step_ids:
+        sorted_step_boxes = sorted(step_boxes, key=lambda box: (-((box.y0 + box.y1) / 2.0), box.x0, box.box_id))
+        expected_step_ids = [
+            box.box_id.removeprefix("participant_step_").removeprefix("step_")
+            for box in sorted_step_boxes
+        ]
+    expected_exclusions = [
+        str(item.get("exclusion_id") or "").strip()
+        for item in sidecar.metrics.get("exclusions", [])
+        if isinstance(item, dict) and str(item.get("exclusion_id") or "").strip()
+    ]
+    if not expected_exclusions:
+        expected_exclusions = [
+            box.box_id.removeprefix("participant_exclusion_").removeprefix("exclusion_")
+            for box in exclusion_boxes
+        ]
+
+    missing_flow_connectors: list[str] = []
+    for upper_step_id, lower_step_id in zip(expected_step_ids, expected_step_ids[1:], strict=False):
+        connector_id = f"flow_spine_{upper_step_id}_to_{lower_step_id}"
+        if connector_id not in flow_connectors:
+            missing_flow_connectors.append(connector_id)
+    for exclusion_id in expected_exclusions:
+        connector_id = f"flow_branch_{exclusion_id}"
+        if connector_id not in flow_branch_connectors:
+            missing_flow_connectors.append(connector_id)
+    if missing_flow_connectors:
+        issues.append(
+            _issue(
+                rule_id="missing_flow_connector",
+                message="participant flow requires explicit spine and exclusion branch connectors",
+                target="guide_boxes",
+                expected=missing_flow_connectors,
             )
         )
 
