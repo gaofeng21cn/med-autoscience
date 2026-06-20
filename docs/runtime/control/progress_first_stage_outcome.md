@@ -187,6 +187,12 @@ Terminal `stage_artifact_index.next_owner_action=publication_handoff_owner_gate`
 
 DM002 / DM003 governed recovery 的执行入口固定为 MAS owner callable / domain-handler dispatch / OPL StageRun provider attempt。Codex 前台会话可以读 live truth、改 repo docs/contracts/tests、实现缺失的 MAS owner callable 或 derived repair action、运行验证和监督 StageRun；若用户明确选择 foreground/manual edit，则可以直接改 paper-local surface，但该结果只能作为非 authority 的 manual output，不能自动写成 MAS/OPL recovery。runtime-owned study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、OPL queue 或 provider attempt 仍必须由对应 owner surface 写入。若发现 governed path 缺少 callable，结论是补 repo-level callable / repair action、输出 typed blocker，或明确切换到 manual foreground mode 并声明不更新 MAS/OPL truth。机器合同见 `contracts/stage_route_reconcile_contract.json` 的 Codex executor route policy。
 
+root-cause-to-resolution 读法：
+
+卡住原因只是审计起点，不是完成度结论。operator 必须把 blocker / request-only transition / queue empty / read-model drift 追到五元组：root cause、current owner、合法入口、预期产物和验收 readback。合法入口只能是 MAS owner callable、domain-handler dispatch、OPL StageRun provider attempt 或 human gate；预期产物必须能落到 owner receipt、quality gate receipt、canonical paper/artifact delta、stable typed blocker、route-back evidence、successor / supersession handoff，或同一 currentness identity 的 strict provider running proof。
+
+DM002 的 `anti_loop_budget_exhausted` 不得作为默认终局反复展示。若 fresh readback 已证明 closeout 被消费，且 `repair_progress_projection`、owner receipt、gate/recheck、successor work unit、supersession、human gate 或 route-back 已成立，operator outcome 应转到对应 next owner / consumed receipt / human gate，而不是继续 redrive 同一 `run_quality_repair_batch` 或把旧 anti-loop blocker计为当前 paper-line 状态。DM003 的 request-only transition、DHD/readback 清障和 provider admission 修复只算 platform/control-plane repair；只有 owner receipt、AI reviewer / publication gate delta、canonical manuscript / artifact delta、stable typed blocker 或 owner-authorized next owner readback，才算 paper / deliverable progress。
+
 recent non-authoritative recovery sample（debug context only）：
 
 下表只记录 2026-06-13 的近期样本，用于说明 operator 应如何读 blocker / admission / running proof；它不是当前 truth，也不能用于 acceptance。每次监督、恢复或验收前必须 fresh 读取 `study progress`、DHD `--dry-run`、OPL current-control / attempt ledger，并按 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy` 的 fresh truth / readback policy 裁决。
