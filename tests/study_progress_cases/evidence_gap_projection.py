@@ -44,3 +44,28 @@ def test_evidence_gap_projection_hard_and_soft_accounting_do_not_collapse_to_gen
     assert payload["observability_backlog"][0]["gap_class"] == "observability_backlog"
     assert payload["assumption_ledger"][0]["gap_class"] == "proceed_with_assumption"
     assert "paper_progress" in payload["forbidden_claims"]
+
+
+def test_evidence_gap_projection_does_not_infer_from_runtime_pending_counts() -> None:
+    payload = {
+        "study_id": "DM003",
+        "quest_id": "quest-dm003",
+        "provider_admission_pending_count": 1,
+        "transition_request_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "stage_packet_ref": "runtime/stage-packets/provider-admission.json",
+                "evidence_refs": ["runtime/outbox/provider-admission.json"],
+            }
+        ],
+        "transition_request_candidates": [
+            {
+                "stage_packet_ref": "runtime/stage-packets/transition-request.json",
+                "diagnostic_refs": ["runtime/diagnostics/transition-request.json"],
+            }
+        ],
+    }
+
+    projected = attach_evidence_gap_projection(payload)
+
+    assert projected == payload

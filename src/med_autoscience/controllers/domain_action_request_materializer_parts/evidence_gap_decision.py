@@ -26,7 +26,7 @@ def projection_for_action(
 
 
 def prompt_fields(projection: Mapping[str, Any], *, mapping) -> dict[str, Any]:
-    summary = mapping(projection.get("evidence_gap_decision_summary"))
+    summary = _summary(projection, mapping=mapping)
     return {
         "evidence_gap_decisions": list(projection.get("evidence_gap_decisions") or []),
         "evidence_gap_decision_summary": dict(summary),
@@ -44,7 +44,7 @@ def prompt_fields(projection: Mapping[str, Any], *, mapping) -> dict[str, Any]:
 
 
 def blocked_reason(projection: Mapping[str, Any], *, mapping) -> str | None:
-    summary = mapping(projection.get("evidence_gap_decision_summary"))
+    summary = _summary(projection, mapping=mapping)
     if int(summary.get("hard_gate_count") or 0) > 0:
         return "evidence_gap_authority_gate_required"
     if int(summary.get("human_gate_count") or 0) > 0:
@@ -54,6 +54,28 @@ def blocked_reason(projection: Mapping[str, Any], *, mapping) -> str | None:
 
 def inputs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     return _evidence_gap_inputs(payload)
+
+
+def _summary(projection: Mapping[str, Any], *, mapping) -> dict[str, Any]:
+    summary = mapping(projection.get("evidence_gap_decision_summary"))
+    if summary:
+        return dict(summary)
+    return {
+        "surface_kind": "mas_evidence_gap_decision_summary",
+        "schema_version": 1,
+        "total_count": 0,
+        "hard_gate_count": 0,
+        "human_gate_count": 0,
+        "soft_gap_count": 0,
+        "assumption_count": 0,
+        "observability_backlog_count": 0,
+        "evidence_tail_count": 0,
+        "current_action_can_continue": True,
+        "counts_by_gap_class": {},
+        "counts_by_severity": {},
+        "allowed_next_actions": [],
+        "forbidden_claims": [],
+    }
 
 
 def _evidence_gap_inputs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:

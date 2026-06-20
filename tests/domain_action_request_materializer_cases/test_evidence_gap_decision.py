@@ -7,6 +7,21 @@ from tests.domain_action_request_materializer_cases.shared import owner_route, w
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def test_materializer_evidence_gap_prompt_defaults_do_not_block_without_gap() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.evidence_gap_decision"
+    )
+    projection = {"study_id": "DM003", "quest_id": "quest-dm003"}
+
+    fields = module.prompt_fields(projection, mapping=lambda value: value if isinstance(value, dict) else {})
+
+    assert module.blocked_reason(projection, mapping=lambda value: value if isinstance(value, dict) else {}) is None
+    assert fields["evidence_gap_decisions"] == []
+    assert fields["evidence_gap_typed_blocker_count"] == 0
+    assert fields["current_action_can_continue"] is True
+    assert fields["evidence_gap_decision_summary"]["total_count"] == 0
+
+
 def _scan_with_action(tmp_path: Path, *, evidence_gap_inputs: list[dict[str, object]]) -> tuple[object, str]:
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

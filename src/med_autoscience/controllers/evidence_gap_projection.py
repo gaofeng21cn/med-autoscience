@@ -19,9 +19,10 @@ def attach_evidence_gap_projection(payload: Mapping[str, Any]) -> dict[str, Any]
         _existing_decisions(updated),
         _decisions_from_gap_inputs(updated),
         _decisions_from_missing_refs(updated),
-        _decisions_from_provider_transition(updated),
         _decisions_from_human_gate(updated),
     )
+    if not decisions:
+        return updated
     summary = summarize_gap_decisions(decisions)
     ledgers = _ledger_surfaces(decisions)
     updated["evidence_gap_decisions"] = decisions
@@ -82,33 +83,6 @@ def _decisions_from_missing_refs(payload: Mapping[str, Any]) -> list[dict[str, A
                 ref_family,
                 identity=_identity(payload),
                 diagnostic_refs=_diagnostic_refs(payload),
-            ).to_payload()
-        )
-    return decisions
-
-
-def _decisions_from_provider_transition(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-    decisions: list[dict[str, Any]] = []
-    if _int(payload.get("provider_admission_pending_count")) > 0:
-        decisions.append(
-            classify_evidence_gap(
-                surface_kind="opl_provider_admission_authority",
-                missing_ref_family="OPL event/outbox/StageRun provider admission currentness readback",
-                identity=_identity(payload),
-                evidence_refs=_refs_from_candidates(payload.get("provider_admission_candidates")),
-                diagnostic_refs=_diagnostic_refs(payload),
-                confidence="high",
-            ).to_payload()
-        )
-    if _int(payload.get("transition_request_pending_count")) > 0:
-        decisions.append(
-            classify_evidence_gap(
-                surface_kind="opl_transition_runtime_authorization",
-                missing_ref_family="OPL runtime outbox StageRun authorization currentness",
-                identity=_identity(payload),
-                evidence_refs=_refs_from_candidates(payload.get("transition_request_candidates")),
-                diagnostic_refs=_diagnostic_refs(payload),
-                confidence="high",
             ).to_payload()
         )
     return decisions
@@ -193,19 +167,6 @@ def _identity(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _refs_from_candidates(value: object) -> list[str]:
-    refs: list[str] = []
-    for item in value or []:
-        if not isinstance(item, Mapping):
-            continue
-        for key in ("source_ref", "dispatch_ref", "stage_packet_ref", "typed_blocker_ref"):
-            if (ref := _text(item.get(key))) is not None:
-                refs.append(ref)
-        refs.extend(_text_list(item.get("evidence_refs")))
-        refs.extend(_text_list(item.get("diagnostic_refs")))
-    return sorted(dict.fromkeys(refs))
-
-
 def _diagnostic_refs(payload: Mapping[str, Any]) -> list[str]:
     refs = _mapping(payload.get("refs"))
     return [
@@ -226,24 +187,8 @@ def _first_text(value: object) -> str | None:
     return None
 
 
-def _text_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = _text(value)
-        return [text] if text is not None else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    return [text for item in value if (text := _text(item)) is not None]
-
-
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
-
-
-def _int(value: object) -> int:
-    try:
-        return int(value or 0)
-    except (TypeError, ValueError):
-        return 0
 
 
 def _text(value: object) -> str | None:
