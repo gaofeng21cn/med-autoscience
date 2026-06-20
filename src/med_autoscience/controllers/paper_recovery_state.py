@@ -632,6 +632,36 @@ def build_paper_recovery_state(
             diagnostic_report=diagnostic,
         )
 
+    if (
+        typed_blocker_superseded_by_current_action
+        and current_action
+        and not _current_action_matches_obligation(current_action, obligation=obligation)
+    ):
+        successor_action = _successor_owner_action_from_current_action(current_action)
+        successor_owner = _text(successor_action.get("owner")) or _text(
+            successor_action.get("next_owner")
+        )
+        return _state(
+            progress,
+            obligation=obligation,
+            phase="owner_action_ready",
+            conditions=[
+                {
+                    "condition": "current_owner_action_supersedes_terminal_typed_blocker",
+                    "blocker_type": _typed_blocker_reason(typed_blocker),
+                }
+            ],
+            next_safe_action=_next_action(
+                "materialize_successor_owner_action",
+                provider_admission_allowed=True,
+                owner=successor_owner,
+                successor_owner_action=successor_action,
+            ),
+            current_owner=successor_owner,
+            suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
+            diagnostic_report=diagnostic,
+        )
+
     if _current_work_unit_status(current_work_unit) == "executable_owner_action" or (
         typed_blocker_superseded_by_current_action
         and _current_action_matches_obligation(current_action, obligation=obligation)

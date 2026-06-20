@@ -41,7 +41,9 @@ def successor_owner_action_from_terminal_blocker(
         return successor_owner_action_from_current_action(action)
     if blocker_reason in {"publication_gate_replay_blocked", "paper_progress_stall_terminal"}:
         return _successor_owner_action_from_gate_followthrough(progress)
-    if blocker_reason == "anti_loop_budget_exhausted":
+    if blocker_reason == "anti_loop_budget_exhausted" or _typed_blocker_is_current_anti_loop_successor_candidate(
+        typed_blocker
+    ):
         return _successor_owner_action_from_next_forced_delta_after_progress(
             progress,
             typed_blocker=typed_blocker,
@@ -55,7 +57,7 @@ def successor_owner_action_from_current_action(action: Mapping[str, Any]) -> dic
     work_unit_id = _first_text(action.get("work_unit_id"), action.get("next_work_unit"))
     fingerprint = _first_text(action.get("work_unit_fingerprint"), action.get("action_fingerprint"))
     source_ref = _first_text(action.get("source_ref"), *_text_items(action.get("acceptance_refs")))
-    return {
+    successor = {
         key: value
         for key, value in {
             "action_type": action_type,
@@ -64,9 +66,23 @@ def successor_owner_action_from_current_action(action: Mapping[str, Any]) -> dic
             "work_unit_fingerprint": fingerprint,
             "source_surface": _first_text(action.get("source_surface"), action.get("source")),
             "source_ref": source_ref,
+            "action_fingerprint": _first_text(action.get("action_fingerprint"), fingerprint),
+            "source_eval_id": _first_text(
+                action.get("source_eval_id"),
+                _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id"),
+            ),
+            "required_delta_kind": _text(action.get("required_delta_kind")),
+            "target_surface": _mapping(action.get("target_surface")),
+            "owner_route_currentness_basis": _mapping(action.get("owner_route_currentness_basis")),
         }.items()
         if value not in (None, "", [], {})
     }
+    allowed_actions = _text_items(action.get("allowed_actions"))
+    if allowed_actions:
+        successor["allowed_actions"] = allowed_actions
+    if action.get("owner_receipt_required") is True:
+        successor["owner_receipt_required"] = True
+    return successor
 
 
 def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
@@ -392,23 +408,17 @@ def _successor_owner_action_from_next_forced_delta_after_progress(
     next_delta = _next_forced_delta_from_progress(progress)
     owner_action = _mapping(next_delta.get("owner_action"))
     repair = _mapping(progress.get("repair_progress_projection"))
+    if not _repair_progress_proves_safe_successor_delta(repair):
+        return None
+    if not _owner_action_has_executable_identity(owner_action, next_delta=next_delta):
+        return _successor_owner_action_from_repair_progress_after_anti_loop(
+            progress,
+            repair=repair,
+            typed_blocker=typed_blocker,
+        )
     if _text(next_delta.get("reason")) != "paper_progress_delta_observed":
         return None
     if _text(next_delta.get("required_delta_kind")) != "review_current_paper_delta":
-        return None
-    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
-        return None
-    if repair.get("paper_delta_observed") is not True:
-        return None
-    if repair.get("accepted_owner_receipt") is not True:
-        return None
-    if repair.get("gate_replay_done") is not True:
-        return None
-    if not (
-        _text(repair.get("repair_execution_evidence_ref"))
-        or _text(repair.get("owner_receipt_ref"))
-        or _text_items(repair.get("gate_replay_refs"))
-    ):
         return None
     action_type = _first_text(owner_action.get("action_type"), *_text_items(owner_action.get("allowed_actions")))
     owner = _first_text(owner_action.get("next_owner"), owner_action.get("owner"))
@@ -470,6 +480,125 @@ def _successor_owner_action_from_next_forced_delta_after_progress(
             "action_fingerprint": fingerprint,
         },
     }
+
+
+def _successor_owner_action_from_repair_progress_after_anti_loop(
+    progress: Mapping[str, Any],
+    *,
+    repair: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _typed_blocker_is_current_anti_loop_successor_candidate(typed_blocker):
+        return None
+    action_type = _text(typed_blocker.get("action_type"))
+    work_unit_id = _text(typed_blocker.get("work_unit_id"))
+    owner = _first_text(
+        typed_blocker.get("required_next_owner"),
+        typed_blocker.get("next_owner"),
+        typed_blocker.get("owner"),
+    )
+    if action_type != "run_gate_clearing_batch" or work_unit_id is None or owner is None:
+        return None
+    source_eval_id = _first_text(repair.get("source_eval_id"), _typed_blocker_source_eval_id(typed_blocker))
+    blocker_eval_id = _typed_blocker_source_eval_id(typed_blocker)
+    repair_eval_id = _text(repair.get("source_eval_id"))
+    if blocker_eval_id is not None and repair_eval_id is not None and blocker_eval_id != repair_eval_id:
+        return None
+    source_ref = _repair_progress_successor_source_ref(repair)
+    if source_ref is None:
+        return None
+    if _gate_replay_successor_already_consumed(
+        progress,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+        target_surface_ref="artifacts/controller/gate_clearing_batch/latest.json",
+    ):
+        return None
+    fingerprint = control_identity.stable_route_currentness_fingerprint(
+        study_id=_text(progress.get("study_id")),
+        source="repair_progress_projection.mas_owner_repair_execution_evidence",
+        work_unit_id=work_unit_id,
+        action_type=action_type,
+        next_owner=owner,
+        source_eval_id=source_eval_id,
+        target_surface_ref="artifacts/controller/gate_clearing_batch/latest.json",
+        required_delta_kind="review_current_paper_delta",
+    )
+    if fingerprint is None:
+        return None
+    return {
+        "action_type": action_type,
+        "owner": owner,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "source_eval_id": source_eval_id,
+        "source_ref": source_ref,
+        "owner_route_currentness_basis": {
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+    }
+
+
+def _repair_progress_proves_safe_successor_delta(repair: Mapping[str, Any]) -> bool:
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return False
+    if repair.get("paper_delta_observed") is not True:
+        return False
+    if repair.get("accepted_owner_receipt") is not True:
+        return False
+    if repair.get("gate_replay_done") is not True:
+        return False
+    return _repair_progress_successor_source_ref(repair) is not None
+
+
+def _typed_blocker_is_current_anti_loop_successor_candidate(
+    typed_blocker: Mapping[str, Any],
+) -> bool:
+    blocker_markers = {
+        _text(typed_blocker.get("reason")),
+        _text(typed_blocker.get("blocker_id")),
+        _text(typed_blocker.get("blocker_kind")),
+        _text(typed_blocker.get("blocked_reason")),
+        _text(typed_blocker.get("blocker_type")),
+    }
+    if not (
+        "anti_loop_budget_exhausted" in blocker_markers
+        or "repeat_suppressed_after_opl_execution_authorization_required" in blocker_markers
+    ):
+        return False
+    if _text(typed_blocker.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    return _text(typed_blocker.get("work_unit_id")) is not None
+
+
+def _repair_progress_successor_source_ref(repair: Mapping[str, Any]) -> str | None:
+    return (
+        _text(repair.get("repair_execution_evidence_ref"))
+        or _text(repair.get("owner_receipt_ref"))
+        or _first_text(*_text_items(repair.get("gate_replay_refs")))
+    )
+
+
+def _owner_action_has_executable_identity(
+    owner_action: Mapping[str, Any],
+    *,
+    next_delta: Mapping[str, Any],
+) -> bool:
+    action_type = _first_text(owner_action.get("action_type"), *_text_items(owner_action.get("allowed_actions")))
+    owner = _first_text(owner_action.get("next_owner"), owner_action.get("owner"))
+    work_unit_id = _first_text(
+        owner_action.get("work_unit_id"),
+        owner_action.get("next_work_unit"),
+        next_delta.get("work_unit_id"),
+    )
+    return action_type is not None and owner is not None and work_unit_id is not None
 
 
 def _gate_replay_successor_already_consumed(

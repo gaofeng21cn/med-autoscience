@@ -281,6 +281,32 @@ def build_current_work_unit(
         or current_action_owner_receipt_recovery
         or fallback_owner_receipt_recovery
     )
+    if (
+        action is not None
+        and resolved_typed_blocker is not None
+        and typed_blocker_is_terminal_stop_loss(resolved_typed_blocker)
+        and (
+            _safe_next_forced_delta_action_supersedes_terminal_stop_loss(
+                action=action,
+                blocker=resolved_typed_blocker,
+                progress=progress_payload,
+            )
+            or _action_supersedes_typed_blocker(
+                action=action,
+                blocker=resolved_typed_blocker,
+                progress=progress_payload,
+            )
+        )
+    ):
+        return _action_work_unit(
+            action=action,
+            owner=_action_owner(action, next_owner=next_owner),
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            provider_admission=provider_admission,
+        )
     if owner_receipt_recovery is not None and not _owner_receipt_consumed_by_actionable_successor(
         action=action,
         status=status_payload,
@@ -372,10 +398,17 @@ def build_current_work_unit(
                 source="typed_blocker",
             )
     if resolved_typed_blocker is not None and typed_blocker_is_terminal_stop_loss(resolved_typed_blocker):
-        if action is not None and _safe_next_forced_delta_action_supersedes_terminal_stop_loss(
-            action=action,
-            blocker=resolved_typed_blocker,
-            progress=progress_payload,
+        if action is not None and (
+            _safe_next_forced_delta_action_supersedes_terminal_stop_loss(
+                action=action,
+                blocker=resolved_typed_blocker,
+                progress=progress_payload,
+            )
+            or _action_supersedes_typed_blocker(
+                action=action,
+                blocker=resolved_typed_blocker,
+                progress=progress_payload,
+            )
         ):
             return _action_work_unit(
                 action=action,
@@ -677,6 +710,7 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
             "domain_transition_decision_type": _text(successor.get("domain_transition_decision_type")),
             "domain_transition_controller_action": _text(successor.get("domain_transition_controller_action")),
             "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "target_surface": _mapping(successor.get("target_surface")),
             "owner_receipt_required": True,
             "provider_admission_pending": False,
             "transition_request_pending": True,
@@ -708,6 +742,8 @@ def _repair_progress_owner_receipt_recovery(
     if repair.get("accepted_owner_receipt") is not True:
         return None
     if repair.get("gate_replay_done") is not True:
+        return None
+    if not _mapping(action) and _current_work_unit_is_terminal_anti_loop_blocker(progress):
         return None
     if _gate_followthrough_actionable_repair_action(_mapping(action)) and not _repair_progress_matches_action(
         repair=repair,
@@ -1182,8 +1218,25 @@ def _safe_next_forced_delta_action_supersedes_terminal_stop_loss(
     blocker: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> bool:
-    if _text(blocker.get("blocker_type")) != "anti_loop_budget_exhausted":
+    blocker_type = (
+        _text(blocker.get("blocker_type"))
+        or _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocked_reason"))
+        or _text(blocker.get("reason"))
+    )
+    if blocker_type not in {
+        "anti_loop_budget_exhausted",
+        "repeat_suppressed_after_opl_execution_authorization_required",
+    }:
         return False
+    if _paper_recovery_successor_action_ready(action):
+        if not _safe_paper_recovery_successor_consumes_terminal_stop_loss(
+            action=action,
+            blocker=blocker,
+            progress=progress,
+        ):
+            return False
+        return True
     if not _paper_delta_current_action_supersedes_prior_blocker(
         action=action,
         progress=progress,
@@ -1201,6 +1254,68 @@ def _safe_next_forced_delta_action_supersedes_terminal_stop_loss(
         action.get("next_work_unit")
     )
     return action_work_unit is not None and action_work_unit == blocker_work_unit
+
+
+def _safe_paper_recovery_successor_consumes_terminal_stop_loss(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if _text(action.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    if (
+        _text(action.get("source_surface"))
+        or _text(action.get("source"))
+        or _text(_mapping(action.get("paper_recovery_successor")).get("source_surface"))
+    ) != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return False
+    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id"))
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(
+        action.get("next_work_unit")
+    )
+    if action_work_unit is None or action_work_unit != blocker_work_unit:
+        return False
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return False
+    if not (
+        repair.get("paper_delta_observed") is True
+        and repair.get("accepted_owner_receipt") is True
+        and repair.get("gate_replay_done") is True
+        and (
+            _text(repair.get("repair_execution_evidence_ref")) is not None
+            or _text(repair.get("owner_receipt_ref")) is not None
+            or bool(_text_items(repair.get("gate_replay_refs")))
+        )
+    ):
+        return False
+    blocker_eval = _text(blocker.get("source_eval_id")) or _text(
+        _mapping(blocker.get("currentness_basis")).get("source_eval_id")
+    )
+    action_eval = _text(action.get("source_eval_id")) or _text(
+        _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id")
+    )
+    return not (blocker_eval is not None and action_eval is not None and blocker_eval != action_eval)
+
+
+def _current_work_unit_is_terminal_anti_loop_blocker(progress: Mapping[str, Any]) -> bool:
+    current = _mapping(progress.get("current_work_unit"))
+    if _text(current.get("status")) != "typed_blocker":
+        return False
+    state = _mapping(current.get("state"))
+    blocker = _mapping(state.get("typed_blocker")) or _mapping(current.get("typed_blocker")) or current
+    blocker_markers = {
+        _text(blocker.get("reason")),
+        _text(blocker.get("blocker_id")),
+        _text(blocker.get("blocker_kind")),
+        _text(blocker.get("blocked_reason")),
+        _text(blocker.get("blocker_type")),
+    }
+    return (
+        "anti_loop_budget_exhausted" in blocker_markers
+        or "repeat_suppressed_after_opl_execution_authorization_required" in blocker_markers
+    )
 
 
 def _safe_next_forced_delta_action_consumes_repair_progress(

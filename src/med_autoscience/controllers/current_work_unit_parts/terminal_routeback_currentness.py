@@ -139,6 +139,14 @@ def gate_followthrough_action_supersedes_transport_or_execution_residue(
             action=action,
             progress=progress,
         )
+    elif blocker_type in {
+        "anti_loop_budget_exhausted",
+        "repeat_suppressed_after_opl_execution_authorization_required",
+    }:
+        if _text(action.get("action_type")) != "run_quality_repair_batch":
+            return False
+        if _text(blocker.get("action_type")) != "run_gate_clearing_batch":
+            return False
     elif blocker_type == "executed":
         if not _gate_followthrough_executed_gate_closeout_residue(blocker):
             return False
@@ -168,6 +176,7 @@ def _gate_followthrough_action_matches_current_followthrough(
         return False
     action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
     if not _gate_followthrough_successor_identity_is_current(
+        action=action,
         action_work_unit=action_work_unit,
         currentness=currentness,
         followthrough=followthrough,
@@ -176,7 +185,13 @@ def _gate_followthrough_action_matches_current_followthrough(
     followthrough_work_unit = _work_unit_id(currentness.get("current_publication_work_unit_id")) or _work_unit_id(
         _mapping(followthrough.get("current_publication_work_unit")).get("unit_id")
     )
-    if action_work_unit is None or followthrough_work_unit != action_work_unit:
+    action_targets_successor = _action_targets_publication_work_unit(
+        action=action,
+        action_work_unit=action_work_unit,
+    )
+    if action_work_unit is None:
+        return False
+    if followthrough_work_unit != action_work_unit and not action_targets_successor:
         return False
     action_fingerprint = (
         _text(action.get("work_unit_fingerprint"))
@@ -184,7 +199,12 @@ def _gate_followthrough_action_matches_current_followthrough(
         or _text(_mapping(action.get("owner_route_currentness_basis")).get("work_unit_fingerprint"))
     )
     followthrough_fingerprint = _text(currentness.get("current_work_unit_fingerprint"))
-    if action_fingerprint is not None and followthrough_fingerprint is not None and action_fingerprint != followthrough_fingerprint:
+    if (
+        action_fingerprint is not None
+        and followthrough_fingerprint is not None
+        and action_fingerprint != followthrough_fingerprint
+        and not action_targets_successor
+    ):
         return False
     action_source_eval = _text(action.get("source_eval_id")) or _text(
         _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id")
@@ -292,6 +312,7 @@ def _gate_followthrough_executed_gate_closeout_residue(blocker: Mapping[str, Any
 
 def _gate_followthrough_successor_identity_is_current(
     *,
+    action: Mapping[str, Any],
     action_work_unit: str | None,
     currentness: Mapping[str, Any],
     followthrough: Mapping[str, Any],
@@ -306,19 +327,53 @@ def _gate_followthrough_successor_identity_is_current(
     current_work_unit = _work_unit_id(currentness.get("current_publication_work_unit_id")) or _work_unit_id(
         current_publication_work_unit.get("unit_id")
     )
+    if _action_targets_publication_work_unit(action=action, action_work_unit=action_work_unit):
+        return True
     required_units = [unit for unit in (explicit_work_unit, current_work_unit) if unit]
-    if not required_units or any(unit != action_work_unit for unit in required_units):
+    if not required_units:
         return False
+    if any(unit != action_work_unit for unit in required_units):
+        if current_work_unit != action_work_unit:
+            return False
+        if explicit_work_unit is None and selected_work_unit is None:
+            return False
+        if _text(currentness.get("current_actionability_status")) != "actionable":
+            return False
     if current_work_unit is None and selected_work_unit not in {None, action_work_unit}:
         return False
 
     explicit_fingerprint = _text(currentness.get("explicit_work_unit_fingerprint"))
     current_fingerprint = _text(currentness.get("current_work_unit_fingerprint"))
-    if explicit_fingerprint is not None and current_fingerprint is not None:
+    if explicit_work_unit == action_work_unit and explicit_fingerprint is not None and current_fingerprint is not None:
         return explicit_fingerprint == current_fingerprint
-    if currentness.get("explicit_work_unit_fingerprint_matches_current") is False:
+    if explicit_work_unit == action_work_unit and currentness.get("explicit_work_unit_fingerprint_matches_current") is False:
         return False
     return True
+
+
+def _action_targets_publication_work_unit(
+    *,
+    action: Mapping[str, Any],
+    action_work_unit: str | None,
+) -> bool:
+    if action_work_unit is None:
+        return False
+    target = _mapping(action.get("target_surface"))
+    if _text(target.get("ref_kind")) != "publication_work_unit":
+        return False
+    target_current_work_unit = _mapping(target.get("current_publication_work_unit"))
+    target_next_work_unit = _mapping(target.get("next_work_unit"))
+    target_units = {
+        unit
+        for unit in (
+            _work_unit_id(target_current_work_unit.get("unit_id")),
+            _work_unit_id(target_current_work_unit.get("work_unit_id")),
+            _work_unit_id(target_next_work_unit.get("unit_id")),
+            _work_unit_id(target_next_work_unit.get("work_unit_id")),
+        )
+        if unit
+    }
+    return action_work_unit in target_units
 
 
 def _terminal_gate_closeout_routes_to_action(

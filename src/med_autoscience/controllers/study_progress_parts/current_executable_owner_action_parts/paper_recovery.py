@@ -77,6 +77,17 @@ def owner_action_from_paper_recovery_state(
             "action_fingerprint": fingerprint,
         },
     )
+    successor_target_surface = _mapping_copy(successor.get("target_surface"))
+    target_surface = successor_target_surface or _compact(
+        {
+            "ref_kind": "paper_recovery_successor_owner_action",
+            "route_target": owner,
+            "surface_ref": _required_output_surface(action_type),
+            "source_surface": source_surface,
+            "source_ref": source_ref,
+            "supervisor_decision_ref": supervisor_decision_ref,
+        }
+    )
     return _compact(
         {
             "surface_kind": surface_kind,
@@ -104,17 +115,13 @@ def owner_action_from_paper_recovery_state(
             "provider_attempt_or_lease_required": False,
             "provider_admission_requires_opl_runtime_result": True,
             "opl_transition_runtime_required": True,
-            "target_surface": _compact(
-                {
-                    "ref_kind": "paper_recovery_successor_owner_action",
-                    "route_target": owner,
-                    "surface_ref": _required_output_surface(action_type),
-                    "source_surface": source_surface,
-                    "source_ref": source_ref,
-                    "supervisor_decision_ref": supervisor_decision_ref,
-                }
+            "target_surface": target_surface,
+            "target_surface_specificity": _non_empty_text(successor.get("target_surface_specificity"))
+            or (
+                "paper_recovery_preserved_successor_owner_action"
+                if successor_target_surface
+                else "paper_recovery_successor_owner_action"
             ),
-            "target_surface_specificity": "paper_recovery_successor_owner_action",
             "source_ref": source_ref,
             "acceptance_refs": _dedupe_text(
                 [
