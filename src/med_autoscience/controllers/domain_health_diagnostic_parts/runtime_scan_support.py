@@ -59,6 +59,16 @@ PROGRESS_CURRENTNESS_KEYS = (
     "provider_admission_pending_count",
     "transition_request_candidates",
     "transition_request_pending_count",
+    "evidence_gap_decisions",
+    "evidence_gap_decision_summary",
+    "evidence_gap_typed_blockers",
+    "evidence_gap_typed_blocker_count",
+    "assumption_ledger",
+    "soft_gap_ledger",
+    "observability_backlog",
+    "evidence_tail_ledger",
+    "forbidden_claims",
+    "current_action_can_continue",
     "paper_recovery_state",
 )
 

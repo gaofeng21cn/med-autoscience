@@ -761,6 +761,62 @@ def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, t
     assert result["paper_recovery_state"] == recovery
 
 
+def test_runtime_scan_fresh_currentness_carries_evidence_gap_read_model(monkeypatch, tmp_path) -> None:
+    runtime_scan_support = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support"
+    )
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    decision = {
+        "surface_kind": "mas_evidence_gap_decision",
+        "gap_class": "soft_quality_gap",
+        "missing_ref_family": "reviewer structure non-hard concern",
+    }
+    summary = {
+        "surface_kind": "mas_evidence_gap_decision_summary",
+        "total_count": 1,
+        "hard_gate_count": 0,
+        "human_gate_count": 0,
+        "soft_gap_count": 1,
+        "current_action_can_continue": True,
+    }
+    soft_gap = {
+        "surface_kind": "soft_gap_ledger",
+        "gap_class": "soft_quality_gap",
+        "missing_ref_family": "reviewer structure non-hard concern",
+    }
+
+    def fake_read_study_progress(**kwargs):
+        assert kwargs["study_id"] == study_id
+        return {
+            "generated_at": "2026-06-20T02:20:00+00:00",
+            "study_id": study_id,
+            "provider_admission_pending_count": 1,
+            "evidence_gap_decisions": [decision],
+            "evidence_gap_decision_summary": summary,
+            "evidence_gap_typed_blockers": [],
+            "evidence_gap_typed_blocker_count": 0,
+            "soft_gap_ledger": [soft_gap],
+            "forbidden_claims": ["paper_progress"],
+            "current_action_can_continue": True,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+    result = runtime_scan_support._with_fresh_progress_currentness(
+        profile=object(),
+        study_root=tmp_path / study_id,
+        status_payload={"study_id": study_id},
+    )
+
+    assert result["evidence_gap_decisions"] == [decision]
+    assert result["evidence_gap_decision_summary"] == summary
+    assert result["evidence_gap_typed_blocker_count"] == 0
+    assert result["soft_gap_ledger"] == [soft_gap]
+    assert result["provider_admission_pending_count"] == 1
+    assert result["current_action_can_continue"] is True
+
+
 def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")

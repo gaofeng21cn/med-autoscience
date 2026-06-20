@@ -33,6 +33,7 @@ Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-ga
 - Core API: `med_autoscience.evidence_gap_decision`
 - Projection adapter: `med_autoscience.controllers.evidence_gap_projection.attach_evidence_gap_projection`
 - Study progress payload: 附加 `evidence_gap_decisions`、summary、ledger surfaces、typed blocker count 和 forbidden claims。
+- DHD read-model currentness: `domain_health_diagnostic` runtime scan 从 fresh `study_progress` currentness 携带同一 evidence-gap summary、ledger surfaces、typed blocker count 和 forbidden claims；它只做诊断投影，不从 pending count 推断 hard gate。
 - Domain action materializer: action/request/transition projection 携带 evidence gap summary；hard/human gate 变成 blocked dispatch；soft/assumption/backlog/tail 不改变当前 action dispatch。
 - Machine contracts: `contracts/evidence-gap-decision-policy.json`、schema、examples。
 
