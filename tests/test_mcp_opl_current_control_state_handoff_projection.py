@@ -581,6 +581,154 @@ def test_study_progress_opl_current_control_state_handoff_preserves_replayed_pro
     )
 
 
+def test_study_progress_opl_current_control_state_handoff_consumes_matching_opl_terminal_attempt_closeout(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    work_unit_id = "medical_prose_write_repair"
+    idempotency_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=idempotency_key,
+        attempt_idempotency_key=idempotency_key,
+        request_idempotency_key=idempotency_key,
+        stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+    )
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-20T04:07:15+00:00",
+            "current_control_refresh_source": "opl_transition_runtime_readback_provider_admission",
+            "provider_admission_pending_count": 1,
+            "transition_request_pending_count": 0,
+            "provider_admission_candidates": [
+                {
+                    "status": "provider_admission_pending",
+                    "study_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "route_identity_key": idempotency_key,
+                    "attempt_idempotency_key": idempotency_key,
+                    "provider_admission_pending": True,
+                    "provider_admission_schema_source": "existing_terminal_queue_readback",
+                    "opl_domain_progress_transition_runtime_live_readback": readback,
+                    "provider_admission_identity": {
+                        "status": "provider_admission_pending",
+                        "study_id": study_id,
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "route_identity_key": idempotency_key,
+                        "attempt_idempotency_key": idempotency_key,
+                        "opl_domain_progress_transition_runtime_live_readback": readback,
+                    },
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "provider_admission_pending_count": 1,
+                    "transition_request_pending_count": 0,
+                    "provider_admission_candidates": [
+                        {
+                            "status": "provider_admission_pending",
+                            "study_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "route_identity_key": idempotency_key,
+                            "attempt_idempotency_key": idempotency_key,
+                            "provider_admission_pending": True,
+                            "provider_admission_schema_source": "existing_terminal_queue_readback",
+                            "opl_domain_progress_transition_runtime_live_readback": readback,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    old_closeout_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_08da46bea43329723d2fbbea.closeout.json"
+    )
+    _write_json(
+        old_closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-06-20T03:30:55Z",
+            "study_id": study_id,
+            "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "status": "blocked",
+            "blocked_reason": "no_selected_dispatch_for_authorized_stage_packet",
+            "typed_blocker": {
+                "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+                "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
+            },
+        },
+    )
+
+    def fake_terminal_closeout(**kwargs):
+        assert kwargs["study_id"] == study_id
+        assert kwargs["preferred_actions"][0]["attempt_idempotency_key"] == idempotency_key
+        return {
+            "surface_kind": "opl_terminal_provider_attempt_closeout",
+            "source": "opl_family_runtime_attempt_inspect",
+            "source_path": "opl://stage_attempts/sat_91d23a554175ea9288d903ad",
+            "stage_attempt_id": "sat_91d23a554175ea9288d903ad",
+            "status": "completed",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "route_identity_key": idempotency_key,
+            "attempt_idempotency_key": idempotency_key,
+            "closeout_receipt_status": "accepted_typed_closeout",
+            "closeout_refs": [
+                f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json",
+                f"studies/{study_id}/artifacts/controller/quality_repair_batch/latest.json",
+                f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json",
+            ],
+            "route_impact": {
+                "next_owner": "medautoscience",
+                "domain_ready_verdict": "domain_gate_pending",
+            },
+        }
+
+    monkeypatch.setattr(module, "terminal_provider_attempt_closeout_for_study", fake_terminal_closeout)
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
+    assert projection["provider_admission_pending_count"] == 0
+    assert projection["transition_request_pending_count"] == 0
+    assert projection["provider_admission_candidates"] == []
+    consumed = projection["provider_admission_terminal_closeout_consumed"]
+    assert consumed["stage_attempt_id"] == "sat_91d23a554175ea9288d903ad"
+    assert consumed["attempt_idempotency_key"] == idempotency_key
+    assert projection["latest_terminal_stage_log"]["closeout_receipt_status"] == "accepted_typed_closeout"
+    assert projection["latest_terminal_stage_log"]["route_impact"]["domain_ready_verdict"] == (
+        "domain_gate_pending"
+    )
+
+
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)

@@ -16,6 +16,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
     non_advancing_apply_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
+from med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts import (
+    terminal_provider_attempt_closeout_for_study,
+)
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
@@ -275,6 +278,14 @@ def opl_current_control_state_study_handoff_projection(
         payload,
         study_id=study_id,
     )
+    if latest_terminal_stage_log is None:
+        latest_terminal_stage_log = _latest_opl_terminal_provider_attempt_closeout_projection(
+            profile=profile,
+            study_id=study_id,
+            payload=payload,
+            matching=matching,
+            matching_top_level_provider_admissions=matching_top_level_provider_admissions,
+        )
     if matching is None:
         if (
             latest_terminal_stage_log is None
@@ -436,6 +447,70 @@ def _top_level_provider_admission_candidates_for_study(
         for item in payload.get("provider_admission_candidates") or []
         if isinstance(item, Mapping) and _non_empty_text(item.get("study_id")) == study_id
     ]
+
+
+def _latest_opl_terminal_provider_attempt_closeout_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    payload: Mapping[str, Any],
+    matching: Mapping[str, Any] | None,
+    matching_top_level_provider_admissions: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    preferred_actions = _current_control_provider_admission_candidates(
+        payload=payload,
+        matching=matching,
+        matching_top_level_provider_admissions=matching_top_level_provider_admissions,
+    )
+    if not preferred_actions:
+        return None
+    closeout = terminal_provider_attempt_closeout_for_study(
+        profile=profile,
+        study_id=study_id,
+        timeout_seconds=3.0,
+        max_inspect_count=2,
+        preferred_actions=preferred_actions,
+    )
+    if not closeout:
+        return None
+    if not any(
+        _terminal_closeout_matches_handoff_action(terminal=closeout, action=action)
+        for action in preferred_actions
+    ):
+        return None
+    return closeout
+
+
+def _current_control_provider_admission_candidates(
+    *,
+    payload: Mapping[str, Any],
+    matching: Mapping[str, Any] | None,
+    matching_top_level_provider_admissions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    candidates = [
+        dict(item)
+        for item in matching_top_level_provider_admissions
+        if isinstance(item, Mapping) and provider_admission_opl_transition_readback(item)
+    ]
+    if isinstance(matching, Mapping):
+        candidates.extend(
+            dict(item)
+            for item in matching.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping) and provider_admission_opl_transition_readback(item)
+        )
+        candidates.extend(
+            dict(item)
+            for item in matching.get("transition_request_candidates") or []
+            if isinstance(item, Mapping) and candidate_opl_transition_readback(item)
+        )
+    if not candidates:
+        return []
+    provider_pending = int(payload.get("provider_admission_pending_count") or 0) > 0
+    transition_pending = int(payload.get("transition_request_pending_count") or 0) > 0
+    if isinstance(matching, Mapping):
+        provider_pending = provider_pending or int(matching.get("provider_admission_pending_count") or 0) > 0
+        transition_pending = transition_pending or int(matching.get("transition_request_pending_count") or 0) > 0
+    return candidates if provider_pending or transition_pending else []
 
 
 def _apply_top_level_provider_admissions_to_handoff(
@@ -922,6 +997,11 @@ def _provider_admission_terminal_closeout_consumed(
         or _non_empty_text(owner_action.get("work_unit_fingerprint")),
         "owner_receipt_ref": _non_empty_text(terminal.get("owner_receipt_ref")),
         "typed_blocker_ref": _non_empty_text(terminal.get("typed_blocker_ref")),
+        "route_identity_key": _non_empty_text(terminal.get("route_identity_key"))
+        or _non_empty_text(admission.get("route_identity_key")),
+        "attempt_idempotency_key": _non_empty_text(terminal.get("attempt_idempotency_key"))
+        or _non_empty_text(admission.get("attempt_idempotency_key")),
+        "closeout_receipt_status": _non_empty_text(terminal.get("closeout_receipt_status")),
         "authority_boundary": {
             "projection_only": True,
             "runtime_owner": "one-person-lab",
@@ -1362,6 +1442,8 @@ def _handoff_has_complete_current_transition_readback(projection: Mapping[str, A
 
 
 def _terminal_closeout_has_domain_delta(terminal: Mapping[str, Any]) -> bool:
+    if _non_empty_text(terminal.get("closeout_receipt_status")) == "accepted_typed_closeout":
+        return True
     if _non_empty_text(terminal.get("owner_receipt_ref")):
         return True
     if _string_list(terminal.get("owner_receipt_refs")):

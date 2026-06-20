@@ -15,6 +15,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts.default_executor_cl
 )
 
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
+TERMINAL_ATTEMPT_STATES = {"blocked", "completed", "failed", "terminal"}
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
@@ -113,6 +114,59 @@ def live_provider_attempt_for_study(
         max_inspect_count=max_inspect_count,
         preferred_actions=preferred_actions,
     )
+
+
+def terminal_provider_attempt_closeout_for_study(
+    *,
+    profile: Any,
+    study_id: str,
+    timeout_seconds: float = DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS,
+    max_inspect_count: int = 2,
+    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    opl_bin = _opl_bin()
+    if opl_bin is None:
+        return None
+    deadline = time.monotonic() + max(timeout_seconds, 0.0)
+    attempts_payload = _run_opl_json(
+        opl_bin,
+        ("family-runtime", "attempt", "list", "--json"),
+        timeout_seconds=_remaining_seconds(deadline),
+    )
+    if attempts_payload is None:
+        return None
+    candidate_attempts = _candidate_terminal_attempts(
+        attempts_payload,
+        profile=profile,
+        study_id=study_id,
+        preferred_actions=preferred_actions,
+    )
+    for attempt in candidate_attempts[: max(0, max_inspect_count)]:
+        remaining_seconds = _remaining_seconds(deadline)
+        if remaining_seconds <= 0:
+            return None
+        stage_attempt_id = _text(attempt.get("stage_attempt_id"))
+        if stage_attempt_id is None:
+            continue
+        if has_terminal_default_executor_closeout(
+            profile=profile,
+            study_id=study_id,
+            stage_attempt_id=stage_attempt_id,
+        ):
+            continue
+        inspected = _run_opl_json(
+            opl_bin,
+            ("family-runtime", "attempt", "inspect", stage_attempt_id, "--json"),
+            timeout_seconds=remaining_seconds,
+        )
+        projection = _terminal_closeout_projection_from_attempt_inspect(
+            inspected,
+            profile=profile,
+            study_id=study_id,
+        )
+        if projection is not None:
+            return projection
+    return None
 
 
 def current_provider_readiness(
@@ -467,6 +521,39 @@ def _candidate_attempts(
     return matched
 
 
+def _candidate_terminal_attempts(
+    attempts_payload: Mapping[str, Any],
+    *,
+    profile: Any,
+    study_id: str,
+    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    attempts_surface = _mapping(attempts_payload.get("family_runtime_stage_attempts"))
+    attempts = [
+        dict(item)
+        for item in attempts_surface.get("attempts") or attempts_surface.get("stage_attempts") or []
+        if isinstance(item, Mapping)
+    ]
+    matched = [
+        attempt
+        for attempt in attempts
+        if _attempt_matches_study(attempt, profile=profile, study_id=study_id)
+        and _text(attempt.get("domain_id")) == "medautoscience"
+        and _text(attempt.get("stage_id")) == "domain_owner/default-executor-dispatch"
+        and _attempt_is_terminal(attempt)
+        and not has_terminal_default_executor_closeout(
+            profile=profile,
+            study_id=study_id,
+            stage_attempt_id=_text(attempt.get("stage_attempt_id")),
+        )
+    ]
+    preferred = _preferred_action_keys(preferred_actions)
+    matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
+    if preferred:
+        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
+    return matched
+
+
 def _attempt_matches_study(attempt: Mapping[str, Any], *, profile: Any, study_id: str) -> bool:
     locator = _mapping(attempt.get("workspace_locator"))
     attempt_study_id = _text(locator.get("study_id")) or _text(attempt.get("study_id"))
@@ -487,6 +574,15 @@ def _attempt_is_live(attempt: Mapping[str, Any]) -> bool:
     return (
         _text(attempt.get("status")) in LIVE_ATTEMPT_STATES
         or _text(provider_run.get("provider_status")) in LIVE_ATTEMPT_STATES
+    )
+
+
+def _attempt_is_terminal(attempt: Mapping[str, Any]) -> bool:
+    provider_run = _mapping(attempt.get("provider_run"))
+    return (
+        _text(attempt.get("status")) in TERMINAL_ATTEMPT_STATES
+        or _text(provider_run.get("provider_status")) in TERMINAL_ATTEMPT_STATES
+        or _text(attempt.get("closeout_receipt_status")) == "accepted_typed_closeout"
     )
 
 
@@ -904,6 +1000,94 @@ def _live_projection_from_attempt_inspect(
     return projection
 
 
+def _terminal_closeout_projection_from_attempt_inspect(
+    inspect_payload: Mapping[str, Any] | None,
+    *,
+    profile: Any,
+    study_id: str,
+) -> dict[str, Any] | None:
+    if inspect_payload is None:
+        return None
+    attempt_surface = _mapping(inspect_payload.get("family_runtime_stage_attempt"))
+    attempt = _mapping(attempt_surface.get("attempt"))
+    if not attempt:
+        return None
+    if not _attempt_matches_study(attempt, profile=profile, study_id=study_id):
+        return None
+    if _text(attempt.get("domain_id")) != "medautoscience":
+        return None
+    if _text(attempt.get("stage_id")) != "domain_owner/default-executor-dispatch":
+        return None
+    if not _attempt_is_terminal(attempt):
+        return None
+    stage_attempt_id = _text(attempt.get("stage_attempt_id"))
+    if stage_attempt_id is None:
+        return None
+    if has_terminal_default_executor_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id=stage_attempt_id,
+    ):
+        return None
+    locator = _mapping(attempt.get("workspace_locator"))
+    provider_run = _mapping(attempt.get("provider_run"))
+    route_impact = _mapping(attempt.get("route_impact"))
+    action_type = _text(locator.get("action_type")) or _text(attempt.get("action_type"))
+    work_unit_id = _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id"))
+    work_unit_fingerprint = (
+        _text(locator.get("work_unit_fingerprint"))
+        or _text(locator.get("action_fingerprint"))
+        or _text(locator.get("domain_source_fingerprint"))
+        or _text(attempt.get("work_unit_fingerprint"))
+        or _text(attempt.get("action_fingerprint"))
+    )
+    route_identity_key = _text(locator.get("route_identity_key")) or _text(attempt.get("route_identity_key"))
+    attempt_idempotency_key = _text(locator.get("attempt_idempotency_key")) or _text(
+        attempt.get("attempt_idempotency_key")
+    )
+    if (
+        _text(attempt.get("closeout_receipt_status")) != "accepted_typed_closeout"
+        and not attempt.get("closeout_refs")
+    ):
+        return None
+    projection = {
+        "surface_kind": "opl_terminal_provider_attempt_closeout",
+        "source": "opl_family_runtime_attempt_inspect",
+        "source_path": f"opl://stage_attempts/{stage_attempt_id}",
+        "stage_attempt_id": stage_attempt_id,
+        "active_stage_attempt_id": stage_attempt_id,
+        "status": _text(attempt.get("status")),
+        "stage_id": _text(attempt.get("stage_id")),
+        "domain_id": _text(attempt.get("domain_id")),
+        "task_id": _text(attempt.get("task_id")),
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
+        "idempotency_key": _text(attempt.get("idempotency_key")) or attempt_idempotency_key,
+        "stage_packet_ref": _text(locator.get("stage_packet_ref")),
+        "stage_packet_refs": [item for item in locator.get("stage_packet_refs") or [] if _text(item)],
+        "dispatch_ref": _text(locator.get("dispatch_ref")),
+        "closeout_receipt_status": _text(attempt.get("closeout_receipt_status")),
+        "closeout_refs": [item for item in attempt.get("closeout_refs") or [] if _text(item)],
+        "provider_run": dict(provider_run),
+        "route_impact": dict(route_impact),
+        "next_owner": _text(route_impact.get("next_owner")),
+        "domain_ready_verdict": _text(route_impact.get("domain_ready_verdict")),
+        "authority_boundary": {
+            "projection_only": True,
+            "runtime_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "provider_completion_is_domain_completion": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
+    return {key: value for key, value in projection.items() if value not in (None, "", [], {})}
+
+
 def _first_attempt(task_surface: Mapping[str, Any]) -> dict[str, Any]:
     for item in task_surface.get("stage_attempts") or []:
         if isinstance(item, Mapping):
@@ -999,4 +1183,5 @@ __all__ = [
     "owner_state_overlay",
     "owner_route_is_covered_by_live_attempt",
     "projection_fields",
+    "terminal_provider_attempt_closeout_for_study",
 ]
