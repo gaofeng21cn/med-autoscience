@@ -30,7 +30,10 @@ def owner_action_from_paper_recovery_state(
     if decision_label not in {
         None,
         "materialize_recovery_action",
-    } and not paper_recovery_consumed_owner_receipt_successor(recovery):
+    } and not (
+        paper_recovery_consumed_owner_receipt_successor(recovery)
+        or _terminal_typed_blocker_successor_evidence(recovery)
+    ):
         return None
     next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
     if _non_empty_text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
@@ -174,6 +177,19 @@ def paper_recovery_successor_action_ready(
         _non_empty_text(action.get("action_type")) is not None
         and _non_empty_text(action.get("work_unit_id")) is not None
         and _non_empty_text(action.get("work_unit_fingerprint")) is not None
+    )
+
+
+def _terminal_typed_blocker_successor_evidence(recovery: Mapping[str, Any]) -> bool:
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "materialize_successor_owner_action":
+        return False
+    if _mapping_copy(next_safe_action.get("successor_owner_action")) == {}:
+        return False
+    return any(
+        _non_empty_text(_mapping_copy(condition).get("condition"))
+        == "terminal_typed_blocker_successor_evidence"
+        for condition in recovery.get("conditions") or []
     )
 
 

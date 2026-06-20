@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import control_identity
 from med_autoscience.controllers import current_work_unit as current_work_unit_reducer
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
@@ -40,6 +41,11 @@ def successor_owner_action_from_terminal_blocker(
         return successor_owner_action_from_current_action(action)
     if blocker_reason in {"publication_gate_replay_blocked", "paper_progress_stall_terminal"}:
         return _successor_owner_action_from_gate_followthrough(progress)
+    if blocker_reason == "anti_loop_budget_exhausted":
+        return _successor_owner_action_from_next_forced_delta_after_progress(
+            progress,
+            typed_blocker=typed_blocker,
+        )
     return None
 
 
@@ -299,6 +305,86 @@ def _successor_owner_action_from_gate_followthrough(progress: Mapping[str, Any])
         "work_unit_fingerprint": fingerprint,
         "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
         "source_ref": _text(followthrough.get("latest_record_path")),
+    }
+
+
+def _successor_owner_action_from_next_forced_delta_after_progress(
+    progress: Mapping[str, Any],
+    *,
+    typed_blocker: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    next_delta = _next_forced_delta_from_progress(progress)
+    owner_action = _mapping(next_delta.get("owner_action"))
+    repair = _mapping(progress.get("repair_progress_projection"))
+    if _text(next_delta.get("reason")) != "paper_progress_delta_observed":
+        return None
+    if _text(next_delta.get("required_delta_kind")) != "review_current_paper_delta":
+        return None
+    if _text(repair.get("source")) != "mas_owner_repair_execution_evidence":
+        return None
+    if repair.get("paper_delta_observed") is not True:
+        return None
+    if repair.get("accepted_owner_receipt") is not True:
+        return None
+    if repair.get("gate_replay_done") is not True:
+        return None
+    if not (
+        _text(repair.get("repair_execution_evidence_ref"))
+        or _text(repair.get("owner_receipt_ref"))
+        or _text_items(repair.get("gate_replay_refs"))
+    ):
+        return None
+    action_type = _first_text(owner_action.get("action_type"), *_text_items(owner_action.get("allowed_actions")))
+    owner = _first_text(owner_action.get("next_owner"), owner_action.get("owner"))
+    work_unit_id = _first_text(
+        owner_action.get("work_unit_id"),
+        owner_action.get("next_work_unit"),
+        next_delta.get("work_unit_id"),
+    )
+    blocker_work_unit = _text(typed_blocker.get("work_unit_id"))
+    if action_type != "run_gate_clearing_batch":
+        return None
+    if work_unit_id is None or work_unit_id != blocker_work_unit:
+        return None
+    if work_unit_id != _text(next_delta.get("work_unit_id")):
+        return None
+    if owner is None:
+        return None
+    target_surface = _mapping(next_delta.get("target_surface"))
+    source_eval_id = _first_text(next_delta.get("eval_id"), next_delta.get("source_eval_id"))
+    fingerprint = control_identity.stable_route_currentness_fingerprint(
+        study_id=_text(progress.get("study_id")),
+        source="study_progress.next_forced_delta.owner_action",
+        work_unit_id=work_unit_id,
+        action_type=action_type,
+        next_owner=owner,
+        source_eval_id=source_eval_id,
+        target_surface_ref=_text(target_surface.get("surface_ref")),
+        required_delta_kind=_text(next_delta.get("required_delta_kind")),
+    )
+    if fingerprint is None:
+        return None
+    source_ref = (
+        _text(repair.get("repair_execution_evidence_ref"))
+        or _text(repair.get("owner_receipt_ref"))
+        or _first_text(*_text_items(repair.get("gate_replay_refs")))
+    )
+    return {
+        "action_type": action_type,
+        "owner": owner,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "source_surface": "study_progress.next_forced_delta.owner_action",
+        "source_eval_id": source_eval_id,
+        "source_ref": source_ref,
+        "owner_route_currentness_basis": {
+            "source": "study_progress.next_forced_delta.owner_action",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
     }
 
 
