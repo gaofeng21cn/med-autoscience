@@ -1042,7 +1042,7 @@ def test_owner_receipt_recorded_materializes_dm002_review_successor_from_domain_
         }
     ]
     assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
-    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
     assert state["next_safe_action"]["successor_owner_action"] == {
         "action_type": "return_to_ai_reviewer_workflow",
         "owner": "ai_reviewer",
@@ -1115,7 +1115,7 @@ def test_owner_receipt_recorded_materializes_dm003_route_back_successor_from_dom
         }
     ]
     assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
-    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
     assert state["next_safe_action"]["successor_owner_action"] == {
         "action_type": "request_opl_stage_attempt",
         "owner": "write",

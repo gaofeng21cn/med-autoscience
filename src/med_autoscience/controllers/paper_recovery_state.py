@@ -771,7 +771,7 @@ def _owner_receipt_state(
             ],
             next_safe_action=_next_action(
                 "materialize_successor_owner_action",
-                provider_admission_allowed=True,
+                provider_admission_allowed=condition != "consumed_owner_receipt_domain_transition_successor",
                 owner=successor_owner,
                 successor_owner_action=successor_action,
             ),
