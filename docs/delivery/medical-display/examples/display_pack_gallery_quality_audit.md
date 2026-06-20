@@ -13,17 +13,14 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - publication_ready_claim_authorized: `false`
 - visual template count: `28`
 - non-visual inventory count: `3`
-- lower-bound review required: `23`
-- blocked templates: `5`
+- lower-bound review required: `28`
+- blocked templates: `0`
 
 ## 主要阻断项
 
 | Blocker | Templates |
 | --- | ---: |
-| `coefficient_path_renderer_gap` | 1 |
-| `km_risk_table_and_censor_mark_gap` | 1 |
-| `multi_panel_readability_risk` | 2 |
-| `oncoprint_annotation_track_gap` | 1 |
+| none | 0 |
 
 ## 主要风险项
 
@@ -39,17 +36,17 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | `calibration_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
 | `celltype_marker_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `cnv_recurrence_summary_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
-| `coefficient_path_panel` | Effect Estimate | r_ggplot2 | `not_publication_ready` | `coefficient_path_renderer_gap` |
+| `coefficient_path_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `confusion_matrix_heatmap_binary` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
 | `cumulative_incidence_grouped` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `decision_curve_binary` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
 | `forest_effect_main` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `generalizability_subgroup_composite_panel` | Generalizability | r_ggplot2 | `lower_bound_review_required` | none |
 | `genomic_alteration_consequence_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
-| `genomic_alteration_landscape_panel` | Genomic and Omics | r_ggplot2 | `not_publication_ready` | `oncoprint_annotation_track_gap` |
+| `genomic_alteration_landscape_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `heatmap_group_comparison` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
-| `kaplan_meier_grouped` | Time-to-Event | r_ggplot2 | `not_publication_ready` | `km_risk_table_and_censor_mark_gap` |
-| `model_complexity_audit_panel` | Model Audit | r_ggplot2 | `not_publication_ready` | `multi_panel_readability_risk` |
+| `kaplan_meier_grouped` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
+| `model_complexity_audit_panel` | Model Audit | r_ggplot2 | `lower_bound_review_required` | none |
 | `omics_volcano_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `pathway_enrichment_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `pca_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
@@ -58,7 +55,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | `roc_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
 | `shap_dependence_panel` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
 | `shap_summary_beeswarm` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
-| `shap_waterfall_local_explanation_panel` | Model Explanation | r_ggplot2 | `not_publication_ready` | `multi_panel_readability_risk` |
+| `shap_waterfall_local_explanation_panel` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
 | `time_dependent_roc_horizon` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `time_to_event_decision_curve` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
 | `time_to_event_multihorizon_calibration_panel` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |

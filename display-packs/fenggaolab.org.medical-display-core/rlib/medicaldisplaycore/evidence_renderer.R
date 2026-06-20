@@ -152,7 +152,9 @@ publication_legend_guides <- function(display_payload, labels = NULL) {
     byrow = TRUE,
     override.aes = list(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.0) * 0.42),
     label.position = "right",
-    label.hjust = 0
+    label.hjust = 0,
+    keywidth = unit(13, "pt"),
+    keyheight = unit(6, "pt")
   )
 }
 
@@ -194,8 +196,8 @@ publication_colorbar_guide <- function(display_payload, title = NULL, bar_orient
       "pt"
     ),
     ticks = TRUE,
-    draw.llim = TRUE,
-    draw.ulim = TRUE,
+    draw.llim = FALSE,
+    draw.ulim = FALSE,
     frame.colour = NA,
     nbin = 120
   )
@@ -332,8 +334,8 @@ theme_publication_colorbar <- function(display_payload) {
     legend.text = element_text(size = colorbar_text_size, colour = text_color, margin = margin(t = 4, unit = "pt")),
     legend.margin = margin(4, 8, 8, 8, unit = "pt"),
     legend.spacing.x = unit(8, "pt"),
-    legend.spacing.y = unit(5, "pt"),
-    legend.box.spacing = unit(14, "pt")
+    legend.spacing.y = unit(3, "pt"),
+    legend.box.spacing = unit(9, "pt")
   )
 }
 
@@ -548,9 +550,18 @@ plot_binary_curve <- function(display_payload) {
   }
   curve_df <- build_curve_dataframe(series_payload)
   reference_df <- build_reference_dataframe(display_payload$reference_line)
+  focus_window <- display_payload$decision_focus_window %||% display_payload$axis_window %||% list()
+  xlim <- c(
+    as.numeric(focus_window$xmin %||% 0),
+    as.numeric(focus_window$xmax %||% 1)
+  )
+  ylim <- c(
+    as.numeric(focus_window$ymin %||% min(curve_df$y, 0, na.rm = TRUE)),
+    as.numeric(focus_window$ymax %||% max(curve_df$y, 1, na.rm = TRUE))
+  )
   plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
     geom_line(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42) +
-    coord_cartesian(xlim = c(0, 1), ylim = c(min(curve_df$y, 0), max(curve_df$y, 1))) +
+    coord_cartesian(xlim = xlim, ylim = ylim) +
     scale_color_manual(
       values = style_series_palette(display_payload, unique(curve_df$label)),
       guide = publication_legend_guides(display_payload, curve_df$label)
@@ -579,6 +590,7 @@ plot_kaplan_meier <- function(display_payload) {
   if (!is.list(groups_payload) || length(groups_payload) < 1) {
     stop("groups must contain at least one survival series")
   }
+  censor_frames <- list()
   frames <- lapply(seq_along(groups_payload), function(index) {
     item <- groups_payload[[index]]
     x <- as_numeric_vector(item$times, sprintf("groups[%d].times", index))
@@ -586,33 +598,118 @@ plot_kaplan_meier <- function(display_payload) {
     if (length(x) != length(y)) {
       stop(sprintf("groups[%d].times and groups[%d].values must have the same length", index, index))
     }
+    label <- trimws(as.character(item$label %||% ""))
+    censor_times <- item$censor_times %||% list()
+    if (is.list(censor_times) && length(censor_times) > 0) {
+      censor_x <- vapply(censor_times, as.numeric, numeric(1))
+      censor_y <- vapply(censor_x, function(value) {
+        eligible <- which(x <= value)
+        if (length(eligible) < 1) y[[1]] else y[[max(eligible)]]
+      }, numeric(1))
+      censor_frames[[length(censor_frames) + 1]] <<- data.frame(
+        label = rep(label, length(censor_x)),
+        x = censor_x,
+        y = censor_y,
+        stringsAsFactors = FALSE
+      )
+    }
     data.frame(
-      label = rep(trimws(as.character(item$label %||% "")), length(x)),
+      label = rep(label, length(x)),
       x = x,
       y = y,
       stringsAsFactors = FALSE
     )
   })
   curve_df <- do.call(rbind, frames)
+  censor_df <- if (length(censor_frames) > 0) do.call(rbind, censor_frames) else NULL
+  risk_table <- display_payload$risk_table %||% list()
+  risk_rows <- if (is.list(risk_table) && length(risk_table) > 0) risk_table else list()
+  risk_df <- if (length(risk_rows) > 0) {
+    do.call(rbind, lapply(seq_along(risk_rows), function(index) {
+      row <- risk_rows[[index]]
+      data.frame(
+        label = trimws(as.character(row$label %||% row$group_label %||% sprintf("Group %d", index))),
+        time = vapply(row$times %||% list(), as.numeric, numeric(1)),
+        at_risk = vapply(row$at_risk %||% row$counts %||% list(), as.integer, integer(1)),
+        row_index = index,
+        stringsAsFactors = FALSE
+      )
+    }))
+  } else {
+    NULL
+  }
+  y_lower <- if (is.null(risk_df)) 0 else -0.19
+  palette_values <- style_series_palette(display_payload, unique(curve_df$label))
   plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
     geom_step(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42, direction = "hv") +
-    coord_cartesian(xlim = c(0, max(curve_df$x)), ylim = c(0, 1)) +
+    coord_cartesian(xlim = c(0, max(curve_df$x)), ylim = c(y_lower, 1), clip = "off") +
     scale_color_manual(
-      values = style_series_palette(display_payload, unique(curve_df$label)),
+      values = palette_values,
       guide = publication_legend_guides(display_payload, curve_df$label)
     ) +
+    scale_y_continuous(breaks = c(0, 0.25, 0.50, 0.75, 1.00)) +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
     theme_publication(display_payload)
+  if (!is.null(censor_df)) {
+    plot <- plot + geom_point(
+      data = censor_df,
+      aes(x = x, y = y, colour = label),
+      inherit.aes = FALSE,
+      shape = 124,
+      stroke = 0.9,
+      size = style_numeric(style_stroke(display_payload), "marker_size", 3.4) * 0.86,
+      show.legend = FALSE
+    )
+  }
+  if (!is.null(risk_df)) {
+    row_count <- length(unique(risk_df$row_index))
+    risk_df$risk_y <- -0.055 - (risk_df$row_index - 1) * 0.055
+    risk_label_df <- unique(risk_df[, c("label", "row_index", "risk_y"), drop = FALSE])
+    risk_title <- trimws(as.character(display_payload$risk_table_title %||% "At risk"))
+    max_time <- max(curve_df$x, na.rm = TRUE)
+    risk_label_x <- -max_time * 0.055
+    plot <- plot +
+      annotate(
+        "text",
+        x = risk_label_x,
+        y = -0.025,
+        label = risk_title,
+        hjust = 1,
+        size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.30,
+        colour = style_text_color(display_payload)
+      ) +
+      geom_text(
+        data = risk_label_df,
+        aes(x = risk_label_x, y = risk_y, label = label, colour = label),
+        inherit.aes = FALSE,
+        hjust = 1,
+        size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.28,
+        show.legend = FALSE
+      ) +
+      geom_text(
+        data = risk_df,
+        aes(x = time, y = risk_y, label = at_risk),
+        inherit.aes = FALSE,
+        size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.28,
+        colour = style_text_color(display_payload)
+      ) +
+      theme(plot.margin = margin(10, 12, 22 + row_count * 5, 42))
+  }
   annotation <- trimws(as.character(display_payload$annotation %||% ""))
   if (nzchar(annotation)) {
+    annotation_y <- if (grepl("cumulative", tolower(trimws(as.character(display_payload$y_label %||% ""))))) {
+      max(curve_df$y, na.rm = TRUE) * 0.52
+    } else {
+      0.08
+    }
     plot <- plot + annotate(
       "text",
       x = max(curve_df$x) * 0.98,
-      y = 0.08,
+      y = annotation_y,
       label = annotation,
       hjust = 1,
       vjust = 0,

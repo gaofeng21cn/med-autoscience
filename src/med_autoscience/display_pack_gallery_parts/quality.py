@@ -46,13 +46,8 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
 )
 
 FAMILY_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
-    "genomic_alteration_landscape_panel": ("oncoprint_annotation_track_gap",),
     "submission_graphical_abstract": ("illustration_shell_style_gap",),
     "cohort_flow_figure": ("illustration_shell_style_gap",),
-    "model_complexity_audit_panel": ("multi_panel_readability_risk",),
-    "shap_waterfall_local_explanation_panel": ("multi_panel_readability_risk",),
-    "coefficient_path_panel": ("coefficient_path_renderer_gap",),
-    "kaplan_meier_grouped": ("km_risk_table_and_censor_mark_gap",),
 }
 
 KIND_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
@@ -124,14 +119,6 @@ def recommended_next_actions(record: TemplateRecord, blockers: list[str], warnin
         actions.append("Align design-shell typography, palette roles, export discipline, and composition with the MAS publication style profile.")
     if "legend_or_colorbar_overlap_risk" in warnings:
         actions.append("Check guide boxes after rendering; prefer direct labels or horizontal colorbars when tick labels collide.")
-    if "oncoprint_annotation_track_gap" in blockers:
-        actions.append("Use the current landscape template as a lower-bound seed; add oncoprint-style annotation tracks before final genomic figure use.")
-    if "coefficient_path_renderer_gap" in blockers:
-        actions.append("Render-inspect the coefficient path carefully; replace dot-summary fallback with a true coefficient-path geometry for paper use.")
-    if "km_risk_table_and_censor_mark_gap" in blockers:
-        actions.append("Add paper-local risk table and censor marks before treating the KM preview as final survival artwork.")
-    if "multi_panel_readability_risk" in blockers:
-        actions.append("Split overloaded panels or enlarge the device when reduced-size labels are not readable.")
     if "python_evidence_retained_without_advantage_proof" in blockers:
         actions.append("Retire this Python evidence template or promote it only after documented advantage over the R/ggplot2 baseline and visual audit.")
     if record.kind == "illustration_shell":

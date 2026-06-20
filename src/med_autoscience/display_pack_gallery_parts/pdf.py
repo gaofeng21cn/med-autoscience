@@ -23,6 +23,8 @@ def _export_pdf() -> None:
             "--headless",
             "--disable-gpu",
             "--no-sandbox",
+            "--no-pdf-header-footer",
+            "--print-to-pdf-no-header",
             f"--print-to-pdf={paths.PDF_PATH}",
             f"file://{paths.HTML_PATH}",
         ],

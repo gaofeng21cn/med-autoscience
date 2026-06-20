@@ -17,6 +17,20 @@ candidate_items <- function(payload, fields) {
   list()
 }
 
+candidate_panel_title <- function(payload, panel_id, fallback = "A", order_field = "panel_order") {
+  panel_id <- trimws(as.character(panel_id %||% ""))
+  panels <- payload[[order_field]] %|||% list()
+  if (is.list(panels) && length(panels) > 0) {
+    for (panel in panels) {
+      current_id <- trimws(as.character(panel$panel_id %||% ""))
+      if (nzchar(panel_id) && identical(current_id, panel_id)) {
+        return(candidate_non_empty(panel$panel_title %||% panel$title %||% panel$panel_label, fallback))
+      }
+    }
+  }
+  candidate_non_empty(panel_id, fallback)
+}
+
 candidate_numeric <- function(value, fallback = 0) {
   if (is.null(value)) {
     return(as.numeric(fallback))
@@ -79,7 +93,7 @@ candidate_curve_df <- function(payload, series_fields = c("series", "decision_se
       y <- y[seq_len(count)]
     }
     data.frame(
-      panel = candidate_non_empty(item$panel_label %||% item$panel_id, "A"),
+      panel = candidate_panel_title(payload, item$panel_id, candidate_non_empty(item$panel_label, "A")),
       label = candidate_non_empty(item$label, sprintf("Series %d", index)),
       x = as.numeric(x),
       y = as.numeric(y),
@@ -256,16 +270,23 @@ candidate_dot_df <- function(payload) {
   }
   frames <- lapply(seq_along(points), function(index) {
     item <- points[[index]]
+    x_numeric <- item$x_value %||% item$feature_value
+    size_value <- abs(candidate_numeric(item$size %||% item$size_value %||% item$support_n %||% item$count, 8))
     data.frame(
-      x = candidate_non_empty(item$x %||% item$panel_id %||% item$pathway_label %||% item$cohort_label, sprintf("X%d", index)),
-      y = candidate_non_empty(item$y %||% item$marker_label %||% item$feature_label %||% item$program_label, sprintf("Y%d", index)),
+      x = if (!is.null(x_numeric)) candidate_numeric(x_numeric, index) else candidate_non_empty(item$x %||% item$celltype_label %||% item$panel_id %||% item$cohort_label, sprintf("X%d", index)),
+      y = candidate_non_empty(item$y %||% item$marker_label %||% item$feature_label %||% item$pathway_label %||% item$program_label, sprintf("Y%d", index)),
       value = candidate_numeric(item$value %||% item$effect_value %||% item$mean_abs_shap %||% item$score, 0),
-      size = abs(candidate_numeric(item$size %||% item$support_n %||% item$count %||% item$feature_value, 8)) + 1,
+      size = size_value,
+      x_is_numeric = !is.null(x_numeric),
       stringsAsFactors = FALSE
     )
   })
   dot_df <- do.call(rbind, frames)
-  dot_df$x <- factor(dot_df$x, levels = unique(dot_df$x))
+  if (!all(dot_df$x_is_numeric)) {
+    dot_df$x <- factor(dot_df$x, levels = unique(dot_df$x))
+  } else {
+    dot_df$x <- as.numeric(dot_df$x)
+  }
   dot_df$y <- factor(dot_df$y, levels = rev(unique(dot_df$y)))
   dot_df
 }
@@ -274,8 +295,12 @@ candidate_plot_dot <- function(payload) {
   dot_df <- candidate_dot_df(payload)
   ggplot(dot_df, aes(x = x, y = y, colour = value, size = size)) +
     geom_point(alpha = 0.88) +
-    heatmap_colour_scale(payload, dot_df$value) +
-    scale_size_continuous(range = c(2.2, 8.5)) +
+    heatmap_colour_scale(payload, dot_df$value, name = candidate_non_empty(payload$effect_scale_label, "Effect")) +
+    scale_size_continuous(
+      range = c(2.2, 8.5),
+      name = candidate_non_empty(payload$size_scale_label, "Support"),
+      breaks = continuous_scale_breaks(dot_df$size, max_breaks = 3)
+    ) +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate dot plot"),
       x = candidate_non_empty(payload$x_label, ""),
@@ -283,7 +308,13 @@ candidate_plot_dot <- function(payload) {
     ) +
     candidate_theme(payload) +
     theme_publication_colorbar(payload) +
-    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+    guides(size = guide_legend(nrow = 1, byrow = TRUE)) +
+    theme(
+      axis.text.x = element_text(angle = if (all(dot_df$x_is_numeric)) 0 else 25, hjust = if (all(dot_df$x_is_numeric)) 0.5 else 1),
+      legend.box = "vertical",
+      legend.spacing.y = unit(3, "pt"),
+      panel.grid.major.x = if (all(dot_df$x_is_numeric)) element_line(colour = candidate_palette(payload)$grid, linewidth = 0.18) else element_blank()
+    )
 }
 
 candidate_volcano_df <- function(payload) {
@@ -296,9 +327,15 @@ candidate_volcano_df <- function(payload) {
   }
   frames <- lapply(seq_along(points), function(index) {
     item <- points[[index]]
+    explicit_label <- item$label_text
+    feature_label <- if (!is.null(explicit_label)) {
+      trimws(as.character(explicit_label))
+    } else {
+      candidate_non_empty(item$feature_label, sprintf("Feature %d", index))
+    }
     data.frame(
-      panel = candidate_non_empty(item$panel_id, "A"),
-      feature = candidate_non_empty(item$feature_label %||% item$label_text, sprintf("Feature %d", index)),
+      panel = candidate_panel_title(payload, item$panel_id, "A"),
+      feature = feature_label,
       effect = candidate_numeric(item$effect_value %||% item$x, 0),
       significance = candidate_numeric(item$significance_value %||% item$y, 0),
       class = candidate_non_empty(item$regulation_class, "background"),
@@ -311,96 +348,74 @@ candidate_volcano_df <- function(payload) {
 candidate_plot_volcano <- function(payload) {
   volcano_df <- candidate_volcano_df(payload)
   palette <- candidate_palette(payload)
+  label_df <- volcano_df[nzchar(volcano_df$feature) & volcano_df$significance >= quantile(volcano_df$significance, 0.70, na.rm = TRUE), , drop = FALSE]
+  x_range <- range(volcano_df$effect, na.rm = TRUE)
+  x_span <- max(0.1, diff(x_range))
+  if (nrow(label_df) > 0) {
+    label_df$label_x <- label_df$effect + ifelse(label_df$effect < 0, -x_span * 0.025, x_span * 0.025)
+    label_df$label_hjust <- ifelse(label_df$effect < 0, 1, 0)
+  }
   ggplot(volcano_df, aes(x = effect, y = significance, colour = class)) +
-    geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.60, alpha = 0.88) +
+    geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.58, alpha = 0.86) +
     geom_vline(xintercept = c(-abs(candidate_numeric(payload$effect_threshold, 1)), abs(candidate_numeric(payload$effect_threshold, 1))), colour = palette$reference, linetype = "dashed", linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.5) +
     geom_hline(yintercept = candidate_numeric(payload$significance_threshold, 1.3), colour = palette$reference, linetype = "dashed", linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.5) +
+    geom_text(
+      data = label_df,
+      aes(x = label_x, label = feature, hjust = label_hjust),
+      show.legend = FALSE,
+      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.30,
+      vjust = -0.55,
+      colour = palette$text
+    ) +
     facet_wrap(~panel) +
     scale_color_manual(
       values = c(upregulated = palette$volcano_up, downregulated = palette$volcano_down, background = palette$volcano_background),
       guide = publication_legend_guides(payload, volcano_df$class)
     ) +
+    coord_cartesian(xlim = c(x_range[[1]] - x_span * 0.12, x_range[[2]] + x_span * 0.16), clip = "off") +
     labs(
       title = candidate_non_empty(payload$title, "R/ggplot2 candidate volcano"),
       x = candidate_non_empty(payload$x_label, "Effect"),
       y = candidate_non_empty(payload$y_label, "Significance")
     ) +
-    candidate_theme(payload)
-}
-
-candidate_shap_rows <- function(payload) {
-  rows <- candidate_items(payload, c("rows", "bars"))
-  if (length(rows) < 1 && !is.null(payload$panels)) {
-    rows <- unlist(lapply(payload$panels, function(panel) candidate_items(panel, c("rows", "bars"))), recursive = FALSE)
-  }
-  if (length(rows) < 1) {
-    rows <- list(
-      list(feature = "Age", value = 0.24, points = list(list(shap_value = -0.12, feature_value = 0.3), list(shap_value = 0.25, feature_value = 0.8))),
-      list(feature = "Ki-67", value = 0.18, points = list(list(shap_value = -0.08, feature_value = 0.4), list(shap_value = 0.19, feature_value = 0.7)))
-    )
-  }
-  rows
-}
-
-candidate_plot_shap <- function(payload, mode = "beeswarm") {
-  rows <- candidate_shap_rows(payload)
-  if (identical(mode, "bar")) {
-    bar_payload <- list(
-      bars = lapply(rows, function(row) list(label = row$feature %||% row$label, value = row$value %||% row$mean_abs_shap)),
-      title = payload$title,
-      x_label = payload$x_label,
-      y_label = payload$y_label,
-      render_context = payload$render_context
-    )
-    return(candidate_plot_bars(bar_payload) + coord_flip())
-  }
-  frames <- lapply(seq_along(rows), function(row_index) {
-    row <- rows[[row_index]]
-    points <- row$points %||% list(list(shap_value = row$value %||% row$mean_abs_shap %||% 0, feature_value = 0.5))
-    do.call(rbind, lapply(seq_along(points), function(point_index) {
-      point <- points[[point_index]]
-      data.frame(
-        feature = candidate_non_empty(row$feature %||% row$label, sprintf("Feature %d", row_index)),
-        shap_value = candidate_numeric(point$shap_value %||% point$value, 0),
-        feature_value = candidate_numeric(point$feature_value, point_index),
-        stringsAsFactors = FALSE
-      )
-    }))
-  })
-  shap_df <- do.call(rbind, frames)
-  shap_df$feature <- factor(shap_df$feature, levels = rev(unique(shap_df$feature)))
-  palette <- candidate_palette(payload)
-  ggplot(shap_df, aes(x = shap_value, y = feature, colour = feature_value)) +
-    geom_vline(xintercept = 0, colour = palette$reference, linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.6, linetype = "dashed") +
-    geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.56, alpha = 0.9, position = position_jitter(height = 0.12, width = 0)) +
-    heatmap_colour_scale(payload, shap_df$feature_value, midpoint = median(shap_df$feature_value)) +
-    labs(
-      title = candidate_non_empty(payload$title, "R/ggplot2 candidate SHAP summary"),
-      x = candidate_non_empty(payload$x_label, "SHAP value"),
-      y = ""
-    ) +
     candidate_theme(payload) +
-    theme_publication_colorbar(payload)
+    theme(plot.margin = margin(9, 20, 9, 20))
 }
+
+.candidate_renderer_source_file <- NULL
+for (.frame_index in rev(seq_len(sys.nframe()))) {
+  .frame_file <- sys.frame(.frame_index)$ofile
+  if (!is.null(.frame_file) && identical(basename(.frame_file), "candidate_renderer.R")) {
+    .candidate_renderer_source_file <- .frame_file
+    break
+  }
+}
+.candidate_publication_renderer_path <- if (!is.null(.candidate_renderer_source_file)) {
+  file.path(dirname(normalizePath(.candidate_renderer_source_file, mustWork = TRUE)), "candidate_publication_renderers.R")
+} else {
+  file.path("display-packs", "fenggaolab.org.medical-display-core", "rlib", "medicaldisplaycore", "candidate_publication_renderers.R")
+}
+source(.candidate_publication_renderer_path, local = environment())
+rm(.candidate_renderer_source_file, .candidate_publication_renderer_path, .frame_index, .frame_file)
 
 build_candidate_evidence_plot <- function(template_id, payload) {
   switch(
     template_id,
-    time_to_event_decision_curve = candidate_plot_curve(payload),
-    time_to_event_multihorizon_calibration_panel = candidate_plot_curve(payload),
-    risk_layering_monotonic_bars = candidate_plot_bars(payload),
-    generalizability_subgroup_composite_panel = candidate_plot_effect(payload),
-    coefficient_path_panel = candidate_plot_dot(payload),
+    time_to_event_decision_curve = candidate_plot_time_to_event_decision_curve(payload),
+    time_to_event_multihorizon_calibration_panel = candidate_plot_multihorizon_calibration(payload),
+    risk_layering_monotonic_bars = candidate_plot_risk_layering(payload),
+    generalizability_subgroup_composite_panel = candidate_plot_generalizability(payload),
+    coefficient_path_panel = candidate_plot_coefficient_path(payload),
     celltype_marker_dotplot_panel = candidate_plot_dot(payload),
     pathway_enrichment_dotplot_panel = candidate_plot_dot(payload),
-    cnv_recurrence_summary_panel = candidate_plot_matrix(payload),
-    genomic_alteration_landscape_panel = candidate_plot_matrix(payload),
-    genomic_alteration_consequence_panel = candidate_plot_matrix(payload),
+    cnv_recurrence_summary_panel = candidate_plot_cnv_recurrence(payload),
+    genomic_alteration_landscape_panel = candidate_plot_alteration_landscape(payload),
+    genomic_alteration_consequence_panel = candidate_plot_genomic_consequence(payload),
     omics_volcano_panel = candidate_plot_volcano(payload),
     shap_summary_beeswarm = candidate_plot_shap(payload, mode = "beeswarm"),
-    shap_dependence_panel = candidate_plot_dot(payload),
-    shap_waterfall_local_explanation_panel = candidate_plot_effect(payload),
-    model_complexity_audit_panel = candidate_plot_dot(payload),
+    shap_dependence_panel = candidate_plot_shap_dependence(payload),
+    shap_waterfall_local_explanation_panel = candidate_plot_shap_waterfall(payload),
+    model_complexity_audit_panel = candidate_plot_model_complexity_audit(payload),
     stop(sprintf("unsupported R candidate evidence template `%s`", template_id))
   )
 }

@@ -14,6 +14,9 @@ from med_autoscience.publication_display_contract import (
     load_publication_style_profile,
     resolve_style_roles,
 )
+from med_autoscience.display_pack_gallery_parts.publication_payloads import (
+    PUBLICATION_R_DISPLAY_PAYLOADS,
+)
 
 PYTHON_PAYLOAD_FIXTURE_MODULES = (
     "tests.display_surface_materialization_cases.illustration_payload_fixtures",
@@ -439,6 +442,10 @@ def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, 
     payloads.update({
         key: json.loads(json.dumps(value))
         for key, value in GALLERY_R_DISPLAY_PAYLOADS.items()
+    })
+    payloads.update({
+        key: json.loads(json.dumps(value))
+        for key, value in PUBLICATION_R_DISPLAY_PAYLOADS.items()
     })
     payloads.update(
         {
