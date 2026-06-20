@@ -215,6 +215,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "mas_owner_action_source": _non_empty_text(current.get("source")),
             "source_eval_id": source_eval_id,
             "eval_bound_work_unit_fingerprint": eval_bound_fingerprint,
+            "stage_packet_ref": _non_empty_text(current.get("stage_packet_ref")),
+            "stage_packet_refs": _text_items(current.get("stage_packet_refs")),
             "owner_route_currentness_basis": owner_route_currentness_basis,
         }.items()
         if value is not None
@@ -240,6 +242,10 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "provider_completion_is_domain_completion": False,
         "mas_owner_action_source": _non_empty_text(current.get("source")),
         "source_surface": _study_current_action_source_surface(current),
+        "source_ref": _non_empty_text(current.get("source_ref")),
+        "stage_packet_ref": _non_empty_text(current.get("stage_packet_ref")),
+        "stage_packet_refs": _text_items(current.get("stage_packet_refs")),
+        "dispatch_path": _non_empty_text(current.get("stage_packet_ref")),
         "source_eval_id": _non_empty_text(owner_route_currentness_basis.get("source_eval_id")),
         "source_fingerprint": _non_empty_text(
             owner_route_currentness_basis.get("source_fingerprint")
@@ -442,6 +448,17 @@ def _current_action_from_accepted_owner_gate_admission(
     if executable_owner is None:
         return {}
     currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    owner_gate_event = _accepted_owner_gate_admission_event(study, recovery=recovery)
+    stage_packet_ref = _accepted_owner_gate_stage_packet_ref(
+        recovery=recovery,
+        owner_gate_event=owner_gate_event,
+        study=study,
+    )
+    stage_packet_refs = _accepted_owner_gate_stage_packet_refs(
+        recovery=recovery,
+        owner_gate_event=owner_gate_event,
+        study=study,
+    )
     basis = {
         **dict(currentness_basis),
         "source": "paper_recovery_state.accepted_owner_gate_decision",
@@ -451,9 +468,10 @@ def _current_action_from_accepted_owner_gate_admission(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": fingerprint,
         "action_fingerprint": fingerprint,
+        "stage_packet_ref": stage_packet_ref,
     }
     basis = {key: value for key, value in basis.items() if value is not None}
-    return {
+    action = {
         "surface_kind": "current_executable_owner_action",
         "status": "ready",
         "source": "paper_recovery_state.accepted_owner_gate_decision",
@@ -465,11 +483,14 @@ def _current_action_from_accepted_owner_gate_admission(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": fingerprint,
         "action_fingerprint": fingerprint,
-        "source_ref": _first_text(recovery.get("evidence_refs")),
+        "source_ref": stage_packet_ref or _first_text(recovery.get("evidence_refs")),
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": stage_packet_refs,
         "required_output_surface": _required_output_surface(current_work_unit),
         "owner_route_currentness_basis": basis,
         "currentness_basis": basis,
     }
+    return {key: value for key, value in action.items() if value not in (None, "", [], {})}
 
 
 def accepted_owner_gate_admission_matches_selected_dispatch_blocker(
@@ -489,6 +510,11 @@ def accepted_owner_gate_admission_matches_selected_dispatch_blocker(
         return False
     if not _recovery_has_owner_gate_stage_packet_ref(recovery_payload):
         return False
+    if _accepted_owner_gate_admission_event_matches_recovery_obligation(
+        study,
+        recovery=recovery_payload,
+    ):
+        return True
     current_work_unit = _mapping(study.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
         return False
@@ -499,6 +525,161 @@ def accepted_owner_gate_admission_matches_selected_dispatch_blocker(
             recovery=recovery_payload,
         )
     )
+
+
+def _accepted_owner_gate_admission_event_matches_recovery_obligation(
+    study: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> bool:
+    event = _accepted_owner_gate_admission_event(study, recovery=recovery)
+    if not event:
+        return False
+    payload = _mapping(event.get("payload"))
+    owner_identity = _mapping(payload.get("current_owner_identity"))
+    if not _is_selected_dispatch_stage_packet_blocker(
+        _non_empty_text(owner_identity.get("blocker_type"))
+        or _non_empty_text(owner_identity.get("blocker_id"))
+        or _non_empty_text(owner_identity.get("blocked_reason"))
+        or _non_empty_text(payload.get("blocker_type"))
+    ):
+        return False
+    return _owner_gate_identity_matches_recovery_obligation(
+        owner_identity,
+        study=study,
+        recovery=recovery,
+    )
+
+
+def _accepted_owner_gate_admission_event(
+    study: Mapping[str, Any],
+    *,
+    recovery: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner_gate_refs = {
+        ref
+        for ref in _text_items(recovery.get("evidence_refs"))
+        if ref.startswith("owner-gate-decision:")
+    }
+    for item in study.get("study_intervention_events") or []:
+        event = _mapping(item)
+        if _non_empty_text(event.get("intent")) != "owner_gate_decision":
+            continue
+        payload = _mapping(event.get("payload"))
+        if _non_empty_text(payload.get("decision")) != "admit_identity_bound_stage_packet":
+            continue
+        if payload.get("provider_admission_allowed") is not True:
+            continue
+        decision_ref = _non_empty_text(payload.get("owner_gate_decision_ref"))
+        if owner_gate_refs and decision_ref not in owner_gate_refs:
+            continue
+        if _accepted_owner_gate_stage_packet_refs(recovery=recovery, owner_gate_event=event):
+            return event
+    return {}
+
+
+def _owner_gate_identity_matches_recovery_obligation(
+    identity: Mapping[str, Any],
+    *,
+    study: Mapping[str, Any],
+    recovery: Mapping[str, Any],
+) -> bool:
+    obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    expected = {
+        "study_id": _coalesce_text(
+            obligation.get("study_id"),
+            recovery.get("study_id"),
+            study.get("study_id"),
+            current_work_unit.get("study_id"),
+        ),
+        "action_type": _coalesce_text(
+            obligation.get("action_type"),
+            current_work_unit.get("action_type"),
+        ),
+        "work_unit_id": _coalesce_text(
+            obligation.get("work_unit_id"),
+            current_work_unit.get("work_unit_id"),
+        ),
+        "work_unit_fingerprint": _coalesce_text(
+            obligation.get("work_unit_fingerprint"),
+            current_work_unit.get("work_unit_fingerprint"),
+            current_work_unit.get("action_fingerprint"),
+        ),
+    }
+    for key, expected_value in expected.items():
+        value = _non_empty_text(identity.get(key))
+        if expected_value is not None and value != expected_value:
+            return False
+    return all(_non_empty_text(identity.get(key)) is not None for key in expected)
+
+
+def _coalesce_text(*values: object) -> str | None:
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            return text
+    return None
+
+
+def _accepted_owner_gate_stage_packet_ref(
+    *,
+    recovery: Mapping[str, Any],
+    owner_gate_event: Mapping[str, Any],
+    study: Mapping[str, Any] | None = None,
+) -> str | None:
+    refs = _accepted_owner_gate_stage_packet_refs(
+        recovery=recovery,
+        owner_gate_event=owner_gate_event,
+        study=study,
+    )
+    return refs[0] if refs else None
+
+
+def _accepted_owner_gate_stage_packet_refs(
+    *,
+    recovery: Mapping[str, Any],
+    owner_gate_event: Mapping[str, Any],
+    study: Mapping[str, Any] | None = None,
+) -> list[str]:
+    payload = _mapping(owner_gate_event.get("payload"))
+    refs = [
+        _non_empty_text(payload.get("stage_packet_ref")),
+        *_text_items(payload.get("stage_packet_refs")),
+        *[
+            ref
+            for ref in _text_items(recovery.get("evidence_refs"))
+            if ref.startswith("stage-packet:")
+            or "stage_packet" in ref
+            or "default_executor_dispatches" in ref
+        ],
+    ]
+    result: list[str] = []
+    for ref in refs:
+        normalized = _stage_packet_ref_for_dispatch_path(ref, study=study)
+        if normalized is not None and normalized not in result:
+            result.append(normalized)
+    return result
+
+
+def _stage_packet_ref_for_dispatch_path(
+    ref: str | None,
+    *,
+    study: Mapping[str, Any] | None,
+) -> str | None:
+    text = _non_empty_text(ref)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if path.is_absolute():
+        return str(path)
+    study_root_text = _non_empty_text(_mapping(study).get("study_root"))
+    study_root = Path(study_root_text).expanduser() if study_root_text is not None else None
+    study_id = _non_empty_text(_mapping(study).get("study_id"))
+    if study_id is not None and study_root is not None and len(path.parts) >= 2 and path.parts[:2] == ("studies", study_id):
+        workspace_root = study_root.parent.parent
+        return str((workspace_root / path).resolve())
+    return text
 
 
 def _recovery_records_accepted_identity_bound_stage_packet(
