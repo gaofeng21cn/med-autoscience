@@ -644,8 +644,46 @@ def _provider_admission_recovery(candidate: Mapping[str, Any]) -> dict[str, Any]
 
 def candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:
     return provider_admission_candidate_with_authority_boundaries(
-        _with_readback_backed_status(candidate)
+        _with_readback_backed_status(_candidate_with_transition_request_identity(candidate))
     )
+
+
+def _candidate_with_transition_request_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(candidate)
+    request = _mapping(payload.get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(
+            _mapping(payload.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not request:
+        return payload
+    request_key = _non_empty_text(request.get("idempotency_key")) or _non_empty_text(
+        request.get("request_idempotency_key")
+    )
+    stage_run_identity = _mapping(request.get("stage_run_identity"))
+    route_key = _non_empty_text(stage_run_identity.get("route_identity_key")) or request_key
+    attempt_key = _non_empty_text(stage_run_identity.get("attempt_idempotency_key")) or route_key
+    if route_key is not None:
+        payload["route_identity_key"] = route_key
+    if attempt_key is not None:
+        payload["attempt_idempotency_key"] = attempt_key
+    if request_key is not None:
+        payload["idempotency_key"] = request_key
+    elif attempt_key is not None:
+        payload["idempotency_key"] = attempt_key
+    source_refs = dict(_mapping(payload.get("source_refs")))
+    if route_key is not None:
+        source_refs["route_identity_key"] = route_key
+    if attempt_key is not None:
+        source_refs["attempt_idempotency_key"] = attempt_key
+    if source_refs:
+        payload["source_refs"] = source_refs
+    owner_basis = dict(_mapping(source_refs.get("owner_route_currentness_basis")))
+    if owner_basis:
+        source_refs["owner_route_currentness_basis"] = owner_basis
+    return payload
 
 
 def _status_envelope_blocks_provider_admission(

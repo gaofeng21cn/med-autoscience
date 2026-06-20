@@ -128,6 +128,167 @@ def test_provider_admission_identity_prefers_opl_transition_request_identity() -
     assert resolved["idempotency_key"] == opl_transition_key
 
 
+def test_provider_admission_action_uses_opl_transition_request_identity() -> None:
+    identity = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    local_handoff_key = f"quality-repair-writer-handoff::{study_id}::{fingerprint}"
+    opl_transition_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    candidate = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "route_identity_key": local_handoff_key,
+        "attempt_idempotency_key": local_handoff_key,
+        "idempotency_key": local_handoff_key,
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "target_runtime_owner": "one-person-lab",
+            "idempotency_key": opl_transition_key,
+            "stage_run_identity": {
+                "route_identity_key": opl_transition_key,
+                "attempt_idempotency_key": opl_transition_key,
+            },
+        },
+    }
+
+    action = identity.provider_admission_current_control_action(candidate)
+
+    assert action["route_identity_key"] == opl_transition_key
+    assert action["attempt_idempotency_key"] == opl_transition_key
+    assert action["idempotency_key"] == opl_transition_key
+    assert action["owner_route"]["idempotency_key"] == opl_transition_key
+    assert action["owner_route"]["source_refs"]["route_identity_key"] == opl_transition_key
+    assert action["owner_route"]["source_refs"]["attempt_idempotency_key"] == opl_transition_key
+    assert action["handoff_packet"]["route_identity_key"] == opl_transition_key
+    assert action["handoff_packet"]["attempt_idempotency_key"] == opl_transition_key
+
+
+def test_current_control_provider_admission_candidate_uses_opl_transition_request_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    local_handoff_key = f"quality-repair-writer-handoff::{study_id}::{fingerprint}"
+    opl_transition_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    dispatch_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{action_type}.json"
+    )
+    dispatch_path.parent.mkdir(parents=True, exist_ok=True)
+    dispatch_path.write_text(
+        json.dumps(
+            {
+                "surface": "default_executor_dispatch_request",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": action_type,
+                "dispatch_status": "ready",
+                "dispatch_authority": "quality_repair_batch_writer_handoff",
+                "next_executable_owner": "write",
+                "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+                "action_fingerprint": fingerprint,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "owner_route": {
+                    "next_owner": "write",
+                    "source_refs": {
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "route_identity_key": local_handoff_key,
+                        "attempt_idempotency_key": local_handoff_key,
+                        "owner_route_currentness_basis": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "truth_epoch": "truth-event-000035",
+                            "runtime_health_epoch": "runtime-health-event-006980",
+                        },
+                    },
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+            "next_owner": "write",
+            "action_type": action_type,
+            "allowed_actions": [action_type],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+    }
+    action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+        "status": "transition_request_pending",
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "owner_route": {
+            "next_owner": "write",
+            "source_refs": {
+                "route_identity_key": local_handoff_key,
+                "attempt_idempotency_key": local_handoff_key,
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "truth_epoch": "truth-event-000035",
+                    "runtime_health_epoch": "runtime-health-event-006980",
+                },
+            },
+        },
+    }
+
+    [candidate] = module.current_control_provider_admission_candidates(
+        {"studies": [status_payload], "action_queue": [action]},
+        study_root=profile.studies_root / study_id,
+        status_payload=status_payload,
+        current_control_ref="/runtime/opl_current_control_state/latest.json",
+    )
+
+    request_key = candidate["opl_domain_progress_transition_request"]["idempotency_key"]
+    assert request_key.startswith("paper-policy-request:")
+    assert request_key != local_handoff_key
+    assert candidate["route_identity_key"] == request_key
+    assert candidate["attempt_idempotency_key"] == request_key
+    assert candidate["idempotency_key"] == request_key
+    assert candidate["source_refs"]["route_identity_key"] == request_key
+    assert candidate["source_refs"]["attempt_idempotency_key"] == request_key
+
+
 def test_provider_admission_candidate_inherits_current_action_currentness_basis() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"

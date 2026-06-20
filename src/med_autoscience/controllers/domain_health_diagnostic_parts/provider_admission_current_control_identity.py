@@ -89,7 +89,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
 
 
 def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    candidate = _candidate_with_authority_boundaries(candidate)
+    candidate = _candidate_with_authority_boundaries(candidate_with_identity(candidate))
     action_type = _non_empty_text(candidate.get("action_type"))
     study_id = _non_empty_text(candidate.get("study_id"))
     work_unit_id = _non_empty_text(candidate.get("work_unit_id"))
