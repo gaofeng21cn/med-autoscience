@@ -431,17 +431,24 @@ def test_gallery_html_exposes_composition_recipe_storyboards_without_counting_th
 
     html = _render_html(records, rendered, {})
 
-    assert "<title>MAS Display Pack Figure Gallery</title>" in html
-    assert "Composition Recipe Gallery" in html
+    assert "<title>MAS 医学论文配图画册</title>" in html
+    assert "从论文论点到可审计图件" in html
+    assert "页面级图页方案" in html
     assert html.count('class="composition-card"') == 6
     assert html.count('id="template-') == 28
-    assert "clinical_triptych_prediction" in html
-    assert "primary_model_performance_summary" in html
-    assert "calibration_reliability" in html
+    assert "临床预测模型主图" in html
+    assert "核心表达" in html
+    assert "推荐面板组织" in html
+    assert "证据边界" in html
+    assert "R/ggplot2 数据证据图起点" in html
+    assert "表达目的" in html
+    assert "数据要求" in html
+    assert "适用场景" in html
     assert "decision_curve_binary" in html
-    assert "asymmetric_genomics_figure" in html
-    assert "dominant_molecular_pattern" in html
-    assert "mock storyboard; not real data; not publication-ready" in html
+    assert "组学景观与功能后果图页" in html
+    assert "本页为图页组织示例，使用合成数据或示意性面板" in html
+    assert "Python evidence: 0" not in html
+    assert "默认 Python 数据证据模板" not in html
 
 
 def test_docs_gallery_manifest_uses_repo_relative_paths() -> None:

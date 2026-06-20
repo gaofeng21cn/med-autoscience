@@ -1,4 +1,4 @@
-# MAS Display Pack Gallery Status
+# MAS 医学论文配图画册生成状态
 
 Owner: `MedAutoScience`
 Purpose: `generated_display_pack_gallery_status`
@@ -7,7 +7,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 ## 当前数量口径
 
-| Metric | Count |
+| 指标 | 数量 |
 | --- | ---: |
 | Gallery evidence figures | 28 |
 | Current canonical templates | 31 |
@@ -18,9 +18,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
 
-`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级 storyboard 数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
+`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 R/ggplot2 数据证据画册的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
-## Renderer 与质量口径
+## 渲染器与质量口径
 
 - gallery default surface: `canonical_current_r_ggplot2_evidence_templates`
 - evidence figures default to R/ggplot2: `true`
@@ -37,7 +37,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
 
-## Analysis Responsibility
+## 数据处理责任
 
 | Responsibility | Current templates |
 | --- | ---: |
@@ -60,7 +60,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - `vector_or_high_resolution_export_recorded`
 - `visual_audit_receipt_or_residual_item_recorded`
 
-## Figure Workflow 前置检查
+## 图件工作流前置检查
 
 - `core_conclusion_and_evidence_chain_locked`
 - `storyboard_panel_hierarchy_declared`
@@ -72,7 +72,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - `visual_audit_receipt_or_residual_item_recorded`
 - `owner_or_publication_gate_receipt_present_for_claim_bearing_figures`
 
-## 页面级 Composition Recipe Gallery
+## 页面级图页方案
 
 | Recipe | Title | Hero panel | Supporting | Primitive families | Default layout |
 | --- | --- | --- | ---: | ---: | --- |
@@ -83,7 +83,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern | 3 | 6 | wide_pattern_hero_with_narrow_right_or_bottom_consequence_panels |
 | `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 | 7 | atlas_embedding_or_spatial_hero_with_marker_composition_and_trajectory_support |
 
-## Gallery 分类
+## 画册分类
 
 | Category | Gallery evidence figures |
 | --- | ---: |

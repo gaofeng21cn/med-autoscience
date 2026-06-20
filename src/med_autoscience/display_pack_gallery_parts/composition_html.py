@@ -3,52 +3,36 @@ from __future__ import annotations
 import html
 from typing import Any
 
-from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
+from med_autoscience.display_pack_gallery_parts.gallery_copy import composition_copy
 
 
-def _asset_image_ref(template_id: str, rendered: dict[str, RenderedAsset]) -> str:
-    asset = rendered.get(template_id)
-    if asset is None or asset.status != "rendered":
-        return ""
-    return asset.preview_image_ref or asset.image_ref
+def _ordered_list(values: tuple[str, ...]) -> str:
+    return "".join(f"<li>{html.escape(value)}</li>" for value in values)
 
 
-def _tag_list(values: list[str], *, limit: int = 5) -> str:
-    shown = values[:limit]
-    tags = "".join(f'<span class="tag">{html.escape(value)}</span>' for value in shown)
-    if len(values) > limit:
-        tags += f'<span class="tag">+{len(values) - limit}</span>'
-    return tags
-
-
-def _panel_html(panel: dict[str, Any], rendered: dict[str, RenderedAsset]) -> str:
+def _panel_html(panel: dict[str, Any], *, index: int) -> str:
     template_id = str(panel.get("template_id") or "")
-    image_ref = _asset_image_ref(template_id, rendered)
-    role = str(panel.get("panel_role") or "")
     kind = str(panel.get("panel_kind") or "")
     family_id = str(panel.get("evidence_primitive_family_id") or "")
     title = str(panel.get("canonical_family_title") or family_id or "storyboard placeholder")
-    proxy = panel.get("uses_gallery_proxy") is True
-    image = (
-        f'<img src="{html.escape(image_ref)}" alt="{html.escape(title)}">'
-        if image_ref
-        else '<div class="panel-placeholder">storyboard<br>placeholder</div>'
-    )
-    proxy_label = '<span class="mini-note">proxy</span>' if proxy else ""
+    label = chr(ord("A") + index)
     return f"""
 <div class="story-panel {html.escape(kind)}">
-  <div class="story-image">{image}</div>
+  <div class="panel-letter">{html.escape(label)}</div>
+  <div class="story-image">
+    <div class="story-placeholder">
+      <span>{html.escape(title)}</span>
+    </div>
+  </div>
   <div class="story-meta">
-    <strong>{html.escape(role)}</strong>
-    <span>{html.escape(title)}{proxy_label}</span>
-    <code>{html.escape(template_id or family_id)}</code>
+    <span>证据图起点：{html.escape(template_id or family_id)}</span>
   </div>
 </div>"""
 
 
 def render_composition_gallery_html(
     composition_gallery: dict[str, Any],
-    rendered: dict[str, RenderedAsset],
+    rendered: dict[str, object],
 ) -> str:
     recipes = composition_gallery.get("recipes", [])
     if not isinstance(recipes, list) or not recipes:
@@ -59,40 +43,40 @@ def render_composition_gallery_html(
             continue
         panels = item.get("storyboard_panels")
         panel_html = "".join(
-            _panel_html(panel, rendered)
-            for panel in panels
+            _panel_html(panel, index=index)
+            for index, panel in enumerate(panels)
             if isinstance(panel, dict)
         ) if isinstance(panels, list) else ""
-        supporting = _tag_list([str(value) for value in item.get("supporting_panel_roles", [])])
-        starters = _tag_list([str(value) for value in item.get("recommended_starter_recipe_ids", [])])
-        palettes = _tag_list([str(value) for value in item.get("palette_tokens", [])], limit=4)
+        recipe_id = str(item.get("recipe_id", ""))
+        copy = composition_copy(recipe_id, str(item.get("title", "")))
         cards.append(
             f"""
-<article class="composition-card" id="composition-{html.escape(str(item.get('recipe_id', '')))}">
-  <div class="composition-head">
-    <h3>{html.escape(str(item.get('title', '')))}</h3>
-    <code>{html.escape(str(item.get('recipe_id', '')))}</code>
+<article class="composition-card" id="composition-{html.escape(recipe_id)}">
+  <div class="composition-kicker">页面级图页方案</div>
+  <h3>{html.escape(copy.title)}</h3>
+  <div class="composition-summary">
+    <p><strong>适用场景：</strong>{html.escape(copy.use_case)}</p>
+    <p><strong>核心表达：</strong>{html.escape(copy.central_message)}</p>
   </div>
-  <p>{html.escape(str(item.get('intent', '')))}</p>
   <div class="storyboard">{panel_html}</div>
-  <div class="composition-grid">
-    <div><strong>Layout</strong><span>{html.escape(str(item.get('default_layout', '')))}</span></div>
-    <div><strong>Hero</strong><span>{html.escape(str(item.get('hero_panel_role', '')))}</span></div>
-    <div><strong>Supporting</strong><div class="tags">{supporting}</div></div>
-    <div><strong>Starter recipes</strong><div class="tags">{starters}</div></div>
-    <div><strong>Guide strategy</strong><span>{html.escape(str(item.get('guide_strategy', '')))}</span></div>
-    <div><strong>Label strategy</strong><span>{html.escape(str(item.get('label_strategy', '')))}</span></div>
-    <div><strong>Palette tokens</strong><div class="tags">{palettes}</div></div>
-    <div><strong>Boundary</strong><span>mock storyboard; not real data; not publication-ready</span></div>
+  <div class="composition-bottom">
+    <div>
+      <h4>推荐面板组织</h4>
+      <ol>{_ordered_list(copy.panel_plan)}</ol>
+    </div>
+    <div>
+      <h4>证据边界</h4>
+      <p>{html.escape(copy.evidence_note)}</p>
+      <p class="fine-print">本页为图页组织示例，使用合成数据或示意性面板，不代表真实论文数据结果。</p>
+    </div>
   </div>
 </article>"""
         )
     return f"""
 <section class="section composition-section" id="composition-recipes">
-  <h2>Composition Recipe Gallery <span>{len(cards)}</span></h2>
-  <div class="composition-intro">
-    页面级 recipe 展示如何把多个 evidence primitives 组织成论文图页。这里是可视 storyboard，不是真实论文数据、不签 publication-ready。
-  </div>
+  <div class="section-label">第一部分</div>
+  <h2>页面级图页方案 <span>{len(cards)} 类</span></h2>
+  <p class="section-lead">页面级方案用于组织一张医学论文主图或关键扩展图。它定义论点、主面板、辅助证据和风格边界，不替代真实数据分析。</p>
   <div class="composition-cards">{''.join(cards)}
   </div>
 </section>"""

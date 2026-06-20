@@ -1,4 +1,4 @@
-# MAS Display Pack Gallery Quality Audit
+# MAS 医学论文配图画册质量审计
 
 Owner: `MedAutoScience`
 Purpose: `human_readable_quality_audit_for_display_pack_gallery`
@@ -7,7 +7,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 ## 结论
 
-当前 Gallery 是 `lower_bound_reference_templates_only`，不能声明为 publication-ready。模板提供质量下限和图型结构参考；AI 被授权按论文具体主张自由修改结构、排版、标签、配色和组合方式来拔高上限。
+当前画册定位为 `lower_bound_reference_templates_only`：它提供统一风格、图型结构和程序化出图起点。真实论文 publication-ready 结论由 paper-local visual audit、证据引用检查和 owner receipt 签认；AI 被授权按论文具体主张自由修改结构、排版、标签、配色和组合方式来拔高上限。
 
 - overall_status: `not_publication_ready`
 - publication_ready_claim_authorized: `false`
@@ -32,7 +32,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - `vector_or_high_resolution_export_recorded`
 - `visual_audit_receipt_or_residual_item_recorded`
 
-## Figure Workflow 前置检查
+## 图件工作流前置检查
 
 - `core_conclusion_and_evidence_chain_locked`
 - `storyboard_panel_hierarchy_declared`
@@ -44,14 +44,14 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - `visual_audit_receipt_or_residual_item_recorded`
 - `owner_or_publication_gate_receipt_present_for_claim_bearing_figures`
 
-## Composition Recipe 前置检查
+## 页面级图页方案前置检查
 
 - `composition_recipe_selected_or_explicitly_declined`
 - `hero_panel_role_declared`
 - `shared_legend_or_direct_label_strategy_declared`
 - `programmatic_evidence_primitives_preserve_data_statistics_refs`
 
-## 页面级 Composition Recipe Gallery
+## 页面级图页方案
 
 | Recipe | Title | Hero panel | Supporting | Primitive families | Programmatic evidence | Design shell |
 | --- | --- | --- | ---: | ---: | --- | --- |
@@ -139,7 +139,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | Publication Shells and Tables | `done` | 100% | 0 | 0 | 0 |
 | Time-to-Event | `done` | 100% | 5 | 5 | 0 |
 
-## 当前 Python Evidence
+## 当前 Python 数据证据模板
 
 | Template | Category | Kind | Renderer | Reason |
 | --- | --- | --- | --- | --- |

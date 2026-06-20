@@ -5,10 +5,8 @@ import html
 from med_autoscience import publication_display_contract as display_contract
 from med_autoscience.display_pack_gallery_catalog import (
     TemplateRecord,
-    canonical_family_wording,
     family_categories,
     gallery_display_records,
-    visual_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.composition_gallery import (
@@ -17,10 +15,20 @@ from med_autoscience.display_pack_gallery_parts.composition_gallery import (
 from med_autoscience.display_pack_gallery_parts.composition_html import (
     render_composition_gallery_html,
 )
+from med_autoscience.display_pack_gallery_parts.gallery_copy import (
+    GALLERY_SCOPE,
+    GALLERY_SUBTITLE,
+    GALLERY_TITLE,
+    GALLERY_WORKFLOW_STEPS,
+    evidence_category_copy,
+    evidence_copy,
+)
+from med_autoscience.display_pack_gallery_parts.html_style import GALLERY_CSS
 from med_autoscience.display_pack_gallery_parts.taxonomy import CATEGORY_ORDER
 from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
     composition_recipe_discovery_payload,
 )
+
 
 def _html_id(value: str) -> str:
     return "".join(ch if ch.isalnum() else "-" for ch in value).strip("-")
@@ -47,6 +55,59 @@ def _asset_html(asset: RenderedAsset, *, label: str) -> str:
 </div>"""
 
 
+def _workflow_html() -> str:
+    cards = []
+    for step, title, body in GALLERY_WORKFLOW_STEPS:
+        cards.append(
+            f"""
+<div class="workflow-card">
+  <div class="step">步骤 {html.escape(step)}</div>
+  <h3>{html.escape(title)}</h3>
+  <p>{html.escape(body)}</p>
+</div>"""
+        )
+    return f"""
+<section class="section" id="how-to-read">
+  <div class="section-label">读法</div>
+  <h2>从论文论点到可审计图件</h2>
+  <p class="section-lead">MAS 的模板库不是限制 AI 创作的硬模板，而是提供结构清晰、风格统一、统计含义可追踪的起点。AI 可以在保留科学语义和数据引用的前提下继续重排、改写和打磨。</p>
+  <div class="workflow">{''.join(cards)}</div>
+</section>"""
+
+
+def _metrics_html(*, visible_count: int, composition_count: int, rendered_count: int, style_profile_id: str) -> str:
+    metrics = (
+        (str(composition_count), "页面级图页方案"),
+        (str(visible_count), "R/ggplot2 证据图起点"),
+        ("R", "默认数据证据语言"),
+        (str(rendered_count), f"已渲染示例，{style_profile_id}"),
+    )
+    return "".join(
+        f'<div class="metric"><strong>{html.escape(value)}</strong><span>{html.escape(label)}</span></div>'
+        for value, label in metrics
+    )
+
+
+def _palette_html(palette: dict[str, str]) -> str:
+    labels = (
+        ("primary", "主色"),
+        ("secondary", "辅助色"),
+        ("tertiary", "强调色"),
+        ("quaternary", "对比色"),
+        ("neutral", "中性色"),
+        ("heatmap_seq_high", "连续热图高值"),
+        ("heatmap_high", "发散热图高值"),
+    )
+    return "".join(
+        (
+            f'<span class="swatch"><span class="box" style="background:{html.escape(palette[key])}"></span>'
+            f'{html.escape(label)}</span>'
+        )
+        for key, label in labels
+        if key in palette
+    )
+
+
 def _render_html(
     records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
@@ -59,43 +120,19 @@ def _render_html(
     default_style = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD
     palette = default_style["palette"]
     visible_records = gallery_display_records(records)
-    canonical_visual_records = visual_gallery_records(records)
     composition_surface = composition_recipe_discovery_payload(include_recipes=True)
     composition_gallery = build_composition_gallery_surface(composition_surface, records)
     rendered_count = sum(1 for record in visible_records if rendered[record.template_id].status == "rendered")
-    r_evidence_count = sum(
-        1
-        for record in visible_records
-        if record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
-    )
-    meta = (
-        f'<span class="pill">style_profile_id: {html.escape(default_style["style_profile_id"])}</span>'
-        f'<span class="pill">journal_palette_ref: {html.escape(default_style["journal_palette_ref"])}</span>'
-        f'<span class="pill">gallery cards: {len(visible_records)}</span>'
-        f'<span class="pill">gallery scope: composition recipes + canonical R/ggplot2 evidence</span>'
-        f'<span class="pill">composition recipes: {composition_gallery["composition_recipe_count"]}</span>'
-        f'<span class="pill">R/ggplot2 evidence: {r_evidence_count}</span>'
-        f'<span class="pill">Python evidence: 0</span>'
-        f'<span class="pill">canonical evidence representatives: {len(canonical_visual_records)}</span>'
-        f'<span class="pill">rendered images: {rendered_count}</span>'
-    )
-    swatches = "".join(
-        (
-            f'<span class="swatch"><span class="box" style="background:{html.escape(palette[key])}"></span>'
-            f'<code>{html.escape(key)}</code></span>'
-        )
-        for key in ("primary", "secondary", "tertiary", "quaternary", "violet", "neutral", "heatmap_seq_high", "heatmap_high")
-        if key in palette
-    )
     nav = "\n".join(
         [
             (
-                f'<a href="#composition-recipes"><span>Composition Recipes</span>'
+                f'<a href="#how-to-read"><span>读法</span><strong>4</strong></a>'
+                f'<a href="#composition-recipes"><span>图页方案</span>'
                 f'<strong>{composition_gallery["composition_recipe_count"]}</strong></a>'
             )
         ]
         + [
-            f'<a href="#family-{_html_id(category)}"><span>{html.escape(category)}</span><strong>{len(categories[category])}</strong></a>'
+            f'<a href="#family-{_html_id(category)}"><span>{html.escape(evidence_category_copy(category)[0])}</span><strong>{len(categories[category])}</strong></a>'
             for category in ordered_categories
         ]
     )
@@ -104,39 +141,34 @@ def _render_html(
         cards: list[str] = []
         for record in sorted(categories[category], key=lambda item: (item.kind, item.canonical_family_id)):
             asset = rendered[record.template_id]
-            tags = "".join(
-                f'<span class="tag">{html.escape(tag)}</span>'
-                for tag in (
-                    record.canonical_family_id,
-                    record.kind,
-                    record.renderer_family,
-                    "canonical",
-                )
-            )
-            family_wording = canonical_family_wording(record)
-            if record.kind == "illustration_shell":
-                pane_label = "Python / SVG composition shell"
-            else:
-                pane_label = "R / ggplot2 evidence"
-            panes = _asset_html(asset, label=pane_label)
+            copy = evidence_copy(record)
+            panes = _asset_html(asset, label="R/ggplot2 数据证据图")
             if asset.status != "rendered":
-                panes = f'<div class="placeholder"><strong>{html.escape(record.canonical_family_title)}</strong><span>{html.escape(record.kind)} · {html.escape(record.renderer_family)}</span><em>{html.escape(asset.reason or "no renderer output")}</em></div>'
+                panes = f'<div class="placeholder"><strong>{html.escape(record.display_name)}</strong><span>{html.escape(record.kind)} · {html.escape(record.renderer_family)}</span><em>{html.escape(asset.reason or "no renderer output")}</em></div>'
             cards.append(
                 f"""
 <article class="card" id="template-{html.escape(record.template_id)}">
-  <div class="panes">{panes}</div>
+  {panes}
   <div class="card-body">
-    <h3>{html.escape(record.canonical_family_title)}</h3>
-    <p><code>{html.escape(record.template_id)}</code></p>
-    <p>{html.escape(family_wording)}</p>
-    <div class="tags">{tags}</div>
+    <h4>{html.escape(record.display_name)}</h4>
+    <p><strong>表达目的：</strong>{html.escape(copy.purpose)}</p>
+    <p><strong>数据要求：</strong>{html.escape(copy.data_requirement)}</p>
+    <p><strong>适用场景：</strong>{html.escape(copy.use_when)}</p>
+    <div class="callout">调用入口：<span class="template-id">{html.escape(record.template_id)}</span></div>
   </div>
 </article>"""
             )
+        category_title, category_lead = evidence_category_copy(category)
         sections.append(
             f"""
-<section class="section" id="family-{_html_id(category)}">
-  <h2>{html.escape(category)} <span>{len(categories[category])}</span></h2>
+<section class="category-block" id="family-{_html_id(category)}">
+  <div class="category-head">
+    <div>
+      <h3>{html.escape(category_title)}</h3>
+      <p>{html.escape(category_lead)}</p>
+    </div>
+    <div class="category-count">{len(categories[category])} 个模板</div>
+  </div>
   <div class="cards">{''.join(cards)}
   </div>
 </section>"""
@@ -149,80 +181,30 @@ def _render_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MAS Display Pack Figure Gallery</title>
-<style>
-:root{{--ink:#272727;--muted:#666;--line:#e4e7eb;--bg:#f7f8fa;--card:#fff;}}
-*{{box-sizing:border-box}}
-body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.42}}
-a{{color:#0f4d92;text-decoration:none}}a:hover{{text-decoration:underline}}
-header{{padding:22px 30px 16px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}}
-h1{{margin:0 0 8px;font-size:25px;letter-spacing:0}}
-.sub{{max-width:1080px;color:var(--muted);font-size:14px}}
-.meta,.palette{{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}}
-.pill,.swatch{{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;color:#333}}
-.swatch{{display:inline-flex;align-items:center;gap:7px}}
-.box{{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.14)}}
-.layout{{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;padding:22px 28px 40px}}
-.nav{{position:sticky;top:118px;align-self:start;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}}
-.nav h2{{font-size:13px;margin:0 0 8px;color:#555}}
-.nav a{{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #eef1f4;font-size:13px;color:#333}}
-.nav a:first-of-type{{border-top:0}}
-.section{{margin:0 0 28px}}
-.section h2{{margin:0 0 12px;font-size:21px}}.section h2 span{{font-size:13px;color:var(--muted);font-weight:500}}
-.cards{{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}}
-.card{{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;break-inside:avoid}}
-.panes{{display:grid;grid-template-columns:1fr;background:#fff;border-bottom:1px solid var(--line)}}
-.panes.compare{{grid-template-columns:1fr 1fr}}
-.figure-pane{{min-width:0;border-right:1px solid var(--line)}}
-.figure-pane:last-child{{border-right:0}}
-.pane-label{{font-size:11px;color:#555;padding:7px 9px;border-bottom:1px solid #eef1f4;background:#fbfcfd}}
-.image-link{{display:block;background:#fff}}
-.image-link img{{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff}}
-.asset-links{{font-size:11px;color:#555;padding:7px 9px;border-top:1px solid #eef1f4}}
-.placeholder{{height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;background:#fff;border-bottom:1px solid var(--line);color:#555}}
-.placeholder strong{{color:#333}}.placeholder span,.placeholder em{{font-size:12px}}
-.card-body{{padding:11px 12px}}
-.card h3{{margin:0 0 5px;font-size:15px;line-height:1.28}}
-.card p{{margin:5px 0;font-size:12px;color:#555}}
-.tags{{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}}
-.tag{{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:#fbfcfd;color:#555}}
-.composition-section{{margin-bottom:34px}}
-.composition-intro{{font-size:13px;color:var(--muted);margin:0 0 12px;max-width:980px}}
-.composition-cards{{display:grid;grid-template-columns:1fr;gap:18px}}
-.composition-card{{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;break-inside:avoid}}
-.composition-head{{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:7px}}
-.composition-head h3{{margin:0;font-size:17px;line-height:1.25}}
-.composition-card p{{font-size:13px;color:#555;margin:0 0 12px;max-width:980px}}
-.storyboard{{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:8px;margin:10px 0 12px}}
-.story-panel{{border:1px solid var(--line);border-radius:7px;background:#fff;overflow:hidden;min-width:0}}
-.story-panel.hero{{grid-row:span 2}}
-.story-image{{background:#fff;min-height:128px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #eef1f4}}
-.story-panel.hero .story-image{{min-height:270px}}
-.story-image img{{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff}}
-.panel-placeholder{{font-size:12px;line-height:1.3;color:#777;text-align:center;text-transform:uppercase;letter-spacing:.02em}}
-.story-meta{{padding:8px;font-size:11px;color:#555;display:flex;flex-direction:column;gap:4px}}
-.story-meta strong{{font-size:12px;color:#333;line-height:1.2}}
-.story-meta code{{white-space:normal;overflow-wrap:anywhere}}
-.mini-note{{display:inline-block;margin-left:5px;border:1px solid #d7dce2;border-radius:999px;padding:0 5px;font-size:10px;color:#777}}
-.composition-grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}
-.composition-grid>div{{border-top:1px solid #eef1f4;padding-top:7px;font-size:12px;color:#555;min-width:0}}
-.composition-grid strong{{display:block;color:#333;margin-bottom:4px}}
-.composition-grid span{{display:block;overflow-wrap:anywhere}}
-@media(max-width:900px){{header{{position:static}}.layout{{display:block;padding:16px}}.nav{{position:static;margin-bottom:18px}}.cards{{grid-template-columns:1fr}}.panes.compare{{grid-template-columns:1fr}}.figure-pane{{border-right:0;border-bottom:1px solid var(--line)}}}}
-@media(max-width:900px){{.storyboard{{grid-template-columns:1fr 1fr}}.story-panel.hero{{grid-column:1/-1}}.composition-grid{{grid-template-columns:1fr 1fr}}}}
-@media print{{@page{{size:A4;margin:10mm}}header{{position:static}}.layout{{display:block;padding:0}}.nav{{display:none}}.section h2{{font-size:18px;margin-bottom:8px}}.cards{{grid-template-columns:repeat(2,1fr);gap:10px}}.composition-intro{{font-size:11px;margin-bottom:8px}}.composition-card{{break-inside:avoid;page-break-inside:avoid;page-break-after:always;padding:8px;margin:0 0 8px}}.composition-head{{margin-bottom:4px}}.composition-head h3{{font-size:15px}}.composition-card p{{font-size:10px;margin-bottom:6px}}.storyboard{{grid-template-columns:1.2fr 1fr 1fr;grid-auto-rows:auto;gap:5px;margin:5px 0 7px}}.story-panel.hero{{grid-row:span 2}}.story-image{{height:78px;min-height:0}}.story-panel.hero .story-image{{height:161px;min-height:0}}.story-image img{{width:100%;height:100%;aspect-ratio:auto;object-fit:contain}}.panel-placeholder{{font-size:9px}}.story-meta{{padding:4px;font-size:8px;gap:1px}}.story-meta strong{{font-size:9px}}.composition-grid{{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}}.composition-grid>div{{font-size:8px;padding-top:3px}}.tag{{font-size:8px;padding:1px 4px}}body{{background:#fff}}.card{{break-inside:avoid}}}}
-</style>
+<title>{html.escape(GALLERY_TITLE)}</title>
+<style>{GALLERY_CSS}</style>
 </head>
 <body>
-<header>
-  <h1>MAS Display Pack Figure Gallery</h1>
-    <div class="sub">先展示页面级 composition recipe，再展示 canonical current R/ggplot2 数据证据图。Composition recipe 是论文图页 storyboard，不是真实数据结果、不签 publication-ready；重复输入数据变体已退役为 alias，未证明优于 R/ggplot2 的 Python evidence 模板不进入当前 pack。</div>
-  <div class="meta">{meta}</div>
-  <div class="palette">{swatches}</div>
-</header>
-<div class="layout">
-<nav class="nav"><h2>索引</h2>{nav}</nav>
-<main>{composition_section}{''.join(sections)}</main>
+<div class="page">
+<nav class="nav"><div class="nav-title">目录</div>{nav}</nav>
+<main>
+  <section class="hero">
+    <div class="eyebrow">MedAutoScience Display Pack</div>
+    <h1>{html.escape(GALLERY_TITLE)}</h1>
+    <p class="subtitle">{html.escape(GALLERY_SUBTITLE)}</p>
+    <p class="scope">{html.escape(GALLERY_SCOPE)}</p>
+    <div class="metrics">{_metrics_html(visible_count=len(visible_records), composition_count=composition_gallery["composition_recipe_count"], rendered_count=rendered_count, style_profile_id=str(default_style["style_profile_id"]))}</div>
+    <div class="palette-row">{_palette_html(palette)}</div>
+  </section>
+  {_workflow_html()}
+  {composition_section}
+  <section class="section" id="evidence-primitives">
+    <div class="section-label">第二部分</div>
+    <h2>R/ggplot2 数据证据图起点 <span>{len(visible_records)} 个</span></h2>
+    <p class="section-lead">这些证据图起点是 MAS 默认数据证据图入口。它们按医学表达目的组织，强调输入数据、统计语义、统一风格和可审计导出；AI 可在论文级语义约束下继续调整图形结构。</p>
+    {''.join(sections)}
+  </section>
+</main>
 </div>
 </body>
 </html>
