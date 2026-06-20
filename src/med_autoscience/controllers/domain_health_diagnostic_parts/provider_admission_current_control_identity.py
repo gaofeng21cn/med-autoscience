@@ -25,6 +25,11 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
     provider_identity = _candidate_with_authority_boundaries(candidate)
     action = provider_admission_current_control_action(provider_identity)
     owner_route = _mapping(action.get("owner_route"))
+    next_executable_owner = (
+        _non_empty_text(action.get("next_executable_owner"))
+        or _non_empty_text(action.get("owner"))
+        or _provider_candidate_next_executable_owner(provider_identity)
+    )
     study_id = _non_empty_text(provider_identity.get("study_id"))
     route_key = route_identity_key(provider_identity)
     attempt_key = attempt_idempotency_key(provider_identity)
@@ -42,6 +47,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
                     "provider_admission_requires_opl_runtime_result"
                 ),
                 "opl_transition_runtime_required": action.get("opl_transition_runtime_required"),
+                "next_executable_owner": next_executable_owner,
             }.items()
             if value not in (None, "", [], {})
         },
@@ -54,7 +60,7 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
     )
     current_execution_envelope = _mapping(provider_identity.get("current_execution_envelope")) or {
         "state_kind": "executable_owner_action",
-        "owner": _non_empty_text(provider_identity.get("next_executable_owner")) or "one-person-lab",
+        "owner": next_executable_owner or "one-person-lab",
         "next_work_unit": _non_empty_text(provider_identity.get("work_unit_id")),
         "typed_blocker": None,
         "parked_state": None,
@@ -131,6 +137,11 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         transition_request = _mapping(
             paper_policy_result.get("opl_domain_progress_transition_request")
         )
+    next_executable_owner = _provider_candidate_next_executable_owner(
+        candidate,
+        policy_result=paper_policy_result,
+        transition_request=transition_request,
+    )
     opl_readback = provider_admission_opl_transition_readback(candidate)
     provider_admission_pending = bool(opl_readback)
     provider_attempt_required = provider_admission_pending
@@ -177,7 +188,7 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         "route_epoch": action_fingerprint,
         "source_fingerprint": action_fingerprint,
         "current_owner": "med-autoscience",
-        "next_owner": _non_empty_text(candidate.get("next_executable_owner")),
+        "next_owner": next_executable_owner,
         "owner_reason": work_unit_id or action_type,
         "active_run_id": None,
         "allowed_actions": [action_type] if action_type is not None else [],
@@ -197,9 +208,10 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "action_id": f"provider-admission::{study_id}::{action_type}",
             "status": action_status,
             "reason": action_reason,
-            "owner": _non_empty_text(candidate.get("next_executable_owner")),
-            "request_owner": _non_empty_text(candidate.get("next_executable_owner")),
-            "recommended_owner": _non_empty_text(candidate.get("next_executable_owner")),
+            "owner": next_executable_owner,
+            "request_owner": next_executable_owner,
+            "recommended_owner": next_executable_owner,
+            "next_executable_owner": next_executable_owner,
             "authority": "mas_provider_admission_identity",
             "required_output_surface": _non_empty_text(candidate.get("required_output_surface")),
             "work_unit_id": work_unit_id,
@@ -233,10 +245,10 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
             "handoff_packet": {
                 "surface": "provider_admission_current_control_handoff",
                 "authority": "mas_provider_admission_identity",
-                "owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "request_owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "recommended_owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "next_executable_owner": _non_empty_text(candidate.get("next_executable_owner")),
+                "owner": next_executable_owner,
+                "request_owner": next_executable_owner,
+                "recommended_owner": next_executable_owner,
+                "next_executable_owner": next_executable_owner,
                 "required_output_surface": _non_empty_text(candidate.get("required_output_surface")),
                 "next_work_unit": work_unit_id,
                 "work_unit_fingerprint": action_fingerprint,
@@ -270,6 +282,33 @@ def provider_admission_current_control_action(candidate: Mapping[str, Any]) -> d
         }.items()
         if value not in (None, "", [], {})
     }
+
+
+def _provider_candidate_next_executable_owner(
+    candidate: Mapping[str, Any],
+    *,
+    policy_result: Mapping[str, Any] | None = None,
+    transition_request: Mapping[str, Any] | None = None,
+) -> str | None:
+    policy = _mapping(policy_result) or _mapping(candidate.get("paper_progress_policy_result"))
+    request = _mapping(transition_request) or _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(policy.get("opl_domain_progress_transition_request"))
+    return (
+        _non_empty_text(candidate.get("next_executable_owner"))
+        or _non_empty_text(candidate.get("request_owner"))
+        or _non_empty_text(candidate.get("recommended_owner"))
+        or _non_empty_text(policy.get("next_executable_owner"))
+        or _non_empty_text(policy.get("request_owner"))
+        or _non_empty_text(policy.get("recommended_owner"))
+        or _non_empty_text(policy.get("owner"))
+        or _non_empty_text(policy.get("next_owner"))
+        or _non_empty_text(request.get("next_executable_owner"))
+        or _non_empty_text(request.get("request_owner"))
+        or _non_empty_text(request.get("recommended_owner"))
+        or _non_empty_text(request.get("next_owner"))
+        or _non_empty_text(candidate.get("owner"))
+    )
 
 
 def _candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:

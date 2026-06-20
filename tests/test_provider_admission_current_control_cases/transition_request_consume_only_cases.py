@@ -118,6 +118,115 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
     assert decision["evidence"]["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
 
 
+def test_provider_admission_current_control_backfills_owner_from_transition_request(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    action_fingerprint = "paper-policy-request:afa135a3051e8aa76700b447"
+    route_key = action_fingerprint
+    transition_request = {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "next_owner": "ai_reviewer",
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "request_idempotency_key": route_key,
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    }
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "owner": "ai_reviewer",
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": transition_request["currentness_basis"],
+        "opl_domain_progress_transition_request": dict(transition_request),
+        "paper_progress_policy_result": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "opl_domain_progress_transition_request": dict(transition_request),
+        },
+        "opl_domain_progress_transition_runtime_live_readback": _opl_transition_readback(
+            study_id,
+            action_fingerprint=action_fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=route_key,
+            attempt_idempotency_key=route_key,
+            request_idempotency_key=route_key,
+        ),
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-20T22:35:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    [provider_candidate] = result["provider_admission_candidates"]
+    assert provider_candidate["owner"] == "ai_reviewer"
+    assert provider_candidate["next_executable_owner"] == "ai_reviewer"
+    [study] = result["studies"]
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["provider_admission_candidates"][0]["next_executable_owner"] == "ai_reviewer"
+    [action] = result["action_queue"]
+    assert action["next_executable_owner"] == "ai_reviewer"
+    assert action["owner_route"]["next_owner"] == "ai_reviewer"
+    assert action["handoff_packet"]["next_executable_owner"] == "ai_reviewer"
+
+
 def test_owner_receipt_current_work_unit_keeps_accepted_owner_gate_transition_request(
     tmp_path: Path,
 ) -> None:

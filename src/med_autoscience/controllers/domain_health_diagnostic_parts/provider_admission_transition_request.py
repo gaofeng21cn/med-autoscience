@@ -43,6 +43,13 @@ def candidate_with_opl_transition_request(
         transition_request,
         readback=trusted_provider_readback,
     )
+    next_executable_owner = _candidate_next_executable_owner(
+        payload,
+        policy_result=policy_result,
+        transition_request=transition_request,
+    )
+    if next_executable_owner is not None:
+        payload["next_executable_owner"] = next_executable_owner
     if policy_result:
         policy_payload = dict(policy_result)
         if transition_request:
@@ -65,6 +72,29 @@ def candidate_with_opl_transition_request(
     if not has_readback:
         payload["provider_attempt_or_lease_required"] = False
     return payload
+
+
+def _candidate_next_executable_owner(
+    candidate: Mapping[str, Any],
+    *,
+    policy_result: Mapping[str, Any],
+    transition_request: Mapping[str, Any],
+) -> str | None:
+    return (
+        _non_empty_text(candidate.get("next_executable_owner"))
+        or _non_empty_text(candidate.get("request_owner"))
+        or _non_empty_text(candidate.get("recommended_owner"))
+        or _non_empty_text(policy_result.get("next_executable_owner"))
+        or _non_empty_text(policy_result.get("request_owner"))
+        or _non_empty_text(policy_result.get("recommended_owner"))
+        or _non_empty_text(policy_result.get("owner"))
+        or _non_empty_text(policy_result.get("next_owner"))
+        or _non_empty_text(transition_request.get("next_executable_owner"))
+        or _non_empty_text(transition_request.get("request_owner"))
+        or _non_empty_text(transition_request.get("recommended_owner"))
+        or _non_empty_text(transition_request.get("next_owner"))
+        or _non_empty_text(candidate.get("owner"))
+    )
 
 
 def _candidate_current_work_unit(candidate: Mapping[str, Any]) -> dict[str, Any]:
