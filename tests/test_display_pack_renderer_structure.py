@@ -340,6 +340,42 @@ if (requireNamespace("Rtsne", quietly = TRUE) && requireNamespace("uwot", quietl
     assert result.returncode == 0, result.stderr
 
 
+def test_embedding_layout_sidecar_preserves_nonzero_panel_and_point_positions() -> None:
+    from med_autoscience.display_pack_gallery_parts.publication_payloads import PUBLICATION_R_DISPLAY_PAYLOADS
+
+    payload = PUBLICATION_R_DISPLAY_PAYLOADS["pca_scatter_grouped"]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        payload_path = Path(tmpdir) / "pca_payload.json"
+        payload_path.write_text(json.dumps(payload), encoding="utf-8")
+        r_script = """
+Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
+source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+payload <- jsonlite::fromJSON("__PAYLOAD_PATH__", simplifyVector = FALSE)
+plot <- build_evidence_plot("pca_scatter_grouped", payload)
+sidecar <- build_layout_sidecar(plot, "pca_scatter_grouped", payload)
+panel <- sidecar$panel_boxes[[1]]
+stopifnot((panel$x1 - panel$x0) > 0.5)
+stopifnot((panel$y1 - panel$y0) > 0.5)
+point_keys <- vapply(
+  sidecar$metrics$points,
+  function(point) paste(round(point$x, 4), round(point$y, 4)),
+  character(1)
+)
+stopifnot(length(unique(point_keys)) == length(point_keys))
+""".replace("__PAYLOAD_PATH__", payload_path.as_posix())
+
+        result = subprocess.run(
+            ["Rscript", "-e", r_script],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=90,
+        )
+
+    assert result.returncode == 0, result.stderr
+
+
 def test_core_pack_representative_p1_default_renderers_render_with_r_subprocess() -> None:
     promoted_payloads: dict[str, dict[str, object]] = {
         "risk_layering_monotonic_bars": {

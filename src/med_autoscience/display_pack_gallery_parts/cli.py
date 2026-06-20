@@ -20,6 +20,7 @@ from med_autoscience.display_pack_gallery_parts.rendering import (
     _render_r_template,
 )
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
+from med_autoscience.display_template_catalog import render_display_template_catalog_markdown
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -76,6 +77,15 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
     return rendered, {}
 
 
+def _publish_template_catalog() -> None:
+    paths.DOCS_TEMPLATE_CATALOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    paths.DOCS_TEMPLATE_CATALOG_PATH.write_text(
+        render_display_template_catalog_markdown(),
+        encoding="utf-8",
+    )
+    _strip_trailing_whitespace(paths.DOCS_TEMPLATE_CATALOG_PATH)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     paths.configure_output_paths(args.output_root)
@@ -111,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     _export_pdf()
     if args.publish_docs:
         _copy_docs_gallery()
+        _publish_template_catalog()
 
     visible_records = gallery_display_records(records)
     print(

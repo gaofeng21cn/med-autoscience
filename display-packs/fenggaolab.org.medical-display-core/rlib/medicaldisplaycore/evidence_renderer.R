@@ -900,6 +900,35 @@ layout_box_from_indices <- function(widths, heights, left, right, top, bottom, b
   box_record(box_id, box_type, x0, y0, x1, y1)
 }
 
+resolved_layout_unit_sizes <- function(units, total_inches, axis) {
+  unit_types <- as.character(grid::unitType(units))
+  sizes <- numeric(length(units))
+  null_weights <- numeric(length(units))
+  for (index in seq_along(units)) {
+    if (identical(unit_types[[index]], "null")) {
+      null_weights[[index]] <- max(0, as.numeric(units[index]))
+      next
+    }
+    converted <- suppressWarnings(if (identical(axis, "width")) {
+      grid::convertWidth(units[index], "in", valueOnly = TRUE)
+    } else {
+      grid::convertHeight(units[index], "in", valueOnly = TRUE)
+    })
+    if (is.finite(converted)) {
+      sizes[[index]] <- max(0, as.numeric(converted))
+    }
+  }
+  null_total <- sum(null_weights)
+  if (null_total > 0) {
+    remaining <- max(as.numeric(total_inches) - sum(sizes), 0)
+    sizes[null_weights > 0] <- remaining * null_weights[null_weights > 0] / null_total
+  }
+  if (!is.finite(total_inches) || total_inches <= 0) {
+    return(sizes)
+  }
+  sizes / as.numeric(total_inches)
+}
+
 find_layout_box <- function(gt, widths, heights, prefixes, box_id, box_type) {
   layout_names <- gt$layout$name
   layout_index <- integer(0)
@@ -1130,8 +1159,8 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
   grid::grid.newpage()
   grid::grid.draw(gt)
   grid::grid.force()
-  widths <- grid::convertWidth(gt$widths, "npc", valueOnly = TRUE)
-  heights <- grid::convertHeight(gt$heights, "npc", valueOnly = TRUE)
+  widths <- resolved_layout_unit_sizes(gt$widths, output_width, "width")
+  heights <- resolved_layout_unit_sizes(gt$heights, output_height, "height")
   title_box <- find_layout_box(gt, widths, heights, c("title"), "title", "title")
   x_axis_title_box <- find_layout_box(gt, widths, heights, c("xlab-b"), "x_axis_title", "x_axis_title")
   y_axis_title_box <- find_layout_box(gt, widths, heights, c("ylab-l"), "y_axis_title", "y_axis_title")
