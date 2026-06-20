@@ -20,6 +20,7 @@ from ...shared_parts.flow_layout import (
     _run_graphviz_layout,
 )
 
+from ._participant_flow import _render_participant_flow
 from ._single_panel import _render_single_panel_cards
 from ._specs import (
     _build_cohort_flow_design_panel_specs,
@@ -33,7 +34,7 @@ from ._write_outputs import _write_multi_panel_outputs
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
     "full_right": "wide_top",
 }
-_COHORT_FLOW_LAYOUT_MODES = {"two_panel_flow", "single_panel_cards"}
+_COHORT_FLOW_LAYOUT_MODES = {"two_panel_flow", "single_panel_cards", "participant_flow"}
 _COHORT_FLOW_STEP_ROLE_LABELS: dict[str, str] = {
     "historical_reference": "Historical patient reference",
     "current_patient_surface": "Current patient surface",
@@ -144,6 +145,44 @@ def _render_cohort_flow_figure(
     exclusion_min_rendered_height_pt = read_float(layout_override, "flow_exclusion_min_rendered_height_pt", 58.0)
     step_min_rendered_padding_pt = read_float(layout_override, "flow_step_min_rendered_padding_pt", 8.0)
     exclusion_min_rendered_padding_pt = read_float(layout_override, "flow_exclusion_min_rendered_padding_pt", 6.0)
+
+    if layout_mode == "participant_flow":
+        _render_participant_flow(
+            output_svg_path=output_svg_path,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            output_layout_path=output_layout_path,
+            title=title,
+            steps=steps,
+            exclusions=exclusions,
+            endpoint_inventory=endpoint_inventory,
+            design_panels=design_panels,
+            comparison_summary=comparison_summary,
+            layout_override=layout_override,
+            side_margin_pt=side_margin_pt,
+            figure_width_pt=figure_width_pt,
+            flow_main_fill=flow_main_fill,
+            flow_main_edge=flow_main_edge,
+            flow_exclusion_fill=flow_exclusion_fill,
+            flow_exclusion_edge=flow_exclusion_edge,
+            flow_primary_fill=flow_primary_fill,
+            flow_primary_edge=flow_primary_edge,
+            flow_secondary_fill=flow_secondary_fill,
+            flow_secondary_edge=flow_secondary_edge,
+            flow_context_fill=flow_context_fill,
+            flow_context_edge=flow_context_edge,
+            flow_title_text=flow_title_text,
+            flow_body_text=flow_body_text,
+            flow_connector=flow_connector,
+            base_card_title_size=base_card_title_size,
+            base_label_size=base_label_size,
+            base_detail_size=base_detail_size,
+            base_secondary_linewidth=base_secondary_linewidth,
+            base_connector_linewidth=base_connector_linewidth,
+            render_context_payload=render_context_payload,
+            read_float=read_float,
+        )
+        return
 
     if layout_mode == "single_panel_cards":
         _render_single_panel_cards(
