@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 NATURE_SKILLS_ADOPTION_CONTRACT = (
     REPO_ROOT / "contracts/nature_skills_learning_adoption.json"
 )
-UPSTREAM_HEAD_2026_06_18 = "1cb9070fdd94929d5f267ce6585ac87e2cba60b3"
+UPSTREAM_HEAD_2026_06_20_FIGURE = "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
 
 
 def _load_nature_skills_adoption_contract() -> dict[str, object]:
@@ -367,8 +367,8 @@ def test_nature_router_manifest_learning_records_fresh_upstream_commit_and_patte
 
     assert isinstance(source, dict)
     assert source["project"] == "Yuan1z0825/nature-skills"
-    assert source["observed_head"] == UPSTREAM_HEAD_2026_06_18
-    assert source["observed_date"] == "2026-06-18"
+    assert source["observed_head"] == UPSTREAM_HEAD_2026_06_20_FIGURE
+    assert source["observed_date"] == "2026-06-20"
     assert set(source["evidence_commands"]) == {
         "git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main",
         "git rev-parse HEAD after shallow clone",
@@ -381,6 +381,12 @@ def test_nature_router_manifest_learning_records_fresh_upstream_commit_and_patte
         "axis_specific_static_fragments",
         "on_demand_references",
         "explicit_loading_gates",
+        "core_conclusion_before_plotting",
+        "evidence_chain_panel_mapping",
+        "figure_archetype_first_layout",
+        "mas_r_first_nonblocking_backend_policy",
+        "query_to_medical_figure_family_route",
+        "final_visual_qa_after_render",
     } <= set(payload["learned_patterns"])
 
     assert adoption["classification"] == "adopt_template"
@@ -402,6 +408,36 @@ def test_nature_router_manifest_learning_records_fresh_upstream_commit_and_patte
         "default_skill_source",
         "second_selector",
         "always_on_advisory_scan",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority",
+    } <= set(adoption["forbidden_authority"])
+
+
+def test_nature_figure_contract_learning_lands_in_mas_display_owner_surfaces() -> None:
+    payload = _load_nature_skills_adoption_contract()
+    adoption = _adoptions_by_pattern(payload)["mas_r_first_figure_contract_policy"]
+
+    assert adoption["classification"] == "adapt"
+    assert adoption["landing_status"] == "owner_surface_landed"
+    assert {
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_agent_figure_intent",
+        "display_pack_agent_figure_plan",
+        "display_pack_gallery_manifest",
+        "display_pack_gallery_quality_audit",
+        "medical_figure_family_catalog_qa_gates",
+    } <= set(adoption["owner_surfaces"])
+    assert {
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
+        "src/med_autoscience.display_pack_agent_parts.query_family_route.resolve_query_family_route",
+        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
+        "src/med_autoscience.display_pack_gallery_parts.quality.build_quality_audit",
+        "contracts/medical-figure-family-catalog/qa_gates.json",
+    } <= set(adoption["consumable_surfaces"])
+    assert {
+        "python_or_r_question_blocking_default_mas_evidence_path",
         "publication_readiness_authority",
         "quality_verdict_authority",
         "mas_truth_write_authority",

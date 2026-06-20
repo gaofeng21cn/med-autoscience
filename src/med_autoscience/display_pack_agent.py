@@ -21,9 +21,11 @@ from med_autoscience.display_pack_canonical_catalog import (
     canonical_catalog_entry_for_template,
     load_canonical_template_catalog,
 )
+from med_autoscience.display_pack_agent_parts.figure_contract import (
+    compile_display_figure_intent,
+    figure_contract_policy,
+)
 from med_autoscience.display_pack_agent_parts.template_fit import (
-    DEFAULT_KIND as _DEFAULT_KIND,
-    DEFAULT_RENDERER_PREFERENCE as _DEFAULT_RENDERER_PREFERENCE,
     hard_compatible,
     has_semantic_fit_anchor,
     minimum_fit_floor,
@@ -57,7 +59,6 @@ DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
 }
 
 _DEFAULT_REVIEWER_HASH = "0" * 64
-_DEFAULT_AUDIT_FAMILY = "Prediction Performance"
 
 
 @dataclass(frozen=True)
@@ -91,133 +92,6 @@ def _list(value: object) -> list[Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _text_list(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item).strip() for item in value if str(item).strip()]
-
-
-def _current_delta_text(delta: Mapping[str, Any], *keys: str) -> str:
-    for key in keys:
-        value = _text(delta.get(key))
-        if value:
-            return value
-    owner_route = _mapping(delta.get("owner_route"))
-    for key in keys:
-        value = _text(owner_route.get(key))
-        if value:
-            return value
-    return ""
-
-
-def _infer_audit_family(intent_text: str, delta: Mapping[str, Any], request: Mapping[str, Any]) -> str:
-    explicit = _text(request.get("audit_family"))
-    if explicit:
-        return explicit
-    lowered = " ".join(
-        [
-            intent_text,
-            _current_delta_text(delta, "action_type", "action_id", "work_unit_id"),
-            " ".join(_text_list(delta.get("route_required_ref_families"))),
-            " ".join(_text_list(delta.get("capability_families"))),
-        ]
-    ).lower()
-    if any(token in lowered for token in ("roc", "auc", "calibration", "decision curve", "dca", "prediction")):
-        return "Prediction Performance"
-    if any(token in lowered for token in ("survival", "kaplan", "hazard", "time-to-event")):
-        return "Time-to-event"
-    if any(token in lowered for token in ("forest", "subgroup", "effect", "odds ratio", "hazard ratio")):
-        return "Effects"
-    if any(token in lowered for token in ("baseline table", "table one", "characteristics")):
-        return "Table"
-    return _DEFAULT_AUDIT_FAMILY
-
-
-def _infer_query(intent_text: str, audit_family: str, delta: Mapping[str, Any], request: Mapping[str, Any]) -> str:
-    explicit = _text(request.get("query"))
-    if explicit:
-        return explicit
-    lowered = " ".join(
-        [
-            intent_text,
-            audit_family,
-            _current_delta_text(delta, "action_type", "work_unit_id", "desired_delta"),
-        ]
-    ).lower()
-    for token in ("roc", "calibration", "dca", "decision", "km", "kaplan", "forest", "nomogram", "baseline"):
-        if token in lowered:
-            return "decision curve" if token == "decision" else token
-    if audit_family == "Prediction Performance":
-        return "roc"
-    return audit_family.lower()
-
-
-def compile_display_figure_intent(
-    *,
-    current_owner_delta: Mapping[str, Any] | None = None,
-    claim_ref: str = "",
-    data_ref: str = "",
-    paper_target: str = "",
-    intent: str = "",
-    figure_request: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    delta = _mapping(current_owner_delta)
-    request = dict(figure_request or {})
-    intent_text = _text(
-        intent
-        or request.get("intent")
-        or request.get("figure_goal")
-        or request.get("claim_role")
-        or _current_delta_text(delta, "display_intent", "desired_delta", "summary", "action_type")
-    )
-    resolved_claim_ref = _text(claim_ref or request.get("claim_ref") or delta.get("claim_ref"))
-    resolved_data_ref = _text(data_ref or request.get("data_ref") or delta.get("data_ref"))
-    audit_family = _infer_audit_family(intent_text, delta, request)
-    figure_kind = _text(request.get("figure_kind") or request.get("kind") or _DEFAULT_KIND)
-    compiled_request = {
-        **request,
-        "figure_kind": figure_kind,
-        "audit_family": audit_family,
-        "preferred_renderer_family": _text(
-            request.get("preferred_renderer_family") or _DEFAULT_RENDERER_PREFERENCE
-        ),
-        "query": _infer_query(intent_text, audit_family, delta, request),
-        "claim_ref": resolved_claim_ref,
-        "data_ref": resolved_data_ref,
-        "paper_target": _text(paper_target or request.get("paper_target") or delta.get("paper_target")),
-        "claim_role": _text(request.get("claim_role") or intent_text or "display_current_owner_delta"),
-    }
-    if _text(request.get("template_id")):
-        compiled_request["template_id"] = _text(request.get("template_id"))
-    return {
-        "schema_version": 1,
-        "surface_kind": "display_pack_agent_figure_intent",
-        "status": "compiled",
-        "planning_root": "current_owner_delta",
-        "current_owner_delta": {
-            "action_type": _current_delta_text(delta, "action_type", "action_id"),
-            "owner": _current_delta_text(delta, "owner"),
-            "work_unit_id": _current_delta_text(delta, "work_unit_id"),
-            "work_unit_fingerprint": _current_delta_text(delta, "work_unit_fingerprint"),
-            "source_ref": _current_delta_text(delta, "source_ref"),
-        },
-        "claim_ref": resolved_claim_ref,
-        "data_ref": resolved_data_ref,
-        "paper_target": compiled_request["paper_target"],
-        "intent_text": intent_text,
-        "compiled_figure_request": compiled_request,
-        "missing_inputs": [
-            field
-            for field, value in {
-                "claim_ref": resolved_claim_ref,
-                "data_ref": resolved_data_ref,
-            }.items()
-            if not value
-        ],
-        "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
-    }
 
 
 def _full_template_id(record: LoadedDisplayTemplate) -> str:
@@ -367,6 +241,7 @@ def display_pack_capability_discover(
         "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
         "inventory": _inventory_summary(records),
         "renderer_policy": default_surface_renderer_policy(),
+        "figure_contract_policy": figure_contract_policy(),
         "callable_actions": [
             {
                 "command": action,
@@ -459,6 +334,7 @@ def display_pack_figure_plan(
 ) -> dict[str, Any]:
     normalized_repo_root = _normal_repo_root(repo_root)
     normalized_paper_root = _normal_optional_path(paper_root)
+    explicit_audit_family = bool(_text((figure_request or {}).get("audit_family")))
     intent_payload = compile_display_figure_intent(figure_request=figure_request)
     request = dict(intent_payload["compiled_figure_request"])
     records = load_enabled_local_display_template_records(
@@ -467,6 +343,21 @@ def display_pack_figure_plan(
     )
     catalogs = _catalogs_by_pack_root(records)
     request, template_migration = _canonicalized_request(request, records, catalogs)
+    if not _text(request.get("template_id")):
+        seed_ids = {
+            _text(item)
+            for item in _list(request.get("medical_figure_template_seed_ids"))
+            if _text(item)
+        }
+        if seed_ids:
+            matching_records = [
+                record
+                for record in records
+                if record.template_manifest.template_id in seed_ids
+                or record.template_manifest.full_template_id in seed_ids
+            ]
+            if matching_records and not explicit_audit_family:
+                request["audit_family"] = matching_records[0].template_manifest.audit_family
     candidates: list[dict[str, Any]] = []
     for record in records:
         canonical = _canonical_entry(record, catalogs)
@@ -516,9 +407,12 @@ def display_pack_figure_plan(
             "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_unless_explicit": True,
             "explicit_alias_requests_migrate_to_canonical": True,
+            "nature_skills_backend_question_not_used_on_default_mas_evidence_path": True,
+            "figure_contract_required_before_paper_facing_render": True,
         },
         "requested_template_migration": template_migration,
         "minimum_fit_floor": minimum_fit_floor(),
+        "figure_contract_policy": figure_contract_policy(),
         "next_callable": "display-pack-preflight" if recommended else "",
         "typed_blocker": blocker,
         "agent_manual_template_selection_required": False,
@@ -585,6 +479,7 @@ def _quality_floor(
         "max_score": len(checks),
         "status": status,
         "checks": checks,
+        "figure_contract_policy": figure_contract_policy(),
         "quality_floor_only": True,
         "ai_vlm_expected_for_quality_ceiling": True,
         "publication_readiness_verdict": False,
@@ -794,6 +689,7 @@ def display_pack_preflight(
         "requested_template_migration": template_migration,
         "r_runtime": r_runtime,
         "style_profile": style_profile_status,
+        "figure_contract_policy": figure_contract_policy(),
         "blocking_findings": blocking_findings,
         "advisory_findings": advisory_findings,
         "typed_repair_routes": typed_repair_routes,
@@ -881,6 +777,7 @@ def display_pack_orchestrate(
         "figure_request": compiled_request,
         "plan": plan,
         "preflight": preflight,
+        "figure_contract_policy": figure_contract_policy(),
         "quality_floor": quality_floor,
         "typed_repair_routes": typed_routes,
         "next_callable": "display-pack-render" if status == "ready_to_render" else "display-pack-repair",
@@ -994,6 +891,7 @@ def display_pack_render(
             "figure_render_receipt": "paper/figure_render_receipt.json",
             "polish_lifecycle": "paper/figure_polish_lifecycle.json",
         },
+        "figure_contract_policy": figure_contract_policy(),
         "route_back_hint": "visual_audit" if result.get("status") == "publication_manifested" else "display_pack_render_repair",
         "publication_readiness_verdict": False,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),

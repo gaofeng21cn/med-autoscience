@@ -26,8 +26,12 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 | Warning | Templates |
 | --- | ---: |
+| `coefficient_path_semantic_fit_review` | 1 |
 | `composition_density_risk` | 1 |
+| `km_risk_table_and_censor_mark_review` | 1 |
 | `legend_or_colorbar_overlap_risk` | 5 |
+| `multi_panel_readability_review` | 2 |
+| `oncoprint_annotation_track_review` | 1 |
 
 ## 模板审计
 
@@ -98,3 +102,4 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - [colorspace_hcl_palettes](https://colorspace.r-forge.r-project.org/): HCL-based qualitative, sequential and diverging palettes are a stable basis for article-level semantic color roles.
 - [viridis_perceptual_palette](https://sjmgarnier.github.io/viridis/): Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings.
 - [complexheatmap_color_mapping](https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html): Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability.
+- [nature_skills_figure_contract](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure): Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract.

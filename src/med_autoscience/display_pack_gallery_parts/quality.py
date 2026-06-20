@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
+from med_autoscience.display_pack_agent_parts.figure_contract import figure_contract_policy
 from med_autoscience.display_pack_renderer_policy import (
     R_GGPLOT2_RENDERER,
     renderer_policy_completion,
@@ -43,15 +44,23 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
         "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
         "lesson": "Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability.",
     },
+    {
+        "ref_id": "nature_skills_figure_contract",
+        "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+        "lesson": "Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract.",
+    },
 )
 
-FAMILY_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
-    "submission_graphical_abstract": ("illustration_shell_style_gap",),
-    "cohort_flow_figure": ("illustration_shell_style_gap",),
+FAMILY_BASELINE_WARNINGS: dict[str, tuple[str, ...]] = {
+    "coefficient_path_panel": ("coefficient_path_semantic_fit_review",),
+    "genomic_alteration_landscape_panel": ("oncoprint_annotation_track_review",),
+    "kaplan_meier_grouped": ("km_risk_table_and_censor_mark_review",),
+    "model_complexity_audit_panel": ("multi_panel_readability_review",),
+    "shap_waterfall_local_explanation_panel": ("multi_panel_readability_review",),
 }
 
-KIND_BASELINE_BLOCKERS: dict[str, tuple[str, ...]] = {
-    "illustration_shell": ("illustration_shell_style_gap",),
+KIND_BASELINE_WARNINGS: dict[str, tuple[str, ...]] = {
+    "illustration_shell": ("illustration_shell_style_review_required",),
 }
 
 
@@ -63,9 +72,14 @@ def _baseline_quality_gates(record: TemplateRecord, asset: RenderedAsset) -> lis
         "semantic_palette_context",
         "synthetic_payload_only",
         "requires_ai_local_adaptation",
+        "core_conclusion_before_plotting",
+        "evidence_chain_maps_panels_to_claim",
+        "journal_export_contract_before_paper_use",
+        "final_visual_qa_required",
     ]
     if record.renderer_family == "r_ggplot2":
         gates.append("ggplot2_publication_theme")
+        gates.append("r_ggplot2_default_evidence_backend")
     if record.kind == "illustration_shell" and record.renderer_family == "python":
         gates.append("python_renderer_style_alignment_required")
     return gates
@@ -84,8 +98,8 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         warnings.append("python_renderer_style_alignment_required")
     if record.kind == "evidence_figure" and record.renderer_family == "python":
         blockers.append("python_evidence_retained_without_advantage_proof")
-    blockers.extend(FAMILY_BASELINE_BLOCKERS.get(record.canonical_family_id, ()))
-    blockers.extend(KIND_BASELINE_BLOCKERS.get(record.kind, ()))
+    warnings.extend(FAMILY_BASELINE_WARNINGS.get(record.canonical_family_id, ()))
+    warnings.extend(KIND_BASELINE_WARNINGS.get(record.kind, ()))
     if record.canonical_family_category in {"Matrix Pattern", "Model Explanation"}:
         warnings.append("legend_or_colorbar_overlap_risk")
     if record.canonical_family_category in {"Publication Shells and Tables", "Generalizability"}:
@@ -106,6 +120,7 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         "quality_gates": _baseline_quality_gates(record, asset),
         "blockers": unique_blockers,
         "warnings": unique_warnings,
+        "figure_contract_policy_ref": figure_contract_policy()["policy_id"],
         "recommended_next_actions": recommended_next_actions(record, unique_blockers, unique_warnings),
     }
 
@@ -119,6 +134,12 @@ def recommended_next_actions(record: TemplateRecord, blockers: list[str], warnin
         actions.append("Align design-shell typography, palette roles, export discipline, and composition with the MAS publication style profile.")
     if "legend_or_colorbar_overlap_risk" in warnings:
         actions.append("Check guide boxes after rendering; prefer direct labels or horizontal colorbars when tick labels collide.")
+    if "km_risk_table_and_censor_mark_review" in warnings:
+        actions.append("Verify risk table, censor marks, time scale, and event definition against the paper-local survival estimand.")
+    if "oncoprint_annotation_track_review" in warnings:
+        actions.append("Verify annotation tracks, sample ordering, alteration semantics, and shared heatmap palette roles.")
+    if "multi_panel_readability_review" in warnings:
+        actions.append("Rebalance panel hierarchy around the claim-bearing hero panel and recheck final-size labels.")
     if "python_evidence_retained_without_advantage_proof" in blockers:
         actions.append("Retire this Python evidence template or promote it only after documented advantage over the R/ggplot2 baseline and visual audit.")
     if record.kind == "illustration_shell":
@@ -153,7 +174,8 @@ def build_quality_audit(
         for audit in template_audits
         for warning in audit["warnings"]
     )
-    ready_like_count = sum(1 for audit in template_audits if not audit["blockers"])
+    blocked_count = sum(1 for audit in template_audits if audit["blockers"])
+    ready_like_count = len(template_audits) - blocked_count
     completion_by_category = _category_completion(
         records=records,
         visual_records=visual_records,
@@ -168,7 +190,7 @@ def build_quality_audit(
         "visual_template_count": len(visual_records),
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
-        "blocked_template_count": len(template_audits) - ready_like_count,
+        "blocked_template_count": blocked_count,
         "renderer_policy_completion": renderer_policy_completion(
             records
         ),
@@ -181,13 +203,16 @@ def build_quality_audit(
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
             "current_surface": "canonical_current_templates_not_input_data_specific_variants",
             "required_before_paper_use": [
+                "figure_contract_core_conclusion_and_evidence_chain",
                 "paper_local_data_payload",
                 "render_inspect_revise",
                 "legend_colorbar_overlap_check",
                 "reduced_size_readability_check",
                 "vector_or_high_resolution_export_check",
+                "visual_audit_receipt_or_residual_audit_item",
             ],
         },
+        "figure_contract_policy": figure_contract_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
         "non_visual_inventory": [

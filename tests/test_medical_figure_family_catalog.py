@@ -136,6 +136,8 @@ def test_catalog_validates_references_across_style_palette_gate_and_sources() ->
         "color_accessibility",
         "journal_export",
         "source_data_traceability",
+        "figure_contract_before_render",
+        "backend_exclusive_export_receipt",
         "ai_redesign_trace",
     }
     assert {source.source_id for source in catalog.external_sources} >= {

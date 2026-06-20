@@ -5,6 +5,7 @@ import json
 from typing import Any
 
 from med_autoscience import publication_display_contract as display_contract
+from med_autoscience.display_pack_agent_parts.figure_contract import figure_contract_policy
 from med_autoscience.display_pack_gallery_catalog import (
     TemplateRecord,
     ai_adaptation_policy,
@@ -214,6 +215,7 @@ def build_manifest(
         "renderer_policy_completion": renderer_policy_completion(records),
         "layout_sidecar_readback": layout_sidecar_readback,
         "ai_adaptation_policy": ai_adaptation_policy(),
+        "figure_contract_policy": figure_contract_policy(),
         "quality_audit": quality_audit,
         "canonical_category_ontology": canonical_category_ontology(),
         "canonical_family_ontology": canonical_family_ontology(),

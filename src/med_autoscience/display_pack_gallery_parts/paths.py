@@ -18,7 +18,7 @@ PDF_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_gallery.pdf"
 REFERENCE_PATH = DEFAULT_OUTPUT_ROOT / "ggplot2_template_reference.md"
 QUALITY_AUDIT_PATH = DEFAULT_OUTPUT_ROOT / "display_pack_gallery_quality_audit.md"
 MANIFEST_PATH = ASSET_ROOT / "gallery_manifest.json"
-NATURE_SKILLS_HEAD = "54eadc65d1c0535e90d792a87ab718d848ccbb7a"
+NATURE_SKILLS_HEAD = "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
 
 if str(PACK_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(PACK_SRC_ROOT))

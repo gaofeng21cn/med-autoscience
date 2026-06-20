@@ -94,6 +94,18 @@ def _query_matches_template(record: LoadedDisplayTemplate, request: Mapping[str,
     return bool(query and query in _template_haystack(record))
 
 
+def _route_matches_template(record: LoadedDisplayTemplate, request: Mapping[str, Any]) -> bool:
+    seed_ids = {
+        _text(item)
+        for item in request.get("medical_figure_template_seed_ids", [])
+        if _text(item)
+    }
+    if not seed_ids:
+        return False
+    manifest = record.template_manifest
+    return bool(seed_ids & {manifest.template_id, manifest.full_template_id})
+
+
 def hard_compatible(record: LoadedDisplayTemplate, request: Mapping[str, Any]) -> bool:
     manifest = record.template_manifest
     kind = _text(request.get("figure_kind") or request.get("kind") or DEFAULT_KIND)
@@ -121,6 +133,7 @@ def has_semantic_fit_anchor(record: LoadedDisplayTemplate, request: Mapping[str,
             bool(audit_family and manifest.audit_family == audit_family),
             bool(paper_family and paper_family in manifest.paper_family_ids),
             bool(input_schema_ref and manifest.input_schema_ref == input_schema_ref),
+            _route_matches_template(record, request),
             _query_matches_template(record, request),
         )
     )
@@ -165,6 +178,9 @@ def score_template(record: LoadedDisplayTemplate, request: Mapping[str, Any]) ->
         ):
             score += 5
             reasons.append("query_primary_template_role")
+    if _route_matches_template(record, request):
+        score += 40
+        reasons.append("medical_figure_family_route")
     if manifest.golden_case_paths:
         score += 6
         reasons.append("golden_available")
@@ -238,7 +254,7 @@ def _template_adaptation_hints(
             }
         )
     query = _text(request.get("query") or request.get("figure_goal") or request.get("claim_role"))
-    if query and not _query_matches_template(record, request):
+    if query and not (_query_matches_template(record, request) or _route_matches_template(record, request)):
         hints.append(
             {
                 "code": "composition_query_adaptation_required",

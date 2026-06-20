@@ -43,6 +43,20 @@ MAS 对该模式的 adoption classification 是：
 
 可借鉴的下一层方向是把 manifest-driven loading 用在 MAS 自己的 prompt / skill authoring surface、Display Pack descriptor、quality pack descriptor 和 product-entry/generated descriptor 上：把 common core、axis-specific rubric、route-required refs、on-demand deep references 和 forbidden authority 以 MAS-owned descriptor 表达。这个方向只能沿现有 `stage_quality_pack_contract`、stage prompt / quality gate、product-entry projection、`scientific_capability_registry` ABI 或 OPL family capability registry 消费，不创建 MAS 私有第二 selector。
 
+## 2026-06-20 Figure Contract Follow-through
+
+本轮只刷新并落地绘图相关学习面。fresh upstream readback 显示 `Yuan1z0825/nature-skills` `main` / `HEAD` 为 `5d2ba1dee1c087be6de8f4a8aad4b27f04974be9`，本轮检查了 `skills/nature-figure/SKILL.md`、`manifest.yaml`、`static/core/contract.md`、`static/core/stance.md`、`static/fragments/backend/r.md`、`references/backend-selection.md` 与 `references/qa-contract.md`。
+
+可吸收点已经落到 MAS-owned surfaces：
+
+- `src/med_autoscience/display_pack_agent_parts/figure_contract.py`：定义 `mas_nature_skills_informed_figure_contract.v1`，把 core conclusion、evidence chain、figure archetype、backend policy、journal/export contract 和 visual QA requirements 放进每次 `figure_intent`。
+- `src/med_autoscience/display_pack_agent_parts/query_family_route.py`：query-only 请求先经 `medical_figure_family_catalog` 做 loose family route，再用 family `template_seed_ids` 给 canonical template scorer 加权，减少模板名字和输入数据形态对调用逻辑的污染。
+- `display_pack_agent.figure_plan/preflight/orchestrate/render`：返回 `figure_contract_policy`，并保留 `publication_readiness_verdict=false`、`agent_manual_template_selection_required=false` 和 R/ggplot2 evidence first。
+- Gallery manifest / quality audit：写入 `figure_contract_policy`，并把 template Gallery 明确为 lower-bound reference，不把 visual risk 当作 publication-ready 结论。
+- `contracts/medical-figure-family-catalog/qa_gates.json`：新增 `figure_contract_before_render` 与 `backend_exclusive_export_receipt` gate。
+
+关键 MAS 改造点是 progress-first：上游 `nature-figure` 把 backend 选择作为 blocking gate，缺省时问 `Python or R?` 并停止；MAS evidence path 不照搬这个阻塞门。数据证据图默认 R/ggplot2，非默认 backend 或 Python evidence 只有在有 documented advantage 和 visual audit 时才重新进入 current pack。AI 仍可对模板做 paper-local redesign；模板只提供质量下限，不限制上限。
+
 ## 2026-06-18 Paper Mainline Landing
 
 本轮按用户主线约束补齐三条可直接被论文推进流程消费的 MAS-native surface。它们的共同边界是：`refs_only=true`、`fail_open=true`、不写 paper body、不写 runtime/study truth、不授权 quality verdict 或 publication readiness，缺口只转为 typed blocker candidate 或 owner action hint。

@@ -143,6 +143,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     core_catalog = load_medical_figure_family_catalog()
     assert manifest["schema_version"] == 9
     assert manifest["ai_adaptation_policy"] == ai_adaptation_policy()
+    assert manifest["figure_contract_policy"]["policy_id"] == "mas_nature_skills_informed_figure_contract.v1"
+    assert manifest["figure_contract_policy"]["observed_head"] == "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
+    assert "query_resolves_through_medical_figure_family_catalog_before_template_scoring" in manifest[
+        "figure_contract_policy"
+    ]["mas_adaptations"]
     assert manifest["canonical_family_count"] == len(manifest["canonical_family_ontology"]) == core_catalog.family_count
     assert manifest["gallery_template_family_count"] == len(manifest["gallery_template_family_ontology"]) == 28
     assert manifest["canonical_representative_template_count"] == 28
@@ -192,6 +197,13 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["templates"][0]["canonical_family_wording"]
     assert manifest["quality_audit"]["overall_status"] == "not_publication_ready"
     assert manifest["quality_audit"]["publication_ready_claim_authorized"] is False
+    assert manifest["quality_audit"]["blocked_template_count"] == 28
+    assert manifest["quality_audit"]["figure_contract_policy"]["policy_id"] == (
+        "mas_nature_skills_informed_figure_contract.v1"
+    )
     assert manifest["quality_audit"]["quality_policy"]["ai_authority"] == (
         "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim"
     )
+    assert "figure_contract_core_conclusion_and_evidence_chain" in manifest["quality_audit"]["quality_policy"][
+        "required_before_paper_use"
+    ]

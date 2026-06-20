@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from med_autoscience import cli
 from med_autoscience.display_pack_agent import (
+    compile_display_figure_intent,
     display_pack_capability_discover,
     display_pack_figure_plan,
     display_pack_orchestrate,
@@ -61,6 +64,9 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
     assert payload["inventory"]["renderer_policy_completion"]["python_evidence_retained_count"] == 0
     assert payload["renderer_policy"]["data_evidence_first_class_renderer"] == "r_ggplot2"
+    assert payload["figure_contract_policy"]["policy_id"] == "mas_nature_skills_informed_figure_contract.v1"
+    assert "core_conclusion_before_plotting" in payload["figure_contract_policy"]["adopted_patterns"]
+    assert "no_python_or_r_question_on_default_mas_evidence_path" in payload["figure_contract_policy"]["mas_adaptations"]
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
         "display-pack-orchestrate",
@@ -110,9 +116,69 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["recommended_template"]["renderer_family"] == "r_ggplot2"
     assert payload["recommended_template"]["migration_status"] == "canonical"
     assert payload["recommended_template"]["canonical_family_id"] == "roc_curve_binary"
+    assert payload["figure_intent"]["figure_contract"]["backend_policy"]["selected_backend"] == "r_ggplot2"
+    assert payload["figure_intent"]["figure_contract"]["backend_policy"]["blocks_agent_progress"] is False
+    assert payload["figure_intent"]["figure_contract"]["agent_progress_policy"][
+        "backend_question_required_for_default_mas_evidence_path"
+    ] is False
     assert payload["template_surface_policy"]["default_recommendations_are_canonical_only"] is True
+    assert payload["template_surface_policy"][
+        "nature_skills_backend_question_not_used_on_default_mas_evidence_path"
+    ] is True
     assert payload["recommended_template"]["adaptation_required"] is False
     assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_compile_display_figure_intent_emits_claim_first_contract_without_blocking_agent() -> None:
+    payload = compile_display_figure_intent(
+        intent="Show calibration and clinical utility for the final prediction model.",
+        claim_ref="claim:model-calibration",
+        data_ref="data:calibration-decision",
+        paper_target="nature_medicine",
+    )
+
+    contract = payload["figure_contract"]
+    assert contract["contract_id"] == "mas_display_figure_contract.v1"
+    assert contract["core_conclusion"] == (
+        "Show calibration and clinical utility for the final prediction model."
+    )
+    assert contract["evidence_chain"][0]["status"] == "present"
+    assert contract["evidence_chain"][1]["status"] == "present"
+    assert contract["panel_logic"]["hero_panel_preferred"] is True
+    assert contract["backend_policy"]["selected_backend"] == "r_ggplot2"
+    assert contract["backend_policy"]["backend_exclusivity_required"] is True
+    assert contract["agent_progress_policy"]["missing_refs_route_to_typed_repair"] is True
+    assert contract["agent_progress_policy"]["manual_template_browsing_required"] is False
+    assert payload["figure_contract_policy"]["observed_head"] == "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
+    assert payload["compiled_figure_request"]["medical_figure_template_seed_ids"]
+
+
+@pytest.mark.parametrize(
+    ("query", "template_id", "audit_family"),
+    [
+        ("km plot", "kaplan_meier_grouped", "Time-to-Event"),
+        ("heatmap", "heatmap_group_comparison", "Matrix Pattern"),
+        ("shap beeswarm", "shap_summary_beeswarm", "Model Explanation"),
+        ("umap", "umap_scatter_grouped", "Data Geometry"),
+        ("roc", "roc_curve_binary", "Prediction Performance"),
+    ],
+)
+def test_display_pack_figure_plan_routes_query_only_through_medical_family_catalog(
+    query: str,
+    template_id: str,
+    audit_family: str,
+) -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={"query": query},
+        max_recommendations=5,
+    )
+
+    assert payload["status"] == "display_plan_ready"
+    assert payload["recommended_template"]["template_id"] == template_id
+    assert payload["recommended_template"]["audit_family"] == audit_family
+    assert payload["figure_request"]["medical_figure_template_seed_ids"]
+    assert "medical_figure_family_route" in payload["recommended_template"]["recommendation_reasons"]
 
 
 def test_display_pack_figure_plan_migrates_explicit_legacy_alias_to_canonical_template() -> None:

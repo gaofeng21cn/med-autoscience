@@ -43,6 +43,24 @@
       ]
     },
     {
+      "gate_id": "figure_contract_before_render",
+      "checks": [
+        "core_conclusion_present",
+        "evidence_chain_maps_panels_to_claim",
+        "figure_archetype_declared",
+        "journal_export_contract_declared"
+      ]
+    },
+    {
+      "gate_id": "backend_exclusive_export_receipt",
+      "checks": [
+        "selected_backend_recorded",
+        "render_preview_export_and_qa_use_selected_backend",
+        "cross_backend_visual_fallback_absent",
+        "svg_or_pdf_or_high_resolution_export_recorded"
+      ]
+    },
+    {
       "gate_id": "ai_redesign_trace",
       "checks": [
         "starter_family_recorded",

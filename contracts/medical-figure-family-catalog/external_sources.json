@@ -59,9 +59,9 @@
     {
       "source_id": "nature_skills_figure_contract",
       "source_type": "clean_room_external_skill",
-      "url": "https://github.com/Yuan1z0825/nature-skills/tree/54eadc65d1c0535e90d792a87ab718d848ccbb7a/skills/nature-figure",
-      "observed_date": "2026-06-19",
-      "adopted_pattern": "Core-conclusion-first figure contracts, panel hierarchy, backend exclusivity, visual QA, and chart-atlas thinking inform MAS quality gates without becoming a MAS runtime or publication authority."
+      "url": "https://github.com/Yuan1z0825/nature-skills/tree/5d2ba1dee1c087be6de8f4a8aad4b27f04974be9/skills/nature-figure",
+      "observed_date": "2026-06-20",
+      "adopted_pattern": "Core-conclusion-first figure contracts, panel hierarchy, backend exclusivity, visual QA, R-first MAS evidence routing, and query-to-medical-family routing inform MAS quality gates without becoming a MAS runtime or publication authority."
     },
     {
       "source_id": "patchwork",

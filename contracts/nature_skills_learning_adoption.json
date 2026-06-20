@@ -6,8 +6,8 @@
   "machine_boundary": "This contract records MAS-native learning/adoption status. It is not a publication authority, quality verdict, default skill source, vendor runner, MAS truth writer, or generated prompt loader.",
   "source": {
     "project": "Yuan1z0825/nature-skills",
-    "observed_head": "54eadc65d1c0535e90d792a87ab718d848ccbb7a",
-    "observed_date": "2026-06-19",
+    "observed_head": "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9",
+    "observed_date": "2026-06-20",
     "evidence_commands": [
       "git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main",
       "git rev-parse HEAD after shallow clone"
@@ -42,6 +42,12 @@
     "on_demand_references",
     "explicit_loading_gates",
     "backend_exclusive_render_export_receipt",
+    "core_conclusion_before_plotting",
+    "evidence_chain_panel_mapping",
+    "figure_archetype_first_layout",
+    "mas_r_first_nonblocking_backend_policy",
+    "query_to_medical_figure_family_route",
+    "final_visual_qa_after_render",
     "section_contract_draft_source_map_readback",
     "claim_evidence_citation_support_matrix",
     "reviewer_comment_typed_repair_action_projection"
@@ -112,17 +118,24 @@
       "owner_surfaces": [
         "publication_figure_quality_contract",
         "display_pack_e2e_runtime",
-        "display_pack_agent_receipt_refs"
+        "display_pack_agent_receipt_refs",
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_agent_figure_intent",
+        "display_pack_gallery_quality_audit"
       ],
       "consumable_surfaces": [
         "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_render_receipt",
         "src/med_autoscience.publication_figure_quality_contract.load_figure_render_receipt",
-        "src/med_autoscience.display_pack_e2e_runtime.materialize_display_pack_publication_manifest"
+        "src/med_autoscience.display_pack_e2e_runtime.materialize_display_pack_publication_manifest",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
+        "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md"
       ],
       "gap_status": [
         "live_paper_line_owner_receipt_tail_pending",
         "visual_audit_still_required",
-        "publication_gate_still_authoritative"
+        "publication_gate_still_authoritative",
+        "paper_specific_final_artwork_review_still_required"
       ],
       "forbidden_authority": [
         "publication_readiness_authority",
@@ -130,6 +143,40 @@
         "artifact_authority",
         "data_or_statistics_mutation_authority",
         "cross_backend_visual_fallback"
+      ]
+    },
+    {
+      "pattern_id": "mas_r_first_figure_contract_policy",
+      "classification": "adapt",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_agent_figure_intent",
+        "display_pack_agent_figure_plan",
+        "display_pack_gallery_manifest",
+        "display_pack_gallery_quality_audit",
+        "medical_figure_family_catalog_qa_gates"
+      ],
+      "consumable_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
+        "src/med_autoscience.display_pack_agent_parts.query_family_route.resolve_query_family_route",
+        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
+        "src/med_autoscience.display_pack_gallery_parts.quality.build_quality_audit",
+        "contracts/medical-figure-family-catalog/qa_gates.json"
+      ],
+      "gap_status": [
+        "live_paper_line_owner_receipt_tail_pending",
+        "paper_specific_visual_audit_still_required",
+        "publication_gate_still_authoritative"
+      ],
+      "forbidden_authority": [
+        "vendor_runner_dependency",
+        "default_skill_source",
+        "python_or_r_question_blocking_default_mas_evidence_path",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority"
       ]
     },
     {
@@ -186,20 +233,26 @@
     {
       "pattern_id": "nature_figure_display_contract_refs",
       "classification": "adopt_template",
-      "landing_status": "read_model_landed",
+      "landing_status": "owner_surface_landed",
       "owner_surfaces": [
         "scientific_capability_registry",
-        "external_learning_adoption_closure"
+        "external_learning_adoption_closure",
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_agent_figure_plan",
+        "medical_figure_family_catalog"
       ],
       "consumable_surfaces": [
         "med_autoscience.scientific_capability_registry.resolve_scientific_capabilities",
         "med_autoscience.scientific_capability_registry.invoke_scientific_capability",
-        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure"
+        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent_parts.query_family_route.resolve_query_family_route",
+        "contracts/medical-figure-family-catalog/qa_gates.json"
       ],
       "gap_status": [
-        "descriptor_only",
-        "refs_only",
-        "worker_not_landed_gap"
+        "external_runner_rejected",
+        "publication_gate_still_authoritative",
+        "paper_specific_visual_audit_still_required"
       ],
       "forbidden_authority": [
         "external_runner_execution",
