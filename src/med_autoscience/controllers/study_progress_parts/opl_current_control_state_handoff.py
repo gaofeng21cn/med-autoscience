@@ -1455,9 +1455,10 @@ def _provider_admission_terminal_closeout_consumed(
         "surface_kind": "provider_admission_terminal_closeout_consumed",
         "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
         "stage_attempt_id": _non_empty_text(terminal.get("stage_attempt_id")),
-        "action_type": _non_empty_text(terminal.get("action_type"))
-        or _non_empty_text(admission.get("action_type"))
+        "action_type": _non_empty_text(admission.get("action_type"))
+        or _non_empty_text(terminal.get("action_type"))
         or _non_empty_text(owner_action.get("action_type")),
+        "closeout_action_type": _non_empty_text(terminal.get("action_type")),
         "work_unit_id": _work_unit_identity(terminal.get("work_unit_id"))
         or _work_unit_identity(admission.get("work_unit_id"))
         or _work_unit_identity(admission.get("next_work_unit"))
@@ -1690,6 +1691,8 @@ def _terminal_closeout_matches_action_bound_identity(
     terminal_stage_packet_refs = _stage_packet_refs(terminal)
     if terminal_stage_packet_refs and terminal_stage_packet_refs.intersection(_stage_packet_refs(action)):
         return True
+    if _terminal_closeout_request_wrapper_identity_matches_candidate(terminal=terminal, action=action):
+        return True
     # Identity-bound admissions are backed by OPL runtime readback or explicit
     # dispatch identity; weak action/work-unit/fingerprint matching is legacy-only.
     return False
@@ -1821,6 +1824,54 @@ def _terminal_closeout_action_identity_matches_candidate(
     if terminal_fingerprint is None or action_fingerprint is None:
         return False
     return terminal_fingerprint == action_fingerprint
+
+
+def _terminal_closeout_request_wrapper_identity_matches_candidate(
+    *,
+    terminal: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("action_type")) != "request_opl_stage_attempt":
+        return False
+    if not _request_wrapper_action_has_opl_transition_identity(action):
+        return False
+    terminal_work_unit = _work_unit_identity(terminal.get("work_unit_id")) or _work_unit_identity(
+        terminal.get("next_work_unit")
+    )
+    action_work_unit = _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
+        action.get("next_work_unit")
+    )
+    if terminal_work_unit is None or action_work_unit is None or terminal_work_unit != action_work_unit:
+        return False
+    terminal_fingerprint = _non_empty_text(terminal.get("work_unit_fingerprint")) or _non_empty_text(
+        terminal.get("action_fingerprint")
+    )
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    if terminal_fingerprint is not None and action_fingerprint is not None:
+        return terminal_fingerprint == action_fingerprint
+    return _terminal_closeout_has_request_wrapper_domain_owner_delta(terminal)
+
+
+def _request_wrapper_action_has_opl_transition_identity(action: Mapping[str, Any]) -> bool:
+    return (
+        bool(_action_route_identity_keys(action) or _action_attempt_idempotency_keys(action) or _action_idempotency_keys(action))
+        and (candidate_opl_transition_readback(action) or provider_admission_opl_transition_readback(action))
+    )
+
+
+def _terminal_closeout_has_request_wrapper_domain_owner_delta(terminal: Mapping[str, Any]) -> bool:
+    status = _non_empty_text(terminal.get("status"))
+    if status not in {
+        "closed_with_domain_owner_refs",
+        "blocked_with_domain_owner_refs",
+        "completed",
+    }:
+        return False
+    if _non_empty_text(terminal.get("closeout_receipt_status")) == "accepted_typed_closeout":
+        return True
+    return _terminal_closeout_has_domain_delta(terminal)
 
 
 def _terminal_closeout_owner_answer_blocker(

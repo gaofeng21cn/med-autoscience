@@ -355,3 +355,99 @@ def test_provider_admission_projection_consumes_terminal_closeout_after_owner_re
     assert consumed["typed_blocker"]["work_unit_id"] == work_unit_id
     assert consumed["authority_boundary"]["can_authorize_provider_admission"] is False
     assert consumed["authority_boundary"]["provider_completion_is_domain_completion"] is False
+
+
+def test_provider_admission_projection_consumes_request_wrapper_terminal_closeout(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    route_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    stage_attempt_id = "sat_efdab57a49cb6d58f2a17eeb"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    consumed = {
+        "surface_kind": "provider_admission_terminal_closeout_consumed",
+        "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+        "stage_attempt_id": stage_attempt_id,
+        "action_type": "request_opl_stage_attempt",
+        "closeout_action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "closeout_receipt_status": "accepted_typed_closeout",
+    }
+    payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "write",
+            "action_type": "request_opl_stage_attempt",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "state": {
+                "state_kind": "executable_owner_action",
+                "provider_admission_pending": True,
+                "transition_request_pending": False,
+            },
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "opl_current_control_state.provider_admission_candidates",
+            "next_owner": "write",
+            "owner": "write",
+            "action_type": "request_opl_stage_attempt",
+            "allowed_actions": ["request_opl_stage_attempt"],
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+            "provider_admission_pending": True,
+        },
+    }
+    handoff = {
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "source_path": "/tmp/opl_current_control_state/latest.json",
+        "running_provider_attempt": False,
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_terminal_closeout_consumed": consumed,
+        "latest_terminal_stage_log": {
+            "surface_kind": "opl_terminal_provider_attempt_closeout",
+            "stage_attempt_id": stage_attempt_id,
+            "status": "completed",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "closeout_receipt_status": "accepted_typed_closeout",
+        },
+    }
+
+    fields = module.provider_admission_projection_fields(
+        payload=payload,
+        handoff=handoff,
+        study_root=study_root,
+    )
+
+    assert fields["provider_admission_pending_count"] == 0
+    assert fields["provider_admission_candidates"] == []
+    assert fields["transition_request_pending_count"] == 0
+    assert fields["transition_request_candidates"] == []
+    assert fields["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"] == stage_attempt_id
+    assert fields["provider_admission_terminal_closeout_consumed"]["action_type"] == "request_opl_stage_attempt"

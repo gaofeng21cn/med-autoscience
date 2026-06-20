@@ -45,13 +45,13 @@ def provider_admission_projection_fields(
     )
     if running_proof is not None:
         return running_proof
-    handoff_fields = _identity_bound_handoff_provider_admission_fields(
-        handoff=handoff,
-        payload=payload,
-        study_root=study_root,
-    )
-    if handoff_fields is not None:
-        return handoff_fields
+    if _handoff_has_unbound_running_attempt(payload=payload, handoff=handoff):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
     if not accepted_owner_gate_admission:
         terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
             payload=payload,
@@ -59,6 +59,13 @@ def provider_admission_projection_fields(
         )
         if terminal_closeout is not None:
             return terminal_closeout
+    handoff_fields = _identity_bound_handoff_provider_admission_fields(
+        handoff=handoff,
+        payload=payload,
+        study_root=study_root,
+    )
+    if handoff_fields is not None:
+        return handoff_fields
     if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
         return {
             "provider_admission_pending_count": 0,
@@ -570,6 +577,18 @@ def _handoff_with_matching_provider_admission_readback(
                 _OPL_TRANSITION_LIVE_READBACK_SOURCE: readback,
             }
     return handoff
+
+
+def _handoff_has_unbound_running_attempt(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    if handoff.get("running_provider_attempt") is not True:
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    return bool(current_action or _non_empty_text(current_work_unit.get("status")) == "executable_owner_action")
 
 
 def _handoff_terminal_closeout_consumes_provider_admission(
