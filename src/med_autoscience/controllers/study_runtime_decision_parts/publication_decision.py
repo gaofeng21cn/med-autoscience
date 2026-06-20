@@ -182,6 +182,7 @@ def publication_eval_action(
     specificity_targets: SpecificityTargetsFn,
 ) -> PublicationEvalRecommendedAction:
     status = str(report.get("status") or "").strip()
+    resolved_specificity_targets = specificity_targets(report)
     if status == "clear":
         action_type, route_contract = _clear_publication_action(report)
         reason = (
@@ -199,7 +200,10 @@ def publication_eval_action(
     if _clear_stage_has_unready_prose_quality(report):
         work_unit_payload = _prose_quality_work_unit_payload(report)
     else:
-        work_unit_payload = publication_work_units.derive_publication_work_units(report)
+        work_unit_payload = publication_work_units.derive_publication_work_units(
+            report,
+            specificity_targets=list(resolved_specificity_targets),
+        )
     if publication_stop_loss.non_actionable_gate_overrides(status=status, action_type=action_type, work_unit_payload=work_unit_payload):
         action_type = "return_to_controller"
         route_contract = {}
@@ -218,5 +222,5 @@ def publication_eval_action(
         work_unit_fingerprint=work_unit_fingerprint or None,
         blocking_work_units=tuple(work_unit_payload.get("blocking_work_units") or ()),
         next_work_unit=work_unit_payload.get("next_work_unit") if isinstance(work_unit_payload.get("next_work_unit"), dict) else None,
-        specificity_targets=specificity_targets(report),
+        specificity_targets=resolved_specificity_targets,
     )
