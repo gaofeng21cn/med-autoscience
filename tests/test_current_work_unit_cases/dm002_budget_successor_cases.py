@@ -169,14 +169,13 @@ def test_current_work_unit_derives_dm002_anti_loop_successor_from_repair_progres
                 "status": "progress_delta_observed",
                 "paper_delta_observed": True,
                 "progress_delta_candidate": True,
-                "accepted_owner_receipt": True,
+                "accepted_owner_receipt": False,
                 "gate_replay_done": True,
                 "ai_reviewer_recheck_done": True,
                 "work_unit_id": "dm002_same_line_publication_paper_repair",
                 "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
                 "action_fingerprint": "publication-blockers::497d1260db522f01",
                 "source_eval_id": source_eval_id,
-                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
                 "repair_execution_evidence_ref": (
                     "artifacts/controller/repair_execution_evidence/latest.json"
                 ),
