@@ -205,8 +205,12 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     publication_strategy_memory_inventory = (
         workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-inventory"
     )
+    publication_strategy_memory_workbench = (
+        workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-workbench"
+    )
     assert publication_strategy_memory_seed.is_file()
     assert publication_strategy_memory_inventory.is_file()
+    assert publication_strategy_memory_workbench.is_file()
     assert not (workspace_root / "ops" / "mas" / "bin" / "start-web").exists()
     assert not (workspace_root / "ops" / "mas" / "bin" / "live-console").exists()
     assert os.access(bootstrap, os.X_OK)
@@ -226,6 +230,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(external_research_status, os.X_OK)
     assert os.access(publication_strategy_memory_seed, os.X_OK)
     assert os.access(publication_strategy_memory_inventory, os.X_OK)
+    assert os.access(publication_strategy_memory_workbench, os.X_OK)
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
@@ -242,6 +247,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     external_research_status_text = external_research_status.read_text(encoding="utf-8")
     publication_strategy_memory_seed_text = publication_strategy_memory_seed.read_text(encoding="utf-8")
     publication_strategy_memory_inventory_text = publication_strategy_memory_inventory.read_text(encoding="utf-8")
+    publication_strategy_memory_workbench_text = publication_strategy_memory_workbench.read_text(encoding="utf-8")
     shared_text = (workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh").read_text(encoding="utf-8")
     assert "PYTHONDONTWRITEBYTECODE=1" in shared_text
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
@@ -280,6 +286,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     )
     assert 'run_medautosci publication route-memory-inventory --workspace-root "${WORKSPACE_ROOT}" "$@"' in (
         publication_strategy_memory_inventory_text
+    )
+    assert 'run_medautosci publication strategy-memory-workbench --workspace-root "${WORKSPACE_ROOT}" "$@"' in (
+        publication_strategy_memory_workbench_text
     )
     med_readme_text = (workspace_root / "ops" / "medautoscience" / "README.md").read_text(encoding="utf-8")
     agents_text = (workspace_root / "AGENTS.md").read_text(encoding="utf-8")

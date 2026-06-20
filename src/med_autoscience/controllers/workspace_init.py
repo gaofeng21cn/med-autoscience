@@ -612,6 +612,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-workbench",
+            content=_render_workspace_root_forward_script("publication strategy-memory-workbench"),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "init-workspace-literature",
             content=_render_forward_script("data init-literature"),
             executable=True,
