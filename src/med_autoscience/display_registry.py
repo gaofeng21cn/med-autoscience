@@ -123,6 +123,19 @@ class TableShellSpec:
     paper_proven: bool = False
 
 
+_TABLE3_CLINICAL_INTERPRETATION_SPEC = TableShellSpec(
+    shell_id=_full_id("table3_clinical_interpretation_summary"),
+    display_name="Clinical Interpretation Summary Table",
+    paper_family_ids=("H",),
+    input_schema_id="clinical_interpretation_summary_v1",
+    table_qc_profile="publication_table_interpretation",
+    required_exports=("md",),
+)
+_LIVE_PUBLICATION_TABLE_SHELLS_BY_ID = {
+    _TABLE3_CLINICAL_INTERPRETATION_SPEC.shell_id: _TABLE3_CLINICAL_INTERPRETATION_SPEC,
+}
+
+
 _PAPER_FAMILY_LABELS: dict[str, str] = {
     "A": "A. Predictive Performance and Decision",
     "B": "B. Survival and Time-to-Event",
@@ -298,7 +311,10 @@ def get_table_shell_spec(shell_id: str) -> TableShellSpec:
     try:
         return table_by_shell[normalized]
     except KeyError as exc:
-        raise ValueError(f"unknown table shell `{shell_id}`") from exc
+        try:
+            return _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID[normalized]
+        except KeyError:
+            raise ValueError(f"unknown table shell `{shell_id}`") from exc
 
 
 def is_evidence_figure_template(template_id: str) -> bool:
@@ -316,4 +332,4 @@ def is_illustration_shell(shell_id: str) -> bool:
 def is_table_shell(shell_id: str) -> bool:
     normalized = _canonicalize_registry_id(shell_id)
     _, _, _, _, _, table_by_shell = _active_registry_state()
-    return normalized in table_by_shell
+    return normalized in table_by_shell or normalized in _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID

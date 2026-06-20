@@ -154,6 +154,20 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
     assert spec.required_exports
 
 
+def test_table3_clinical_interpretation_shell_is_available_for_publication_surface_readback() -> None:
+    spec = display_registry.get_table_shell_spec("table3_clinical_interpretation_summary")
+
+    assert spec.shell_id == _full_id("table3_clinical_interpretation_summary")
+    assert display_registry.is_table_shell(_full_id("table3_clinical_interpretation_summary"))
+    assert spec.input_schema_id == "clinical_interpretation_summary_v1"
+    assert spec.table_qc_profile == "publication_table_interpretation"
+    assert spec.required_exports == ("md",)
+    assert {
+        item.shell_id
+        for item in display_registry.list_table_shell_specs()
+    } == {_full_id("table1_baseline_characteristics")}
+
+
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:
     evidence_spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
     shell_spec = display_registry.get_illustration_shell_spec(_full_id("submission_graphical_abstract"))
