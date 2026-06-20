@@ -763,7 +763,9 @@ def _supervisor_decision_for_state(
     paper_recovery_state: Mapping[str, Any],
     diagnostic_report: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    if _mas_policy_projection_can_supersede_stale_supervisor_decision(paper_recovery_state):
+    if _mas_policy_projection_can_supersede_stale_supervisor_decision(
+        paper_recovery_state
+    ):
         return _build_supervisor_decision(
             progress,
             paper_recovery_state=paper_recovery_state,
@@ -784,11 +786,26 @@ def _mas_policy_projection_can_supersede_stale_supervisor_decision(
     if phase in {"owner_receipt_recorded", "terminal_closeout_ready"}:
         return True
     next_action_kind = _text(_mapping(paper_recovery_state.get("next_safe_action")).get("kind"))
-    return phase == "owner_action_ready" and next_action_kind in {
-        "run_mas_owner_callable",
-        "materialize_mas_transition_request_or_owner_callable",
-        "materialize_successor_owner_action",
+    if phase != "owner_action_ready":
+        return False
+    if next_action_kind == "run_mas_owner_callable":
+        return True
+    if next_action_kind != "materialize_successor_owner_action":
+        return False
+    conditions = {
+        _text(condition.get("condition"))
+        for condition in paper_recovery_state.get("conditions") or []
+        if isinstance(condition, Mapping)
     }
+    return bool(
+        conditions
+        & {
+            "terminal_typed_blocker_successor_evidence",
+            "current_owner_action_supersedes_terminal_typed_blocker",
+            "consumed_owner_receipt_routeback_successor",
+            "consumed_owner_receipt_domain_transition_successor",
+        }
+    )
 
 
 def _owner_receipt_state(

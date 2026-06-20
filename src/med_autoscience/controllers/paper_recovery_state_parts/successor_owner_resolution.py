@@ -66,21 +66,27 @@ def successor_owner_action_from_current_action(action: Mapping[str, Any]) -> dic
             "work_unit_fingerprint": fingerprint,
             "source_surface": _first_text(action.get("source_surface"), action.get("source")),
             "source_ref": source_ref,
-            "action_fingerprint": _first_text(action.get("action_fingerprint"), fingerprint),
-            "source_eval_id": _first_text(
-                action.get("source_eval_id"),
-                _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id"),
-            ),
-            "required_delta_kind": _text(action.get("required_delta_kind")),
             "target_surface": _mapping(action.get("target_surface")),
             "owner_route_currentness_basis": _mapping(action.get("owner_route_currentness_basis")),
         }.items()
         if value not in (None, "", [], {})
     }
+    action_fingerprint = _first_text(action.get("action_fingerprint"), fingerprint)
+    if action_fingerprint is not None and action_fingerprint != fingerprint:
+        successor["action_fingerprint"] = action_fingerprint
+    source_eval_id = _first_text(
+        action.get("source_eval_id"),
+        _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id"),
+    )
+    if source_eval_id is not None:
+        successor["source_eval_id"] = source_eval_id
+    required_delta_kind = _text(action.get("required_delta_kind"))
+    if required_delta_kind is not None and _mapping(action.get("target_surface")):
+        successor["required_delta_kind"] = required_delta_kind
     allowed_actions = _text_items(action.get("allowed_actions"))
     if allowed_actions:
         successor["allowed_actions"] = allowed_actions
-    if action.get("owner_receipt_required") is True:
+    if action.get("owner_receipt_required") is True and _mapping(action.get("target_surface")):
         successor["owner_receipt_required"] = True
     return successor
 
