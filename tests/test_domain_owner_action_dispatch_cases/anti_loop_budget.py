@@ -166,6 +166,19 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
     assert execution["owner_callable_surface"] is None
     assert execution["anti_loop_budget"]["failure_count"] == 2
     assert execution["anti_loop_budget"]["escalation_route"] == "publishability_repair_sprint"
+    assert execution["budget_exhausted_decision"]["decision"] == "advance_with_carry_forward_risk"
+    assert execution["budget_exhausted_decision"]["ordinary_progress_may_advance"] is True
+    assert execution["budget_exhausted_decision"]["readiness_claim_allowed"] is False
+    assert execution["budget_exhausted_decision"]["carry_forward_risk_receipt"]["surface_kind"] == (
+        "mas_progress_first_carry_forward_risk_receipt"
+    )
+    assert execution["carry_forward_policy"]["decision"] == "advance_with_carry_forward_risk"
+    assert execution["anti_loop_budget"]["next_allowed_outcomes"] == [
+        "publishability_repair_sprint",
+        "single_typed_blocker",
+        "human_or_operator_gate",
+    ]
+    assert "carry_forward_risk_receipt" in execution["anti_loop_budget"]["progress_first_next_allowed_outcomes"]
 
     db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
     assert execution["domain_authority_ref_index"]["status"] == "opl_state_index_source_adapter_emitted"

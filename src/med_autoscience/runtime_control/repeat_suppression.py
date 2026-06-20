@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience import progress_first_quality_loop
+
 
 REPEAT_SUPPRESSED_REASON = "repeat_suppressed"
 ANTI_LOOP_BUDGET_EXHAUSTED_REASON = "anti_loop_budget_exhausted"
@@ -376,16 +378,31 @@ def _anti_loop_budget_guard(
     if len(failures) < 2:
         return None
     blocker_reason = failures[-1]["blocker_reason"]
+    failure_count = len(failures)
+    max_automatic_failures = 2
+    budget_decision = progress_first_quality_loop.budget_exhausted_decision(
+        study_id=identity["study_id"],
+        action_type=identity["action_type"],
+        work_unit_id=identity["work_unit_id"],
+        work_unit_fingerprint=key,
+        blocker_reason=blocker_reason,
+        failure_count=failure_count,
+        max_automatic_failures=max_automatic_failures,
+    )
     return {
         "repeat_suppressed": True,
         "why_not_applied": ANTI_LOOP_BUDGET_EXHAUSTED_REASON,
         "work_unit_fingerprint": key,
         "repeat_suppression_key": key,
         "suppression_source": "previous_two_same_work_unit_blocker_failures",
+        "budget_exhausted_decision": budget_decision,
+        "carry_forward_policy": progress_first_quality_loop.summarize_budget_decision(
+            budget_decision,
+        ),
         "anti_loop_budget": {
             "status": "exhausted",
-            "max_automatic_failures": 2,
-            "failure_count": len(failures),
+            "max_automatic_failures": max_automatic_failures,
+            "failure_count": failure_count,
             "study_id": identity["study_id"],
             "action_type": identity["action_type"],
             "work_unit_id": identity["work_unit_id"],
@@ -397,6 +414,10 @@ def _anti_loop_budget_guard(
                 "single_typed_blocker",
                 "human_or_operator_gate",
             ],
+            "progress_first_next_allowed_outcomes": budget_decision["next_allowed_outcomes"],
+            "budget_exhausted_decision": progress_first_quality_loop.summarize_budget_decision(
+                budget_decision,
+            ),
         },
     }
 

@@ -359,6 +359,9 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
         "human_gate_ref",
         "stop_loss",
         "route_back_ref",
+        "CarryForwardRiskReceipt",
+        "budget_exhausted_decision_ref",
+        "advance_with_nonfatal_findings",
     ]
     assert policy["dry_run_write_policy"] == {
         "may_refresh_diagnostic_reports": True,

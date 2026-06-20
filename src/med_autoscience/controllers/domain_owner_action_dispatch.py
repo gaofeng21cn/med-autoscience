@@ -623,17 +623,21 @@ def _dispatch_pre_execution_block(
         anti_loop_budget = _mapping(repeat_guard.get("anti_loop_budget"))
         if anti_loop_budget:
             blocker_reason = _text(anti_loop_budget.get("blocker_reason")) or repeat_suppression.ANTI_LOOP_BUDGET_EXHAUSTED_REASON
+            budget_decision = _mapping(repeat_guard.get("budget_exhausted_decision"))
             return {
                 "execution_status": "repeat_suppressed",
                 "blocked_reason": repeat_suppression.ANTI_LOOP_BUDGET_EXHAUSTED_REASON,
                 "owner_callable_surface": None,
                 "repeat_suppressed": True,
                 "why_not_applied": repeat_suppression.ANTI_LOOP_BUDGET_EXHAUSTED_REASON,
+                "budget_exhausted_decision": dict(budget_decision) if budget_decision else None,
+                "carry_forward_policy": _mapping(repeat_guard.get("carry_forward_policy")) or None,
                 "typed_blocker": {
                     "blocker_id": blocker_reason,
                     "owner": "one-person-lab",
                     "write_permitted": False,
                     "escalation_route": _text(anti_loop_budget.get("escalation_route")),
+                    "budget_exhausted_decision_ref": _text(budget_decision.get("surface_kind")),
                 },
                 "anti_loop_budget": dict(anti_loop_budget),
             }

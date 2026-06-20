@@ -181,6 +181,9 @@ anti_loop_policy:
     - human_gate_ref
     - stop_loss
     - route_back_ref
+    - CarryForwardRiskReceipt
+    - budget_exhausted_decision_ref
+    - advance_with_nonfatal_findings
   dry_run_write_policy:
     may_refresh_diagnostic_reports: true
     may_write_study_truth: false
@@ -658,6 +661,9 @@ evidence_review_contract:
     - every reviewer, QA, gate-repair, or route-back loop must record `attempt_count`, `verdict`, `finding_refs`, `fix_refs`, `acceptance_criteria`, `next_route`, and `escalation_ref`
     - "`PASS`, `FAIL`, and `NEEDS_REVIEW` are the only stable route QA verdicts; a `FAIL` may retry only within an explicit retry budget"
     - exhausted retry budget must write `controller_decisions/latest.json` or `runtime_escalation_record.json` before any human gate or route redesign is requested
+    - findings must first classify severity as `fatal_blocker`, `must_fix_before_current_gate`, `carry_forward_advisory`, or `optional_polish`
+    - exhausted retry budget with no fatal blocker must emit `CarryForwardRiskReceipt` and advance ordinary progress without claiming publication, submission, or readiness
+    - exhausted retry budget with a fatal blocker must emit a stable typed blocker, human gate, route redesign, or stop-loss before another same-identity retry
   default_needs_review_gate:
     - manuscript, bundle, or submission readiness defaults to `NEEDS_REVIEW` until durable evidence refs, review refs, and AI reviewer-backed `publication_eval/latest.json` close the active criteria
     - zero-issue, ready, production-ready, or done claims are invalid without linked evidence/review refs and an owner decision surface
