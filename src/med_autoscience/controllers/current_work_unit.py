@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from med_autoscience.controllers import carry_forward_risk
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     consumed_gate_replay_blocker_for_action,
     terminal_closeout_blocker_for_action,
@@ -171,6 +172,9 @@ def build_current_work_unit(
     paper_recovery_successor_action = _paper_recovery_successor_action(progress_payload)
     if paper_recovery_successor_action is not None:
         action = paper_recovery_successor_action
+    carry_forward_successor = carry_forward_risk.carry_forward_successor_action(progress_payload)
+    if action is None and carry_forward_successor is not None:
+        action = carry_forward_successor
     if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
         action=action,
         progress=progress_payload,
@@ -195,7 +199,7 @@ def build_current_work_unit(
         typed_blocker,
         blocked_reason=blocked_reason,
         owner=next_owner,
-    )
+    ) or carry_forward_risk.fatal_budget_exhausted_blocker(progress_payload)
     terminal_action_blocker = terminal_closeout_blocker_for_action(
         progress_payload,
         action=action,

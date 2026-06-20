@@ -74,7 +74,10 @@ def action_owner(action: Mapping[str, Any], *, next_owner: str | None) -> str:
 
 def action_source(action: Mapping[str, Any]) -> str | None:
     source = _text(action.get("source"))
-    if source == "paper_recovery_state.next_safe_action.successor_owner_action":
+    if source in {
+        "paper_recovery_state.next_safe_action.successor_owner_action",
+        "progress_first_budget_exhausted.carry_forward_risk_receipt",
+    }:
         return source
     source_surface = _text(action.get("source_surface"))
     if source_surface is not None:

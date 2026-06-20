@@ -3,12 +3,19 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers import carry_forward_risk
+
 
 def build_progress_first_operator_projection(progress: Mapping[str, Any] | None) -> dict[str, Any]:
     payload = _mapping(progress)
     monitoring = _mapping(payload.get("progress_first_monitoring_summary"))
     sprint_state = _mapping(payload.get("progress_first_sprint_state"))
     current_work_unit = _mapping(monitoring.get("current_work_unit")) or _mapping(payload.get("current_work_unit"))
+    carry_forward_status = (
+        carry_forward_risk.carry_forward_status(payload)
+        or carry_forward_risk.carry_forward_status(monitoring)
+        or _mapping(_mapping(current_work_unit.get("state")).get("carry_forward_risk"))
+    )
     next_forced_delta = _mapping(monitoring.get("next_forced_delta")) or _mapping(payload.get("next_forced_delta"))
     deliverable_delta = _mapping(
         payload.get("deliverable_progress_delta")
@@ -29,7 +36,13 @@ def build_progress_first_operator_projection(progress: Mapping[str, Any] | None)
     )
     status = (
         "available"
-        if current_work_unit or next_forced_delta or classification or deliverable_delta or paper_delta or platform_delta
+        if current_work_unit
+        or carry_forward_status
+        or next_forced_delta
+        or classification
+        or deliverable_delta
+        or paper_delta
+        or platform_delta
         else "pending"
     )
     return {
@@ -51,6 +64,30 @@ def build_progress_first_operator_projection(progress: Mapping[str, Any] | None)
         "paper_progress_delta": paper_delta,
         "platform_repair_delta": platform_delta,
         "platform_repair_is_deliverable_progress": False,
+        "carry_forward_risk": _compact_mapping(
+            carry_forward_status,
+            (
+                "surface_kind",
+                "schema_version",
+                "status",
+                "decision",
+                "severity",
+                "fatal",
+                "ordinary_progress_may_advance",
+                "readiness_claim_allowed",
+                "study_id",
+                "action_type",
+                "work_unit_id",
+                "work_unit_fingerprint",
+                "unresolved_reason",
+                "risk_owner",
+                "next_route_policy",
+                "next_allowed_outcomes",
+                "revisit_condition",
+                "authority_boundary",
+                "forbidden_claims",
+            ),
+        ),
         "current_work_unit": _compact_mapping(
             current_work_unit,
             (
@@ -114,6 +151,7 @@ def render_progress_first_operator_section(projection: Mapping[str, Any]) -> str
     next_forced_delta = _mapping(projection.get("next_forced_delta"))
     current_work_unit = _mapping(projection.get("current_work_unit"))
     current_work_unit_state = _mapping(current_work_unit.get("state"))
+    carry_forward = _mapping(projection.get("carry_forward_risk"))
     target_surface = _mapping(next_forced_delta.get("target_surface"))
     owner_action = _mapping(next_forced_delta.get("owner_action"))
     items = [
@@ -124,6 +162,8 @@ def render_progress_first_operator_section(projection: Mapping[str, Any]) -> str
         f"current_work_unit={display_text(current_work_unit.get('work_unit_id'), empty_text='missing', preserve_known_token=True)}",
         f"current_work_unit_status={display_text(current_work_unit.get('status'), empty_text='missing', preserve_known_token=True)}",
         f"admission_pending={display_text(current_work_unit_state.get('provider_admission_pending'), empty_text='missing', preserve_known_token=True)}",
+        f"carry_forward_risk={display_text(carry_forward.get('status'), empty_text='missing', preserve_known_token=True)}",
+        f"carry_forward_severity={display_text(carry_forward.get('severity'), empty_text='missing', preserve_known_token=True)}",
         f"required_delta_kind={display_text(next_forced_delta.get('required_delta_kind'), empty_text='missing', preserve_known_token=True)}",
         f"target_surface={display_text(target_surface.get('surface_ref'), empty_text='missing', preserve_known_token=True)}",
         f"next_owner={display_text(owner_action.get('next_owner'), empty_text='missing', preserve_known_token=True)}",

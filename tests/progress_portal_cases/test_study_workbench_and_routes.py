@@ -251,6 +251,64 @@ def test_study_workbench_projects_progress_first_next_delta_for_operator_visibil
     assert "platform_repair_delta=1" in html
 
 
+def test_study_workbench_projects_carry_forward_risk_for_operator_visibility() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    progress = {
+        **_progress_payload(),
+        "budget_exhausted_decision": {
+            "surface_kind": "mas_progress_first_budget_exhausted_decision",
+            "schema_version": 1,
+            "decision": "advance_with_carry_forward_risk",
+            "severity": "carry_forward_advisory",
+            "fatal": False,
+            "study_id": "001-risk",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "ai_reviewer_recheck",
+            "work_unit_fingerprint": "ai-reviewer-recheck::repeat",
+            "blocker_reason": "ai_reviewer_request_missing",
+            "ordinary_progress_may_advance": True,
+            "readiness_claim_allowed": False,
+            "next_allowed_outcomes": [
+                "carry_forward_risk_receipt",
+                "advance_next_route",
+            ],
+            "carry_forward_risk_receipt": {
+                "surface_kind": "mas_progress_first_carry_forward_risk_receipt",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "ai_reviewer_recheck",
+                "work_unit_fingerprint": "ai-reviewer-recheck::repeat",
+                "unresolved_reason": "ai_reviewer_request_missing",
+                "severity": "carry_forward_advisory",
+                "risk_owner": "MedAutoScience",
+                "next_route_policy": "advance_ordinary_progress_without_readiness_claim",
+            },
+        },
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress=progress,
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    projection = payload["progress_first"]
+    assert projection["status"] == "available"
+    assert projection["carry_forward_risk"]["status"] == "advanced_with_carry_forward_risk"
+    assert projection["carry_forward_risk"]["severity"] == "carry_forward_advisory"
+    assert projection["carry_forward_risk"]["ordinary_progress_may_advance"] is True
+    assert projection["carry_forward_risk"]["readiness_claim_allowed"] is False
+    assert projection["carry_forward_risk"]["next_route_policy"] == (
+        "advance_ordinary_progress_without_readiness_claim"
+    )
+    assert "advanced_with_carry_forward_risk" in html
+    assert "carry_forward_advisory" in html
+
+
 def test_study_workbench_projects_evidence_gap_view_without_action_authority() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
     progress = {

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers import carry_forward_risk
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
@@ -578,6 +579,23 @@ def current_actions_for_studies(
                     ],
                 ]
                 if action != stage_native_action
+            )
+            continue
+        carry_forward_action = carry_forward_risk.carry_forward_successor_action(study_payload)
+        if carry_forward_action is not None:
+            per_study_actions.append(carry_forward_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_progress_first_carry_forward_risk_successor")
+                for action in [
+                    *current_route_queue_actions,
+                    *top_level_study_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+                if action != carry_forward_action
             )
             continue
         if current_route_queue_actions:

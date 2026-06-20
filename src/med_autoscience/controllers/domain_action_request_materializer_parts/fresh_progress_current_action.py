@@ -8,6 +8,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
+from med_autoscience.controllers import carry_forward_risk
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     fresh_progress_arbitration,
     fresh_progress_identity,
@@ -84,7 +85,7 @@ def _fresh_progress_current_action(
     if barrier is not None:
         return barrier
     if not _progress_has_executable_owner_action(progress):
-        return None
+        return carry_forward_risk.carry_forward_successor_action(progress)
     current_action = _mapping(progress.get("current_executable_owner_action"))
     repair_progress_followup = repair_progress_currentness.current_action_is_repair_progress_followup(
         current_action
