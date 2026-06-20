@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 import importlib
 
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback,
+    opl_transition_replay_audit_readback,
+)
 
 
 STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -72,6 +75,15 @@ def _live_readback() -> dict[str, object]:
     )
 
 
+def _replay_audit_readback() -> dict[str, object]:
+    return opl_transition_replay_audit_readback(
+        STUDY_ID,
+        action_fingerprint=FINGERPRINT,
+        work_unit_id=WORK_UNIT_ID,
+        request_idempotency_key=IDEMPOTENCY_KEY,
+    )
+
+
 def test_request_only_candidate_is_transition_request_pending_not_provider_admission() -> None:
     state = _module()
     progress = {
@@ -88,6 +100,17 @@ def test_same_identity_live_readback_promotes_request_to_provider_admission() ->
     progress = {
         "provider_admission_pending_count": 1,
         "provider_admission_candidates": [_candidate(readback=_live_readback())],
+    }
+
+    assert state.provider_admission_pending(progress) is True
+    assert state.transition_request_pending(progress) is False
+
+
+def test_same_identity_replay_ready_transaction_consumes_transition_request() -> None:
+    state = _module()
+    progress = {
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [_candidate(readback=_replay_audit_readback())],
     }
 
     assert state.provider_admission_pending(progress) is True

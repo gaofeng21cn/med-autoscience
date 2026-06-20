@@ -345,6 +345,9 @@ def _prebuilt_opl_transition_readback(value: object) -> dict[str, Any]:
         return {}
     if valid_opl_transition_readback(payload):
         return dict(payload)
+    replay_readback = _replay_audit_opl_transition_readback(payload)
+    if replay_readback:
+        return replay_readback
     for key in (
         "opl_domain_progress_transition_runtime_live_readback",
         "opl_domain_progress_transition_live_readback",
@@ -367,6 +370,185 @@ def _prebuilt_opl_transition_readback(value: object) -> dict[str, Any]:
         if readback:
             return readback
     return {}
+
+
+def _replay_audit_opl_transition_readback(payload: Mapping[str, Any]) -> dict[str, Any]:
+    if _text(payload.get("surface_kind")) != "opl_domain_progress_transition_replay_audit":
+        return {}
+    if _text(payload.get("runtime_id")) != _RUNTIME_ID:
+        return {}
+    if payload.get("authority") is not False:
+        return {}
+    if _text(payload.get("replay_status")) != "replay_ready":
+        return {}
+    if payload.get("read_model_projection_consumable") is not True:
+        return {}
+    if payload.get("exactly_one_complete_transaction") is not True:
+        return {}
+    if payload.get("transaction_complete") is not True:
+        return {}
+    if int(payload.get("transition_count") or 0) != 1:
+        return {}
+    if not all(
+        payload.get(flag) is True
+        for flag in (
+            "command_present",
+            "event_present",
+            "outbox_item_present",
+            "same_outbox_identity",
+            "same_transaction_event_and_outbox",
+            "same_stage_run_identity",
+        )
+    ):
+        return {}
+    aggregate_identity = _mapping(payload.get("aggregate_identity"))
+    stage_readback = _mapping(payload.get("stage_run_identity_readback"))
+    stage_run_identity = _stage_run_identity_from_replay_readback(stage_readback)
+    exactly_one = _mapping(payload.get("exactly_one_outcome"))
+    projection = _mapping(payload.get("projection_metadata"))
+    event_id = _text(payload.get("event_id"))
+    outbox_item_id = _text(payload.get("outbox_item_id"))
+    transaction_id = _text(payload.get("transaction_id"))
+    idempotency_key = _text(payload.get("idempotency_key"))
+    command_id = _text(payload.get("command_id")) or _text(payload.get("command_ref")) or (
+        f"replay-command::{transaction_id}" if transaction_id is not None else None
+    )
+    source_generation = _text(payload.get("source_generation")) or _text(
+        stage_run_identity.get("source_generation")
+    )
+    expected_version = _text(payload.get("expected_version")) or source_generation
+    if any(
+        value is None
+        for value in (
+            event_id,
+            outbox_item_id,
+            transaction_id,
+            idempotency_key,
+            command_id,
+            source_generation,
+            expected_version,
+        )
+    ):
+        return {}
+    identity = {
+        "surface_kind": "opl_domain_progress_transition_identity",
+        "runtime_id": _RUNTIME_ID,
+        "aggregate_identity": dict(aggregate_identity),
+        "stage_run_identity": dict(stage_run_identity),
+        "idempotency_key": idempotency_key,
+        "command_id": command_id,
+        "event_id": event_id,
+        "outbox_item_id": outbox_item_id,
+        "transaction_id": transaction_id,
+        "latest_event_id": event_id,
+        "latest_outbox_item_id": outbox_item_id,
+        "latest_transaction_id": transaction_id,
+        "transition_kind": _text(exactly_one.get("transition_kind")),
+        "outcome_kind": _text(exactly_one.get("outcome_kind")),
+    }
+    causality = {
+        "surface_kind": "opl_domain_progress_transition_causality",
+        "runtime_id": _RUNTIME_ID,
+        "command_id": command_id,
+        "event_id": event_id,
+        "outbox_item_id": outbox_item_id,
+        "transaction_id": transaction_id,
+        "source_generation": source_generation,
+        "expected_version": expected_version,
+        "derived_from_event_id": event_id,
+        "source_event_ids": [event_id],
+        "source_outbox_item_ids": [outbox_item_id],
+        "same_transaction_event_and_outbox": True,
+        "runtime_readback_status": LIVE_READBACK_COMPLETE_STATUS,
+        "transaction_complete": True,
+    }
+    authority_boundary = {
+        "authority": False,
+        "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+        "opl_can_write_domain_truth": False,
+        "opl_can_write_mas_truth": False,
+        "opl_can_create_domain_owner_receipt": False,
+        "opl_can_create_domain_typed_blocker": False,
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "read_model_can_execute": False,
+        "projection_can_authorize_provider_admission": False,
+    }
+    normalized_projection = {
+        "surface_kind": "opl_domain_progress_projection_metadata",
+        "runtime_id": _RUNTIME_ID,
+        "authority": False,
+        "derived_from_event_id": _text(projection.get("derived_from_event_id")) or event_id,
+        "observed_generation": _text(projection.get("observed_generation")) or source_generation,
+        "derived_generation": _text(projection.get("derived_generation")) or source_generation,
+        "lag_status": "current",
+        "read_model_rebuild_owner": OPL_TRANSITION_RUNTIME_OWNER,
+    }
+    readback = {
+        "surface_kind": OPL_TRANSITION_LIVE_READBACK_SURFACE,
+        "runtime_id": _RUNTIME_ID,
+        "runtime_owner": OPL_TRANSITION_RUNTIME_OWNER,
+        "runtime_kind": OPL_TRANSITION_RUNTIME_KIND,
+        "evidence_source": {
+            "source_kind": "opl_current_control_live_readback",
+            "source_ref": "opl_domain_progress_transition_replay_audit",
+        },
+        "storage_contract": "append_only_physical_jsonl",
+        "runtime_readback_status": LIVE_READBACK_COMPLETE_STATUS,
+        "transaction_complete": True,
+        "append_only_log_entry_count": 3,
+        "identity": identity,
+        "causality": causality,
+        "authority_boundary": authority_boundary,
+        "exactly_one_outcome": dict(exactly_one),
+        "projection_metadata": normalized_projection,
+        "latest_transaction_readback": {
+            "transaction_id": transaction_id,
+            "command_present": True,
+            "event_present": True,
+            "outbox_item_present": True,
+            "event_id": event_id,
+            "outbox_item_id": outbox_item_id,
+            "same_transaction_event_and_outbox": True,
+            "transition_event_id": event_id,
+            "outbox_transition_event_id": event_id,
+        },
+    }
+    readback["read_model_readback"] = {
+        "surface_kind": "opl_domain_progress_transition_read_model",
+        "identity": identity,
+        "causality": _read_model_causality_core(causality),
+        "authority_boundary": authority_boundary,
+        "exactly_one_outcome": dict(exactly_one),
+        "projection_metadata": normalized_projection,
+    }
+    return readback if valid_opl_transition_readback(readback) else {}
+
+
+def _stage_run_identity_from_replay_readback(
+    stage_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    if stage_readback.get("same_stage_run_identity") is not True:
+        return {}
+    if not all(
+        stage_readback.get(key) is True
+        for key in (
+            "command_stage_run_identity_present",
+            "event_stage_run_identity_present",
+            "outbox_stage_run_identity_present",
+        )
+    ):
+        return {}
+    command_identity = _mapping(stage_readback.get("command_stage_run_identity"))
+    event_identity = _mapping(stage_readback.get("event_stage_run_identity"))
+    outbox_identity = _mapping(stage_readback.get("outbox_stage_run_identity"))
+    if not command_identity or command_identity != event_identity or command_identity != outbox_identity:
+        return {}
+    return {
+        key: value
+        for key, value in command_identity.items()
+        if _text(value) is not None
+    }
 
 
 def _is_opl_transition_runtime_container(payload: Mapping[str, Any]) -> bool:

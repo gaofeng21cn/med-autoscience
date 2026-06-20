@@ -183,6 +183,81 @@ def opl_transition_readback(
     }
 
 
+def opl_transition_replay_audit_readback(
+    study_id: str,
+    *,
+    action_fingerprint: str,
+    work_unit_id: str = "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    route_identity_key: str | None = None,
+    attempt_idempotency_key: str | None = None,
+    request_idempotency_key: str | None = None,
+    stage_run_id: str | None = None,
+) -> dict[str, object]:
+    live = opl_transition_readback(
+        study_id,
+        action_fingerprint=action_fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_identity_key,
+        attempt_idempotency_key=attempt_idempotency_key,
+        request_idempotency_key=request_idempotency_key,
+        stage_run_id=stage_run_id,
+    )
+    identity = live["identity"]
+    causality = live["causality"]
+    projection = live["projection_metadata"]
+    return {
+        "surface_kind": "opl_domain_progress_transition_replay_audit",
+        "runtime_id": "opl_domain_progress_transition_runtime",
+        "authority": False,
+        "replay_status": "replay_ready",
+        "read_model_projection_consumable": True,
+        "exactly_one_complete_transaction": True,
+        "transaction_complete": True,
+        "transition_count": 1,
+        "aggregate_identity": dict(identity["aggregate_identity"]),
+        "aggregate_version": 1,
+        "transaction_id": identity["latest_transaction_id"],
+        "event_id": identity["latest_event_id"],
+        "outbox_item_id": identity["latest_outbox_item_id"],
+        "idempotency_key": identity["idempotency_key"],
+        "command_present": True,
+        "event_present": True,
+        "outbox_item_present": True,
+        "same_outbox_identity": True,
+        "same_transaction_event_and_outbox": True,
+        "same_stage_run_identity": True,
+        "stage_run_identity_readback": {
+            "surface_kind": "opl_domain_progress_stage_run_identity_readback",
+            "runtime_id": "opl_domain_progress_transition_runtime",
+            "same_stage_run_identity": True,
+            "command_stage_run_identity_present": True,
+            "event_stage_run_identity_present": True,
+            "outbox_stage_run_identity_present": True,
+            "command_stage_run_identity": dict(identity["stage_run_identity"]),
+            "event_stage_run_identity": dict(identity["stage_run_identity"]),
+            "outbox_stage_run_identity": dict(identity["stage_run_identity"]),
+            **dict(identity["stage_run_identity"]),
+            "fail_closed_reason": None,
+        },
+        "exactly_one_outcome": dict(live["exactly_one_outcome"]),
+        "projection_metadata": {
+            "surface_kind": "opl_domain_progress_transition_replay_projection_metadata",
+            "runtime_id": "opl_domain_progress_transition_runtime",
+            "authority": False,
+            "projection_role": "replay_ready_complete_transaction",
+            "read_model_projection_consumable": True,
+            "transaction_complete": True,
+            "replay_status": "replay_ready",
+            "exactly_one_complete_transaction": True,
+            "derived_from_event_id": projection["derived_from_event_id"],
+            "observed_generation": projection["observed_generation"],
+            "read_model_rebuild_owner": "one-person-lab",
+        },
+        "source_generation": causality["source_generation"],
+        "expected_version": causality["expected_version"],
+    }
+
+
 def provider_candidate_with_opl_readback(
     profile,
     study_id: str,

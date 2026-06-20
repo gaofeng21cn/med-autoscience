@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 import importlib
 
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback,
+    opl_transition_replay_audit_readback,
+)
 
 
 STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -161,6 +164,48 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
     read_model_identity_mismatch = copy.deepcopy(trusted)
     read_model_identity_mismatch["read_model_readback"]["identity"]["latest_event_id"] = "dpte-stale"
     assert module.valid_opl_transition_readback(read_model_identity_mismatch) is False
+
+
+def test_replay_ready_complete_transaction_is_consumable_readback_projection() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    replay_audit = opl_transition_replay_audit_readback(
+        STUDY_ID,
+        action_fingerprint=FINGERPRINT,
+        work_unit_id=WORK_UNIT_ID,
+        request_idempotency_key=f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+    )
+    candidate = {
+        "study_id": STUDY_ID,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FINGERPRINT,
+        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "opl_domain_progress_transition_result": replay_audit,
+    }
+
+    readback = module.candidate_opl_transition_readback(candidate)
+
+    assert readback["surface_kind"] == "opl_domain_progress_transition_runtime_live_readback"
+    assert readback["runtime_readback_status"] == "complete_transaction"
+    assert readback["transaction_complete"] is True
+    assert readback["identity"]["aggregate_identity"]["study_id"] == STUDY_ID
+    assert readback["identity"]["stage_run_identity"]["route_identity_key"] == (
+        f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
+    )
+    assert module.valid_opl_transition_readback(readback) is True
+    assert module.provider_admission_opl_transition_readback(candidate) == readback
+
+    stale = copy.deepcopy(replay_audit)
+    stale["aggregate_identity"]["work_unit_id"] = "stale-work-unit"
+    assert module.provider_admission_opl_transition_readback(
+        {
+            **candidate,
+            "opl_domain_progress_transition_result": stale,
+        }
+    ) == {}
 
 
 def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_without_provider_admission() -> None:
