@@ -37,6 +37,30 @@ PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF = Path(
     "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
 )
 PUBLICATION_ROUTE_MEMORY_SELECTION_LIMIT = 3
+PUBLICATION_STRATEGY_MEMORY_KIND = "publication_strategy_memory"
+PUBLICATION_STRATEGY_MEMORY_USE_POLICY = {
+    "memory_kind": PUBLICATION_STRATEGY_MEMORY_KIND,
+    "compatible_memory_family": "publication_route_memory",
+    "canonical_body_mode": "markdown_first",
+    "stage_packet_role": "reference_only_prompt_context",
+    "retrieval_scope": "small_stage_relevant_ref_set",
+    "body_transport": "body_free_refs_by_default",
+    "agent_instruction": (
+        "Use these Markdown-first publication strategy memories only as reference context. "
+        "They may inspire candidate routes, fit/poor-fit reasoning, pivot/stop discussion, "
+        "and reviewer-risk awareness, but the stage executor must decide fit from current "
+        "data, disease context, evidence refs, failed paths, controller state, and owner gates."
+    ),
+    "forbidden_roles": {
+        "recipe_engine": False,
+        "route_scorer": False,
+        "evidence_gate": False,
+        "controller_decision_source": False,
+        "publication_quality_authority": False,
+        "submission_readiness_authority": False,
+        "memory_body_owner_for_opl": False,
+    },
+}
 
 
 def stage_knowledge_packet_path(*, study_root: Path, stage: str) -> Path:
@@ -109,6 +133,10 @@ def build_stage_knowledge_packet(
     )
     missing = _missing_reasons(input_refs=input_refs, stage=resolved_stage)
     source_fingerprint = _fingerprint({"input_refs": input_refs, "stage": resolved_stage})
+    publication_strategy_memory_refs = select_publication_route_memory_refs(
+        workspace_root=resolved_workspace_root,
+        stage=resolved_stage,
+    )
     return {
         "surface": KNOWLEDGE_PACKET_SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -119,10 +147,12 @@ def build_stage_knowledge_packet(
         "missing_reasons": missing,
         "stage_obligations": _stage_obligations(resolved_stage),
         "high_signal_memory": _high_signal_memory(input_refs=input_refs),
-        "publication_route_memory_refs": select_publication_route_memory_refs(
-            workspace_root=resolved_workspace_root,
-            stage=resolved_stage,
+        "publication_strategy_memory_use_policy": publication_strategy_memory_use_policy(),
+        "publication_strategy_memory_refs": publication_strategy_memory_refs,
+        "publication_strategy_memory_prompt_block": render_publication_strategy_memory_prompt_block(
+            publication_strategy_memory_refs
         ),
+        "publication_route_memory_refs": publication_strategy_memory_refs,
         "literature_gaps": _literature_gaps(input_refs=input_refs),
         "failed_paths": _failed_paths(input_refs=input_refs),
         "citation_readiness": _citation_readiness(input_refs=input_refs),
@@ -185,6 +215,57 @@ def apply_publication_route_memory_seed_library(
     )
 
 
+def publication_strategy_memory_use_policy() -> dict[str, Any]:
+    return json.loads(json.dumps(PUBLICATION_STRATEGY_MEMORY_USE_POLICY, ensure_ascii=False))
+
+
+def default_publication_route_memory_seed_fixture_path() -> Path:
+    return _default_publication_route_seed_fixture_path()
+
+
+def render_publication_strategy_memory_prompt_block(
+    publication_strategy_memory_refs: Sequence[Mapping[str, Any]],
+) -> str:
+    lines = [
+        "## Publication Strategy Memory",
+        "",
+        "Use these Markdown-first strategy memories as reference context only.",
+        "They are not rules, not a recipe engine, not a route scorer, not an evidence gate, "
+        "and not a controller decision source.",
+        "Judge fit from the current study data, disease context, evidence refs, failed paths, "
+        "controller state, publication gate, and owner/human gate before applying any idea.",
+    ]
+    refs = [dict(ref) for ref in publication_strategy_memory_refs]
+    if not refs:
+        lines.extend(["", "No stage-relevant publication strategy memory refs were retrieved."])
+        return "\n".join(lines)
+
+    lines.extend(["", "Retrieved refs:"])
+    for ref in refs:
+        title = _text(ref.get("title")) or _text(ref.get("memory_id"))
+        memory_id = _text(ref.get("memory_id"))
+        route_family = _text(ref.get("route_family"))
+        summary = _text(ref.get("route_memory_summary"))
+        body_ref = _text(ref.get("memory_pack_ref"))
+        source_receipt_ref = _text(ref.get("source_receipt_ref"))
+        parts = [f"- {title}"]
+        detail_parts = []
+        if memory_id:
+            detail_parts.append(f"id={memory_id}")
+        if route_family:
+            detail_parts.append(f"family={route_family}")
+        if detail_parts:
+            parts.append(f" ({', '.join(detail_parts)})")
+        lines.append("".join(parts))
+        if summary:
+            lines.append(f"  Summary: {summary}")
+        if body_ref:
+            lines.append(f"  Memory pack locator: {body_ref}")
+        if source_receipt_ref:
+            lines.append(f"  Source receipt: {source_receipt_ref}")
+    return "\n".join(lines)
+
+
 def select_publication_route_memory_refs(
     *,
     workspace_root: Path,
@@ -208,6 +289,8 @@ def select_publication_route_memory_refs(
         selected.append(
             {
                 "ref_kind": "workspace_memory_card_ref",
+                "memory_kind": PUBLICATION_STRATEGY_MEMORY_KIND,
+                "use_policy": "reference_only_for_ai_reasoning",
                 "memory_id": _text(card.get("memory_id")),
                 "route_family": route_family,
                 "title": _text(card.get("title")),
@@ -853,6 +936,8 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 __all__ = [
     "EXPLORATORY_STAGES",
+    "PUBLICATION_STRATEGY_MEMORY_KIND",
+    "PUBLICATION_STRATEGY_MEMORY_USE_POLICY",
     "PUBLICATION_ROUTE_MEMORY_ROOT",
     "PUBLICATION_ROUTE_MEMORY_STAGES",
     "STAGE_OBLIGATIONS",
@@ -861,6 +946,7 @@ __all__ = [
     "build_paper_soak_memory_apply_proof",
     "build_stage_knowledge_packet",
     "build_stage_recall_index",
+    "default_publication_route_memory_seed_fixture_path",
     "materialize_paper_soak_memory_apply_proof",
     "materialize_stage_knowledge_packet",
     "materialize_stage_memory_closeout_packet",
@@ -868,9 +954,11 @@ __all__ = [
     "memory_write_router_receipt_path",
     "normalize_stage_memory_closeout_packet",
     "paper_soak_memory_apply_proof_path",
+    "publication_strategy_memory_use_policy",
     "publication_route_memory_apply_receipt_path",
     "publication_route_memory_pack_path",
     "publication_route_memory_pack_root",
+    "render_publication_strategy_memory_prompt_block",
     "route_stage_memory_closeout",
     "select_publication_route_memory_refs",
     "stage_knowledge_packet_path",

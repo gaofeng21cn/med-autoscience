@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -55,6 +56,26 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
         "study_yaml_pattern": "studies/<study-id>/study.yaml",
         "data_body_allowed": False,
     }
+    strategy_seed = result["publication_strategy_memory_seed"]
+    assert strategy_seed == {
+        "surface": "publication_strategy_memory_seed_plan",
+        "memory_kind": "publication_strategy_memory",
+        "compatible_memory_family": "publication_route_memory",
+        "status": "planned",
+        "apply": False,
+        "seed_fixture_ref": "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+        "memory_pack_ref": str(
+            workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+        ),
+        "use_policy": "reference_only_for_ai_reasoning",
+        "body_mode": "markdown_first",
+        "publication_strategy_memory_use_policy": strategy_seed["publication_strategy_memory_use_policy"],
+        "authority_boundary": strategy_seed["authority_boundary"],
+    }
+    assert strategy_seed["publication_strategy_memory_use_policy"]["stage_packet_role"] == (
+        "reference_only_prompt_context"
+    )
+    assert strategy_seed["authority_boundary"]["can_score_or_select_route"] is False
     assert str(workspace_root / "studies") not in layout["body_plane"]["root"]
     assert not workspace_root.exists()
 
@@ -178,6 +199,14 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert workspace_literature_status.is_file()
     assert prepare_external_research.is_file()
     assert external_research_status.is_file()
+    publication_strategy_memory_seed = (
+        workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-seed"
+    )
+    publication_strategy_memory_inventory = (
+        workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-inventory"
+    )
+    assert publication_strategy_memory_seed.is_file()
+    assert publication_strategy_memory_inventory.is_file()
     assert not (workspace_root / "ops" / "mas" / "bin" / "start-web").exists()
     assert not (workspace_root / "ops" / "mas" / "bin" / "live-console").exists()
     assert os.access(bootstrap, os.X_OK)
@@ -195,6 +224,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(workspace_literature_status, os.X_OK)
     assert os.access(prepare_external_research, os.X_OK)
     assert os.access(external_research_status, os.X_OK)
+    assert os.access(publication_strategy_memory_seed, os.X_OK)
+    assert os.access(publication_strategy_memory_inventory, os.X_OK)
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
@@ -209,6 +240,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     workspace_literature_status_text = workspace_literature_status.read_text(encoding="utf-8")
     prepare_external_research_text = prepare_external_research.read_text(encoding="utf-8")
     external_research_status_text = external_research_status.read_text(encoding="utf-8")
+    publication_strategy_memory_seed_text = publication_strategy_memory_seed.read_text(encoding="utf-8")
+    publication_strategy_memory_inventory_text = publication_strategy_memory_inventory.read_text(encoding="utf-8")
     shared_text = (workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh").read_text(encoding="utf-8")
     assert "PYTHONDONTWRITEBYTECODE=1" in shared_text
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
@@ -242,6 +275,12 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci data literature-status "$@"' in workspace_literature_status_text
     assert 'run_medautosci data prepare-external-research "$@"' in prepare_external_research_text
     assert 'run_medautosci data external-research-status "$@"' in external_research_status_text
+    assert 'run_medautosci publication-route-memory-apply-seed --apply --workspace-root "${WORKSPACE_ROOT}" "$@"' in (
+        publication_strategy_memory_seed_text
+    )
+    assert 'run_medautosci publication route-memory-inventory --workspace-root "${WORKSPACE_ROOT}" "$@"' in (
+        publication_strategy_memory_inventory_text
+    )
     med_readme_text = (workspace_root / "ops" / "medautoscience" / "README.md").read_text(encoding="utf-8")
     agents_text = (workspace_root / "AGENTS.md").read_text(encoding="utf-8")
     assert "bin/study-state-matrix" in med_readme_text
@@ -260,6 +299,21 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert portfolio_memory_registry.is_file()
     assert workspace_literature_registry.is_file()
     assert "Portfolio Research Memory" in portfolio_memory_readme.read_text(encoding="utf-8")
+    route_memory_pack = (
+        workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+    )
+    assert route_memory_pack.is_file()
+    route_memory_payload = json.loads(route_memory_pack.read_text(encoding="utf-8"))
+    assert route_memory_payload["surface"] == "publication_route_memory_pack"
+    assert route_memory_payload["card_count"] >= 9
+    assert "publication_route_memory_seed__clinical_classifier" in {
+        card["memory_id"] for card in route_memory_payload["cards"]
+    }
+    strategy_seed_receipt = result["publication_strategy_memory_seed"]
+    assert strategy_seed_receipt["surface"] == "publication_route_memory_apply_receipt"
+    assert strategy_seed_receipt["status"] == "applied"
+    assert strategy_seed_receipt["memory_pack_ref"] == str(route_memory_pack)
+    assert "publication_route_memory_seed__clinical_classifier" in strategy_seed_receipt["accepted_memory_ids"]
 
     root_readme = workspace_root / "README.md"
     assert root_readme.is_file()
@@ -618,6 +672,8 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
     )
     assert str(profile_path) in second["skipped_files"]
     assert profile_path.read_text(encoding="utf-8") == "# local edit\n"
+    assert second["publication_strategy_memory_seed"]["status"] == "already_present"
+    assert second["publication_strategy_memory_seed"]["authority_boundary"]["can_overwrite_existing_pack"] is False
     assert str(agents_path) in second["skipped_files"]
     assert agents_path.read_text(encoding="utf-8") == "# custom local rules\n"
 

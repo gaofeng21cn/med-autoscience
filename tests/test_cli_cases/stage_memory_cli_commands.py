@@ -99,6 +99,59 @@ def test_publication_route_memory_apply_seed_cli_accepts_markdown_library(tmp_pa
     assert Path(payload["memory_pack_ref"]).exists()
 
 
+def test_stage_knowledge_packet_cli_materializes_strategy_memory_prompt_policy(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "S1"
+    (study_root / "artifacts" / "reference_context").mkdir(parents=True)
+    _write_json(study_root / "artifacts" / "reference_context" / "latest.json", {"status": "present"})
+    cli.main(
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-fixture",
+            str(SEED_FIXTURE),
+            "--apply",
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "stage-knowledge-packet",
+            "--study-id",
+            "S1",
+            "--stage",
+            "idea",
+            "--study-root",
+            str(study_root),
+            "--workspace-root",
+            str(workspace_root),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "stage_knowledge_packet"
+    assert payload["publication_strategy_memory_refs"] == payload["publication_route_memory_refs"]
+    assert payload["publication_strategy_memory_use_policy"]["stage_packet_role"] == (
+        "reference_only_prompt_context"
+    )
+    assert payload["publication_strategy_memory_use_policy"]["forbidden_roles"]["route_scorer"] is False
+    assert "Use these Markdown-first strategy memories as reference context only." in payload[
+        "publication_strategy_memory_prompt_block"
+    ]
+    assert "publication_route_memory_seed__clinical_classifier" in payload[
+        "publication_strategy_memory_prompt_block"
+    ]
+    assert Path(payload["artifact_path"]).is_file()
+
+
 def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_default(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

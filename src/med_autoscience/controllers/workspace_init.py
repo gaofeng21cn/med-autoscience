@@ -8,6 +8,7 @@ import shutil
 import subprocess
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
+from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.controllers.workspace_agents_template import render_workspace_agents
@@ -26,6 +27,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_study_progress_script,
     _render_scan_domain_routes_script,
     _render_domain_health_diagnostic_script,
+    _render_workspace_root_forward_script,
 )
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_empty_dir_cleanup_reason,
@@ -198,6 +200,59 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         layout.startup_briefs_root,
         layout.startup_payloads_root,
     ]
+
+
+def _publication_strategy_memory_seed_plan(*, workspace_root: Path) -> dict[str, object]:
+    seed_fixture_path = stage_knowledge_plane.PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF
+    pack_path = stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root)
+    return {
+        "surface": "publication_strategy_memory_seed_plan",
+        "memory_kind": stage_knowledge_plane.PUBLICATION_STRATEGY_MEMORY_KIND,
+        "compatible_memory_family": "publication_route_memory",
+        "status": "planned",
+        "apply": False,
+        "seed_fixture_ref": str(seed_fixture_path),
+        "memory_pack_ref": str(pack_path),
+        "use_policy": "reference_only_for_ai_reasoning",
+        "body_mode": "markdown_first",
+        "publication_strategy_memory_use_policy": stage_knowledge_plane.publication_strategy_memory_use_policy(),
+        "authority_boundary": {
+            "role": "seed_plan_only_not_memory_body_or_route_authority",
+            "can_apply_without_mas_owner_surface": False,
+            "can_authorize_publication_quality": False,
+            "can_replace_controller_decision": False,
+            "can_score_or_select_route": False,
+        },
+    }
+
+
+def _apply_publication_strategy_memory_seed(*, workspace_root: Path, dry_run: bool) -> dict[str, object]:
+    if dry_run:
+        return _publication_strategy_memory_seed_plan(workspace_root=workspace_root)
+    pack_path = stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root)
+    if pack_path.exists():
+        return {
+            "surface": "publication_strategy_memory_seed_status",
+            "memory_kind": stage_knowledge_plane.PUBLICATION_STRATEGY_MEMORY_KIND,
+            "compatible_memory_family": "publication_route_memory",
+            "status": "already_present",
+            "apply": False,
+            "memory_pack_ref": str(pack_path),
+            "use_policy": "reference_only_for_ai_reasoning",
+            "body_mode": "markdown_first",
+            "authority_boundary": {
+                "role": "existing_pack_preserved_not_memory_body_or_route_authority",
+                "can_overwrite_existing_pack": False,
+                "can_authorize_publication_quality": False,
+                "can_replace_controller_decision": False,
+                "can_score_or_select_route": False,
+            },
+        }
+    return stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=stage_knowledge_plane.default_publication_route_memory_seed_fixture_path(),
+        apply=True,
+    )
 
 
 def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> str:
@@ -547,6 +602,16 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-seed",
+            content=_render_workspace_root_forward_script("publication-route-memory-apply-seed --apply"),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-strategy-memory-inventory",
+            content=_render_workspace_root_forward_script("publication route-memory-inventory"),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "init-workspace-literature",
             content=_render_forward_script("data init-literature"),
             executable=True,
@@ -746,6 +811,11 @@ def init_workspace(
                 item.path.chmod(item.path.stat().st_mode | 0o111)
         workspace_git = ensure_workspace_git(workspace_root=workspace_root, initialize_git=initialize_git)
 
+    publication_strategy_memory_seed = _apply_publication_strategy_memory_seed(
+        workspace_root=workspace_root,
+        dry_run=dry_run,
+    )
+
     return {
         "workspace_root": str(workspace_root),
         "workspace_name": workspace_name,
@@ -760,6 +830,7 @@ def init_workspace(
         "retained_retired_files": retained_retired_files,
         "workspace_git": workspace_git,
         "profile_path": str(profile_path),
+        "publication_strategy_memory_seed": publication_strategy_memory_seed,
         "data_assets_layout": build_data_assets_v2_layout_metadata(workspace_root=workspace_root),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",

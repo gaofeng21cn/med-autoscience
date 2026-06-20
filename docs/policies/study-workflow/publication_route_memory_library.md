@@ -1,16 +1,19 @@
-# Publication Route Memory Library
+# Publication Strategy Memory Library
 
-Status: active canonical memory body
+Status: active canonical Markdown-first Publication Strategy Memory body
 Owner: MedAutoScience
-Purpose: human-maintained Markdown-first publication route experience memory for MAS stage-led Codex execution.
+Purpose: human-maintained Markdown-first publication strategy memory for MAS stage-led Codex execution.
 State: canonical repo source for seed cards; workspace packs and receipts are generated/applied MAS owner surfaces.
-Machine boundary: this file is the human and Codex-readable memory body. JSON fixtures, workspace packs, inventories, receipts, and OPL projections are indexes or generated surfaces, not the canonical prose source.
+Machine boundary: this file is the human and Codex-readable strategy memory body. JSON fixtures, workspace packs, inventories, receipts, and OPL projections are indexes or generated surfaces, not the canonical prose source.
 
 ## Maintenance Rules
 
-- Edit this Markdown file when adding or revising reusable publication-route experience.
+- Edit this Markdown file when adding or revising reusable publication strategy experience.
 - Keep each card rich enough for Codex CLI to reason with: fit, poor fit, evidence package, analysis/display pattern, claim boundary, reviewer risks, pivot/stop rules, stage guidance, examples, and failure modes.
-- Do not turn cards into a recipe engine, route scorer, fixed workflow, publication gate, or controller decision source.
+- Treat cards as reference-only prompt context for stage reasoning.
+- Do not turn cards into a recipe engine, route scorer, evidence gate, fixed workflow, publication gate, route-control system, or controller decision source.
+- Keep `publication_route_memory_*` headings and IDs stable as compatibility identifiers; the human-facing concept is Publication Strategy Memory.
+- OPL may index, locate, project refs, and expose receipts for this memory family. OPL must not read/copy the card body, accept or reject writebacks, decide publication routes, or control MAS route execution.
 - Keep JSON surfaces generated, indexed, or receipt-like unless they represent runtime truth or machine contracts.
 
 ## publication_route_memory_seed__clinical_classifier

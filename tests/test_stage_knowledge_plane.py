@@ -280,6 +280,31 @@ def test_publication_route_memory_seed_apply_builds_workspace_pack_and_stage_ent
     )
     assert "route_memory_summary" in packet["publication_route_memory_refs"][0]
     assert "best_fit" not in packet["publication_route_memory_refs"][0]
+    assert packet["publication_strategy_memory_refs"] == packet["publication_route_memory_refs"]
+    strategy_policy = packet["publication_strategy_memory_use_policy"]
+    assert strategy_policy["stage_packet_role"] == "reference_only_prompt_context"
+    assert strategy_policy["canonical_body_mode"] == "markdown_first"
+    assert strategy_policy["body_transport"] == "body_free_refs_by_default"
+    assert strategy_policy["forbidden_roles"] == {
+        "recipe_engine": False,
+        "route_scorer": False,
+        "evidence_gate": False,
+        "controller_decision_source": False,
+        "publication_quality_authority": False,
+        "submission_readiness_authority": False,
+        "memory_body_owner_for_opl": False,
+    }
+    first_strategy_ref = packet["publication_strategy_memory_refs"][0]
+    assert first_strategy_ref["memory_kind"] == "publication_strategy_memory"
+    assert first_strategy_ref["use_policy"] == "reference_only_for_ai_reasoning"
+    prompt_block = packet["publication_strategy_memory_prompt_block"]
+    assert "reference context only" in prompt_block
+    assert "not a route scorer" in prompt_block
+    assert "publication_route_memory_seed__clinical_classifier" in prompt_block
+    assert "Memory pack locator:" in prompt_block
+    serialized_packet = json.dumps(packet, ensure_ascii=False)
+    for forbidden_key in ("score", "pass", "matched_route", "recommended_route"):
+        assert f'"{forbidden_key}"' not in serialized_packet
 
 
 def test_publication_route_memory_selection_uses_small_stage_relevant_set(tmp_path) -> None:
@@ -334,6 +359,15 @@ def test_decision_stage_knowledge_packet_reads_publication_route_memory_refs(tmp
     ]
     assert packet["stage_obligations"]["knowledge_input_obligations"][0] == "stage_knowledge_packet_ref"
     assert packet["authority_boundary"]["can_replace_controller_decision"] is False
+    assert packet["publication_strategy_memory_use_policy"]["forbidden_roles"]["controller_decision_source"] is False
+    assert "not a controller decision source" in packet["publication_strategy_memory_prompt_block"]
+
+
+def test_publication_strategy_memory_prompt_block_handles_empty_refs() -> None:
+    prompt_block = stage_knowledge_plane.render_publication_strategy_memory_prompt_block([])
+
+    assert "reference context only" in prompt_block
+    assert "No stage-relevant publication strategy memory refs were retrieved." in prompt_block
 
 
 def test_publication_route_memory_seed_rejects_thin_cards(tmp_path) -> None:

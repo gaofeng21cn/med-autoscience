@@ -83,6 +83,15 @@ def _render_forward_script(command: str, *, with_profile: bool = False) -> str:
     )
 
 
+def _render_workspace_root_forward_script(command: str) -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        f'run_medautosci {command} --workspace-root "${{WORKSPACE_ROOT}}" "$@"\n'
+    )
+
+
 def _render_bootstrap_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
