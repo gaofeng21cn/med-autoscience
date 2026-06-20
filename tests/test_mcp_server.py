@@ -65,8 +65,15 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
         assert "readOnlyHint" in tool["annotations"]
         assert "destructiveHint" in tool["annotations"]
         assert "idempotentHint" in tool["annotations"]
+        assert tool["metadata"]["evidence_gap_consumption_abi"]["contract_ref"] == (
+            "contracts/evidence-gap-consumption-abi.json"
+        )
+        assert tool["metadata"]["evidence_gap_consumption_abi"]["missing_evidence_policy"] == (
+            "classify_with_evidence_gap_decision_then_progress_first"
+        )
 
     progress = tools["study_progress"]
+    assert "action_catalog_projection" in progress["metadata"]
     assert progress["annotations"]["readOnlyHint"] is True
     assert progress["annotations"]["destructiveHint"] is False
     assert progress["annotations"]["idempotentHint"] is True

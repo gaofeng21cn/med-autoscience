@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.evidence_gap_abi import MISSING_EVIDENCE_POLICY, evidence_gap_abi_ref
+
 
 def minimum_forward_delta_contract(stage: Mapping[str, Any]) -> dict[str, Any]:
     stage_id = str(stage["stage_id"])
@@ -79,7 +81,8 @@ def human_gate_progress_evidence_contract() -> dict[str, Any]:
             "next_forced_delta",
             "human_decision_owner",
         ],
-        "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+        "missing_evidence_policy": MISSING_EVIDENCE_POLICY,
+        "evidence_gap_consumption_abi": evidence_gap_abi_ref(),
         "authority_boundary": {
             "can_authorize_publication_quality": False,
             "can_replace_ai_reviewer_gate": False,

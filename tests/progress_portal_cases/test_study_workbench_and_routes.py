@@ -251,6 +251,136 @@ def test_study_workbench_projects_progress_first_next_delta_for_operator_visibil
     assert "platform_repair_delta=1" in html
 
 
+def test_study_workbench_projects_evidence_gap_view_without_action_authority() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    progress = {
+        **_progress_payload(),
+        "evidence_gap_decisions": [
+            {
+                "surface_kind": "mas_evidence_gap_decision",
+                "schema_version": 1,
+                "source_surface_kind": "reviewer_polish",
+                "gap_class": "soft_quality_gap",
+                "severity": "soft",
+                "current_action_can_continue": True,
+                "allowed_next_actions": ["continue_current_action", "schedule_quality_repair"],
+                "forbidden_claims": [
+                    "owner_receipt_closed",
+                    "paper_progress",
+                    "publication_ready",
+                    "submission_ready",
+                    "live_runtime_ready",
+                    "production_ready",
+                    "provider_running",
+                    "quality_complete",
+                    "reviewer_cleared",
+                ],
+                "owner": "med-autoscience",
+                "repair_owner": "quality_repair_owner",
+                "escalation_policy": "track_as_quality_repair",
+                "typed_blocker_eligibility": False,
+                "claim_boundary": {
+                    "paper_progress_claim_allowed": False,
+                    "owner_receipt_claim_allowed": False,
+                    "publication_readiness_claim_allowed": False,
+                    "submission_readiness_claim_allowed": False,
+                    "live_runtime_readiness_claim_allowed": False,
+                    "production_readiness_claim_allowed": False,
+                },
+                "identity": {"study_id": "001-risk"},
+                "missing_ref_family": "reviewer structure non-hard concern",
+                "reason": "non_hard_quality_concern",
+                "assumption": None,
+                "evidence_refs": [],
+                "diagnostic_refs": [],
+                "confidence": "medium",
+                "decision_trace": ["classify_missing_evidence_by_authority_boundary"],
+            },
+            {
+                "surface_kind": "mas_evidence_gap_decision",
+                "schema_version": 1,
+                "source_surface_kind": "source_reference_note",
+                "gap_class": "proceed_with_assumption",
+                "severity": "assumption",
+                "current_action_can_continue": True,
+                "allowed_next_actions": ["continue_current_action", "record_assumption"],
+                "forbidden_claims": [
+                    "owner_receipt_closed",
+                    "paper_progress",
+                    "publication_ready",
+                    "submission_ready",
+                    "live_runtime_ready",
+                    "production_ready",
+                    "provider_running",
+                    "evidence_complete",
+                    "assumption_free",
+                ],
+                "owner": "med-autoscience",
+                "repair_owner": "current_executor",
+                "escalation_policy": "explicit_assumption_only",
+                "typed_blocker_eligibility": False,
+                "claim_boundary": {
+                    "paper_progress_claim_allowed": False,
+                    "owner_receipt_claim_allowed": False,
+                    "publication_readiness_claim_allowed": False,
+                    "submission_readiness_claim_allowed": False,
+                    "live_runtime_readiness_claim_allowed": False,
+                    "production_readiness_claim_allowed": False,
+                },
+                "identity": {"study_id": "001-risk"},
+                "missing_ref_family": "safe non-critical bibliography helper ref",
+                "reason": "safe_non_critical_ref_missing",
+                "assumption": {
+                    "surface_kind": "mas_evidence_gap_assumption",
+                    "status": "explicit_assumption",
+                    "scope": "safe non-critical bibliography helper ref",
+                    "does_not_authorize_claims": [
+                        "owner_receipt_closed",
+                        "paper_progress",
+                        "publication_ready",
+                        "submission_ready",
+                        "live_runtime_ready",
+                        "production_ready",
+                        "provider_running",
+                    ],
+                },
+                "evidence_refs": [],
+                "diagnostic_refs": [],
+                "confidence": "medium",
+                "decision_trace": ["classify_missing_evidence_by_authority_boundary"],
+            },
+        ],
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress=progress,
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    tabs_by_id = {item["id"]: item for item in payload["tabs"]}
+    view = payload["evidence_gap_view"]
+    html = parts.render_study_workbench_sections(payload)
+
+    assert tabs_by_id["evidence_gap_view"] == {
+        "id": "evidence_gap_view",
+        "label": "Evidence Gaps",
+        "status": "available",
+    }
+    assert view["summary"]["total_count"] == 2
+    assert view["summary"]["soft_gap_count"] == 1
+    assert view["summary"]["assumption_count"] == 1
+    assert view["hard_gate_registry"]["typed_blocker_count"] == 0
+    assert view["soft_gap_ledger"]["count"] == 1
+    assert view["assumption_ledger"]["count"] == 1
+    assert view["evidence_budget"]["current_action_can_continue"] is True
+    assert "paper_progress" in view["evidence_budget"]["forbidden_claims"]
+    assert view["projection_boundary"]["can_execute"] is False
+    assert view["projection_boundary"]["can_write_domain_truth"] is False
+    assert "Evidence Gaps" in html
+
+
 def test_study_workbench_progress_first_exposes_canonical_current_work_unit() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
     progress = {

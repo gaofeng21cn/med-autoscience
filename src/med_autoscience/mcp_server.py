@@ -11,6 +11,7 @@ from med_autoscience.action_catalog import (
     action_catalog_metadata_by_mcp_tool,
     build_mas_action_catalog,
 )
+from med_autoscience.evidence_gap_abi import evidence_gap_abi_ref
 from med_autoscience.agent_tool_arsenal import (
     FORBIDDEN_DOMAIN_AUTHORITY,
     build_agent_tool_arsenal_index,
@@ -97,6 +98,20 @@ TOOL_REGISTRY = build_tool_registry(
     authority_operation_modes_text=product_entry_description_modes_text(),
     authority_operation_contract_gap_text=_PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
     action_catalog_metadata_by_tool=action_catalog_metadata_by_mcp_tool(ACTION_CATALOG),
+)
+TOOL_REGISTRY = tuple(
+    tool.__class__(
+        name=tool.name,
+        description=tool.description,
+        input_schema=tool.input_schema,
+        metadata={
+            **dict(tool.metadata or {}),
+            "evidence_gap_consumption_abi": evidence_gap_abi_ref(),
+        },
+        output_schema=tool.output_schema,
+        annotations=tool.annotations,
+    )
+    for tool in TOOL_REGISTRY
 )
 
 

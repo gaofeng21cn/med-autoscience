@@ -557,7 +557,27 @@
             "can_replace_ai_reviewer_gate": false,
             "mas_retains_human_gate_receipt_authority": true
           },
-          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
           "required_fields": [
             "last_attempted_deliverable_delta",
             "why_ai_cannot_progress_one_more_delta",
@@ -1374,7 +1394,27 @@
             "can_replace_ai_reviewer_gate": false,
             "mas_retains_human_gate_receipt_authority": true
           },
-          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
           "required_fields": [
             "last_attempted_deliverable_delta",
             "why_ai_cannot_progress_one_more_delta",
@@ -2207,7 +2247,27 @@
             "can_replace_ai_reviewer_gate": false,
             "mas_retains_human_gate_receipt_authority": true
           },
-          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
           "required_fields": [
             "last_attempted_deliverable_delta",
             "why_ai_cannot_progress_one_more_delta",
@@ -3035,7 +3095,27 @@
             "can_replace_ai_reviewer_gate": false,
             "mas_retains_human_gate_receipt_authority": true
           },
-          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
           "required_fields": [
             "last_attempted_deliverable_delta",
             "why_ai_cannot_progress_one_more_delta",
@@ -3916,7 +3996,27 @@
             "can_replace_ai_reviewer_gate": false,
             "mas_retains_human_gate_receipt_authority": true
           },
-          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
           "required_fields": [
             "last_attempted_deliverable_delta",
             "why_ai_cannot_progress_one_more_delta",
@@ -4801,7 +4901,27 @@
             "can_replace_ai_reviewer_gate": false,
             "mas_retains_human_gate_receipt_authority": true
           },
-          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
           "required_fields": [
             "last_attempted_deliverable_delta",
             "why_ai_cannot_progress_one_more_delta",

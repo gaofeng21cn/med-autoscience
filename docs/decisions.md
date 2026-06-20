@@ -16,10 +16,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-06-20：EvidenceGapDecision 区分 hard gate、soft gap 与 evidence tail
 
 - 决策：MAS 新增 `EvidenceGapDecision` 合同和核心 API，将 evidence gap 固定分为 `authority_gate`、`human_gate`、`proceed_with_assumption`、`soft_quality_gap`、`observability_backlog`、`evidence_tail` 六类。
+- 决策：新增 `contracts/evidence-gap-consumption-abi.json` 和 `med_autoscience.evidence_gap_abi`，把 `EvidenceCondition`、`EvidenceBudget`、`HardGateRegistry`、`SoftGapLedger`、`AssumptionLedger`、`WorkbenchGapView` 作为 OPL / Workbench / MCP / action-catalog 消费 ABI；这些面只投影 EvidenceGapDecision，不创建第二真相源。
 - 决策：typed blocker count 只允许来自 `authority_gate` 和 `human_gate` 这类 current action hard gate；soft quality、assumption、observability 和 evidence tail 进入对应 ledger/backlog，不阻断当前 owner action。
+- 决策：stage control plane、default executor search discipline、product-entry/action-catalog/skill-catalog、MCP tool metadata 和 Progress Portal WorkbenchGapView 统一消费 `classify_with_evidence_gap_decision_then_progress_first`；普通 missing evidence 不再直接 fallback 为 typed blocker。
 - 决策：所有 gap class 都携带 forbidden claim boundary，不能把 gap 记录、合同落地、focused tests 或 read-model projection 写成 paper progress、owner receipt、publication-ready、submission-ready、live-runtime-ready、provider-running 或 production-ready。
 - 理由：progress-first 需要让 AI 自主处理可后补的小缺口，同时保留 MAS/OPL authority、human decision、数据/隐私和不可逆操作的 fail-closed 边界。
-- 影响：`study_progress`、DHD runtime-scan fresh currentness read-model 和 `domain_action_request_materializer` 已消费该决策面；DHD 只携带同一 evidence-gap summary / ledger / typed-blocker-count 投影，不从 pending count 合成 hard gate。本变更不执行 live DHD apply、hydrate、tick、redrive、provider start，不写真实 study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。
+- 影响：`study_progress`、DHD runtime-scan fresh currentness read-model、`domain_action_request_materializer`、stage control plane、default executor search discipline、Progress Portal workbench、product-entry/action-catalog/skill-catalog 和 MCP metadata 已消费该决策面；DHD 只携带同一 evidence-gap summary / ledger / typed-blocker-count 投影，不从 pending count 合成 hard gate。本变更不执行 live DHD apply、hydrate、tick、redrive、provider start，不写真实 study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。
 
 ## 2026-06-20：DHD 顶层必须保留 request-only transition pending
 

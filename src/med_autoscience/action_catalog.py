@@ -8,6 +8,7 @@ from med_autoscience.authority_operation_command_catalog import (
     build_authority_product_entry_mode_schema,
     product_entry_description_modes_text,
 )
+from med_autoscience.evidence_gap_abi import evidence_gap_abi_ref
 
 _editable_shared_bootstrap.ensure_editable_dependency_paths()
 
@@ -642,6 +643,7 @@ def build_mas_action_catalog(*, profile_ref: str | Path | None = None) -> dict[s
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": MAS_TRUTH_OWNER,
     }
+    catalog["evidence_gap_consumption_abi"] = evidence_gap_abi_ref()
     return catalog
 
 
@@ -698,6 +700,7 @@ def _product_entry_projection(action: Mapping[str, Any]) -> dict[str, Any]:
             _required_text(item, "workspace_locator_fields[]")
             for item in list(action.get("workspace_locator_fields") or [])
         ],
+        "evidence_gap_consumption_abi": evidence_gap_abi_ref(),
     }
     authority_boundary = action.get("authority_boundary")
     if isinstance(authority_boundary, Mapping):

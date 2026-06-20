@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.evidence_gap_abi import MISSING_EVIDENCE_POLICY, evidence_gap_abi_ref
+
 
 SUPPORTED_ACTION_TYPES = frozenset(
     {
@@ -91,7 +93,8 @@ DEFAULT_EXECUTOR_SEARCH_DISCIPLINE = {
         "artifacts/supervision/consumer/default_executor_dispatches/",
         "study.yaml",
     ],
-    "blocker_on_missing_evidence": "typed_blocker:bounded_search_evidence_ref_missing",
+    "missing_evidence_policy": MISSING_EVIDENCE_POLICY,
+    "evidence_gap_consumption_abi": evidence_gap_abi_ref(),
 }
 
 SOURCE_ACTION_REF_FIELDS = (

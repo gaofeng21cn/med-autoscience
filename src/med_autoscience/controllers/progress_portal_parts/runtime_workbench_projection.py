@@ -245,6 +245,7 @@ def _selected_workbench_study(
         "stage_operating_layer": stage_operating_layer,
         "workbench": dict(study_workbench),
         "stage_review": stage_review,
+        "evidence_gap_view": _mapping(study_workbench.get("evidence_gap_view")),
         **({"stage_artifact_index": stage_artifact_index} if stage_artifact_index else {}),
         "progress_first": progress_first,
         "paper_route_lens": paper_route_lens,

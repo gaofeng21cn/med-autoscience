@@ -38,6 +38,7 @@ from med_autoscience.autosci_learning_projection import build_autosci_learning_p
 from med_autoscience.evo_scientist_learning_projection import (
     build_evo_scientist_learning_projection,
 )
+from med_autoscience.evidence_gap_abi import build_evidence_gap_consumption_abi
 from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
@@ -175,6 +176,7 @@ def build_product_entry_manifest(
     )
     phase4_backend_deconstruction = _build_phase4_backend_deconstruction()
     source_provenance = _build_source_provenance_refs_surface()
+    evidence_gap_consumption_abi = build_evidence_gap_consumption_abi()
     phase5_platform_target = _build_phase5_platform_target(mainline_payload)
     product_entry_quickstart = manifest_shell_surfaces["product_entry_quickstart"]
     product_entry_start = manifest_shell_surfaces["product_entry_start"]
@@ -435,6 +437,7 @@ def build_product_entry_manifest(
             },
             "phase2_user_product_loop": phase2_user_product_loop,
             "product_entry_guardrails": product_entry_guardrails,
+            "evidence_gap_consumption_abi": evidence_gap_consumption_abi,
             "phase3_clearance_lane": phase3_clearance_lane,
             "phase4_backend_deconstruction": phase4_backend_deconstruction,
             "source_provenance": source_provenance,

@@ -599,7 +599,10 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         )
         assert stage["stage_contract"]["human_gate_progress_evidence"][
             "missing_evidence_policy"
-        ] == "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker"
+        ] == "classify_with_evidence_gap_decision_then_progress_first"
+        assert stage["stage_contract"]["human_gate_progress_evidence"][
+            "evidence_gap_consumption_abi"
+        ]["contract_ref"] == "contracts/evidence-gap-consumption-abi.json"
         hypothesis_pack = stage["stage_contract"]["hypothesis_portfolio_evidence_pack"]
         assert hypothesis_pack["knowledge_ref"] == (
             "agent/knowledge/hypothesis_portfolio_evidence_pack.md"

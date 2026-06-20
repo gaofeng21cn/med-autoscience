@@ -139,3 +139,35 @@ def test_materializer_soft_gap_continues_and_records_ledger(monkeypatch, tmp_pat
     assert dispatch["evidence_gap_decision_summary"]["hard_gate_count"] == 0
     assert dispatch["soft_gap_ledger"][0]["gap_class"] == "soft_quality_gap"
     assert "paper_progress" in dispatch["forbidden_claims"]
+
+
+def test_materializer_evidence_tail_continues_but_withholds_readiness_claims(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile, study_id = _scan_with_action(
+        tmp_path,
+        evidence_gap_inputs=[
+            {
+                "surface_kind": "live_runtime_tail",
+                "missing_ref_family": "production soak direct-hosted parity live readiness tail",
+            }
+        ],
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    dispatch = result["domain_progress_transition_requests"][0]
+    assert dispatch["dispatch_status"] == "dry_run"
+    assert dispatch.get("blocked_reason") is None
+    assert dispatch["evidence_gap_decision_summary"]["evidence_tail_count"] == 1
+    assert dispatch["evidence_gap_typed_blocker_count"] == 0
+    assert dispatch["current_action_can_continue"] is True
+    assert dispatch["evidence_tail_ledger"][0]["gap_class"] == "evidence_tail"
+    assert "live_runtime_ready" in dispatch["forbidden_claims"]

@@ -4,6 +4,7 @@
   "owner": "MedAutoScience",
   "state": "active_contract",
   "schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+  "consumption_abi_ref": "contracts/evidence-gap-consumption-abi.json",
   "purpose": "Classify incomplete evidence into authority gates, human gates, assumptions, soft quality gaps, observability backlog, and evidence tails so current AI owner work can continue unless a real authority boundary is missing.",
   "machine_boundary": "This policy governs MAS evidence-gap classification and derived read-model surfaces. It does not declare paper progress, owner receipt closure, provider admission, publication readiness, submission readiness, live runtime readiness, or production readiness.",
   "external_practice_basis": [
@@ -102,6 +103,22 @@
       "soft_quality_gap",
       "observability_backlog",
       "evidence_tail"
+    ]
+  },
+  "consumer_abi_components": [
+    "EvidenceCondition",
+    "EvidenceBudget",
+    "HardGateRegistry",
+    "SoftGapLedger",
+    "AssumptionLedger",
+    "WorkbenchGapView"
+  ],
+  "legacy_policy_replacement": {
+    "retired_policy": "missing evidence -> typed_blocker",
+    "replacement_policy": "classify_with_evidence_gap_decision_then_progress_first",
+    "typed_blocker_allowed_only_when": [
+      "authority_gate",
+      "human_gate"
     ]
   },
   "forbidden_claim_terms": [

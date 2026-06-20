@@ -115,3 +115,28 @@ def test_merge_and_summarize_count_gap_classes_and_hard_gates() -> None:
     }
     assert "paper_progress" in summary["forbidden_claims"]
     assert summary["claim_boundary"]["paper_progress_claim_allowed"] is False
+
+
+def test_workbench_gap_view_splits_hard_gates_soft_ledgers_and_assumptions() -> None:
+    from med_autoscience.evidence_gap_abi import build_workbench_gap_view
+    from med_autoscience.evidence_gap_decision import classify_missing_ref_family
+
+    view = build_workbench_gap_view(
+        [
+            classify_missing_ref_family("StageRun owner route currentness").to_payload(),
+            classify_missing_ref_family("reviewer structure concern").to_payload(),
+            classify_missing_ref_family("safe non-critical bibliography helper ref").to_payload(),
+            classify_missing_ref_family("live-readiness tail").to_payload(),
+        ]
+    )
+
+    assert view["surface_kind"] == "mas_workbench_gap_view"
+    assert view["abi_ref"]["contract_ref"] == "contracts/evidence-gap-consumption-abi.json"
+    assert view["summary"]["total_count"] == 4
+    assert view["summary"]["hard_gate_count"] == 1
+    assert view["hard_gate_registry"]["typed_blocker_count"] == 1
+    assert view["soft_gap_ledger"]["count"] == 2
+    assert view["assumption_ledger"]["count"] == 1
+    assert view["evidence_budget"]["current_action_can_continue"] is False
+    assert "paper_progress" in view["evidence_budget"]["forbidden_claims"]
+    assert view["projection_boundary"]["can_write_domain_truth"] is False

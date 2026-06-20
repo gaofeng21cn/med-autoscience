@@ -271,6 +271,7 @@ def build_progress_portal_payload(
             "runtime_continuity": runtime_continuity,
             "production_blocker_impact": production_blocker_impact,
             "progress_first": progress_first,
+            "evidence_gap_view": _mapping(study_workbench.get("evidence_gap_view")),
         },
         "freshness": freshness,
         "latest_events": latest_events,

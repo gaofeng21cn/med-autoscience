@@ -27,6 +27,7 @@ from .study_workbench_sections.action_owner_routing import (
     render_action_owner_routing_section as _action_owner_routing_section,
     workbench_summary as _workbench_summary,
 )
+from med_autoscience.evidence_gap_abi import build_workbench_gap_view
 from med_autoscience.controllers.stage_knowledge_visibility import build_stage_knowledge_visibility
 
 
@@ -96,6 +97,7 @@ def build_study_workbench_payload(
     current_owner_delta = _current_owner_delta_projection(resolved_progress)
     owner_delta_summary = _owner_delta_read_only_summary(current_owner_delta)
     progress_first = build_progress_first_operator_projection(resolved_progress)
+    evidence_gap_view = build_workbench_gap_view(resolved_progress.get("evidence_gap_decisions") or [])
     path_stage = {
         "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
         "current_stage_summary": _non_empty_text(user_visible.get("current_stage_summary")),
@@ -192,6 +194,13 @@ def build_study_workbench_payload(
                 "label": "Progress-First",
                 "status": _non_empty_text(progress_first.get("status")) or "pending",
             },
+            {
+                "id": "evidence_gap_view",
+                "label": "Evidence Gaps",
+                "status": "available"
+                if _mapping(evidence_gap_view.get("summary")).get("total_count")
+                else "empty",
+            },
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
@@ -206,6 +215,7 @@ def build_study_workbench_payload(
         "current_owner_delta": current_owner_delta,
         "owner_delta_summary": owner_delta_summary,
         "progress_first": progress_first,
+        "evidence_gap_view": evidence_gap_view,
         "path_stage": path_stage,
         "runtime": runtime_projection,
         "artifact_groups": artifact_groups,
@@ -223,6 +233,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     stage_review_index = _mapping(payload.get("stage_review_index"))
     current_owner_delta = _mapping(payload.get("current_owner_delta"))
     progress_first = _mapping(payload.get("progress_first"))
+    evidence_gap_view = _mapping(payload.get("evidence_gap_view"))
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
     artifact_groups = _mapping(payload.get("artifact_groups"))
@@ -243,6 +254,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             _stage_knowledge_section(stage_knowledge),
             render_stage_review_section(stage_review_index),
             render_progress_first_operator_section(progress_first),
+            _evidence_gap_view_section(evidence_gap_view),
             _key_value_section(
                 "路径与阶段",
                 {
@@ -272,6 +284,50 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             + "</section>",
         ]
     )
+
+
+def _evidence_gap_view_section(view: Mapping[str, Any]) -> str:
+    summary = _mapping(view.get("summary"))
+    budget = _mapping(view.get("evidence_budget"))
+    hard_gate_registry = _mapping(view.get("hard_gate_registry"))
+    soft_gap_ledger = _mapping(view.get("soft_gap_ledger"))
+    assumption_ledger = _mapping(view.get("assumption_ledger"))
+    return (
+        '<section class="panel wide evidence-gap-view"><h2>Evidence Gaps '
+        + status_chip("available" if summary.get("total_count") else "empty")
+        + "</h2><dl>"
+        + _key_value_table(
+            {
+                "total_count": summary.get("total_count", 0),
+                "hard_gate_count": summary.get("hard_gate_count", 0),
+                "human_gate_count": summary.get("human_gate_count", 0),
+                "soft_gap_count": summary.get("soft_gap_count", 0),
+                "assumption_count": summary.get("assumption_count", 0),
+                "observability_backlog_count": summary.get("observability_backlog_count", 0),
+                "evidence_tail_count": summary.get("evidence_tail_count", 0),
+                "current_action_can_continue": budget.get("current_action_can_continue", True),
+                "typed_blocker_count": hard_gate_registry.get("typed_blocker_count", 0),
+            }
+        )
+        + "</dl><h3>Soft gaps</h3>"
+        + list_html(
+            _decision_items(_mapping_list(soft_gap_ledger.get("decisions"))),
+            empty_text="没有 soft gap / observability / tail ledger。",
+        )
+        + "<h3>Assumptions</h3>"
+        + list_html(
+            _decision_items(_mapping_list(assumption_ledger.get("decisions"))),
+            empty_text="没有 assumption ledger。",
+        )
+        + "</section>"
+    )
+
+
+def _decision_items(decisions: list[dict[str, Any]]) -> list[str]:
+    return [
+        f"{item.get('gap_class')}: {item.get('missing_ref_family') or item.get('source_surface_kind')}"
+        for item in decisions
+    ]
 
 
 def _runtime_projection(

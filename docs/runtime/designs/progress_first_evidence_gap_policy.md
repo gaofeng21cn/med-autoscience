@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `progress_first_evidence_gap_policy`
 State: `active_contract`
-Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-gap-decision-policy.json`、`contracts/schemas/evidence-gap-decision.schema.json`、`contracts/evidence-gap-decision-examples.json`、`src/med_autoscience/evidence_gap_decision.py`、controller projection 和 tests。
+Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-gap-decision-policy.json`、`contracts/evidence-gap-consumption-abi.json`、`contracts/schemas/evidence-gap-decision.schema.json`、`contracts/evidence-gap-decision-examples.json`、`src/med_autoscience/evidence_gap_decision.py`、`src/med_autoscience/evidence_gap_abi.py`、controller projection 和 tests。
 
 ## 目标结论
 
@@ -35,7 +35,10 @@ Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-ga
 - Study progress payload: 附加 `evidence_gap_decisions`、summary、ledger surfaces、typed blocker count 和 forbidden claims。
 - DHD read-model currentness: `domain_health_diagnostic` runtime scan 从 fresh `study_progress` currentness 携带同一 evidence-gap summary、ledger surfaces、typed blocker count 和 forbidden claims；它只做诊断投影，不从 pending count 推断 hard gate。
 - Domain action materializer: action/request/transition projection 携带 evidence gap summary；hard/human gate 变成 blocked dispatch；soft/assumption/backlog/tail 不改变当前 action dispatch。
-- Machine contracts: `contracts/evidence-gap-decision-policy.json`、schema、examples。
+- OPL / Product Entry / MCP ABI: `contracts/evidence-gap-consumption-abi.json` 和 `med_autoscience.evidence_gap_abi` 固定 `EvidenceCondition`、`EvidenceBudget`、`HardGateRegistry`、`SoftGapLedger`、`AssumptionLedger`、`WorkbenchGapView` 六个消费面；action catalog、product-entry manifest、skill catalog 和 MCP tool metadata 只携带同一 ABI ref，不生成第二真相源。
+- Stage / default executor policy: `contracts/stage_control_plane.json`、`stage_throughput_contracts` 和 `default_executor_action_policy` 的 missing-evidence 口径统一为 `classify_with_evidence_gap_decision_then_progress_first`；普通 evidence gap 不再直接 fallback 到 typed blocker。
+- Workbench: Progress Portal study workbench 生成 `evidence_gap_view`，按 hard gate、soft gap、assumption、observability backlog 和 evidence tail 展示 read-only ledger / budget；它不能执行 action、写 domain truth 或授权 publication / submission。
+- Machine contracts: `contracts/evidence-gap-decision-policy.json`、`contracts/evidence-gap-consumption-abi.json`、schema、examples。
 
 ## Claim Boundary
 

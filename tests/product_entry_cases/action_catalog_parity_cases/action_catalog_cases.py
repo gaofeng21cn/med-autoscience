@@ -20,6 +20,31 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
 
     assert manifest["family_action_catalog"] == catalog
     assert skill_catalog["action_catalog"] == catalog
+    abi_ref = {
+        "surface_kind": "mas_evidence_gap_consumption_abi",
+        "version": "evidence-gap-consumption-abi.v1",
+        "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+        "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+        "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+        "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+        "component_refs": [
+            "EvidenceCondition",
+            "EvidenceBudget",
+            "HardGateRegistry",
+            "SoftGapLedger",
+            "AssumptionLedger",
+            "WorkbenchGapView",
+        ],
+        "projection_only": True,
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+    }
+    assert catalog["evidence_gap_consumption_abi"] == abi_ref
+    assert manifest["family_action_catalog"]["evidence_gap_consumption_abi"] == abi_ref
+    assert skill_catalog["action_catalog"]["evidence_gap_consumption_abi"] == abi_ref
+    assert manifest["evidence_gap_consumption_abi"]["surface_kind"] == "mas_evidence_gap_consumption_abi"
+    assert set(manifest["evidence_gap_consumption_abi"]["components"]) == set(abi_ref["component_refs"])
     assert catalog["authority_boundary"] | {
         "domain_truth_owner": "MedAutoScience",
         "opl_role": "projection_consumer_only",
@@ -53,6 +78,7 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
         assert product_entry_projection[action_id]["command"] == cli_item["command"]
         assert product_entry_projection[action_id]["surface_kind"] == cli_item["surface_kind"]
         assert product_entry_projection[action_id]["summary"] == cli_item["summary"]
+        assert product_entry_projection[action_id]["evidence_gap_consumption_abi"] == abi_ref
 
         assert skill_projection[action_id]["command"] == cli_item["command"]
         assert skill_projection[action_id]["surface_kind"] == cli_item["surface_kind"]
