@@ -309,12 +309,21 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
         == "opl_current_control_state.study_current_executable_owner_action"
     )
     readback_keys = _opl_readback_identity_keys(payload)
-    route_key = _non_empty_text(readback_keys.get("route_identity_key")) or route_identity_key(payload)
+    transition_request_keys = _transition_request_identity_keys(payload)
+    route_key = (
+        _non_empty_text(readback_keys.get("route_identity_key"))
+        or _non_empty_text(transition_request_keys.get("route_identity_key"))
+        or route_identity_key(payload)
+    )
     if route_key is None and can_bind_progress_currentness:
         study_id = _non_empty_text(payload.get("study_id"))
         if study_id is not None and fingerprint is not None:
             route_key = f"provider-admission::{study_id}::{fingerprint}"
-    attempt_key = _non_empty_text(readback_keys.get("attempt_idempotency_key")) or attempt_idempotency_key(payload)
+    attempt_key = (
+        _non_empty_text(readback_keys.get("attempt_idempotency_key"))
+        or _non_empty_text(transition_request_keys.get("attempt_idempotency_key"))
+        or attempt_idempotency_key(payload)
+    )
     if attempt_key is None and can_bind_progress_currentness:
         attempt_key = route_key
     if route_key is not None:
@@ -322,7 +331,10 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
     if attempt_key is not None:
         payload["attempt_idempotency_key"] = attempt_key
         payload.setdefault("idempotency_key", attempt_key)
-    if request_key := _non_empty_text(readback_keys.get("idempotency_key")):
+    if request_key := (
+        _non_empty_text(readback_keys.get("idempotency_key"))
+        or _non_empty_text(transition_request_keys.get("idempotency_key"))
+    ):
         payload["idempotency_key"] = request_key
     if readback_keys:
         payload["status"] = "provider_admission_pending"
@@ -340,6 +352,39 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
             refs.append(stage_packet_ref)
         payload["stage_packet_refs"] = refs
     return payload
+
+
+def _transition_request_identity_keys(candidate: Mapping[str, Any]) -> dict[str, str]:
+    request = _mapping(candidate.get("opl_domain_progress_transition_request"))
+    if not request:
+        request = _mapping(
+            _mapping(candidate.get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not request:
+        request = _mapping(
+            _mapping(_mapping(candidate.get("current_control_action")).get("paper_progress_policy_result")).get(
+                "opl_domain_progress_transition_request"
+            )
+        )
+    if not request:
+        return {}
+    stage_run_identity = _mapping(request.get("stage_run_identity"))
+    request_key = _non_empty_text(request.get("idempotency_key")) or _non_empty_text(
+        request.get("request_idempotency_key")
+    )
+    route_key = _non_empty_text(stage_run_identity.get("route_identity_key")) or request_key
+    attempt_key = _non_empty_text(stage_run_identity.get("attempt_idempotency_key")) or route_key
+    return {
+        key: value
+        for key, value in {
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": attempt_key,
+            "idempotency_key": request_key,
+        }.items()
+        if value is not None
+    }
 
 
 def _opl_readback_identity_keys(candidate: Mapping[str, Any]) -> dict[str, str]:

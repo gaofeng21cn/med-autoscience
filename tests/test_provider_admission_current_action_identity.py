@@ -78,6 +78,56 @@ def test_provider_admission_current_control_wrappers_preserve_stage_authority_bo
         assert authority_boundary["can_mark_provider_attempt_running"] is False
 
 
+def test_provider_admission_identity_prefers_opl_transition_request_identity() -> None:
+    identity = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    local_handoff_key = f"quality-repair-writer-handoff::{study_id}::{fingerprint}"
+    opl_transition_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    candidate = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "route_identity_key": local_handoff_key,
+        "attempt_idempotency_key": local_handoff_key,
+        "idempotency_key": local_handoff_key,
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_kind": "DomainProgressTransitionRuntime",
+            "target_runtime_owner": "one-person-lab",
+            "idempotency_key": opl_transition_key,
+            "stage_run_identity": {
+                "route_identity_key": opl_transition_key,
+                "attempt_idempotency_key": opl_transition_key,
+                "source_generation": "truth-event-000035-39f0b8e96689a623",
+            },
+            "aggregate_identity": {
+                "aggregate_kind": "study_work_unit",
+                "aggregate_id": f"{study_id}::{work_unit_id}",
+                "study_id": study_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+            "mas_can_create_opl_outbox_record": False,
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_stage_run": False,
+        },
+    }
+
+    resolved = identity.candidate_with_identity(candidate)
+
+    assert resolved["route_identity_key"] == opl_transition_key
+    assert resolved["attempt_idempotency_key"] == opl_transition_key
+    assert resolved["idempotency_key"] == opl_transition_key
+
+
 def test_provider_admission_candidate_inherits_current_action_currentness_basis() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
