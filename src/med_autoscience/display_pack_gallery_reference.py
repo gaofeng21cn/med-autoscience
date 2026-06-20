@@ -13,6 +13,8 @@ def build_gallery_reference_markdown(
     nature_skills_head: str,
     r_evidence_count: int,
     illustration_shell_count: int,
+    composition_recipe_count: int,
+    composition_recipe_lines: str,
 ) -> str:
     return f"""# MAS Display Pack Gallery
 
@@ -37,6 +39,14 @@ HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可�
 | --- | ---: |
 {category_lines}
 
+## 页面级 Composition Recipes
+
+这些 recipe 组织多个 evidence primitives，不是更多 Gallery 卡片。
+
+| Recipe | Hero panel |
+| --- | --- |
+{composition_recipe_lines}
+
 ## 当前默认风格
 
 - `style_profile_id`: `{default_style["style_profile_id"]}`
@@ -47,6 +57,7 @@ HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可�
 - Python design / flow shells in ggplot2 evidence Gallery: `0`
 - rendered evidence gallery cards: `{rendered_count}`
 - visual canonical evidence families: `{canonical_gallery_family_count}`
+- page-level composition recipes: `{composition_recipe_count}`
 - duplicate / legacy aliases are mapped in generated status / manifest but are not current template directories or Gallery cards.
 - core medical figure families: sourced from `contracts/medical-figure-family-catalog/`
 - figure family policy: `intent_first_current_template_surface`

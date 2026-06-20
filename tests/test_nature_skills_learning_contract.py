@@ -474,6 +474,47 @@ def test_figure_workflow_packet_learning_lands_as_consumable_nonblocking_surface
     } <= set(adoption["forbidden_authority"])
 
 
+def test_page_level_composition_recipe_learning_lands_as_mas_owner_surface() -> None:
+    payload = _load_nature_skills_adoption_contract()
+    adoption = _adoptions_by_pattern(payload)["page_level_composition_recipes"]
+
+    assert {
+        "page_level_composition_recipes",
+        "clinical_triptych",
+        "schematic_led_composite",
+        "asymmetric_genomics_figure",
+        "dark_image_plate_plus_quantification",
+        "direct_labels_shared_legends",
+        "hero_panel_hierarchy",
+    } <= set(payload["learned_patterns"])
+    assert adoption["classification"] == "adopt_template"
+    assert adoption["landing_status"] == "owner_surface_landed"
+    assert {
+        "medical_figure_family_catalog_composition_recipes",
+        "display_pack_agent_composition_recipe_route",
+        "display_pack_agent_figure_workflow_packet",
+        "display_pack_capability_discover",
+        "display_pack_gallery_manifest",
+        "display_pack_gallery_quality_audit",
+    } <= set(adoption["owner_surfaces"])
+    assert {
+        "contracts/medical-figure-family-catalog/composition_recipe_policy.json",
+        "contracts/medical-figure-family-catalog/composition_recipes/clinical_prediction_and_ml.json",
+        "contracts/medical-figure-family-catalog/composition_recipes/design_and_image.json",
+        "contracts/medical-figure-family-catalog/composition_recipes/omics_and_atlas.json",
+        "src/med_autoscience.display_pack_agent_parts.composition_recipe_route.select_composition_recipe",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
+    } <= set(adoption["consumable_surfaces"])
+    assert {
+        "duplicate_single_plot_template_expansion_as_primary_strategy",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "source_or_statistics_mutation_authority",
+        "visual_audit_replacement",
+    } <= set(adoption["forbidden_authority"])
+
+
 def test_publication_polish_policy_surface_lands_without_blocking_progress() -> None:
     payload = _load_nature_skills_adoption_contract()
     adoption = _adoptions_by_pattern(payload)["publication_polish_policy_surface"]

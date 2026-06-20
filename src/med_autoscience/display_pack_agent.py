@@ -30,6 +30,7 @@ from med_autoscience.display_pack_agent_parts.figure_workflow import (
     build_planning_figure_workflow_packet,
     display_pack_agent_receipt_refs,
 )
+from med_autoscience.display_pack_agent_parts.composition_recipe_projection import composition_recipe_discovery_payload
 from med_autoscience.display_pack_agent_parts.analysis_boundary import (
     analysis_blocker_for_template_summary,
     analysis_finding_from_blocker,
@@ -57,12 +58,9 @@ from med_autoscience.display_pack_usability import scaffold_display_pack_render
 from med_autoscience.publication_display_contract import load_publication_style_profile
 
 
-AGENT_CAPABILITY_ACTIONS = (
-    "display-pack-capability-discover",
-    "display-pack-figure-plan",
-    "display-pack-preflight",
-    "display-pack-render",
-    "display-pack-orchestrate",
+AGENT_CAPABILITY_ACTIONS = tuple(
+    f"display-pack-{name}"
+    for name in ("capability-discover", "figure-plan", "preflight", "render", "orchestrate")
 )
 
 DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
@@ -268,6 +266,7 @@ def display_pack_capability_discover(
         "inventory": _inventory_summary(records),
         "renderer_policy": default_surface_renderer_policy(),
         "figure_contract_policy": figure_contract_policy(),
+        "composition_recipe_surface": composition_recipe_discovery_payload(include_recipes=include_templates),
         "callable_actions": [
             {
                 "command": action,
@@ -293,6 +292,7 @@ def display_pack_capability_discover(
             "python_evidence_templates_not_retained_without_advantage_proof": True,
             "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_from_default_discover": True,
+            "composition_recipe_routing_required": True,
             **analysis_template_surface_policy_flags(),
             "migration_inventory_template_count": sum(
                 len(catalog.entries_by_template_id)
@@ -443,6 +443,7 @@ def display_pack_figure_plan(
             "medical_figure_family_mapping_required": True,
             "starter_recipe_profile_required": True,
             "style_palette_qa_profile_required": True,
+            "composition_recipe_routing_required": True,
             **analysis_template_surface_policy_flags(),
         },
         "requested_template_migration": template_migration,

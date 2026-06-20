@@ -7,6 +7,9 @@ from typing import Any
 from med_autoscience import publication_display_contract as display_contract
 from med_autoscience.display_pack_agent_parts.figure_contract import figure_contract_policy
 from med_autoscience.display_pack_agent_parts.figure_workflow import figure_workflow_policy
+from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
+    composition_recipe_discovery_payload,
+)
 from med_autoscience.display_pack_agent_parts.publication_polish_policy import (
     publication_polish_policy,
 )
@@ -161,6 +164,7 @@ def build_manifest(
         rendered=rendered,
     )
     palette = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["palette"]
+    composition_recipe_surface = composition_recipe_discovery_payload(include_recipes=True)
     return {
         "schema_version": 9,
         "status": "rendered",
@@ -232,6 +236,7 @@ def build_manifest(
         "ai_adaptation_policy": ai_adaptation_policy(),
         "figure_contract_policy": figure_contract_policy(),
         "figure_workflow_policy": figure_workflow_policy(),
+        "composition_recipe_surface": composition_recipe_surface,
         "publication_polish_policy": publication_polish_policy(),
         "quality_audit": quality_audit,
         "canonical_category_ontology": canonical_category_ontology(),
@@ -253,6 +258,8 @@ def build_manifest(
             "medical_figure_family_mapping_required": True,
             "starter_recipe_profile_required": True,
             "style_palette_qa_profile_required": True,
+            "composition_recipe_routing_required": True,
+            "composition_recipes_are_page_level_not_gallery_cards": True,
         },
         "templates": [
             _template_payload(

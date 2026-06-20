@@ -3,8 +3,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.display_pack_agent_parts.composition_recipe_route import (
+    composition_recipe_payload,
+    select_composition_recipe,
+)
+from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
+
 
 POLICY_ID = "mas_nature_skills_figure_workflow_lifecycle.v1"
+COMPOSITION_POLICY_ID = "mas_medical_figure_composition_recipes.v1"
 OBSERVED_NATURE_SKILLS_HEAD = "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
 OBSERVED_NATURE_SKILLS_DATE = "2026-06-20"
 
@@ -121,6 +128,12 @@ def figure_workflow_policy() -> dict[str, Any]:
             "figure_brief_before_code",
             "claim_led_panel_storyboard",
             "hero_panel_plus_supporting_evidence_hierarchy",
+            "page_level_composition_recipes",
+            "clinical_triptych",
+            "schematic_led_composite",
+            "asymmetric_genomics_figure",
+            "dark_image_plate_plus_quantification",
+            "shared_legends_and_direct_labels",
             "render_inspect_revise_before_paper_use",
             "final_size_visual_qa_receipt",
             "design_shells_get_art_direction_not_statistical_renderer_constraints",
@@ -134,6 +147,8 @@ def figure_workflow_policy() -> dict[str, Any]:
         ],
         "workflow_states": list(WORKFLOW_STATES),
         "paper_use_acceptance": list(PAPER_USE_ACCEPTANCE),
+        "composition_recipe_policy_ref": COMPOSITION_POLICY_ID,
+        "composition_recipes_are_floor_not_ceiling": True,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
@@ -179,7 +194,12 @@ def build_figure_workflow_packet(
     family_title = _text(request.get("medical_figure_family_title"))
     template_id = _text(template.get("template_id") or request.get("template_id"))
     full_template_id = _text(template.get("full_template_id") or template_id)
-    supporting_roles = _supporting_panel_roles(request, archetype)
+    catalog = load_medical_figure_family_catalog()
+    composition_recipe = select_composition_recipe(request, catalog)
+    composition = composition_recipe_payload(composition_recipe)
+    supporting_roles = [composition_recipe.hero_panel_role, *composition_recipe.supporting_panel_roles]
+    if not supporting_roles:
+        supporting_roles = _supporting_panel_roles(request, archetype)
     missing_refs = [
         field
         for field, value in {
@@ -216,11 +236,18 @@ def build_figure_workflow_packet(
                     "design_track": "data_evidence_programmatic" if request.get("figure_kind") != "illustration_shell" else "design_or_flow_expression",
                 },
                 "storyboard": {
+                    "composition_recipe": composition,
                     "hero_panel": supporting_roles[0],
                     "supporting_panel_roles": supporting_roles[1:],
                     "panel_drop_policy": "drop_or_merge_panels_without_unique_evidence",
-                    "guide_strategy": "shared_or_direct_labels_before_repeated_legends",
+                    "guide_strategy": composition_recipe.guide_strategy,
+                    "label_strategy": composition_recipe.label_strategy,
+                    "default_layout": composition_recipe.default_layout,
                     "layout_hierarchy": "hero_panel_first_when_claim_has_primary_evidence",
+                    "programmatic_evidence_required": composition_recipe.programmatic_evidence_required,
+                    "design_shell_allowed": composition_recipe.design_shell_allowed,
+                    "ai_may_change": list(composition_recipe.ai_may_change),
+                    "ai_must_preserve": list(composition_recipe.ai_must_preserve),
                     "starter_template": {
                         "template_id": template_id,
                         "full_template_id": full_template_id,

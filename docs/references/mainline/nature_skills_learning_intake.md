@@ -54,11 +54,15 @@ MAS 对该模式的 adoption classification 是：
 - `display_pack_agent.figure_plan/preflight/orchestrate/render`：返回 `figure_contract_policy`，并保留 `publication_readiness_verdict=false`、`agent_manual_template_selection_required=false` 和 R/ggplot2 evidence first。
 - `src/med_autoscience/display_pack_agent_parts/publication_polish_policy.py`：把 Nature-Skills contract-first 流程、Nature final artwork、ggplot2 theme/guide、colorspace/viridis/ComplexHeatmap、patchwork/cowplot 和 survminer 经验收敛成 `mas_publication_polish_policy.v1`，作为非阻塞 palette / guide / multipanel / high-risk-family 提示面。
 - `src/med_autoscience/display_pack_agent_parts/figure_workflow.py`：把 Nature-Skills 每图工作纪律进一步落成 `mas_nature_skills_figure_workflow_lifecycle.v1`。每次 plan / intent 生成 `figure_workflow_packet`，包含 figure brief、storyboard、hero/support panel 层级、render-inspect-revise loop、paper-use acceptance checklist 和 forbidden-authority boundary；E2E render 会写出 `paper/figure_workflow_packet.json`。
+- `contracts/medical-figure-family-catalog/composition_recipe_policy.json` 与 `composition_recipes/*.json`：把 Nature-Skills 的 page-level figure organization 进一步落成 6 个 MAS-native composition recipes：clinical triptych、schematic-led composite、asymmetric genomics figure、image plate plus quantification、single-cell atlas storyboard 和 model validation dashboard。这一层组织已有 evidence primitives，不新增重复 ROC / KM / heatmap Gallery 卡片。
+- `src/med_autoscience/display_pack_agent_parts/composition_recipe_route.py`：MAS agent 的 figure plan / workflow packet 会从自然语言 claim、medical family route 和 template seed 选择 composition recipe；缺少 paper-local refs 时仍走 typed repair，不要求人工浏览 Gallery。
 - Gallery manifest / quality audit：写入 `figure_contract_policy` 与 `publication_polish_policy`，并把 template Gallery 明确为 lower-bound reference，不把 visual risk 当作 publication-ready 结论。
 - `contracts/medical-figure-family-catalog/qa_gates.json`：新增 `figure_contract_before_render`、`backend_exclusive_export_receipt`、`publication_polish_visual_audit` 与 `paper_use_polish_lifecycle` gate。
 - `contracts/publication_figure_quality_contract.json`：新增 `figure_workflow_packet` paper surface。它是可消费的 workflow/audit packet，不是 visual-audit replacement、publication authority 或 data/statistics mutation surface。
 
 关键 MAS 改造点是 progress-first：上游 `nature-figure` 把 backend 选择作为 blocking gate，缺省时问 `Python or R?` 并停止；MAS evidence path 不照搬这个阻塞门。数据证据图默认 R/ggplot2，非默认 backend 或 Python evidence 只有在有 documented advantage 和 visual audit 时才重新进入 current pack。AI 仍可对模板做 paper-local redesign；模板只提供质量下限，不限制上限。
+
+另一个关键改造点是少堆模板、多学图页组织。MAS 当前默认面保留少量 canonical evidence primitives；真正向 Nature-Skills 学的是页面级构图纪律：hero panel hierarchy、shared legends、direct labels、schematic-led composite、dark image plate、asymmetric genomics figure 和 render-inspect-revise。后续扩展默认先问“是否需要新的 composition recipe 或 style / QA rule”，只有计算 workflow 或图型语义确实不同，才新增单图 primitive。
 
 ## 2026-06-18 Paper Mainline Landing
 

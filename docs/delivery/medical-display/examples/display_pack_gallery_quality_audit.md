@@ -17,6 +17,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - blocked templates: `0`
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
+- composition recipe policy: `mas_medical_figure_composition_recipes.v1`
+- composition recipes: `6`
 
 ## Paper-use 前置检查
 
@@ -40,6 +42,24 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - `revision_delta_or_residual_item_recorded`
 - `visual_audit_receipt_or_residual_item_recorded`
 - `owner_or_publication_gate_receipt_present_for_claim_bearing_figures`
+
+## Composition Recipe 前置检查
+
+- `composition_recipe_selected_or_explicitly_declined`
+- `hero_panel_role_declared`
+- `shared_legend_or_direct_label_strategy_declared`
+- `programmatic_evidence_primitives_preserve_data_statistics_refs`
+
+## 页面级 Composition Recipes
+
+| Recipe | Title | Hero panel |
+| --- | --- | --- |
+| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary |
+| `model_validation_dashboard` | Model Validation Dashboard | validation_summary_or_generalizability |
+| `schematic_led_composite` | Schematic-led Composite | schematic_or_process_hero |
+| `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate |
+| `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern |
+| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context |
 
 ## 高风险图族复核项
 

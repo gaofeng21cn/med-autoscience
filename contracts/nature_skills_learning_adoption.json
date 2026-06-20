@@ -54,7 +54,14 @@
     "reviewer_comment_typed_repair_action_projection",
     "figure_brief_storyboard_workflow_packet",
     "render_inspect_revise_receipt_packet",
-    "nonblocking_paper_use_acceptance_gate"
+    "nonblocking_paper_use_acceptance_gate",
+    "page_level_composition_recipes",
+    "clinical_triptych",
+    "schematic_led_composite",
+    "asymmetric_genomics_figure",
+    "dark_image_plate_plus_quantification",
+    "direct_labels_shared_legends",
+    "hero_panel_hierarchy"
   ],
   "publication_display_external_style_refs": [
     {
@@ -410,6 +417,47 @@
         "quality_verdict_authority",
         "data_or_statistics_mutation_authority",
         "default_progress_blocker"
+      ]
+    },
+    {
+      "pattern_id": "page_level_composition_recipes",
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "medical_figure_family_catalog_composition_recipes",
+        "display_pack_agent_composition_recipe_route",
+        "display_pack_agent_figure_workflow_packet",
+        "display_pack_capability_discover",
+        "display_pack_gallery_manifest",
+        "display_pack_gallery_quality_audit"
+      ],
+      "consumable_surfaces": [
+        "contracts/medical-figure-family-catalog/composition_recipe_policy.json",
+        "contracts/medical-figure-family-catalog/composition_recipes/clinical_prediction_and_ml.json",
+        "contracts/medical-figure-family-catalog/composition_recipes/design_and_image.json",
+        "contracts/medical-figure-family-catalog/composition_recipes/omics_and_atlas.json",
+        "src/med_autoscience.medical_figure_composition_recipes.parse_composition_recipes",
+        "src/med_autoscience.medical_figure_family_catalog.load_medical_figure_family_catalog",
+        "src/med_autoscience.display_pack_agent_parts.composition_recipe_route.select_composition_recipe",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.display_pack_capability_discover",
+        "src/med_autoscience.display_pack_agent.display_pack_figure_plan",
+        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
+        "src/med_autoscience.display_pack_gallery_parts.quality.build_quality_audit"
+      ],
+      "gap_status": [
+        "live_paper_line_owner_receipt_tail_pending",
+        "paper_specific_visual_audit_still_required",
+        "publication_gate_still_authoritative"
+      ],
+      "forbidden_authority": [
+        "vendor_runner_dependency",
+        "default_skill_source",
+        "duplicate_single_plot_template_expansion_as_primary_strategy",
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "source_or_statistics_mutation_authority",
+        "visual_audit_replacement"
       ]
     }
   ],

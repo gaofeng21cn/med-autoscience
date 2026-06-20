@@ -7,6 +7,9 @@ from med_autoscience.display_pack_gallery_catalog import TemplateRecord
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_agent_parts.figure_contract import figure_contract_policy
 from med_autoscience.display_pack_agent_parts.figure_workflow import figure_workflow_policy
+from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
+    composition_recipe_discovery_payload,
+)
 from med_autoscience.display_pack_agent_parts.publication_polish_policy import (
     publication_polish_policy,
 )
@@ -212,6 +215,7 @@ def build_quality_audit(
         non_visual_records=non_visual_records,
         default_surface_excluded_records=default_surface_excluded_records,
     )
+    composition_recipe_surface = composition_recipe_discovery_payload(include_recipes=True)
     return {
         "schema_version": 1,
         "overall_status": "not_publication_ready",
@@ -238,8 +242,15 @@ def build_quality_audit(
             "ai_authority": "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim",
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
             "current_surface": "canonical_current_templates_not_input_data_specific_variants",
+            "composition_recipe_policy": "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards",
             "required_before_paper_use": publication_polish_policy()["required_before_paper_use"],
             "required_workflow_before_paper_use": figure_workflow_policy()["paper_use_acceptance"],
+            "composition_recipe_required_before_paper_use": [
+                "composition_recipe_selected_or_explicitly_declined",
+                "hero_panel_role_declared",
+                "shared_legend_or_direct_label_strategy_declared",
+                "programmatic_evidence_primitives_preserve_data_statistics_refs",
+            ],
             "gallery_lower_bound_admission_requires": [
                 "current_template_has_medical_family_mapping",
                 "current_template_has_starter_recipe_profile",
@@ -250,6 +261,7 @@ def build_quality_audit(
         },
         "figure_contract_policy": figure_contract_policy(),
         "figure_workflow_policy": figure_workflow_policy(),
+        "composition_recipe_surface": composition_recipe_surface,
         "publication_polish_policy": publication_polish_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
@@ -397,6 +409,7 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
     warnings = audit["warning_counts"]
     polish = audit["publication_polish_policy"]
     workflow = audit["figure_workflow_policy"]
+    composition = audit["composition_recipe_surface"]
     blocker_lines = "\n".join(f"| `{key}` | {value} |" for key, value in blockers.items()) or "| none | 0 |"
     warning_lines = "\n".join(f"| `{key}` | {value} |" for key, value in warnings.items()) or "| none | 0 |"
     before_paper_lines = "\n".join(
@@ -404,6 +417,13 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
     )
     workflow_before_paper_lines = "\n".join(
         f"- `{item}`" for item in workflow["paper_use_acceptance"]
+    )
+    composition_before_paper_lines = "\n".join(
+        f"- `{item}`" for item in audit["quality_policy"]["composition_recipe_required_before_paper_use"]
+    )
+    composition_recipe_lines = "\n".join(
+        f"| `{item['recipe_id']}` | {item['title']} | {item['hero_panel_role']} |"
+        for item in composition["recipes"]
     )
     high_risk_lines = "\n".join(
         f"| `{item['family']}` | {', '.join(f'`{check}`' for check in item['checks'])} |"
@@ -454,6 +474,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - blocked templates: `{audit["blocked_template_count"]}`
 - publication polish policy: `{polish["policy_id"]}`
 - figure workflow policy: `{workflow["policy_id"]}`
+- composition recipe policy: `{composition["policy"]["policy_id"]}`
+- composition recipes: `{composition["composition_recipe_count"]}`
 
 ## Paper-use 前置检查
 
@@ -462,6 +484,16 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 ## Figure Workflow 前置检查
 
 {workflow_before_paper_lines}
+
+## Composition Recipe 前置检查
+
+{composition_before_paper_lines}
+
+## 页面级 Composition Recipes
+
+| Recipe | Title | Hero panel |
+| --- | --- | --- |
+{composition_recipe_lines}
 
 ## 高风险图族复核项
 

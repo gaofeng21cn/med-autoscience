@@ -82,6 +82,11 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["figure_contract_policy"]["figure_workflow_policy"]["policy_id"] == (
         "mas_nature_skills_figure_workflow_lifecycle.v1"
     )
+    assert payload["composition_recipe_surface"]["policy"]["policy_id"] == (
+        "mas_medical_figure_composition_recipes.v1"
+    )
+    assert payload["composition_recipe_surface"]["composition_recipe_count"] == 6
+    assert payload["composition_recipe_surface"]["blocks_default_evidence_progress"] is False
     assert payload["figure_contract_policy"]["figure_workflow_policy"]["authority_boundary"][
         "can_authorize_publication_readiness"
     ] is False
@@ -105,11 +110,13 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     assert payload["template_surface_policy"]["active_inventory_is_canonical_only"] is True
     assert payload["template_surface_policy"]["evidence_figures_default_to_r_ggplot2"] is True
     assert payload["template_surface_policy"]["python_evidence_templates_not_retained_without_advantage_proof"] is True
+    assert payload["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert payload["template_surface_policy"]["template_analysis_responsibility_required"] is True
     assert payload["template_surface_policy"]["validated_summary_templates_fail_closed_on_raw_analysis_requests"] is True
     assert payload["template_surface_policy"]["migration_inventory_template_count"] == 66
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
+    assert len(payload["composition_recipe_surface"]["recipes"]) == 6
     assert {item["migration_status"] for item in payload["templates"]} == {"canonical"}
     assert all(item["default_visible"] is True for item in payload["templates"])
     assert not [
@@ -168,6 +175,12 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert workflow["nonblocking_progress_policy"]["blocks_default_evidence_progress"] is False
     assert workflow["figures"][0]["figure_brief"]["core_conclusion"]
     assert workflow["figures"][0]["storyboard"]["starter_template"]["template_id"] == "roc_curve_binary"
+    composition = workflow["figures"][0]["storyboard"]["composition_recipe"]
+    assert composition["recipe_id"] == "clinical_triptych_prediction"
+    assert workflow["figures"][0]["storyboard"]["hero_panel"] == "primary_model_performance_summary"
+    assert workflow["figures"][0]["storyboard"]["programmatic_evidence_required"] is True
+    assert workflow["figures"][0]["storyboard"]["design_shell_allowed"] is False
+    assert "shared" in workflow["figures"][0]["storyboard"]["guide_strategy"]
     assert workflow["figures"][0]["storyboard"]["panel_drop_policy"] == (
         "drop_or_merge_panels_without_unique_evidence"
     )
@@ -181,6 +194,7 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["template_surface_policy"]["medical_figure_family_mapping_required"] is True
     assert payload["template_surface_policy"]["starter_recipe_profile_required"] is True
     assert payload["template_surface_policy"]["style_palette_qa_profile_required"] is True
+    assert payload["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert payload["recommended_template"]["adaptation_required"] is False
     assert payload["next_callable"] == "display-pack-preflight"
 
@@ -214,7 +228,58 @@ def test_display_pack_figure_plan_allows_raw_feature_matrix_for_computed_umap() 
     assert payload["recommended_template"]["analysis_responsibility"] == "computed_in_template"
     assert payload["recommended_template"]["analysis_input_state"] == "raw_feature_matrix"
     assert payload["recommended_template"]["analysis_boundary"]["compatible_with_request"] is True
+    assert payload["figure_workflow_packet"]["figures"][0]["storyboard"]["composition_recipe"]["recipe_id"] == (
+        "single_cell_atlas_storyboard"
+    )
     assert payload["next_callable"] == "display-pack-preflight"
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_recipe", "expected_hero"),
+    [
+        ("roc calibration decision curve clinical utility", "clinical_triptych_prediction", "primary_model_performance_summary"),
+        ("genomic alteration heatmap pathway consequence", "asymmetric_genomics_figure", "dominant_molecular_pattern"),
+        ("single cell UMAP marker dotplot cell type atlas", "single_cell_atlas_storyboard", "cell_state_geometry_or_spatial_context"),
+        ("SHAP subgroup threshold model validation dashboard", "model_validation_dashboard", "validation_summary_or_generalizability"),
+    ],
+)
+def test_display_pack_figure_plan_routes_to_page_level_composition_recipe(
+    query: str,
+    expected_recipe: str,
+    expected_hero: str,
+) -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={"query": query, "analysis_input_state": "validated_display_payload"},
+        max_recommendations=5,
+    )
+
+    assert payload["status"] == "display_plan_ready"
+    storyboard = payload["figure_workflow_packet"]["figures"][0]["storyboard"]
+    assert storyboard["composition_recipe"]["recipe_id"] == expected_recipe
+    assert storyboard["hero_panel"] == expected_hero
+    assert storyboard["programmatic_evidence_required"] is True
+    assert storyboard["composition_recipe"]["quality_floor_only"] is True
+    assert "source_data_and_statistics_refs" in storyboard["composition_recipe"]["ai_must_preserve"]
+
+
+def test_display_pack_figure_plan_allows_design_shell_composition_without_data_authority() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={
+            "figure_kind": "illustration_shell",
+            "query": "study workflow schematic graphical abstract with validation panel",
+        },
+        max_recommendations=5,
+    )
+
+    storyboard = payload["figure_workflow_packet"]["figures"][0]["storyboard"]
+    assert storyboard["composition_recipe"]["recipe_id"] == "schematic_led_composite"
+    assert storyboard["design_shell_allowed"] is True
+    assert storyboard["programmatic_evidence_required"] is True
+    assert "treat_imagegen_or_svg_schematic_as_data_evidence" in storyboard["composition_recipe"][
+        "forbidden_authority"
+    ]
 
 
 def test_compile_display_figure_intent_emits_claim_first_contract_without_blocking_agent() -> None:

@@ -34,6 +34,12 @@
     ]
   },
   "starter_recipe_policy_ref": "starter_recipe_policy.json",
+  "composition_recipe_policy_ref": "composition_recipe_policy.json",
+  "composition_recipe_refs": [
+    "composition_recipes/clinical_prediction_and_ml.json",
+    "composition_recipes/design_and_image.json",
+    "composition_recipes/omics_and_atlas.json"
+  ],
   "starter_recipe_refs": [
     "recipes/diagnosis_and_prediction.json",
     "recipes/effect_estimation.json",

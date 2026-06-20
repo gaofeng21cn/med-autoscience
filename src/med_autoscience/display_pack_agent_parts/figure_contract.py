@@ -14,6 +14,9 @@ from med_autoscience.display_pack_agent_parts.figure_workflow import (
     build_figure_workflow_packet,
     figure_workflow_policy,
 )
+from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
+    composition_recipe_discovery_payload,
+)
 from med_autoscience.display_pack_agent_parts.query_family_route import resolve_query_family_route
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 
@@ -43,11 +46,14 @@ FIGURE_CONTRACT_POLICY = {
         "journal_export_contract_before_styling",
         "final_visual_qa_after_render",
         "figure_brief_storyboard_render_inspect_revise_packet",
+        "page_level_composition_recipes_over_duplicate_templates",
+        "direct_labels_shared_legends_and_hero_panel_hierarchy",
     ],
     "mas_adaptations": [
         "r_ggplot2_is_default_for_data_evidence",
         "no_python_or_r_question_on_default_mas_evidence_path",
         "query_resolves_through_medical_figure_family_catalog_before_template_scoring",
+        "query_resolves_to_composition_recipe_before_storyboard",
         "missing_refs_become_typed_repair_routes_not_manual_template_browsing",
         "starter_template_is_quality_floor_not_ceiling",
         "ai_may_redesign_layout_palette_panel_structure_and_backend_when_semantics_are_preserved",
@@ -183,6 +189,7 @@ def figure_contract_policy() -> dict[str, Any]:
         "authority_boundary": dict(DEFAULT_AUTHORITY_BOUNDARY),
         "publication_polish_policy": publication_polish_policy(),
         "figure_workflow_policy": figure_workflow_policy(),
+        "composition_recipe_policy": composition_recipe_discovery_payload(include_recipes=False),
     }
 
 

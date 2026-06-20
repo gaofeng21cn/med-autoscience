@@ -15,8 +15,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Retired alias / duplicate ids | 35 |
 | Migration index entries | 66 |
 | Current Python evidence templates | 0 |
+| Page-level composition recipes | 6 |
 
-`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
+`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多 Gallery 卡片。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
 
 ## Renderer 与质量口径
 
@@ -33,6 +34,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - publication quality profile coverage: `31/31` (100%)
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
+- composition recipe policy: `mas_medical_figure_composition_recipes.v1`
 
 ## Analysis Responsibility
 
@@ -68,6 +70,17 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - `revision_delta_or_residual_item_recorded`
 - `visual_audit_receipt_or_residual_item_recorded`
 - `owner_or_publication_gate_receipt_present_for_claim_bearing_figures`
+
+## 页面级 Composition Recipes
+
+| Recipe | Title | Hero panel |
+| --- | --- | --- |
+| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary |
+| `model_validation_dashboard` | Model Validation Dashboard | validation_summary_or_generalizability |
+| `schematic_led_composite` | Schematic-led Composite | schematic_or_process_hero |
+| `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate |
+| `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern |
+| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context |
 
 ## Gallery 分类
 

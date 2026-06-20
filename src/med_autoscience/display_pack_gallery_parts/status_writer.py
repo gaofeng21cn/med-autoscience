@@ -56,6 +56,16 @@ def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
         if isinstance(manifest.get("figure_workflow_policy"), dict)
         else {}
     )
+    composition_surface = (
+        manifest.get("composition_recipe_surface")
+        if isinstance(manifest.get("composition_recipe_surface"), dict)
+        else {}
+    )
+    composition_policy = (
+        composition_surface.get("policy")
+        if isinstance(composition_surface.get("policy"), dict)
+        else {}
+    )
     required_before_paper = "\n".join(
         f"- `{item}`"
         for item in policy.get("required_before_paper_use", [])
@@ -66,6 +76,11 @@ def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
         for item in workflow_policy.get("paper_use_acceptance", [])
         if isinstance(item, str)
     ) or "- none"
+    composition_rows = "\n".join(
+        f"| `{item.get('recipe_id', '')}` | {item.get('title', '')} | {item.get('hero_panel_role', '')} |"
+        for item in composition_surface.get("recipes", [])
+        if isinstance(item, dict)
+    ) or "| none | none | none |"
     return f"""# MAS Display Pack Gallery Status
 
 Owner: `MedAutoScience`
@@ -83,8 +98,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Retired alias / duplicate ids | {_count(manifest, "retired_alias_template_count")} |
 | Migration index entries | {_count(manifest, "migration_inventory_template_count") + _count(manifest, "retired_alias_template_count")} |
 | Current Python evidence templates | {renderer_completion.get("python_evidence_retained_count", 0)} |
+| Page-level composition recipes | {composition_surface.get("composition_recipe_count", 0)} |
 
-`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
+`Gallery evidence figures` 是 PDF Gallery 中展示的 R/ggplot2 数据证据图数量。`Page-level composition recipes` 是组织多个 evidence primitives 的图页 recipe，不是更多 Gallery 卡片。`Current canonical templates` 是当前可推荐 canonical surface，包含不进入 ggplot2 evidence Gallery 的非视觉库存。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是 Gallery 卡片。
 
 ## Renderer 与质量口径
 
@@ -101,6 +117,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - publication quality profile coverage: `{profile_coverage.get("complete_profile_template_count", 0)}/{profile_coverage.get("current_template_count", 0)}` ({profile_coverage.get("complete_profile_percent", 0)}%)
 - publication polish policy: `{policy.get("policy_id", "")}`
 - figure workflow policy: `{workflow_policy.get("policy_id", "")}`
+- composition recipe policy: `{composition_policy.get("policy_id", "")}`
 
 ## Analysis Responsibility
 
@@ -118,6 +135,12 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 ## Figure Workflow 前置检查
 
 {required_workflow_before_paper}
+
+## 页面级 Composition Recipes
+
+| Recipe | Title | Hero panel |
+| --- | --- | --- |
+{composition_rows}
 
 ## Gallery 分类
 

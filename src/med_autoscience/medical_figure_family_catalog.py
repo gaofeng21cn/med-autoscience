@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.medical_figure_composition_recipes import (
+    CompositionRecipe,
+    parse_composition_recipes,
+    validate_composition_recipe_refs,
+)
 from med_autoscience.medical_figure_family_recipes import (
     StarterRecipe,
     parse_starter_recipes,
@@ -86,10 +91,13 @@ class MedicalFigureFamilyCatalog:
     external_sources: tuple[ExternalSource, ...]
     starter_recipe_policy: dict[str, Any]
     starter_recipes: tuple[StarterRecipe, ...]
+    composition_recipe_policy: dict[str, Any]
+    composition_recipes: tuple[CompositionRecipe, ...]
     categories: tuple[FigureFamilyCategory, ...]
     families_by_id: dict[str, FigureFamily]
     categories_by_id: dict[str, FigureFamilyCategory]
     starter_recipes_by_id: dict[str, StarterRecipe]
+    composition_recipes_by_id: dict[str, CompositionRecipe]
     loose_terms_by_family_id: dict[str, tuple[str, ...]]
 
     @property
@@ -424,6 +432,38 @@ def load_medical_figure_family_catalog(
         external_source_ids={item.source_id for item in external_sources},
         starter_recipes_by_id=starter_recipes_by_id,
     )
+    composition_policy_payload = _load_ref_payload(normalized_root, index, "composition_recipe_policy_ref")
+    composition_policy = dict(composition_policy_payload.get("composition_recipe_policy") or {})
+    _expect_str(composition_policy, "policy_id", context="composition_recipe_policy")
+    _expect_bool(
+        composition_policy,
+        "composition_recipes_are_floor_not_ceiling",
+        context="composition_recipe_policy",
+    )
+    _expect_str_tuple(composition_policy, "default_ai_may_change", context="composition_recipe_policy")
+    _expect_str_tuple(composition_policy, "default_ai_must_preserve", context="composition_recipe_policy")
+    _expect_str_tuple(composition_policy, "forbidden_authority", context="composition_recipe_policy")
+    composition_recipe_refs = _expect_str_tuple(index, "composition_recipe_refs", context="index")
+    composition_recipes = tuple(
+        recipe
+        for ref_index, ref in enumerate(composition_recipe_refs)
+        for recipe in parse_composition_recipes(
+            _resolve_catalog_ref(normalized_root, ref, context=f"index.composition_recipe_refs[{ref_index}]"),
+            read_json_object=_read_json_object,
+            expect_str=lambda payload, key: _expect_str(payload, key, context="composition_recipe"),
+            expect_bool=lambda payload, key: _expect_bool(payload, key, context="composition_recipe"),
+            expect_str_tuple=lambda payload, key: _expect_str_tuple(payload, key, context="composition_recipe"),
+            expect_object_list=lambda payload, key: _expect_object_list(payload, key, context="composition_recipe"),
+        )
+    )
+    composition_recipes_by_id = validate_composition_recipe_refs(
+        composition_recipes,
+        family_ids=set(families_by_id),
+        starter_recipe_ids=set(starter_recipes_by_id),
+        style_profile_ids={item.profile_id for item in style_profiles},
+        palette_token_ids={item.token_id for item in palette_tokens},
+        qa_gate_ids={item.gate_id for item in qa_gates},
+    )
     loose_terms_by_family_id = {
         family_id: tuple(term.casefold() for term in family.loose_match_terms)
         for family_id, family in families_by_id.items()
@@ -443,9 +483,12 @@ def load_medical_figure_family_catalog(
         external_sources=external_sources,
         starter_recipe_policy=starter_recipe_policy,
         starter_recipes=starter_recipes,
+        composition_recipe_policy=composition_policy,
+        composition_recipes=composition_recipes,
         categories=categories,
         families_by_id=families_by_id,
         categories_by_id=categories_by_id,
         starter_recipes_by_id=starter_recipes_by_id,
+        composition_recipes_by_id=composition_recipes_by_id,
         loose_terms_by_family_id=loose_terms_by_family_id,
     )

@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "recipes": [
+    {
+      "recipe_id": "asymmetric_genomics_figure",
+      "title": "Asymmetric Genomics Figure",
+      "intent": "Give molecular or multi-omic structure a dominant pattern panel and use smaller panels for consequence, enrichment, or clinical association.",
+      "claim_triggers": [
+        "genomics",
+        "multiomic",
+        "mutation",
+        "oncoplot",
+        "heatmap",
+        "pathway",
+        "enrichment",
+        "molecular subtype"
+      ],
+      "hero_panel_role": "dominant_molecular_pattern",
+      "supporting_panel_roles": [
+        "pathway_or_functional_consequence",
+        "clinical_or_outcome_association",
+        "selected_feature_validation"
+      ],
+      "evidence_primitive_family_ids": [
+        "annotated_heatmap",
+        "oncoplot_landscape",
+        "genomic_consequence_summary",
+        "enrichment_dotplot",
+        "dimension_reduction_scatter",
+        "volcano_or_ma_plot"
+      ],
+      "recommended_starter_recipe_ids": [
+        "complex_heatmap_annotated",
+        "oncoplot_landscape",
+        "genomic_consequence_composite",
+        "enrichment_dotplot",
+        "embedding_scatter",
+        "volcano_with_label_policy"
+      ],
+      "design_shell_allowed": false,
+      "programmatic_evidence_required": true,
+      "default_layout": "wide_pattern_hero_with_narrow_right_or_bottom_consequence_panels",
+      "guide_strategy": "fixed matrix palette roles and shared annotation legends; avoid per-panel color drift",
+      "label_strategy": "label only selected genes/pathways; group dense labels into annotation tracks",
+      "style_tokens": [
+        "nature_portfolio",
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual",
+        "diverging_centered"
+      ],
+      "qa_gate_ids": [
+        "figure_contract_before_render",
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability",
+        "publication_polish_visual_audit",
+        "paper_use_polish_lifecycle"
+      ],
+      "learned_patterns": [
+        "asymmetric_genomics_figure",
+        "hero_panel_hierarchy",
+        "shared_legends",
+        "fixed_color_scale"
+      ],
+      "ai_may_change": [
+        "matrix_ordering_display",
+        "annotation_track_selection",
+        "support_panel_order",
+        "label_density",
+        "legend_collection"
+      ],
+      "ai_must_preserve": [
+        "source_data_and_statistics_refs",
+        "gene_feature_values",
+        "sample_ordering_basis",
+        "pathway_statistics_refs",
+        "matrix_palette_scale_semantics"
+      ],
+      "forbidden_authority": [
+        "rerun_differential_or_enrichment_analysis_without_declared_workflow",
+        "use_per_plot_heatmap_palette_drift",
+        "hide_missing_or_low_confidence_tracks_without_trace"
+      ]
+    },
+    {
+      "recipe_id": "single_cell_atlas_storyboard",
+      "title": "Single-cell or Spatial Atlas Storyboard",
+      "intent": "Organize atlas-level state geometry, marker evidence, composition, trajectory, or spatial context into a readable multi-panel figure.",
+      "claim_triggers": [
+        "single cell",
+        "single-cell",
+        "scrna",
+        "spatial transcriptomics",
+        "atlas",
+        "umap",
+        "tsne",
+        "trajectory",
+        "cell type"
+      ],
+      "hero_panel_role": "cell_state_geometry_or_spatial_context",
+      "supporting_panel_roles": [
+        "marker_or_feature_evidence",
+        "composition_or_condition_shift",
+        "trajectory_or_interaction_context"
+      ],
+      "evidence_primitive_family_ids": [
+        "single_cell_embedding",
+        "marker_dotplot",
+        "feature_expression_map",
+        "cell_composition",
+        "trajectory_pseudotime",
+        "spatial_feature_map",
+        "cell_cell_interaction"
+      ],
+      "recommended_starter_recipe_ids": [
+        "single_cell_dimplot",
+        "marker_dotplot",
+        "feature_expression_embedding",
+        "cell_composition_bar_or_dot",
+        "trajectory_pseudotime_panel",
+        "spatial_feature_map",
+        "cell_interaction_network_or_heatmap"
+      ],
+      "design_shell_allowed": false,
+      "programmatic_evidence_required": true,
+      "default_layout": "atlas_embedding_or_spatial_hero_with_marker_composition_and_trajectory_support",
+      "guide_strategy": "shared cluster palette and direct labels for key states; separate continuous feature colorbars",
+      "label_strategy": "label major states on the embedding; keep marker labels readable and sparse",
+      "style_tokens": [
+        "nature_portfolio",
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible",
+        "sequential_perceptual",
+        "clinical_status"
+      ],
+      "qa_gate_ids": [
+        "figure_contract_before_render",
+        "statistical_semantics_preserved",
+        "color_accessibility",
+        "layout_readability",
+        "publication_polish_visual_audit",
+        "paper_use_polish_lifecycle"
+      ],
+      "learned_patterns": [
+        "single_cell_atlas_storyboard",
+        "shared_legends",
+        "direct_labels",
+        "hero_panel_hierarchy"
+      ],
+      "ai_may_change": [
+        "which_atlas_view_is_hero",
+        "supporting_panel_order",
+        "cluster_label_strategy",
+        "legend_collection",
+        "feature_panel_selection"
+      ],
+      "ai_must_preserve": [
+        "source_data_and_statistics_refs",
+        "embedding_or_spatial_coordinate_workflow_refs",
+        "cell_state_labels",
+        "marker_expression_refs",
+        "sample_and_condition_refs"
+      ],
+      "forbidden_authority": [
+        "treat_static_scatter_as_embedding_workflow",
+        "change_cell_type_labels_without_trace",
+        "reuse_unrelated_embedding_coordinates"
+      ]
+    }
+  ]
+}

@@ -227,6 +227,22 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["template_surface_policy"][
         "validated_summary_templates_fail_closed_on_raw_analysis_requests"
     ] is True
+    assert manifest["template_surface_policy"]["composition_recipe_routing_required"] is True
+    assert manifest["template_surface_policy"]["composition_recipes_are_page_level_not_gallery_cards"] is True
+    assert manifest["composition_recipe_surface"]["policy"]["policy_id"] == (
+        "mas_medical_figure_composition_recipes.v1"
+    )
+    assert manifest["composition_recipe_surface"]["composition_recipe_count"] == 6
+    assert {
+        item["recipe_id"] for item in manifest["composition_recipe_surface"]["recipes"]
+    } == {
+        "clinical_triptych_prediction",
+        "schematic_led_composite",
+        "asymmetric_genomics_figure",
+        "image_plate_plus_quantification",
+        "single_cell_atlas_storyboard",
+        "model_validation_dashboard",
+    }
     assert "matrix_heatmap" in {
         item["family"] for item in manifest["publication_polish_policy"]["high_risk_family_checks"]
     }
@@ -308,8 +324,12 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["figure_workflow_policy"]["policy_id"] == (
         "mas_nature_skills_figure_workflow_lifecycle.v1"
     )
+    assert manifest["quality_audit"]["composition_recipe_surface"]["composition_recipe_count"] == 6
     assert manifest["quality_audit"]["quality_policy"]["ai_authority"] == (
         "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim"
+    )
+    assert manifest["quality_audit"]["quality_policy"]["composition_recipe_policy"] == (
+        "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards"
     )
     assert "core_conclusion_and_evidence_chain_locked" in manifest["quality_audit"]["quality_policy"][
         "required_before_paper_use"
@@ -327,10 +347,15 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "publication quality profile coverage: `31/31` (100%)" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in status_markdown
+    assert "Page-level composition recipes | 6" in status_markdown
+    assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in status_markdown
+    assert "| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary |" in status_markdown
     assert "- `storyboard_panel_hierarchy_declared`" in status_markdown
     assert "| `computed_in_template` | 3 |" in status_markdown
     assert "| `validated_summary_required` | 25 |" in status_markdown
 
     quality_markdown = build_quality_audit_markdown(manifest["quality_audit"])
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in quality_markdown
+    assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in quality_markdown
+    assert "| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context |" in quality_markdown
     assert "- `guide_legend_colorbar_overlap_checked_after_render`" in quality_markdown

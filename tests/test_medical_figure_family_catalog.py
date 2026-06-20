@@ -86,6 +86,44 @@ def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
     )
 
 
+def test_composition_recipes_are_machine_loaded_and_reference_primitives() -> None:
+    catalog = load_medical_figure_family_catalog()
+
+    assert catalog.composition_recipe_policy["policy_id"] == "mas_medical_figure_composition_recipes.v1"
+    assert catalog.composition_recipe_policy["composition_recipes_are_floor_not_ceiling"] is True
+    assert len(catalog.composition_recipes) == 6
+    assert set(catalog.composition_recipes_by_id) == {
+        "clinical_triptych_prediction",
+        "schematic_led_composite",
+        "asymmetric_genomics_figure",
+        "image_plate_plus_quantification",
+        "single_cell_atlas_storyboard",
+        "model_validation_dashboard",
+    }
+
+    triptych = catalog.composition_recipes_by_id["clinical_triptych_prediction"]
+    assert triptych.programmatic_evidence_required is True
+    assert triptych.design_shell_allowed is False
+    assert triptych.hero_panel_role == "primary_model_performance_summary"
+    assert {
+        "discrimination_curve",
+        "calibration_panel",
+        "decision_curve_analysis",
+    } <= set(triptych.evidence_primitive_family_ids)
+    assert {
+        "roc_pr_curve",
+        "calibration_curve_with_histogram",
+        "decision_curve_clinical_impact",
+    } <= set(triptych.recommended_starter_recipe_ids)
+    assert "shared_legends" in triptych.learned_patterns
+    assert "source_data_and_statistics_refs" in triptych.ai_must_preserve
+
+    schematic = catalog.composition_recipes_by_id["schematic_led_composite"]
+    assert schematic.design_shell_allowed is True
+    assert schematic.programmatic_evidence_required is True
+    assert "treat_imagegen_or_svg_schematic_as_data_evidence" in schematic.forbidden_authority
+
+
 def test_representative_medical_figure_families_are_present() -> None:
     catalog = load_medical_figure_family_catalog()
 
@@ -217,6 +255,18 @@ def test_catalog_rejects_recipe_reference_drift(tmp_path: Path) -> None:
         load_medical_figure_family_catalog(catalog_root)
 
 
+def test_catalog_rejects_composition_recipe_reference_drift(tmp_path: Path) -> None:
+    catalog_root = tmp_path / "medical-figure-family-catalog"
+    shutil.copytree(DEFAULT_CATALOG_ROOT, catalog_root)
+    composition_path = catalog_root / "composition_recipes" / "clinical_prediction_and_ml.json"
+    payload = json.loads(composition_path.read_text(encoding="utf-8"))
+    payload["recipes"][0]["evidence_primitive_family_ids"].append("missing_family")
+    composition_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown figure families"):
+        load_medical_figure_family_catalog(catalog_root)
+
+
 def test_catalog_files_stay_split_by_natural_boundaries() -> None:
     new_files = [
         CATALOG_ROOT / "index.json",
@@ -226,11 +276,14 @@ def test_catalog_files_stay_split_by_natural_boundaries() -> None:
         CATALOG_ROOT / "qa_gates.json",
         CATALOG_ROOT / "external_sources.json",
         CATALOG_ROOT / "starter_recipe_policy.json",
+        CATALOG_ROOT / "composition_recipe_policy.json",
+        REPO_ROOT / "src" / "med_autoscience" / "medical_figure_composition_recipes.py",
         REPO_ROOT / "src" / "med_autoscience" / "medical_figure_family_catalog.py",
         Path(__file__),
     ]
     new_files.extend(sorted((CATALOG_ROOT / "categories").glob("*.json")))
     new_files.extend(sorted((CATALOG_ROOT / "recipes").glob("*.json")))
+    new_files.extend(sorted((CATALOG_ROOT / "composition_recipes").glob("*.json")))
 
     oversized = {
         path.relative_to(REPO_ROOT).as_posix(): len(path.read_text(encoding="utf-8").splitlines())

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "composition_recipe_policy": {
+    "policy_id": "mas_medical_figure_composition_recipes.v1",
+    "purpose": "Page-level composition recipes for medical manuscript figures. They organize a small set of evidence primitives into claim-led figure pages instead of adding duplicate single-plot templates.",
+    "learned_from": "Yuan1z0825/nature-skills/skills/nature-figure page-level figure contract, common patterns, design theory, and QA workflow",
+    "composition_recipes_are_floor_not_ceiling": true,
+    "default_ai_may_change": [
+      "panel_count",
+      "panel_order",
+      "layout_grid",
+      "annotation_density",
+      "legend_strategy",
+      "direct_label_strategy",
+      "palette_role_mapping",
+      "rendering_backend_for_design_shells"
+    ],
+    "default_ai_must_preserve": [
+      "scientific_claim_semantics",
+      "source_data_and_statistics_refs",
+      "statistical_estimand",
+      "evidence_primitive_roles",
+      "programmatic_evidence_reproducibility",
+      "auditability"
+    ],
+    "forbidden_authority": [
+      "publication_readiness_authority",
+      "quality_verdict_authority",
+      "source_data_or_statistics_mutation_authority",
+      "visual_audit_replacement",
+      "owner_receipt_replacement"
+    ],
+    "progress_policy": {
+      "blocks_default_evidence_progress": false,
+      "manual_gallery_browsing_required": false,
+      "paper_use_requires_visual_audit_and_owner_gate": true
+    }
+  }
+}
