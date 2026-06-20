@@ -4,7 +4,10 @@ import importlib
 import json
 
 from tests.study_runtime_test_helpers import make_profile
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback,
+    opl_transition_replay_audit_readback,
+)
 from tests.mcp_opl_current_control_state_handoff_cases.rendering import (
     test_mcp_compacts_and_renders_latest_terminal_stage_log,
     test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard,
@@ -15,6 +18,14 @@ from tests.mcp_opl_current_control_state_handoff_cases.rendering import (
 def _write_json(path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _append_jsonl(path, payloads: list[object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(payload, ensure_ascii=False) + "\n" for payload in payloads),
+        encoding="utf-8",
+    )
 
 
 def test_study_progress_opl_current_control_state_handoff_projection_reads_developer_supervisor_mode(tmp_path) -> None:
@@ -206,6 +217,138 @@ def test_study_progress_opl_current_control_state_handoff_merges_complete_top_le
     assert projection["work_unit_id"] == work_unit_id
     assert projection["blocked_reason"] is None
     assert "typed_blocker" not in projection
+
+
+def test_study_progress_opl_current_control_state_handoff_consumes_live_transition_log_readback(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    route_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    replay = opl_transition_replay_audit_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+    )
+    command_id = f"opl-domain-progress-command::{study_id}::{fingerprint}"
+    command_event_log = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "domain_progress_transition_runtime"
+        / "command_event_log.jsonl"
+    )
+    _append_jsonl(
+        command_event_log,
+        [
+            {
+                "surface_kind": "opl_domain_progress_transition_log_entry",
+                "runtime_id": "opl_domain_progress_transition_runtime",
+                "transaction_id": replay["transaction_id"],
+                "idempotency_key": route_key,
+                "entry_kind": "command",
+                "sequence_in_transaction": 0,
+                "payload": {"command_id": command_id, "stage_run_identity": replay["stage_run_identity_readback"]["command_stage_run_identity"]},
+            },
+            {
+                "surface_kind": "opl_domain_progress_transition_log_entry",
+                "runtime_id": "opl_domain_progress_transition_runtime",
+                "transaction_id": replay["transaction_id"],
+                "idempotency_key": route_key,
+                "entry_kind": "event",
+                "sequence_in_transaction": 1,
+                "payload": {
+                    "event_id": replay["event_id"],
+                    "transition_kind": "StartProviderAttempt",
+                    "outcome": {"kind": "provider_admission_enqueued_or_blocked", "stable_outcome": True},
+                    "aggregate_identity": replay["aggregate_identity"],
+                    "stage_run_identity": replay["stage_run_identity_readback"]["event_stage_run_identity"],
+                    "source_generation": replay["source_generation"],
+                    "expected_version": replay["expected_version"],
+                },
+            },
+            {
+                "surface_kind": "opl_domain_progress_transition_log_entry",
+                "runtime_id": "opl_domain_progress_transition_runtime",
+                "transaction_id": replay["transaction_id"],
+                "idempotency_key": route_key,
+                "entry_kind": "outbox_item",
+                "sequence_in_transaction": 2,
+                "payload": {
+                    "outbox_item_id": replay["outbox_item_id"],
+                    "transition_event_id": replay["event_id"],
+                    "outbox_kind": "start_provider_attempt",
+                    "aggregate_identity": replay["aggregate_identity"],
+                    "stage_run_identity": replay["stage_run_identity_readback"]["outbox_stage_run_identity"],
+                    "idempotency_key": route_key,
+                },
+            },
+        ],
+    )
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-20T16:36:14+00:00",
+            "transition_request_pending_count": 1,
+            "provider_admission_pending_count": 0,
+            "action_queue": [
+                {
+                    "status": "transition_request_pending",
+                    "reason": "await_opl_transition_readback",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "request_opl_stage_attempt",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "route_identity_key": route_key,
+                    "attempt_idempotency_key": route_key,
+                    "idempotency_key": route_key,
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "transition_request_pending",
+                    "transition_request_pending_count": 1,
+                    "provider_admission_pending_count": 0,
+                    "action_queue": [
+                        {
+                            "status": "transition_request_pending",
+                            "reason": "await_opl_transition_readback",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "request_opl_stage_attempt",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "route_identity_key": route_key,
+                            "attempt_idempotency_key": route_key,
+                            "idempotency_key": route_key,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
+    assert projection["provider_admission_pending_count"] == 1
+    assert projection["transition_request_pending_count"] == 0
+    assert projection["provider_admission_candidates"][0][
+        "opl_domain_progress_transition_runtime_live_readback"
+    ]["identity"]["latest_event_id"] == replay["event_id"]
+    assert projection["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
+    assert projection["blocked_reason"] is None
 
 
 def test_study_progress_opl_current_control_state_handoff_consumes_provider_admission_with_matching_terminal_closeout(tmp_path) -> None:
