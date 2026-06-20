@@ -19,7 +19,7 @@ Machine boundary: 本文是当前人读能力索引。机器真相继续归 `dis
 
 这里的 `66` 只表示 `31` 个 current canonical template 加 `35` 个 retired alias / duplicate id 的迁移索引，不是当前可调用模板数。默认用户路径、Gallery、agent discover 和 figure plan 只暴露 current canonical surface。
 
-完整逐项目录由 [medical_display_template_catalog.md](./medical_display_template_catalog.md) 生成；干净 Gallery 和可视示例见 [ggplot2_template_reference.md](../examples/ggplot2_template_reference.md) 与 `ggplot2_template_gallery.pdf`。该 Gallery 同时展示页面级图页方案、非数据设计/流程图起点和 R/ggplot2 数据证据图起点。
+完整逐项目录由 [medical_display_template_catalog.md](./medical_display_template_catalog.md) 生成；干净 Gallery 和可视示例见 [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) 与 `medical_display_gallery.pdf`。该 Gallery 同时展示页面级图页方案、非数据设计/流程图起点和 R/ggplot2 数据证据图起点。
 
 ## 默认风格
 

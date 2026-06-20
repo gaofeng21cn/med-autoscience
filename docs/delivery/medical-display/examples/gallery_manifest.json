@@ -3,11 +3,11 @@
   "surface_kind": "display_pack_gallery_docs_manifest",
   "source_manifest_schema_version": 9,
   "status": "rendered",
-  "html_path": "outputs/display-pack-gallery/ggplot2_template_gallery.html",
-  "pdf_path": "outputs/display-pack-gallery/ggplot2_template_gallery.pdf",
+  "html_path": "outputs/display-pack-gallery/medical_display_gallery.html",
+  "pdf_path": "outputs/display-pack-gallery/medical_display_gallery.pdf",
   "quality_audit_path": "outputs/display-pack-gallery/display_pack_gallery_quality_audit.md",
-  "docs_pdf_path": "docs/delivery/medical-display/examples/ggplot2_template_gallery.pdf",
-  "docs_reference_path": "docs/delivery/medical-display/examples/ggplot2_template_reference.md",
+  "docs_pdf_path": "docs/delivery/medical-display/examples/medical_display_gallery.pdf",
+  "docs_reference_path": "docs/delivery/medical-display/examples/medical_display_gallery_reference.md",
   "docs_quality_audit_path": "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md",
   "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
   "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
@@ -1297,9 +1297,9 @@
       "medical_family_ids": [
         "calibration_panel"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/calibration_curve_binary.png",
-      "pdf_ref": "ggplot2_template_reference_assets/calibration_curve_binary.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/calibration_curve_binary.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/calibration_curve_binary.png",
+      "pdf_ref": "medical_display_gallery_assets/calibration_curve_binary.pdf",
+      "layout_ref": "medical_display_gallery_assets/calibration_curve_binary.layout.json"
     },
     {
       "template_id": "celltype_marker_dotplot_panel",
@@ -1311,9 +1311,9 @@
       "medical_family_ids": [
         "marker_dotplot"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/celltype_marker_dotplot_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/celltype_marker_dotplot_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/celltype_marker_dotplot_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.layout.json"
     },
     {
       "template_id": "cnv_recurrence_summary_panel",
@@ -1325,9 +1325,9 @@
       "medical_family_ids": [
         "cnv_or_circos_summary"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/cnv_recurrence_summary_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/cnv_recurrence_summary_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/cnv_recurrence_summary_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.layout.json"
     },
     {
       "template_id": "coefficient_path_panel",
@@ -1339,9 +1339,9 @@
       "medical_family_ids": [
         "coefficient_path"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/coefficient_path_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/coefficient_path_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/coefficient_path_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/coefficient_path_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/coefficient_path_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/coefficient_path_panel.layout.json"
     },
     {
       "template_id": "confusion_matrix_heatmap_binary",
@@ -1353,9 +1353,9 @@
       "medical_family_ids": [
         "confusion_matrix"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.png",
-      "pdf_ref": "ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/confusion_matrix_heatmap_binary.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
+      "pdf_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.pdf",
+      "layout_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.layout.json"
     },
     {
       "template_id": "cumulative_incidence_grouped",
@@ -1367,9 +1367,9 @@
       "medical_family_ids": [
         "cumulative_incidence_competing_risk"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/cumulative_incidence_grouped.png",
-      "pdf_ref": "ggplot2_template_reference_assets/cumulative_incidence_grouped.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/cumulative_incidence_grouped.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.png",
+      "pdf_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.pdf",
+      "layout_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.layout.json"
     },
     {
       "template_id": "decision_curve_binary",
@@ -1381,9 +1381,9 @@
       "medical_family_ids": [
         "decision_curve_analysis"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/decision_curve_binary.png",
-      "pdf_ref": "ggplot2_template_reference_assets/decision_curve_binary.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/decision_curve_binary.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/decision_curve_binary.png",
+      "pdf_ref": "medical_display_gallery_assets/decision_curve_binary.pdf",
+      "layout_ref": "medical_display_gallery_assets/decision_curve_binary.layout.json"
     },
     {
       "template_id": "forest_effect_main",
@@ -1396,9 +1396,9 @@
         "effect_forest",
         "meta_forest"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/forest_effect_main.png",
-      "pdf_ref": "ggplot2_template_reference_assets/forest_effect_main.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/forest_effect_main.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/forest_effect_main.png",
+      "pdf_ref": "medical_display_gallery_assets/forest_effect_main.pdf",
+      "layout_ref": "medical_display_gallery_assets/forest_effect_main.layout.json"
     },
     {
       "template_id": "generalizability_subgroup_composite_panel",
@@ -1410,9 +1410,9 @@
       "medical_family_ids": [
         "external_validation_performance"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/generalizability_subgroup_composite_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.layout.json"
     },
     {
       "template_id": "genomic_alteration_consequence_panel",
@@ -1425,9 +1425,9 @@
         "genomic_consequence_summary",
         "oncoplot_landscape"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/genomic_alteration_consequence_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/genomic_alteration_consequence_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/genomic_alteration_consequence_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.layout.json"
     },
     {
       "template_id": "genomic_alteration_landscape_panel",
@@ -1439,9 +1439,9 @@
       "medical_family_ids": [
         "oncoplot_landscape"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/genomic_alteration_landscape_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/genomic_alteration_landscape_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/genomic_alteration_landscape_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.layout.json"
     },
     {
       "template_id": "heatmap_group_comparison",
@@ -1454,9 +1454,9 @@
         "annotated_heatmap",
         "correlation_matrix"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/heatmap_group_comparison.png",
-      "pdf_ref": "ggplot2_template_reference_assets/heatmap_group_comparison.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/heatmap_group_comparison.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/heatmap_group_comparison.png",
+      "pdf_ref": "medical_display_gallery_assets/heatmap_group_comparison.pdf",
+      "layout_ref": "medical_display_gallery_assets/heatmap_group_comparison.layout.json"
     },
     {
       "template_id": "kaplan_meier_grouped",
@@ -1468,9 +1468,9 @@
       "medical_family_ids": [
         "kaplan_meier_with_risk_table"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/kaplan_meier_grouped.png",
-      "pdf_ref": "ggplot2_template_reference_assets/kaplan_meier_grouped.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/kaplan_meier_grouped.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/kaplan_meier_grouped.png",
+      "pdf_ref": "medical_display_gallery_assets/kaplan_meier_grouped.pdf",
+      "layout_ref": "medical_display_gallery_assets/kaplan_meier_grouped.layout.json"
     },
     {
       "template_id": "model_complexity_audit_panel",
@@ -1482,9 +1482,9 @@
       "medical_family_ids": [
         "model_complexity_audit"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/model_complexity_audit_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/model_complexity_audit_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/model_complexity_audit_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/model_complexity_audit_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/model_complexity_audit_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/model_complexity_audit_panel.layout.json"
     },
     {
       "template_id": "omics_volcano_panel",
@@ -1496,9 +1496,9 @@
       "medical_family_ids": [
         "volcano_or_ma_plot"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/omics_volcano_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/omics_volcano_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/omics_volcano_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/omics_volcano_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/omics_volcano_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/omics_volcano_panel.layout.json"
     },
     {
       "template_id": "pathway_enrichment_dotplot_panel",
@@ -1510,9 +1510,9 @@
       "medical_family_ids": [
         "enrichment_dotplot"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/pathway_enrichment_dotplot_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.layout.json"
     },
     {
       "template_id": "pca_scatter_grouped",
@@ -1524,9 +1524,9 @@
       "medical_family_ids": [
         "dimension_reduction_scatter"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/pca_scatter_grouped.png",
-      "pdf_ref": "ggplot2_template_reference_assets/pca_scatter_grouped.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/pca_scatter_grouped.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/pca_scatter_grouped.png",
+      "pdf_ref": "medical_display_gallery_assets/pca_scatter_grouped.pdf",
+      "layout_ref": "medical_display_gallery_assets/pca_scatter_grouped.layout.json"
     },
     {
       "template_id": "pr_curve_binary",
@@ -1538,9 +1538,9 @@
       "medical_family_ids": [
         "discrimination_curve"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/pr_curve_binary.png",
-      "pdf_ref": "ggplot2_template_reference_assets/pr_curve_binary.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/pr_curve_binary.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/pr_curve_binary.png",
+      "pdf_ref": "medical_display_gallery_assets/pr_curve_binary.pdf",
+      "layout_ref": "medical_display_gallery_assets/pr_curve_binary.layout.json"
     },
     {
       "template_id": "risk_layering_monotonic_bars",
@@ -1552,9 +1552,9 @@
       "medical_family_ids": [
         "risk_stratification"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/risk_layering_monotonic_bars.png",
-      "pdf_ref": "ggplot2_template_reference_assets/risk_layering_monotonic_bars.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/risk_layering_monotonic_bars.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.png",
+      "pdf_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.pdf",
+      "layout_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.layout.json"
     },
     {
       "template_id": "roc_curve_binary",
@@ -1566,9 +1566,9 @@
       "medical_family_ids": [
         "discrimination_curve"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/roc_curve_binary.png",
-      "pdf_ref": "ggplot2_template_reference_assets/roc_curve_binary.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/roc_curve_binary.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/roc_curve_binary.png",
+      "pdf_ref": "medical_display_gallery_assets/roc_curve_binary.pdf",
+      "layout_ref": "medical_display_gallery_assets/roc_curve_binary.layout.json"
     },
     {
       "template_id": "shap_dependence_panel",
@@ -1580,9 +1580,9 @@
       "medical_family_ids": [
         "pdp_ice_ale"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/shap_dependence_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/shap_dependence_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/shap_dependence_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/shap_dependence_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/shap_dependence_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/shap_dependence_panel.layout.json"
     },
     {
       "template_id": "shap_summary_beeswarm",
@@ -1594,9 +1594,9 @@
       "medical_family_ids": [
         "shap_summary"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/shap_summary_beeswarm.png",
-      "pdf_ref": "ggplot2_template_reference_assets/shap_summary_beeswarm.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/shap_summary_beeswarm.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/shap_summary_beeswarm.png",
+      "pdf_ref": "medical_display_gallery_assets/shap_summary_beeswarm.pdf",
+      "layout_ref": "medical_display_gallery_assets/shap_summary_beeswarm.layout.json"
     },
     {
       "template_id": "shap_waterfall_local_explanation_panel",
@@ -1608,9 +1608,9 @@
       "medical_family_ids": [
         "shap_local_explanation"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/shap_waterfall_local_explanation_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.layout.json"
     },
     {
       "template_id": "time_dependent_roc_horizon",
@@ -1622,9 +1622,9 @@
       "medical_family_ids": [
         "discrimination_curve"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/time_dependent_roc_horizon.png",
-      "pdf_ref": "ggplot2_template_reference_assets/time_dependent_roc_horizon.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/time_dependent_roc_horizon.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.png",
+      "pdf_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.pdf",
+      "layout_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.layout.json"
     },
     {
       "template_id": "time_to_event_decision_curve",
@@ -1636,9 +1636,9 @@
       "medical_family_ids": [
         "decision_curve_analysis"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/time_to_event_decision_curve.png",
-      "pdf_ref": "ggplot2_template_reference_assets/time_to_event_decision_curve.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/time_to_event_decision_curve.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/time_to_event_decision_curve.png",
+      "pdf_ref": "medical_display_gallery_assets/time_to_event_decision_curve.pdf",
+      "layout_ref": "medical_display_gallery_assets/time_to_event_decision_curve.layout.json"
     },
     {
       "template_id": "time_to_event_multihorizon_calibration_panel",
@@ -1650,9 +1650,9 @@
       "medical_family_ids": [
         "calibration_panel"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.png",
-      "pdf_ref": "ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/time_to_event_multihorizon_calibration_panel.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.layout.json"
     },
     {
       "template_id": "tsne_scatter_grouped",
@@ -1664,9 +1664,9 @@
       "medical_family_ids": [
         "dimension_reduction_scatter"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/tsne_scatter_grouped.png",
-      "pdf_ref": "ggplot2_template_reference_assets/tsne_scatter_grouped.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/tsne_scatter_grouped.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/tsne_scatter_grouped.png",
+      "pdf_ref": "medical_display_gallery_assets/tsne_scatter_grouped.pdf",
+      "layout_ref": "medical_display_gallery_assets/tsne_scatter_grouped.layout.json"
     },
     {
       "template_id": "umap_scatter_grouped",
@@ -1678,9 +1678,9 @@
       "medical_family_ids": [
         "dimension_reduction_scatter"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/umap_scatter_grouped.png",
-      "pdf_ref": "ggplot2_template_reference_assets/umap_scatter_grouped.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/umap_scatter_grouped.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/umap_scatter_grouped.png",
+      "pdf_ref": "medical_display_gallery_assets/umap_scatter_grouped.pdf",
+      "layout_ref": "medical_display_gallery_assets/umap_scatter_grouped.layout.json"
     }
   ],
   "design_gallery_templates": [
@@ -1698,11 +1698,11 @@
         "stard_diagnostic_flow",
         "eligibility_waterfall"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.gallery.png",
-      "image_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.png",
-      "svg_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.svg",
-      "pdf_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.pdf",
-      "layout_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.layout.json"
+      "preview_image_ref": "medical_display_gallery_assets/cohort_flow_figure.design.gallery.png",
+      "image_ref": "medical_display_gallery_assets/cohort_flow_figure.design.png",
+      "svg_ref": "medical_display_gallery_assets/cohort_flow_figure.design.svg",
+      "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.design.pdf",
+      "layout_ref": "medical_display_gallery_assets/cohort_flow_figure.design.layout.json"
     },
     {
       "template_id": "submission_graphical_abstract",
@@ -1715,11 +1715,11 @@
         "graphical_abstract",
         "causal_dag"
       ],
-      "preview_image_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.gallery.png",
-      "image_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.png",
-      "svg_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.svg",
+      "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.gallery.png",
+      "image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
+      "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
       "pdf_ref": "",
-      "layout_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.layout.json"
+      "layout_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.layout.json"
     }
   ]
 }

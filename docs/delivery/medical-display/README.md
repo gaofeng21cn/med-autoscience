@@ -28,7 +28,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 - [Platform mainline](./contracts/medical_display_platform_mainline.md)
 - [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Template catalog](./catalogs/medical_display_template_catalog.md)
-- [医学论文配图 Gallery](./examples/ggplot2_template_reference.md)
+- [医学论文配图 Gallery](./examples/medical_display_gallery_reference.md)
 - [Generated Gallery status](./examples/display_pack_gallery_status.md)
 - [Display Pack v2 E2E skeleton](./examples/display_pack_v2_e2e_skeleton.md)
 

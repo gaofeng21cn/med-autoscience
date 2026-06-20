@@ -24,7 +24,7 @@ Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
 State: `active_support`
 Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
 
-- [PDF Gallery](./ggplot2_template_gallery.pdf)：面向人阅读的主文档，用于直观判断 MAS 默认图页组织、非数据设计图起点、数据证据图起点和统一视觉风格。
+- [PDF Gallery](./medical_display_gallery.pdf)：面向人阅读的主文档，用于直观判断 MAS 默认图页组织、非数据设计图起点、数据证据图起点和统一视觉风格。
 - [生成状态](./display_pack_gallery_status.md)：从 manifest 生成的数量、路由和生成口径。
 - [质量审计](./display_pack_gallery_quality_audit.md)：从质量门生成的模板入库状态、风险项和论文使用前检查项。
 

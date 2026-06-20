@@ -14,7 +14,7 @@ A display counts as current implemented inventory only when it is present in the
 Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
 
 - current counts: [Display Pack Gallery status](../examples/display_pack_gallery_status.md);
-- human visual Gallery: [ggplot2_template_reference.md](../examples/ggplot2_template_reference.md) and `ggplot2_template_gallery.pdf`;
+- human visual Gallery: [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) and `medical_display_gallery.pdf`;
 - full descriptor inventory: [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md);
 - compact capability index: [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md).
 
@@ -29,9 +29,9 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 - `src/med_autoscience/display_schema_contract.py`
 - `src/med_autoscience/controllers/display_surface_materialization/`
 - `src/med_autoscience/display_layout_qc/`
-- generated Gallery manifest under `outputs/display-pack-gallery/ggplot2_template_reference_assets/gallery_manifest.json`
+- generated Gallery manifest under `outputs/display-pack-gallery/medical_display_gallery_assets/gallery_manifest.json`
 
-The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is [ggplot2_template_reference.md](../examples/ggplot2_template_reference.md) and `ggplot2_template_gallery.pdf`; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
+The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) and `medical_display_gallery.pdf`; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
 
 ## Renderer Policy
 
