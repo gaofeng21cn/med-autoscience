@@ -74,6 +74,10 @@ def materialize_provider_admission_current_control_state(
     candidates = _candidates_without_transition_requests_consumed_by_provider_readback(
         candidates
     )
+    candidates = _candidates_without_transition_requests_consumed_by_currentness(
+        candidates,
+        scanned_studies_by_id=scanned_studies_by_id,
+    )
     scanned_studies = _scanned_studies_with_candidate_closeout_projection(
         scanned_studies,
         candidates=candidates,
@@ -340,6 +344,103 @@ def _candidates_without_transition_requests_consumed_by_provider_readback(
             and _transition_request_only_candidate(candidate)
         )
     ]
+
+
+def _candidates_without_transition_requests_consumed_by_currentness(
+    candidates: list[dict[str, Any]],
+    *,
+    scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if not _transition_request_consumed_by_scanned_currentness(
+            candidate,
+            scanned_studies_by_id=scanned_studies_by_id,
+        )
+    ]
+
+
+def _transition_request_consumed_by_scanned_currentness(
+    candidate: Mapping[str, Any],
+    *,
+    scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
+) -> bool:
+    if not _transition_request_only_candidate(candidate):
+        return False
+    study_id = _non_empty_text(candidate.get("study_id"))
+    if study_id is None:
+        return False
+    currentness = _mapping(scanned_studies_by_id.get(study_id))
+    if not _currentness_consumes_transition_request(currentness):
+        return False
+    consumed = _currentness_terminal_closeout_consumed(currentness)
+    if not consumed:
+        return False
+    return _consumed_closeout_matches_candidate(consumed, candidate)
+
+
+def _currentness_consumes_transition_request(currentness: Mapping[str, Any]) -> bool:
+    if currentness.get("provider_admission_pending_count") not in (None, 0):
+        return False
+    if currentness.get("transition_request_pending_count") not in (None, 0):
+        return False
+    if currentness.get("provider_admission_candidates") or currentness.get(
+        "transition_request_candidates"
+    ):
+        return False
+    return bool(_currentness_terminal_closeout_consumed(currentness))
+
+
+def _currentness_terminal_closeout_consumed(
+    currentness: Mapping[str, Any],
+) -> dict[str, Any]:
+    consumed = _mapping(currentness.get("provider_admission_terminal_closeout_consumed"))
+    if consumed:
+        return consumed
+    handoff = _mapping(currentness.get("opl_current_control_state_handoff"))
+    return _mapping(handoff.get("provider_admission_terminal_closeout_consumed"))
+
+
+def _consumed_closeout_matches_candidate(
+    consumed: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(consumed.get("action_type")) not in (
+        None,
+        _non_empty_text(candidate.get("action_type")),
+    ):
+        return False
+    if _non_empty_text(consumed.get("work_unit_id")) not in (
+        None,
+        _non_empty_text(candidate.get("work_unit_id")),
+    ):
+        return False
+    consumed_fingerprint = _non_empty_text(consumed.get("work_unit_fingerprint")) or _non_empty_text(
+        consumed.get("action_fingerprint")
+    )
+    candidate_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    if consumed_fingerprint not in (None, candidate_fingerprint):
+        return False
+    return _consumed_closeout_has_matching_runtime_identity(consumed, candidate)
+
+
+def _consumed_closeout_has_matching_runtime_identity(
+    consumed: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+) -> bool:
+    for key in (
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "idempotency_key",
+    ):
+        consumed_value = _non_empty_text(consumed.get(key))
+        candidate_value = _non_empty_text(candidate.get(key))
+        if consumed_value is not None and candidate_value is not None and consumed_value == candidate_value:
+            return True
+    return _non_empty_text(consumed.get("stage_attempt_id")) is not None
 
 
 def _transition_request_readback_identity_key(
