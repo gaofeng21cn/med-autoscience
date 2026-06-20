@@ -14,6 +14,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Final manuscript-facing polish is **AI-first above that lower bound**: use the generated image as the truth surface, let visual review identify concrete defects, then harden the audited renderer/QC path instead of paper-local patching.
 - Canonical paper-owned packaging surface remains `paper/submission_minimal/`; `manuscript/` is the human-facing mirror, while `artifacts/` is auxiliary evidence only and should not replace that fixed lookup path.
 - Canonical rendered assets live under `paper/figures/generated/` and `paper/tables/generated/`; legacy top-level `paper/figures/Figure*.png|pdf|svg` / `paper/tables/Table*.csv|md` mirrors should be removed once they are no longer referenced by the active catalogs.
+- `analysis_responsibility` is loaded from the canonical Display Pack catalog: raw analysis inputs may only enter templates marked `computed_in_template`; `validated_summary_required` templates require upstream validated analysis payloads.
 
 ## Current Paper-Proven Baseline (001/003)
 
@@ -28,84 +29,84 @@ The current audited inventory is broader than the subset already proven against 
 
 ### Prediction Performance
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::roc_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | ROC Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::pr_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Precision-Recall Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::calibration_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Calibration Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::roc_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | ROC Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::pr_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Precision-Recall Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::calibration_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Calibration Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Clinical Utility
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::decision_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::time_to_event_decision_curve` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Decision Curve (Time-to-Event Horizon) | `r_ggplot2` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::decision_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::time_to_event_decision_curve` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Decision Curve (Time-to-Event Horizon) | `r_ggplot2` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Time-to-Event
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::kaplan_meier_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::cumulative_incidence_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::time_dependent_roc_horizon` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::time_to_event_multihorizon_calibration_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Multi-Horizon Grouped Calibration Panel (Time-to-Event) | `r_ggplot2` | `time_to_event_multihorizon_calibration_inputs_v1` | `publication_time_to_event_multihorizon_calibration_panel` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::risk_layering_monotonic_bars` | `evidence_figure` | `B. Survival and Time-to-Event` | Monotonic Risk Layering Bars | `r_ggplot2` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::kaplan_meier_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::cumulative_incidence_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::time_dependent_roc_horizon` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::time_to_event_multihorizon_calibration_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Multi-Horizon Grouped Calibration Panel (Time-to-Event) | `r_ggplot2` | `time_to_event_multihorizon_calibration_inputs_v1` | `publication_time_to_event_multihorizon_calibration_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::risk_layering_monotonic_bars` | `evidence_figure` | `B. Survival and Time-to-Event` | Monotonic Risk Layering Bars | `r_ggplot2` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Data Geometry
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::umap_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | UMAP Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::omics_volcano_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Omics Volcano Panel | `r_ggplot2` | `omics_volcano_panel_inputs_v1` | `publication_omics_volcano_panel` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` | `computed_in_template` / `raw_feature_matrix` |
+| `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` | `computed_in_template` / `raw_feature_matrix` |
+| `fenggaolab.org.medical-display-core::umap_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | UMAP Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` | `computed_in_template` / `raw_feature_matrix` |
+| `fenggaolab.org.medical-display-core::omics_volcano_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Omics Volcano Panel | `r_ggplot2` | `omics_volcano_panel_inputs_v1` | `publication_omics_volcano_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Matrix Pattern
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::confusion_matrix_heatmap_binary` | `evidence_figure` | `A. Predictive Performance and Decision`, `E. Feature Pattern and Matrix` | Binary Confusion Matrix Heatmap | `r_ggplot2` | `confusion_matrix_heatmap_binary_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Genomic Alteration Landscape Panel | `r_ggplot2` | `genomic_alteration_landscape_panel_inputs_v1` | `publication_genomic_alteration_landscape_panel` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::cnv_recurrence_summary_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | CNV Recurrence Summary Panel | `r_ggplot2` | `cnv_recurrence_summary_panel_inputs_v1` | `publication_cnv_recurrence_summary_panel` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::genomic_alteration_consequence_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Genomic Alteration Consequence Panel | `r_ggplot2` | `genomic_alteration_consequence_panel_inputs_v1` | `publication_genomic_alteration_consequence_panel` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel` | `evidence_figure` | `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Pathway Enrichment Dotplot Panel | `r_ggplot2` | `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_pathway_enrichment_dotplot_panel` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::celltype_marker_dotplot_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Marker Dotplot Panel | `r_ggplot2` | `celltype_marker_dotplot_panel_inputs_v1` | `publication_celltype_marker_dotplot_panel` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::confusion_matrix_heatmap_binary` | `evidence_figure` | `A. Predictive Performance and Decision`, `E. Feature Pattern and Matrix` | Binary Confusion Matrix Heatmap | `r_ggplot2` | `confusion_matrix_heatmap_binary_inputs_v1` | `publication_heatmap` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Genomic Alteration Landscape Panel | `r_ggplot2` | `genomic_alteration_landscape_panel_inputs_v1` | `publication_genomic_alteration_landscape_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::cnv_recurrence_summary_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | CNV Recurrence Summary Panel | `r_ggplot2` | `cnv_recurrence_summary_panel_inputs_v1` | `publication_cnv_recurrence_summary_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::genomic_alteration_consequence_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Genomic Alteration Consequence Panel | `r_ggplot2` | `genomic_alteration_consequence_panel_inputs_v1` | `publication_genomic_alteration_consequence_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel` | `evidence_figure` | `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Pathway Enrichment Dotplot Panel | `r_ggplot2` | `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_pathway_enrichment_dotplot_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::celltype_marker_dotplot_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Marker Dotplot Panel | `r_ggplot2` | `celltype_marker_dotplot_panel_inputs_v1` | `publication_celltype_marker_dotplot_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Effect Estimate
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::coefficient_path_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Coefficient Path Panel | `r_ggplot2` | `coefficient_path_panel_inputs_v1` | `publication_coefficient_path_panel` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::coefficient_path_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Coefficient Path Panel | `r_ggplot2` | `coefficient_path_panel_inputs_v1` | `publication_coefficient_path_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Model Explanation
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::shap_summary_beeswarm` | `evidence_figure` | `F. Model Explanation` | SHAP Summary Beeswarm | `r_ggplot2` | `shap_summary_inputs_v1` | `publication_shap_summary` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::shap_dependence_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Dependence Panel | `r_ggplot2` | `shap_dependence_panel_inputs_v1` | `publication_shap_dependence_panel` | `png`, `pdf` |
-| `fenggaolab.org.medical-display-core::shap_waterfall_local_explanation_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Waterfall Local Explanation Panel | `r_ggplot2` | `shap_waterfall_local_explanation_panel_inputs_v1` | `publication_shap_waterfall_local_explanation_panel` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::shap_summary_beeswarm` | `evidence_figure` | `F. Model Explanation` | SHAP Summary Beeswarm | `r_ggplot2` | `shap_summary_inputs_v1` | `publication_shap_summary` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::shap_dependence_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Dependence Panel | `r_ggplot2` | `shap_dependence_panel_inputs_v1` | `publication_shap_dependence_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::shap_waterfall_local_explanation_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Waterfall Local Explanation Panel | `r_ggplot2` | `shap_waterfall_local_explanation_panel_inputs_v1` | `publication_shap_waterfall_local_explanation_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Model Audit
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::model_complexity_audit_panel` | `evidence_figure` | `F. Model Explanation`, `H. Cohort and Study Design Evidence` | Model Complexity Audit Panel | `r_ggplot2` | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::model_complexity_audit_panel` | `evidence_figure` | `F. Model Explanation`, `H. Cohort and Study Design Evidence` | Model Complexity Audit Panel | `r_ggplot2` | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Generalizability
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Generalizability and Subgroup Composite Panel | `r_ggplot2` | `generalizability_subgroup_composite_inputs_v1` | `publication_generalizability_subgroup_composite_panel` | `png`, `pdf` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Generalizability and Subgroup Composite Panel | `r_ggplot2` | `generalizability_subgroup_composite_inputs_v1` | `publication_generalizability_subgroup_composite_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Publication Shells and Tables
 
-| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg`, `pdf` |
-| `fenggaolab.org.medical-display-core::submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
-| `fenggaolab.org.medical-display-core::table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
+| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg`, `pdf` | `illustration_shell` / `not_statistical_evidence` |
+| `fenggaolab.org.medical-display-core::submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` | `illustration_shell` / `not_statistical_evidence` |
+| `fenggaolab.org.medical-display-core::table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` | `table_shell` / `validated_table_values` |
 
 ## Input Schemas
 

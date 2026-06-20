@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.display_pack_analysis_responsibility import (
+    normalize_analysis_responsibility,
+)
+
 
 @dataclass(frozen=True)
 class CanonicalTemplateFamily:
@@ -16,6 +20,8 @@ class CanonicalTemplateFamily:
     aliases: tuple[str, ...]
     default_visible: bool
     migration_reason: str
+    analysis_responsibility: str
+    analysis_input_state: str
 
 
 @dataclass(frozen=True)
@@ -30,6 +36,8 @@ class CanonicalTemplateEntry:
     default_visible: bool
     aliases: tuple[str, ...]
     migration_reason: str
+    analysis_responsibility: str
+    analysis_input_state: str
 
 
 @dataclass(frozen=True)
@@ -93,6 +101,10 @@ def _parse_family(raw_family: dict[str, Any]) -> CanonicalTemplateFamily:
         aliases=aliases,
         default_visible=_expect_bool(raw_family, "default_visible"),
         migration_reason=_expect_str(raw_family, "migration_reason"),
+        analysis_responsibility=normalize_analysis_responsibility(
+            raw_family.get("analysis_responsibility")
+        ),
+        analysis_input_state=_expect_str(raw_family, "analysis_input_state"),
     )
 
 
@@ -130,6 +142,8 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
             default_visible=family.default_visible,
             aliases=family.aliases,
             migration_reason=family.migration_reason,
+            analysis_responsibility=family.analysis_responsibility,
+            analysis_input_state=family.analysis_input_state,
         )
         if family.canonical_template_id in entries_by_template_id:
             raise ValueError(f"duplicate canonical template id `{family.canonical_template_id}`")
@@ -149,6 +163,8 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
                 default_visible=False,
                 aliases=family.aliases,
                 migration_reason=family.migration_reason,
+                analysis_responsibility=family.analysis_responsibility,
+                analysis_input_state=family.analysis_input_state,
             )
             alias_template_ids.append(alias)
 
@@ -178,6 +194,8 @@ def default_canonical_entry(template_id: str, *, category: str, title: str) -> C
         default_visible=True,
         aliases=(),
         migration_reason="No pack-local canonical catalog entry was found for this template.",
+        analysis_responsibility="validated_summary_required",
+        analysis_input_state="validated_display_payload",
     )
 
 

@@ -27,6 +27,13 @@ def _non_visual_rows(manifest: dict[str, Any]) -> str:
     )
 
 
+def _analysis_responsibility_rows(manifest: dict[str, Any]) -> str:
+    counts = manifest.get("analysis_responsibility_counts")
+    if not isinstance(counts, dict) or not counts:
+        return "| none | 0 |"
+    return "\n".join(f"| `{key}` | {value} |" for key, value in sorted(counts.items()))
+
+
 def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
     quality = manifest.get("quality_audit") if isinstance(manifest.get("quality_audit"), dict) else {}
     renderer_completion = (
@@ -76,6 +83,15 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - blocked templates after current render: `{quality.get("blocked_template_count", 0)}`
 - lower-bound review required: `{quality.get("lower_bound_review_required_count", 0)}`
 - publication polish policy: `{policy.get("policy_id", "")}`
+
+## Analysis Responsibility
+
+| Responsibility | Current templates |
+| --- | ---: |
+{_analysis_responsibility_rows(manifest)}
+
+- raw analysis requests fail closed unless the selected template declares `computed_in_template`
+- `validated_summary_required` templates render upstream analysis outputs; they do not fit models, recompute curves, run differential testing, infer SHAP values, or call variants
 
 ## Paper-use 前置检查
 

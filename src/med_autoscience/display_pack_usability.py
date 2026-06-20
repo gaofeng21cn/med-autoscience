@@ -16,6 +16,7 @@ from med_autoscience.display_pack_canonical_catalog import (
     canonical_catalog_entry_for_template,
     load_canonical_template_catalog,
 )
+from med_autoscience.display_pack_analysis_responsibility import analysis_boundary_payload
 from med_autoscience.display_pack_runtime import resolve_display_template_runtime
 from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
 
@@ -109,6 +110,13 @@ def _template_entry(record: LoadedDisplayTemplate) -> dict[str, Any]:
         "canonical_family_title": canonical.family_title,
         "canonical_family_category": canonical.family_category,
         "canonical_template_id": canonical.canonical_template_id,
+        "analysis_responsibility": canonical.analysis_responsibility,
+        "analysis_input_state": canonical.analysis_input_state,
+        "analysis_boundary": analysis_boundary_payload(
+            mode=canonical.analysis_responsibility,
+            input_state=canonical.analysis_input_state,
+            request={},
+        ),
         "migration_status": canonical.migration_status,
         "default_visible": canonical.default_visible,
         "has_render_r": assets["render_r"]["status"] == "present",
@@ -197,6 +205,9 @@ def list_display_pack_templates(
         "template_surface_policy": {
             "default_templates_are_canonical_only": True,
             "active_inventory_is_canonical_only": True,
+            "template_analysis_responsibility_required": True,
+            "raw_analysis_inputs_must_match_computed_workflow_templates": True,
+            "validated_summary_templates_fail_closed_on_raw_analysis_requests": True,
         },
         "templates": [_template_entry(record) for record in filtered_records],
         "authority_boundary": {

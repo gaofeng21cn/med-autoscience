@@ -31,6 +31,18 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - lower-bound review required: `28`
 - publication polish policy: `mas_publication_polish_policy.v1`
 
+## Analysis Responsibility
+
+| Responsibility | Current templates |
+| --- | ---: |
+| `computed_in_template` | 3 |
+| `illustration_shell` | 2 |
+| `table_shell` | 1 |
+| `validated_summary_required` | 25 |
+
+- raw analysis requests fail closed unless the selected template declares `computed_in_template`
+- `validated_summary_required` templates render upstream analysis outputs; they do not fit models, recompute curves, run differential testing, infer SHAP values, or call variants
+
 ## Paper-use 前置检查
 
 - `core_conclusion_and_evidence_chain_locked`

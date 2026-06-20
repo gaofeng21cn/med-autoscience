@@ -36,15 +36,29 @@ def test_canonical_template_catalog_maps_full_template_inventory() -> None:
     assert len(catalog.canonical_template_ids) == 31
     assert len(catalog.alias_template_ids) == 35
     assert len(catalog.entries_by_template_id) == 66
+    responsibility_counts = {}
+    for template_id in catalog.canonical_template_ids:
+        entry = catalog.entries_by_template_id[template_id]
+        responsibility_counts[entry.analysis_responsibility] = (
+            responsibility_counts.get(entry.analysis_responsibility, 0) + 1
+        )
+    assert responsibility_counts == {
+        "computed_in_template": 3,
+        "illustration_shell": 2,
+        "table_shell": 1,
+        "validated_summary_required": 25,
+    }
 
     migrated_alias = catalog.entries_by_template_id["time_dependent_roc_comparison_panel"]
     assert migrated_alias.migration_status == "migrated_alias"
     assert migrated_alias.canonical_template_id == "time_dependent_roc_horizon"
     assert migrated_alias.default_visible is False
+    assert migrated_alias.analysis_responsibility == "validated_summary_required"
 
     current_template = catalog.entries_by_template_id["time_dependent_roc_horizon"]
     assert current_template.migration_status == "canonical"
     assert current_template.default_visible is True
+    assert current_template.analysis_input_state == "validated_display_payload"
     assert "time_dependent_roc_comparison_panel" in current_template.aliases
 
 
@@ -116,9 +130,12 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "core_catalog_ref": "contracts/medical-figure-family-catalog/",
         "gallery_template_metadata_source": "display_pack_canonical_template_catalog",
         "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
-            "default_gallery_surface": "canonical_current_r_ggplot2_evidence_templates",
-            "alias_handling": "retired_duplicate_template_ids_are_migration_index_entries_not_gallery_cards",
-            "non_visual_handling": "design_flow_shells_and_table_shells_preserved_in_manifest_without_entering_ggplot2_evidence_gallery",
+        "default_gallery_surface": "canonical_current_r_ggplot2_evidence_templates",
+        "alias_handling": "retired_duplicate_template_ids_are_migration_index_entries_not_gallery_cards",
+        "non_visual_handling": "design_flow_shells_and_table_shells_preserved_in_manifest_without_entering_ggplot2_evidence_gallery",
+        "analysis_responsibility_source": "display_pack_canonical_template_catalog",
+        "analysis_responsibility_required": True,
+        "raw_analysis_input_policy": "raw_analysis_inputs_must_route_to_computed_in_template_workflows_or_upstream_analysis_materialization",
         "renderer_policy": {
             "policy_version": 1,
             "data_evidence_first_class_renderer": "r_ggplot2",
@@ -147,6 +164,17 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["figure_contract_policy"]["policy_id"] == "mas_nature_skills_informed_figure_contract.v1"
     assert manifest["publication_polish_policy"]["policy_id"] == "mas_publication_polish_policy.v1"
     assert manifest["publication_polish_policy"]["palette_scale_policy"]["per_plot_palette_drift_allowed"] is False
+    assert manifest["analysis_responsibility_counts"] == {
+        "computed_in_template": 3,
+        "illustration_shell": 2,
+        "table_shell": 1,
+        "validated_summary_required": 25,
+    }
+    assert manifest["analysis_responsibility_policy"]["raw_request_fail_closed"] is True
+    assert manifest["template_surface_policy"]["template_analysis_responsibility_required"] is True
+    assert manifest["template_surface_policy"][
+        "validated_summary_templates_fail_closed_on_raw_analysis_requests"
+    ] is True
     assert "matrix_heatmap" in {
         item["family"] for item in manifest["publication_polish_policy"]["high_risk_family_checks"]
     }
@@ -170,6 +198,10 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert {item["renderer_family"] for item in manifest["templates"]} == {"r_ggplot2"}
     assert all(item["migration_status"] == "canonical" for item in manifest["templates"])
     assert all(item["visual_gallery_visible"] is True for item in manifest["templates"])
+    template_by_id = {item["template_id"]: item for item in manifest["templates"]}
+    assert template_by_id["umap_scatter_grouped"]["analysis_responsibility"] == "computed_in_template"
+    assert template_by_id["umap_scatter_grouped"]["analysis_input_state"] == "raw_feature_matrix"
+    assert template_by_id["roc_curve_binary"]["analysis_responsibility"] == "validated_summary_required"
     assert {item["template_id"] for item in manifest["non_visual_inventory"]} == {
         "cohort_flow_figure",
         "submission_graphical_abstract",
@@ -224,3 +256,5 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "Current Python evidence templates | 0" in status_markdown
     assert "publication-ready claim authorized: `false`" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
+    assert "| `computed_in_template` | 3 |" in status_markdown
+    assert "| `validated_summary_required` | 25 |" in status_markdown

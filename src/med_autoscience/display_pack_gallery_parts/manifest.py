@@ -216,6 +216,16 @@ def build_manifest(
         "figure_family_policy": figure_family_policy(),
         "renderer_policy": default_surface_renderer_policy(),
         "renderer_policy_completion": renderer_policy_completion(records),
+        "analysis_responsibility_counts": dict(
+            sorted(Counter(record.analysis_responsibility for record in records).items())
+        ),
+        "analysis_responsibility_policy": {
+            "computed_in_template": "Template renderer computes a bounded analysis workflow from declared raw input.",
+            "validated_summary_required": "Template renderer accepts upstream validated analysis output only.",
+            "illustration_shell": "Template is a non-statistical design or flow shell.",
+            "table_shell": "Template accepts reviewed table values only.",
+            "raw_request_fail_closed": True,
+        },
         "layout_sidecar_readback": layout_sidecar_readback,
         "ai_adaptation_policy": ai_adaptation_policy(),
         "figure_contract_policy": figure_contract_policy(),
@@ -234,6 +244,9 @@ def build_manifest(
             "evidence_figures_default_to_r_ggplot2": True,
             "python_evidence_templates_not_retained_without_advantage_proof": True,
             "python_illustration_shells_may_exist_but_are_not_mixed_into_ggplot2_evidence_gallery": True,
+            "template_analysis_responsibility_required": True,
+            "raw_analysis_inputs_must_match_computed_workflow_templates": True,
+            "validated_summary_templates_fail_closed_on_raw_analysis_requests": True,
         },
         "templates": [
             _template_payload(
@@ -297,6 +310,8 @@ def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str,
         "canonical_template_id": record.canonical_template_id,
         "figure_archetype": record.figure_archetype,
         "canonical_family_wording": canonical_family_wording(record),
+        "analysis_responsibility": record.analysis_responsibility,
+        "analysis_input_state": record.analysis_input_state,
         "migration_status": record.migration_status,
         "default_visible": record.default_visible,
         "visual_gallery_visible": record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2",

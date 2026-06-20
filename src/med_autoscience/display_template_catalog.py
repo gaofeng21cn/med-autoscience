@@ -3,18 +3,41 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from med_autoscience import display_registry, display_schema_contract
+from med_autoscience.display_pack_canonical_catalog import load_canonical_template_catalog
+from med_autoscience.display_pack_loader import default_display_pack_repo_root
 
 
 _CORE_PACK_ID = "fenggaolab.org.medical-display-core"
+_CORE_PACK_ROOT = default_display_pack_repo_root() / "display-packs" / _CORE_PACK_ID
 
 
 def _full_id(short_id: str) -> str:
     return f"{_CORE_PACK_ID}::{short_id}"
 
 
+def _short_id(template_id: str) -> str:
+    return str(template_id or "").split("::")[-1]
+
+
+def _analysis_responsibility_by_id() -> dict[str, dict[str, str]]:
+    catalog = load_canonical_template_catalog(_CORE_PACK_ROOT)
+    if catalog is None:
+        return {}
+    return {
+        _full_id(entry.template_id): {
+            "analysis_responsibility": entry.analysis_responsibility,
+            "analysis_input_state": entry.analysis_input_state,
+        }
+        for entry in catalog.entries_by_template_id.values()
+        if entry.migration_status == "canonical"
+    }
+
+
 def _template_metadata_by_id() -> dict[str, dict[str, str]]:
     metadata: dict[str, dict[str, str]] = {}
+    analysis_by_id = _analysis_responsibility_by_id()
     for spec in display_registry.list_evidence_figure_specs():
+        analysis = analysis_by_id[_full_id(_short_id(spec.template_id))]
         metadata[spec.template_id] = {
             "display_name": spec.display_name,
             "paper_families": ", ".join(
@@ -25,8 +48,11 @@ def _template_metadata_by_id() -> dict[str, dict[str, str]]:
             "qc_profile": spec.layout_qc_profile,
             "required_exports": ", ".join(f"`{item}`" for item in spec.required_exports),
             "display_kind": "evidence_figure",
+            "analysis_responsibility": analysis["analysis_responsibility"],
+            "analysis_input_state": analysis["analysis_input_state"],
         }
     for spec in display_registry.list_illustration_shell_specs():
+        analysis = analysis_by_id[_full_id(_short_id(spec.shell_id))]
         metadata[spec.shell_id] = {
             "display_name": spec.display_name,
             "paper_families": ", ".join(
@@ -37,8 +63,11 @@ def _template_metadata_by_id() -> dict[str, dict[str, str]]:
             "qc_profile": spec.shell_qc_profile,
             "required_exports": ", ".join(f"`{item}`" for item in spec.required_exports),
             "display_kind": "illustration_shell",
+            "analysis_responsibility": analysis["analysis_responsibility"],
+            "analysis_input_state": analysis["analysis_input_state"],
         }
     for spec in display_registry.list_table_shell_specs():
+        analysis = analysis_by_id[_full_id(_short_id(spec.shell_id))]
         metadata[spec.shell_id] = {
             "display_name": spec.display_name,
             "paper_families": ", ".join(
@@ -49,6 +78,8 @@ def _template_metadata_by_id() -> dict[str, dict[str, str]]:
             "qc_profile": spec.table_qc_profile,
             "required_exports": ", ".join(f"`{item}`" for item in spec.required_exports),
             "display_kind": "table_shell",
+            "analysis_responsibility": analysis["analysis_responsibility"],
+            "analysis_input_state": analysis["analysis_input_state"],
         }
     return metadata
 
@@ -73,8 +104,8 @@ def _render_template_class_section() -> list[str]:
             [
                 f"### {display_class.display_name}",
                 "",
-                "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |",
-                "| --- | --- | --- | --- | --- | --- | --- | --- |",
+                "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
             ]
         )
         for template_id in display_class.template_ids:
@@ -91,6 +122,7 @@ def _render_template_class_section() -> list[str]:
                         f"`{metadata['input_schema_id']}`",
                         f"`{metadata['qc_profile']}`",
                         metadata["required_exports"],
+                        f"`{metadata['analysis_responsibility']}` / `{metadata['analysis_input_state']}`",
                     ]
                 )
                 + " |"
@@ -179,6 +211,7 @@ def render_display_template_catalog_markdown() -> str:
         "- Final manuscript-facing polish is **AI-first above that lower bound**: use the generated image as the truth surface, let visual review identify concrete defects, then harden the audited renderer/QC path instead of paper-local patching.",
         "- Canonical paper-owned packaging surface remains `paper/submission_minimal/`; `manuscript/` is the human-facing mirror, while `artifacts/` is auxiliary evidence only and should not replace that fixed lookup path.",
         "- Canonical rendered assets live under `paper/figures/generated/` and `paper/tables/generated/`; legacy top-level `paper/figures/Figure*.png|pdf|svg` / `paper/tables/Table*.csv|md` mirrors should be removed once they are no longer referenced by the active catalogs.",
+        "- `analysis_responsibility` is loaded from the canonical Display Pack catalog: raw analysis inputs may only enter templates marked `computed_in_template`; `validated_summary_required` templates require upstream validated analysis payloads.",
         "",
     ]
     lines.extend(_render_paper_proven_baseline_section())

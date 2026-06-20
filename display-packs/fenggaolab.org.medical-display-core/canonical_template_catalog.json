@@ -13,8 +13,17 @@
     "python_illustration_shells_may_be_default_visible": true,
     "data_evidence_figures_require_programmatic_renderer": true,
     "design_and_flow_shells_may_use_svg_or_imagegen_assisted_composition": true,
+    "template_analysis_responsibility_required": true,
+    "raw_analysis_inputs_must_match_computed_workflow_templates": true,
+    "validated_summary_templates_fail_closed_on_raw_analysis_requests": true,
     "migrated_aliases_are_not_default_visible": true,
     "explicit_alias_requests_may_be_migrated_to_canonical_template": true
+  },
+  "analysis_responsibility_policy": {
+    "computed_in_template": "The template accepts raw analysis input for a bounded workflow and records renderer-side analysis provenance.",
+    "validated_summary_required": "The template renders locked statistics, curves, matrices, scores, calls, or explanation values from an upstream analysis pipeline.",
+    "illustration_shell": "The template is a design or flow shell and cannot carry statistical evidence authority.",
+    "table_shell": "The template renders reviewed table values and cannot infer analysis results from raw study data."
   },
   "external_learning_refs": {
     "nature_final_submission": "https://www.nature.com/nature/for-authors/final-submission",
@@ -41,7 +50,9 @@
       "canonical_template_id": "roc_curve_binary",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Binary ROC is a distinct prediction-performance claim and remains a current R/ggplot2 template."
+      "migration_reason": "Binary ROC is a distinct prediction-performance claim and remains a current R/ggplot2 template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "pr_curve_binary",
@@ -51,7 +62,9 @@
       "canonical_template_id": "pr_curve_binary",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Precision-recall curves answer an imbalanced-class performance claim and remain separate from ROC."
+      "migration_reason": "Precision-recall curves answer an imbalanced-class performance claim and remain separate from ROC.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "calibration_curve_binary",
@@ -63,7 +76,9 @@
       "aliases": [
         "binary_calibration_decision_curve_panel"
       ],
-      "migration_reason": "The old combined calibration plus decision panel is a composition preset; current templates keep calibration and utility as separate editable seeds."
+      "migration_reason": "The old combined calibration plus decision panel is a composition preset; current templates keep calibration and utility as separate editable seeds.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "decision_curve_binary",
@@ -75,7 +90,9 @@
       "aliases": [
         "clinical_impact_curve_binary"
       ],
-      "migration_reason": "Clinical impact is a decision-curve presentation mode, not a separate default evidence template."
+      "migration_reason": "Clinical impact is a decision-curve presentation mode, not a separate default evidence template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "kaplan_meier_grouped",
@@ -85,7 +102,9 @@
       "canonical_template_id": "kaplan_meier_grouped",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Kaplan-Meier survival curves carry a distinct time-to-event claim."
+      "migration_reason": "Kaplan-Meier survival curves carry a distinct time-to-event claim.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "cumulative_incidence_grouped",
@@ -97,7 +116,9 @@
       "aliases": [
         "time_to_event_stratified_cumulative_incidence_panel"
       ],
-      "migration_reason": "Stratified cumulative-incidence variants are modes of the same cumulative-incidence grammar."
+      "migration_reason": "Stratified cumulative-incidence variants are modes of the same cumulative-incidence grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "time_dependent_roc_horizon",
@@ -111,7 +132,9 @@
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_landmark_performance_panel"
       ],
-      "migration_reason": "Multi-horizon and landmark discrimination panels are presets of the time-dependent discrimination recipe; calibration is kept as its own current template."
+      "migration_reason": "Multi-horizon and landmark discrimination panels are presets of the time-dependent discrimination recipe; calibration is kept as its own current template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "time_to_event_multihorizon_calibration_panel",
@@ -121,7 +144,9 @@
       "canonical_template_id": "time_to_event_multihorizon_calibration_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Survival calibration is a distinct model-validation claim and remains separate from discrimination curves."
+      "migration_reason": "Survival calibration is a distinct model-validation claim and remains separate from discrimination curves.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "time_to_event_decision_curve",
@@ -133,7 +158,9 @@
       "aliases": [
         "time_to_event_threshold_governance_panel"
       ],
-      "migration_reason": "Threshold governance is a decision-curve mode; the current template exposes the clinical utility grammar directly."
+      "migration_reason": "Threshold governance is a decision-curve mode; the current template exposes the clinical utility grammar directly.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "risk_layering_monotonic_bars",
@@ -145,7 +172,9 @@
       "aliases": [
         "time_to_event_risk_group_summary"
       ],
-      "migration_reason": "Risk-group summary tables and bars are one risk-layering display intent."
+      "migration_reason": "Risk-group summary tables and bars are one risk-layering display intent.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "forest_effect_main",
@@ -161,7 +190,9 @@
         "broader_heterogeneity_summary_panel",
         "interaction_effect_summary_panel"
       ],
-      "migration_reason": "Subgroup, multivariable, compact, heterogeneity and interaction variants share the same effect-estimate grammar."
+      "migration_reason": "Subgroup, multivariable, compact, heterogeneity and interaction variants share the same effect-estimate grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "coefficient_path_panel",
@@ -171,7 +202,9 @@
       "canonical_template_id": "coefficient_path_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Coefficient paths represent a distinct ordered-model-step analysis recipe."
+      "migration_reason": "Coefficient paths represent a distinct ordered-model-step analysis recipe.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "generalizability_subgroup_composite_panel",
@@ -181,7 +214,9 @@
       "canonical_template_id": "generalizability_subgroup_composite_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Generalizability and transportability panels carry a distinct external-validity claim."
+      "migration_reason": "Generalizability and transportability panels carry a distinct external-validity claim.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "pca_scatter_grouped",
@@ -191,7 +226,9 @@
       "canonical_template_id": "pca_scatter_grouped",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "PCA is a fixed classic analysis recipe and remains separate from nonlinear embeddings."
+      "migration_reason": "PCA is a fixed classic analysis recipe and remains separate from nonlinear embeddings.",
+      "analysis_responsibility": "computed_in_template",
+      "analysis_input_state": "raw_feature_matrix"
     },
     {
       "family_id": "tsne_scatter_grouped",
@@ -201,7 +238,9 @@
       "canonical_template_id": "tsne_scatter_grouped",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "t-SNE is a fixed classic analysis recipe and remains separate from PCA and UMAP."
+      "migration_reason": "t-SNE is a fixed classic analysis recipe and remains separate from PCA and UMAP.",
+      "analysis_responsibility": "computed_in_template",
+      "analysis_input_state": "raw_feature_matrix"
     },
     {
       "family_id": "umap_scatter_grouped",
@@ -214,7 +253,9 @@
         "phate_scatter_grouped",
         "diffusion_map_scatter_grouped"
       ],
-      "migration_reason": "PHATE and diffusion-map templates are retired as separate current templates; UMAP carries the nonlinear embedding scatter lower-bound seed."
+      "migration_reason": "PHATE and diffusion-map templates are retired as separate current templates; UMAP carries the nonlinear embedding scatter lower-bound seed.",
+      "analysis_responsibility": "computed_in_template",
+      "analysis_input_state": "raw_feature_matrix"
     },
     {
       "family_id": "heatmap_group_comparison",
@@ -230,7 +271,9 @@
         "performance_heatmap",
         "celltype_signature_heatmap"
       ],
-      "migration_reason": "Generic heatmap variants differ mainly by input source and annotation; they now share one current matrix heatmap template with a unified palette."
+      "migration_reason": "Generic heatmap variants differ mainly by input source and annotation; they now share one current matrix heatmap template with a unified palette.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "confusion_matrix_heatmap_binary",
@@ -240,7 +283,9 @@
       "canonical_template_id": "confusion_matrix_heatmap_binary",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Confusion matrices use heatmap marks but have fixed classification semantics and normalization constraints."
+      "migration_reason": "Confusion matrices use heatmap marks but have fixed classification semantics and normalization constraints.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "genomic_alteration_landscape_panel",
@@ -253,7 +298,9 @@
         "oncoplot_mutation_landscape_panel",
         "genomic_program_governance_summary_panel"
       ],
-      "migration_reason": "Oncoplot and genomic governance variants are retired as separate defaults and map to the genomic landscape seed."
+      "migration_reason": "Oncoplot and genomic governance variants are retired as separate defaults and map to the genomic landscape seed.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "cnv_recurrence_summary_panel",
@@ -263,7 +310,9 @@
       "canonical_template_id": "cnv_recurrence_summary_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "CNV recurrence has a distinct genome-position and recurrence-frequency grammar."
+      "migration_reason": "CNV recurrence has a distinct genome-position and recurrence-frequency grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "genomic_alteration_consequence_panel",
@@ -276,7 +325,9 @@
         "genomic_alteration_multiomic_consequence_panel",
         "genomic_alteration_pathway_integrated_composite_panel"
       ],
-      "migration_reason": "Multiomic and pathway-integrated consequence panels are composition presets of the consequence summary intent."
+      "migration_reason": "Multiomic and pathway-integrated consequence panels are composition presets of the consequence summary intent.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "pathway_enrichment_dotplot_panel",
@@ -286,7 +337,9 @@
       "canonical_template_id": "pathway_enrichment_dotplot_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Pathway enrichment dotplots are a common fixed analysis recipe."
+      "migration_reason": "Pathway enrichment dotplots are a common fixed analysis recipe.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "celltype_marker_dotplot_panel",
@@ -296,7 +349,9 @@
       "canonical_template_id": "celltype_marker_dotplot_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Marker dotplots share dot marks with enrichment plots but carry cell-type marker-expression semantics."
+      "migration_reason": "Marker dotplots share dot marks with enrichment plots but carry cell-type marker-expression semantics.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "omics_volcano_panel",
@@ -306,7 +361,9 @@
       "canonical_template_id": "omics_volcano_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Volcano plots have distinct threshold, label and effect-significance grammar."
+      "migration_reason": "Volcano plots have distinct threshold, label and effect-significance grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "shap_summary_beeswarm",
@@ -319,7 +376,9 @@
         "shap_bar_importance",
         "shap_multicohort_importance_panel"
       ],
-      "migration_reason": "SHAP bar and multicohort importance are modes of the global explanation summary seed."
+      "migration_reason": "SHAP bar and multicohort importance are modes of the global explanation summary seed.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "shap_dependence_panel",
@@ -329,7 +388,9 @@
       "canonical_template_id": "shap_dependence_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Dependence plots answer a feature-response explanation claim and remain separate from global ranking."
+      "migration_reason": "Dependence plots answer a feature-response explanation claim and remain separate from global ranking.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "shap_waterfall_local_explanation_panel",
@@ -341,7 +402,9 @@
       "aliases": [
         "shap_force_like_summary_panel"
       ],
-      "migration_reason": "Force-like local explanation is a local-explanation mode, not a global SHAP template."
+      "migration_reason": "Force-like local explanation is a local-explanation mode, not a global SHAP template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "model_complexity_audit_panel",
@@ -351,7 +414,9 @@
       "canonical_template_id": "model_complexity_audit_panel",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Model audit templates carry diagnostic semantics rather than primary result-display semantics."
+      "migration_reason": "Model audit templates carry diagnostic semantics rather than primary result-display semantics.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload"
     },
     {
       "family_id": "cohort_flow_figure",
@@ -364,7 +429,9 @@
         "workflow_fact_sheet_panel",
         "design_evidence_composite_shell"
       ],
-      "migration_reason": "Design and workflow shells are expressive composition surfaces and should not compete with data-evidence plot templates."
+      "migration_reason": "Design and workflow shells are expressive composition surfaces and should not compete with data-evidence plot templates.",
+      "analysis_responsibility": "illustration_shell",
+      "analysis_input_state": "not_statistical_evidence"
     },
     {
       "family_id": "submission_graphical_abstract",
@@ -374,7 +441,9 @@
       "canonical_template_id": "submission_graphical_abstract",
       "default_visible": true,
       "aliases": [],
-      "migration_reason": "Submission graphical abstracts remain an expressive composition shell, not a statistical evidence template."
+      "migration_reason": "Submission graphical abstracts remain an expressive composition shell, not a statistical evidence template.",
+      "analysis_responsibility": "illustration_shell",
+      "analysis_input_state": "not_statistical_evidence"
     },
     {
       "family_id": "table1_baseline_characteristics",
@@ -391,7 +460,9 @@
         "table3_clinical_interpretation_summary",
         "table3_transition_site_support_summary"
       ],
-      "migration_reason": "Table numbering and downstream table summaries are paper-local surfaces; the default pack exposes one table-shell seed."
+      "migration_reason": "Table numbering and downstream table summaries are paper-local surfaces; the default pack exposes one table-shell seed.",
+      "analysis_responsibility": "table_shell",
+      "analysis_input_state": "validated_table_values"
     }
   ]
 }

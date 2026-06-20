@@ -39,6 +39,8 @@ def test_cli_display_pack_list_templates_supports_filtering(capsys) -> None:
     assert result["total_count"] >= 1
     assert result["template_surface_policy"]["default_templates_are_canonical_only"] is True
     assert result["template_surface_policy"]["active_inventory_is_canonical_only"] is True
+    assert result["template_surface_policy"]["template_analysis_responsibility_required"] is True
+    assert result["template_surface_policy"]["validated_summary_templates_fail_closed_on_raw_analysis_requests"] is True
     assert result["filters"] == {
         "kind": "evidence_figure",
         "renderer_family": "r_ggplot2",
@@ -50,6 +52,9 @@ def test_cli_display_pack_list_templates_supports_filtering(capsys) -> None:
     assert "roc_curve_binary" in template_ids
     assert "time_dependent_roc_horizon" not in template_ids
     assert {entry["migration_status"] for entry in result["templates"]} == {"canonical"}
+    assert {entry["analysis_responsibility"] for entry in result["templates"]} == {
+        "validated_summary_required",
+    }
     assert all(entry["renderer_family"] == "r_ggplot2" for entry in result["templates"])
     assert all(entry["kind"] == "evidence_figure" for entry in result["templates"])
 
@@ -71,6 +76,9 @@ def test_cli_display_pack_describe_template_reports_runtime_and_assets(capsys) -
     assert result["schema_version"] == 1
     assert result["template"]["template_id"] == "roc_curve_binary"
     assert result["template"]["full_template_id"] == "fenggaolab.org.medical-display-core::roc_curve_binary"
+    assert result["template"]["analysis_responsibility"] == "validated_summary_required"
+    assert result["template"]["analysis_input_state"] == "validated_display_payload"
+    assert result["template"]["analysis_boundary"]["renderer_may_compute"] is False
     assert result["runtime"]["execution_mode"] == "subprocess"
     assert result["runtime"]["entrypoint"] == "Rscript render.R --request {request_json}"
     assert result["assets"]["render_r"]["status"] == "present"

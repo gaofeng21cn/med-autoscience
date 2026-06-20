@@ -43,6 +43,8 @@ class TemplateRecord:
     default_visible: bool
     migrated_alias_template_ids: tuple[str, ...]
     migration_reason: str
+    analysis_responsibility: str
+    analysis_input_state: str
 
 
 def read_template_records(pack_root: Path, template_root: Path) -> list[TemplateRecord]:
@@ -78,6 +80,8 @@ def read_template_records(pack_root: Path, template_root: Path) -> list[Template
                 default_visible=canonical.default_visible,
                 migrated_alias_template_ids=canonical.aliases if canonical.migration_status == "canonical" else (),
                 migration_reason=canonical.migration_reason,
+                analysis_responsibility=canonical.analysis_responsibility,
+                analysis_input_state=canonical.analysis_input_state,
             )
         )
     if catalog is not None:
@@ -157,6 +161,9 @@ def figure_family_policy() -> dict[str, object]:
         "default_gallery_surface": "canonical_current_r_ggplot2_evidence_templates",
         "alias_handling": "retired_duplicate_template_ids_are_migration_index_entries_not_gallery_cards",
         "non_visual_handling": "design_flow_shells_and_table_shells_preserved_in_manifest_without_entering_ggplot2_evidence_gallery",
+        "analysis_responsibility_source": GALLERY_TEMPLATE_FAMILY_SOURCE,
+        "analysis_responsibility_required": True,
+        "raw_analysis_input_policy": "raw_analysis_inputs_must_route_to_computed_in_template_workflows_or_upstream_analysis_materialization",
         "renderer_policy": default_surface_renderer_policy(),
         "machine_boundary": "core_catalog_and_gallery_metadata_only_not_source_truth_statistical_truth_or_publication_readiness_authority",
     }
@@ -188,6 +195,8 @@ def gallery_template_family_ontology(records: list[TemplateRecord]) -> list[dict
                 "canonical_template_id": record.canonical_template_id,
                 "figure_archetype": record.figure_archetype,
                 "canonical_family_wording": canonical_family_wording(record),
+                "analysis_responsibility": record.analysis_responsibility,
+                "analysis_input_state": record.analysis_input_state,
                 "renderer_policy": renderer_policy_payload(record),
             }
         )

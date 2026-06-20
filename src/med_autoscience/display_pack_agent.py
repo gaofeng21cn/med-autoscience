@@ -25,6 +25,12 @@ from med_autoscience.display_pack_agent_parts.figure_contract import (
     compile_display_figure_intent,
     figure_contract_policy,
 )
+from med_autoscience.display_pack_agent_parts.analysis_boundary import (
+    analysis_blocker_for_template_summary,
+    analysis_finding_from_blocker,
+    analysis_template_surface_policy_flags,
+    missing_input_repair_routes,
+)
 from med_autoscience.display_pack_agent_parts.template_fit import (
     hard_compatible,
     has_semantic_fit_anchor,
@@ -33,10 +39,14 @@ from med_autoscience.display_pack_agent_parts.template_fit import (
     template_fit_entry,
     template_sort_key,
 )
+from med_autoscience.display_pack_agent_parts.visual_audit import default_visual_audit_review
 from med_autoscience.display_pack_renderer_policy import (
     default_surface_renderer_policy,
     renderer_policy_completion,
     renderer_policy_payload,
+)
+from med_autoscience.display_pack_analysis_responsibility import (
+    analysis_boundary_payload,
 )
 from med_autoscience.display_pack_usability import scaffold_display_pack_render
 from med_autoscience.publication_display_contract import load_publication_style_profile
@@ -57,9 +67,6 @@ DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
     "can_replace_owner_receipt": False,
     "can_emit_display_refs_and_receipts": True,
 }
-
-_DEFAULT_REVIEWER_HASH = "0" * 64
-
 
 @dataclass(frozen=True)
 class _RendererPolicyProjection:
@@ -149,10 +156,12 @@ def _renderer_policy_projection(
 def _template_summary(
     record: LoadedDisplayTemplate,
     catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
+    request: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     manifest = record.template_manifest
     template_root = record.template_path.parent
     canonical = _canonical_entry(record, catalogs)
+    request_payload = dict(request or {})
     return {
         "pack_id": record.pack_manifest.pack_id,
         "pack_version": record.pack_manifest.version,
@@ -176,6 +185,13 @@ def _template_summary(
         "canonical_family_category": canonical.family_category,
         "canonical_template_id": canonical.canonical_template_id,
         "figure_archetype": canonical.figure_archetype,
+        "analysis_responsibility": canonical.analysis_responsibility,
+        "analysis_input_state": canonical.analysis_input_state,
+        "analysis_boundary": analysis_boundary_payload(
+            mode=canonical.analysis_responsibility,
+            input_state=canonical.analysis_input_state,
+            request=request_payload,
+        ),
         "migration_status": canonical.migration_status,
         "default_visible": canonical.default_visible,
         "migrated_alias_template_ids": list(canonical.aliases) if canonical.migration_status == "canonical" else [],
@@ -217,6 +233,9 @@ def _inventory_summary(records: list[LoadedDisplayTemplate]) -> dict[str, Any]:
         "paper_proven_template_count": paper_proven_count,
         "golden_template_count": golden_template_count,
         "exemplar_template_count": exemplar_template_count,
+        "analysis_responsibility_counts": dict(
+            sorted(Counter(entry.analysis_responsibility for entry in canonical_entries).items())
+        ),
         "renderer_policy_completion": renderer_policy_completion(renderer_policy_records),
     }
 
@@ -273,6 +292,7 @@ def display_pack_capability_discover(
             "python_evidence_templates_not_retained_without_advantage_proof": True,
             "python_illustration_shells_may_be_default_visible": True,
             "legacy_alias_templates_hidden_from_default_discover": True,
+            **analysis_template_surface_policy_flags(),
             "migration_inventory_template_count": sum(
                 len(catalog.entries_by_template_id)
                 for catalog in catalogs.values()
@@ -371,7 +391,7 @@ def display_pack_figure_plan(
         if canonical.default_visible:
             score += 30
             reasons.append("canonical_default_visible")
-        entry = _template_summary(record, catalogs)
+        entry = _template_summary(record, catalogs, request=request)
         entry["recommendation_score"] = score
         entry["recommendation_reasons"] = reasons
         entry.update(template_fit_entry(record, request))
@@ -379,9 +399,11 @@ def display_pack_figure_plan(
     candidates.sort(key=template_sort_key, reverse=True)
     recommendations = candidates[: max(1, max_recommendations)]
     recommended = recommendations[0] if recommendations else None
-    status = "display_plan_ready" if recommended else "blocked"
-    blocker = None
-    if recommended is None:
+    analysis_blocker = analysis_blocker_for_template_summary(recommended, request)
+    status = "display_plan_ready" if recommended and analysis_blocker is None else "blocked"
+    if analysis_blocker is not None:
+        blocker = analysis_blocker
+    elif recommended is None:
         blocker = {
             "blocked_reason": "display_template_not_found",
             "owner": "MedAutoScience",
@@ -389,6 +411,8 @@ def display_pack_figure_plan(
             "requested_template_id": _text(request.get("template_id")),
             "minimum_fit_floor": minimum_fit_floor(),
         }
+    else:
+        blocker = None
     return {
         "schema_version": 1,
         "surface_kind": "display_pack_agent_figure_plan",
@@ -409,11 +433,12 @@ def display_pack_figure_plan(
             "explicit_alias_requests_migrate_to_canonical": True,
             "nature_skills_backend_question_not_used_on_default_mas_evidence_path": True,
             "figure_contract_required_before_paper_facing_render": True,
+            **analysis_template_surface_policy_flags(),
         },
         "requested_template_migration": template_migration,
         "minimum_fit_floor": minimum_fit_floor(),
         "figure_contract_policy": figure_contract_policy(),
-        "next_callable": "display-pack-preflight" if recommended else "",
+        "next_callable": "display-pack-preflight" if status == "display_plan_ready" else "",
         "typed_blocker": blocker,
         "agent_manual_template_selection_required": False,
         "template_fit_policy": _text(recommended.get("template_fit_policy")) if isinstance(recommended, Mapping) else "",
@@ -426,6 +451,10 @@ def _route_for_finding(finding: Mapping[str, Any]) -> dict[str, Any]:
     code = _text(finding.get("code"))
     route_hint = _text(finding.get("route_hint"))
     route_by_code = {
+        "analysis_summary_required_before_display_render": (
+            "analysis_materialization",
+            "materialize_validated_analysis_summary_before_display_render",
+        ),
         "template_selection_empty": ("template_catalog", "display-pack-agent-plan"),
         "qc_profile_missing": ("qc_profile", "display_pack_qc_profile_repair"),
         "render_r_missing": ("renderer", "display_pack_renderer_asset_repair"),
@@ -591,6 +620,32 @@ def display_pack_preflight(
             figure_request=compiled_request,
             max_recommendations=1,
         )
+        if plan.get("status") != "display_plan_ready":
+            plan_blocker = _mapping(plan.get("typed_blocker"))
+            return {
+                "schema_version": 1,
+                "surface_kind": "display_pack_agent_preflight",
+                "status": "blocked",
+                "repo_root": str(normalized_repo_root),
+                "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
+                "figure_intent": intent_payload,
+                "figure_request": compiled_request,
+                "templates": [],
+                "requested_template_migration": _mapping(plan.get("requested_template_migration")) or None,
+                "r_runtime": {"required": False, "status": "not_checked"},
+                "style_profile": {"required": True, "status": "not_checked"},
+                "figure_contract_policy": figure_contract_policy(),
+                "blocking_findings": [analysis_finding_from_blocker(plan_blocker)] if plan_blocker else [],
+                "advisory_findings": [],
+                "typed_repair_routes": [_route_for_finding(analysis_finding_from_blocker(plan_blocker))]
+                if plan_blocker
+                else [],
+                "repair_owner": "MedAutoScience",
+                "quality_floor": _quality_floor(plan=plan, preflight={"status": "blocked"}),
+                "next_callable": "display-pack-repair",
+                "publication_readiness_verdict": False,
+                "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+            }
         recommended = _mapping(plan.get("recommended_template"))
         template_migration = _mapping(plan.get("requested_template_migration")) or None
         selected_template = _text(recommended.get("full_template_id") or recommended.get("template_id"))
@@ -608,9 +663,12 @@ def display_pack_preflight(
     for record in selected_records:
         manifest = record.template_manifest
         template_root = record.template_path.parent
-        entry = _template_summary(record, catalogs)
+        entry = _template_summary(record, catalogs, request=compiled_request)
         entry.update(template_fit_entry(record, compiled_request))
         template_entries.append(entry)
+        analysis_blocker = analysis_blocker_for_template_summary(entry, compiled_request)
+        if analysis_blocker is not None:
+            blocking_findings.append(analysis_finding_from_blocker(analysis_blocker))
         if manifest.qc_profile_ref not in QC_PROFILE_RUNNERS:
             blocking_findings.append(
                 {
@@ -681,6 +739,9 @@ def display_pack_preflight(
 
     status = "ready" if not blocking_findings else "blocked"
     typed_repair_routes = [_route_for_finding(item) for item in blocking_findings + advisory_findings]
+    next_callable = "display-pack-render" if status == "ready" else (
+        _text(typed_repair_routes[0].get("next_callable")) if typed_repair_routes else "display-pack-repair"
+    )
     return {
         "schema_version": 1,
         "surface_kind": "display_pack_agent_preflight",
@@ -706,7 +767,7 @@ def display_pack_preflight(
                 "advisory_findings": advisory_findings,
             },
         ),
-        "next_callable": "display-pack-render" if status == "ready" else "display-pack-preflight",
+        "next_callable": next_callable,
         "publication_readiness_verdict": False,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
     }
@@ -744,6 +805,35 @@ def display_pack_orchestrate(
     )
     recommended = _mapping(plan.get("recommended_template"))
     template_id = _text(recommended.get("full_template_id") or recommended.get("template_id"))
+    if plan.get("status") != "display_plan_ready":
+        plan_blocker = _mapping(plan.get("typed_blocker"))
+        typed_routes = [_route_for_finding(analysis_finding_from_blocker(plan_blocker))] if plan_blocker else []
+        missing_inputs = list(figure_intent.get("missing_inputs") or [])
+        if missing_inputs:
+            typed_routes.extend(missing_input_repair_routes(missing_inputs))
+        return {
+            "schema_version": 1,
+            "surface_kind": "display_pack_agent_orchestration",
+            "status": "needs_repair",
+            "repo_root": str(normalized_repo_root),
+            "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
+            "figure_intent": figure_intent,
+            "figure_request": compiled_request,
+            "plan": plan,
+            "preflight": {
+                "schema_version": 1,
+                "surface_kind": "display_pack_agent_preflight",
+                "status": "blocked",
+                "typed_blocker": plan_blocker,
+            },
+            "figure_contract_policy": figure_contract_policy(),
+            "quality_floor": _quality_floor(plan=plan, preflight={"status": "blocked"}),
+            "typed_repair_routes": typed_routes,
+            "next_callable": "display-pack-repair",
+            "agent_manual_template_selection_required": False,
+            "publication_readiness_verdict": False,
+            "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+        }
     preflight = display_pack_preflight(
         repo_root=normalized_repo_root,
         paper_root=normalized_paper_root,
@@ -755,21 +845,7 @@ def display_pack_orchestrate(
     missing_inputs = list(figure_intent.get("missing_inputs") or [])
     typed_routes = list(preflight.get("typed_repair_routes") or [])
     if missing_inputs:
-        typed_routes.extend(
-            {
-                "surface_kind": "display_pack_typed_repair_route",
-                "code": f"{field}_missing",
-                "layer": "figure_intent",
-                "repair_owner": "MedAutoScience",
-                "next_callable": "provide_claim_and_data_refs",
-                "blocks_render": True,
-                "authority_boundary": {
-                    "repair_route_can_mutate_data_or_statistics": False,
-                    "repair_route_can_authorize_publication_readiness": False,
-                },
-            }
-            for field in missing_inputs
-        )
+        typed_routes.extend(missing_input_repair_routes(missing_inputs))
     status = "ready_to_render" if preflight.get("status") == "ready" and not missing_inputs else "needs_repair"
     return {
         "schema_version": 1,
@@ -788,19 +864,6 @@ def display_pack_orchestrate(
         "agent_manual_template_selection_required": False,
         "publication_readiness_verdict": False,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
-    }
-
-
-def _default_visual_audit_review() -> dict[str, Any]:
-    return {
-        "audit_mode": "vlm_visual_verification",
-        "reviewer": {
-            "provider": "mas-display-pack-agent",
-            "model": "agent-structured-visual-audit-receipt",
-            "prompt_hash": _DEFAULT_REVIEWER_HASH,
-        },
-        "findings": [],
-        "final_status": "clear",
     }
 
 
@@ -830,6 +893,16 @@ def display_pack_render(
                 figure_request=request,
                 max_recommendations=1,
             )
+            if plan.get("status") != "display_plan_ready":
+                return {
+                    "schema_version": 1,
+                    "surface_kind": "display_pack_agent_render_receipt",
+                    "status": "blocked",
+                    "typed_blocker": _mapping(plan.get("typed_blocker")),
+                    "plan": plan,
+                    "next_callable": "display-pack-repair",
+                    "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+                }
             recommended = _mapping(plan.get("recommended_template"))
             template_id = _text(recommended.get("full_template_id") or recommended.get("template_id"))
         else:
@@ -839,6 +912,24 @@ def display_pack_render(
                 catalogs,
             )
             template_id = _text(template_request.get("template_id"))
+        selected_records = [
+            record
+            for record in records
+            if record.template_manifest.template_id == template_id
+            or record.template_manifest.full_template_id == template_id
+        ]
+        if selected_records:
+            entry = _template_summary(selected_records[0], catalogs, request=request)
+            analysis_blocker = analysis_blocker_for_template_summary(entry, request)
+            if analysis_blocker is not None:
+                return {
+                    "schema_version": 1,
+                    "surface_kind": "display_pack_agent_render_receipt",
+                    "status": "blocked",
+                    "typed_blocker": analysis_blocker,
+                    "next_callable": "display-pack-repair",
+                    "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+                }
         if not template_id:
             return {
                 "schema_version": 1,
@@ -861,13 +952,13 @@ def display_pack_render(
             cohort_ref=_text(request.get("cohort_ref")) or "cohort:display-pack-agent",
             endpoint_ref=_text(request.get("endpoint_ref")) or "endpoint:display-pack-agent",
             risk_horizon=_text(request.get("risk_horizon")) or "unspecified",
-            visual_audit_review=dict(visual_audit_review or _default_visual_audit_review()),
+            visual_audit_review=dict(visual_audit_review or default_visual_audit_review()),
         )
     elif (normalized_paper_root / "figure_intent.json").is_file():
         result = materialize_display_pack_publication_manifest(
             repo_root=normalized_repo_root,
             paper_root=normalized_paper_root,
-            visual_audit_review=dict(visual_audit_review or _default_visual_audit_review()),
+            visual_audit_review=dict(visual_audit_review or default_visual_audit_review()),
             figure_ids=[_text(request.get("figure_id"))] if _text(request.get("figure_id")) else [],
         )
     else:

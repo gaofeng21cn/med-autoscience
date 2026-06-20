@@ -15,6 +15,7 @@ Machine boundary: 本文是当前人读能力索引。机器真相继续归 `dis
 - non-visual canonical inventory：`3`
 - retired alias / duplicate template id：`35`
 - 旧 Python evidence ID 不再维护为当前 pack inventory、Gallery 对比图、agent discover、runtime materialization 或显式请求库存
+- analysis responsibility：`computed_in_template = 3`、`validated_summary_required = 25`、`illustration_shell = 2`、`table_shell = 1`
 
 这里的 `66` 只表示 `31` 个 current canonical template 加 `35` 个 retired alias / duplicate id 的迁移索引，不是当前可调用模板数。默认用户路径、Gallery、agent discover 和 figure plan 只暴露 current canonical surface。
 
@@ -31,6 +32,17 @@ Machine boundary: 本文是当前人读能力索引。机器真相继续归 `dis
 - 数据证据图统一走 R/ggplot2，设计和流程图允许更高表现力的 composition 路线。
 
 AI 可以在模板下限之上做 paper-local 结构、标注、配色和排版改动；模板只提供最低质量地板，不限制最终上限。
+
+## 分析责任边界
+
+模板不是统计 truth 的第二来源。当前 canonical catalog 给每个模板绑定 `analysis_responsibility`：
+
+- `computed_in_template`：模板 renderer 含受限分析 workflow，可从声明的 raw input 计算展示坐标。目前只用于 `pca_scatter_grouped`、`tsne_scatter_grouped`、`umap_scatter_grouped`，输入状态为 `raw_feature_matrix`。
+- `validated_summary_required`：模板只渲染上游已验证 display payload。ROC/PR/calibration/DCA/KM/time-dependent ROC/heatmap/forest/SHAP/omics/模型审计等都属于这一类。
+- `illustration_shell`：设计、流程、graphical abstract shell，不承载统计证据 authority。
+- `table_shell`：表格 shell，只接受已审阅表格值。
+
+MAS agent 如果收到 `labels_and_scores`、`patient_level_records`、`raw_counts`、`time_status_records` 等 raw analysis input，但推荐模板不是 `computed_in_template`，会 fail closed 到 `analysis_summary_required_before_display_render`，下一步是先物化 validated analysis summary，而不是让画图模板临时重算模型、曲线、p 值、SHAP 或富集结果。
 
 ## 当前图型家族
 

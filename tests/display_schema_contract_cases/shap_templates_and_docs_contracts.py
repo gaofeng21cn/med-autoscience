@@ -32,9 +32,15 @@ def test_render_display_template_catalog_covers_current_registered_templates() -
 
     markdown = catalog_module.render_display_template_catalog_markdown()
 
-    assert "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |" in markdown
+    assert (
+        "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | "
+        "QC Profile | Required Exports | Analysis Responsibility |"
+    ) in markdown
     assert "`A. Predictive Performance and Decision`" in markdown
     assert "`H. Cohort and Study Design Evidence`" in markdown
+    assert "`computed_in_template` / `raw_feature_matrix`" in markdown
+    assert "`validated_summary_required` / `validated_display_payload`" in markdown
+    assert "raw analysis inputs may only enter templates marked `computed_in_template`" in markdown
     for item in registry_module.list_evidence_figure_specs():
         assert item.template_id in markdown
         assert item.input_schema_id in markdown

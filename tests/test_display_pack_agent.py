@@ -61,6 +61,12 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["inventory"]["legacy_alias_template_count"] == 0
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
+    assert payload["inventory"]["analysis_responsibility_counts"] == {
+        "computed_in_template": 3,
+        "illustration_shell": 2,
+        "table_shell": 1,
+        "validated_summary_required": 25,
+    }
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
     assert payload["inventory"]["renderer_policy_completion"]["python_evidence_retained_count"] == 0
     assert payload["renderer_policy"]["data_evidence_first_class_renderer"] == "r_ggplot2"
@@ -92,6 +98,8 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     assert payload["template_surface_policy"]["active_inventory_is_canonical_only"] is True
     assert payload["template_surface_policy"]["evidence_figures_default_to_r_ggplot2"] is True
     assert payload["template_surface_policy"]["python_evidence_templates_not_retained_without_advantage_proof"] is True
+    assert payload["template_surface_policy"]["template_analysis_responsibility_required"] is True
+    assert payload["template_surface_policy"]["validated_summary_templates_fail_closed_on_raw_analysis_requests"] is True
     assert payload["template_surface_policy"]["migration_inventory_template_count"] == 66
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
@@ -102,6 +110,11 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
         for item in payload["templates"]
         if item["kind"] == "evidence_figure" and item["renderer_family"] == "python"
     ]
+    by_id = {item["template_id"]: item for item in payload["templates"]}
+    assert by_id["roc_curve_binary"]["analysis_responsibility"] == "validated_summary_required"
+    assert by_id["roc_curve_binary"]["analysis_input_state"] == "validated_display_payload"
+    assert by_id["umap_scatter_grouped"]["analysis_responsibility"] == "computed_in_template"
+    assert by_id["umap_scatter_grouped"]["analysis_input_state"] == "raw_feature_matrix"
 
 
 def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request() -> None:
@@ -122,6 +135,8 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["recommended_template"]["renderer_family"] == "r_ggplot2"
     assert payload["recommended_template"]["migration_status"] == "canonical"
     assert payload["recommended_template"]["canonical_family_id"] == "roc_curve_binary"
+    assert payload["recommended_template"]["analysis_responsibility"] == "validated_summary_required"
+    assert payload["recommended_template"]["analysis_boundary"]["compatible_with_request"] is True
     assert payload["figure_intent"]["figure_contract"]["backend_policy"]["selected_backend"] == "r_ggplot2"
     assert payload["figure_intent"]["figure_contract"]["backend_policy"]["blocks_agent_progress"] is False
     assert payload["figure_intent"]["figure_contract"]["agent_progress_policy"][
@@ -132,6 +147,38 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
         "nature_skills_backend_question_not_used_on_default_mas_evidence_path"
     ] is True
     assert payload["recommended_template"]["adaptation_required"] is False
+    assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_display_pack_figure_plan_blocks_raw_request_for_summary_only_roc() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={"query": "roc", "analysis_input_state": "labels_and_scores"},
+    )
+
+    assert payload["status"] == "blocked"
+    assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["recommended_template"]["analysis_responsibility"] == "validated_summary_required"
+    assert payload["recommended_template"]["analysis_boundary"]["request_declares_raw_input"] is True
+    assert payload["recommended_template"]["analysis_boundary"]["compatible_with_request"] is False
+    assert payload["typed_blocker"]["blocked_reason"] == "analysis_summary_required_before_display_render"
+    assert payload["typed_blocker"]["route_hint"] == (
+        "materialize_validated_analysis_summary_before_display_render"
+    )
+    assert payload["next_callable"] == ""
+
+
+def test_display_pack_figure_plan_allows_raw_feature_matrix_for_computed_umap() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={"query": "umap", "analysis_input_state": "raw_feature_matrix"},
+    )
+
+    assert payload["status"] == "display_plan_ready"
+    assert payload["recommended_template"]["template_id"] == "umap_scatter_grouped"
+    assert payload["recommended_template"]["analysis_responsibility"] == "computed_in_template"
+    assert payload["recommended_template"]["analysis_input_state"] == "raw_feature_matrix"
+    assert payload["recommended_template"]["analysis_boundary"]["compatible_with_request"] is True
     assert payload["next_callable"] == "display-pack-preflight"
 
 
@@ -341,6 +388,23 @@ def test_display_pack_preflight_reports_missing_paper_style_profile(tmp_path: Pa
     }
 
 
+def test_display_pack_preflight_blocks_direct_raw_input_for_summary_only_template(tmp_path: Path) -> None:
+    paper_root = _styled_paper_root(tmp_path)
+
+    payload = display_pack_preflight(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        template_id="roc_curve_binary",
+        figure_request={"analysis_input_state": "labels_and_scores"},
+        check_runtime_dependencies=False,
+    )
+
+    assert payload["status"] == "blocked"
+    assert payload["blocking_findings"][0]["code"] == "analysis_summary_required_before_display_render"
+    assert payload["next_callable"] == "materialize_validated_analysis_summary_before_display_render"
+    assert payload["typed_repair_routes"][0]["layer"] == "analysis_materialization"
+
+
 def test_display_pack_preflight_checks_embedding_backend_dependencies_only_for_matching_templates(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -422,6 +486,30 @@ def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_pa
     assert (paper_root / "figure_visual_audit_receipt.json").is_file()
     assert (paper_root / "figure_render_receipt.json").is_file()
     assert payload["receipt_refs"]["figure_render_receipt"] == "paper/figure_render_receipt.json"
+
+
+def test_display_pack_render_blocks_raw_input_when_direct_template_id_is_summary_only(tmp_path: Path) -> None:
+    paper_root = tmp_path / "paper"
+    payload_path = tmp_path / "roc-payload.json"
+    _write_roc_payload(payload_path)
+
+    payload = display_pack_render(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        figure_request={
+            "template_id": "roc_curve_binary",
+            "data_payload_file": str(payload_path),
+            "analysis_input_state": "labels_and_scores",
+        },
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_render_receipt"
+    assert payload["status"] == "blocked"
+    assert payload["typed_blocker"]["blocked_reason"] == "analysis_summary_required_before_display_render"
+    assert payload["typed_blocker"]["route_hint"] == (
+        "materialize_validated_analysis_summary_before_display_render"
+    )
+    assert payload["next_callable"] == "display-pack-repair"
 
 
 def test_cli_display_pack_agent_plan_loads_figure_request_json(capsys) -> None:
