@@ -321,18 +321,21 @@ def test_existing_projection_refresh_promotes_selected_gate_successor_over_stale
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
     )
+    reconcile = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     stale_fingerprint = "publication-blockers::0915410f804b3697"
     selected_fingerprint = "publication-blockers::2a234f3e48d8beb5"
+    derived_fingerprint = "publication-blockers::5d99b7c4019bd601"
     source_eval_id = (
         "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
         "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T05:46:03+00:00"
     )
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
 
-    result = module.refresh_existing_projection_current_owner_surfaces(
-        payload={
+    payload = {
             "study_id": study_id,
             "quest_id": study_id,
             "current_work_unit": {
@@ -346,6 +349,48 @@ def test_existing_projection_refresh_promotes_selected_gate_successor_over_stale
                 "work_unit_id": "medical_prose_write_repair",
                 "work_unit_fingerprint": stale_fingerprint,
                 "action_fingerprint": stale_fingerprint,
+            },
+            "publication_eval": {
+                "recommended_actions": [
+                    {
+                        "next_work_unit": {
+                            "unit_id": "analysis_claim_evidence_repair",
+                            "lane": "analysis-campaign",
+                            "summary": (
+                                "Repair claim-evidence, story, figure, and results traceability blockers."
+                            ),
+                        },
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "work_unit_fingerprint": selected_fingerprint,
+                        "blockers": [
+                            "stale_submission_minimal_authority",
+                            "medical_publication_surface_blocked",
+                            "reviewer_first_concerns_unresolved",
+                            "submission_hardening_incomplete",
+                        ],
+                        "specificity_targets": [
+                            {
+                                "target_kind": "table",
+                                "target_id": "submission_minimal_authority",
+                                "source_path": "/tmp/submission_manifest.json",
+                                "blocking_reason": "stale_submission_minimal_authority",
+                            },
+                            {
+                                "target_kind": "claim",
+                                "target_id": "review_ledger",
+                                "source_path": "/tmp/review_ledger.json",
+                                "blocking_reason": "reviewer_first_concerns_unresolved",
+                            },
+                            {
+                                "target_kind": "figure",
+                                "target_id": "figure_catalog",
+                                "source_path": "/tmp/figure_catalog.json",
+                                "blocking_reason": "stale_submission_minimal_authority",
+                            },
+                        ],
+                    },
+                ],
             },
             "gate_clearing_batch_followthrough": {
                 "surface_kind": "gate_clearing_batch_followthrough",
@@ -439,7 +484,9 @@ def test_existing_projection_refresh_promotes_selected_gate_successor_over_stale
                 "provider_admission_pending_count": 0,
                 "provider_admission_candidates": [],
             },
-        },
+        }
+    result = module.refresh_existing_projection_current_owner_surfaces(
+        payload=payload,
         status={
             "study_id": study_id,
             "quest_id": study_id,
@@ -459,10 +506,28 @@ def test_existing_projection_refresh_promotes_selected_gate_successor_over_stale
     assert action["action_type"] == "run_quality_repair_batch"
     assert action["work_unit_id"] == "analysis_claim_evidence_repair"
     assert action["work_unit_fingerprint"] == selected_fingerprint
+    assert action["owner_route_currentness_basis"]["selected_publication_work_unit_id"] == (
+        "analysis_claim_evidence_repair"
+    )
     assert result["current_work_unit"]["status"] == "executable_owner_action"
     assert result["current_work_unit"]["owner"] == "analysis-campaign"
     assert result["current_work_unit"]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert result["current_work_unit"]["work_unit_fingerprint"] == selected_fingerprint
+
+    derived_action = {
+        **action,
+        "work_unit_fingerprint": derived_fingerprint,
+        "action_fingerprint": derived_fingerprint,
+        "owner_route_currentness_basis": {
+            **action["owner_route_currentness_basis"],
+            "work_unit_fingerprint": derived_fingerprint,
+        },
+    }
+    assert reconcile.current_control_typed_blocker_successor_action(
+        derived_action,
+        typed_blocker=payload["opl_current_control_state_handoff"]["typed_blocker"],
+        progress=payload,
+    )
 
 
 def test_existing_projection_refresh_promotes_gate_followthrough_successor_over_opl_authorization_residue(

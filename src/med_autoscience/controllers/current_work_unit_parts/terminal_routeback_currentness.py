@@ -227,7 +227,14 @@ def _gate_followthrough_selected_successor_matches_action(
         or _text(currentness.get("selected_publication_work_unit_fingerprint"))
         or _text(currentness.get("explicit_work_unit_fingerprint"))
     )
-    if action_fingerprint is not None and selected_fingerprint is not None and action_fingerprint != selected_fingerprint:
+    basis = _mapping(action.get("owner_route_currentness_basis"))
+    basis_selected_work_unit = _work_unit_id(basis.get("selected_publication_work_unit_id"))
+    if (
+        action_fingerprint is not None
+        and selected_fingerprint is not None
+        and action_fingerprint != selected_fingerprint
+        and basis_selected_work_unit != selected_work_unit
+    ):
         return False
     action_source_eval = _text(action.get("source_eval_id")) or _text(
         _mapping(action.get("owner_route_currentness_basis")).get("source_eval_id")
