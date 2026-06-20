@@ -1401,3 +1401,100 @@ def test_provider_admission_report_refreshes_scanned_typed_blocker_without_candi
         result["current_execution_envelopes"][study_id]["typed_blocker"]["blocker_type"]
         == "medical_paper_readiness_missing"
     )
+
+
+def test_provider_admission_report_sync_lifts_study_level_provider_readback_to_top_level(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    provider_candidate = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint=fingerprint,
+        ),
+        "status": "provider_admission_pending",
+        "source": "opl_current_control_state.provider_admission_candidates",
+        "action_type": "request_opl_stage_attempt",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "provider_admission_pending": True,
+        "provider_admission_requires_opl_runtime_result": False,
+        "provider_attempt_or_lease_required": True,
+        "opl_domain_progress_transition_runtime_live_readback": _opl_transition_readback(
+            study_id,
+            action_fingerprint=fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=route_key,
+            attempt_idempotency_key=route_key,
+            request_idempotency_key=route_key,
+        ),
+    }
+    transition_request = {
+        **dict(provider_candidate),
+        "status": "transition_request_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_attempt_or_lease_required": False,
+    }
+    transition_request.pop("opl_domain_progress_transition_runtime_live_readback", None)
+    managed_action = {
+        "study_id": study_id,
+        "current_work_unit": {
+            "status": "executable_owner_action",
+            "owner": "write",
+            "action_type": "request_opl_stage_attempt",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+        },
+    }
+    report = {
+        "current_execution_evidence": {
+            "provider_admission_candidates": [],
+            "transition_request_candidates": [dict(transition_request)],
+            "managed_study_actions": [dict(managed_action)],
+        },
+        "managed_study_actions": [dict(managed_action)],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 1,
+            "transition_request_candidates": [dict(transition_request)],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "provider_admission_pending_count": 1,
+                    "transition_request_pending_count": 0,
+                    "provider_admission_candidates": [dict(provider_candidate)],
+                    "transition_request_candidates": [],
+                }
+            ],
+        },
+    )
+
+    assert report["provider_admission_pending_count"] == 1
+    assert report["transition_request_pending_count"] == 0
+    assert report["managed_study_opl_transition_request_candidates"] == []
+    [candidate] = report["managed_study_opl_provider_admission_candidates"]
+    assert candidate["provider_admission_pending"] is True
+    assert candidate["provider_admission_requires_opl_runtime_result"] is False
+    assert "provider_attempt_running_proven" not in candidate
+    assert "strict_running_proof" not in candidate

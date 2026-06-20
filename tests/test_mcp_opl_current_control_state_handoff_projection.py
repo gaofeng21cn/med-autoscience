@@ -219,6 +219,84 @@ def test_study_progress_opl_current_control_state_handoff_merges_complete_top_le
     assert "typed_blocker" not in projection
 
 
+def test_study_progress_opl_current_control_state_handoff_binds_root_readback_to_action_queue(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    route_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+    )
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-20T17:45:32+00:00",
+            "provider_admission_pending_count": 1,
+            "transition_request_pending_count": 0,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "provider_admission_pending",
+                    "provider_admission_pending_count": 1,
+                    "transition_request_pending_count": 0,
+                    "running_provider_attempt": False,
+                    "provider_admission_identity": {
+                        "study_id": study_id,
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "route_identity_key": route_key,
+                        "attempt_idempotency_key": route_key,
+                        "request_idempotency_key": route_key,
+                        "opl_domain_progress_transition_runtime_live_readback": readback,
+                    },
+                    "action_queue": [
+                        {
+                            "status": "queued",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "request_opl_stage_attempt",
+                            "owner": "write",
+                            "next_executable_owner": "write",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "route_identity_key": route_key,
+                            "attempt_idempotency_key": route_key,
+                            "idempotency_key": route_key,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
+    assert projection["quest_status"] == "provider_admission_pending"
+    assert projection["provider_admission_pending_count"] == 1
+    assert projection["transition_request_pending_count"] == 0
+    assert len(projection["provider_admission_candidates"]) == 1
+    candidate = projection["provider_admission_candidates"][0]
+    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["source"] == "opl_current_control_state_action_queue"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["route_identity_key"] == route_key
+    assert candidate["attempt_idempotency_key"] == route_key
+    assert candidate["opl_domain_progress_transition_runtime_live_readback"] == readback
+    assert projection["blocked_reason"] is None
+
+
 def test_study_progress_opl_current_control_state_handoff_consumes_live_transition_log_readback(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)

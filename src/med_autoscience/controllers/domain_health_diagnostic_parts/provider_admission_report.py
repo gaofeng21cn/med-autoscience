@@ -154,6 +154,9 @@ def sync_report_provider_admission_current_control_state(
     *,
     current_control_state: Mapping[str, Any],
 ) -> None:
+    current_control_state = _current_control_state_with_study_level_provider_candidates(
+        current_control_state
+    )
     current_execution_evidence = _mapping(report.get("current_execution_evidence"))
     transition_request_candidates = [
         dict(item)
@@ -219,6 +222,68 @@ def sync_report_provider_admission_current_control_state(
         if fingerprint is not None and fingerprint not in fingerprints:
             fingerprints.append(fingerprint)
     report["action_fingerprints"] = fingerprints
+
+
+def _current_control_state_with_study_level_provider_candidates(
+    current_control_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(current_control_state)
+    provider_candidates = [
+        dict(item)
+        for item in payload.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    transition_candidates = [
+        dict(item)
+        for item in payload.get("transition_request_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    provider_keys = {_provider_admission_candidate_key(candidate) for candidate in provider_candidates}
+    transition_keys = {_provider_admission_candidate_key(candidate) for candidate in transition_candidates}
+    for study in payload.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        for candidate in study.get("provider_admission_candidates") or []:
+            if not isinstance(candidate, Mapping):
+                continue
+            if not provider_admission_opl_transition_readback(candidate):
+                continue
+            key = _provider_admission_candidate_key(candidate)
+            if key in provider_keys:
+                continue
+            provider_candidates.append(dict(candidate))
+            provider_keys.add(key)
+            transition_candidates = [
+                item
+                for item in transition_candidates
+                if _provider_admission_candidate_key(item) != key
+            ]
+            transition_keys.discard(key)
+        for candidate in study.get("transition_request_candidates") or []:
+            if not isinstance(candidate, Mapping):
+                continue
+            key = _provider_admission_candidate_key(candidate)
+            if key in provider_keys or key in transition_keys:
+                continue
+            transition_candidates.append(dict(candidate))
+            transition_keys.add(key)
+    payload["provider_admission_candidates"] = provider_candidates
+    payload["transition_request_candidates"] = transition_candidates
+    payload["provider_admission_pending_count"] = len(provider_candidates)
+    payload["transition_request_pending_count"] = len(transition_candidates)
+    return payload
+
+
+def _provider_admission_candidate_key(
+    candidate: Mapping[str, Any],
+) -> tuple[str | None, str | None, str | None, str | None]:
+    return (
+        _non_empty_text(candidate.get("study_id")),
+        _non_empty_text(candidate.get("action_type")),
+        _non_empty_text(candidate.get("work_unit_id")),
+        _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint")),
+    )
 
 
 def _filter_transition_requests_consumed_by_currentness(

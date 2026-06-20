@@ -241,8 +241,15 @@ def refresh_existing_projection_current_owner_surfaces(
             current_control_executable_action,
         ):
             current_control_executable_action = recomputed_action
-    if current_control_executable_action is None and _handoff_is_active_provider_control(handoff):
-        current_control_executable_action = _current_control_provider_admission_action(handoff)
+    if _handoff_is_active_provider_control(handoff):
+        provider_admission_action = _current_control_provider_admission_action(handoff)
+        if provider_admission_action is not None and _provider_admission_action_supersedes_request_action(
+            provider_admission_action,
+            request_action=current_control_executable_action,
+        ):
+            current_control_executable_action = provider_admission_action
+        elif current_control_executable_action is None:
+            current_control_executable_action = provider_admission_action
     currentness_handoff = current_control_executable_currentness_handoff(
         handoff,
         current_control_executable_action=current_control_executable_action,
@@ -252,6 +259,37 @@ def refresh_existing_projection_current_owner_surfaces(
         current_action=current_control_executable_action,
     )
     updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=currentness_handoff)
+    if _non_empty_text(_mapping_copy(current_control_executable_action).get("source")) == (
+        "opl_current_control_state.provider_admission_candidates"
+    ):
+        runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot")) or _mapping_copy(
+            status.get("runtime_health_snapshot")
+        )
+        updated = refresh_current_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=currentness_handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+        )
+        updated.update(
+            provider_admission_projection_fields(
+                payload=updated,
+                handoff=currentness_handoff,
+                study_root=study_root,
+            )
+        )
+        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+        updated = sync_progress_first_owner_action_admission(updated)
+        updated = sync_current_execution_evidence(updated, handoff=currentness_handoff)
+        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
+        updated = apply_paper_recovery_state_user_visible_status(updated)
+        updated["user_visible_projection"] = build_user_visible_projection(updated)
+        return attach_delivery_inspection_projection_fn(
+            updated,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
     typed_blocker_successor_action = (
         current_control_executable_action
         or build_current_executable_owner_action(updated)
@@ -496,6 +534,26 @@ def _same_current_action_identity(
     )
     if left_fingerprint is not None and right_fingerprint is not None and left_fingerprint != right_fingerprint:
         return False
+    return True
+
+
+def _provider_admission_action_supersedes_request_action(
+    provider_action: Mapping[str, Any],
+    *,
+    request_action: Mapping[str, Any] | None,
+) -> bool:
+    if provider_action.get("provider_admission_pending") is not True:
+        return False
+    request = _mapping_copy(request_action)
+    if not request:
+        return True
+    if not _same_current_action_identity(provider_action, request):
+        return False
+    for key in ("route_identity_key", "attempt_idempotency_key"):
+        provider_value = _non_empty_text(provider_action.get(key))
+        request_value = _non_empty_text(request.get(key))
+        if provider_value is not None and request_value is not None and provider_value != request_value:
+            return False
     return True
 
 

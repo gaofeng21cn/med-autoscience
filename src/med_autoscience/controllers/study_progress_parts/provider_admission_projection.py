@@ -753,7 +753,30 @@ def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[s
         return {}
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_action:
-        return {}
+        current_action = {
+            key: value
+            for key, value in {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "canonical_current_work_unit",
+                "next_owner": _non_empty_text(current_work_unit.get("owner")),
+                "owner": _non_empty_text(current_work_unit.get("owner")),
+                "action_type": _non_empty_text(current_work_unit.get("action_type")),
+                "allowed_actions": _text_list(current_work_unit.get("action_type")),
+                "work_unit_id": _non_empty_text(current_work_unit.get("work_unit_id")),
+                "work_unit_fingerprint": _non_empty_text(current_work_unit.get("work_unit_fingerprint")),
+                "action_fingerprint": _non_empty_text(current_work_unit.get("action_fingerprint"))
+                or _non_empty_text(current_work_unit.get("work_unit_fingerprint")),
+                "owner_route_currentness_basis": _mapping_copy(current_work_unit.get("currentness_basis")),
+                "currentness_basis": _mapping_copy(current_work_unit.get("currentness_basis")),
+                "required_output_surface": _non_empty_text(
+                    _mapping_copy(current_work_unit.get("required_output_contract")).get(
+                        "required_output_surface"
+                    )
+                ),
+            }.items()
+            if value not in (None, "", [], {})
+        }
     currentness_basis = _provider_admission_currentness_basis(
         payload=payload,
         current_action=current_action,

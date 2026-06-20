@@ -14,6 +14,7 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     candidate_opl_transition_readback,
+    LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
     non_advancing_apply_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
@@ -907,11 +908,19 @@ def _apply_top_level_transition_requests_to_handoff(
 def _apply_action_queue_provider_readbacks_to_handoff(
     projection: Mapping[str, Any],
 ) -> dict[str, Any]:
+    projection_readback_candidate = _provider_readback_candidate_from_projection(projection)
     action_provider_candidates = [
         dict(item)
         for item in projection.get("action_queue") or []
         if isinstance(item, Mapping) and provider_admission_opl_transition_readback(item)
     ]
+    if projection_readback_candidate:
+        action_provider_candidates.extend(
+            _bind_projection_provider_readback_to_actions(
+                projection,
+                readback_candidate=projection_readback_candidate,
+            )
+        )
     if not action_provider_candidates:
         return dict(projection)
     updated = _apply_top_level_provider_admissions_to_handoff(
@@ -932,6 +941,87 @@ def _apply_action_queue_provider_readbacks_to_handoff(
     updated["transition_request_pending_count"] = len(remaining_transition_requests)
     updated["quest_status"] = "provider_admission_pending"
     return updated
+
+
+def _provider_readback_candidate_from_projection(projection: Mapping[str, Any]) -> dict[str, Any]:
+    readback = candidate_opl_transition_readback(projection)
+    if not readback:
+        return {}
+    outcome_kind = _non_empty_text(_observability_mapping(readback.get("exactly_one_outcome")).get("outcome_kind"))
+    if outcome_kind != LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME:
+        return {}
+    identity = _provider_admission_identity_from_readback(readback)
+    if not identity:
+        return {}
+    return {
+        **identity,
+        "status": "provider_admission_pending",
+        "provider_admission_pending": True,
+        "transition_request_pending": False,
+        "provider_attempt_or_lease_required": True,
+        "provider_admission_requires_opl_runtime_result": False,
+        "opl_domain_progress_transition_runtime_live_readback": readback,
+    }
+
+
+def _bind_projection_provider_readback_to_actions(
+    projection: Mapping[str, Any],
+    *,
+    readback_candidate: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    bound: list[dict[str, Any]] = []
+    for item in projection.get("action_queue") or []:
+        if not isinstance(item, Mapping):
+            continue
+        action = dict(item)
+        if not _same_provider_readback_identity(action, readback_candidate):
+            continue
+        bound.append(
+            {
+                **action,
+                "status": "provider_admission_pending",
+                "provider_admission_pending": True,
+                "transition_request_pending": False,
+                "provider_attempt_or_lease_required": True,
+                "provider_admission_requires_opl_runtime_result": False,
+                "provider_admission_identity": {
+                    **_observability_mapping(action.get("provider_admission_identity")),
+                    **dict(readback_candidate),
+                },
+                "opl_domain_progress_transition_runtime_live_readback": readback_candidate[
+                    "opl_domain_progress_transition_runtime_live_readback"
+                ],
+            }
+        )
+    return bound
+
+
+def _same_provider_readback_identity(
+    action: Mapping[str, Any],
+    readback_candidate: Mapping[str, Any],
+) -> bool:
+    action_study = _non_empty_text(action.get("study_id"))
+    readback_study = _non_empty_text(readback_candidate.get("study_id"))
+    if action_study is not None and readback_study is not None and action_study != readback_study:
+        return False
+    action_work_unit = _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
+        action.get("next_work_unit")
+    )
+    readback_work_unit = _work_unit_identity(readback_candidate.get("work_unit_id"))
+    if action_work_unit is None or readback_work_unit is None or action_work_unit != readback_work_unit:
+        return False
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    readback_fingerprint = _non_empty_text(readback_candidate.get("work_unit_fingerprint"))
+    if action_fingerprint is None or readback_fingerprint is None or action_fingerprint != readback_fingerprint:
+        return False
+    for key in ("route_identity_key", "attempt_idempotency_key"):
+        action_value = _non_empty_text(action.get(key))
+        readback_value = _non_empty_text(readback_candidate.get(key))
+        if action_value is not None and readback_value is not None and action_value != readback_value:
+            return False
+    return True
 
 
 def _closeout_only_study_handoff_projection(

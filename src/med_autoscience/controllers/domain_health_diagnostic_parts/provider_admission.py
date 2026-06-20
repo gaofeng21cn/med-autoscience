@@ -953,7 +953,11 @@ def _candidate_with_transition_request_identity(candidate: Mapping[str, Any]) ->
         or _non_empty_text(payload.get("attempt_idempotency_key"))
         or route_key
     )
-    if request_key is not None and _non_empty_text(request.get("recommended_transition_kind")) is not None:
+    if (
+        request_key is not None
+        and _non_empty_text(request.get("recommended_transition_kind")) is not None
+        and _paper_policy_request_identity_should_override_provider_identity(payload)
+    ):
         route_key = request_key
         attempt_key = request_key
     if route_key is not None:
@@ -974,6 +978,50 @@ def _candidate_with_transition_request_identity(candidate: Mapping[str, Any]) ->
     if owner_basis:
         source_refs["owner_route_currentness_basis"] = owner_basis
     return payload
+
+
+def _paper_policy_request_identity_should_override_provider_identity(
+    candidate: Mapping[str, Any],
+) -> bool:
+    if candidate_opl_transition_readback(candidate):
+        return False
+    if _non_empty_text(candidate.get("action_type")) == "request_opl_stage_attempt":
+        return True
+    if _candidate_is_mas_request_only_owner_action(candidate):
+        return False
+    source = _non_empty_text(candidate.get("source"))
+    source_surface = _non_empty_text(candidate.get("source_surface"))
+    if source == "opl_current_control_state.study_current_executable_owner_action" or (
+        source is None and source_surface == "opl_current_control_state.study_current_executable_owner_action"
+    ):
+        return True
+    if _non_empty_text(candidate.get("dispatch_path")) is not None:
+        return False
+    if _non_empty_text(candidate.get("dispatch_ref")) is not None:
+        return False
+    source_refs = _mapping(candidate.get("source_refs"))
+    if _non_empty_text(source_refs.get("dispatch_path")) is not None:
+        return False
+    if _non_empty_text(source_refs.get("dispatch_ref")) is not None:
+        return False
+    return True
+
+
+def _candidate_is_mas_request_only_owner_action(candidate: Mapping[str, Any]) -> bool:
+    source_refs = _mapping(candidate.get("source_refs"))
+    currentness_basis = _mapping(candidate.get("currentness_basis")) or _mapping(
+        source_refs.get("owner_route_currentness_basis")
+    )
+    source = (
+        _non_empty_text(candidate.get("mas_owner_action_source"))
+        or _non_empty_text(source_refs.get("mas_owner_action_source"))
+        or _non_empty_text(currentness_basis.get("mas_owner_action_source"))
+        or _non_empty_text(currentness_basis.get("source"))
+    )
+    return source in {
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "paper_recovery_state.next_safe_action.successor_owner_action",
+    }
 
 
 def _status_envelope_blocks_provider_admission(

@@ -1907,6 +1907,164 @@ def test_existing_projection_refresh_clears_stale_provider_admission_on_no_curre
     assert result["provider_admission_candidates"] == []
 
 
+def test_existing_projection_refresh_consumes_same_identity_provider_readback(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    route_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+    )
+    request_action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "source_surface": "opl_current_control_state.transition_request_candidates",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "next_owner": "write",
+        "owner": "write",
+        "action_type": "request_opl_stage_attempt",
+        "allowed_actions": ["request_opl_stage_attempt"],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "provider_admission_pending": False,
+        "transition_request_pending": True,
+        "provider_attempt_or_lease_required": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_transition_runtime_required": True,
+    }
+    provider_candidate = {
+        **request_action,
+        "surface": "opl_provider_admission_candidate",
+        "status": "provider_admission_pending",
+        "source": "opl_current_control_state.provider_admission_candidates",
+        "next_executable_owner": "write",
+        "provider_admission_pending": True,
+        "transition_request_pending": False,
+        "opl_domain_progress_transition_runtime_live_readback": readback,
+    }
+    monkeypatch.setattr(
+        module,
+        "_attach_delivery_inspection_projection",
+        lambda payload, **_: dict(payload),
+    )
+
+    result = module._refresh_existing_projection_current_owner_surfaces(
+        payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_executable_owner_action": request_action,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": "request_opl_stage_attempt",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                    "provider_admission_pending": False,
+                    "transition_request_pending": True,
+                },
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "schema_version": 1,
+                "study_id": study_id,
+                "quest_id": study_id,
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "successor_owner_action": {
+                        "owner": "write",
+                        "action_type": "request_opl_stage_attempt",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [provider_candidate],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "opl_current_control_state_handoff": {
+                "surface_kind": "opl_current_control_state_study_handoff",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "quest_status": "provider_admission_pending",
+                "source_path": "/tmp/opl_current_control_state/latest.json",
+                "running_provider_attempt": False,
+                "provider_admission_pending_count": 1,
+                "provider_admission_candidates": [provider_candidate],
+                "transition_request_pending_count": 0,
+                "transition_request_candidates": [],
+                "current_executable_owner_action": request_action,
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "schema_version": 1,
+                    "status": "executable_owner_action",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner": "write",
+                    "action_type": "request_opl_stage_attempt",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "state": {
+                        "state_kind": "executable_owner_action",
+                        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                        "provider_admission_pending": False,
+                        "transition_request_pending": True,
+                    },
+                },
+            },
+        },
+        status={"study_id": study_id, "quest_id": study_id},
+        profile=profile,
+        profile_ref=None,
+        study_root=study_root,
+        publication_eval_payload=None,
+    )
+
+    action = result["current_executable_owner_action"]
+    work_unit = result["current_work_unit"]
+    assert result["provider_admission_pending_count"] == 1
+    assert result["transition_request_pending_count"] == 0
+    assert action["source"] == "opl_current_control_state.provider_admission_candidates"
+    assert action["provider_admission_pending"] is True
+    assert action.get("transition_request_pending") is not True
+    assert action["provider_attempt_or_lease_required"] is True
+    assert action["provider_admission_requires_opl_runtime_result"] is False
+    assert "provider_attempt_running_proven" not in action
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["state"]["source"] == "opl_current_control_state.provider_admission_candidates"
+    assert work_unit["state"]["provider_admission_pending"] is True
+    assert work_unit["state"].get("transition_request_pending") is not True
+
+
 def test_existing_projection_refresh_prefers_live_attempt_over_stale_handoff(
     monkeypatch,
     tmp_path,

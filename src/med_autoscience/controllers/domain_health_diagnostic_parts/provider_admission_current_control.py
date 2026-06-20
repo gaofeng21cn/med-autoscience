@@ -71,6 +71,10 @@ def materialize_provider_admission_current_control_state(
         )
         for candidate in candidates
     ]
+    candidates = _candidates_with_scanned_study_provider_readbacks(
+        candidates,
+        scanned_studies=scanned_studies,
+    )
     candidates = _candidates_without_transition_requests_consumed_by_provider_readback(
         candidates
     )
@@ -259,6 +263,49 @@ def materialize_provider_admission_current_control_state(
         )
     payload["written"] = bool(apply)
     return payload
+
+
+def _candidates_with_scanned_study_provider_readbacks(
+    candidates: list[dict[str, Any]],
+    *,
+    scanned_studies: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged = [dict(candidate) for candidate in candidates]
+    index_by_key = {
+        _transition_request_readback_identity_key(candidate): index
+        for index, candidate in enumerate(merged)
+    }
+    for study in scanned_studies:
+        for candidate in _study_provider_readback_candidates(study):
+            key = _transition_request_readback_identity_key(candidate)
+            if key in index_by_key:
+                existing_index = index_by_key[key]
+                existing = merged[existing_index]
+                if provider_admission_opl_transition_readback(candidate) and not provider_admission_opl_transition_readback(existing):
+                    merged[existing_index] = {
+                        **existing,
+                        **candidate,
+                    }
+                continue
+            merged.append(candidate)
+            index_by_key[key] = len(merged) - 1
+    return merged
+
+
+def _study_provider_readback_candidates(study: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for item in study.get("provider_admission_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if provider_admission_opl_transition_readback(item):
+            candidates.append(dict(item))
+    handoff = _mapping(study.get("opl_current_control_state_handoff"))
+    for item in handoff.get("provider_admission_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if provider_admission_opl_transition_readback(item):
+            candidates.append(dict(item))
+    return candidates
 
 
 def _arbiter_candidate_key(decision: Mapping[str, Any]) -> tuple[str | None, ...]:

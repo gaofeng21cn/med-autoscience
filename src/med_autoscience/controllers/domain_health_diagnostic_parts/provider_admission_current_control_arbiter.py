@@ -955,6 +955,8 @@ def _dry_run_request_only_transition_request_candidate(candidate: Mapping[str, A
 
 
 def _candidate_requires_strong_current_control_identity(candidate: Mapping[str, Any]) -> bool:
+    if provider_admission_opl_transition_readback(candidate):
+        return False
     if candidate_opl_transition_readback(candidate):
         return True
     if (
