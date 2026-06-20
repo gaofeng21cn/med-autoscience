@@ -986,6 +986,8 @@ def _gate_followthrough_consumes_repair_progress_gate_replay(
     if _non_empty_text(followthrough.get("gate_replay_status")) != "blocked":
         return False
     gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+    if not gate_followthrough_action:
+        return False
     if _non_empty_text(gate_followthrough_action.get("source")) != (
         "gate_clearing_batch_followthrough.actionable_current_work_unit"
     ):

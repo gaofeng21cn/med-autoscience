@@ -833,6 +833,77 @@ def test_refresh_current_execution_surfaces_rebuilds_selected_successor_over_sta
     assert result["current_execution_envelope"]["owner"] == "analysis-campaign"
 
 
+def test_gate_followthrough_action_suppressed_after_quality_batch_consumes_same_eval() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T07:41:48+00:00"
+    )
+    stale_fingerprint = "publication-blockers::0915410f804b3697"
+    selected_fingerprint = "publication-blockers::5d99b7c4019bd601"
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "gate_replay_status": "blocked",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": stale_fingerprint,
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "explicit_work_unit_fingerprint": "publication-blockers::2a234f3e48d8beb5",
+                    "current_work_unit_fingerprint": stale_fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "explicit_publication_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+            },
+            "quality_repair_batch_followthrough": {
+                "surface_kind": "quality_repair_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "gate_replay_status": "blocked",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": stale_fingerprint,
+                "work_unit_currentness": {
+                    "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_work_unit_fingerprint": stale_fingerprint,
+                },
+            },
+            "publication_eval": {
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "work_unit_fingerprint": selected_fingerprint,
+                        "next_work_unit": {
+                            "unit_id": "analysis_claim_evidence_repair",
+                            "lane": "analysis-campaign",
+                        },
+                    },
+                ],
+            },
+        }
+    )
+
+    assert action is None
+
+
 def test_publication_eval_repair_action_survives_zero_selected_materialized_dispatch_blocker() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"

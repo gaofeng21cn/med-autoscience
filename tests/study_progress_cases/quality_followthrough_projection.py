@@ -693,6 +693,12 @@ def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Pa
                 "unit_results": [
                     {"unit_id": "materialize_display_surface", "status": "updated"},
                 ],
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::quality",
+                "work_unit_currentness": {
+                    "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_work_unit_fingerprint": "publication-blockers::quality",
+                },
                 "gate_replay": {
                     "status": "blocked",
                     "blockers": ["medical_publication_surface_blocked"],
@@ -712,8 +718,10 @@ def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Pa
         "status": "executed",
         "quality_closure_state": "quality_repair_required",
         "quality_execution_lane_id": "general_quality_repair",
+        "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
         "summary": "最近一轮 quality-repair batch 已执行；当前 gate replay 仍剩 1 个 blocker。",
         "gate_replay_status": "blocked",
+        "gate_replay_blockers": ["medical_publication_surface_blocked"],
         "blocking_issue_count": 1,
         "failed_unit_count": 0,
         "next_confirmation_signal": "看 publication_eval/latest.json 或最新 quality gate replay 是否继续收窄 blocker。",
@@ -721,7 +729,91 @@ def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Pa
         "recommended_step_id": "run_quality_repair_batch",
         "recommended_command": "uv run python -m med_autoscience.cli study quality-repair-batch --profile profile.local.toml --study-id 001-risk",
         "latest_record_path": str(quality_batch_path),
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::quality",
+        "work_unit_currentness": {
+            "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+            "current_work_unit_fingerprint": "publication-blockers::quality",
+        },
     }
+
+
+def test_quality_repair_batch_followthrough_survives_gate_replay_eval_refresh(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_treatment_gap",
+    )
+    quality_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T07:41:48+00:00"
+    )
+    refreshed_eval = {
+        "schema_version": 1,
+        "eval_id": (
+            "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+            "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-20T07:42:04+00:00"
+        ),
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "emitted_at": "2026-06-20T07:42:04+00:00",
+        "verdict": {"overall_verdict": "blocked"},
+        "gaps": [],
+        "recommended_actions": [],
+    }
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    _write_json(
+        quality_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": quality_eval_id,
+            "status": "executed",
+            "gate_clearing_batch": {
+                "status": "executed",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "work_unit_currentness": {
+                    "selected_publication_work_unit_id": "analysis_claim_evidence_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "current_actionability_status": "actionable",
+                },
+                "selected_publication_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+                "current_publication_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+                "unit_results": [],
+                "gate_replay": {
+                    "status": "blocked",
+                    "blockers": [
+                        "stale_submission_minimal_authority",
+                        "medical_publication_surface_blocked",
+                    ],
+                },
+            },
+        },
+    )
+
+    result = module._quality_repair_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=refreshed_eval,
+        current_eval_ids=[quality_eval_id],
+        recommended_command=None,
+    )
+
+    assert result is not None
+    assert result["status"] == "executed"
+    assert result["source_eval_id"] == quality_eval_id
+    assert result["gate_replay_status"] == "blocked"
+    assert result["work_unit_currentness"]["selected_publication_work_unit_id"] == "analysis_claim_evidence_repair"
 
 
 def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrough() -> None:

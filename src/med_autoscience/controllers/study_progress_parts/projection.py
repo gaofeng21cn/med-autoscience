@@ -745,6 +745,7 @@ def build_study_progress_projection(
     quality_repair_batch_followthrough = _quality_repair_batch_followthrough(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
+        current_eval_ids=_current_gate_clearing_eval_ids(status=status),
         recommended_command=study_commands.get("quality_repair_batch"),
     )
     quality_review_followthrough = _quality_review_followthrough_projection(

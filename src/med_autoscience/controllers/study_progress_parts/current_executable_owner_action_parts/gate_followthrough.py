@@ -93,6 +93,13 @@ def owner_action_from_gate_followthrough_current_work_unit(
     next_owner = lane if lane in {"write", "analysis-campaign", "finalize"} else "write"
     work_unit_fingerprint = _non_empty_text(derived.get("fingerprint")) or work_unit_fingerprint
     source_eval_id = _non_empty_text(followthrough.get("source_eval_id"))
+    if _quality_repair_followthrough_consumes_gate_action(
+        payload,
+        source_eval_id=source_eval_id,
+        work_unit_id=current_work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    ):
+        return None
     source_ref = _non_empty_text(followthrough.get("latest_record_path"))
     owner_route_currentness_basis = _compact(
         {
@@ -136,6 +143,29 @@ def owner_action_from_gate_followthrough_current_work_unit(
             "authority_boundary": _authority_boundary(),
         }
     )
+
+
+def _quality_repair_followthrough_consumes_gate_action(
+    payload: Mapping[str, Any],
+    *,
+    source_eval_id: str | None,
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+) -> bool:
+    followthrough = _mapping_copy(payload.get("quality_repair_batch_followthrough"))
+    if _non_empty_text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
+        return False
+    if _non_empty_text(followthrough.get("source_eval_id")) != source_eval_id:
+        return False
+    if _non_empty_text(followthrough.get("gate_replay_status")) is None:
+        return False
+    currentness = _mapping_copy(followthrough.get("work_unit_currentness"))
+    selected_work_unit_id = (
+        _non_empty_text(currentness.get("selected_publication_work_unit_id"))
+        or _non_empty_text(_mapping_copy(followthrough.get("selected_publication_work_unit")).get("unit_id"))
+        or _non_empty_text(followthrough.get("work_unit_id"))
+    )
+    return bool(work_unit_id and selected_work_unit_id == work_unit_id)
 
 
 def _publication_eval_specificity_work_unit_for_gate_followthrough(

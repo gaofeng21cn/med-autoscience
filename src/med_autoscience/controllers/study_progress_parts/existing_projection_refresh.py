@@ -101,6 +101,7 @@ def refresh_existing_projection_batch_followthroughs(
     updated["quality_repair_batch_followthrough"] = _quality_repair_batch_followthrough(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
+        current_eval_ids=current_gate_clearing_eval_ids(status=status),
         recommended_command=study_commands.get("quality_repair_batch"),
     )
     return refresh_existing_projection_repair_progress(
