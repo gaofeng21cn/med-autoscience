@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 from pathlib import Path
 from typing import Any
-
-from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 
 def register_evo_scientist_sidecar_parsers(subparsers: argparse._SubParsersAction) -> None:
@@ -33,6 +32,10 @@ def register_evo_scientist_sidecar_parsers(subparsers: argparse._SubParsersActio
 def handle_evo_scientist_sidecar_command(args: argparse.Namespace) -> int | None:
     if args.command != "evo-scientist-sidecar":
         return None
+
+    evo_scientist_sidecar_refs = importlib.import_module(
+        "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs"
+    )
 
     if args.evo_scientist_sidecar_command == "observe":
         result = evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation(

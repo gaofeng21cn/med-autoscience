@@ -20,7 +20,7 @@ def handle_workspace_data_command(
     workspace_literature_controller: Any,
     load_profile: Any,
     load_doctor_module: Any,
-    overlay_installer: Any,
+    load_overlay_installer: Any,
     analysis_bundle_controller: Any,
     workspace_python_environment_controller: Any,
     overlay_request_from_args: Any,
@@ -154,16 +154,19 @@ def handle_workspace_data_command(
         return 0
 
     if args.command == "overlay-status":
+        overlay_installer = load_overlay_installer()
         result = overlay_installer.describe_medical_overlay(**overlay_request_from_args(args))
         _print_json(result)
         return 0
 
     if args.command == "install-medical-overlay":
+        overlay_installer = load_overlay_installer()
         result = overlay_installer.install_medical_overlay(**overlay_request_from_args(args))
         _print_json(result)
         return 0
 
     if args.command == "reapply-medical-overlay":
+        overlay_installer = load_overlay_installer()
         result = overlay_installer.reapply_medical_overlay(**overlay_request_from_args(args))
         _print_json(result)
         return 0
@@ -199,6 +202,7 @@ def handle_workspace_data_command(
         )
         analysis_bundle = analysis_bundle_controller.ensure_analysis_bundle()
         if profile.enable_medical_overlay:
+            overlay_installer = load_overlay_installer()
             overlay_request = doctor.overlay_request_from_profile(profile)
             overlay_bootstrap = overlay_installer.ensure_medical_overlay(
                 **overlay_request,

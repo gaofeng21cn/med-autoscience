@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 from pathlib import Path
 from typing import Any, Callable
 
-from med_autoscience.agent_entry.renderers import (
-    render_stage_route_contract_payload,
-    sync_agent_entry_assets,
-)
 from med_autoscience.foundry_command_surface import (
     build_foundry_command_surface_projection,
     is_foundry_command,
@@ -66,11 +63,13 @@ def handle_public_root_command(
         return 0
 
     if args.command == "show-stage-route-contract":
-        _print_json(render_stage_route_contract_payload())
+        renderers = importlib.import_module("med_autoscience.agent_entry.renderers")
+        _print_json(renderers.render_stage_route_contract_payload())
         return 0
 
     if args.command == "sync-agent-entry-assets":
-        result = sync_agent_entry_assets(repo_root=Path(args.repo_root))
+        renderers = importlib.import_module("med_autoscience.agent_entry.renderers")
+        result = renderers.sync_agent_entry_assets(repo_root=Path(args.repo_root))
         _print_json(result)
         return 0
 

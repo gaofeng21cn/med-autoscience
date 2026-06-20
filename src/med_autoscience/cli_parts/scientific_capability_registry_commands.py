@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 from pathlib import Path
 from typing import Any
-
-from med_autoscience.scientific_capability_registry import (
-    build_scientific_capability_registry,
-    invoke_scientific_capability,
-    resolve_scientific_capabilities,
-)
 
 
 def register_scientific_capability_registry_parser(
@@ -43,17 +38,18 @@ def handle_scientific_capability_registry_command(args: argparse.Namespace) -> i
         payload_file=args.payload_file,
         label="payload",
     )
+    registry = importlib.import_module("med_autoscience.scientific_capability_registry")
 
     if args.mode == "index":
-        result = build_scientific_capability_registry()
+        result = registry.build_scientific_capability_registry()
     elif args.mode == "resolve":
-        result = resolve_scientific_capabilities(
+        result = registry.resolve_scientific_capabilities(
             current_owner_delta=current_owner_delta,
         )
     else:
         if not args.capability_id:
             raise SystemExit("--capability-id is required when --mode invoke")
-        result = invoke_scientific_capability(
+        result = registry.invoke_scientific_capability(
             capability_id=args.capability_id,
             current_owner_delta=current_owner_delta,
             study_root=Path(args.study_root) if args.study_root else None,

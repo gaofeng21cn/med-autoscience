@@ -19,7 +19,6 @@ from med_autoscience.lazy_module_proxy import (
     lazy_controller_module as _lazy_controller_module,
 )
 from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
-from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.current_owner_delta_owner_answer_commands import handle_current_owner_delta_owner_answer_command
@@ -73,6 +72,10 @@ def _load_workspace_python_environment_controller() -> Any:
 
 def _load_doctor_module() -> Any:
     return _load_module("med_autoscience.doctor")
+
+
+def _load_overlay_installer() -> Any:
+    return _load_module("med_autoscience.overlay.installer")
 
 
 data_asset_gate = _LazyModuleProxy(lambda: _load_controller("data_asset_gate"))
@@ -152,6 +155,7 @@ workspace_literature_controller = _LazyModuleProxy(lambda: _load_controller("wor
 workspace_init_controller = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
 analysis_bundle_controller = _LazyModuleProxy(_load_analysis_bundle_controller)
 workspace_python_environment_controller = _LazyModuleProxy(_load_workspace_python_environment_controller)
+overlay_installer = _LazyModuleProxy(_load_overlay_installer)
 
 
 def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -662,7 +666,7 @@ def main(argv: list[str] | None = None) -> int:
         workspace_literature_controller=workspace_literature_controller,
         load_profile=load_profile,
         load_doctor_module=_load_doctor_module,
-        overlay_installer=overlay_installer,
+        load_overlay_installer=_load_overlay_installer,
         analysis_bundle_controller=analysis_bundle_controller,
         workspace_python_environment_controller=workspace_python_environment_controller,
         overlay_request_from_args=_overlay_request_from_args,
