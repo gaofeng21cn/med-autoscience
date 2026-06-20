@@ -22,8 +22,10 @@ from med_autoscience.display_pack_gallery_catalog import (
     canonical_catalog_default_records,
     canonical_records,
     default_surface_excluded_records,
+    design_gallery_records,
     figure_family_policy,
     gallery_display_records,
+    gallery_visual_records,
     gallery_template_family_ontology,
     non_visual_canonical_records,
     visual_gallery_records,
@@ -140,6 +142,8 @@ def build_manifest(
     publish_docs: bool,
 ) -> dict[str, Any]:
     visual_records = gallery_display_records(records)
+    design_records = design_gallery_records(records)
+    all_gallery_visual_records = gallery_visual_records(records)
     canonical_visual_records = visual_gallery_records(records)
     non_visual_records = non_visual_canonical_records(records)
     catalog_default_records = canonical_catalog_default_records(records)
@@ -147,6 +151,11 @@ def build_manifest(
     canonical_rendered_count = sum(
         1
         for record in visual_records
+        if rendered[record.template_id].status == "rendered"
+    )
+    design_rendered_count = sum(
+        1
+        for record in design_records
         if rendered[record.template_id].status == "rendered"
     )
     internal_rendered_count = sum(
@@ -158,6 +167,7 @@ def build_manifest(
         records=records,
         visual_records=visual_records,
         non_visual_records=non_visual_records,
+        design_records=design_records,
         default_surface_excluded_records=default_excluded_records,
         rendered=rendered,
         baseline_rendered=baseline_rendered,
@@ -180,9 +190,11 @@ def build_manifest(
         "docs_quality_audit_path": str(paths.DOCS_QUALITY_AUDIT_PATH) if publish_docs else "",
         "docs_status_path": str(paths.DOCS_STATUS_PATH) if publish_docs else "",
         "docs_manifest_path": str(paths.DOCS_MANIFEST_PATH) if publish_docs else "",
-        "template_count": len(visual_records),
+        "template_count": len(all_gallery_visual_records),
         "active_template_count": len(visual_records),
         "evidence_gallery_template_count": len(visual_records),
+        "design_gallery_template_count": len(design_records),
+        "visual_gallery_template_count": len(all_gallery_visual_records),
         "composition_recipe_gallery_count": composition_gallery_surface["composition_recipe_count"],
         "non_visual_canonical_template_count": len(non_visual_records),
         "current_template_count": len(records),
@@ -201,6 +213,8 @@ def build_manifest(
         "default_surface_excluded_template_count": len(default_excluded_records),
         "legacy_alias_template_count": sum(1 for record in records if record.migration_status == "migrated_alias"),
         "rendered_image_template_count": canonical_rendered_count,
+        "rendered_design_image_template_count": design_rendered_count,
+        "rendered_visual_gallery_template_count": canonical_rendered_count + design_rendered_count,
         "internal_rendered_image_template_count": internal_rendered_count,
         "renderer_family_counts": dict(sorted(Counter(record.renderer_family for record in records).items())),
         "style_profile_id": display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["style_profile_id"],
@@ -251,14 +265,18 @@ def build_manifest(
         "canonical_family_ontology": canonical_family_ontology(),
         "gallery_template_family_ontology": gallery_template_family_ontology(records),
         "template_surface_policy": {
-            "gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
+            "gallery_default_surface": "canonical_current_visual_gallery_templates",
+            "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
+            "design_gallery_default_surface": "canonical_current_illustration_shell_templates",
             "active_inventory_is_canonical_current_templates": True,
-            "canonical_representatives_are_gallery_card_filter": True,
+            "canonical_representatives_are_evidence_gallery_card_filter": True,
+            "illustration_shells_are_design_gallery_cards": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
             "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": False,
             "explicit_alias_requests_migrate_to_canonical_template": True,
             "evidence_figures_default_to_r_ggplot2": True,
             "python_evidence_templates_not_retained_without_advantage_proof": True,
+            "python_illustration_shells_are_visible_design_gallery_cards": True,
             "python_illustration_shells_may_exist_but_are_not_mixed_into_ggplot2_evidence_gallery": True,
             "template_analysis_responsibility_required": True,
             "raw_analysis_inputs_must_match_computed_workflow_templates": True,
@@ -277,10 +295,19 @@ def build_manifest(
             )
             for record in visual_records
         ],
+        "design_gallery_templates": [
+            _template_payload(
+                record,
+                rendered[record.template_id],
+                visual_gallery_visible=True,
+            )
+            for record in design_records
+        ],
         "non_visual_inventory": [
             _template_payload(
                 record,
                 rendered[record.template_id],
+                visual_gallery_visible=record in design_records,
             )
             for record in non_visual_records
         ],
@@ -321,7 +348,14 @@ def build_manifest(
     }
 
 
-def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str, Any]:
+def _template_payload(
+    record: TemplateRecord,
+    asset: RenderedAsset,
+    *,
+    visual_gallery_visible: bool | None = None,
+) -> dict[str, Any]:
+    if visual_gallery_visible is None:
+        visual_gallery_visible = record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2"
     return {
         "template_id": record.template_id,
         "display_name": record.display_name,
@@ -338,7 +372,7 @@ def _template_payload(record: TemplateRecord, asset: RenderedAsset) -> dict[str,
         "publication_quality_profile": dict(record.publication_quality_profile),
         "migration_status": record.migration_status,
         "default_visible": record.default_visible,
-        "visual_gallery_visible": record.kind == "evidence_figure" and record.renderer_family == "r_ggplot2",
+        "visual_gallery_visible": visual_gallery_visible,
         "migrated_alias_template_ids": list(record.migrated_alias_template_ids),
         "migration_reason": record.migration_reason,
         "kind": record.kind,

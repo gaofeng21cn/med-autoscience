@@ -187,6 +187,7 @@ def build_quality_audit(
     records: list[TemplateRecord],
     visual_records: list[TemplateRecord],
     non_visual_records: list[TemplateRecord],
+    design_records: list[TemplateRecord],
     default_surface_excluded_records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
@@ -226,6 +227,8 @@ def build_quality_audit(
         "publication_ready_claim_authorized": False,
         "quality_surface": "gallery_lower_bound_visual_audit",
         "visual_template_count": len(visual_records),
+        "design_visual_template_count": len(design_records),
+        "total_gallery_visual_template_count": len(visual_records) + len(design_records),
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
         "blocked_template_count": blocked_count,
@@ -245,8 +248,9 @@ def build_quality_audit(
             "default_gallery_claim": "lower_bound_reference_templates_only",
             "ai_authority": "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim",
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
-            "current_surface": "canonical_current_templates_not_input_data_specific_variants",
+            "current_surface": "canonical_current_gallery_templates_not_input_data_specific_variants",
             "composition_recipe_policy": "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards",
+            "design_gallery_policy": "illustration_shells_are_visible_non_statistical_design_starting_points",
             "required_before_paper_use": publication_polish_policy()["required_before_paper_use"],
             "required_workflow_before_paper_use": figure_workflow_policy()["paper_use_acceptance"],
             "composition_recipe_required_before_paper_use": [
@@ -270,6 +274,14 @@ def build_quality_audit(
         "publication_polish_policy": publication_polish_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
+        "design_gallery_templates": [
+            audit_template_quality(
+                record,
+                rendered[record.template_id],
+                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
+            )
+            for record in design_records
+        ],
         "non_visual_inventory": [
             {
                 "template_id": record.template_id,
@@ -277,7 +289,7 @@ def build_quality_audit(
                 "canonical_family_title": record.canonical_family_title,
                 "kind": record.kind,
                 "renderer_family": record.renderer_family,
-                "status": "kept_out_of_image_gallery",
+                "status": "design_gallery_card" if record in design_records else "kept_out_of_image_gallery",
             }
             for record in non_visual_records
         ],
@@ -427,6 +439,13 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
     composition_before_paper_lines = "\n".join(
         f"- `{item}`" for item in audit["quality_policy"]["composition_recipe_required_before_paper_use"]
     )
+    design_lines = "\n".join(
+        (
+            f"| `{item['template_id']}` | {item['category']} | {item['renderer_family']} | "
+            f"`{item['status']}` | {', '.join(f'`{warning}`' for warning in item['warnings']) or 'none'} |"
+        )
+        for item in audit.get("design_gallery_templates", [])
+    ) or "| none | none | none | none | none |"
     composition_recipe_lines = "\n".join(
         (
             f"| `{item['recipe_id']}` | {item['title']} | {item['hero_panel_role']} | "
@@ -466,7 +485,7 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
         f"- [{item['ref_id']}]({item['url']}): {item['lesson']}"
         for item in audit["external_quality_references"]
     )
-    return f"""# MAS 医学论文配图画册质量审计
+    return f"""# MAS 医学论文配图 Gallery 质量审计
 
 Owner: `MedAutoScience`
 Purpose: `human_readable_quality_audit_for_display_pack_gallery`
@@ -480,6 +499,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - overall_status: `{audit["overall_status"]}`
 - publication_ready_claim_authorized: `{str(audit["publication_ready_claim_authorized"]).lower()}`
 - visual template count: `{audit["visual_template_count"]}`
+- design visual template count: `{audit["design_visual_template_count"]}`
+- total Gallery visual template count: `{audit["total_gallery_visual_template_count"]}`
 - non-visual inventory count: `{audit["non_visual_template_count"]}`
 - lower-bound review required: `{audit["lower_bound_review_required_count"]}`
 - blocked templates: `{audit["blocked_template_count"]}`
@@ -506,6 +527,12 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | Recipe | Title | Hero panel | Supporting | Primitive families | Programmatic evidence | Design shell |
 | --- | --- | --- | ---: | ---: | --- | --- |
 {composition_recipe_lines}
+
+## 非数据设计/流程图起点
+
+| Template | Category | Renderer | Status | Warnings |
+| --- | --- | --- | --- | --- |
+{design_lines}
 
 ## 高风险图族复核项
 
@@ -543,7 +570,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | --- | --- | --- | --- | --- |
 | none | none | evidence_figure | python | current_pack_retains_no_python_evidence_templates |
 
-## 默认面排除的非视觉库存
+## 默认面排除的表格/非图像库存
 
 | Template | Category | Kind | Renderer | Reason |
 | --- | --- | --- | --- | --- |

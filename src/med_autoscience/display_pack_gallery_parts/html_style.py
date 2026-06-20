@@ -374,6 +374,7 @@ h1{
   .category-head h3{font-size:15px}
   .category-head p,.category-count{font-size:9px}
   .cards{grid-template-columns:repeat(2,1fr);gap:8px}
+  .design-cards{grid-template-columns:repeat(2,1fr);gap:8px}
   .pane-label{font-size:8px;padding:4px 6px}
   .asset-links{display:none}
   .card-body{padding:7px}

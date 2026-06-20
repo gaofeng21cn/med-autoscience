@@ -12,6 +12,8 @@
   "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
   "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
   "evidence_gallery_template_count": 28,
+  "design_gallery_template_count": 2,
+  "visual_gallery_template_count": 30,
   "composition_recipe_gallery_count": 6,
   "current_template_count": 31,
   "non_visual_canonical_template_count": 3,
@@ -19,14 +21,18 @@
   "style_profile_id": "paper_neutral_clinical_v1",
   "journal_palette_ref": "nature_informed_clinical_publication_v1",
   "template_surface_policy": {
-    "gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
+    "gallery_default_surface": "canonical_current_visual_gallery_templates",
+    "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
+    "design_gallery_default_surface": "canonical_current_illustration_shell_templates",
     "active_inventory_is_canonical_current_templates": true,
-    "canonical_representatives_are_gallery_card_filter": true,
+    "canonical_representatives_are_evidence_gallery_card_filter": true,
+    "illustration_shells_are_design_gallery_cards": true,
     "canonical_non_visual_inventory_preserved_in_manifest": true,
     "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": false,
     "explicit_alias_requests_migrate_to_canonical_template": true,
     "evidence_figures_default_to_r_ggplot2": true,
     "python_evidence_templates_not_retained_without_advantage_proof": true,
+    "python_illustration_shells_are_visible_design_gallery_cards": true,
     "python_illustration_shells_may_exist_but_are_not_mixed_into_ggplot2_evidence_gallery": true,
     "template_analysis_responsibility_required": true,
     "raw_analysis_inputs_must_match_computed_workflow_templates": true,
@@ -100,6 +106,8 @@
     "overall_status": "not_publication_ready",
     "publication_ready_claim_authorized": false,
     "visual_template_count": 28,
+    "design_visual_template_count": 2,
+    "total_gallery_visual_template_count": 30,
     "non_visual_template_count": 3,
     "blocked_template_count": 0,
     "lower_bound_review_required_count": 28,
@@ -1673,6 +1681,45 @@
       "preview_image_ref": "ggplot2_template_reference_assets/umap_scatter_grouped.png",
       "pdf_ref": "ggplot2_template_reference_assets/umap_scatter_grouped.pdf",
       "layout_ref": "ggplot2_template_reference_assets/umap_scatter_grouped.layout.json"
+    }
+  ],
+  "design_gallery_templates": [
+    {
+      "template_id": "cohort_flow_figure",
+      "canonical_family_id": "cohort_flow_figure",
+      "canonical_family_title": "Cohort Flow",
+      "canonical_family_category": "Publication Shells and Tables",
+      "renderer_family": "python",
+      "analysis_responsibility": "illustration_shell",
+      "medical_family_ids": [
+        "strobe_cohort_flow",
+        "consort_trial_flow",
+        "prisma_review_flow",
+        "stard_diagnostic_flow",
+        "eligibility_waterfall"
+      ],
+      "preview_image_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.gallery.png",
+      "image_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.png",
+      "svg_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.svg",
+      "pdf_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.pdf",
+      "layout_ref": "ggplot2_template_reference_assets/cohort_flow_figure.design.layout.json"
+    },
+    {
+      "template_id": "submission_graphical_abstract",
+      "canonical_family_id": "submission_graphical_abstract",
+      "canonical_family_title": "Submission Graphical Abstract",
+      "canonical_family_category": "Publication Shells and Tables",
+      "renderer_family": "python",
+      "analysis_responsibility": "illustration_shell",
+      "medical_family_ids": [
+        "graphical_abstract",
+        "causal_dag"
+      ],
+      "preview_image_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.gallery.png",
+      "image_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.png",
+      "svg_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.svg",
+      "pdf_ref": "",
+      "layout_ref": "ggplot2_template_reference_assets/submission_graphical_abstract.design.layout.json"
     }
   ]
 }

@@ -1,4 +1,4 @@
-# MAS 医学论文配图画册质量审计
+# MAS 医学论文配图 Gallery 质量审计
 
 Owner: `MedAutoScience`
 Purpose: `human_readable_quality_audit_for_display_pack_gallery`
@@ -12,6 +12,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - overall_status: `not_publication_ready`
 - publication_ready_claim_authorized: `false`
 - visual template count: `28`
+- design visual template count: `2`
+- total Gallery visual template count: `30`
 - non-visual inventory count: `3`
 - lower-bound review required: `28`
 - blocked templates: `0`
@@ -61,6 +63,13 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | `image_plate_plus_quantification` | Image Plate plus Quantification | representative_image_plate | 3 | 5 | `true` | `true` |
 | `asymmetric_genomics_figure` | Asymmetric Genomics Figure | dominant_molecular_pattern | 3 | 6 | `true` | `false` |
 | `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 | 7 | `true` | `false` |
+
+## 非数据设计/流程图起点
+
+| Template | Category | Renderer | Status | Warnings |
+| --- | --- | --- | --- | --- |
+| `cohort_flow_figure` | Publication Shells and Tables | python | `lower_bound_review_required` | `composition_density_risk`, `illustration_shell_style_review_required`, `python_renderer_style_alignment_required` |
+| `submission_graphical_abstract` | Publication Shells and Tables | python | `lower_bound_review_required` | `composition_density_risk`, `illustration_shell_style_review_required`, `python_renderer_style_alignment_required` |
 
 ## 高风险图族复核项
 
@@ -145,7 +154,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | --- | --- | --- | --- | --- |
 | none | none | evidence_figure | python | current_pack_retains_no_python_evidence_templates |
 
-## 默认面排除的非视觉库存
+## 默认面排除的表格/非图像库存
 
 | Template | Category | Kind | Renderer | Reason |
 | --- | --- | --- | --- | --- |

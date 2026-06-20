@@ -21,10 +21,18 @@ class EvidenceCopy:
     use_when: str
 
 
-GALLERY_TITLE = "MAS 医学论文配图画册"
+@dataclass(frozen=True)
+class DesignCopy:
+    purpose: str
+    input_requirement: str
+    use_when: str
+    evidence_boundary: str
+
+
+GALLERY_TITLE = "MAS 医学论文配图 Gallery"
 GALLERY_SUBTITLE = (
     "这份画册展示 MAS 内置医学论文配图体系的默认工作方式：先用页面级图页方案组织论文论点，"
-    "再用 R/ggplot2 数据证据图作为可复用、可审计的出图起点。"
+    "再分别选择非数据设计图起点和 R/ggplot2 数据证据图起点。"
 )
 GALLERY_SCOPE = (
     "所有示例均使用合成数据或示意性图页方案，用于评估模板覆盖、版式组织、统一风格和调用入口。"
@@ -33,7 +41,7 @@ GALLERY_SCOPE = (
 GALLERY_WORKFLOW_STEPS = (
     ("1", "锁定论文论点", "明确本图要支撑的主要结论、目标人群、数据来源和统计量。"),
     ("2", "选择图页方案", "从页面级图页方案中选择最接近的叙事结构，确定主面板和辅助证据。"),
-    ("3", "调用证据图模板", "为每个数据面板选择 R/ggplot2 证据图起点，保证数据处理、统计含义和导出格式可追踪。"),
+    ("3", "选择图件起点", "非数据设计图可走 SVG/Python/imagegen 辅助；数据证据图默认走 R/ggplot2，保证统计含义可追踪。"),
     ("4", "论文级打磨", "MAS 可重排面板、统一图例、调整配色和标签，并在最终稿前执行视觉与证据审查。"),
 )
 
@@ -144,6 +152,22 @@ EVIDENCE_CATEGORY_COPY: dict[str, tuple[str, str]] = {
     "Model Audit": (
         "模型审计",
         "用于呈现模型复杂度、稳健性、特征治理和过拟合风险。",
+    ),
+}
+
+
+DESIGN_COPY: dict[str, DesignCopy] = {
+    "cohort_flow_figure": DesignCopy(
+        "展示研究对象筛选、排除、纳入分析和结局分流的流程结构。",
+        "需要 cohort source、纳排标准、每一步人数、排除原因、分析集和结局定义。",
+        "用于 Figure 1、研究设计图、队列构建说明或补充流程图。",
+        "人数和节点关系必须来自可追踪 source；该 shell 只负责流程表达，不承担模型性能或统计推断证据。",
+    ),
+    "submission_graphical_abstract": DesignCopy(
+        "用简洁的图形摘要概括研究对象、核心终点、主要发现和提交材料中的视觉主线。",
+        "需要论文核心结论、主要 cohort、关键 endpoint、最重要的结果数字和目标期刊图形摘要要求。",
+        "用于 graphical abstract、submission companion、TOC-style overview 或编辑部要求的视觉摘要。",
+        "可使用 SVG/Python composition 或 imagegen-assisted art direction 提升表现力，但真实结果数字必须来自已审计证据引用。",
     ),
 }
 
@@ -319,5 +343,17 @@ def evidence_copy(record: TemplateRecord) -> EvidenceCopy:
             purpose=f"展示{record.canonical_family_title}相关数据证据。",
             data_requirement="需要已审计的数据摘要、统计量和来源引用。",
             use_when="用于论文中与该图型对应的证据面板。",
+        ),
+    )
+
+
+def design_copy(record: TemplateRecord) -> DesignCopy:
+    return DESIGN_COPY.get(
+        record.template_id,
+        DesignCopy(
+            purpose=f"展示{record.canonical_family_title}相关非数据设计图。",
+            input_requirement="需要论文级叙事 brief、来源引用、节点/面板关系和目标期刊图形要求。",
+            use_when="用于研究流程、设计说明、图形摘要或机制性示意图。",
+            evidence_boundary="设计图可追求表达力，但不得替代程序化数据证据图或统计结果来源。",
         ),
     )

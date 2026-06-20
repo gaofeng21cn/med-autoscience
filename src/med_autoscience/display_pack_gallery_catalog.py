@@ -140,6 +140,18 @@ def gallery_display_records(records: list[TemplateRecord]) -> list[TemplateRecor
     return full_evidence_gallery_records(records)
 
 
+def design_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in non_visual_canonical_records(records)
+        if record.kind == "illustration_shell"
+    ]
+
+
+def gallery_visual_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [*gallery_display_records(records), *design_gallery_records(records)]
+
+
 def non_visual_canonical_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [
         record

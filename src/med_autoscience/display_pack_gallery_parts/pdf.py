@@ -80,6 +80,8 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "status": payload.get("status"),
         **path_fields,
         "evidence_gallery_template_count": payload.get("evidence_gallery_template_count"),
+        "design_gallery_template_count": payload.get("design_gallery_template_count"),
+        "visual_gallery_template_count": payload.get("visual_gallery_template_count"),
         "composition_recipe_gallery_count": payload.get("composition_recipe_gallery_count"),
         "current_template_count": payload.get("current_template_count"),
         "non_visual_canonical_template_count": payload.get("non_visual_canonical_template_count"),
@@ -109,6 +111,24 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
             for item in payload.get("templates", [])
             if isinstance(item, dict)
         ],
+        "design_gallery_templates": [
+            {
+                "template_id": item.get("template_id"),
+                "canonical_family_id": item.get("canonical_family_id"),
+                "canonical_family_title": item.get("canonical_family_title"),
+                "canonical_family_category": item.get("canonical_family_category"),
+                "renderer_family": item.get("renderer_family"),
+                "analysis_responsibility": item.get("analysis_responsibility"),
+                "medical_family_ids": item.get("medical_family_ids"),
+                "preview_image_ref": item.get("preview_image_ref"),
+                "image_ref": item.get("image_ref"),
+                "svg_ref": item.get("svg_ref"),
+                "pdf_ref": item.get("pdf_ref"),
+                "layout_ref": item.get("layout_ref"),
+            }
+            for item in payload.get("design_gallery_templates", [])
+            if isinstance(item, dict)
+        ],
     }
 
 
@@ -120,6 +140,8 @@ def _quality_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "overall_status": quality.get("overall_status"),
         "publication_ready_claim_authorized": quality.get("publication_ready_claim_authorized"),
         "visual_template_count": quality.get("visual_template_count"),
+        "design_visual_template_count": quality.get("design_visual_template_count"),
+        "total_gallery_visual_template_count": quality.get("total_gallery_visual_template_count"),
         "non_visual_template_count": quality.get("non_visual_template_count"),
         "blocked_template_count": quality.get("blocked_template_count"),
         "lower_bound_review_required_count": quality.get("lower_bound_review_required_count"),

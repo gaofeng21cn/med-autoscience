@@ -7,7 +7,7 @@ Machine boundary: 本文是人读结构评估。机器真相继续归 `display-p
 
 ## 当前结论
 
-`R/ggplot2-first` 已在 core pack 收口为当前默认路径：默认 evidence Gallery 只展示 canonical current R/ggplot2 数据证据图，Python evidence 不再作为隐藏库存、显式请求库存或 Gallery 对比图保留。当前数量由生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md) 给出。
+`R/ggplot2-first` 已在 core pack 收口为当前默认路径：默认数据证据图只展示 canonical current R/ggplot2 模板，Python evidence 不再作为隐藏库存、显式请求库存或 Gallery 对比图保留。非数据设计/流程/graphical-abstract shell 作为独立 design Gallery 分区展示，不承担统计证据 authority。当前数量由生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md) 给出。
 
 当前 `fenggaolab.org.medical-display-core` 的真实 inventory 按生成状态读取：
 
@@ -16,7 +16,8 @@ Machine boundary: 本文是人读结构评估。机器真相继续归 `display-p
 | Gallery evidence figures | 见 generated status | 默认 R/ggplot2 subprocess 数据证据图。 |
 | Current canonical templates | 见 generated status | 当前 agent discover / figure plan 默认推荐面。 |
 | Python evidence templates | 见 generated status | 必须为 `0`，除非未来按 re-entry 规则正式入库。 |
-| Current non-visual canonical inventory | 见 generated status | 设计/流程/table 等不混入 ggplot2 evidence Gallery 的库存。 |
+| Current design / flow Gallery | 见 generated status | 设计/流程/graphical abstract 等不混入 R/ggplot2 evidence 分区的可视起点。 |
+| Current non-visual canonical inventory | 见 generated status | table shell 等不作为图像卡片展示的库存。 |
 | Retired alias / duplicate ids | 见 generated status | 只做显式旧 ID 迁移，不是 current template。 |
 
 因此，现状应读作：**当前医学数据证据图只保留 R/ggplot2 版本；Python 只保留在设计/流程/graphical abstract shell 和 table-shell 支撑路径。**
