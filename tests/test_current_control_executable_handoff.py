@@ -98,6 +98,143 @@ def test_transition_request_candidate_projects_current_executable_action() -> No
     assert currentness["current_work_unit"]["state"]["transition_request_pending"] is True
 
 
+def test_consumed_provider_terminal_closeout_projects_next_ai_reviewer_handoff() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    consumed_work_unit_id = "medical_prose_write_repair"
+    consumed_fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    next_work_unit_id = "ai_reviewer_recheck_after_medical_prose_write_repair"
+    route_key = "paper-policy-request:5c447e99601513e78e08ca8f"
+    payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "next_owner": "write",
+            "action_type": "request_opl_stage_attempt",
+            "allowed_actions": ["request_opl_stage_attempt"],
+            "work_unit_id": consumed_work_unit_id,
+            "work_unit_fingerprint": consumed_fingerprint,
+            "action_fingerprint": consumed_fingerprint,
+            "provider_admission_pending": False,
+            "transition_request_pending": True,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_transition_runtime_required": True,
+        },
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "write",
+            "action_type": "request_opl_stage_attempt",
+            "work_unit_id": consumed_work_unit_id,
+            "work_unit_fingerprint": consumed_fingerprint,
+            "action_fingerprint": consumed_fingerprint,
+        },
+        "provider_admission_pending_count": 0,
+        "transition_request_pending_count": 0,
+    }
+    handoff = {
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "quest_status": "provider_admission_pending",
+        "running_provider_attempt": False,
+        "runtime_health": {
+            "health_status": "terminal",
+            "runtime_liveness_status": "terminal",
+        },
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "current_execution_envelope": {
+            "state_kind": "executable_owner_action",
+            "owner": "write",
+            "next_work_unit": consumed_work_unit_id,
+            "typed_blocker": None,
+        },
+        "latest_terminal_stage_log": {
+            "surface_kind": "mas_latest_terminal_stage_log_projection",
+            "study_id": study_id,
+            "stage_attempt_id": "sat_efdab57a49cb6d58f2a17eeb",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": consumed_work_unit_id,
+            "work_unit_fingerprint": consumed_fingerprint,
+            "status": "closed_with_domain_owner_refs",
+            "owner_receipt_refs": [
+                f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json"
+            ],
+            "source_path": (
+                f"studies/{study_id}/artifacts/supervision/consumer/"
+                "stage_attempt_closeouts/sat_efdab57a49cb6d58f2a17eeb.json"
+            ),
+            "paper_stage_log": {
+                "stage_name": consumed_work_unit_id,
+                "outcome": "closed_with_domain_owner_refs",
+                "progress_delta_classification": "deliverable_progress",
+                "changed_paper_surfaces": [
+                    f"studies/{study_id}/artifacts/stage_outputs/current_body/paper/draft.md"
+                ],
+                "next_forced_delta": {
+                    "owner_action": {
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "next_owner": "ai_reviewer",
+                        "work_unit_id": next_work_unit_id,
+                    },
+                    "reason": "story_surface_delta_recorded_requires_ai_reviewer_recheck",
+                    "required_delta_kind": "ai_reviewer_recheck_or_publication_gate_replay",
+                    "target_surface": {
+                        "surface_ref": "artifacts/publication_eval/latest.json",
+                    },
+                    "work_unit_id": next_work_unit_id,
+                },
+            },
+        },
+        "provider_admission_terminal_closeout_consumed": {
+            "surface_kind": "provider_admission_terminal_closeout_consumed",
+            "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+            "stage_attempt_id": "sat_efdab57a49cb6d58f2a17eeb",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": consumed_work_unit_id,
+            "work_unit_fingerprint": consumed_fingerprint,
+            "action_fingerprint": consumed_fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+        },
+    }
+
+    result = module.refresh_current_execution_surfaces(
+        payload=payload,
+        status={},
+        handoff=handoff,
+        runtime_health_snapshot={},
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["current_executable_owner_action"]["source"] == (
+        "study_progress.next_forced_delta.owner_action"
+    )
+    assert result["current_executable_owner_action"]["next_owner"] == "ai_reviewer"
+    assert result["current_executable_owner_action"]["action_type"] == (
+        "return_to_ai_reviewer_workflow"
+    )
+    assert result["current_executable_owner_action"]["work_unit_id"] == next_work_unit_id
+    assert result["current_executable_owner_action"]["terminal_stage_next_forced_delta"] is True
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["owner"] == "ai_reviewer"
+    assert result["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert result["current_work_unit"]["work_unit_id"] == next_work_unit_id
+    assert result["current_work_unit"]["state"]["source"] == (
+        "study_progress.next_forced_delta.owner_action"
+    )
+    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+
+
 def test_current_work_unit_uses_current_control_transition_request_over_stale_budget_blocker() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_work_unit")
     study_id = "002-dm-china-us-mortality-attribution"

@@ -43,6 +43,9 @@ from ..current_executable_owner_action_parts.paper_recovery import (
     owner_action_from_paper_recovery_state,
     paper_recovery_successor_action_ready,
 )
+from ..current_executable_owner_action_parts.terminal_next_forced_delta import (
+    owner_action_from_terminal_next_forced_delta,
+)
 from ..owner_receipt_successor import (
     paper_recovery_consumed_owner_receipt_successor,
 )
@@ -93,6 +96,30 @@ def refresh_current_execution_surfaces(
             },
         )
         return updated
+    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
+        handoff,
+        payload=updated,
+    )
+    if terminal_typed_blocker:
+        return _with_terminal_typed_blocker_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            typed_blocker=terminal_typed_blocker,
+        )
+    consumed_terminal_successor = _consumed_provider_terminal_successor_action(
+        payload=updated,
+        handoff=handoff,
+    )
+    if consumed_terminal_successor:
+        return _with_paper_recovery_successor_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            current_action=consumed_terminal_successor,
+        )
     handoff_executable_action = current_control_executable_owner_action(handoff)
     provider_admission_action = (
         current_control_provider_admission_action(handoff) if active_provider_control(handoff) else None
@@ -196,18 +223,6 @@ def refresh_current_execution_surfaces(
                     },
                 )
                 return updated
-    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
-        handoff,
-        payload=updated,
-    )
-    if terminal_typed_blocker:
-        return _with_terminal_typed_blocker_execution_surfaces(
-            payload=updated,
-            status=status,
-            handoff=handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-            typed_blocker=terminal_typed_blocker,
-        )
     handoff_owner_receipt_work_unit = _canonical_current_control_owner_receipt_work_unit(handoff)
     if handoff_owner_receipt_work_unit:
         successor_action = _paper_recovery_successor_action_for_owner_receipt_handoff(
@@ -497,6 +512,27 @@ def _paper_recovery_successor_action(payload: Mapping[str, Any]) -> dict[str, An
     return {}
 
 
+def _consumed_provider_terminal_successor_action(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not _provider_admission_terminal_closeout_consumed_domain_delta(handoff):
+        return {}
+    if _handoff_has_consumed_terminal_typed_blocker(handoff):
+        return {}
+    current_action = owner_action_from_terminal_next_forced_delta(
+        {
+            **dict(payload),
+            "opl_current_control_state_handoff": handoff,
+        },
+        surface_kind="current_executable_owner_action",
+    )
+    if not current_action:
+        return {}
+    return dict(current_action)
+
+
 def _with_paper_recovery_successor_execution_surfaces(
     *,
     payload: dict[str, Any],
@@ -505,9 +541,17 @@ def _with_paper_recovery_successor_execution_surfaces(
     runtime_health_snapshot: Mapping[str, Any],
     current_action: Mapping[str, Any],
 ) -> dict[str, Any]:
+    progress_for_current_work = _progress_for_current_action(
+        payload=payload,
+        current_action=current_action,
+        handoff=handoff,
+    )
     current_work = current_work_unit.build_current_work_unit(
         status=status,
-        progress={**payload, "current_executable_owner_action": current_action},
+        progress={
+            **progress_for_current_work,
+            "current_executable_owner_action": current_action,
+        },
         actions=[dict(current_action)],
         current_executable_owner_action=current_action,
         provider_admission=handoff,
@@ -546,6 +590,21 @@ def _with_paper_recovery_successor_execution_surfaces(
             "opl_current_control_state_handoff": dict(handoff) if handoff else None,
         },
     )
+    return updated
+
+
+def _progress_for_current_action(
+    *,
+    payload: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if (
+        current_action.get("terminal_stage_next_forced_delta") is True
+        and _provider_admission_terminal_closeout_consumed_domain_delta(handoff)
+    ):
+        updated.pop("paper_recovery_state", None)
     return updated
 
 
@@ -1358,6 +1417,33 @@ def _handoff_has_consumed_terminal_typed_blocker(handoff: Mapping[str, Any]) -> 
         _non_empty_text(terminal.get("route_outcome")) == "typed_blocker"
         or _non_empty_text(terminal.get("typed_blocker_ref")) is not None
     )
+
+
+def _provider_admission_terminal_closeout_consumed_domain_delta(
+    handoff: Mapping[str, Any],
+) -> bool:
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return False
+    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    if _non_empty_text(consumed.get("owner_receipt_ref")) is not None:
+        return True
+    if _non_empty_text(terminal.get("owner_receipt_ref")) is not None:
+        return True
+    if _text_list(terminal.get("owner_receipt_refs")):
+        return True
+    if _non_empty_text(terminal.get("route_outcome")) == "owner_receipt":
+        return True
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    if _text_list(paper_stage_log.get("changed_paper_surfaces")):
+        return True
+    if _non_empty_text(paper_stage_log.get("progress_delta_classification")) in {
+        "deliverable_progress",
+        "paper_progress",
+        "mixed",
+    }:
+        return True
+    return False
 
 
 def _provider_admission_terminal_closeout_consumed_current_work_unit(
