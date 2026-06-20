@@ -181,6 +181,20 @@
       "url": "https://colorspace.r-forge.r-project.org/",
       "observed_date": "2026-06-19",
       "adopted_pattern": "HCL palettes and color-vision checks inform palette QA."
+    },
+    {
+      "source_id": "ggplot2_theme_guides",
+      "source_type": "r_visualization_package",
+      "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+      "observed_date": "2026-06-20",
+      "adopted_pattern": "Article-level theme and guide grammar informs MAS publication polish policy for legends, colorbars, typography, and layout consistency."
+    },
+    {
+      "source_id": "nature_final_submission_artwork",
+      "source_type": "journal_guideline",
+      "url": "https://www.nature.com/nature/for-authors/final-submission",
+      "observed_date": "2026-06-20",
+      "adopted_pattern": "Reduced-size readability, consistent lettering, vector/high-resolution export, and final visual QA inform nonblocking paper-use polish checks."
     }
   ]
 }

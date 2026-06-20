@@ -444,6 +444,33 @@ def test_nature_figure_contract_learning_lands_in_mas_display_owner_surfaces() -
     } <= set(adoption["forbidden_authority"])
 
 
+def test_publication_polish_policy_surface_lands_without_blocking_progress() -> None:
+    payload = _load_nature_skills_adoption_contract()
+    adoption = _adoptions_by_pattern(payload)["publication_polish_policy_surface"]
+
+    assert "publication_polish_policy_surface" in payload["learned_patterns"]
+    assert adoption["classification"] == "adapt"
+    assert adoption["landing_status"] == "owner_surface_landed"
+    assert {
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_agent_figure_intent",
+        "display_pack_gallery_manifest",
+        "display_pack_gallery_quality_audit",
+        "medical_figure_family_catalog_qa_gates",
+    } <= set(adoption["owner_surfaces"])
+    assert {
+        "src/med_autoscience.display_pack_agent_parts.publication_polish_policy.publication_polish_policy",
+        "contracts/medical-figure-family-catalog/qa_gates.json#/publication_polish_visual_audit",
+        "contracts/medical-figure-family-catalog/qa_gates.json#/paper_use_polish_lifecycle",
+    } <= set(adoption["consumable_surfaces"])
+    assert {
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "visual_audit_replacement",
+        "agent_progress_blocking_advisory_gate",
+    } <= set(adoption["forbidden_authority"])
+
+
 def test_nature_skills_learning_contract_keeps_global_forbidden_authority() -> None:
     payload = _load_nature_skills_adoption_contract()
 

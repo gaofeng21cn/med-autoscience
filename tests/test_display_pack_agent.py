@@ -67,6 +67,12 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["figure_contract_policy"]["policy_id"] == "mas_nature_skills_informed_figure_contract.v1"
     assert "core_conclusion_before_plotting" in payload["figure_contract_policy"]["adopted_patterns"]
     assert "no_python_or_r_question_on_default_mas_evidence_path" in payload["figure_contract_policy"]["mas_adaptations"]
+    assert payload["figure_contract_policy"]["publication_polish_policy"]["policy_id"] == (
+        "mas_publication_polish_policy.v1"
+    )
+    assert payload["figure_contract_policy"]["publication_polish_policy"]["nonblocking_agent_policy"][
+        "blocks_default_evidence_progress"
+    ] is False
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
         "display-pack-orchestrate",
@@ -147,6 +153,10 @@ def test_compile_display_figure_intent_emits_claim_first_contract_without_blocki
     assert contract["panel_logic"]["hero_panel_preferred"] is True
     assert contract["backend_policy"]["selected_backend"] == "r_ggplot2"
     assert contract["backend_policy"]["backend_exclusivity_required"] is True
+    assert contract["publication_polish_policy_ref"] == "mas_publication_polish_policy.v1"
+    assert "semantic_palette_roles_resolved_from_article_style_profile" in contract[
+        "publication_polish_required_before_paper_use"
+    ]
     assert contract["agent_progress_policy"]["missing_refs_route_to_typed_repair"] is True
     assert contract["agent_progress_policy"]["manual_template_browsing_required"] is False
     assert payload["figure_contract_policy"]["observed_head"] == "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"

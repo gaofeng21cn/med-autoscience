@@ -15,6 +15,29 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - non-visual inventory count: `3`
 - lower-bound review required: `28`
 - blocked templates: `0`
+- publication polish policy: `mas_publication_polish_policy.v1`
+
+## Paper-use 前置检查
+
+- `core_conclusion_and_evidence_chain_locked`
+- `paper_local_data_and_statistics_refs_present`
+- `semantic_palette_roles_resolved_from_article_style_profile`
+- `guide_legend_colorbar_overlap_checked_after_render`
+- `final_physical_size_readability_checked`
+- `multipanel_hierarchy_and_shared_guides_checked`
+- `vector_or_high_resolution_export_recorded`
+- `visual_audit_receipt_or_residual_item_recorded`
+
+## 高风险图族复核项
+
+| Family | Checks |
+| --- | --- |
+| `kaplan_meier_with_risk_table` | `risk_table`, `censor_marks`, `time_scale`, `event_definition`, `strata_order` |
+| `genomic_landscape_or_oncoprint` | `sample_order`, `annotation_tracks`, `alteration_semantics`, `shared_heatmap_palette` |
+| `matrix_heatmap` | `fixed_scale_mapping`, `sequential_vs_diverging_semantics`, `colorbar_tick_density` |
+| `shap_and_model_explanation` | `feature_order`, `direction_encoding`, `legend_density`, `panel_claim_mapping` |
+| `coefficient_path_or_high_density_lines` | `label_strategy`, `direct_label_or_shared_legend`, `line_density`, `semantic_fit` |
+| `multipanel_storyboard` | `hero_panel`, `panel_labels`, `shared_guides`, `remove_non_claim_panels` |
 
 ## 主要阻断项
 

@@ -77,6 +77,7 @@ colorbar_theme <- theme_publication_colorbar(payload)
 stopifnot(identical(as.numeric(colorbar_theme$legend.text$size), 5.6))
 stopifnot(as.numeric(colorbar_theme$legend.spacing.x) >= 8)
 stopifnot(publication_legend_guides(payload, c("a", "b", "c", "d"))$nrow == 2)
+stopifnot(publication_legend_guides(payload, c("a", "b", "c", "d", "e", "f", "g"))$nrow == 3)
 """
 
     result = subprocess.run(

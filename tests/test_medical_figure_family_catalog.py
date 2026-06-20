@@ -139,13 +139,17 @@ def test_catalog_validates_references_across_style_palette_gate_and_sources() ->
         "figure_contract_before_render",
         "backend_exclusive_export_receipt",
         "ai_redesign_trace",
+        "publication_polish_visual_audit",
+        "paper_use_polish_lifecycle",
     }
     assert {source.source_id for source in catalog.external_sources} >= {
         "nature_figure_specs",
+        "nature_final_submission_artwork",
         "plos_figure_guidelines",
         "prisma_2020_flow",
         "stard_reporting",
         "patchwork",
+        "ggplot2_theme_guides",
         "complexheatmap",
         "viridis",
         "okabe_ito",

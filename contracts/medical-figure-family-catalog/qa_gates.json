@@ -67,6 +67,24 @@
         "paper_local_modifications_recorded",
         "family_switch_reason_recorded_when_applicable"
       ]
+    },
+    {
+      "gate_id": "publication_polish_visual_audit",
+      "checks": [
+        "semantic_palette_roles_resolved",
+        "legend_or_colorbar_overlap_checked",
+        "multipanel_shared_guide_policy_checked",
+        "final_size_readability_checked"
+      ]
+    },
+    {
+      "gate_id": "paper_use_polish_lifecycle",
+      "checks": [
+        "core_conclusion_and_evidence_chain_locked",
+        "paper_local_data_and_statistics_refs_present",
+        "vector_or_high_resolution_export_recorded",
+        "visual_audit_receipt_or_residual_item_recorded"
+      ]
     }
   ]
 }

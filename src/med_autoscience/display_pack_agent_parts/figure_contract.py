@@ -7,6 +7,9 @@ from med_autoscience.display_pack_agent_parts.template_fit import (
     DEFAULT_KIND,
     DEFAULT_RENDERER_PREFERENCE,
 )
+from med_autoscience.display_pack_agent_parts.publication_polish_policy import (
+    publication_polish_policy,
+)
 from med_autoscience.display_pack_agent_parts.query_family_route import resolve_query_family_route
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 
@@ -172,6 +175,7 @@ def figure_contract_policy() -> dict[str, Any]:
         "journal_export_contract": dict(JOURNAL_EXPORT_CONTRACT),
         "visual_qa_requirements": list(VISUAL_QA_REQUIREMENTS),
         "authority_boundary": dict(DEFAULT_AUTHORITY_BOUNDARY),
+        "publication_polish_policy": publication_polish_policy(),
     }
 
 
@@ -247,6 +251,10 @@ def _build_figure_contract(
         "backend_policy": _backend_policy_for_request(figure_kind, preferred_renderer),
         "journal_export_contract": dict(JOURNAL_EXPORT_CONTRACT),
         "visual_qa_requirements": list(VISUAL_QA_REQUIREMENTS),
+        "publication_polish_policy_ref": publication_polish_policy()["policy_id"],
+        "publication_polish_required_before_paper_use": publication_polish_policy()[
+            "required_before_paper_use"
+        ],
         "missing_contract_items": [
             item["role"]
             for item in [

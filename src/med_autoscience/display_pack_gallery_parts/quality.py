@@ -6,6 +6,9 @@ from typing import Any
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_agent_parts.figure_contract import figure_contract_policy
+from med_autoscience.display_pack_agent_parts.publication_polish_policy import (
+    publication_polish_policy,
+)
 from med_autoscience.display_pack_renderer_policy import (
     R_GGPLOT2_RENDERER,
     renderer_policy_completion,
@@ -121,6 +124,7 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         "blockers": unique_blockers,
         "warnings": unique_warnings,
         "figure_contract_policy_ref": figure_contract_policy()["policy_id"],
+        "publication_polish_policy_ref": publication_polish_policy()["policy_id"],
         "recommended_next_actions": recommended_next_actions(record, unique_blockers, unique_warnings),
     }
 
@@ -202,17 +206,10 @@ def build_quality_audit(
             "ai_authority": "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim",
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
             "current_surface": "canonical_current_templates_not_input_data_specific_variants",
-            "required_before_paper_use": [
-                "figure_contract_core_conclusion_and_evidence_chain",
-                "paper_local_data_payload",
-                "render_inspect_revise",
-                "legend_colorbar_overlap_check",
-                "reduced_size_readability_check",
-                "vector_or_high_resolution_export_check",
-                "visual_audit_receipt_or_residual_audit_item",
-            ],
+            "required_before_paper_use": publication_polish_policy()["required_before_paper_use"],
         },
         "figure_contract_policy": figure_contract_policy(),
+        "publication_polish_policy": publication_polish_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
         "non_visual_inventory": [
@@ -320,8 +317,16 @@ def _category_completion(
 def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
     blockers = audit["blocker_counts"]
     warnings = audit["warning_counts"]
+    polish = audit["publication_polish_policy"]
     blocker_lines = "\n".join(f"| `{key}` | {value} |" for key, value in blockers.items()) or "| none | 0 |"
     warning_lines = "\n".join(f"| `{key}` | {value} |" for key, value in warnings.items()) or "| none | 0 |"
+    before_paper_lines = "\n".join(
+        f"- `{item}`" for item in polish["required_before_paper_use"]
+    )
+    high_risk_lines = "\n".join(
+        f"| `{item['family']}` | {', '.join(f'`{check}`' for check in item['checks'])} |"
+        for item in polish["high_risk_family_checks"]
+    )
     template_lines = "\n".join(
         (
             f"| `{item['template_id']}` | {item['category']} | {item['renderer_family']} | "
@@ -365,6 +370,17 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - non-visual inventory count: `{audit["non_visual_template_count"]}`
 - lower-bound review required: `{audit["lower_bound_review_required_count"]}`
 - blocked templates: `{audit["blocked_template_count"]}`
+- publication polish policy: `{polish["policy_id"]}`
+
+## Paper-use 前置检查
+
+{before_paper_lines}
+
+## 高风险图族复核项
+
+| Family | Checks |
+| --- | --- |
+{high_risk_lines}
 
 ## 主要阻断项
 

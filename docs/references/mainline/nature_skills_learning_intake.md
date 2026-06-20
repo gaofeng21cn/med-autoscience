@@ -52,8 +52,9 @@ MAS 对该模式的 adoption classification 是：
 - `src/med_autoscience/display_pack_agent_parts/figure_contract.py`：定义 `mas_nature_skills_informed_figure_contract.v1`，把 core conclusion、evidence chain、figure archetype、backend policy、journal/export contract 和 visual QA requirements 放进每次 `figure_intent`。
 - `src/med_autoscience/display_pack_agent_parts/query_family_route.py`：query-only 请求先经 `medical_figure_family_catalog` 做 loose family route，再用 family `template_seed_ids` 给 canonical template scorer 加权，减少模板名字和输入数据形态对调用逻辑的污染。
 - `display_pack_agent.figure_plan/preflight/orchestrate/render`：返回 `figure_contract_policy`，并保留 `publication_readiness_verdict=false`、`agent_manual_template_selection_required=false` 和 R/ggplot2 evidence first。
-- Gallery manifest / quality audit：写入 `figure_contract_policy`，并把 template Gallery 明确为 lower-bound reference，不把 visual risk 当作 publication-ready 结论。
-- `contracts/medical-figure-family-catalog/qa_gates.json`：新增 `figure_contract_before_render` 与 `backend_exclusive_export_receipt` gate。
+- `src/med_autoscience/display_pack_agent_parts/publication_polish_policy.py`：把 Nature-Skills contract-first 流程、Nature final artwork、ggplot2 theme/guide、colorspace/viridis/ComplexHeatmap、patchwork/cowplot 和 survminer 经验收敛成 `mas_publication_polish_policy.v1`，作为非阻塞 palette / guide / multipanel / high-risk-family 提示面。
+- Gallery manifest / quality audit：写入 `figure_contract_policy` 与 `publication_polish_policy`，并把 template Gallery 明确为 lower-bound reference，不把 visual risk 当作 publication-ready 结论。
+- `contracts/medical-figure-family-catalog/qa_gates.json`：新增 `figure_contract_before_render`、`backend_exclusive_export_receipt`、`publication_polish_visual_audit` 与 `paper_use_polish_lifecycle` gate。
 
 关键 MAS 改造点是 progress-first：上游 `nature-figure` 把 backend 选择作为 blocking gate，缺省时问 `Python or R?` 并停止；MAS evidence path 不照搬这个阻塞门。数据证据图默认 R/ggplot2，非默认 backend 或 Python evidence 只有在有 documented advantage 和 visual audit 时才重新进入 current pack。AI 仍可对模板做 paper-local redesign；模板只提供质量下限，不限制上限。
 

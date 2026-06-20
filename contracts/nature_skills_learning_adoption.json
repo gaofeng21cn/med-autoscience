@@ -48,6 +48,7 @@
     "mas_r_first_nonblocking_backend_policy",
     "query_to_medical_figure_family_route",
     "final_visual_qa_after_render",
+    "publication_polish_policy_surface",
     "section_contract_draft_source_map_readback",
     "claim_evidence_citation_support_matrix",
     "reviewer_comment_typed_repair_action_projection"
@@ -343,6 +344,38 @@
         "publication_readiness_authority",
         "quality_verdict_authority",
         "mas_truth_write_authority"
+      ]
+    },
+    {
+      "pattern_id": "publication_polish_policy_surface",
+      "classification": "adapt",
+      "landing_status": "owner_surface_landed",
+      "owner_surfaces": [
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_agent_figure_intent",
+        "display_pack_gallery_manifest",
+        "display_pack_gallery_quality_audit",
+        "medical_figure_family_catalog_qa_gates"
+      ],
+      "consumable_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.publication_polish_policy.publication_polish_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
+        "src/med_autoscience.display_pack_gallery_parts.quality.build_quality_audit",
+        "contracts/medical-figure-family-catalog/qa_gates.json#/publication_polish_visual_audit",
+        "contracts/medical-figure-family-catalog/qa_gates.json#/paper_use_polish_lifecycle"
+      ],
+      "gap_status": [
+        "visual_audit_still_required_for_real_paper_figures",
+        "publication_gate_still_authoritative",
+        "paper_specific_owner_review_still_required"
+      ],
+      "forbidden_authority": [
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "visual_audit_replacement",
+        "mas_truth_write_authority",
+        "agent_progress_blocking_advisory_gate"
       ]
     }
   ],

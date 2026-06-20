@@ -146,7 +146,7 @@ style_grid_color <- function(display_payload) {
 
 publication_legend_guides <- function(display_payload, labels = NULL) {
   label_count <- length(unique(as.character(labels %||% character())))
-  row_count <- if (label_count > 3) 2 else 1
+  row_count <- if (label_count > 6) 3 else if (label_count > 3) 2 else 1
   guide_legend(
     nrow = row_count,
     byrow = TRUE,

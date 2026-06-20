@@ -144,6 +144,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["schema_version"] == 9
     assert manifest["ai_adaptation_policy"] == ai_adaptation_policy()
     assert manifest["figure_contract_policy"]["policy_id"] == "mas_nature_skills_informed_figure_contract.v1"
+    assert manifest["publication_polish_policy"]["policy_id"] == "mas_publication_polish_policy.v1"
+    assert manifest["publication_polish_policy"]["palette_scale_policy"]["per_plot_palette_drift_allowed"] is False
+    assert "matrix_heatmap" in {
+        item["family"] for item in manifest["publication_polish_policy"]["high_risk_family_checks"]
+    }
     assert manifest["figure_contract_policy"]["observed_head"] == "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
     assert "query_resolves_through_medical_figure_family_catalog_before_template_scoring" in manifest[
         "figure_contract_policy"
@@ -201,9 +206,12 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["figure_contract_policy"]["policy_id"] == (
         "mas_nature_skills_informed_figure_contract.v1"
     )
+    assert manifest["quality_audit"]["publication_polish_policy"]["policy_id"] == (
+        "mas_publication_polish_policy.v1"
+    )
     assert manifest["quality_audit"]["quality_policy"]["ai_authority"] == (
         "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim"
     )
-    assert "figure_contract_core_conclusion_and_evidence_chain" in manifest["quality_audit"]["quality_policy"][
+    assert "core_conclusion_and_evidence_chain_locked" in manifest["quality_audit"]["quality_policy"][
         "required_before_paper_use"
     ]
