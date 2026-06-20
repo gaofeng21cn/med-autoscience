@@ -1,6 +1,7 @@
 from __future__ import annotations
 import hashlib
 import importlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -220,6 +221,82 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == story_text
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (paper_root / "submission_minimal").exists()
+
+
+def test_quality_repair_upstream_targets_stage_native_body_authority(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch_upstream")
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    legacy_paper_root = study_root / "paper"
+    authority_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    for root, draft_text in (
+        (legacy_paper_root, "# Legacy draft\n\nThis paper root is provenance only.\n"),
+        (authority_paper_root, "# Authority draft\n\nCurrent body before upstream repair.\n"),
+    ):
+        (root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+        (root / "draft.md").write_text(draft_text, encoding="utf-8")
+        (root / "build" / "review_manuscript.md").parent.mkdir(parents=True, exist_ok=True)
+        (root / "build" / "review_manuscript.md").write_text(draft_text, encoding="utf-8")
+        _write_json(root / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+        _write_json(root / "evidence_ledger.json", {"schema_version": 1, "claims": []})
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["paper_root"] == authority_paper_root.resolve()
+        repaired = "# Authority draft\n\nCurrent body after upstream repair.\n"
+        changed = []
+        for relpath in (Path("draft.md"), Path("build/review_manuscript.md")):
+            path = authority_paper_root / relpath
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(repaired, encoding="utf-8")
+            changed.append(str(path.resolve()))
+        return changed
+
+    monkeypatch.setattr(module, "_materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_upstream_paper_repair_unit(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        study_root=study_root,
+        gate_report={
+            "blockers": ["medical_publication_surface_blocked"],
+            "gate_fingerprint": "publication-gate::medical-prose",
+        },
+        work_unit_id="medical_prose_write_repair",
+        source_eval_id="eval-current",
+        previous_quality_repair_batch={},
+        publication_eval_payload={"eval_id": "eval-current"},
+    )
+
+    assert result is not None
+    assert result["status"] == "updated"
+    payload = result["result"]
+    changed_paths = {Path(ref) for ref in payload["changed_artifact_refs"]}
+    canonical_paths = {Path(ref) for ref in payload["canonical_artifact_refs"]}
+    assert authority_paper_root / "draft.md" in changed_paths
+    assert authority_paper_root / "build" / "review_manuscript.md" in changed_paths
+    assert authority_paper_root / "claim_evidence_map.json" in changed_paths
+    assert authority_paper_root / "evidence_ledger.json" in changed_paths
+    assert authority_paper_root / "review" / "review_ledger.json" in changed_paths
+    assert authority_paper_root / "draft.md" in canonical_paths
+    assert authority_paper_root / "build" / "review_manuscript.md" in canonical_paths
+    assert legacy_paper_root / "draft.md" not in changed_paths
+    assert legacy_paper_root / "draft.md" not in canonical_paths
+    assert "provenance only" in (legacy_paper_root / "draft.md").read_text(encoding="utf-8")
+    assert "after upstream repair" in (authority_paper_root / "draft.md").read_text(encoding="utf-8")
+    legacy_claim_map = json.loads((legacy_paper_root / "claim_evidence_map.json").read_text(encoding="utf-8"))
+    authority_claim_map = json.loads((authority_paper_root / "claim_evidence_map.json").read_text(encoding="utf-8"))
+    assert legacy_claim_map.get("controller_repair_receipts") is None
+    assert authority_claim_map["controller_repair_receipts"][0]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_medical_prose_write_repair_preserves_current_writer_story_delta(

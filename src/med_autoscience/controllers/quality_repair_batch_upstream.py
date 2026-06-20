@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import domain_action_requests
+from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
@@ -404,12 +405,16 @@ def _materialize_ai_reviewer_request(
         study_root=study_root,
     )
     medical_prose_review = _mapping(input_refs.get("medical_prose_review"))
-    fallback_medical_prose_review_path = study_root / "paper" / "medical_prose_review.json"
+    fallback_medical_prose_review_path = _active_story_paper_root(study_root=study_root) / "medical_prose_review.json"
     if medical_prose_review.get("present") is False and fallback_medical_prose_review_path.exists():
+        try:
+            relative_path = fallback_medical_prose_review_path.relative_to(study_root).as_posix()
+        except ValueError:
+            relative_path = str(fallback_medical_prose_review_path.resolve())
         medical_prose_review.update(
             {
                 "path": str(fallback_medical_prose_review_path.resolve()),
-                "relative_path": "paper/medical_prose_review.json",
+                "relative_path": relative_path,
                 "present": True,
                 "valid": True,
             }
@@ -461,7 +466,7 @@ def run_upstream_paper_repair_unit(
     if resolved_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
         return None
     resolved_study_root = Path(study_root).expanduser().resolve()
-    paper_root = resolved_study_root / "paper"
+    paper_root = _active_story_paper_root(study_root=resolved_study_root)
     if not paper_root.exists():
         return {
             "unit_id": resolved_work_unit_id,
@@ -598,6 +603,26 @@ def run_upstream_paper_repair_unit(
             "current_package_write_allowed": False,
         },
     }
+
+
+def _active_story_paper_root(*, study_root: Path) -> Path:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    stage_native_root = paper_authority_migration.stage_native_body_authority_root(
+        study_root=resolved_study_root
+    )
+    stage_native_paper_root = stage_native_root / "paper"
+    if _paper_story_surface_exists(stage_native_paper_root) or (
+        stage_native_root / "paper_authority_receipt.json"
+    ).exists():
+        return stage_native_paper_root.resolve()
+    return (resolved_study_root / "paper").resolve()
+
+
+def _paper_story_surface_exists(paper_root: Path) -> bool:
+    return any(
+        (paper_root / relpath).exists()
+        for relpath in medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
+    )
 
 
 def _should_materialize_ai_reviewer_request(
