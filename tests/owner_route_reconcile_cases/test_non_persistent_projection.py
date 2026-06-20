@@ -839,6 +839,100 @@ def test_default_executor_dispatch_tasks_suppress_residual_action_when_current_w
     assert tasks == []
 
 
+def test_repair_progress_followup_accepts_current_quality_batch_owner_result(tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.repair_progress_followup"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    gate_replay_ref = (
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/"
+        f"{study_id}/artifacts/reports/publishability_gate/2026-06-20T030412Z.json"
+    )
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260616T042403Z::sat_07183cd27fc9f913b03dfcee"
+    )
+    _write_json(
+        evidence_path,
+        {
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "publication-blockers::0915410f804b3697",
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {
+                        "path": str(
+                            study_root
+                            / "artifacts"
+                            / "stage_outputs"
+                            / "_body_authority"
+                            / "paper_authority_cutover"
+                            / "current_body"
+                            / "paper"
+                            / "draft.md"
+                        )
+                    }
+                ],
+            },
+            "changed_artifact_refs": [
+                {
+                    "path": str(
+                        study_root
+                        / "artifacts"
+                        / "stage_outputs"
+                        / "_body_authority"
+                        / "paper_authority_cutover"
+                        / "current_body"
+                        / "paper"
+                        / "draft.md"
+                    )
+                }
+            ],
+            "blockers": [],
+            "quality_authorized": False,
+            "submission_authorized": False,
+            "current_package_write_authorized": False,
+            "gate_replay_refs": [gate_replay_ref],
+            "gate_replay_done": True,
+            "repair_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "source_eval_id": source_eval_id,
+            },
+        },
+    )
+    _write_json(
+        quality_batch_path,
+        {
+            "ok": True,
+            "status": "executed",
+            "source_eval_id": source_eval_id,
+            "repair_execution_evidence_path": str(evidence_path),
+            "authority_route_gate": {
+                "authorized": True,
+                "allowed": True,
+                "controller_route_gate": {"authorized": True},
+            },
+        },
+    )
+
+    action = module.accepted_repair_progress_followup_action(
+        study_root=study_root,
+        publication_eval_payload={"eval_id": source_eval_id},
+    )
+
+    assert action is not None
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["next_work_unit"] == "publication_gate_replay"
+    assert action["repair_execution_evidence_ref"] == str(evidence_path)
+    assert action["repair_execution_receipt_ref"] == str(quality_batch_path)
+    assert action["owner_receipt_ref"] == str(quality_batch_path)
+    assert action["repair_progress_followup"]["accepted_owner_receipt"] is True
+
+
 def test_scan_domain_routes_rejects_unknown_study_id_before_reading_status(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

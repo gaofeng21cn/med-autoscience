@@ -11,6 +11,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import story_surfac
 
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
 REPAIR_EXECUTION_RECEIPT_RELATIVE_PATH = Path("artifacts/controller/repair_execution_receipts/latest.json")
+QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
 REPAIR_PROGRESS_AI_REVIEWER_REASON = "repair_progress_ai_reviewer_recheck_required"
 REPAIR_PROGRESS_GATE_REPLAY_REASON = "repair_progress_gate_replay_required"
 AI_REVIEWER_RECHECK_WORK_UNIT = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -25,9 +26,19 @@ def accepted_repair_progress_followup_action(
     root = Path(study_root).expanduser().resolve()
     evidence_path = root / REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH
     receipt_path = root / REPAIR_EXECUTION_RECEIPT_RELATIVE_PATH
+    quality_batch_path = root / QUALITY_REPAIR_BATCH_RELATIVE_PATH
     evidence = _read_json_object(evidence_path)
     receipt = _read_json_object(receipt_path)
-    if not _accepted_repair_progress(evidence=evidence, receipt=receipt):
+    quality_batch = _read_json_object(quality_batch_path)
+    accepted_result, accepted_result_path = _accepted_owner_repair_result(
+        evidence=evidence,
+        evidence_path=evidence_path,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        quality_batch=quality_batch,
+        quality_batch_path=quality_batch_path,
+    )
+    if accepted_result is None:
         return None
     source_eval_id = (
         _text(evidence.get("source_eval_id"))
@@ -36,7 +47,7 @@ def accepted_repair_progress_followup_action(
         or _text(publication_eval_payload.get("eval_id"))
     )
     ai_reviewer_request_ref = _text(evidence.get("ai_reviewer_recheck_request_ref")) or _text(
-        receipt.get("ai_reviewer_recheck_request_ref")
+        accepted_result.get("ai_reviewer_recheck_request_ref")
     )
     if ai_reviewer_request_ref is not None and _ai_reviewer_request_is_current(
         study_root=root,
@@ -53,13 +64,15 @@ def accepted_repair_progress_followup_action(
             required_output_surface="artifacts/publication_eval/latest.json",
             route_target="review",
             evidence=evidence,
-            receipt=receipt,
+            receipt=accepted_result,
             evidence_path=evidence_path,
-            receipt_path=receipt_path,
+            receipt_path=accepted_result_path,
             source_eval_id=source_eval_id,
             request_ref=ai_reviewer_request_ref,
         )
-    gate_replay_ref = _first_text_item(evidence.get("gate_replay_refs")) or _text(receipt.get("gate_replay_request_ref"))
+    gate_replay_ref = _first_text_item(evidence.get("gate_replay_refs")) or _text(
+        accepted_result.get("gate_replay_request_ref")
+    )
     if gate_replay_ref is None:
         return None
     return _repair_progress_followup_payload(
@@ -70,9 +83,9 @@ def accepted_repair_progress_followup_action(
         required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
         route_target="finalize",
         evidence=evidence,
-        receipt=receipt,
+        receipt=accepted_result,
         evidence_path=evidence_path,
-        receipt_path=receipt_path,
+        receipt_path=accepted_result_path,
         source_eval_id=source_eval_id,
         request_ref=gate_replay_ref,
     )
@@ -151,6 +164,93 @@ def _accepted_repair_progress(
     if _text(receipt.get("typed_blocker")) is not None or _text(receipt.get("blocked_reason")) is not None:
         return False
     return True
+
+
+def _accepted_owner_repair_result(
+    *,
+    evidence: Mapping[str, Any] | None,
+    evidence_path: Path,
+    receipt: Mapping[str, Any] | None,
+    receipt_path: Path,
+    quality_batch: Mapping[str, Any] | None,
+    quality_batch_path: Path,
+) -> tuple[Mapping[str, Any], Path] | tuple[None, None]:
+    if _accepted_repair_progress(evidence=evidence, receipt=receipt):
+        return receipt or {}, receipt_path
+    if _accepted_quality_batch_owner_result(
+        quality_batch=quality_batch,
+        evidence=evidence,
+        evidence_path=evidence_path,
+    ):
+        return quality_batch or {}, quality_batch_path
+    return None, None
+
+
+def _accepted_quality_batch_owner_result(
+    *,
+    quality_batch: Mapping[str, Any] | None,
+    evidence: Mapping[str, Any] | None,
+    evidence_path: Path,
+) -> bool:
+    if not quality_batch or not evidence:
+        return False
+    if quality_batch.get("ok") is not True:
+        return False
+    if _text(quality_batch.get("status")) not in {"executed", "handoff_ready"}:
+        return False
+    if _text(quality_batch.get("typed_blocker")) is not None:
+        return False
+    if _text(quality_batch.get("blocked_reason")) is not None:
+        return False
+    if not _quality_batch_refs_current_evidence(
+        quality_batch=quality_batch,
+        evidence=evidence,
+        evidence_path=evidence_path,
+    ):
+        return False
+    if not _accepted_repair_evidence(evidence):
+        return False
+    return _quality_batch_authority_allows_owner_receipt(quality_batch)
+
+
+def _accepted_repair_evidence(evidence: Mapping[str, Any]) -> bool:
+    if _text(evidence.get("status")) not in {"progress_delta_candidate", "controller_progress_delta_candidate"}:
+        return False
+    if evidence.get("progress_delta_candidate") is not True:
+        return False
+    if _mapping(evidence.get("canonical_artifact_delta")).get("meaningful_artifact_delta") is not True:
+        return False
+    if _string_items(evidence.get("blockers")):
+        return False
+    if evidence.get("quality_authorized") is True or evidence.get("submission_authorized") is True:
+        return False
+    return evidence.get("current_package_write_authorized") is not True
+
+
+def _quality_batch_refs_current_evidence(
+    *,
+    quality_batch: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    evidence_path: Path,
+) -> bool:
+    evidence_ref = _text(quality_batch.get("repair_execution_evidence_path"))
+    if evidence_ref is None:
+        return False
+    if Path(evidence_ref).expanduser().resolve() != evidence_path:
+        return False
+    source_eval_id = _text(quality_batch.get("source_eval_id"))
+    evidence_eval_id = _text(_mapping(evidence.get("repair_work_unit")).get("source_eval_id")) or _text(
+        _mapping(evidence.get("review_finding")).get("source_eval_id")
+    )
+    return source_eval_id is not None and evidence_eval_id is not None and source_eval_id == evidence_eval_id
+
+
+def _quality_batch_authority_allows_owner_receipt(quality_batch: Mapping[str, Any]) -> bool:
+    route_gate = _mapping(quality_batch.get("authority_route_gate"))
+    if route_gate.get("authorized") is not True or route_gate.get("allowed") is not True:
+        return False
+    controller_gate = _mapping(route_gate.get("controller_route_gate"))
+    return controller_gate.get("authorized") is not False
 
 
 def _current_ai_reviewer_record_already_available(
