@@ -318,21 +318,35 @@ def build_current_work_unit(
             currentness_basis=basis,
             source="gate_clearing_batch_followthrough",
         )
+    if running_attempt is not None and running_attempt_can_supersede_blocker(resolved_typed_blocker):
+        return _running_provider_attempt_work_unit(
+            owner=_text(running_attempt.get("owner")) or _text(next_owner),
+            action_type=_text(running_attempt.get("action_type")),
+            work_unit_id=running_work_unit_id(running_attempt, currentness_basis=basis, action=action),
+            work_unit_fingerprint=_text(running_attempt.get("work_unit_fingerprint")),
+            action_fingerprint=_text(running_attempt.get("action_fingerprint")),
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            running_attempt=running_attempt,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            action=action,
+        )
+    if action is not None and _current_control_transition_request_supersedes_budget_blocker(
+        action=action,
+        blocker=resolved_typed_blocker,
+        provider_admission=provider_admission,
+    ):
+        return _action_work_unit(
+            action=action,
+            owner=_action_owner(action, next_owner=next_owner),
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            provider_admission=provider_admission,
+        )
     if running_attempt is not None:
-        if running_attempt_can_supersede_blocker(resolved_typed_blocker):
-            return _running_provider_attempt_work_unit(
-                owner=_text(running_attempt.get("owner")) or _text(next_owner),
-                action_type=_text(running_attempt.get("action_type")),
-                work_unit_id=running_work_unit_id(running_attempt, currentness_basis=basis, action=action),
-                work_unit_fingerprint=_text(running_attempt.get("work_unit_fingerprint")),
-                action_fingerprint=_text(running_attempt.get("action_fingerprint")),
-                source_refs=resolved_source_refs,
-                currentness_basis=basis,
-                running_attempt=running_attempt,
-                status_payload=status_payload,
-                progress_payload=progress_payload,
-                action=action,
-            )
         if resolved_typed_blocker is not None:
             if action is not None and _action_supersedes_typed_blocker(
                 action=action,
@@ -532,6 +546,64 @@ def _action_supersedes_stage_owner_answer(
     )
 
 
+def _current_control_transition_request_supersedes_budget_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any] | None,
+    provider_admission: Mapping[str, Any] | None,
+) -> bool:
+    payload = _mapping(action)
+    typed_blocker = _mapping(blocker)
+    if payload.get("transition_request_pending") is not True:
+        return False
+    source = _text(payload.get("source_surface")) or _text(payload.get("source"))
+    if source not in {
+        "opl_current_control_state.transition_request_candidates",
+        "paper_recovery_state.next_safe_action.successor_owner_action",
+    }:
+        return False
+    if not _provider_handoff_matches_transition_request_action(
+        provider_admission=provider_admission,
+        action=payload,
+    ):
+        return False
+    blocker_type = (
+        _text(typed_blocker.get("blocker_type"))
+        or _text(typed_blocker.get("blocker_id"))
+        or _text(typed_blocker.get("blocked_reason"))
+        or _text(typed_blocker.get("reason"))
+    )
+    if blocker_type in {
+        "anti_loop_budget_exhausted",
+        "repeat_suppressed_after_opl_execution_authorization_required",
+    }:
+        return True
+    if _text(typed_blocker.get("blocker_id")) == "anti_loop_budget_exhausted":
+        return True
+    return _text(typed_blocker.get("blocked_reason")) == "anti_loop_budget_exhausted"
+
+
+def _provider_handoff_matches_transition_request_action(
+    *,
+    provider_admission: Mapping[str, Any] | None,
+    action: Mapping[str, Any],
+) -> bool:
+    handoff = _mapping(provider_admission)
+    if not handoff:
+        return False
+    if handoff.get("transition_request_pending_count") in (None, 0):
+        return False
+    for candidate in (
+        handoff.get("current_executable_owner_action"),
+        *(_mappings(handoff.get("transition_request_candidates"))),
+        *(_mappings(handoff.get("action_queue"))),
+    ):
+        item = _mapping(candidate)
+        if item and _same_action_identity(item, action):
+            return True
+    return False
+
+
 def _owner_receipt_recorded_recovery(progress: Mapping[str, Any]) -> dict[str, Any] | None:
     recovery = _mapping(progress.get("paper_recovery_state"))
     if _text(recovery.get("phase")) != "owner_receipt_recorded":
@@ -606,6 +678,11 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
             "domain_transition_controller_action": _text(successor.get("domain_transition_controller_action")),
             "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
             "owner_receipt_required": True,
+            "provider_admission_pending": False,
+            "transition_request_pending": True,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_transition_runtime_required": True,
             "paper_recovery_successor": {
                 "phase": _text(recovery.get("phase")),
                 "source_next_safe_action_kind": _text(next_action.get("kind")),

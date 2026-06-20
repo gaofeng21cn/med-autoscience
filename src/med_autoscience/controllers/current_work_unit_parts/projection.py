@@ -124,6 +124,13 @@ def action_work_unit(
             "owner_answer_still_required": action.get("owner_answer_still_required") is True,
             "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref")),
             "provider_admission_pending": pending_provider_admission,
+            "transition_request_pending": action.get("transition_request_pending") is True,
+            "provider_attempt_or_lease_required": action.get("provider_attempt_or_lease_required") is True,
+            "provider_admission_requires_opl_runtime_result": action.get(
+                "provider_admission_requires_opl_runtime_result"
+            )
+            is True,
+            "opl_transition_runtime_required": action.get("opl_transition_runtime_required") is True,
             "pending_provider_admission_evidence": _pending_provider_admission_evidence(
                 provider_admission,
                 identity=admission_identity,

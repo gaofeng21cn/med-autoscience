@@ -99,6 +99,11 @@ def owner_action_from_paper_recovery_state(
             ),
             "owner_receipt_required": True,
             "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "provider_admission_pending": False,
+            "transition_request_pending": True,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_transition_runtime_required": True,
             "target_surface": _compact(
                 {
                     "ref_kind": "paper_recovery_successor_owner_action",

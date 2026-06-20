@@ -929,6 +929,8 @@ def _action_consumed_by_dispatch_receipt(
     action: Mapping[str, Any],
     payload: Mapping[str, Any],
 ) -> bool:
+    if _current_control_transition_request_pending(action):
+        return False
     if terminal_stage_closeout_consumes_repair_followup(action=action, payload=payload):
         return True
     if _terminal_gate_closeout_consumes_repair_followup(action=action, payload=payload):
@@ -966,6 +968,17 @@ def _action_consumed_by_dispatch_receipt(
     return ai_reviewer_eval_receipt_consumes_repair_followup(
         action=action,
         consumption=consumption,
+    )
+
+
+def _current_control_transition_request_pending(action: Mapping[str, Any]) -> bool:
+    payload = _mapping_copy(action)
+    if payload.get("transition_request_pending") is not True:
+        return False
+    source_surface = _non_empty_text(payload.get("source_surface"))
+    source = _non_empty_text(payload.get("source"))
+    return source_surface == "opl_current_control_state.transition_request_candidates" or (
+        source == "opl_current_control_state.transition_request_candidates"
     )
 
 

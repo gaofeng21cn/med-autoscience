@@ -20,6 +20,8 @@ def action_consumed_by_dispatch_receipt(
     action: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> bool:
+    if _current_control_transition_request_pending(action):
+        return False
     consumption = _mapping(_mapping(progress.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
     if not consumption:
         consumption = _mapping(progress.get("dispatch_consumption"))
@@ -74,6 +76,17 @@ def action_consumed_by_dispatch_receipt(
         consumption=consumption,
         mapping=_mapping,
         text=_text,
+    )
+
+
+def _current_control_transition_request_pending(action: Mapping[str, Any]) -> bool:
+    payload = _mapping(action)
+    if payload.get("transition_request_pending") is not True:
+        return False
+    source_surface = _text(payload.get("source_surface"))
+    source = _text(payload.get("source"))
+    return source_surface == "opl_current_control_state.transition_request_candidates" or (
+        source == "opl_current_control_state.transition_request_candidates"
     )
 
 

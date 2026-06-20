@@ -388,6 +388,10 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     assert result["current_work_unit"]["owner"] == "ai_reviewer"
     assert result["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["current_work_unit"]["work_unit_id"] == AI_REVIEWER_WORK_UNIT
+    assert result["current_work_unit"]["state"]["transition_request_pending"] is True
+    assert result["current_work_unit"]["state"]["provider_admission_pending"] is False
+    assert result["current_work_unit"]["state"]["provider_admission_requires_opl_runtime_result"] is True
+    assert result["current_work_unit"]["state"]["opl_transition_runtime_required"] is True
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
     assert result["transition_request_pending_count"] == 1

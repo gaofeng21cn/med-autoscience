@@ -121,6 +121,40 @@ def refresh_current_execution_surfaces(
             handoff,
             current_action=handoff_executable_action,
         )
+        if handoff_executable_action.get("transition_request_pending") is True:
+            current_work = current_work_unit.build_current_work_unit(
+                status=status,
+                progress=updated,
+                actions=[handoff_executable_action],
+                current_executable_owner_action=handoff_executable_action,
+                provider_admission=handoff,
+                live_provider_attempt=handoff,
+                typed_blocker=_canonical_typed_blocker_for_execution_refresh(handoff),
+                blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+                next_owner=_non_empty_text(handoff.get("next_owner")),
+                runtime_health=runtime_health_snapshot,
+            )
+            if _non_empty_text(current_work.get("status")) == "executable_owner_action":
+                updated["current_work_unit"] = current_work
+                updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+                    status=status,
+                    progress=updated,
+                    actions=[handoff_executable_action],
+                    blocked_reason=None,
+                    next_owner=_non_empty_text(handoff_executable_action.get("next_owner")),
+                    typed_blocker={},
+                    runtime_health=runtime_health_snapshot,
+                    live_provider_attempt=handoff,
+                    current_work_unit_payload=current_work,
+                )
+                updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+                    action_queue=_execution_evidence_actions_for_payload(payload=updated, handoff=handoff),
+                    runtime_health=runtime_health_snapshot,
+                    extra={
+                        "opl_current_control_state_handoff": dict(handoff) if handoff else None,
+                    },
+                )
+                return updated
     terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
         handoff,
         payload=updated,

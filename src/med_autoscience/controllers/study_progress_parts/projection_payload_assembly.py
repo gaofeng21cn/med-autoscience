@@ -436,6 +436,7 @@ def _apply_provider_admission_fields_with_terminal_probe(
 ) -> dict[str, Any]:
     updated = dict(payload)
     if profile is not None:
+        original_handoff = _mapping_copy(handoff)
         refreshed_handoff = refresh_handoff_with_terminal_closeout_candidates(
             profile=profile,
             study_id=study_id,
@@ -448,14 +449,22 @@ def _apply_provider_admission_fields_with_terminal_probe(
             handoff = refreshed_handoff
             consumed = _mapping_copy(refreshed_handoff.get("provider_admission_terminal_closeout_consumed"))
             if consumed:
-                return {
-                    **updated,
-                    "provider_admission_pending_count": 0,
-                    "provider_admission_candidates": [],
-                    "transition_request_pending_count": 0,
-                    "transition_request_candidates": [],
-                    "provider_admission_terminal_closeout_consumed": consumed,
-                }
+                if not _terminal_consumption_matches_current_pending_identity(
+                    consumed=consumed,
+                    payload=updated,
+                ):
+                    updated["opl_current_control_state_handoff"] = original_handoff
+                    updated.pop("provider_admission_terminal_closeout_consumed", None)
+                    handoff = original_handoff
+                else:
+                    return {
+                        **updated,
+                        "provider_admission_pending_count": 0,
+                        "provider_admission_candidates": [],
+                        "transition_request_pending_count": 0,
+                        "transition_request_candidates": [],
+                        "provider_admission_terminal_closeout_consumed": consumed,
+                    }
     provider_fields = provider_admission_projection_fields(
         payload=_provider_admission_candidate_payload(updated),
         handoff=handoff,
@@ -481,6 +490,13 @@ def _apply_provider_admission_fields_with_terminal_probe(
     updated.pop("provider_admission_terminal_closeout_consumed", None)
     consumed = _mapping_copy(refreshed_handoff.get("provider_admission_terminal_closeout_consumed"))
     if consumed:
+        if not _terminal_consumption_matches_current_pending_identity(
+            consumed=consumed,
+            payload=updated,
+        ):
+            updated["opl_current_control_state_handoff"] = dict(handoff)
+            updated.pop("provider_admission_terminal_closeout_consumed", None)
+            return updated
         return {
             **updated,
             "provider_admission_pending_count": 0,
@@ -497,6 +513,83 @@ def _apply_provider_admission_fields_with_terminal_probe(
         )
     )
     return updated
+
+
+def _terminal_consumption_matches_current_pending_identity(
+    *,
+    consumed: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    consumed_identity = _action_identity_for_terminal_consumption(consumed)
+    if not consumed_identity:
+        return False
+    for candidate in _terminal_consumption_current_identity_candidates(payload):
+        if _same_terminal_consumption_identity(consumed_identity, candidate):
+            return True
+    return False
+
+
+def _terminal_consumption_current_identity_candidates(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for value in (
+        payload.get("current_executable_owner_action"),
+        payload.get("current_work_unit"),
+    ):
+        identity = _action_identity_for_terminal_consumption(_mapping_copy(value))
+        if identity:
+            candidates.append(identity)
+    for key in ("provider_admission_candidates", "transition_request_candidates"):
+        for item in payload.get(key) or []:
+            if not isinstance(item, Mapping):
+                continue
+            identity = _action_identity_for_terminal_consumption(item)
+            if identity:
+                candidates.append(identity)
+    return candidates
+
+
+def _action_identity_for_terminal_consumption(value: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _mapping_copy(value)
+    if not payload:
+        return {}
+    work_unit_fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    identity = {
+        key: result
+        for key, result in {
+            "owner": _non_empty_text(payload.get("next_owner")) or _non_empty_text(payload.get("owner")),
+            "action_type": _non_empty_text(payload.get("action_type")),
+            "work_unit_id": _non_empty_text(payload.get("work_unit_id"))
+            or _non_empty_text(payload.get("next_work_unit")),
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "route_identity_key": _non_empty_text(payload.get("route_identity_key")),
+            "attempt_idempotency_key": _non_empty_text(payload.get("attempt_idempotency_key")),
+        }.items()
+        if result not in (None, "")
+    }
+    if (
+        _non_empty_text(identity.get("action_type")) is None
+        or _non_empty_text(identity.get("work_unit_id")) is None
+        or _non_empty_text(identity.get("work_unit_fingerprint")) is None
+    ):
+        return {}
+    return identity
+
+
+def _same_terminal_consumption_identity(
+    consumed: Mapping[str, Any],
+    current: Mapping[str, Any],
+) -> bool:
+    for key in ("action_type", "work_unit_id", "work_unit_fingerprint"):
+        if _non_empty_text(consumed.get(key)) != _non_empty_text(current.get(key)):
+            return False
+    for key in ("route_identity_key", "attempt_idempotency_key"):
+        consumed_value = _non_empty_text(consumed.get(key))
+        current_value = _non_empty_text(current.get(key))
+        if consumed_value is not None and current_value is not None and consumed_value != current_value:
+            return False
+    return True
 
 
 def _transition_request_candidates_from_payload(payload: Mapping[str, Any]) -> list[dict[str, Any]]:

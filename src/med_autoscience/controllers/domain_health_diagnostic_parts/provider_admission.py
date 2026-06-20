@@ -926,25 +926,25 @@ def _candidate_with_transition_request_identity(candidate: Mapping[str, Any]) ->
     stage_run_identity = _mapping(request.get("stage_run_identity"))
     source_refs = dict(_mapping(payload.get("source_refs")))
     route_key = (
-        _non_empty_text(stage_run_identity.get("route_identity_key"))
-        or request_key
-        or _non_empty_text(payload.get("route_identity_key"))
+        _non_empty_text(payload.get("route_identity_key"))
         or _non_empty_text(source_refs.get("route_identity_key"))
+        or _non_empty_text(stage_run_identity.get("route_identity_key"))
+        or request_key
     )
     attempt_key = (
-        _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
-        or route_key
-        or _non_empty_text(payload.get("attempt_idempotency_key"))
+        _non_empty_text(payload.get("attempt_idempotency_key"))
         or _non_empty_text(source_refs.get("attempt_idempotency_key"))
+        or _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
+        or route_key
     )
     if route_key is not None:
         payload["route_identity_key"] = route_key
     if attempt_key is not None:
         payload["attempt_idempotency_key"] = attempt_key
-    if request_key is not None:
-        payload["idempotency_key"] = request_key
-    elif attempt_key is not None:
+    if attempt_key is not None:
         payload["idempotency_key"] = attempt_key
+    elif request_key is not None:
+        payload["idempotency_key"] = request_key
     if route_key is not None:
         source_refs["route_identity_key"] = route_key
     if attempt_key is not None:

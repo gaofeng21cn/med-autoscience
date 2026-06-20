@@ -43,6 +43,11 @@ def owner_action_from_domain_transition(
             "allowed_actions": [action] if action is not None else [],
             "owner_receipt_required": True,
             "required_delta_kind": "domain_transition_owner_delta_or_typed_blocker",
+            "provider_admission_pending": False,
+            "transition_request_pending": True,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": True,
+            "opl_transition_runtime_required": True,
             "target_surface": target_surface,
             "target_surface_specificity": "domain_transition_required_owner_surface"
             if target_surface

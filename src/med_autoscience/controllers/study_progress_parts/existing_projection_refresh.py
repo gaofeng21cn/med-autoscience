@@ -236,7 +236,11 @@ def refresh_existing_projection_current_owner_surfaces(
     current_control_executable_action = current_control_executable_owner_action(handoff)
     if current_control_executable_action and not _handoff_is_active_provider_control(handoff):
         recomputed_action = build_current_executable_owner_action(updated)
-        current_control_executable_action = recomputed_action
+        if _same_current_action_identity(
+            recomputed_action,
+            current_control_executable_action,
+        ):
+            current_control_executable_action = recomputed_action
     if current_control_executable_action is None and _handoff_is_active_provider_control(handoff):
         current_control_executable_action = _current_control_provider_admission_action(handoff)
     currentness_handoff = current_control_executable_currentness_handoff(
@@ -465,6 +469,34 @@ def _apply_current_control_currentness_to_existing_projection(
         updated["transition_request_pending_count"] = 0
         updated["transition_request_candidates"] = []
     return updated
+
+
+def _same_current_action_identity(
+    left: Mapping[str, Any] | None,
+    right: Mapping[str, Any] | None,
+) -> bool:
+    left_action = _mapping_copy(left)
+    right_action = _mapping_copy(right)
+    if not left_action or not right_action:
+        return False
+    left_owner = _non_empty_text(left_action.get("next_owner")) or _non_empty_text(left_action.get("owner"))
+    right_owner = _non_empty_text(right_action.get("next_owner")) or _non_empty_text(right_action.get("owner"))
+    if left_owner is not None and right_owner is not None and left_owner != right_owner:
+        return False
+    for key in ("action_type", "work_unit_id"):
+        left_value = _non_empty_text(left_action.get(key))
+        right_value = _non_empty_text(right_action.get(key))
+        if left_value is not None and right_value is not None and left_value != right_value:
+            return False
+    left_fingerprint = _non_empty_text(left_action.get("work_unit_fingerprint")) or _non_empty_text(
+        left_action.get("action_fingerprint")
+    )
+    right_fingerprint = _non_empty_text(right_action.get("work_unit_fingerprint")) or _non_empty_text(
+        right_action.get("action_fingerprint")
+    )
+    if left_fingerprint is not None and right_fingerprint is not None and left_fingerprint != right_fingerprint:
+        return False
+    return True
 
 
 def _sync_handoff_provider_admission_fields(

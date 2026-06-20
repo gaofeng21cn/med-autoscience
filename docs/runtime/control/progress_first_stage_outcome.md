@@ -193,6 +193,14 @@ root-cause-to-resolution 读法：
 
 DM002 的 `anti_loop_budget_exhausted` 不得作为默认终局反复展示。若 fresh readback 已证明 closeout 被消费，且 `repair_progress_projection`、owner receipt、gate/recheck、successor work unit、supersession、human gate 或 route-back 已成立，operator outcome 应转到对应 next owner / consumed receipt / human gate，而不是继续 redrive 同一 `run_quality_repair_batch` 或把旧 anti-loop blocker计为当前 paper-line 状态。DM003 的 request-only transition、DHD/readback 清障和 provider admission 修复只算 platform/control-plane repair；只有 owner receipt、AI reviewer / publication gate delta、canonical manuscript / artifact delta、stable typed blocker 或 owner-authorized next owner readback，才算 paper / deliverable progress。
 
+Post-apply current-control precedence 读法：
+
+当同一 study fresh readback 同时包含旧 terminal closeout / `anti_loop_budget_exhausted` residue 与新的 request-only current-control transition 时，当前 owner 以新的 work-unit identity 为准。旧 terminal closeout 只能消费同 `action_type + work_unit_id + work_unit_fingerprint` 且 route / attempt identity 不冲突的 pending transition 或 provider candidate；identity 不同或缺 OPL runtime readback 时，旧 closeout 只能保留为 audit evidence，不能清空 `transition_request_pending_count`，不能把 canonical `current_work_unit` 压回 typed blocker，也不能复活旧 dispatch。
+
+Request-only owner action 必须在 `current_executable_owner_action` 与 canonical `current_work_unit.state` 两层同时暴露 `transition_request_pending=true`、`provider_admission_pending=false`、`provider_admission_requires_opl_runtime_result=true` 和 `opl_transition_runtime_required=true`。这些字段表示 MAS 已把 next owner/action/work-unit 投影为等待 OPL `DomainProgressTransitionRuntime` command/event/outbox/StageRun readback 的 handoff；它不是 provider admission、running proof、owner receipt、paper semantic delta 或 publication readiness。
+
+Strict running proof 的优先级高于 stale transition request / budget blocker。若 same identity 已有 OPL current-control `running_provider_attempt=true` 且未被 terminal closeout 消费，operator outcome 必须是 running watch；不得因为旧 `anti_loop_budget_exhausted` 或 stale transition request 再次 materialize 同一 owner action。若缺 running proof但存在 request-only transition，则 outcome 是 `ready_for_owner_action` / OPL transition readback required，而不是 idle、queue empty 或 stop-loss。
+
 recent non-authoritative recovery sample（debug context only）：
 
 下表只记录 2026-06-13 的近期样本，用于说明 operator 应如何读 blocker / admission / running proof；它不是当前 truth，也不能用于 acceptance。每次监督、恢复或验收前必须 fresh 读取 `study progress`、DHD `--dry-run`、OPL current-control / attempt ledger，并按 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy` 的 fresh truth / readback policy 裁决。

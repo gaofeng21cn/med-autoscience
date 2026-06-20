@@ -314,6 +314,85 @@ def test_current_work_unit_running_attempt_supersedes_prior_dispatch_zero_blocke
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_running_attempt_preempts_stale_transition_request_budget_blocker() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    route_key = f"provider-admission::{study_id}::{fingerprint}"
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+        "source_surface": "opl_current_control_state.transition_request_candidates",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "next_owner": "write",
+        "owner": "write",
+        "action_type": "request_opl_stage_attempt",
+        "allowed_actions": ["request_opl_stage_attempt"],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "transition_request_pending": True,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_transition_runtime_required": True,
+    }
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "current_executable_owner_action": action,
+        },
+        current_executable_owner_action=action,
+        provider_admission={
+            "running_provider_attempt": True,
+            "transition_request_pending_count": 1,
+            "transition_request_candidates": [{**action, "status": "transition_request_pending"}],
+        },
+        live_provider_attempt=_running_attempt(
+            study_id,
+            active_stage_attempt_id="sat-live-write-repair",
+            active_workflow_id="wf-live-write-repair",
+            owner="write",
+            action_type="request_opl_stage_attempt",
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=fingerprint,
+            action_fingerprint=fingerprint,
+        ),
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "blocker_id": "anti_loop_budget_exhausted",
+            "blocker_type": "repeat_suppressed_after_opl_execution_authorization_required",
+            "blocked_reason": "anti_loop_budget_exhausted",
+            "owner": "one-person-lab",
+            "action_type": "request_opl_stage_attempt",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+        blocked_reason="anti_loop_budget_exhausted",
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "request_opl_stage_attempt"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["strict_running_proof"] is True
+    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == (
+        "sat-live-write-repair"
+    )
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_running_attempt_supersedes_consumed_gate_replay_blocker() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

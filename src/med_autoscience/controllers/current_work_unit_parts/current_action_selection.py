@@ -52,7 +52,7 @@ def action_from_current_action(
         "next_owner": owner,
         "next_work_unit": current_work_unit_id or action_type,
         "work_unit_id": current_work_unit_id,
-        "source_surface": text(current.get("source")) or text(current.get("source_surface")),
+        "source_surface": text(current.get("source_surface")) or text(current.get("source")),
     }
 
 
