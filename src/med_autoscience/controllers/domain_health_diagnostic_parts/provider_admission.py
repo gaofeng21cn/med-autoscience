@@ -461,6 +461,17 @@ def _request_only_transition_action_candidate(
     )
     if work_unit_id is None or action_fingerprint is None:
         return None
+    stage_packet_ref = _request_only_transition_stage_packet_ref(
+        action=action,
+        current_action_identity=current_identity,
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+    )
+    stage_packet_refs = _request_only_transition_stage_packet_refs(
+        action=action,
+        current_action_identity=current_identity,
+        stage_packet_ref=stage_packet_ref,
+    )
     if not _matches_current_action(
         action_type=action_type,
         work_unit_id=work_unit_id,
@@ -500,6 +511,9 @@ def _request_only_transition_action_candidate(
         "action_fingerprint": action_fingerprint,
         "next_executable_owner": executable_owner,
         "required_output_surface": _non_empty_text(action.get("required_output_surface")),
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": stage_packet_refs,
+        "checkpoint_refs": stage_packet_refs,
         "mas_owner_action_source": source,
         "owner_route_current": True,
         "owner_route": {
@@ -511,6 +525,8 @@ def _request_only_transition_action_candidate(
                 "work_unit_fingerprint": action_fingerprint,
                 "action_fingerprint": action_fingerprint,
                 "mas_owner_action_source": source,
+                "stage_packet_ref": stage_packet_ref,
+                "stage_packet_refs": stage_packet_refs,
                 "owner_route_currentness_basis": currentness_basis,
             },
         },
@@ -532,6 +548,9 @@ def _request_only_transition_action_candidate(
     candidate["provider_admission_requires_opl_runtime_result"] = True
     candidate["opl_transition_runtime_required"] = True
     candidate["currentness_basis"] = currentness_basis
+    candidate["stage_packet_ref"] = stage_packet_ref
+    candidate["stage_packet_refs"] = stage_packet_refs
+    candidate["checkpoint_refs"] = stage_packet_refs
     candidate["source_refs"] = {
         **_mapping(candidate.get("source_refs")),
         "work_unit_id": work_unit_id,
@@ -539,8 +558,41 @@ def _request_only_transition_action_candidate(
         "action_fingerprint": action_fingerprint,
         "current_control_ref": current_control_ref,
         "mas_owner_action_source": source,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": stage_packet_refs,
     }
     return candidate_with_authority_boundaries(candidate)
+
+
+def _request_only_transition_stage_packet_ref(
+    *,
+    action: Mapping[str, Any],
+    current_action_identity: Mapping[str, Any],
+    study_id: str,
+    work_unit_id: str,
+) -> str:
+    return (
+        _non_empty_text(action.get("stage_packet_ref"))
+        or _non_empty_text(current_action_identity.get("stage_packet_ref"))
+        or f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet"
+    )
+
+
+def _request_only_transition_stage_packet_refs(
+    *,
+    action: Mapping[str, Any],
+    current_action_identity: Mapping[str, Any],
+    stage_packet_ref: str,
+) -> list[str]:
+    refs: list[str] = []
+    for ref in (
+        stage_packet_ref,
+        *_text_items(action.get("stage_packet_refs")),
+        *_text_items(current_action_identity.get("stage_packet_refs")),
+    ):
+        if ref is not None and ref not in refs:
+            refs.append(ref)
+    return refs
 
 
 def _current_identity_fingerprint_for_action(
@@ -874,16 +926,16 @@ def _candidate_with_transition_request_identity(candidate: Mapping[str, Any]) ->
     stage_run_identity = _mapping(request.get("stage_run_identity"))
     source_refs = dict(_mapping(payload.get("source_refs")))
     route_key = (
-        _non_empty_text(payload.get("route_identity_key"))
-        or _non_empty_text(source_refs.get("route_identity_key"))
-        or _non_empty_text(stage_run_identity.get("route_identity_key"))
+        _non_empty_text(stage_run_identity.get("route_identity_key"))
         or request_key
+        or _non_empty_text(payload.get("route_identity_key"))
+        or _non_empty_text(source_refs.get("route_identity_key"))
     )
     attempt_key = (
-        _non_empty_text(payload.get("attempt_idempotency_key"))
-        or _non_empty_text(source_refs.get("attempt_idempotency_key"))
-        or _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
+        _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
         or route_key
+        or _non_empty_text(payload.get("attempt_idempotency_key"))
+        or _non_empty_text(source_refs.get("attempt_idempotency_key"))
     )
     if route_key is not None:
         payload["route_identity_key"] = route_key
