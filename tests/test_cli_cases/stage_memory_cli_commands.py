@@ -251,6 +251,149 @@ def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_defa
     assert "When a bounded analysis campaign returns" not in captured.out
 
 
+def test_publication_strategy_memory_workbench_cli_projects_readonly_maintenance_surface(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    cli.main(
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-fixture",
+            str(SEED_FIXTURE),
+            "--apply",
+        ]
+    )
+    capsys.readouterr()
+
+    pack_path = workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+    pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    pack["cards"][0]["status"] = "stale_seed"
+    _write_json(pack_path, pack)
+    proposal_path = pack_path.parent / "writeback_proposals" / "stage_memory_updates.jsonl"
+    proposal_path.parent.mkdir(parents=True, exist_ok=True)
+    proposal_path.write_text(
+        json.dumps(
+            {
+                "write_id": "proposal-needing-review",
+                "route_family": "clinical_classifier",
+                "stage_applicability": ["decision"],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "strategy-memory-workbench",
+            "--workspace-root",
+            str(workspace_root),
+            "--stage",
+            "decision",
+            "--route-family",
+            "clinical_classifier",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "publication_strategy_memory_workbench"
+    assert payload["status"] == "ready"
+    assert payload["maintenance_status"] == "needs_review"
+    assert payload["read_only"] is True
+    assert payload["body_included"] is False
+    assert payload["filters"] == {
+        "stage": "decision",
+        "route_family": ["clinical_classifier"],
+        "status": [],
+    }
+    assert len(payload["cards"]) == 1
+    card = payload["cards"][0]
+    assert card["memory_id"] == "publication_route_memory_seed__clinical_classifier"
+    assert card["status"] == "stale_seed"
+    assert card["review_state"] == "stale"
+    assert card["route_family"] == "clinical_classifier"
+    assert "decision" in card["stage_applicability"]
+    assert card["authority_boundary"] == "context_only_not_publication_authority"
+    assert "prose_summary" not in card
+    assert payload["operator_grouping"]["surface"] == "publication_route_memory_operator_grouping"
+    assert payload["operator_grouping"]["body_included"] is False
+    assert payload["review_summary"]["needs_review_count"] == 1
+    assert payload["review_summary"]["stale_or_deprecated_refs"] == [
+        "publication_route_memory_seed__clinical_classifier"
+    ]
+    coverage = payload["workspace_coverage"]
+    assert coverage["surface"] == "publication_strategy_memory_workspace_coverage"
+    assert coverage["pack_present"] is True
+    assert coverage["seed_card_count"] == payload["card_count_total"]
+    assert coverage["filtered_count"] == 1
+    assert coverage["migration_receipts"]["count"] == 1
+    assert coverage["writeback_proposals"]["present"] is True
+    assert coverage["writeback_proposals"]["count"] == 1
+    assert coverage["writeback_receipts"]["count"] == 0
+    action_ids = {item["action_id"] for item in payload["maintenance_actions"]}
+    assert action_ids == {
+        "stale_or_deprecated_cards",
+        "writeback_proposal_without_receipt",
+    }
+    assert payload["maintainer_review_queue"]["item_count"] == 2
+    assert all(item["can_apply"] is False for item in payload["maintenance_actions"])
+    assert all(item["can_accept_or_reject_writeback"] is False for item in payload["maintenance_actions"])
+    boundary = payload["authority_boundary"]
+    assert boundary["can_score_winning_route"] is False
+    assert boundary["can_run_route_matching_engine"] is False
+    assert boundary["can_enforce_evidence_gate"] is False
+    assert boundary["can_control_programmatic_recipe"] is False
+    assert "When a bounded analysis campaign returns" not in captured.out
+
+
+def test_publication_strategy_memory_workbench_cli_reports_missing_pack_queue(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+
+    exit_code = cli.main(
+        [
+            "publication-strategy-memory-workbench",
+            "--workspace-root",
+            str(workspace_root),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "publication_strategy_memory_workbench"
+    assert payload["status"] == "missing"
+    assert payload["maintenance_status"] == "needs_review"
+    assert payload["read_only"] is True
+    assert payload["body_included"] is False
+    assert payload["cards"] == []
+    assert payload["workspace_coverage"]["pack_present"] is False
+    assert payload["workspace_coverage"]["card_count_total"] == 0
+    assert payload["workspace_coverage"]["filtered_count"] == 0
+    assert payload["maintenance_actions"] == [
+        {
+            "action_id": "memory_pack_missing",
+            "kind": "maintainer_review_hint",
+            "reason": "missing_publication_route_memory_pack",
+            "refs": [payload["memory_pack_ref"]],
+            "read_only": True,
+            "can_apply": False,
+            "can_accept_or_reject_writeback": False,
+            "authority_boundary": "maintainer_hint_only_not_memory_or_publication_authority",
+        }
+    ]
+
+
 def test_publication_route_memory_inventory_cli_groups_stale_and_deprecated_review_refs(
     tmp_path: Path,
     capsys,

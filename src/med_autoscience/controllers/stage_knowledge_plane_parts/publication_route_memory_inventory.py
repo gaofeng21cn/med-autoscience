@@ -82,6 +82,79 @@ def build_publication_route_memory_inventory(
     }
 
 
+def build_publication_strategy_memory_workbench(
+    *,
+    workspace_root: Path,
+    stage: str | None = None,
+    route_family_tags: Sequence[str] | None = None,
+    statuses: Sequence[str] | None = None,
+    include_card_body: bool = False,
+) -> dict[str, Any]:
+    inventory = build_publication_route_memory_inventory(
+        workspace_root=workspace_root,
+        stage=stage,
+        route_family_tags=route_family_tags,
+        statuses=statuses,
+        include_card_body=include_card_body,
+    )
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    pack_root = resolved_workspace_root / PUBLICATION_ROUTE_MEMORY_ROOT
+    pack_path = pack_root / "memory_pack.json"
+    pack_cards = _mapping_list(_read_json(pack_path).get("cards"))
+    filtered_cards = [
+        card
+        for card in pack_cards
+        if _publication_route_card_matches(
+            card=card,
+            stage=_validate_publication_route_memory_stage(stage) if _text(stage) else "",
+            route_family_tags=set(_text_list(list(route_family_tags or []))),
+            statuses=set(_text_list(list(statuses or []))),
+        )
+    ]
+    coverage = _publication_strategy_memory_workspace_coverage(
+        workspace_root=resolved_workspace_root,
+        pack_root=pack_root,
+        pack_path=pack_path,
+        pack_cards=pack_cards,
+        filtered_count=len(filtered_cards),
+        receipt_summary=inventory["receipt_summary"],
+    )
+    maintenance_actions = _publication_strategy_memory_maintenance_actions(
+        inventory=inventory,
+        coverage=coverage,
+    )
+    return {
+        "surface_kind": "publication_strategy_memory_workbench",
+        "surface": "publication_strategy_memory_workbench",
+        "schema_version": SCHEMA_VERSION,
+        "status": inventory["status"],
+        "maintenance_status": "needs_review" if maintenance_actions else "clear",
+        "read_only": True,
+        "body_included": bool(include_card_body),
+        "workspace_root": str(resolved_workspace_root),
+        "memory_pack_ref": inventory["memory_pack_ref"],
+        "card_count_total": inventory["card_count_total"],
+        "card_count_filtered": inventory["card_count_filtered"],
+        "filters": inventory["filters"],
+        "cards": inventory["cards"],
+        "operator_grouping": inventory["operator_grouping"],
+        "review_summary": inventory["review_summary"],
+        "receipt_summary": inventory["receipt_summary"],
+        "opl_aion_receipt_inventory": inventory["opl_aion_receipt_inventory"],
+        "locator_refs": inventory["locator_refs"],
+        "workspace_coverage": coverage,
+        "maintenance_actions": maintenance_actions,
+        "maintainer_review_queue": {
+            "surface": "publication_strategy_memory_maintainer_review_queue",
+            "read_only": True,
+            "item_count": len(maintenance_actions),
+            "items": maintenance_actions,
+            "authority_boundary": "review_queue_only_not_accept_reject_or_memory_body_authority",
+        },
+        "authority_boundary": _publication_strategy_memory_workbench_authority_boundary(),
+    }
+
+
 def _publication_route_card_matches(
     *,
     card: Mapping[str, Any],
@@ -97,6 +170,184 @@ def _publication_route_card_matches(
     if statuses and _text(card.get("status")) not in statuses:
         return False
     return True
+
+
+def _publication_strategy_memory_workspace_coverage(
+    *,
+    workspace_root: Path,
+    pack_root: Path,
+    pack_path: Path,
+    pack_cards: Sequence[Mapping[str, Any]],
+    filtered_count: int,
+    receipt_summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    writeback_proposal = pack_root / "writeback_proposals" / "stage_memory_updates.jsonl"
+    migration_receipt_count = int(receipt_summary.get("migration_receipt_count") or 0)
+    writeback_receipt_count = int(receipt_summary.get("writeback_receipt_count") or 0)
+    writeback_proposal_exists = bool(receipt_summary.get("writeback_proposal_exists"))
+    return {
+        "surface": "publication_strategy_memory_workspace_coverage",
+        "read_only": True,
+        "body_included": False,
+        "workspace_root": str(workspace_root),
+        "pack_present": pack_path.exists(),
+        "pack_readable": bool(pack_cards) or not pack_path.exists(),
+        "memory_pack_ref": str(pack_path),
+        "seed_card_count": sum(1 for card in pack_cards if _is_seed_memory_card(card)),
+        "card_count_total": len(pack_cards),
+        "filtered_count": filtered_count,
+        "migration_receipts": {
+            "present": migration_receipt_count > 0,
+            "count": migration_receipt_count,
+            "refs": list(receipt_summary.get("migration_receipt_refs") or []),
+        },
+        "writeback_proposals": {
+            "present": writeback_proposal_exists,
+            "count": _jsonl_entry_count(writeback_proposal) if writeback_proposal_exists else 0,
+            "ref": str(writeback_proposal),
+        },
+        "writeback_receipts": {
+            "present": writeback_receipt_count > 0,
+            "count": writeback_receipt_count,
+            "refs": list(receipt_summary.get("writeback_receipt_refs") or []),
+        },
+        "receipt_presence": {
+            "migration": migration_receipt_count > 0,
+            "writeback": writeback_receipt_count > 0,
+        },
+        "authority_boundary": "coverage_counts_only_not_memory_body_or_publication_authority",
+    }
+
+
+def _publication_strategy_memory_maintenance_actions(
+    *,
+    inventory: Mapping[str, Any],
+    coverage: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    locator_refs = _mapping(inventory.get("locator_refs"))
+    review_summary = _mapping(inventory.get("review_summary"))
+    receipt_inventory = _mapping(inventory.get("opl_aion_receipt_inventory"))
+    receipt_review_summary = _mapping(receipt_inventory.get("receipt_review_summary"))
+
+    if not bool(coverage.get("pack_present")):
+        actions.append(
+            _maintenance_action(
+                action_id="memory_pack_missing",
+                reason="missing_publication_route_memory_pack",
+                refs=[_text(locator_refs.get("memory_pack"))],
+            )
+        )
+
+    if int(review_summary.get("needs_review_count") or 0) > 0:
+        actions.append(
+            _maintenance_action(
+                action_id="stale_or_deprecated_cards",
+                reason="stale_or_deprecated_publication_strategy_memory_refs",
+                refs=_text_list(review_summary.get("stale_or_deprecated_refs")),
+                counts={
+                    "stale": int(review_summary.get("stale_count") or 0),
+                    "deprecated": int(review_summary.get("deprecated_count") or 0),
+                },
+            )
+        )
+
+    migration_receipts = _mapping(coverage.get("migration_receipts"))
+    if bool(coverage.get("pack_present")) and not bool(migration_receipts.get("present")):
+        actions.append(
+            _maintenance_action(
+                action_id="migration_receipt_missing",
+                reason="memory_pack_has_no_migration_receipt_ref",
+                refs=[_text(locator_refs.get("migration_receipts"))],
+            )
+        )
+
+    writeback_proposals = _mapping(coverage.get("writeback_proposals"))
+    writeback_receipts = _mapping(coverage.get("writeback_receipts"))
+    if bool(writeback_proposals.get("present")) and not bool(writeback_receipts.get("present")):
+        actions.append(
+            _maintenance_action(
+                action_id="writeback_proposal_without_receipt",
+                reason="writeback_proposals_need_maintainer_receipt_review",
+                refs=[_text(writeback_proposals.get("ref"))],
+                counts={"proposal_count": int(writeback_proposals.get("count") or 0)},
+            )
+        )
+
+    rejected_count = int(receipt_review_summary.get("rejected_writeback_ref_count") or 0)
+    blocked_count = int(receipt_review_summary.get("blocked_writeback_ref_count") or 0)
+    if rejected_count or blocked_count:
+        actions.append(
+            _maintenance_action(
+                action_id="rejected_or_blocked_writebacks",
+                reason="writeback_receipt_refs_need_maintainer_review",
+                refs=list(writeback_receipts.get("refs") or []),
+                counts={"rejected": rejected_count, "blocked": blocked_count},
+            )
+        )
+
+    if bool(coverage.get("pack_present")) and int(coverage.get("card_count_total") or 0) == 0:
+        actions.append(
+            _maintenance_action(
+                action_id="memory_pack_empty",
+                reason="publication_strategy_memory_pack_has_no_cards",
+                refs=[_text(locator_refs.get("memory_pack"))],
+            )
+        )
+
+    return actions
+
+
+def _maintenance_action(
+    *,
+    action_id: str,
+    reason: str,
+    refs: Sequence[str],
+    counts: Mapping[str, int] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "action_id": action_id,
+        "kind": "maintainer_review_hint",
+        "reason": reason,
+        "refs": _text_list(list(refs)),
+        "read_only": True,
+        "can_apply": False,
+        "can_accept_or_reject_writeback": False,
+        "authority_boundary": "maintainer_hint_only_not_memory_or_publication_authority",
+    }
+    if counts:
+        payload["counts"] = dict(counts)
+    return _drop_empty(payload)
+
+
+def _is_seed_memory_card(card: Mapping[str, Any]) -> bool:
+    memory_id = _text(card.get("memory_id"))
+    status = _text(card.get("status"))
+    return memory_id.startswith("publication_route_memory_seed__") or status.endswith("_seed")
+
+
+def _jsonl_entry_count(path: Path) -> int:
+    if not path.exists() or not path.is_file():
+        return 0
+    return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+
+
+def _publication_strategy_memory_workbench_authority_boundary() -> dict[str, Any]:
+    boundary = authority_boundary()
+    boundary.update(
+        {
+            "role": "publication_strategy_memory_maintainer_workbench",
+            "read_only": True,
+            "can_read_memory_body_by_default": False,
+            "can_write_memory_body": False,
+            "can_accept_or_reject_writeback": False,
+            "can_score_winning_route": False,
+            "can_run_route_matching_engine": False,
+            "can_enforce_evidence_gate": False,
+            "can_control_programmatic_recipe": False,
+        }
+    )
+    return boundary
 
 
 def _publication_route_inventory_card(card: Mapping[str, Any], *, include_body: bool) -> dict[str, Any]:
@@ -705,4 +956,7 @@ def _read_json(path: Path) -> dict[str, Any]:
     return dict(payload) if isinstance(payload, Mapping) else {}
 
 
-__all__ = ["build_publication_route_memory_inventory"]
+__all__ = [
+    "build_publication_route_memory_inventory",
+    "build_publication_strategy_memory_workbench",
+]

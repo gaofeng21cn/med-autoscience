@@ -97,6 +97,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     route_memory_inventory_parser.add_argument("--status", action="append", dest="statuses")
     route_memory_inventory_parser.add_argument("--include-card-body", action="store_true")
 
+    strategy_memory_workbench_parser = subparsers.add_parser("publication-strategy-memory-workbench")
+    strategy_memory_workbench_parser.add_argument("--workspace-root", required=True)
+    strategy_memory_workbench_parser.add_argument("--stage", type=str)
+    strategy_memory_workbench_parser.add_argument("--route-family", action="append", dest="route_families")
+    strategy_memory_workbench_parser.add_argument("--status", action="append", dest="statuses")
+    strategy_memory_workbench_parser.add_argument("--include-card-body", action="store_true")
+
     stage_knowledge_packet_parser = subparsers.add_parser("stage-knowledge-packet")
     stage_knowledge_packet_parser.add_argument("--study-id", required=True)
     stage_knowledge_packet_parser.add_argument("--stage", required=True)
