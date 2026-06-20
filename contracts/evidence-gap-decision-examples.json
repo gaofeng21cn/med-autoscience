@@ -1,0 +1,302 @@
+{
+  "surface_kind": "mas_evidence_gap_decision_examples",
+  "version": "evidence-gap-decision-examples.v1",
+  "owner": "MedAutoScience",
+  "state": "active_contract_examples",
+  "schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+  "policy_ref": "contracts/evidence-gap-decision-policy.json",
+  "examples": [
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "version": "evidence-gap-decision.v1",
+      "decision_id": "egd-authority-gate-source-readiness",
+      "owner": "MedAutoScience",
+      "state": "active_gap_decision",
+      "gap_class": "authority_gate",
+      "gap_id": "source_readiness_authority_missing",
+      "current_owner_delta_ref": "current_owner_delta:example/source-readiness",
+      "current_owner_delta_identity": {
+        "study_id": "example-study",
+        "quest_id": "example-quest",
+        "work_unit_id": "source_readiness_check",
+        "work_unit_fingerprint": "source-readiness::example",
+        "route_identity_key": "route::example::source-readiness",
+        "attempt_idempotency_key": "attempt::example::source-readiness"
+      },
+      "evidence_refs": [
+        "source_readiness_ref:missing-current-source-lock"
+      ],
+      "decision": "materialize_typed_blocker",
+      "typed_blocker_eligibility": true,
+      "typed_blocker_policy": {
+        "typed_blocker_countable": true,
+        "materialization_allowed": true,
+        "materialization_reason": "authority_gate",
+        "typed_blocker_ref": "typed_blocker_ref:source-readiness-authority-required"
+      },
+      "blocks_completion_claim": true,
+      "completion_claim_allowed": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "forbidden_claim_terms": [
+        "live_runtime_ready",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "production_ready",
+        "provider_running",
+        "owner_receipt_closed",
+        "quality_verdict",
+        "domain_ready",
+        "current_package_fresh"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "version": "evidence-gap-decision.v1",
+      "decision_id": "egd-human-gate-owner-decision",
+      "owner": "MedAutoScience",
+      "state": "active_gap_decision",
+      "gap_class": "human_gate",
+      "gap_id": "owner_gate_decision_required",
+      "current_owner_delta_ref": "current_owner_delta:example/owner-gate",
+      "current_owner_delta_identity": {
+        "study_id": "example-study",
+        "quest_id": "example-quest",
+        "work_unit_id": "owner_gate_decision",
+        "work_unit_fingerprint": "owner-gate::example",
+        "route_identity_key": "route::example::owner-gate",
+        "attempt_idempotency_key": "attempt::example::owner-gate"
+      },
+      "evidence_refs": [
+        "human_gate_ref:owner-decision-required"
+      ],
+      "decision": "open_human_gate",
+      "typed_blocker_eligibility": true,
+      "typed_blocker_policy": {
+        "typed_blocker_countable": true,
+        "materialization_allowed": true,
+        "materialization_reason": "human_gate",
+        "typed_blocker_ref": "typed_blocker_ref:human-gate-answer-required"
+      },
+      "blocks_completion_claim": true,
+      "completion_claim_allowed": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "forbidden_claim_terms": [
+        "live_runtime_ready",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "production_ready",
+        "provider_running",
+        "owner_receipt_closed",
+        "quality_verdict",
+        "domain_ready",
+        "current_package_fresh"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "version": "evidence-gap-decision.v1",
+      "decision_id": "egd-proceed-with-assumption-bounded",
+      "owner": "MedAutoScience",
+      "state": "active_gap_decision",
+      "gap_class": "proceed_with_assumption",
+      "gap_id": "minor_context_assumption_recorded",
+      "current_owner_delta_ref": "current_owner_delta:example/assumption",
+      "current_owner_delta_identity": {
+        "study_id": "example-study",
+        "quest_id": "example-quest",
+        "work_unit_id": "manuscript_repair_scope",
+        "work_unit_fingerprint": "assumption::example"
+      },
+      "evidence_refs": [
+        "assumption_context_ref:bounded-existing-inputs"
+      ],
+      "decision": "proceed_with_recorded_assumption",
+      "typed_blocker_eligibility": false,
+      "typed_blocker_policy": {
+        "typed_blocker_countable": false,
+        "materialization_allowed": false,
+        "materialization_reason": "not_allowed",
+        "typed_blocker_ref": null
+      },
+      "assumption_ref": "assumption_ref:bounded-existing-inputs",
+      "blocks_completion_claim": true,
+      "completion_claim_allowed": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "forbidden_claim_terms": [
+        "live_runtime_ready",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "production_ready",
+        "provider_running",
+        "owner_receipt_closed",
+        "quality_verdict",
+        "domain_ready",
+        "current_package_fresh"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "version": "evidence-gap-decision.v1",
+      "decision_id": "egd-soft-quality-followup",
+      "owner": "MedAutoScience",
+      "state": "active_gap_decision",
+      "gap_class": "soft_quality_gap",
+      "gap_id": "nonterminal_reviewer_polish_followup",
+      "current_owner_delta_ref": "current_owner_delta:example/soft-quality",
+      "current_owner_delta_identity": {
+        "study_id": "example-study",
+        "quest_id": "example-quest",
+        "work_unit_id": "reviewer_polish_followup",
+        "work_unit_fingerprint": "soft-quality::example"
+      },
+      "evidence_refs": [
+        "reviewer_issue_ref:non-hard-polish"
+      ],
+      "decision": "continue_with_quality_followup",
+      "typed_blocker_eligibility": false,
+      "typed_blocker_policy": {
+        "typed_blocker_countable": false,
+        "materialization_allowed": false,
+        "materialization_reason": "not_allowed",
+        "typed_blocker_ref": null
+      },
+      "followup_work_order_ref": "work_order_ref:quality-followup-nonblocking",
+      "blocks_completion_claim": true,
+      "completion_claim_allowed": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "forbidden_claim_terms": [
+        "live_runtime_ready",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "production_ready",
+        "provider_running",
+        "owner_receipt_closed",
+        "quality_verdict",
+        "domain_ready",
+        "current_package_fresh"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "version": "evidence-gap-decision.v1",
+      "decision_id": "egd-observability-backlog",
+      "owner": "MedAutoScience",
+      "state": "active_gap_decision",
+      "gap_class": "observability_backlog",
+      "gap_id": "stage_cost_metric_missing",
+      "current_owner_delta_ref": "current_owner_delta:example/observability",
+      "current_owner_delta_identity": {
+        "study_id": "example-study",
+        "quest_id": "example-quest",
+        "work_unit_id": "stage_log_observability",
+        "work_unit_fingerprint": "observability::example"
+      },
+      "evidence_refs": [
+        "stage_log_summary_ref:cost-missing-explicit"
+      ],
+      "decision": "continue_with_observability_followup",
+      "typed_blocker_eligibility": false,
+      "typed_blocker_policy": {
+        "typed_blocker_countable": false,
+        "materialization_allowed": false,
+        "materialization_reason": "not_allowed",
+        "typed_blocker_ref": null
+      },
+      "followup_work_order_ref": "work_order_ref:observability-followup-nonblocking",
+      "blocks_completion_claim": true,
+      "completion_claim_allowed": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "forbidden_claim_terms": [
+        "live_runtime_ready",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "production_ready",
+        "provider_running",
+        "owner_receipt_closed",
+        "quality_verdict",
+        "domain_ready",
+        "current_package_fresh"
+      ]
+    },
+    {
+      "surface_kind": "mas_evidence_gap_decision",
+      "version": "evidence-gap-decision.v1",
+      "decision_id": "egd-evidence-tail-live-runtime",
+      "owner": "MedAutoScience",
+      "state": "active_gap_decision",
+      "gap_class": "evidence_tail",
+      "gap_id": "live_runtime_readback_tail_open",
+      "current_owner_delta_ref": "current_owner_delta:example/evidence-tail",
+      "current_owner_delta_identity": {
+        "study_id": "example-study",
+        "quest_id": "example-quest",
+        "work_unit_id": "live_runtime_evidence_tail",
+        "work_unit_fingerprint": "evidence-tail::example",
+        "route_identity_key": "route::example::live-tail",
+        "attempt_idempotency_key": "attempt::example::live-tail"
+      },
+      "evidence_refs": [
+        "accepted_evidence_family_ref:opl-live-readback-required"
+      ],
+      "decision": "record_evidence_tail",
+      "typed_blocker_eligibility": false,
+      "typed_blocker_policy": {
+        "typed_blocker_countable": false,
+        "materialization_allowed": false,
+        "materialization_reason": "not_allowed",
+        "typed_blocker_ref": null
+      },
+      "followup_work_order_ref": "work_order_ref:live-runtime-evidence-tail",
+      "blocks_completion_claim": true,
+      "completion_claim_allowed": false,
+      "claim_boundary": {
+        "paper_progress_claim_allowed": false,
+        "live_runtime_readiness_claim_allowed": false,
+        "publication_readiness_claim_allowed": false,
+        "production_readiness_claim_allowed": false
+      },
+      "forbidden_claim_terms": [
+        "live_runtime_ready",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "production_ready",
+        "provider_running",
+        "owner_receipt_closed",
+        "quality_verdict",
+        "domain_ready",
+        "current_package_fresh"
+      ]
+    }
+  ]
+}
