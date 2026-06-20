@@ -625,6 +625,107 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
     }
 
 
+def test_provider_admission_report_consumes_transition_request_from_progress_terminal_closeout_currentness(
+    tmp_path: Path,
+) -> None:
+    report = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = "publication-blockers::0915410f804b3697"
+    work_unit_id = "medical_prose_write_repair"
+    idempotency_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
+    candidate = {
+        **_provider_candidate(profile, study_id, action_fingerprint=action_fingerprint),
+        "status": "transition_request_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+        "idempotency_key": idempotency_key,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "provider_attempt_or_lease_required": False,
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "idempotency_key": idempotency_key,
+            "study_id": study_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    }
+    consumed = {
+        "surface_kind": "provider_admission_terminal_closeout_consumed",
+        "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+        "stage_attempt_id": "sat_91d23a554175ea9288d903ad",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "route_identity_key": idempotency_key,
+        "attempt_idempotency_key": idempotency_key,
+    }
+
+    result = report.materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        report={
+            "managed_study_opl_transition_request_candidates": [candidate],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "provider_admission_pending_count": 0,
+                        "transition_request_pending_count": 0,
+                        "provider_admission_candidates": [],
+                        "transition_request_candidates": [],
+                        "provider_admission_terminal_closeout_consumed": consumed,
+                        "opl_current_control_state_handoff": {
+                            "transition_request_pending_count": 0,
+                            "provider_admission_pending_count": 0,
+                            "provider_admission_terminal_closeout_consumed": consumed,
+                        },
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "status": "typed_blocker",
+                            "owner": "one-person-lab",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "action_fingerprint": action_fingerprint,
+                        },
+                        "current_execution_envelope": {
+                            "state_kind": "typed_blocker",
+                            "owner": "one-person-lab",
+                            "next_work_unit": None,
+                        },
+                    }
+                }
+            },
+        },
+        apply=False,
+        generated_at="2026-06-20T11:55:00+00:00",
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["transition_request_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["transition_request_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["stage_route_arbiter"]["decision_counts"] == {}
+    [study] = result["studies"]
+    assert study["study_id"] == study_id
+    assert study["transition_request_pending_count"] == 0
+    assert study["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"] == (
+        "sat_91d23a554175ea9288d903ad"
+    )
+
+
 def test_provider_admission_report_demotes_candidate_root_record_only_closeout_without_currentness(
     tmp_path: Path,
 ) -> None:

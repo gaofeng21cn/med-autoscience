@@ -636,6 +636,12 @@ def _provider_admission_scanned_currentness_studies(
             progress_payload.get("progress_first_monitoring_summary")
         )
         intervention_lane = _mapping(progress_payload.get("intervention_lane"))
+        opl_current_control_state_handoff = _mapping(
+            progress_payload.get("opl_current_control_state_handoff")
+        )
+        provider_admission_terminal_closeout_consumed = _mapping(
+            progress_payload.get("provider_admission_terminal_closeout_consumed")
+        )
         running_provider_attempt = _running_provider_attempt_projection(progress_payload)
         identity = _progress_currentness_current_identity(progress_payload)
         closeout_evidence = _progress_currentness_closeout_evidence(
@@ -675,7 +681,22 @@ def _provider_admission_scanned_currentness_studies(
                 or _non_empty_text(current_work_unit.get("quest_id"))
                 or normalized_study_id,
                 "handoff_scan_status": "scanned_no_provider_admission",
-                "provider_admission_pending_count": 0,
+                "provider_admission_pending_count": int(
+                    progress_payload.get("provider_admission_pending_count") or 0
+                ),
+                "transition_request_pending_count": int(
+                    progress_payload.get("transition_request_pending_count") or 0
+                ),
+                "provider_admission_candidates": [
+                    dict(item)
+                    for item in progress_payload.get("provider_admission_candidates") or []
+                    if isinstance(item, Mapping)
+                ],
+                "transition_request_candidates": [
+                    dict(item)
+                    for item in progress_payload.get("transition_request_candidates") or []
+                    if isinstance(item, Mapping)
+                ],
                 "action_queue": [],
                 **({"current_executable_owner_action": dict(current_action)} if current_action else {}),
                 **({"current_work_unit": dict(current_work_unit)} if current_work_unit else {}),
@@ -683,6 +704,10 @@ def _provider_admission_scanned_currentness_studies(
                 **({"domain_transition": dict(domain_transition)} if domain_transition else {}),
                 **({"paper_recovery_state": dict(paper_recovery_state)} if paper_recovery_state else {}),
                 **({"study_intervention_events": study_intervention_events} if study_intervention_events else {}),
+                **({"opl_current_control_state_handoff": dict(opl_current_control_state_handoff)}
+                   if opl_current_control_state_handoff else {}),
+                **({"provider_admission_terminal_closeout_consumed": dict(provider_admission_terminal_closeout_consumed)}
+                   if provider_admission_terminal_closeout_consumed else {}),
                 **({"progress_first_monitoring_summary": dict(progress_first_monitoring_summary)}
                    if progress_first_monitoring_summary else {}),
                 **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),
