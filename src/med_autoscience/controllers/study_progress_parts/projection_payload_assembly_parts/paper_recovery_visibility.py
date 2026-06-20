@@ -45,6 +45,11 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             blockers.append(phase)
         updated["current_blockers"] = blockers
         updated["next_system_action"] = summary
+    elif phase == "owner_receipt_recorded":
+        updated["current_blockers"] = _blockers_without_stale_recovery_residue(
+            updated.get("current_blockers")
+        )
+        updated["next_system_action"] = summary
     if _supervisor_decision_blocks_provider_admission(
         supervisor_decision,
         phase=phase,
@@ -88,6 +93,11 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             user_visible["next_system_action"] = summary
             user_visible["needs_user_decision"] = phase == "human_gate"
             user_visible["needs_physician_decision"] = phase == "human_gate"
+        elif phase == "owner_receipt_recorded":
+            user_visible["current_blockers"] = _blockers_without_stale_recovery_residue(
+                user_visible.get("current_blockers")
+            )
+            user_visible["next_system_action"] = summary
         updated["user_visible_projection"] = user_visible
     return updated
 
@@ -98,6 +108,18 @@ def _phase_updates_current_blockers(*, phase: str, next_safe_action: Mapping[str
     if phase not in {"domain_blocked", "human_gate"}:
         return False
     return _non_empty_text(next_safe_action.get("kind")) != "resolve_typed_blocker"
+
+
+def _blockers_without_stale_recovery_residue(value: object) -> list[Any]:
+    stale = {
+        "anti_loop_budget_exhausted",
+        "no_selected_dispatch_for_authorized_stage_packet",
+    }
+    return [
+        item
+        for item in value or []
+        if not (isinstance(item, str) and item in stale)
+    ]
 
 
 def _apply_paper_recovery_authority_projection(
@@ -128,6 +150,11 @@ def _apply_paper_recovery_authority_projection(
     requires_user_decision = phase == "human_gate"
     if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
         updated["current_blockers"] = [phase]
+        updated["next_system_action"] = summary
+    elif phase == "owner_receipt_recorded":
+        updated["current_blockers"] = _blockers_without_stale_recovery_residue(
+            updated.get("current_blockers")
+        )
         updated["next_system_action"] = summary
     updated["needs_user_decision"] = requires_user_decision
     updated["user_decision_summary"] = summary if requires_user_decision else None
@@ -425,6 +452,17 @@ def _paper_recovery_intervention_lane(
             "resource_release_expected": False,
         }
     )
+    if phase == "owner_receipt_recorded":
+        for key in (
+            "route_key_question",
+            "handoff_source",
+            "route_back_checklist",
+            "route_rationale",
+            "route_summary",
+            "route_target",
+            "route_target_label",
+        ):
+            lane.pop(key, None)
     return {key: value for key, value in lane.items() if value not in (None, "", [], {})}
 
 
