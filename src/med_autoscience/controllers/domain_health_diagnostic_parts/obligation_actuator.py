@@ -186,6 +186,7 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         "materialize_successor_owner_gate",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
+        "consume_opl_provider_admission_readback",
         "resolve_owner_gate_decision",
         "route_back_to_owner_or_repair_materialization",
         "resolve_typed_blocker",

@@ -331,7 +331,7 @@ def _recommendations(
 def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
     data_assets.init_data_assets(workspace_root=workspace_root)
     public_validation = data_assets.validate_public_registry(workspace_root=workspace_root)
-    impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
+    impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
     data_asset_status = data_assets.data_assets_status(workspace_root=workspace_root)
     private_payload = data_assets._load_json(
         data_assets._private_registry_path(workspace_root),

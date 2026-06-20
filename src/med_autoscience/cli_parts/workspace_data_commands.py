@@ -105,7 +105,7 @@ def handle_workspace_data_command(
         return 0
 
     if args.command == "assess-data-asset-impact":
-        result = data_assets.assess_data_asset_impact(workspace_root=Path(args.workspace_root))
+        result = data_assets.assess_data_asset_impact(workspace_root=Path(args.workspace_root), persist_report=True)
         _print_json(result)
         return 0
 

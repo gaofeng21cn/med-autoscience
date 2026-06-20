@@ -99,6 +99,8 @@ def _dispatch_profile_command(
             profile_ref=profile_ref,
             study_id=str(request["study_id"]),
             entry_mode=_optional_text(request.get("entry_mode")),
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
         ),
         "launch-study": lambda: product_entry.launch_study(
             profile=profile,

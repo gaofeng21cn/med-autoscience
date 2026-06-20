@@ -189,6 +189,52 @@ def test_policy_adapter_materializes_executable_owner_action_as_mas_transition_r
     _assert_mas_adapter_authority_only(result)
 
 
+def test_policy_adapter_provider_admission_consumes_opl_readback_without_mas_authority() -> None:
+    adapter = importlib.import_module("med_autoscience.controllers.paper_progress_policy_adapter")
+    result = adapter.build_policy_result(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "admission_pending",
+                "next_safe_action": {
+                    "kind": "consume_opl_provider_admission_readback",
+                    "owner": "write",
+                    "provider_admission_allowed": True,
+                    "provider_admission_requires_opl_runtime_result": True,
+                    "mas_can_authorize_provider_admission": False,
+                },
+            },
+        },
+        source="test",
+    )
+
+    assert result["recommended_opl_transition_kind"] == "StartProviderAttempt"
+    assert result["policy_outcome_kind"] == "opl_provider_admission_readback_consumption"
+    assert result["paper_policy_verdict"] == {
+        "verdict": "consume_opl_provider_admission_readback",
+        "mas_can_authorize_provider_admission": False,
+        "requires_claimable_live_readback_source": True,
+        "provider_completion_is_domain_completion": False,
+        "accepted_result_families": [
+            "complete_same_transition_opl_provider_admission_readback",
+            "non_advancing_apply_typed_blocker",
+        ],
+    }
+    assert result["authority_boundary"]["mas_can_authorize_provider_admission"] is False
+    request = result["opl_domain_progress_transition_request"]
+    assert request["recommended_transition_kind"] == "StartProviderAttempt"
+    assert request["required_postcondition"]["kind"] == "provider_admission_enqueued_or_blocked"
+    _assert_mas_adapter_authority_only(result)
+
+
 def test_policy_adapter_classifies_domain_owner_results_without_runtime_fields() -> None:
     adapter = importlib.import_module("med_autoscience.controllers.paper_progress_policy_adapter")
     result = adapter.build_policy_result(

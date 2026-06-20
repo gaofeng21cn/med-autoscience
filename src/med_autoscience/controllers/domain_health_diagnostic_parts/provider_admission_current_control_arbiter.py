@@ -1038,8 +1038,10 @@ def _paper_recovery_state_blocks_provider_admission(
     ):
         return {}
     if _non_empty_text(recovery.get("phase")) == "admission_pending" and (
-        next_safe_action.get("provider_admission_requires_opl_runtime_result") is False
-        or _non_empty_text(next_safe_action.get("kind")) == "admit_provider_attempt"
+        next_safe_action.get("provider_admission_requires_opl_runtime_result") is True
+        and next_safe_action.get("mas_can_authorize_provider_admission") is False
+        and _non_empty_text(next_safe_action.get("kind"))
+        == "consume_opl_provider_admission_readback"
     ):
         return {}
     if _non_empty_text(recovery.get("phase")) == "human_gate":

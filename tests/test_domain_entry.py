@@ -83,17 +83,18 @@ def test_external_caller_can_consume_domain_entry_contract_without_repo_local_he
     write_study(profile.workspace_root, "001-risk")
 
     contract = contract_module.build_domain_entry_contract()
+    captured: dict[str, object] = {}
 
     monkeypatch.setattr(domain_entry_module, "load_profile", lambda ref: profile)
-    monkeypatch.setattr(
-        domain_entry_module.study_progress,
-        "read_study_progress",
-        lambda **kwargs: {
+    def fake_read_study_progress(**kwargs):
+        captured.update(kwargs)
+        return {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",
             "current_stage_summary": "当前由 MAS 监管论文推进。",
-        },
-    )
+        }
+
+    monkeypatch.setattr(domain_entry_module.study_progress, "read_study_progress", fake_read_study_progress)
 
     request = _build_request_from_contract(
         contract,
@@ -110,6 +111,8 @@ def test_external_caller_can_consume_domain_entry_contract_without_repo_local_he
     }
     assert payload["command"] == "study-progress"
     assert payload["current_stage"] == "publication_supervision"
+    assert captured["sync_runtime_summary"] is False
+    assert captured["materialize_read_model_artifacts"] is False
 
 
 def test_domain_entry_rejects_missing_required_fields(tmp_path: Path) -> None:

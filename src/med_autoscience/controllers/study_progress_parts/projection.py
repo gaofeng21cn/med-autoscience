@@ -989,7 +989,7 @@ def read_study_progress(
         status_payload=status,
         profile_ref=profile_ref,
         entry_mode=entry_mode,
-        materialize_read_model_artifacts=sync_runtime_summary
+        materialize_read_model_artifacts=False
         if materialize_read_model_artifacts is None
         else materialize_read_model_artifacts,
     )

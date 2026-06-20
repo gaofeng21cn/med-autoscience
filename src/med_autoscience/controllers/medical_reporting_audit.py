@@ -196,7 +196,6 @@ def write_audit_files(quest_root: Path, report: dict[str, object]) -> tuple[Path
 
 
 def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
-    del apply
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     try:
         paper_root = paper_artifacts.resolve_latest_paper_root(resolved_quest_root)
@@ -321,7 +320,10 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "submission_checklist_handoff_ready": submission_checklist_handoff_ready,
         "submission_checklist_unclassified_blocking_items": submission_checklist_unclassified_blocking_items,
     }
-    json_path, md_path = write_audit_files(resolved_quest_root, report)
+    json_path: Path | None = None
+    md_path: Path | None = None
+    if apply:
+        json_path, md_path = write_audit_files(resolved_quest_root, report)
     return {
         "status": str(report["status"]),
         "blockers": blockers,
@@ -330,6 +332,6 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "quest_root": str(resolved_quest_root),
         "medical_story_contract_valid": medical_story_contract_valid,
         "medical_story_contract_blockers": medical_story_contract_blockers,
-        "report_json": str(json_path),
-        "report_markdown": str(md_path),
+        "report_json": str(json_path) if json_path is not None else None,
+        "report_markdown": str(md_path) if md_path is not None else None,
     }

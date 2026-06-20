@@ -94,13 +94,16 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "action": action,
         "missing_pmids": missing_pmids,
     }
-    json_path, md_path = write_audit_files(resolved_quest_root, report)
+    json_path: Path | None = None
+    md_path: Path | None = None
+    if apply:
+        json_path, md_path = write_audit_files(resolved_quest_root, report)
     return {
         "status": str(report["status"]),
         "blockers": blockers,
         "action": action,
         "quest_root": str(resolved_quest_root),
         "missing_pmids": missing_pmids,
-        "report_json": str(json_path),
-        "report_markdown": str(md_path),
+        "report_json": str(json_path) if json_path is not None else None,
+        "report_markdown": str(md_path) if md_path is not None else None,
     }

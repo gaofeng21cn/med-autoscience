@@ -211,6 +211,7 @@
         "reject_terminal_closeout_as_stale",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
+        "consume_opl_provider_admission_readback",
         "authorize_opl_transport_recovery_or_stable_typed_blocker",
         "honor_stable_typed_blocker",
         "materialize_successor_owner_action",
@@ -318,8 +319,17 @@
         "non_advancing_apply_is_typed_blocker": true
       },
       "admit_provider_attempt": {
-        "meaning": "A clean MAS transition request or OPL transition readback already exists; provider execution still belongs to OPL.",
+        "meaning": "Legacy alias retained only for historical contract compatibility; current MAS recovery state should use consume_opl_provider_admission_readback.",
         "mas_can_create_opl_outbox_record": false,
+        "mas_can_authorize_provider_admission": false,
+        "provider_completion_is_domain_completion": false
+      },
+      "consume_opl_provider_admission_readback": {
+        "meaning": "A complete same-transition OPL provider-admission runtime readback exists; MAS may consume the derived projection but cannot authorize or start provider attempts.",
+        "mas_can_create_opl_outbox_record": false,
+        "mas_can_authorize_provider_admission": false,
+        "provider_admission_requires_opl_runtime_result": true,
+        "requires_claimable_live_readback_source": true,
         "provider_completion_is_domain_completion": false
       }
     }
@@ -351,7 +361,9 @@
     "pending_obligation_requires_executable_intent": {
       "pending_requires_all": [
         "phase=admission_pending",
-        "next_safe_action=admit_provider_attempt",
+        "next_safe_action=consume_opl_provider_admission_readback",
+        "provider_admission_requires_opl_runtime_result=true",
+        "mas_can_authorize_provider_admission=false",
         "provider_admission_pending_count=1_or_provider_admission_candidates>=1"
       ],
       "forbidden_combinations": [

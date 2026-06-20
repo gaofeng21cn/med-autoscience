@@ -22,6 +22,8 @@ from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
+    opl_transition_readback_source_claimability as _opl_transition_readback_source_claimability,
+    provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.owner_gate_decision import (
     accepted_owner_gate_decision as _accepted_owner_gate_decision,
@@ -573,16 +575,33 @@ def build_paper_recovery_state(
 
     if _provider_admission_pending(progress):
         owner = _text(obligation.get("owner"))
+        admission_readback = _provider_admission_readback(progress)
+        readback_claimability = _opl_transition_readback_source_claimability(admission_readback)
         return _state(
             progress,
             obligation=obligation,
             phase="admission_pending",
-            conditions=[{"condition": "provider_admission_pending"}],
+            conditions=[
+                {
+                    "condition": "opl_provider_admission_readback_consumable",
+                    "source_kind": readback_claimability.get("source_kind"),
+                    "fresh_live_claim_allowed": readback_claimability.get(
+                        "fresh_live_claim_allowed"
+                    ),
+                }
+            ],
             next_safe_action=_next_action(
-                "admit_provider_attempt",
+                "consume_opl_provider_admission_readback",
                 provider_admission_allowed=True,
-                provider_admission_requires_opl_runtime_result=False,
+                mas_can_authorize_provider_admission=False,
+                provider_admission_requires_opl_runtime_result=True,
+                requires_claimable_live_readback_source=True,
+                fresh_live_claim_allowed=readback_claimability.get("fresh_live_claim_allowed"),
                 owner=owner,
+                required_input=(
+                    "Complete same-transition OPL provider-admission runtime readback; "
+                    "MAS consumes the projection and cannot authorize or start provider attempts"
+                ),
             ),
             current_owner=owner,
             diagnostic_report=diagnostic,
@@ -1612,6 +1631,9 @@ def _next_action(
     *,
     provider_admission_allowed: bool,
     provider_admission_requires_opl_runtime_result: bool | None = None,
+    mas_can_authorize_provider_admission: bool | None = None,
+    requires_claimable_live_readback_source: bool | None = None,
+    fresh_live_claim_allowed: bool | None = None,
     owner: str | None = None,
     required_input: str | None = None,
     owner_receipt_ref: str | None = None,
@@ -1625,6 +1647,9 @@ def _next_action(
         "owner": owner,
         "provider_admission_allowed": provider_admission_allowed,
         "provider_admission_requires_opl_runtime_result": provider_admission_requires_opl_runtime_result,
+        "mas_can_authorize_provider_admission": mas_can_authorize_provider_admission,
+        "requires_claimable_live_readback_source": requires_claimable_live_readback_source,
+        "fresh_live_claim_allowed": fresh_live_claim_allowed,
         "required_input": required_input,
         "owner_receipt_ref": owner_receipt_ref,
         "accepted_owner_gate_decision": dict(accepted_owner_gate_decision or {}),
@@ -1640,6 +1665,17 @@ def _clean_conditions(conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         {key: value for key, value in condition.items() if value not in (None, "", [], {})}
         for condition in conditions
     ]
+
+
+def _provider_admission_readback(progress: Mapping[str, Any]) -> dict[str, Any]:
+    for candidate in progress.get("provider_admission_candidates") or []:
+        if not isinstance(candidate, Mapping):
+            continue
+        readback = _provider_admission_opl_transition_readback(candidate)
+        if readback:
+            return readback
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    return _provider_admission_opl_transition_readback(current_work_unit)
 
 
 def _current_work_unit_status(current_work_unit: Mapping[str, Any]) -> str | None:

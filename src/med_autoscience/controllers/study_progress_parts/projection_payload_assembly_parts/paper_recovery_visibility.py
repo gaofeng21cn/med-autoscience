@@ -311,6 +311,7 @@ def _supervisor_decision_allows_provider_admission(
         "materialize_successor_owner_action",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
+        "consume_opl_provider_admission_readback",
     }
     if decision_action_kind is None:
         return recovery_action_kind in allowed_action_kinds

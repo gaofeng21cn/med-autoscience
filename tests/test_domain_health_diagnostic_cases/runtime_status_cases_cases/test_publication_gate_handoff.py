@@ -137,6 +137,51 @@ def test_domain_health_diagnostic_reapplies_publication_gate_when_ai_reviewer_ev
     assert calls == [False, True]
     assert result["controllers"]["publication_gate"]["action"] == "applied"
 
+
+def test_publication_gate_refresh_mask_consumes_dry_run_payload_without_report_file(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    paper_root = tmp_path / "worktree" / "paper"
+    study_root = tmp_path / "studies" / "001-risk"
+    observed: dict[str, object] = {}
+
+    class PaperContext:
+        def __init__(self, study_root: Path) -> None:
+            self.study_root = study_root
+
+    def fake_resolve_paper_root_context(path: Path) -> PaperContext:
+        observed["paper_root"] = path
+        return PaperContext(study_root=study_root)
+
+    def fake_read_publication_eval_latest(*, study_root: Path) -> dict[str, object]:
+        observed["study_root"] = study_root
+        return {
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+            }
+        }
+
+    quest_scan = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.quest_scan")
+    monkeypatch.setattr(quest_scan, "resolve_paper_root_context", fake_resolve_paper_root_context)
+    monkeypatch.setattr(quest_scan, "read_publication_eval_latest", fake_read_publication_eval_latest)
+
+    result = module._publication_gate_ai_reviewer_eval_masks_return_to_gate(
+        dry_run_result={
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "gate_kind": "publishability_control",
+            "paper_root": str(paper_root),
+            "report_json": None,
+        }
+    )
+
+    assert result is True
+    assert observed["paper_root"] == paper_root
+    assert observed["study_root"] == study_root
+
 def test_build_default_controller_runners_includes_figure_loop_guard() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     runners = module.build_default_controller_runners()

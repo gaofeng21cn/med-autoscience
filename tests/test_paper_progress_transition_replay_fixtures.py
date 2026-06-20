@@ -650,8 +650,14 @@ def test_dhd_provider_transition_request_without_opl_readback_becomes_non_advanc
         requested,
         transition_kind="StartProviderAttempt",
         postcondition_kind="provider_admission_enqueued_or_blocked",
-        outcome_kind="provider_admission_requested",
+        outcome_kind="opl_provider_admission_readback_consumption",
     )
+    assert requested["paper_progress_policy_result"]["paper_policy_verdict"][
+        "mas_can_authorize_provider_admission"
+    ] is False
+    assert requested["paper_progress_policy_result"]["paper_policy_verdict"][
+        "requires_claimable_live_readback_source"
+    ] is True
     assert requested["paper_progress_policy_result"]["paper_policy_verdict"][
         "provider_completion_is_domain_completion"
     ] is False

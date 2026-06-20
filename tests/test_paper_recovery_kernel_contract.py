@@ -304,7 +304,9 @@ def test_paper_recovery_projection_invariants_fail_closed() -> None:
     pending = invariants["pending_obligation_requires_executable_intent"]
     assert pending["pending_requires_all"] == [
         "phase=admission_pending",
-        "next_safe_action=admit_provider_attempt",
+        "next_safe_action=consume_opl_provider_admission_readback",
+        "provider_admission_requires_opl_runtime_result=true",
+        "mas_can_authorize_provider_admission=false",
         "provider_admission_pending_count=1_or_provider_admission_candidates>=1",
     ]
     assert {

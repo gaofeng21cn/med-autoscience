@@ -645,8 +645,10 @@ def run_controller(
         )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
-    json_path, md_path = write_gate_files(quest_root, report)
+    json_path: Path | None = None
+    md_path: Path | None = None
     if apply:
+        json_path, md_path = write_gate_files(quest_root, report)
         _materialize_publication_eval_latest(
             state=state,
             report={
@@ -656,16 +658,19 @@ def run_controller(
         )
     intervention = None
     if apply and enqueue_intervention and report["blockers"]:
+        evidence_refs = [str(json_path)] if json_path is not None else []
         intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=publication_gate_policy.build_intervention_message(report),
             source=source,
-            evidence_refs=[str(json_path)],
+            evidence_refs=evidence_refs,
         )
     return {
-        "report_json": str(json_path),
-        "report_markdown": str(md_path),
+        "report_json": str(json_path) if json_path is not None else None,
+        "report_markdown": str(md_path) if md_path is not None else None,
+        "gate_kind": report["gate_kind"],
+        "paper_root": report["paper_root"],
         "status": report["status"],
         "allow_write": report["allow_write"],
         "blockers": report["blockers"],

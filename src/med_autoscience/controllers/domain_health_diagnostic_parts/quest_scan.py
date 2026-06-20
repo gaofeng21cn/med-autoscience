@@ -76,19 +76,9 @@ def _publication_gate_ai_reviewer_eval_masks_return_to_gate(*, dry_run_result: d
         return False
     if str(dry_run_result.get("current_required_action") or "").strip() != "return_to_publishability_gate":
         return False
-    report_path_text = _non_empty_text(dry_run_result.get("report_json"))
-    if report_path_text is None:
+    if str(dry_run_result.get("gate_kind") or "").strip() != "publishability_control":
         return False
-    report_path = Path(report_path_text)
-    if not report_path.exists():
-        return False
-    try:
-        report_payload = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return False
-    if str(report_payload.get("gate_kind") or "").strip() != "publishability_control":
-        return False
-    paper_root_text = _non_empty_text(report_payload.get("paper_root"))
+    paper_root_text = _non_empty_text(dry_run_result.get("paper_root"))
     if paper_root_text is None:
         return False
     try:

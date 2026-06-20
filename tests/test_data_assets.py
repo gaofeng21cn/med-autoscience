@@ -223,7 +223,7 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
         encoding="utf-8",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = module.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
 
     assert result["study_count"] == 1
     study = result["studies"][0]
@@ -236,6 +236,36 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
 
     report_path = workspace_root / "memory" / "portfolio" / "data_assets" / "impact" / "latest_impact_report.json"
     assert report_path.exists()
+
+
+def test_assess_data_asset_impact_is_read_only_by_default(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="restricted_raw_2026_03_28",
+        generated_by="ingest.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    study_manifest = workspace_root / "studies" / "002-early-risk" / "study.yaml"
+    study_manifest.parent.mkdir(parents=True)
+    study_manifest.write_text(
+        "study_id: 002-early-risk\n"
+        "dataset_inputs:\n"
+        "  - dataset_id: nfpitnet_master\n"
+        "    path: ../../data/datasets/master/v2026-03-28/analysis.csv\n",
+        encoding="utf-8",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    assert result["study_count"] == 1
+    assert not (workspace_root / "memory" / "portfolio" / "data_assets").exists()
 
 
 def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Path) -> None:

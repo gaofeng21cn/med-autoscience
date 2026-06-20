@@ -531,6 +531,7 @@ def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
         study_root=_optional_path(arguments, "study_root"),
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
         sync_runtime_summary=False,
+        materialize_read_model_artifacts=False,
     )
     return render_study_progress_result(result)
 

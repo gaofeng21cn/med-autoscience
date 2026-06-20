@@ -177,9 +177,18 @@ def test_opl_live_readback_provider_admission_candidate_suppresses_stale_project
     )
 
     assert state["phase"] == "admission_pending"
-    assert state["conditions"] == [{"condition": "provider_admission_pending"}]
-    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
+    assert state["next_safe_action"]["provider_admission_requires_opl_runtime_result"] is True
+    assert state["next_safe_action"]["requires_claimable_live_readback_source"] is True
     assert state["current_authority"]["owner"] == "write"
 
 

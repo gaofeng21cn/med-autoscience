@@ -525,9 +525,19 @@ def test_observe_only_diagnostic_does_not_block_provider_admission() -> None:
     )
 
     assert state["phase"] == "admission_pending"
-    assert state["conditions"] == [{"condition": "provider_admission_pending"}]
-    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
+    assert state["next_safe_action"]["provider_admission_requires_opl_runtime_result"] is True
+    assert state["next_safe_action"]["requires_claimable_live_readback_source"] is True
+    assert state["next_safe_action"]["fresh_live_claim_allowed"] is False
 
 
 def test_executable_owner_action_without_candidate_is_owner_action_ready_not_admission_pending() -> None:
@@ -699,9 +709,16 @@ def test_matching_provider_admission_supersedes_stale_parked_projection() -> Non
     )
 
     assert state["phase"] == "admission_pending"
-    assert state["conditions"] == [{"condition": "provider_admission_pending"}]
-    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
     assert state["current_authority"]["owner"] == "write"
 
 
@@ -750,9 +767,16 @@ def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_pr
     )
 
     assert state["phase"] == "admission_pending"
-    assert state["conditions"] == [{"condition": "provider_admission_pending"}]
-    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
     assert state["current_authority"]["owner"] == "gate_clearing_batch"
 
 
@@ -1418,8 +1442,10 @@ def test_provider_admission_candidate_with_opl_runtime_readback_stays_pending() 
     )
 
     assert state["phase"] == "admission_pending"
-    assert state["next_safe_action"]["kind"] == "admit_provider_attempt"
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
     assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
+    assert state["next_safe_action"]["requires_claimable_live_readback_source"] is True
 
 
 def test_runtime_report_keeps_observe_only_transition_request_pending_until_opl_readback() -> None:

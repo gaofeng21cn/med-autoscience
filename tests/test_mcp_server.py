@@ -814,6 +814,7 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert result["isError"] is False
     _assert_tool_result_envelope(result, tool_id="study_progress")
     assert captured["sync_runtime_summary"] is False
+    assert captured["materialize_read_model_artifacts"] is False
     payload = _structured_payload(result)
     assert payload["study_id"] == "001-risk"
     assert payload["current_stage"] == "live"

@@ -527,10 +527,24 @@ def _study_dataset_inputs_path(study_root: Path) -> Path | None:
     return None
 
 
-def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
-    init_data_assets(workspace_root=workspace_root)
-    private_payload = _load_json(private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
-    public_payload = load_public_registry(workspace_root)
+def write_data_asset_impact_report(*, workspace_root: Path, report: dict[str, object]) -> Path:
+    path = impact_report_path(workspace_root)
+    _write_json(path, report)
+    return path
+
+
+def assess_data_asset_impact(*, workspace_root: Path, persist_report: bool = False) -> dict[str, object]:
+    private_payload = {"schema_version": PRIVATE_REGISTRY_SCHEMA_VERSION, "releases": scan_private_releases(workspace_root)}
+    public_payload = normalize_public_registry_payload(
+        _load_json(
+            public_registry_path(workspace_root),
+            default={
+                "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
+                "discovery": normalize_public_registry_discovery({}),
+                "datasets": [],
+            },
+        )
+    )
     latest_versions = _latest_versions_by_family(private_payload["releases"])
     release_index = _release_index(private_payload["releases"])
     dataset_version_index = _release_index_by_dataset_version(private_payload["releases"])
@@ -610,7 +624,8 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
         study_reports.append({"study_id": study_root.name, "status": overall_status, "dataset_inputs": dataset_reports})
 
     report = {"workspace_root": str(workspace_root), "study_count": len(study_reports), "studies": study_reports}
-    _write_json(impact_report_path(workspace_root), report)
+    if persist_report:
+        write_data_asset_impact_report(workspace_root=workspace_root, report=report)
     return report
 
 

@@ -223,9 +223,12 @@ def run_controller(
 ) -> dict[str, Any]:
     state = build_gate_state(quest_root)
     report = build_gate_report(state)
-    json_path, md_path = write_gate_files(quest_root, report)
+    json_path: Path | None = None
+    md_path: Path | None = None
+    if apply:
+        json_path, md_path = write_gate_files(quest_root, report)
     intervention = None
-    if apply and report["status"] in {"blocked", "advisory"}:
+    if json_path is not None and report["status"] in {"blocked", "advisory"}:
         intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
@@ -234,8 +237,8 @@ def run_controller(
             evidence_refs=[str(json_path)],
         )
     return {
-        "report_json": str(json_path),
-        "report_markdown": str(md_path),
+        "report_json": str(json_path) if json_path is not None else None,
+        "report_markdown": str(md_path) if md_path is not None else None,
         "status": report["status"],
         "blockers": report["blockers"],
         "advisories": report["advisories"],

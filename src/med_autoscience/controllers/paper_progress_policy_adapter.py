@@ -32,6 +32,7 @@ FORBIDDEN_RUNTIME_FIELDS = transition_contract.request_forbidden_runtime_fields(
 _PROVIDER_ADMISSION_NEXT_KINDS = {
     "admit_provider_attempt",
     "admit_identity_bound_stage_packet",
+    "consume_opl_provider_admission_readback",
 }
 _OWNER_ACTION_NEXT_KINDS = {
     "run_mas_owner_callable",
@@ -300,7 +301,7 @@ def _policy_kind(
 
 def _policy_outcome_kind(policy_kind: str) -> str:
     return {
-        START_PROVIDER_ATTEMPT: "provider_admission_requested",
+        START_PROVIDER_ATTEMPT: "opl_provider_admission_readback_consumption",
         MATERIALIZE_OWNER_ACTION: "owner_action_requested",
         CONSUME_OWNER_RECEIPT: "owner_receipt",
         RECORD_TYPED_BLOCKER: "typed_blocker",
@@ -341,11 +342,13 @@ def _paper_policy_verdict(
         }
     if policy_kind == START_PROVIDER_ATTEMPT:
         return {
-            "verdict": "opl_provider_attempt_allowed_by_domain_policy",
+            "verdict": "consume_opl_provider_admission_readback",
+            "mas_can_authorize_provider_admission": False,
+            "requires_claimable_live_readback_source": True,
             "provider_completion_is_domain_completion": False,
             "accepted_result_families": [
-                "provider_admission_request",
-                "opl_runtime_readback_required",
+                "complete_same_transition_opl_provider_admission_readback",
+                "non_advancing_apply_typed_blocker",
             ],
         }
     if policy_kind == MATERIALIZE_OWNER_ACTION:

@@ -176,6 +176,27 @@ def test_domain_health_diagnostic_surfaces_runtime_efficiency_packet_and_gate_ca
     assert "上下文效率" in latest_markdown
     assert "publication_gate" in latest_markdown
 
+
+def test_domain_health_diagnostic_dry_run_does_not_persist_default_controller_reports(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    quest_root = make_quest(tmp_path / "workspace", "q001", status="running")
+    workspace_root = quest_root.parents[2]
+    study_root = workspace_root / "studies" / quest_root.name
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_root.name}\n", encoding="utf-8")
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_root.name}\n", encoding="utf-8")
+
+    result = module.run_domain_health_diagnostic_for_quest(quest_root=quest_root, apply=False)
+
+    assert result["diagnostic_report_persistence"]["persisted"] is False
+    assert all(
+        controller.get("report_json") is None and controller.get("report_markdown") is None
+        for controller in result["controllers"].values()
+    )
+    assert not (quest_root / "artifacts" / "reports").exists()
+    assert not (workspace_root / "artifacts" / "data_assets").exists()
+
+
 def test_domain_health_diagnostic_preserves_publication_supervisor_summary(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     quest_root = make_quest(tmp_path, "q001", status="running")

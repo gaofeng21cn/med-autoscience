@@ -37,7 +37,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 def refresh_data_assets(*, workspace_root: Path) -> dict[str, Any]:
     init = data_assets.init_data_assets(workspace_root=workspace_root)
     public_validation = data_assets.validate_public_registry(workspace_root=workspace_root)
-    impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
+    impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
     startup_report = startup_data_readiness.startup_data_readiness(workspace_root=workspace_root)
     status = data_assets.data_assets_status(workspace_root=workspace_root)
     return {

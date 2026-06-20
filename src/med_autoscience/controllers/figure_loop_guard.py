@@ -443,7 +443,10 @@ def run_controller(
         recent_window=recent_window,
     )
     report = build_guard_report(state)
-    json_path, md_path = write_guard_files(quest_root, report)
+    json_path: Path | None = None
+    md_path: Path | None = None
+    if apply:
+        json_path, md_path = write_guard_files(quest_root, report)
 
     stop_result = None
     intervention = None
@@ -464,17 +467,18 @@ def run_controller(
                     "quest_id": state.quest_id,
                     "source": source,
                 }
+        evidence_refs = [str(json_path)] if json_path is not None else []
         intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=build_intervention_message(report),
             source=source,
-            evidence_refs=[str(json_path)],
+            evidence_refs=evidence_refs,
         )
 
     return {
-        "report_json": str(json_path),
-        "report_markdown": str(md_path),
+        "report_json": str(json_path) if json_path is not None else None,
+        "report_markdown": str(md_path) if md_path is not None else None,
         "status": report["status"],
         "blockers": report["blockers"],
         "dominant_figure_id": report["dominant_figure_id"],
