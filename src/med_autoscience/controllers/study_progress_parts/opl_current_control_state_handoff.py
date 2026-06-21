@@ -289,6 +289,11 @@ def opl_current_control_state_study_handoff_projection(
         payload,
         study_id=study_id,
     )
+    matching_provider_admissions = [
+        dict(item)
+        for item in matching.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ] if matching is not None else []
     matching_top_level_transition_requests = _top_level_transition_request_candidates_for_study(
         payload,
         study_id=study_id,
@@ -374,7 +379,9 @@ def opl_current_control_state_study_handoff_projection(
                     "stage_packet_refs",
                     "checkpoint_refs",
                     "source_refs",
+                    "opl_domain_progress_transition_live_readback",
                     "opl_domain_progress_transition_runtime_live_readback",
+                    "opl_domain_progress_transition_result",
                 ),
             ),
             "source": "opl_current_control_state_action_queue",
@@ -458,10 +465,14 @@ def opl_current_control_state_study_handoff_projection(
     }
     projection.update(_current_control_currentness_fields(matching))
     _copy_opl_transition_readback_fields(projection, matching)
-    if matching_top_level_provider_admissions:
+    provider_admission_candidates = [
+        *matching_provider_admissions,
+        *matching_top_level_provider_admissions,
+    ]
+    if provider_admission_candidates:
         projection = _apply_top_level_provider_admissions_to_handoff(
             projection,
-            matching_top_level_provider_admissions,
+            provider_admission_candidates,
         )
     if matching_top_level_transition_requests:
         projection = _apply_top_level_transition_requests_to_handoff(
@@ -856,11 +867,13 @@ def _apply_top_level_provider_admissions_to_handoff(
     candidates: list[dict[str, Any]],
 ) -> dict[str, Any]:
     updated = dict(projection)
-    provider_candidates = [
-        dict(item)
-        for item in candidates
-        if provider_admission_opl_transition_readback(item)
-    ]
+    provider_candidates = _dedupe_provider_admission_candidates(
+        [
+            dict(item)
+            for item in candidates
+            if provider_admission_opl_transition_readback(item)
+        ]
+    )
     if not provider_candidates:
         updated["provider_admission_pending_count"] = 0
         updated["provider_admission_candidates"] = []
@@ -1071,7 +1084,7 @@ def _apply_action_queue_provider_readbacks_to_handoff(
     action_provider_candidates = [
         dict(item)
         for item in projection.get("action_queue") or []
-        if isinstance(item, Mapping) and provider_admission_opl_transition_readback(item)
+        if isinstance(item, Mapping) and provider_admission_opl_transition_readback(_action_with_handoff_packet_readback(item))
     ]
     if projection_readback_candidate:
         action_provider_candidates.extend(
@@ -1080,6 +1093,7 @@ def _apply_action_queue_provider_readbacks_to_handoff(
                 readback_candidate=projection_readback_candidate,
             )
         )
+    action_provider_candidates = _dedupe_provider_admission_candidates(action_provider_candidates)
     if not action_provider_candidates:
         return dict(projection)
     updated = _apply_top_level_provider_admissions_to_handoff(
@@ -1102,6 +1116,30 @@ def _apply_action_queue_provider_readbacks_to_handoff(
     return updated
 
 
+def _dedupe_provider_admission_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, ...]] = set()
+    for candidate in candidates:
+        identity = tuple(sorted(_handoff_candidate_runtime_identity_keys(candidate)))
+        if not identity:
+            identity = tuple(
+                value
+                for value in (
+                    _non_empty_text(candidate.get("study_id")),
+                    _work_unit_identity(candidate.get("work_unit_id"))
+                    or _work_unit_identity(candidate.get("next_work_unit")),
+                    _non_empty_text(candidate.get("work_unit_fingerprint"))
+                    or _non_empty_text(candidate.get("action_fingerprint")),
+                )
+                if value is not None
+            )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        deduped.append(candidate)
+    return deduped
+
+
 def _provider_readback_candidate_from_projection(projection: Mapping[str, Any]) -> dict[str, Any]:
     readback = candidate_opl_transition_readback(projection)
     if not readback:
@@ -1112,8 +1150,22 @@ def _provider_readback_candidate_from_projection(projection: Mapping[str, Any]) 
     identity = _provider_admission_identity_from_readback(readback)
     if not identity:
         return {}
+    action_type = _non_empty_text(projection.get("action_type"))
+    work_unit_id = _work_unit_identity(projection.get("work_unit_id")) or _work_unit_identity(
+        identity.get("work_unit_id")
+    )
+    work_unit_fingerprint = _non_empty_text(projection.get("work_unit_fingerprint")) or _non_empty_text(
+        projection.get("action_fingerprint")
+    ) or _non_empty_text(identity.get("work_unit_fingerprint"))
     return {
         **identity,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": _non_empty_text(projection.get("action_fingerprint"))
+        or work_unit_fingerprint,
+        "next_executable_owner": _non_empty_text(projection.get("next_owner")),
+        "owner": _non_empty_text(projection.get("next_owner")),
         "status": "provider_admission_pending",
         "provider_admission_pending": True,
         "transition_request_pending": False,
@@ -1121,6 +1173,25 @@ def _provider_readback_candidate_from_projection(projection: Mapping[str, Any]) 
         "provider_admission_requires_opl_runtime_result": False,
         "opl_domain_progress_transition_runtime_live_readback": readback,
     }
+
+
+def _action_with_handoff_packet_readback(action: Mapping[str, Any]) -> dict[str, Any]:
+    updated = dict(action)
+    handoff_packet = _observability_mapping(updated.get("handoff_packet"))
+    if not handoff_packet:
+        return updated
+    for key in (
+        "opl_domain_progress_transition_live_readback",
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_runtime_result",
+        "opl_runtime_result",
+        "domain_progress_transition_runtime",
+        "domain_progress_transition_runtime_result",
+    ):
+        if key not in updated and key in handoff_packet:
+            updated[key] = handoff_packet[key]
+    return updated
 
 
 def _bind_projection_provider_readback_to_actions(
@@ -1132,9 +1203,12 @@ def _bind_projection_provider_readback_to_actions(
     for item in projection.get("action_queue") or []:
         if not isinstance(item, Mapping):
             continue
-        action = dict(item)
+        action = _action_with_handoff_packet_readback(item)
         if not _same_provider_readback_identity(action, readback_candidate):
             continue
+        action_readback = provider_admission_opl_transition_readback(action) or readback_candidate[
+            "opl_domain_progress_transition_runtime_live_readback"
+        ]
         bound.append(
             {
                 **action,
@@ -1147,9 +1221,7 @@ def _bind_projection_provider_readback_to_actions(
                     **_observability_mapping(action.get("provider_admission_identity")),
                     **dict(readback_candidate),
                 },
-                "opl_domain_progress_transition_runtime_live_readback": readback_candidate[
-                    "opl_domain_progress_transition_runtime_live_readback"
-                ],
+                "opl_domain_progress_transition_runtime_live_readback": action_readback,
             }
         )
     return bound
@@ -1532,10 +1604,6 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         return projection
     updated = dict(projection)
     terminal = _observability_mapping(updated.get("latest_terminal_stage_log"))
-    if _handoff_has_complete_current_transition_readback(updated) and not _terminal_closeout_has_domain_delta(
-        terminal,
-    ):
-        return projection
     updated["running_provider_attempt"] = False
     updated["runtime_owner"] = None
     updated["provider_attempt_owner"] = None
@@ -1564,6 +1632,13 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
             terminal=terminal,
             candidates=transition_request_candidates,
         )
+        if (
+            _handoff_has_complete_current_transition_readback(updated)
+            and provider_admission_pending
+            and not matching_provider_admissions
+            and not matching_transition_requests
+        ):
+            return projection
         if (
             (provider_admission_candidates or transition_request_candidates)
             and not matching_provider_admissions
@@ -1927,6 +2002,14 @@ def _terminal_closeout_matches_action_bound_identity(
     terminal: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
+    if (
+        provider_admission_opl_transition_readback(action)
+        and not _terminal_closeout_action_identity_matches_candidate(
+            terminal=terminal,
+            action=action,
+        )
+    ):
+        return False
     if _terminal_closeout_request_wrapper_identity_matches_candidate(terminal=terminal, action=action):
         return True
     if not _terminal_closeout_action_identity_matches_candidate(

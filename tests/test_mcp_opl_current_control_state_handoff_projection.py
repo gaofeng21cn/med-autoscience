@@ -1072,25 +1072,16 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
 
     projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
 
-    assert projection["provider_admission_pending_count"] == 0
+    assert projection["provider_admission_pending_count"] == 1
     assert projection["transition_request_pending_count"] == 0
-    assert projection["provider_admission_candidates"] == []
+    assert projection["provider_admission_candidates"][0]["attempt_idempotency_key"] == idempotency_key
     assert projection["transition_request_candidates"] == []
-    consumed = projection["provider_admission_terminal_closeout_consumed"]
-    assert consumed["stage_attempt_id"] == "sat_efdab57a49cb6d58f2a17eeb"
-    assert consumed["action_type"] == "request_opl_stage_attempt"
-    assert consumed["closeout_action_type"] == "run_quality_repair_batch"
-    assert consumed["attempt_idempotency_key"] == idempotency_key
-    assert projection["next_owner"] == "ai_reviewer"
-    assert projection["current_work_unit"]["owner"] == "ai_reviewer"
-    assert projection["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert projection["current_work_unit"]["work_unit_id"] == (
-        "ai_reviewer_recheck_after_medical_prose_write_repair"
-    )
-    assert projection["current_execution_envelope"]["owner"] == "ai_reviewer"
-    assert projection["current_execution_envelope"]["next_work_unit"] == (
-        "ai_reviewer_recheck_after_medical_prose_write_repair"
-    )
+    assert "provider_admission_terminal_closeout_consumed" not in projection
+    assert projection["current_work_unit"]["owner"] == "write"
+    assert projection["current_work_unit"]["action_type"] == "request_opl_stage_attempt"
+    assert projection["current_work_unit"]["work_unit_id"] == work_unit_id
+    assert projection["current_execution_envelope"]["owner"] == "write"
+    assert projection["current_execution_envelope"]["next_work_unit"] == work_unit_id
 
 
 def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapper_domain_owner_closeout(
@@ -1239,26 +1230,17 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
 
     projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
 
-    assert projection["provider_admission_pending_count"] == 0
+    assert projection["provider_admission_pending_count"] == 1
     assert projection["transition_request_pending_count"] == 0
-    assert projection["provider_admission_candidates"] == []
+    assert projection["provider_admission_candidates"][0]["attempt_idempotency_key"] == idempotency_key
     assert projection["transition_request_candidates"] == []
-    consumed = projection["provider_admission_terminal_closeout_consumed"]
-    assert consumed["stage_attempt_id"] == stage_attempt_id
-    assert consumed["action_type"] == "request_opl_stage_attempt"
-    assert consumed["closeout_action_type"] == "run_quality_repair_batch"
-    assert consumed["attempt_idempotency_key"] == idempotency_key
+    assert "provider_admission_terminal_closeout_consumed" not in projection
     assert projection["latest_terminal_stage_log"]["status"] == "closed_with_domain_owner_refs"
-    assert projection["next_owner"] == "ai_reviewer"
-    assert projection["current_work_unit"]["owner"] == "ai_reviewer"
-    assert projection["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert projection["current_work_unit"]["work_unit_id"] == (
-        "ai_reviewer_recheck_after_medical_prose_write_repair"
-    )
-    assert projection["current_execution_envelope"]["owner"] == "ai_reviewer"
-    assert projection["current_execution_envelope"]["next_work_unit"] == (
-        "ai_reviewer_recheck_after_medical_prose_write_repair"
-    )
+    assert projection["current_work_unit"]["owner"] == "write"
+    assert projection["current_work_unit"]["action_type"] == "request_opl_stage_attempt"
+    assert projection["current_work_unit"]["work_unit_id"] == work_unit_id
+    assert projection["current_execution_envelope"]["owner"] == "write"
+    assert projection["current_execution_envelope"]["next_work_unit"] == work_unit_id
 
 
 def test_study_progress_opl_current_control_state_handoff_uses_transition_request_for_terminal_probe(

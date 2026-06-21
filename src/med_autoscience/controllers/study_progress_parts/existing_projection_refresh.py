@@ -29,6 +29,7 @@ from .current_control_executable_handoff import (
 from .delivery_inspection import attach_delivery_inspection_projection
 from .opl_current_control_state_handoff import (
     merge_live_attempt_observability_into_handoff,
+    opl_current_control_state_study_handoff_projection,
     opl_current_control_state_live_attempt_handoff_projection,
     refresh_handoff_with_terminal_closeout_candidates,
 )
@@ -76,6 +77,71 @@ def refresh_existing_projection_user_visible_status(payload: dict[str, Any]) -> 
             updated["status_narration_contract"] = status_contract
         return updated
     return payload
+
+
+def _merge_live_current_control_handoff(
+    handoff: dict[str, Any] | None,
+    live_handoff: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if live_handoff is None:
+        return handoff
+    if handoff is None:
+        return live_handoff
+    if not _same_handoff_current_identity(handoff, live_handoff):
+        return handoff
+    merged = dict(handoff)
+    for key in (
+        "generated_at",
+        "quest_status",
+        "runtime_health",
+        "provider_admission_pending_count",
+        "transition_request_pending_count",
+        "provider_admission_candidates",
+        "transition_request_candidates",
+        "provider_admission_identity",
+        "provider_admission_terminal_closeout_consumed",
+        "opl_domain_progress_transition_live_readback",
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_domain_progress_transition_result",
+    ):
+        if key in live_handoff:
+            merged[key] = live_handoff[key]
+    live_actions = live_handoff.get("action_queue")
+    if isinstance(live_actions, list) and live_actions:
+        merged["action_queue"] = [dict(item) for item in live_actions if isinstance(item, Mapping)]
+    return merged
+
+
+def _same_handoff_current_identity(
+    handoff: Mapping[str, Any],
+    live_handoff: Mapping[str, Any],
+) -> bool:
+    for key in ("study_id", "action_type"):
+        left = _non_empty_text(handoff.get(key))
+        right = _non_empty_text(live_handoff.get(key))
+        if left is not None and right is not None and left != right:
+            return False
+    left_work_unit = _non_empty_text(handoff.get("work_unit_id")) or _non_empty_text(
+        handoff.get("next_work_unit")
+    )
+    right_work_unit = _non_empty_text(live_handoff.get("work_unit_id")) or _non_empty_text(
+        live_handoff.get("next_work_unit")
+    )
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprint = _non_empty_text(handoff.get("work_unit_fingerprint")) or _non_empty_text(
+        handoff.get("action_fingerprint")
+    )
+    right_fingerprint = _non_empty_text(live_handoff.get("work_unit_fingerprint")) or _non_empty_text(
+        live_handoff.get("action_fingerprint")
+    )
+    if (
+        left_fingerprint is not None
+        and right_fingerprint is not None
+        and left_fingerprint != right_fingerprint
+    ):
+        return False
+    return True
 
 
 def refresh_existing_projection_batch_followthroughs(
@@ -151,11 +217,19 @@ def refresh_existing_projection_current_owner_surfaces(
     if publication_eval_payload is not None:
         updated["publication_eval"] = publication_eval_payload
     updated = attach_opl_supervisor_decision_readback(updated, profile=profile)
+    study_id = _non_empty_text(updated.get("study_id")) or _non_empty_text(status.get("study_id")) or ""
+    live_current_control_handoff = opl_current_control_state_study_handoff_projection(
+        profile=profile,
+        study_id=study_id,
+    )
     handoff = merge_live_attempt_observability_into_handoff(
-        handoff=_optional_mapping(updated.get("opl_current_control_state_handoff")),
+        handoff=_merge_live_current_control_handoff(
+            _optional_mapping(updated.get("opl_current_control_state_handoff")),
+            live_current_control_handoff,
+        ),
         live_attempt_handoff=opl_current_control_state_live_attempt_handoff_projection(
             profile=profile,
-            study_id=_non_empty_text(updated.get("study_id")) or _non_empty_text(status.get("study_id")) or "",
+            study_id=study_id,
             runtime_liveness_audit=_mapping_copy(status.get("runtime_liveness_audit")),
         ),
     )
