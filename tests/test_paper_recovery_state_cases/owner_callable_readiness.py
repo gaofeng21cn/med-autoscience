@@ -1856,6 +1856,101 @@ def test_current_ai_reviewer_record_supersedes_stale_record_typed_blocker() -> N
     assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
 
 
+def test_gate_followthrough_successor_supersedes_stale_ai_reviewer_blocker() -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    source_eval_id = "publication-eval::002::current"
+    work_unit_id = "medical_prose_quality_analysis_source_documentation_repair"
+    fingerprint = "publication-blockers::5a4f2060d6d7d97e"
+    stale_blocker = _typed_blocker_work_unit(
+        study_id=study_id,
+        owner="ai_reviewer",
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        blocker_type="ai_reviewer_record_stale_after_current_inputs",
+    )
+    stale_blocker["work_unit_fingerprint"] = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    stale_blocker["action_fingerprint"] = stale_blocker["work_unit_fingerprint"]
+    stale_blocker["state"]["typed_blocker"] |= {
+        "reason": "ai_reviewer_record_stale_after_current_inputs",
+        "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+        "source_eval_id": "publication-eval::002::stale-record",
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": stale_blocker,
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "analysis-campaign",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "source_eval_id": source_eval_id,
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "owner_receipt_required": True,
+                "required_delta_kind": "publication_gate_actionable_repair_delta_or_typed_blocker",
+                "target_surface": {
+                    "ref_kind": "publication_work_unit",
+                    "route_target": "analysis-campaign",
+                    "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "current_publication_work_unit_id": work_unit_id,
+                    "current_work_unit_fingerprint": fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": work_unit_id,
+                    "lane": "analysis-campaign",
+                },
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": [
+                    "medical_publication_surface_blocked",
+                    "claim_evidence_consistency_failed",
+                    "submission_hardening_incomplete",
+                ],
+                "latest_record_path": (
+                    f"/workspace/studies/{study_id}/artifacts/controller/"
+                    "gate_clearing_batch/latest.json"
+                ),
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "current_owner_action_supersedes_terminal_typed_blocker",
+            "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    successor = state["next_safe_action"]["successor_owner_action"]
+    assert successor["action_type"] == "run_quality_repair_batch"
+    assert successor["owner"] == "analysis-campaign"
+    assert successor["work_unit_id"] == work_unit_id
+    assert successor["work_unit_fingerprint"] == fingerprint
+    assert successor["source_surface"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+
+
 def test_terminal_anti_loop_owner_gate_reads_closeout_ref_before_stale_progress_delta(tmp_path) -> None:
     fingerprint = "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
     study_id = "002-dm-china-us-mortality-attribution"

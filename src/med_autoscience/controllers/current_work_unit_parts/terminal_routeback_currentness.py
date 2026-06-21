@@ -17,6 +17,15 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 )
 
 
+AI_REVIEWER_STALE_BLOCKERS = frozenset(
+    {
+        "ai_reviewer_record_stale_after_current_inputs",
+        "ai_reviewer_record_stale_after_current_manuscript",
+        "ai_reviewer_record_stale_after_unit_harmonized_rerun",
+    }
+)
+
+
 def terminal_routeback_action_supersedes_gate_replay_blocker(
     *,
     action: Mapping[str, Any],
@@ -139,6 +148,14 @@ def gate_followthrough_action_supersedes_transport_or_execution_residue(
             action=action,
             progress=progress,
         )
+    elif blocker_type in AI_REVIEWER_STALE_BLOCKERS:
+        blocker_owner = _text(blocker.get("owner")) or _text(blocker.get("next_owner"))
+        if blocker_owner != "ai_reviewer":
+            return False
+        if _text(blocker.get("action_type")) != "return_to_ai_reviewer_workflow":
+            return False
+        if _text(action.get("action_type")) != "run_quality_repair_batch":
+            return False
     elif blocker_type in {
         "anti_loop_budget_exhausted",
         "repeat_suppressed_after_opl_execution_authorization_required",

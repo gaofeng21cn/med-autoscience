@@ -145,6 +145,95 @@ def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_readin
     assert work_unit["state"]["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
 
 
+def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_ai_reviewer_blocker() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    source_eval_id = "publication-eval::002::current"
+    work_unit_id = "medical_prose_quality_analysis_source_documentation_repair"
+    fingerprint = "publication-blockers::5a4f2060d6d7d97e"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "current_publication_work_unit_id": work_unit_id,
+                    "current_work_unit_fingerprint": fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "current_publication_work_unit": {
+                    "unit_id": work_unit_id,
+                    "lane": "analysis-campaign",
+                },
+                "gate_replay_status": "blocked",
+                "gate_replay_blockers": [
+                    "medical_publication_surface_blocked",
+                    "claim_evidence_consistency_failed",
+                    "submission_hardening_incomplete",
+                ],
+                "latest_record_path": (
+                    f"/workspace/studies/{study_id}/artifacts/controller/"
+                    "gate_clearing_batch/latest.json"
+                ),
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": "analysis-campaign",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_gate_actionable_repair_delta_or_typed_blocker",
+            "target_surface": {
+                "ref_kind": "publication_work_unit",
+                "route_target": "analysis-campaign",
+                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "blocker_id": "ai_reviewer_record_stale_after_current_inputs",
+            "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "reason": "ai_reviewer_record_stale_after_current_inputs",
+            "owner": "ai_reviewer",
+            "next_owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            ),
+            "source_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+        },
+        next_owner="ai_reviewer",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "analysis-campaign"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+
+
 def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_selector_residue_for_new_unit() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
