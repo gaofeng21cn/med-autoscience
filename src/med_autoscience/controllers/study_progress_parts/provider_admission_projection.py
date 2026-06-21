@@ -8,6 +8,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
     non_advancing_apply_opl_transition_readback as _non_advancing_apply_opl_transition_readback,
     provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_log_readback import (
+    candidate_with_transition_log_readback as _candidate_with_transition_log_readback,
+)
 from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
 
 from .owner_action_admission import provider_attempt_proof_for_current_action
@@ -216,7 +219,13 @@ def _handoff_consumed_terminal_closeout_fields(
 
 
 def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
-    if _non_empty_text(candidate.get("opl_transition_readback_source")) == _OPL_TRANSITION_LIVE_READBACK_SOURCE:
+    if _owner_action_source(candidate) == _GATE_FOLLOWTHROUGH_OWNER_ACTION_SOURCE:
+        return True
+    if (
+        _non_empty_text(candidate.get("opl_transition_readback_source"))
+        == _OPL_TRANSITION_LIVE_READBACK_SOURCE
+        or _explicit_opl_transition_runtime_live_readback(candidate)
+    ):
         return False
     return _owner_action_source(candidate) in _REQUEST_ONLY_OWNER_ACTION_SOURCES
 
@@ -247,7 +256,7 @@ def _candidate_with_opl_runtime_readback(
     *,
     study_root: Path,
 ) -> dict[str, Any]:
-    payload = dict(candidate)
+    payload = _candidate_with_transition_log_readback(candidate, study_root=study_root)
     inline_readback = _provider_admission_opl_transition_readback(payload)
     if inline_readback:
         payload["opl_transition_readback_source"] = _opl_transition_readback_source(inline_readback)

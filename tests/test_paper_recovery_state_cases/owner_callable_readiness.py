@@ -346,6 +346,7 @@ def test_successor_owner_action_precedes_stale_observe_only_provider_admission()
         "work_unit_fingerprint": fingerprint,
         "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
         "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+        "source_eval_id": source_eval_id,
     }
 
 
@@ -1756,6 +1757,102 @@ def test_gate_followthrough_successor_action_is_not_closed_by_prior_repair_recei
     assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
     assert state["current_authority"]["obligation"]["work_unit_fingerprint"] == repair_fingerprint
     assert receipt_ref not in state.get("evidence_refs", [])
+    assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
+
+
+def test_current_ai_reviewer_record_supersedes_stale_record_typed_blocker() -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "current-ai-reviewer-record::20260621T002645Z"
+    )
+    record_ref = (
+        "artifacts/publication_eval/ai_reviewer_responses/"
+        "20260621T002645Z_publication_eval_record.json"
+    )
+    stale_blocker = _typed_blocker_work_unit(
+        study_id=study_id,
+        owner="ai_reviewer",
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        blocker_type="ai_reviewer_record_stale_after_current_inputs",
+    )
+    stale_blocker["work_unit_fingerprint"] = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    stale_blocker["action_fingerprint"] = stale_blocker["work_unit_fingerprint"]
+    stale_blocker["state"]["typed_blocker"] |= {
+        "reason": "ai_reviewer_record_stale_after_current_inputs",
+        "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+        "source_eval_id": "publication-eval::002::stale-record",
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": stale_blocker,
+            "ai_reviewer_request_lifecycle": {
+                "surface": "ai_reviewer_request_lifecycle",
+                "state": "assessment_written",
+                "assessment_written": True,
+                "owner_output_consumption": {
+                    "status": "consumed",
+                    "record_ref": record_ref,
+                    "eval_id": source_eval_id,
+                },
+            },
+            "publication_eval": {
+                "eval_id": source_eval_id,
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "requires_controller_decision": True,
+                        "work_unit_fingerprint": (
+                            "domain-transition::route_back_same_line::"
+                            "ai_reviewer_record_gate_consumption"
+                        ),
+                        "next_work_unit": {
+                            "unit_id": work_unit_id,
+                            "lane": "publication_gate",
+                        },
+                    }
+                ],
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "terminal_typed_blocker_successor_evidence",
+            "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
+        }
+    ]
+    successor = state["next_safe_action"]["successor_owner_action"]
+    assert successor["action_type"] == "run_gate_clearing_batch"
+    assert successor["owner"] == "gate_clearing_batch"
+    assert successor["work_unit_id"] == work_unit_id
+    assert successor["source_ref"] == record_ref
+    assert successor["source_eval_id"] == source_eval_id
+    assert successor["owner_route_currentness_basis"] == {
+        "source": "ai_reviewer_request_lifecycle.owner_output_consumption",
+        "source_eval_id": source_eval_id,
+        "record_ref": record_ref,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+        ),
+        "action_fingerprint": (
+            "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+        ),
+    }
     assert state["supervisor_decision"]["decision"] == "materialize_recovery_action"
 
 

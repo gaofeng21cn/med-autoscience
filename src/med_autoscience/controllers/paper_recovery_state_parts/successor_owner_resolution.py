@@ -10,6 +10,9 @@ from med_autoscience.controllers import current_work_unit as current_work_unit_r
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
 )
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+)
 
 
 def current_executable_owner_action(progress: Mapping[str, Any]) -> dict[str, Any]:
@@ -39,6 +42,17 @@ def successor_owner_action_from_terminal_blocker(
         progress=progress,
     ):
         return successor_owner_action_from_current_action(action)
+    if blocker_reason in {
+        "ai_reviewer_record_stale_after_current_inputs",
+        "ai_reviewer_record_stale_after_current_manuscript",
+        "ai_reviewer_record_stale_after_unit_harmonized_rerun",
+    }:
+        successor = _successor_owner_action_from_current_ai_reviewer_record(
+            progress,
+            typed_blocker=typed_blocker,
+        )
+        if successor is not None:
+            return successor
     if blocker_reason in {"publication_gate_replay_blocked", "paper_progress_stall_terminal"}:
         return _successor_owner_action_from_gate_followthrough(progress)
     if blocker_reason == "anti_loop_budget_exhausted" or _typed_blocker_is_current_anti_loop_successor_candidate(
@@ -312,6 +326,113 @@ def _successor_owner_action_from_repair_progress_gate_replay(
         "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
         "source_ref": source_ref,
     }
+
+
+def _successor_owner_action_from_current_ai_reviewer_record(
+    progress: Mapping[str, Any],
+    *,
+    typed_blocker: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    lifecycle = _mapping(progress.get("ai_reviewer_request_lifecycle"))
+    if _text(lifecycle.get("state")) != "assessment_written":
+        return None
+    if lifecycle.get("assessment_written") is not True:
+        return None
+    consumption = _mapping(lifecycle.get("owner_output_consumption"))
+    if _text(consumption.get("status")) != "consumed":
+        return None
+    record_ref = _first_text(
+        consumption.get("record_ref"),
+        lifecycle.get("publication_eval_record_ref"),
+        lifecycle.get("assessment_ref"),
+    )
+    if record_ref is None:
+        return None
+    publication_eval = _mapping(progress.get("publication_eval"))
+    recommended_action = _current_ai_reviewer_gate_replay_action(publication_eval)
+    if recommended_action is None:
+        return None
+    next_work_unit = _mapping(recommended_action.get("next_work_unit"))
+    work_unit_id = _first_text(
+        next_work_unit.get("unit_id"),
+        recommended_action.get("work_unit_id"),
+        recommended_action.get("next_work_unit"),
+    )
+    if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return None
+    source_eval_id = _first_text(
+        consumption.get("eval_id"),
+        publication_eval.get("eval_id"),
+        _typed_blocker_source_eval_id(typed_blocker),
+    )
+    target_surface_ref = "artifacts/controller/gate_clearing_batch/latest.json"
+    if _gate_replay_successor_already_consumed(
+        progress,
+        action_type="run_gate_clearing_batch",
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+        target_surface_ref=target_surface_ref,
+    ):
+        return None
+    fingerprint = _first_text(
+        recommended_action.get("work_unit_fingerprint"),
+        f"domain-transition::route_back_same_line::{work_unit_id}",
+    )
+    route_target = _first_text(
+        recommended_action.get("route_target"),
+        next_work_unit.get("lane"),
+        "publication_gate",
+    )
+    return {
+        "action_type": "run_gate_clearing_batch",
+        "owner": "gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "domain_transition_decision_type": "route_back_same_line",
+        "domain_transition_controller_action": "run_gate_clearing_batch",
+        "route_target": route_target,
+        "source_surface": "ai_reviewer_request_lifecycle.owner_output_consumption",
+        "source_ref": record_ref,
+        "source_eval_id": source_eval_id,
+        "target_surface": {"surface_ref": target_surface_ref},
+        "owner_route_currentness_basis": {
+            "source": "ai_reviewer_request_lifecycle.owner_output_consumption",
+            "source_eval_id": source_eval_id,
+            "record_ref": record_ref,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        },
+    }
+
+
+def _current_ai_reviewer_gate_replay_action(publication_eval: Mapping[str, Any]) -> dict[str, Any] | None:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return None
+    if provenance.get("ai_reviewer_required") is not False:
+        return None
+    actions = publication_eval.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for item in actions:
+        action = _mapping(item)
+        if not action:
+            continue
+        if action.get("requires_controller_decision") is not True:
+            continue
+        if _text(action.get("action_type")) != "route_back_same_line":
+            continue
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        work_unit_id = _first_text(
+            next_work_unit.get("unit_id"),
+            action.get("work_unit_id"),
+            action.get("next_work_unit"),
+        )
+        if work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+            return action
+    return None
 
 
 def successor_owner_gate_from_terminal_blocker(

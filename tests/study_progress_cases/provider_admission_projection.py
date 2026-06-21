@@ -242,12 +242,14 @@ def _write_transition_runtime_log(
     entries = [
         {
             "entry_kind": "command",
+            "runtime_id": "opl_domain_progress_transition_runtime",
             "transaction_id": transaction_id,
             "idempotency_key": idempotency_key,
             "aggregate_identity": aggregate_identity,
             "payload": {
                 "transition_kind": "StartProviderAttempt",
                 "command_id": command_id,
+                "aggregate_identity": aggregate_identity,
                 "source_generation": source_generation,
                 "expected_version": source_generation,
                 "stage_run_identity": stage_run_identity,
@@ -255,6 +257,7 @@ def _write_transition_runtime_log(
         },
         {
             "entry_kind": "event",
+            "runtime_id": "opl_domain_progress_transition_runtime",
             "transaction_id": transaction_id,
             "idempotency_key": idempotency_key,
             "aggregate_identity": aggregate_identity,
@@ -262,6 +265,7 @@ def _write_transition_runtime_log(
                 "transition_kind": "StartProviderAttempt",
                 "command_id": command_id,
                 "event_id": event_id,
+                "aggregate_identity": aggregate_identity,
                 "source_generation": source_generation,
                 "expected_version": source_generation,
                 "stage_run_identity": stage_run_identity,
@@ -273,6 +277,7 @@ def _write_transition_runtime_log(
         },
         {
             "entry_kind": "outbox_item",
+            "runtime_id": "opl_domain_progress_transition_runtime",
             "transaction_id": transaction_id,
             "idempotency_key": idempotency_key,
             "aggregate_identity": aggregate_identity,
@@ -280,6 +285,7 @@ def _write_transition_runtime_log(
                 "outbox_item_id": outbox_item_id,
                 "transition_event_id": event_id,
                 "outbox_kind": "start_provider_attempt",
+                "aggregate_identity": aggregate_identity,
                 "stage_run_identity": stage_run_identity,
             },
         },
@@ -1074,7 +1080,7 @@ def test_provider_admission_projection_execute_decision_allows_current_candidate
     assert fields["provider_admission_candidates"][0]["work_unit_fingerprint"] == fingerprint
 
 
-def test_provider_admission_projection_materialize_recovery_action_requires_live_readback(
+def test_provider_admission_projection_materialize_recovery_action_accepts_log_readback(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
@@ -1179,19 +1185,17 @@ def test_provider_admission_projection_materialize_recovery_action_requires_live
         study_root=study_root,
     )
 
-    assert fields["provider_admission_pending_count"] == 0
-    assert fields["provider_admission_candidates"] == []
-    assert fields["transition_request_pending_count"] == 1
-    assert fields["provider_admission_blocked_by_supervisor_decision"] == {
-        "decision": "materialize_recovery_action",
-        "reason": "paper_autonomy_supervisor_decision_blocks_provider_admission",
-    }
-    candidate = fields["transition_request_candidates"][0]
-    assert candidate["status"] == "transition_request_pending"
-    assert candidate["provider_admission_pending"] is False
-    assert candidate["provider_admission_requires_opl_runtime_result"] is True
-    assert "opl_transition_readback_source" not in candidate
-    assert "opl_domain_progress_transition_result" not in candidate
+    assert fields["provider_admission_pending_count"] == 1
+    assert fields["transition_request_pending_count"] == 0
+    assert fields["transition_request_candidates"] == []
+    assert "provider_admission_blocked_by_supervisor_decision" not in fields
+    candidate = fields["provider_admission_candidates"][0]
+    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["provider_admission_pending"] is True
+    assert candidate["provider_admission_requires_opl_runtime_result"] is False
+    assert candidate["opl_transition_readback_source"] == (
+        "opl_domain_progress_transition_runtime_live_readback"
+    )
 
 
 def test_provider_admission_projection_consumes_same_identity_owner_receipt_successor_terminal_closeout(

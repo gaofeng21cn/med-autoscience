@@ -33,7 +33,30 @@ def candidate_with_transition_log_readback(
         **payload,
         "opl_domain_progress_transition_runtime_live_readback": readback,
     }
+    readback_identity = _mapping(readback.get("identity"))
+    stage_run_identity = _mapping(readback_identity.get("stage_run_identity"))
+    route_identity_key = _non_empty_text(stage_run_identity.get("route_identity_key"))
+    attempt_idempotency_key = _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
+    request_idempotency_key = _non_empty_text(readback_identity.get("idempotency_key"))
+    source_refs = dict(_mapping(payload.get("source_refs")))
+    if route_identity_key is not None:
+        with_readback["route_identity_key"] = route_identity_key
+        source_refs["route_identity_key"] = route_identity_key
+    if attempt_idempotency_key is not None:
+        with_readback["attempt_idempotency_key"] = attempt_idempotency_key
+        source_refs["attempt_idempotency_key"] = attempt_idempotency_key
+    if request_idempotency_key is not None:
+        with_readback["idempotency_key"] = request_idempotency_key
+        source_refs["request_idempotency_key"] = request_idempotency_key
+    if source_refs:
+        with_readback["source_refs"] = source_refs
     provider_identity = dict(_mapping(payload.get("provider_admission_identity")))
+    if route_identity_key is not None:
+        provider_identity["route_identity_key"] = route_identity_key
+    if attempt_idempotency_key is not None:
+        provider_identity["attempt_idempotency_key"] = attempt_idempotency_key
+    if request_idempotency_key is not None:
+        provider_identity["idempotency_key"] = request_idempotency_key
     provider_identity["opl_domain_progress_transition_runtime_live_readback"] = readback
     with_readback["provider_admission_identity"] = provider_identity
     if not provider_admission_opl_transition_readback(
@@ -78,14 +101,15 @@ def transition_request_idempotency_key(candidate: Mapping[str, Any]) -> str | No
     stage_run_identity = _mapping(transition_request.get("stage_run_identity"))
     source_refs = _mapping(candidate.get("source_refs"))
     return (
-        _non_empty_text(candidate.get("idempotency_key"))
-        or _non_empty_text(candidate.get("request_idempotency_key"))
-        or _non_empty_text(transition_request.get("idempotency_key"))
+        _non_empty_text(transition_request.get("idempotency_key"))
         or _non_empty_text(transition_request.get("request_idempotency_key"))
-        or _non_empty_text(candidate.get("route_identity_key"))
-        or _non_empty_text(candidate.get("attempt_idempotency_key"))
         or _non_empty_text(stage_run_identity.get("route_identity_key"))
         or _non_empty_text(stage_run_identity.get("attempt_idempotency_key"))
+        or _non_empty_text(source_refs.get("request_idempotency_key"))
+        or _non_empty_text(candidate.get("request_idempotency_key"))
+        or _non_empty_text(candidate.get("idempotency_key"))
+        or _non_empty_text(candidate.get("route_identity_key"))
+        or _non_empty_text(candidate.get("attempt_idempotency_key"))
         or _non_empty_text(source_refs.get("route_identity_key"))
         or _non_empty_text(source_refs.get("attempt_idempotency_key"))
     )

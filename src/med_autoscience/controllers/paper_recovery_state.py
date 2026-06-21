@@ -764,7 +764,8 @@ def _supervisor_decision_for_state(
     diagnostic_report: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     if _mas_policy_projection_can_supersede_stale_supervisor_decision(
-        paper_recovery_state
+        progress,
+        paper_recovery_state=paper_recovery_state,
     ):
         return _build_supervisor_decision(
             progress,
@@ -780,6 +781,8 @@ def _supervisor_decision_for_state(
 
 
 def _mas_policy_projection_can_supersede_stale_supervisor_decision(
+    progress: Mapping[str, Any],
+    *,
     paper_recovery_state: Mapping[str, Any],
 ) -> bool:
     phase = _text(paper_recovery_state.get("phase"))
@@ -790,8 +793,22 @@ def _mas_policy_projection_can_supersede_stale_supervisor_decision(
         return False
     if next_action_kind == "run_mas_owner_callable":
         return True
+    current_action = _current_executable_owner_action(progress)
+    if (
+        next_action_kind == "materialize_mas_transition_request_or_owner_callable"
+        and _text(current_action.get("source_surface"))
+        == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+        and _text(current_action.get("source"))
+        == "paper_recovery_state.next_safe_action.successor_owner_action"
+    ):
+        return True
     if next_action_kind != "materialize_successor_owner_action":
         return False
+    successor = _mapping(_mapping(paper_recovery_state.get("next_safe_action")).get("successor_owner_action"))
+    if _text(successor.get("source_surface")) == (
+        "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    ):
+        return True
     conditions = {
         _text(condition.get("condition"))
         for condition in paper_recovery_state.get("conditions") or []
