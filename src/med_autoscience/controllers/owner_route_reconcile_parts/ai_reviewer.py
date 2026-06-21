@@ -42,6 +42,27 @@ def assessment(
             "blocked_reason": "ai_reviewer_assessment_required",
             "cutover_receipt_ref": _text(publication_eval.get("cutover_receipt_ref")),
         }
+    if request_state == "assessment_written":
+        assessment_ref = _text(request_lifecycle.get("assessment_ref")) or _text(
+            request_lifecycle.get("publication_eval_record_ref")
+        )
+        assessment = {
+            "present": owner == "ai_reviewer",
+            "owner": owner or "ai_reviewer",
+            "required": True,
+            "missing": owner != "ai_reviewer",
+            "request_state": request_state,
+            "request_id": _text(request_lifecycle.get("request_id")),
+            "request_path": _text(_mapping(request_lifecycle.get("refs")).get("request_path")),
+            "assessment_ref": assessment_ref,
+        }
+        if record_ref := _text(request_lifecycle.get("publication_eval_record_ref")):
+            assessment["publication_eval_record_ref"] = record_ref
+        if consumed_refs := _string_items(request_lifecycle.get("consumed_currentness_refs")):
+            assessment["consumed_currentness_refs"] = consumed_refs
+        if owner_output_consumption := _mapping(request_lifecycle.get("owner_output_consumption")):
+            assessment["owner_output_consumption"] = owner_output_consumption
+        return assessment
     if request_state in {"requested", "assigned"}:
         request_owner = _text(request_lifecycle.get("request_owner")) or "ai_reviewer"
         blocked_reason = _text(request_lifecycle.get("blocked_reason")) or "ai_reviewer_assessment_required"

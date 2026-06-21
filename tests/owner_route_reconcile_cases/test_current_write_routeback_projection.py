@@ -589,6 +589,135 @@ def test_action_queue_accepts_dm002_ai_reviewer_record_gate_consumption_work_uni
     assert actions[0]["owner"] == "gate_clearing_batch"
 
 
+def test_scan_routes_current_archive_ai_reviewer_record_over_stale_record_request_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    eval_id = "publication-eval::dm002::current-archive-record"
+    draft = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "draft.md"
+    )
+    draft_text = "# Draft\n\nCurrent DM002 manuscript with archive reviewer record.\n"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(draft_text, encoding="utf-8")
+    record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=draft,
+        manuscript_text=draft_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-06-20T23:52:11+00:00",
+    )
+    record["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "ai_reviewer_record_gate_consumption",
+        "lane": "review",
+        "summary": "Consume current record-only AI-reviewer response and replay publication gate.",
+    }
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260620T235211Z_publication_eval_record.json"
+    )
+    _write_json(record_path, record)
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    stale_latest = dict(record)
+    stale_latest["eval_id"] = "publication-eval::dm002::stale-latest"
+    stale_latest["emitted_at"] = "2026-06-20T12:00:49+00:00"
+    _write_json(latest_path, stale_latest)
+    request_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "requests"
+        / "ai_reviewer"
+        / "latest.json"
+    )
+    _write_json(
+        request_path,
+        {
+            "surface": "domain_action_request",
+            "request_id": "return_to_ai_reviewer_workflow::dm002",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                "stale_record_ref": str(latest_path),
+                "required_currentness_refs": [str(draft)],
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {
+                        "path": str(draft),
+                        "required": True,
+                        "present": True,
+                        "valid": True,
+                    }
+                }
+            },
+            "source_workflow_ref": {
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(profile.runtime_root / quest_id),
+        "refs": {"publication_eval_path": str(latest_path)},
+        "study_truth_snapshot": {"truth_epoch": "truth-dm002-current-archive-record"},
+        "runtime_health_snapshot": {"runtime_health_epoch": "runtime-dm002-current-archive-record"},
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(profile.runtime_root / quest_id),
+        "current_stage": "publication_supervision",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(latest_path)},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, record | {"_projection_source_ref": str(record_path)}),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"]["present"] is True
+    assert study["ai_reviewer_assessment"]["missing"] is False
+    assert study["ai_reviewer_assessment"]["request_state"] == "assessment_written"
+    assert study["ai_reviewer_assessment"]["assessment_ref"] == str(record_path.resolve())
+    assert [item["action_type"] for item in study["action_queue"]] == ["run_gate_clearing_batch"]
+    assert study["action_queue"][0]["next_work_unit"] == "ai_reviewer_record_gate_consumption"
+    assert study["action_queue"][0]["source_eval_id"] == eval_id
+
+
 def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_with_current_work_unit(
     monkeypatch,
     tmp_path: Path,

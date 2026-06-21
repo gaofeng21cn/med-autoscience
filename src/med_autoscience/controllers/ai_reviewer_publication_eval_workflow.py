@@ -291,8 +291,21 @@ def _current_manuscript_currentness(
     study_root: Path,
     record_payload: Mapping[str, Any],
     ref_bundle: Mapping[str, str],
+    workflow_currentness_mode: str | None = None,
 ) -> dict[str, Any] | None:
     record_current_manuscript = _record_current_manuscript_payload(record_payload)
+    if _record_embeds_ai_reviewer_output(workflow_currentness_mode) and record_current_manuscript:
+        manuscript_ref = _text(record_current_manuscript.get("manuscript_ref"))
+        manuscript_input_ref = _text(ref_bundle.get("manuscript"))
+        if manuscript_ref and manuscript_input_ref and not _refs_match(
+            study_root=study_root,
+            left=manuscript_input_ref,
+            right=manuscript_ref,
+        ):
+            raise ValueError("ai_reviewer_record_current_manuscript_ref_mismatch")
+        return _live_manuscript_currentness(study_root=study_root, ref_bundle=ref_bundle) | {
+            "authority_source_signature": "request_bound_ai_reviewer_record_live_manuscript"
+        }
     if not record_current_manuscript and _record_is_current_manuscript_review(record_payload):
         return _live_manuscript_currentness(study_root=study_root, ref_bundle=ref_bundle) | {
             "authority_source_signature": "ai_reviewer_current_manuscript_record"
@@ -594,6 +607,7 @@ def _route_back_record_medical_prose_review_currentness(
         study_root=study_root,
         record_payload=record_payload,
         ref_bundle=ref_bundle,
+        workflow_currentness_mode="request_bound_ai_reviewer_record",
     )
     request_manuscript_ref = _text(provenance.get("manuscript_ref")) or _text(ref_bundle.get("manuscript"))
     request_manuscript_digest = _text(provenance.get("manuscript_digest"))
@@ -807,6 +821,7 @@ def _currentness_checks(
         study_root=study_root,
         record_payload=record_payload,
         ref_bundle=ref_bundle,
+        workflow_currentness_mode=workflow_currentness_mode,
     )
     if current_manuscript is not None:
         checks["current_manuscript"] = current_manuscript
