@@ -442,6 +442,7 @@ def scaffold_display_pack_render(
     endpoint_ref: str = "endpoint:display-pack-scaffold",
     risk_horizon: str = "unspecified",
     visual_audit_review: dict[str, Any] | None = None,
+    dependency_environment: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     scaffold = _seed_scaffold_inputs(
         repo_root=repo_root,
@@ -459,6 +460,7 @@ def scaffold_display_pack_render(
         paper_root=paper_root,
         visual_audit_review=visual_audit_review or _default_visual_audit_review(),
         figure_ids=[figure_id],
+        dependency_environment=dependency_environment,
     )
     return {
         **result,

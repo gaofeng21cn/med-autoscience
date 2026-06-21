@@ -138,8 +138,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/display-pack-contract.v2.json",
             "contracts/figure_polish_lifecycle_contract.json",
             "contracts/medical_figure_spec_contract.json",
-            "contracts/opl-framework/dependency-environment-substrate-contract.json",
             "contracts/publication_figure_quality_contract.json",
+            "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json",
             "src/med_autoscience/display_pack_v2_contract.py",
             "src/med_autoscience/figure_polish_lifecycle_contract.py",
             "src/med_autoscience/medical_figure_spec_contract.py",
@@ -148,7 +148,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_display_pack_v2_figure_quality_refs.py",
             "tests/test_figure_polish_lifecycle_contract.py",
             "tests/test_medical_figure_spec_contract.py",
-            "tests/test_opl_dependency_environment_substrate_contract.py",
             "tests/test_publication_figure_quality_contract.py",
         ),
         prefix_paths=(),
@@ -159,7 +158,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "tests/test_display_pack_v2_figure_quality_refs.py "
                 "tests/test_figure_polish_lifecycle_contract.py "
                 "tests/test_medical_figure_spec_contract.py "
-                "tests/test_opl_dependency_environment_substrate_contract.py "
                 "tests/test_publication_figure_quality_contract.py -q"
             ),
         ),

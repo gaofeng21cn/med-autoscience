@@ -13,6 +13,11 @@ import time
 from typing import Any
 
 from med_autoscience import display_layout_qc
+from med_autoscience.display_pack_dependency_environment import (
+    apply_dependency_run_context,
+    dependency_environment_authority_boundary,
+    load_dependency_run_context,
+)
 from med_autoscience.display_pack_lock import write_display_pack_lock
 from med_autoscience.display_pack_agent_parts.figure_workflow import (
     build_rendered_figure_workflow_packet,
@@ -243,7 +248,9 @@ def _run_subprocess_renderer(
     output_png_path: Path,
     output_pdf_path: Path,
     layout_sidecar_path: Path,
+    dependency_environment: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    dependency_environment_payload = dict(dependency_environment or {})
     request_dir = paper_root / "build" / "display_pack_render_requests"
     log_dir = paper_root / "build" / "display_pack_renderer_logs"
     request_path = request_dir / f"{_safe_artifact_stem(figure_id)}.render_request.json"
@@ -260,6 +267,7 @@ def _run_subprocess_renderer(
         "output_png_path": str(output_png_path),
         "output_pdf_path": str(output_pdf_path),
         "layout_sidecar_path": str(layout_sidecar_path),
+        "dependency_environment": dependency_environment_payload,
     }
     _write_json(request_path, render_request)
     placeholders = _subprocess_placeholders(
@@ -282,6 +290,13 @@ def _run_subprocess_renderer(
         "MAS_DISPLAY_FIGURE_ID": figure_id,
         "MAS_DISPLAY_TEMPLATE_ID": full_template_id,
     }
+    run_context: dict[str, Any] = {}
+    if dependency_environment_payload:
+        run_context = load_dependency_run_context(
+            paper_root=paper_root,
+            status=dependency_environment_payload,
+        )
+        argv, env = apply_dependency_run_context(argv=argv, env=env, run_context=run_context)
     started_at = time.monotonic()
     completed = subprocess.run(
         argv,
@@ -304,6 +319,16 @@ def _run_subprocess_renderer(
         "entrypoint": template_manifest.entrypoint,
         "argv": argv,
         "cwd": str(runtime_template_root),
+        "dependency_environment": dependency_environment_payload,
+        "dependency_run_context": {
+            "run_context_ref": str(dependency_environment_payload.get("run_context_ref") or ""),
+            "execution_fingerprint": str(
+                run_context.get("execution_fingerprint")
+                or run_context.get("run_context_fingerprint")
+                or dependency_environment_payload.get("run_context_fingerprint")
+                or ""
+            ),
+        },
         "returncode": completed.returncode,
         "duration_seconds": duration_seconds,
         "request_path": str(request_path),
@@ -421,6 +446,7 @@ def _render_figure(
     paper_root: Path,
     figure_spec: Mapping[str, Any],
     intent_figure: Mapping[str, Any],
+    dependency_environment: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     figure_id = str(figure_spec["figure_id"])
     full_template_id = str(figure_spec["template_id"])
@@ -482,6 +508,7 @@ def _render_figure(
         output_png_path=output_png_path,
         output_pdf_path=output_pdf_path,
         layout_sidecar_path=layout_sidecar_path,
+        dependency_environment=dependency_environment,
     )
     for path in (output_png_path, output_pdf_path, layout_sidecar_path):
         if not path.exists():
@@ -510,6 +537,7 @@ def _render_figure(
         "statistical_value_refs": list(intent_figure.get("statistical_value_refs") or []),
         "qc_profile": template_manifest.qc_profile_ref,
         "render_result": _json_compatible(render_result, field_name="display_pack_renderer.render_result"),
+        "dependency_environment": dict(dependency_environment or {}),
         "rendered_artifacts": {
             "png_path": str(output_png_path),
             "pdf_path": str(output_pdf_path),
@@ -740,6 +768,7 @@ def materialize_display_pack_publication_manifest(
     paper_root: Path,
     visual_audit_review: Mapping[str, Any],
     figure_ids: list[str] | tuple[str, ...] | None = None,
+    dependency_environment: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
     normalized_paper_root = Path(paper_root).expanduser().resolve()
@@ -765,6 +794,7 @@ def materialize_display_pack_publication_manifest(
                 paper_root=normalized_paper_root,
                 figure_spec=figure_spec,
                 intent_figure=intent_figure,
+                dependency_environment=dependency_environment,
             )
         )
     audit_receipt = _write_visual_audit_receipt(
@@ -777,6 +807,7 @@ def materialize_display_pack_publication_manifest(
         figure_entries=figure_entries,
         timestamp_factory=_utc_now,
         write_json=_write_json,
+        dependency_environment=dependency_environment,
     )
     lifecycle = _write_figure_polish_lifecycle(
         paper_root=normalized_paper_root,
@@ -814,11 +845,13 @@ def materialize_display_pack_publication_manifest(
         "display_pack_lock_ref": _workspace_ref(lock_path, paper_root=normalized_paper_root),
         "display_pack_lock_sha256": _sha256_file(lock_path),
         "publication_style_profile": publication_style_profile_lock,
+        "dependency_environment": dict(dependency_environment or {}),
         "publication_readiness_verdict": False,
         "authority_boundary": {
             "mas_display_artifact_authority": True,
             "mas_publication_quality_authority": True,
             "opl_pack_os_lifecycle_owner": True,
+            **dependency_environment_authority_boundary(),
             "display_pack_lock_can_authorize_publication_readiness": False,
             "ai_visual_audit_can_mutate_data_or_statistics": False,
         },
@@ -845,6 +878,7 @@ def materialize_display_pack_publication_manifest(
             "path": str(normalized_paper_root / "figure_render_receipt.json"),
             "ref": FIGURE_RENDER_RECEIPT_REF,
             "figure_count": len(render_receipt["figures"]),
+            "dependency_environment": dict(render_receipt.get("dependency_environment") or {}),
         },
         "display_artifact_manifests": [
             {key: value for key, value in item.items() if key != "payload"}

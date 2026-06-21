@@ -3,13 +3,13 @@
 Owner: `MedAutoScience`
 Purpose: `medical_display_dependency_environment_os_target`
 State: `target_architecture`
-Machine boundary: 本文是人读目标设计。机器合同草案在 `contracts/opl-framework/dependency-environment-substrate-contract.json`；当前 MAS Display Pack 真相仍归 `contracts/display-pack-contract.v2.json`、`display_pack.toml`、`templates/*/template.toml`、`renderer_dependency_profile.json`、Display Pack runtime、真实 render/QC/audit refs、owner receipt 和 publication gate。本文不声明 OPL 依赖环境基座已落地，也不授权 publication-ready、submission-ready、artifact authority 或 study truth mutation。
+Machine boundary: 本文是人读 consumer 设计。canonical OPL substrate contract 位于 OPL 主仓 `contracts/opl-framework/runtime-environment-substrate-contract.json`；MAS 机器真相只包含 `renderer_dependency_profile.json` dependency intent、Display Pack runtime、真实 render/QC/audit refs、owner receipt 和 publication gate。本文不声明 OPL 依赖环境基座 materializer 已落地，也不授权 publication-ready、submission-ready、artifact authority 或 study truth mutation。
 
 ## 结论
 
 医学绘图依赖环境应该由 OPL 基座统一解决。Display Pack 和模板只声明“需要什么”，不在 renderer 内安装、升级、修补或猜测依赖。OPL 负责把依赖需求解析成锁文件、准备可复用环境、产出 run-context 和可审计回执；MAS 负责把这些 refs 接入 display preflight、render receipt、display lock、visual audit 和 typed repair route。
 
-这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot` 等依赖，但它还只是 pack 局部说明，不是一个可执行的 OPL environment contract。理想状态下，模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台和诊断由 OPL 负责。
+这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot` 等依赖；它是 pack-local dependency intent，不是 OPL environment contract 副本。模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台和诊断由 OPL 负责。
 
 OPL 通用基座设计见 `docs/runtime/designs/opl_dependency_environment_substrate_target.md`；本文只说明 medical display 如何消费该基座。
 
@@ -121,7 +121,7 @@ renderer_dependency_profile.json
 
 把本文从 `target_architecture` 晋级为 landed，至少需要：
 
-- OPL repo 有 `opl pack env resolve|lock|prepare|doctor|run-context|cache` 可执行面和 focused tests。
+- OPL repo 在 `opl runtime env inspect|lock|cache status|doctor|run-context|contract --json` readback skeleton 之外，继续落 materialize / prepare / verify / prune 可执行面和 focused tests。
 - MAS `display_pack_agent.preflight` 能读取 dependency receipt，缺环境时 fail closed 到 typed route。
 - MAS render runtime 能消费 OPL run-context，而不是直接依赖 host PATH / site library。
 - `display_pack_lock.json`、render receipt 和 publication manifest 保存 dependency lock / receipt refs。

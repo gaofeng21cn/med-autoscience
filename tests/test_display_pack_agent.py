@@ -49,6 +49,65 @@ def _styled_paper_root(tmp_path: Path) -> Path:
     return paper_root
 
 
+def _write_prepared_dependency_environment(paper_root: Path) -> None:
+    build_root = paper_root / "build"
+    build_root.mkdir(parents=True, exist_ok=True)
+    (build_root / "dependency_environment_lock.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "lock_id": "test-display-env-lock",
+                "lock_sha256": "sha256:test-display-env-lock",
+                "source_requirement_refs": [
+                    "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (build_root / "dependency_run_context.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "run_context_id": "test-display-env-run-context",
+                "execution_fingerprint": "sha256:test-display-env-run-context",
+                "argv_prefix": [],
+                "env_vars": {"MAS_TEST_DEPENDENCY_ENV": "prepared"},
+                "binary_paths": {},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (build_root / "dependency_environment_receipt.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "prepared",
+                "failure_class": "",
+                "lock_ref": "paper/build/dependency_environment_lock.json",
+                "lock_sha256": "sha256:test-display-env-lock",
+                "environment_ref": "test-prepared-display-env",
+                "cache_key": "test-display-env-cache",
+                "target_platform": "test-platform",
+                "binary_checks": [{"name": "Rscript", "status": "present"}],
+                "package_checks": [{"name": "ggplot2", "status": "present"}],
+                "system_requirement_checks": [],
+                "run_context_ref": "paper/build/dependency_run_context.json",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() -> None:
     payload = display_pack_capability_discover(repo_root=REPO_ROOT)
 
@@ -63,10 +122,11 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert payload["inventory"]["analysis_responsibility_counts"] == {
         "computed_in_template": 3,
-        "illustration_shell": 2,
+        "illustration_shell": 1,
         "table_shell": 1,
-        "validated_summary_required": 25,
+        "validated_summary_required": 26,
     }
+    assert payload["inventory"]["kind_counts"]["illustration_shell"] == 2
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
     assert payload["inventory"]["renderer_policy_completion"]["python_evidence_retained_count"] == 0
     assert payload["renderer_policy"]["data_evidence_first_class_renderer"] == "r_ggplot2"
@@ -427,6 +487,7 @@ def test_display_pack_figure_plan_explicit_template_id_remains_hard_selection() 
 
 def test_display_pack_orchestrate_compiles_current_owner_delta_into_render_next_step(tmp_path: Path) -> None:
     paper_root = _styled_paper_root(tmp_path)
+    _write_prepared_dependency_environment(paper_root)
     payload = display_pack_orchestrate(
         repo_root=REPO_ROOT,
         paper_root=paper_root,
@@ -452,6 +513,23 @@ def test_display_pack_orchestrate_compiles_current_owner_delta_into_render_next_
     assert payload["figure_request"]["preferred_renderer_family"] == "r_ggplot2"
     assert payload["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
     assert payload["preflight"]["status"] == "ready"
+    assert payload["preflight"]["dependency_environment"]["status"] == "prepared"
+    assert payload["preflight"]["dependency_environment"]["requirement_profile_ref"] == (
+        "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
+    )
+    assert payload["preflight"]["dependency_environment"]["lock_ref"] == (
+        "paper/build/dependency_environment_lock.json"
+    )
+    assert payload["preflight"]["dependency_environment"]["receipt_ref"] == (
+        "paper/build/dependency_environment_receipt.json"
+    )
+    assert payload["preflight"]["dependency_environment"]["run_context_ref"] == (
+        "paper/build/dependency_run_context.json"
+    )
+    assert payload["preflight"]["dependency_environment"]["doctor_status"] == "pass"
+    assert payload["preflight"]["dependency_environment"]["forbidden_claims"][
+        "dependency_environment_receipt_means_publication_ready"
+    ] is False
     assert payload["quality_floor"]["checks"]["template_selected"] is True
     assert payload["agent_manual_template_selection_required"] is False
     assert payload["publication_readiness_verdict"] is False
@@ -488,9 +566,46 @@ def test_display_pack_preflight_reports_missing_paper_style_profile(tmp_path: Pa
     assert payload["surface_kind"] == "display_pack_agent_preflight"
     assert payload["status"] == "blocked"
     assert payload["style_profile"]["status"] == "missing"
+    assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
+    assert payload["dependency_environment"]["doctor_status"] == "planned_missing"
     assert {item["code"] for item in payload["blocking_findings"]} >= {
         "publication_style_profile_missing",
     }
+    assert "dependency_environment_not_prepared" not in {item["code"] for item in payload["blocking_findings"]}
+
+
+def test_display_pack_preflight_blocks_missing_dependency_environment_by_default(tmp_path: Path) -> None:
+    paper_root = _styled_paper_root(tmp_path)
+
+    payload = display_pack_preflight(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        template_id="roc_curve_binary",
+        check_runtime_dependencies=True,
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_preflight"
+    assert payload["status"] == "blocked"
+    assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
+    assert payload["dependency_environment"]["requirement_profile_ref"] == (
+        "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
+    )
+    assert payload["dependency_environment"]["lock_ref"] == "paper/build/dependency_environment_lock.json"
+    assert payload["dependency_environment"]["receipt_ref"] == "paper/build/dependency_environment_receipt.json"
+    assert payload["dependency_environment"]["run_context_ref"] == "paper/build/dependency_run_context.json"
+    assert payload["dependency_environment"]["doctor_status"] == "planned_missing"
+    assert payload["dependency_environment"]["authority_boundary"]["canonical_substrate_owner"] == "OPL Framework"
+    assert payload["dependency_environment"]["forbidden_claims"][
+        "dependency_environment_lock_means_visual_audit_clear"
+    ] is False
+    assert {item["code"] for item in payload["blocking_findings"]} >= {
+        "dependency_environment_not_prepared",
+    }
+    dependency_route = next(
+        item for item in payload["typed_repair_routes"] if item["code"] == "dependency_environment_not_prepared"
+    )
+    assert dependency_route["repair_owner"] == "OPL Framework"
+    assert dependency_route["layer"] == "dependency_environment"
 
 
 def test_display_pack_preflight_blocks_direct_raw_input_for_summary_only_template(tmp_path: Path) -> None:
@@ -560,6 +675,7 @@ def test_display_pack_preflight_checks_embedding_backend_dependencies_only_for_m
 
 def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_path: Path) -> None:
     paper_root = tmp_path / "paper"
+    _write_prepared_dependency_environment(paper_root)
     payload_path = tmp_path / "roc-payload.json"
     _write_roc_payload(payload_path)
 
@@ -582,6 +698,7 @@ def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_pa
 
     assert payload["surface_kind"] == "display_pack_agent_render_receipt"
     assert payload["status"] == "publication_manifested"
+    assert payload["dependency_environment"]["status"] == "prepared"
     assert payload["publication_readiness_verdict"] is False
     assert payload["render_result"]["figures"][0]["template_id"] == (
         "fenggaolab.org.medical-display-core::roc_curve_binary"
@@ -591,12 +708,55 @@ def test_display_pack_render_returns_agent_receipt_around_scaffold_render(tmp_pa
     assert (paper_root / "figure_visual_audit_receipt.json").is_file()
     assert (paper_root / "figure_render_receipt.json").is_file()
     assert payload["receipt_refs"]["figure_render_receipt"] == "paper/figure_render_receipt.json"
+    assert payload["receipt_refs"]["dependency_environment_receipt"] == (
+        "paper/build/dependency_environment_receipt.json"
+    )
     assert payload["receipt_refs"]["figure_workflow_packet"] == "paper/figure_workflow_packet.json"
+    figure_receipt = json.loads((paper_root / "figure_render_receipt.json").read_text(encoding="utf-8"))
+    assert figure_receipt["dependency_environment"]["receipt_ref"] == (
+        "paper/build/dependency_environment_receipt.json"
+    )
+    assert figure_receipt["figures"][0]["dependency_environment"]["run_context_fingerprint"] == (
+        "sha256:test-display-env-run-context"
+    )
+    assert figure_receipt["authority_boundary"][
+        "dependency_environment_can_authorize_publication_readiness"
+    ] is False
+    manifest = json.loads((paper_root / "build" / "display_pack_publication_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["dependency_environment"]["run_context_ref"] == "paper/build/dependency_run_context.json"
+    assert manifest["authority_boundary"]["renderer_code_must_not_install_packages"] is True
     assert (paper_root / "figure_workflow_packet.json").is_file()
     workflow_packet = json.loads((paper_root / "figure_workflow_packet.json").read_text(encoding="utf-8"))
     assert workflow_packet["workflow_status"] == "audit_clear"
     assert workflow_packet["figures"][0]["render_inspect_revise"]["visual_audit_final_status"] == "clear"
     assert payload["render_result"]["figure_workflow_packet"]["workflow_status"] == "audit_clear"
+
+
+def test_display_pack_render_fail_closes_missing_dependency_environment(tmp_path: Path) -> None:
+    paper_root = tmp_path / "paper"
+    payload_path = tmp_path / "roc-payload.json"
+    _write_roc_payload(payload_path)
+
+    payload = display_pack_render(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        figure_request={
+            "figure_kind": "evidence_figure",
+            "audit_family": "Prediction Performance",
+            "preferred_renderer_family": "r_ggplot2",
+            "query": "roc",
+            "data_payload_file": str(payload_path),
+            "figure_id": "F1",
+        },
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_render_receipt"
+    assert payload["status"] == "blocked"
+    assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
+    assert payload["typed_blocker"]["code"] == "dependency_environment_not_prepared"
+    assert payload["typed_blocker"]["repair_owner"] == "OPL Framework"
+    assert payload["publication_readiness_verdict"] is False
+    assert not (paper_root / "figure_render_receipt.json").exists()
 
 
 def test_display_pack_render_blocks_raw_input_when_direct_template_id_is_summary_only(tmp_path: Path) -> None:

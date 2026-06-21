@@ -15,12 +15,17 @@ def figure_render_receipt_payload(
     *,
     figure_entries: list[dict[str, Any]],
     timestamp_factory: Callable[[], str],
+    dependency_environment: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    dependency_environment_payload = dict(dependency_environment or {})
     receipt_figures = []
     for entry in figure_entries:
         rendered_artifacts = dict(entry.get("rendered_artifacts") or {})
         selected_backend = str(entry.get("renderer_family") or "").strip()
         source_data_ref = str(entry["data_ref"])
+        figure_dependency_environment = dict(
+            entry.get("dependency_environment") or dependency_environment_payload
+        )
         receipt_figures.append(
             {
                 "figure_id": str(entry["figure_id"]),
@@ -47,6 +52,7 @@ def figure_render_receipt_payload(
                     str(rendered_artifacts["pdf_ref"]),
                     str(rendered_artifacts["layout_sidecar_ref"]),
                 ],
+                "dependency_environment": figure_dependency_environment,
                 "visual_qa_ref": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
                 "render_result": dict(entry.get("render_result") or {}),
                 "authority_boundary": _authority_boundary(),
@@ -57,6 +63,7 @@ def figure_render_receipt_payload(
         "receipt_id": f"display-pack-render-{timestamp_factory()}",
         "source_project": "nature-skills",
         "source_pattern": "backend_exclusive_publication_figure_export_qa",
+        "dependency_environment": dependency_environment_payload,
         "figures": receipt_figures,
         "authority_boundary": _authority_boundary(),
     }
@@ -68,11 +75,13 @@ def write_figure_render_receipt(
     figure_entries: list[dict[str, Any]],
     timestamp_factory: Callable[[], str],
     write_json: Callable[[Path, Mapping[str, Any]], None],
+    dependency_environment: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     receipt_path = paper_root / "figure_render_receipt.json"
     payload = figure_render_receipt_payload(
         figure_entries=figure_entries,
         timestamp_factory=timestamp_factory,
+        dependency_environment=dependency_environment,
     )
     write_json(receipt_path, payload)
     return load_figure_render_receipt(receipt_path)
@@ -83,4 +92,6 @@ def _authority_boundary() -> dict[str, bool]:
         "can_authorize_publication_readiness": False,
         "can_authorize_quality_verdict": False,
         "can_mutate_data_or_statistics": False,
+        "dependency_environment_can_authorize_publication_readiness": False,
+        "dependency_environment_can_replace_visual_audit": False,
     }

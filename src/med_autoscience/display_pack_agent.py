@@ -54,6 +54,10 @@ from med_autoscience.display_pack_renderer_policy import (
 from med_autoscience.display_pack_analysis_responsibility import (
     analysis_boundary_payload,
 )
+from med_autoscience.display_pack_dependency_environment import (
+    dependency_environment_finding,
+    dependency_environment_status,
+)
 from med_autoscience.display_pack_usability import scaffold_display_pack_render
 from med_autoscience.publication_display_contract import load_publication_style_profile
 
@@ -469,7 +473,8 @@ def _route_for_finding(finding: Mapping[str, Any]) -> dict[str, Any]:
         "template_selection_empty": ("template_catalog", "display-pack-agent-plan"),
         "qc_profile_missing": ("qc_profile", "display_pack_qc_profile_repair"),
         "render_r_missing": ("renderer", "display_pack_renderer_asset_repair"),
-        "r_runtime_not_ready": ("runtime_dependency", "install_r_runtime_or_package"),
+        "r_runtime_not_ready": ("runtime_dependency", "opl_runtime_env_doctor"),
+        "dependency_environment_not_prepared": ("dependency_environment", route_hint or "opl_runtime_env_doctor"),
         "paper_root_missing": ("paper_context", "provide_paper_root_or_scaffold_paper"),
         "publication_style_profile_missing": ("style_profile", "seed_publication_style_profile"),
         "golden_case_not_declared": ("golden_regression", "display_pack_golden_refresh"),
@@ -479,7 +484,7 @@ def _route_for_finding(finding: Mapping[str, Any]) -> dict[str, Any]:
         "surface_kind": "display_pack_typed_repair_route",
         "code": code,
         "layer": layer,
-        "repair_owner": "MedAutoScience" if layer != "runtime_dependency" else "operator_or_opl_pack_os",
+        "repair_owner": "OPL Framework" if layer in {"runtime_dependency", "dependency_environment"} else "MedAutoScience",
         "next_callable": next_callable,
         "route_hint": route_hint,
         "blocks_render": code != "golden_case_not_declared",
@@ -543,7 +548,9 @@ def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...
             item_map = _mapping(item)
             if item_map.get("renderer_family") != "r_ggplot2":
                 continue
-            for package in _list(item_map.get("r_packages")):
+            language_packages = _mapping(item_map.get("language_packages"))
+            r_packages = _list(language_packages.get("r")) or _list(item_map.get("r_packages"))
+            for package in r_packages:
                 package_map = _mapping(package)
                 template_ids = tuple(_text(value) for value in _list(package_map.get("template_ids")) if _text(value))
                 if template_ids and template_id not in template_ids:
@@ -715,15 +722,34 @@ def display_pack_preflight(
             }
         )
 
-    r_runtime = _r_runtime_status(selected_records, check_runtime_dependencies=check_runtime_dependencies)
+    dependency_environment = dependency_environment_status(
+        repo_root=normalized_repo_root,
+        paper_root=normalized_paper_root,
+        records=selected_records,
+    )
+    dependency_finding = dependency_environment_finding(dependency_environment)
+    dependency_environment_prepared = dependency_environment.get("status") == "prepared"
+    r_runtime = _r_runtime_status(
+        selected_records,
+        check_runtime_dependencies=check_runtime_dependencies and not dependency_environment_prepared,
+    )
+    if dependency_environment_prepared and r_runtime.get("required") is True:
+        r_runtime = {
+            **r_runtime,
+            "status": "delegated_to_opl_dependency_environment",
+            "doctor_status": dependency_environment.get("doctor_status"),
+            "run_context_ref": dependency_environment.get("run_context_ref"),
+        }
     if r_runtime.get("status") in {"missing", "missing_dependency"}:
         blocking_findings.append(
             {
                 "code": "r_runtime_not_ready",
                 "runtime": r_runtime,
-                "route_hint": "renderer_runtime_dependency_repair",
+                "route_hint": "opl_runtime_env_doctor",
             }
         )
+    if dependency_finding is not None and check_runtime_dependencies:
+        blocking_findings.append(dependency_finding)
 
     style_profile_status = {"required": True, "status": "missing_paper_root"}
     if normalized_paper_root is None:
@@ -763,13 +789,16 @@ def display_pack_preflight(
         "figure_request": compiled_request,
         "templates": template_entries,
         "requested_template_migration": template_migration,
+        "dependency_environment": dependency_environment,
         "r_runtime": r_runtime,
         "style_profile": style_profile_status,
         **figure_policy_surfaces(),
         "blocking_findings": blocking_findings,
         "advisory_findings": advisory_findings,
         "typed_repair_routes": typed_repair_routes,
-        "repair_owner": "MedAutoScience" if blocking_findings else "",
+        "repair_owner": "OPL Framework" if dependency_finding is not None and check_runtime_dependencies else (
+            "MedAutoScience" if blocking_findings else ""
+        ),
         "quality_floor": _quality_floor(
             plan={"figure_intent": intent_payload, "recommended_template": template_entries[0] if template_entries else None},
             preflight={
@@ -889,6 +918,7 @@ def display_pack_render(
     normalized_paper_root = Path(paper_root).expanduser().resolve()
     request = dict(figure_request or {})
     data_payload_file = _text(request.get("data_payload_file"))
+    render_dependency_environment: dict[str, Any] | None = None
 
     if data_payload_file:
         template_id = _text(request.get("template_id"))
@@ -941,6 +971,24 @@ def display_pack_render(
                     "next_callable": "display-pack-repair",
                     "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
                 }
+        render_dependency_environment = dependency_environment_status(
+            repo_root=normalized_repo_root,
+            paper_root=normalized_paper_root,
+            records=selected_records,
+        )
+        dependency_finding = dependency_environment_finding(render_dependency_environment)
+        if dependency_finding is not None:
+            return {
+                "schema_version": 1,
+                "surface_kind": "display_pack_agent_render_receipt",
+                "status": "blocked",
+                "dependency_environment": render_dependency_environment,
+                "typed_blocker": dependency_finding,
+                "receipt_refs": display_pack_agent_receipt_refs(),
+                "next_callable": dependency_finding["route_hint"],
+                "publication_readiness_verdict": False,
+                "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+            }
         if not template_id:
             return {
                 "schema_version": 1,
@@ -964,13 +1012,37 @@ def display_pack_render(
             endpoint_ref=_text(request.get("endpoint_ref")) or "endpoint:display-pack-agent",
             risk_horizon=_text(request.get("risk_horizon")) or "unspecified",
             visual_audit_review=dict(visual_audit_review or default_visual_audit_review()),
+            dependency_environment=render_dependency_environment,
         )
     elif (normalized_paper_root / "figure_intent.json").is_file():
+        records = load_enabled_local_display_template_records(
+            normalized_repo_root,
+            paper_root=normalized_paper_root,
+        )
+        render_dependency_environment = dependency_environment_status(
+            repo_root=normalized_repo_root,
+            paper_root=normalized_paper_root,
+            records=records,
+        )
+        dependency_finding = dependency_environment_finding(render_dependency_environment)
+        if dependency_finding is not None:
+            return {
+                "schema_version": 1,
+                "surface_kind": "display_pack_agent_render_receipt",
+                "status": "blocked",
+                "dependency_environment": render_dependency_environment,
+                "typed_blocker": dependency_finding,
+                "receipt_refs": display_pack_agent_receipt_refs(),
+                "next_callable": dependency_finding["route_hint"],
+                "publication_readiness_verdict": False,
+                "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+            }
         result = materialize_display_pack_publication_manifest(
             repo_root=normalized_repo_root,
             paper_root=normalized_paper_root,
             visual_audit_review=dict(visual_audit_review or default_visual_audit_review()),
             figure_ids=[_text(request.get("figure_id"))] if _text(request.get("figure_id")) else [],
+            dependency_environment=render_dependency_environment,
         )
     else:
         return {
@@ -989,6 +1061,7 @@ def display_pack_render(
         "schema_version": 1,
         "surface_kind": "display_pack_agent_render_receipt",
         "status": result.get("status", "rendered"),
+        "dependency_environment": render_dependency_environment or result.get("dependency_environment") or {},
         "render_result": result,
         "receipt_refs": display_pack_agent_receipt_refs(),
         **figure_policy_surfaces(),

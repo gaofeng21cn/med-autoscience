@@ -47,6 +47,9 @@ PAPER_USE_ACCEPTANCE = (
 
 DISPLAY_PACK_AGENT_RECEIPT_REFS = {
     "display_pack_lock": "paper/build/display_pack_lock.json",
+    "dependency_environment_lock": "paper/build/dependency_environment_lock.json",
+    "dependency_environment_receipt": "paper/build/dependency_environment_receipt.json",
+    "dependency_run_context": "paper/build/dependency_run_context.json",
     "publication_manifest": "paper/build/display_pack_publication_manifest.json",
     "visual_audit_receipt": "paper/figure_visual_audit_receipt.json",
     "figure_render_receipt": "paper/figure_render_receipt.json",

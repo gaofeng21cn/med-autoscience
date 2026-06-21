@@ -1,56 +1,81 @@
 {
   "schema_version": 1,
+  "surface_kind": "opl_dependency_requirement_profile",
   "pack_id": "fenggaolab.org.medical-display-core",
+  "profile_owner": "MedAutoScience Display Pack",
+  "canonical_substrate_owner": "OPL Framework",
+  "contract_ref": "opl-framework:contracts/opl-framework/runtime-environment-substrate-contract.json",
+  "target_doc_ref": "docs/runtime/designs/opl_dependency_environment_substrate_target.md",
+  "authority_boundary": {
+    "domain_pack_declares_requirements_only": true,
+    "opl_substrate_solves_locks_prepares_and_caches": true,
+    "renderer_code_must_not_install_packages": true,
+    "can_authorize_publication_readiness": false,
+    "can_write_study_truth": false,
+    "can_mutate_artifacts": false
+  },
   "profiles": [
     {
       "profile_id": "r_ggplot2_evidence_subprocess_v1",
       "execution_mode": "subprocess",
       "renderer_family": "r_ggplot2",
       "entrypoint_pattern": "Rscript render.R --request {request_json}",
+      "template_ids_or_entrypoint_pattern": "templates/*/render.R",
       "runtime_binaries": [
         {
           "name": "Rscript",
-          "required": true
+          "required": true,
+          "run_context_key": "binary_paths.Rscript"
         }
       ],
-      "r_packages": [
-        {
-          "name": "jsonlite",
-          "required": true,
-          "role": "render request and layout sidecar JSON IO"
-        },
-        {
-          "name": "ggplot2",
-          "required": true,
-          "role": "core grammar-of-graphics rendering"
-        },
-        {
-          "name": "ggsci",
-          "required": true,
-          "role": "medical journal inspired palettes"
-        },
-        {
-          "name": "grid",
-          "required": true,
-          "role": "grob layout inspection for sidecars"
-        },
-        {
-          "name": "Rtsne",
-          "required": true,
-          "template_ids": [
-            "tsne_scatter_grouped"
-          ],
-          "role": "real t-SNE embedding computation from feature_matrix inputs"
-        },
-        {
-          "name": "uwot",
-          "required": true,
-          "template_ids": [
-            "umap_scatter_grouped"
-          ],
-          "role": "real UMAP embedding computation from feature_matrix inputs"
-        }
-      ],
+      "language_packages": {
+        "r": [
+          {
+            "name": "jsonlite",
+            "required": true,
+            "role": "render request and layout sidecar JSON IO"
+          },
+          {
+            "name": "ggplot2",
+            "required": true,
+            "role": "core grammar-of-graphics rendering"
+          },
+          {
+            "name": "ggsci",
+            "required": true,
+            "role": "medical journal inspired palettes"
+          },
+          {
+            "name": "grid",
+            "required": true,
+            "role": "grob layout inspection for sidecars"
+          },
+          {
+            "name": "Rtsne",
+            "required": true,
+            "template_ids": [
+              "tsne_scatter_grouped"
+            ],
+            "role": "real t-SNE embedding computation from feature_matrix inputs"
+          },
+          {
+            "name": "uwot",
+            "required": true,
+            "template_ids": [
+              "umap_scatter_grouped"
+            ],
+            "role": "real UMAP embedding computation from feature_matrix inputs"
+          }
+        ]
+      },
+      "system_requirements": [],
+      "run_context_requirements": {
+        "binary_path_handoff_required": true,
+        "r_lib_path_required": true,
+        "session_info_required_in_receipt": true,
+        "network_access_during_render": false,
+        "package_install_during_render_allowed": false
+      },
       "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
       "template_wrapper_ref": "templates/<template_id>/render.R"
     },
@@ -59,40 +84,51 @@
       "execution_mode": "subprocess",
       "renderer_family": "r_ggplot2",
       "entrypoint_pattern": "Rscript render_candidate.R --request {request_json}",
+      "template_ids_or_entrypoint_pattern": "templates/*/render_candidate.R",
       "runtime_binaries": [
         {
           "name": "Rscript",
-          "required": true
+          "required": true,
+          "run_context_key": "binary_paths.Rscript"
         }
       ],
-      "r_packages": [
-        {
-          "name": "jsonlite",
-          "required": true,
-          "role": "render request and layout sidecar JSON IO"
-        },
-        {
-          "name": "ggplot2",
-          "required": true,
-          "role": "core grammar-of-graphics rendering"
-        },
-        {
-          "name": "ggsci",
-          "required": true,
-          "role": "medical journal inspired palettes"
-        },
-        {
-          "name": "grid",
-          "required": true,
-          "role": "grob layout inspection for sidecars"
-        }
-      ],
+      "language_packages": {
+        "r": [
+          {
+            "name": "jsonlite",
+            "required": true,
+            "role": "render request and layout sidecar JSON IO"
+          },
+          {
+            "name": "ggplot2",
+            "required": true,
+            "role": "core grammar-of-graphics rendering"
+          },
+          {
+            "name": "ggsci",
+            "required": true,
+            "role": "medical journal inspired palettes"
+          },
+          {
+            "name": "grid",
+            "required": true,
+            "role": "grob layout inspection for sidecars"
+          }
+        ]
+      },
+      "system_requirements": [],
+      "run_context_requirements": {
+        "binary_path_handoff_required": true,
+        "r_lib_path_required": true,
+        "session_info_required_in_receipt": true,
+        "network_access_during_render": false,
+        "package_install_during_render_allowed": false
+      },
       "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
       "candidate_helper_ref": "rlib/medicaldisplaycore/candidate_renderer.R",
       "template_wrapper_ref": "templates/<template_id>/render_candidate.R",
       "surface_role": "legacy_comparison_receipt",
-      "default_renderer_profile_ref": "r_ggplot2_evidence_subprocess_v1",
-      "publication_readiness_verdict": false
+      "default_renderer_profile_ref": "r_ggplot2_evidence_subprocess_v1"
     }
   ]
 }
