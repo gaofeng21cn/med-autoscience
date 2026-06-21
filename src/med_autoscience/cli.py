@@ -506,12 +506,43 @@ def main(argv: list[str] | None = None) -> int:
                 expected_work_unit_fingerprint=args.expected_work_unit_fingerprint,
             )
         else:
+            expected_identity_args_present = any(
+                (
+                    args.expected_owner,
+                    args.expected_action_type,
+                    args.expected_work_unit_id,
+                    args.expected_work_unit_fingerprint,
+                )
+            )
+            record = _load_json_payload_from_args(args)
+            if expected_identity_args_present:
+                precheck_result = ai_reviewer_publication_eval.plan_ai_reviewer_publication_eval_record_materialization(
+                    profile=profile,
+                    study_id=args.study_id,
+                    study_root=Path(args.study_root) if args.study_root else None,
+                    entry_mode=args.entry_mode,
+                    source="cli",
+                    record=record,
+                    expected_owner=args.expected_owner,
+                    expected_action_type=args.expected_action_type,
+                    expected_work_unit_id=args.expected_work_unit_id,
+                    expected_work_unit_fingerprint=args.expected_work_unit_fingerprint,
+                )
+                guard_failed = precheck_result.get("status") == "blocked" or any(
+                    isinstance(precheck_result.get(guard_key), dict)
+                    and precheck_result[guard_key].get("matched") is False
+                    for guard_key in ("identity_guard", "payload_guard")
+                )
+                if guard_failed:
+                    result = precheck_result
+                    print(json.dumps(result, ensure_ascii=False, indent=2))
+                    return 0
             result = ai_reviewer_publication_eval.materialize_ai_reviewer_publication_eval_record(
                 profile=profile,
                 study_id=args.study_id,
                 study_root=Path(args.study_root) if args.study_root else None,
                 entry_mode=args.entry_mode,
-                record=_load_json_payload_from_args(args),
+                record=record,
                 source="cli",
                 build_production_trace=bool(args.build_production_trace),
             )
