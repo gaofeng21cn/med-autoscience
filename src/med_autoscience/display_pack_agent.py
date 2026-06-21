@@ -55,6 +55,7 @@ from med_autoscience.display_pack_analysis_responsibility import (
     analysis_boundary_payload,
 )
 from med_autoscience.display_pack_dependency_environment import (
+    dependency_requirements_for_records,
     dependency_environment_finding,
     dependency_environment_status,
 )
@@ -206,6 +207,10 @@ def _template_summary(
         "migrated_alias_template_ids": list(canonical.aliases) if canonical.migration_status == "canonical" else [],
         "migration_reason": canonical.migration_reason,
         "renderer_policy": renderer_policy_payload(_renderer_policy_projection(record, canonical)),
+        "dependency_requirements": dependency_requirements_for_records(
+            repo_root=record.pack_root.parent.parent,
+            records=[record],
+        ),
         "has_render_r": (template_root / "render.R").is_file(),
         "has_render_candidate": (template_root / "render_candidate.R").is_file(),
         "golden_case_count": len(manifest.golden_case_paths),
@@ -531,29 +536,25 @@ def _quality_floor(
     }
 
 
-def _load_renderer_dependency_profile(pack_root: Path) -> dict[str, Any]:
-    path = pack_root / "renderer_dependency_profile.json"
-    if not path.is_file():
-        return {}
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    return dict(payload) if isinstance(payload, Mapping) else {}
-
-
 def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...]:
     packages: set[str] = set()
     for record in records:
         template_id = record.template_manifest.template_id
-        profile = _load_renderer_dependency_profile(record.pack_root)
-        for item in _list(profile.get("profiles")):
+        full_template_id = record.template_manifest.full_template_id
+        for item in dependency_requirements_for_records(
+            repo_root=record.pack_root.parent.parent,
+            records=[record],
+        ):
             item_map = _mapping(item)
-            if item_map.get("renderer_family") != "r_ggplot2":
-                continue
-            language_packages = _mapping(item_map.get("language_packages"))
-            r_packages = _list(language_packages.get("r")) or _list(item_map.get("r_packages"))
+            r_packages = [
+                package
+                for package in _list(item_map.get("language_package_requirements"))
+                if _text(_mapping(package).get("language")) == "r"
+            ]
             for package in r_packages:
                 package_map = _mapping(package)
                 template_ids = tuple(_text(value) for value in _list(package_map.get("template_ids")) if _text(value))
-                if template_ids and template_id not in template_ids:
+                if template_ids and template_id not in template_ids and full_template_id not in template_ids:
                     continue
                 if package_map.get("required") is True and _text(package_map.get("name")):
                     packages.add(_text(package_map.get("name")))
@@ -561,7 +562,7 @@ def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...
 
 
 def _r_runtime_status(records: list[LoadedDisplayTemplate], *, check_runtime_dependencies: bool) -> dict[str, Any]:
-    requires_r = any(record.template_manifest.renderer_family == "r_ggplot2" for record in records)
+    requires_r = bool(_required_r_packages(records))
     if not requires_r:
         return {"required": False, "status": "not_required", "binary": "Rscript", "packages": {}}
     rscript_path = shutil.which("Rscript")

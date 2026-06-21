@@ -122,6 +122,7 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 "analysis_responsibility": item.get("analysis_responsibility"),
                 "analysis_input_state": item.get("analysis_input_state"),
                 "medical_family_ids": item.get("medical_family_ids"),
+                "dependency_requirements": item.get("dependency_requirements"),
                 "preview_image_ref": item.get("preview_image_ref"),
                 "image_ref": item.get("image_ref"),
                 "svg_ref": item.get("svg_ref"),

@@ -41,6 +41,150 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _list(value: object) -> list[Any]:
+    return list(value) if isinstance(value, list) else []
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def load_renderer_dependency_profile(*, repo_root: Path) -> dict[str, Any]:
+    payload = _read_json_object(repo_root / DEPENDENCY_REQUIREMENT_PROFILE_REF)
+    return payload or {}
+
+
+def _profile_template_ids(profile_entry: Mapping[str, Any]) -> set[str]:
+    ids = {
+        _text(value)
+        for value in [
+            *_list(profile_entry.get("template_ids")),
+            *_list(profile_entry.get("template_requirement_refs")),
+        ]
+        if _text(value)
+    }
+    scoped_templates = _mapping(profile_entry.get("scoped_templates"))
+    ids.update(_text(value) for value in _list(scoped_templates.get("template_ids")) if _text(value))
+    ids.update(_text(value) for value in _list(scoped_templates.get("template_requirement_refs")) if _text(value))
+    return ids
+
+
+def _record_template_ids(record: LoadedDisplayTemplate) -> set[str]:
+    manifest = record.template_manifest
+    return {manifest.template_id, manifest.full_template_id}
+
+
+def _profile_entry_matches_record(profile_entry: Mapping[str, Any], record: LoadedDisplayTemplate) -> bool:
+    template_ids = _profile_template_ids(profile_entry)
+    if template_ids:
+        return bool(template_ids & _record_template_ids(record))
+    return (
+        _text(profile_entry.get("renderer_family")) == record.template_manifest.renderer_family
+        and _text(profile_entry.get("execution_mode")) == record.template_manifest.execution_mode
+    )
+
+
+def dependency_profile_entries_for_template_ids(
+    *,
+    repo_root: Path,
+    template_ids: set[str],
+) -> list[dict[str, Any]]:
+    profile = load_renderer_dependency_profile(repo_root=repo_root)
+    entries: list[dict[str, Any]] = []
+    seen_profile_ids: set[str] = set()
+    for profile_entry in _list(profile.get("profiles")):
+        entry = _mapping(profile_entry)
+        profile_id = _text(entry.get("profile_id"))
+        if not profile_id or profile_id in seen_profile_ids:
+            continue
+        scoped_ids = _profile_template_ids(entry)
+        if scoped_ids and scoped_ids & template_ids:
+            entries.append(entry)
+            seen_profile_ids.add(profile_id)
+    return entries
+
+
+def dependency_profile_entries_for_records(
+    *,
+    repo_root: Path,
+    records: list[LoadedDisplayTemplate],
+) -> list[dict[str, Any]]:
+    profile = load_renderer_dependency_profile(repo_root=repo_root)
+    entries: list[dict[str, Any]] = []
+    seen_profile_ids: set[str] = set()
+    for profile_entry in _list(profile.get("profiles")):
+        entry = _mapping(profile_entry)
+        profile_id = _text(entry.get("profile_id"))
+        if not profile_id or profile_id in seen_profile_ids:
+            continue
+        if any(_profile_entry_matches_record(entry, record) for record in records):
+            entries.append(entry)
+            seen_profile_ids.add(profile_id)
+    return entries
+
+
+def dependency_requirements_for_profile_entries(entries: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    requirements: list[dict[str, Any]] = []
+    for entry in entries:
+        package_requirements: list[dict[str, Any]] = []
+        language_packages = _mapping(entry.get("language_packages"))
+        for language, packages in language_packages.items():
+            for package in _list(packages):
+                package_map = _mapping(package)
+                name = _text(package_map.get("name"))
+                if not name:
+                    continue
+                package_requirements.append(
+                    {
+                        "language": _text(language),
+                        "name": name,
+                        "required": package_map.get("required") is True,
+                        "role": _text(package_map.get("role")),
+                        "template_ids": [
+                            _text(value) for value in _list(package_map.get("template_ids")) if _text(value)
+                        ],
+                    }
+                )
+        requirements.append(
+            {
+                "profile_id": _text(entry.get("profile_id")),
+                "renderer_family": _text(entry.get("renderer_family")),
+                "execution_mode": _text(entry.get("execution_mode")),
+                "surface_role": _text(entry.get("surface_role")),
+                "template_ids": sorted(_profile_template_ids(entry)),
+                "mature_dependency_intent": _mapping(entry.get("mature_dependency_intent")),
+                "language_package_requirements": package_requirements,
+                "run_context_requirements": _mapping(entry.get("run_context_requirements")),
+                "render_contract": _mapping(entry.get("render_contract")),
+            }
+        )
+    return requirements
+
+
+def dependency_requirements_for_records(
+    *,
+    repo_root: Path,
+    records: list[LoadedDisplayTemplate],
+) -> list[dict[str, Any]]:
+    return dependency_requirements_for_profile_entries(
+        dependency_profile_entries_for_records(repo_root=repo_root, records=records)
+    )
+
+
+def dependency_requirements_for_template_ids(
+    *,
+    repo_root: Path,
+    template_ids: set[str],
+) -> list[dict[str, Any]]:
+    return dependency_requirements_for_profile_entries(
+        dependency_profile_entries_for_template_ids(repo_root=repo_root, template_ids=template_ids)
+    )
+
+
 def _workspace_ref_path(ref: str, *, paper_root: Path) -> Path:
     normalized = str(ref or "").strip()
     if not normalized:
@@ -53,14 +197,6 @@ def _workspace_ref_path(ref: str, *, paper_root: Path) -> Path:
     if path.parts and path.parts[0] == "paper":
         return (paper_root.parent / path).resolve()
     return (paper_root / path).resolve()
-
-
-def _requires_dependency_environment(records: list[LoadedDisplayTemplate]) -> bool:
-    return any(
-        record.template_manifest.renderer_family == "r_ggplot2"
-        and record.template_manifest.execution_mode == "subprocess"
-        for record in records
-    )
 
 
 def _status_route(status: str, failure_class: str) -> str:
@@ -107,7 +243,8 @@ def dependency_environment_status(
     records: list[LoadedDisplayTemplate],
 ) -> dict[str, Any]:
     requirement_path = repo_root / DEPENDENCY_REQUIREMENT_PROFILE_REF
-    required = _requires_dependency_environment(records)
+    dependency_requirements = dependency_requirements_for_records(repo_root=repo_root, records=records)
+    required = bool(dependency_requirements)
     base: dict[str, Any] = {
         "surface_kind": "display_pack_dependency_environment_status",
         "required": required,
@@ -115,6 +252,7 @@ def dependency_environment_status(
         "consumer": "MedAutoScience display pack",
         "requirement_profile_ref": DEPENDENCY_REQUIREMENT_PROFILE_REF,
         "requirement_profile_status": "present" if requirement_path.is_file() else "missing",
+        "dependency_requirements": dependency_requirements,
         "lock_ref": DEPENDENCY_LOCK_REF,
         "receipt_ref": DEPENDENCY_RECEIPT_REF,
         "run_context_ref": DEPENDENCY_RUN_CONTEXT_REF,

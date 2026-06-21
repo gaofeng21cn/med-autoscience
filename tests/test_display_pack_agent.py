@@ -608,6 +608,60 @@ def test_display_pack_preflight_blocks_missing_dependency_environment_by_default
     assert dependency_route["layer"] == "dependency_environment"
 
 
+def test_display_pack_preflight_blocks_cohort_flow_without_ggconsort_capable_receipt(tmp_path: Path) -> None:
+    paper_root = _styled_paper_root(tmp_path)
+
+    payload = display_pack_preflight(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        template_id="cohort_flow_figure",
+        check_runtime_dependencies=True,
+    )
+
+    requirements = payload["dependency_environment"]["dependency_requirements"]
+    requirement = next(item for item in requirements if item["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1")
+    packages = {item["name"]: item for item in requirement["language_package_requirements"]}
+
+    assert payload["status"] == "blocked"
+    assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
+    assert requirement["surface_role"] == "ggconsort_capable_reporting_flow_dependency_intent"
+    assert requirement["mature_dependency_intent"]["preferred_package"] == "ggconsort"
+    assert requirement["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False
+    assert requirement["render_contract"]["checked_in_renderer_family"] == "python"
+    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert packages["ggconsort"]["required"] is True
+    assert {item["code"] for item in payload["blocking_findings"]} >= {"dependency_environment_not_prepared"}
+    assert payload["repair_owner"] == "OPL Framework"
+
+
+def test_display_pack_preflight_reports_cohort_flow_prepared_ggconsort_capable_profile(tmp_path: Path) -> None:
+    paper_root = _styled_paper_root(tmp_path)
+    _write_prepared_dependency_environment(paper_root)
+
+    payload = display_pack_preflight(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        template_id="cohort_flow_figure",
+        check_runtime_dependencies=True,
+    )
+
+    requirement = next(
+        item
+        for item in payload["dependency_environment"]["dependency_requirements"]
+        if item["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
+    )
+
+    assert payload["status"] == "ready"
+    assert payload["dependency_environment"]["status"] == "prepared"
+    assert payload["r_runtime"]["required"] is True
+    assert payload["r_runtime"]["status"] == "delegated_to_opl_dependency_environment"
+    assert requirement["mature_dependency_intent"]["family"] == "ggconsort_capable_reporting_flow"
+    assert requirement["render_contract"]["checked_in_renderer_is_generated_fallback"] is True
+    assert payload["templates"][0]["dependency_requirements"][0]["profile_id"] == (
+        "r_ggplot2_ggconsort_reporting_flow_v1"
+    )
+
+
 def test_display_pack_preflight_blocks_direct_raw_input_for_summary_only_template(tmp_path: Path) -> None:
     paper_root = _styled_paper_root(tmp_path)
 
@@ -756,6 +810,51 @@ def test_display_pack_render_fail_closes_missing_dependency_environment(tmp_path
     assert payload["typed_blocker"]["code"] == "dependency_environment_not_prepared"
     assert payload["typed_blocker"]["repair_owner"] == "OPL Framework"
     assert payload["publication_readiness_verdict"] is False
+    assert not (paper_root / "figure_render_receipt.json").exists()
+
+
+def test_display_pack_render_fail_closes_cohort_flow_missing_ggconsort_capable_receipt(tmp_path: Path) -> None:
+    paper_root = tmp_path / "paper"
+    payload_path = tmp_path / "cohort-flow-payload.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "shell_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                "display_id": "cohort_flow_figure",
+                "title": "Participant flow",
+                "layout_mode": "participant_flow",
+                "steps": [{"step_id": "screened", "label": "Screened", "n": 100}],
+                "exclusions": [],
+                "endpoint_inventory": [],
+                "design_panels": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = display_pack_render(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        figure_request={
+            "template_id": "cohort_flow_figure",
+            "data_payload_file": str(payload_path),
+            "figure_id": "F1",
+        },
+    )
+
+    requirement = payload["dependency_environment"]["dependency_requirements"][0]
+
+    assert payload["surface_kind"] == "display_pack_agent_render_receipt"
+    assert payload["status"] == "blocked"
+    assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
+    assert requirement["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
+    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert payload["typed_blocker"]["code"] == "dependency_environment_not_prepared"
+    assert payload["typed_blocker"]["repair_owner"] == "OPL Framework"
     assert not (paper_root / "figure_render_receipt.json").exists()
 
 

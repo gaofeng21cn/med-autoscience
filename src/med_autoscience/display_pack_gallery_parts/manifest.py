@@ -31,6 +31,9 @@ from med_autoscience.display_pack_gallery_catalog import (
     reporting_flow_gallery_records,
     visual_gallery_records,
 )
+from med_autoscience.display_pack_dependency_environment import (
+    dependency_requirements_for_template_ids,
+)
 from med_autoscience.display_pack_renderer_policy import (
     default_surface_renderer_policy,
     renderer_policy_completion,
@@ -287,6 +290,9 @@ def build_manifest(
             "template_analysis_responsibility_required": True,
             "raw_analysis_inputs_must_match_computed_workflow_templates": True,
             "validated_summary_templates_fail_closed_on_raw_analysis_requests": True,
+            "reporting_flow_dependency_profile": "r_ggplot2_ggconsort_reporting_flow_v1",
+            "reporting_flow_requires_ggconsort_capable_prepared_environment": True,
+            "reporting_flow_generated_fallback_claims_ggconsort": False,
             "medical_figure_family_mapping_required": True,
             "starter_recipe_profile_required": True,
             "style_palette_qa_profile_required": True,
@@ -394,6 +400,10 @@ def _template_payload(
         "execution_mode": record.execution_mode,
         "paper_proven": record.paper_proven,
         "renderer_policy": renderer_policy_payload(record),
+        "dependency_requirements": dependency_requirements_for_template_ids(
+            repo_root=paths.REPO_ROOT,
+            template_ids={record.template_id, record.full_template_id},
+        ),
         "render_status": asset.status,
         "render_reason": asset.reason,
         "image_size_px": list(asset.image_size_px),

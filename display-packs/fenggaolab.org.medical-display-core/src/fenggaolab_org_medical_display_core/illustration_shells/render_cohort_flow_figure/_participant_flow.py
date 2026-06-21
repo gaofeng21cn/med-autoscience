@@ -569,6 +569,11 @@ def _render_participant_flow(
             "metrics": {
                 "layout_mode": "participant_flow",
                 "reporting_flow_kind": "consort_strobe_participant_flow",
+                "dependency_profile_ref": "r_ggplot2_ggconsort_reporting_flow_v1",
+                "mature_dependency_intent": "ggconsort_capable_reporting_flow",
+                "generated_fallback_renderer": "python_participant_flow",
+                "uses_ggconsort": False,
+                "ggconsort_capable_prepared_environment_required": True,
                 "analysis_responsibility": "structured_reporting_counts",
                 "steps": steps,
                 "exclusions": exclusions,

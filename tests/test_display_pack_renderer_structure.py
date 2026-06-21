@@ -161,11 +161,15 @@ def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> Non
 def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -> None:
     profile = json.loads((CORE_PACK_ROOT / "renderer_dependency_profile.json").read_text(encoding="utf-8"))
     r_profile = next(item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_evidence_subprocess_v1")
+    reporting_flow_profile = next(
+        item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
+    )
     candidate_profile = next(
         item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_p1_comparison_subprocess_v1"
     )
-    package_names = {item["name"] for item in r_profile["r_packages"]}
-    packages_by_name = {item["name"]: item for item in r_profile["r_packages"]}
+    package_names = {item["name"] for item in r_profile["language_packages"]["r"]}
+    packages_by_name = {item["name"]: item for item in r_profile["language_packages"]["r"]}
+    reporting_flow_packages = {item["name"]: item for item in reporting_flow_profile["language_packages"]["r"]}
 
     assert r_profile["renderer_family"] == "r_ggplot2"
     assert r_profile["execution_mode"] == "subprocess"
@@ -175,6 +179,19 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert packages_by_name["uwot"]["template_ids"] == ["umap_scatter_grouped"]
     assert r_profile["shared_helper_ref"] == "rlib/medicaldisplaycore/evidence_renderer.R"
     assert r_profile["template_wrapper_ref"] == "templates/<template_id>/render.R"
+    assert reporting_flow_profile["renderer_family"] == "r_ggplot2"
+    assert reporting_flow_profile["execution_mode"] == "subprocess"
+    assert reporting_flow_profile["surface_role"] == "ggconsort_capable_reporting_flow_dependency_intent"
+    assert reporting_flow_profile["template_ids"] == [
+        "cohort_flow_figure",
+        "fenggaolab.org.medical-display-core::cohort_flow_figure",
+    ]
+    assert reporting_flow_packages["ggconsort"]["required"] is True
+    assert reporting_flow_profile["mature_dependency_intent"]["preferred_package"] == "ggconsort"
+    assert reporting_flow_profile["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False
+    assert reporting_flow_profile["render_contract"]["checked_in_renderer_family"] == "python"
+    assert reporting_flow_profile["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert reporting_flow_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
     assert candidate_profile["renderer_family"] == "r_ggplot2"
     assert candidate_profile["execution_mode"] == "subprocess"
     assert candidate_profile["entrypoint_pattern"] == "Rscript render_candidate.R --request {request_json}"

@@ -248,6 +248,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["template_surface_policy"][
         "composition_recipes_are_visible_in_gallery_storyboard_section"
     ] is True
+    assert manifest["template_surface_policy"]["reporting_flow_dependency_profile"] == (
+        "r_ggplot2_ggconsort_reporting_flow_v1"
+    )
+    assert manifest["template_surface_policy"]["reporting_flow_requires_ggconsort_capable_prepared_environment"] is True
+    assert manifest["template_surface_policy"]["reporting_flow_generated_fallback_claims_ggconsort"] is False
     assert manifest["composition_recipe_surface"]["policy"]["policy_id"] == (
         "mas_medical_figure_composition_recipes.v1"
     )
@@ -354,6 +359,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         for item in manifest["reporting_flow_gallery_templates"]
     }
     assert set(reporting_flow_inventory) == {"cohort_flow_figure"}
+    cohort_flow_dependency = reporting_flow_inventory["cohort_flow_figure"]["dependency_requirements"][0]
+    assert cohort_flow_dependency["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
+    assert cohort_flow_dependency["mature_dependency_intent"]["preferred_package"] == "ggconsort"
+    assert cohort_flow_dependency["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False
+    assert cohort_flow_dependency["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
     assert set(design_inventory) == {"submission_graphical_abstract"}
     assert all(item["visual_gallery_visible"] is True for item in reporting_flow_inventory.values())
     assert all(item["visual_gallery_visible"] is True for item in design_inventory.values())

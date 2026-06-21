@@ -51,11 +51,12 @@ Machine boundary: 本文是 MAS 仓内记录的 OPL runtime environment substrat
 
 MAS 侧目标接入点：
 
-- `renderer_dependency_profile.json` 升级为 OPL 可消费的 `DependencyRequirementProfile`。
+- `renderer_dependency_profile.json` 升级为 OPL 可消费的 `DependencyRequirementProfile`，其中 R/ggplot2 evidence renderer 声明基础 R 包，cohort/reporting-flow shell 另声明 `ggconsort`-capable profile。
 - `display_pack_agent.preflight` 查询 dependency receipt；缺失时返回 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required`。
 - `display_pack_render` 只消费 `DependencyRunContext`，不直接依赖 host PATH / site library。
 - `display_pack_lock.json`、render receipt 和 publication manifest 保存 dependency lock / receipt refs。
 - visual audit 继续审图，不审依赖；依赖回执不能替代视觉审计。
+- `cohort_flow_figure` 当前 Python participant-flow renderer 是 generated fallback；只有 dependency intent 指向 `ggconsort`-capable profile，不能把 fallback 输出写成已使用 `ggconsort`。
 
 详细 medical-display 消费设计见 `docs/delivery/medical-display/contracts/display_dependency_environment_os_target.md`。
 

@@ -9,7 +9,7 @@ Machine boundary: 本文是人读 consumer 设计。canonical OPL substrate cont
 
 医学绘图依赖环境应该由 OPL 基座统一解决。Display Pack 和模板只声明“需要什么”，不在 renderer 内安装、升级、修补或猜测依赖。OPL 负责把依赖需求解析成锁文件、准备可复用环境、产出 run-context 和可审计回执；MAS 负责把这些 refs 接入 display preflight、render receipt、display lock、visual audit 和 typed repair route。
 
-这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot` 等依赖；它是 pack-local dependency intent，不是 OPL environment contract 副本。模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台和诊断由 OPL 负责。
+这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot` 等依赖，也能表达 `cohort_flow_figure` 需要 `ggconsort`-capable reporting-flow profile。它是 pack-local dependency intent，不是 OPL environment contract 副本。模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台和诊断由 OPL 负责。
 
 OPL 通用基座设计见 `docs/runtime/designs/opl_dependency_environment_substrate_target.md`；本文只说明 medical display 如何消费该基座。
 
@@ -45,6 +45,7 @@ renderer_dependency_profile.json
 - `dependency_environment_receipt.json` 证明环境已准备、包和 binary 检查通过、run-context 可用。
 - render 前如果缺 prepared receipt，MAS 应 fail closed 到 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required`，而不是让 R/Python 脚本报错后再猜。
 - renderer 可检查包是否存在，但不得 `install.packages()`、`pip install`、`conda install`、`brew install` 或静默升级。
+- `cohort_flow_figure` 的 reporting-flow dependency intent 优先指向 `ggconsort`；当前 checked-in renderer 仍是 Python generated participant-flow fallback，只能作为结构化人数流 fallback 输出，不能宣称已使用 `ggconsort`。
 
 ## MAS / OPL 分工
 
@@ -84,6 +85,8 @@ renderer_dependency_profile.json
 ```
 
 模板作者只维护这个需求声明。OPL 可根据 policy 选择 `renv`、`pak sysreqs`、conda/pixi、container digest 或混合 profile；MAS 不应该在每个 `render.R` 里重复判断依赖环境。
+
+`cohort_flow_figure` 另有 `r_ggplot2_ggconsort_reporting_flow_v1` profile：它声明 `ggconsort`、`ggplot2`、`jsonlite` 和 `grid` 等 R 包能力，要求 prepared receipt / run-context 后才允许进入 MAS render。若 OPL 当前环境无法准备 `ggconsort`，MAS 应 fail closed 到 dependency route；不得在 renderer 内 `install.packages()`，也不得把 Python generated participant-flow fallback 写成 `ggconsort` render evidence。
 
 ## 回执和锁文件
 
