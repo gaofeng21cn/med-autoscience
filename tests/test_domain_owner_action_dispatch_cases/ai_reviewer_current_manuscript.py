@@ -149,6 +149,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         f"--study-id {study_id} --payload-file {payload_ref} --build-production-trace"
     )
     assert production_request["followup_actions"] == [
+        "refresh owner_callable_payload_ref guard metadata from the current production request",
         "fill owner_callable_payload_ref.record_payload with an AI-reviewer-authored publication eval record",
         "run owner_callable_command exactly as rendered",
         "record owner callable result refs for OPL DomainProgressTransitionRuntime intake",
@@ -184,8 +185,19 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert handoff["prompt_contract"]["record_payload_authoring_target_surface"] == (
         "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json"
     )
+    assert handoff["prompt_contract"]["record_payload_target_guard_metadata_fields"] == [
+        "stale_record_ref",
+        "required_input_refs",
+        "required_currentness_refs",
+    ]
+    assert handoff["prompt_contract"]["record_payload_target_owner_editable_fields"] == [
+        "stale_record_ref",
+        "required_input_refs",
+        "required_currentness_refs",
+        "record_payload",
+    ]
     assert handoff["prompt_contract"]["execution_steps"] == [
-        "Read owner_callable_payload_ref and fill only its record_payload field with the AI reviewer publication eval record.",
+        "Read owner_callable_payload_ref, refresh its guard-consumed metadata fields from ai_reviewer_record_production_request, and fill record_payload with the AI reviewer publication eval record.",
         "Run owner_callable_command exactly as rendered to let MAS rebuild the production reviewer_operating_system trace and write the record-only archive.",
         "Do not inspect MAS source code to discover alternate CLI spellings or write artifacts/publication_eval/latest.json.",
         "Emit the required typed closeout packet with the materialized record ref.",
@@ -280,6 +292,11 @@ def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profi
     assert handoff["prompt_contract"]["execution_steps"][1] == (
         "Run owner_callable_command exactly as rendered to let MAS rebuild the production "
         "reviewer_operating_system trace and write the record-only archive."
+    )
+    assert handoff["prompt_contract"]["execution_steps"][0] == (
+        "Read owner_callable_payload_ref, refresh its guard-consumed metadata fields from "
+        "ai_reviewer_record_production_request, and fill record_payload with the AI reviewer "
+        "publication eval record."
     )
     assert handoff["provider_completion_is_domain_completion"] is False
     assert handoff["provider_admission_pending"] is False

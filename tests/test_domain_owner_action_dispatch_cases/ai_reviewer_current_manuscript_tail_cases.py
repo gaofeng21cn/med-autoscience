@@ -164,6 +164,113 @@ def test_execute_dispatch_rebinds_record_production_to_eval_owned_medical_prose_
     assert payload["required_input_refs"]["medical_prose_review"] == str(stable_prose_review.resolve())
 
 
+def test_record_payload_authoring_target_refreshes_guard_metadata_from_current_request(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.ai_reviewer_record_production"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    current_record_ref = str(
+        (
+            study_root
+            / "artifacts"
+            / "publication_eval"
+            / "ai_reviewer_responses"
+            / "20260621T103510Z_publication_eval_record.json"
+        ).resolve()
+    )
+    old_record_ref = str(
+        (
+            study_root
+            / "artifacts"
+            / "publication_eval"
+            / "ai_reviewer_responses"
+            / "20260609T011045Z_publication_eval_record.json"
+        ).resolve()
+    )
+    old_prose_review = str((study_root / "artifacts" / "publication_eval" / "medical_prose_review.json").resolve())
+    current_prose_review = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_prose_review.json"
+    )
+    _write_json(current_prose_review, {"surface": "medical_prose_review"})
+    current_request = {
+        "surface": "supervisor_action_request",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "request_owner": "ai_reviewer",
+        "request_lifecycle": {
+            "state": "requested",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "stale_record_ref": current_record_ref,
+            "required_currentness_refs": [str(current_prose_review.resolve())],
+        },
+        "input_contract": {
+            "required_refs": {
+                "medical_prose_review": {
+                    "path": str(current_prose_review.resolve()),
+                    "present": True,
+                    "valid": True,
+                }
+            }
+        },
+    }
+    production_request = module.build_ai_reviewer_record_production_request(
+        request=current_request,
+        required_refs={"medical_prose_review": old_prose_review},
+        stale_record_ref=old_record_ref,
+        required_currentness_refs=[old_prose_review],
+        request_kind="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    )
+    handoff = module.build_ai_reviewer_record_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        request=current_request,
+        dispatch={
+            "owner_route": _owner_route(
+                study_id=study_id,
+                action_type="return_to_ai_reviewer_workflow",
+                owner="ai_reviewer",
+            )
+        },
+        production_request=production_request,
+    )
+
+    module.materialize_ai_reviewer_record_worker_handoff(handoff=handoff)
+
+    refreshed_request = handoff["ai_reviewer_record_production_request"]
+    payload = json.loads(Path(handoff["refs"]["owner_callable_payload_ref"]).read_text(encoding="utf-8"))
+    assert refreshed_request["stale_record_ref"] == current_record_ref
+    assert refreshed_request["required_input_refs"]["medical_prose_review"] == str(current_prose_review.resolve())
+    assert refreshed_request["required_currentness_refs"] == [str(current_prose_review.resolve())]
+    assert payload["stale_record_ref"] == current_record_ref
+    assert payload["required_input_refs"]["medical_prose_review"] == str(current_prose_review.resolve())
+    assert payload["required_currentness_refs"] == [str(current_prose_review.resolve())]
+    assert payload["guard_consumed_metadata_fields"] == [
+        "stale_record_ref",
+        "required_input_refs",
+        "required_currentness_refs",
+    ]
+    assert payload["owner_editable_fields"] == [
+        "stale_record_ref",
+        "required_input_refs",
+        "required_currentness_refs",
+        "record_payload",
+    ]
+    assert old_record_ref not in json.dumps(payload)
+    assert old_prose_review not in json.dumps(payload)
+
+
 def test_execute_dispatch_routes_claim_evidence_alignment_blocker_to_write_owner(
     monkeypatch,
     tmp_path: Path,
