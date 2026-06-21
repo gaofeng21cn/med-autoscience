@@ -23,6 +23,8 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_actions import (
+    DEFAULT_EXECUTOR_DISPATCHES,
+    PAPER_PROGRESS_TRANSITION_REQUESTS,
     accepted_owner_gate_admission_matches_selected_dispatch_blocker,
     _current_action_identity,
     _current_action_action_type,
@@ -99,6 +101,12 @@ PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS = frozenset(
     }
 )
 ACCEPTED_OWNER_GATE_DECISION_SOURCE = "paper_recovery_state.accepted_owner_gate_decision"
+CURRENT_EXECUTABLE_OWNER_ACTION_SOURCE = (
+    "opl_current_control_state.study_current_executable_owner_action"
+)
+PAPER_RECOVERY_SUCCESSOR_OWNER_ACTION_SOURCE = (
+    "paper_recovery_state.next_safe_action.successor_owner_action"
+)
 
 
 def persisted_provider_admission_candidates(
@@ -431,7 +439,7 @@ def _request_only_transition_action_candidate(
         or _non_empty_text(action.get("source_surface"))
         or _non_empty_text(_mapping(action.get("owner_route_currentness_basis")).get("source"))
     )
-    if source != "paper_recovery_state.next_safe_action.successor_owner_action":
+    if source != PAPER_RECOVERY_SUCCESSOR_OWNER_ACTION_SOURCE:
         return None
     if action_type is None:
         return None
@@ -504,6 +512,11 @@ def _request_only_transition_action_candidate(
         current_action_identity=current_identity,
         stage_packet_ref=stage_packet_ref,
     )
+    dispatch_path = _request_only_transition_dispatch_path(
+        action,
+        study_root=study_root,
+        action_type=action_type,
+    )
     if not _matches_current_action(
         action_type=action_type,
         work_unit_id=work_unit_id,
@@ -526,7 +539,7 @@ def _request_only_transition_action_candidate(
     }
     currentness_basis = {key: value for key, value in currentness_basis.items() if value is not None}
     execution = {
-        "source": source,
+        "source": CURRENT_EXECUTABLE_OWNER_ACTION_SOURCE if dispatch_path is not None else source,
         "current_control_ref": current_control_ref,
         "study_id": study_id,
         "quest_id": _non_empty_text(action.get("quest_id"))
@@ -576,8 +589,7 @@ def _request_only_transition_action_candidate(
     )
     if candidate is None:
         return None
-    candidate.pop("dispatch_path", None)
-    candidate["source"] = source
+    candidate["source"] = CURRENT_EXECUTABLE_OWNER_ACTION_SOURCE if dispatch_path is not None else source
     candidate["current_control_ref"] = current_control_ref
     candidate["mas_owner_action_source"] = source
     candidate["provider_admission_pending"] = False
@@ -590,6 +602,10 @@ def _request_only_transition_action_candidate(
     if attempt_idempotency_key is not None:
         candidate["attempt_idempotency_key"] = attempt_idempotency_key
         candidate["idempotency_key"] = attempt_idempotency_key
+    if dispatch_path is not None:
+        candidate["dispatch_path"] = str(dispatch_path)
+    else:
+        candidate.pop("dispatch_path", None)
     candidate["stage_packet_ref"] = stage_packet_ref
     candidate["stage_packet_refs"] = stage_packet_refs
     candidate["checkpoint_refs"] = stage_packet_refs
@@ -599,6 +615,7 @@ def _request_only_transition_action_candidate(
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
         "current_control_ref": current_control_ref,
+        "dispatch_path": str(dispatch_path) if dispatch_path is not None else None,
         "mas_owner_action_source": source,
         "stage_packet_ref": stage_packet_ref,
         "stage_packet_refs": stage_packet_refs,
@@ -620,6 +637,47 @@ def _request_only_transition_stage_packet_ref(
         or _non_empty_text(current_action_identity.get("stage_packet_ref"))
         or f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet"
     )
+
+
+def _request_only_transition_dispatch_path(
+    action: Mapping[str, Any],
+    *,
+    study_root: Path,
+    action_type: str,
+) -> Path | None:
+    refs = _mapping(action.get("refs"))
+    for ref in (
+        _non_empty_text(action.get("dispatch_path")),
+        _non_empty_text(action.get("transition_request_ref")),
+        _non_empty_text(refs.get("transition_request_ref")),
+        _non_empty_text(refs.get("dispatch_path")),
+        _non_empty_text(refs.get("immutable_dispatch_path")),
+    ):
+        if ref is None:
+            continue
+        path = _resolve_dispatch_ref(ref, study_root=study_root)
+        if path.exists():
+            return path
+    root = Path(study_root).expanduser().resolve()
+    for relative_root in (
+        DEFAULT_EXECUTOR_DISPATCHES,
+        PAPER_PROGRESS_TRANSITION_REQUESTS,
+    ):
+        candidate = root / relative_root / f"{action_type}.json"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _resolve_dispatch_ref(ref: str, *, study_root: Path) -> Path:
+    path = Path(ref).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    root = Path(study_root).expanduser().resolve()
+    study_id = root.name
+    if len(path.parts) >= 2 and path.parts[:2] == ("studies", study_id):
+        return (root.parent.parent / path).resolve()
+    return (root / path).resolve()
 
 
 def _request_only_transition_stage_packet_refs(
@@ -1029,8 +1087,8 @@ def _paper_policy_request_identity_should_override_provider_identity(
         return False
     source = _non_empty_text(candidate.get("source"))
     source_surface = _non_empty_text(candidate.get("source_surface"))
-    if source == "opl_current_control_state.study_current_executable_owner_action" or (
-        source is None and source_surface == "opl_current_control_state.study_current_executable_owner_action"
+    if source == CURRENT_EXECUTABLE_OWNER_ACTION_SOURCE or (
+        source is None and source_surface == CURRENT_EXECUTABLE_OWNER_ACTION_SOURCE
     ):
         return True
     if _non_empty_text(candidate.get("dispatch_path")) is not None:
@@ -1058,7 +1116,7 @@ def _candidate_is_mas_request_only_owner_action(candidate: Mapping[str, Any]) ->
     )
     return source in {
         "gate_clearing_batch_followthrough.actionable_current_work_unit",
-        "paper_recovery_state.next_safe_action.successor_owner_action",
+        PAPER_RECOVERY_SUCCESSOR_OWNER_ACTION_SOURCE,
     }
 
 
