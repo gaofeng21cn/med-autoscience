@@ -13,10 +13,51 @@ B002 / B003 的目标是推进论文，不是用论文测试 MAS / OPL。MAS / O
 
 近期停滞暴露的是 mission framing 缺陷：executor 和 supervisor 已经能严谨地区分 owner route、currentness、handoff、typed blocker、absorption 和 forbidden writes，但停止条件容易收敛到“没有越权、状态解释正确、候选已吸收”。这能防止误报，却不能保证稿件、图表、回应材料或 owner decision 往前走。
 
-因此 B002 / B003 采用 paper-first 双轨：
+因此 B002 / B003 采用 paper-first 双轨，并把平台修复作为旁路线治理：
 
 1. `governed MAS / OPL path`：只要 MAS owner callable、domain-handler dispatch、OPL StageRun provider attempt 或 human gate 能合法产出 owner receipt、canonical paper/artifact delta、AI reviewer / publication gate delta、route-back、stable typed blocker 或 human gate，就优先走 governed path。
 2. `foreground paper sprint`：当 governed path 被 OPL lease / execution authorization / currentness / handoff 缺口阻塞，且继续修平台不会在本轮产生论文 owner delta 时，立即切到前台论文冲刺，产出可审阅、可接力的手工论文工作品。该工作品必须标记为 manual / foreground output；它不自动更新 MAS truth，也不声明 publication-ready，后续需要由 MAS/OPL owner path 消费、采纳、拒绝或转成 typed blocker。
+3. `repair lane`：当论文推进过程中发现 MAS / OPL / control-plane 缺陷，必须先判断它是否直接解除当前论文 work unit 阻断。能小修且不抢论文 executor 写集的 MAS repo 缺陷，可由 supervisor 或独立修复 lane 做最小候选；跨 repo、OPL lifecycle、lease、execution authorization、no live session 或 owner-route authority 缺口，必须作为独立 repair-lane proposal 交主会话，而不是让论文 executor 停下来修平台。
+
+## 论文主线与修复旁路
+
+标准分工如下：
+
+- `paper executor`：持有 B002 / B003 active goal，只负责推进论文工作品、owner handoff、human decision packet、governed owner path 或直接解除当前论文 work unit 的最小 repo/runtime 修复候选。它不能因为平台缺陷调查而长期停在 status readback、precheck、cannot apply 或通用 control-plane 修复。
+- `supervisor`：用 heartbeat 做干预型监督。每轮先检查 paper-facing artifact movement，再检查 runtime/currentness。若发现 MAS/OPL 缺陷，必须输出 `repair lane classification`：`absorbed_to_main`、`candidate_ready_for_absorption`、`open_repair_lane_proposal`、`not_actionable_without_owner` 或 `not_blocking_paper_progress`。
+- `repair lane`：只处理清晰边界的平台缺陷。它必须有独立 worktree/branch、allowed write set、forbidden write set、root-cause diagnosis、focused verification、fresh readback 和 absorption packet。它不得手写 Yang authority artifacts，也不得把修复进展包装成论文进展。
+- `main session`：仍是 repo candidate absorption owner。任何 repair lane 的 repo commit 都必须由主会话独立复核 diff、复跑或采集等价新鲜证据、吸收到 `main`、push 到 `origin/main`，并在安全时清理 worktree/branch。
+
+修复旁路不得阻断论文主线。若一个缺陷不能在当前轮直接解除 governed owner path，paper executor 必须继续 foreground paper sprint，至少产出更具体的 manuscript/package/review/decision material；supervisor 同时把缺陷登记为 repair-lane proposal。这样论文持续推进，平台问题也不会丢失。
+
+### Repair Lane 分类
+
+每次发现 MAS/OPL 问题时必须按以下分类报告：
+
+| 分类 | 含义 | 必需动作 |
+| --- | --- | --- |
+| `absorbed_to_main` | 修复已进 `main` 和 `origin/main`，并有 fresh readback 证明目标缺陷消失或被正确投影 | 报告 commit、验证、readback；不再要求同一 absorption |
+| `candidate_ready_for_absorption` | 修复 commit 已在独立 worktree/branch，尚未进入 `main` | 停止扩写，提交 absorption packet 给主会话 |
+| `open_repair_lane_proposal` | 缺陷真实，但尚未开修复 lane 或跨 repo/owner 需要单独拆分 | 报告 root cause、owner surface、推荐 lane、allowed/forbidden write set、验证方式和停止条件 |
+| `not_actionable_without_owner` | 需要 human / OPL / runtime owner 决策、凭据、lease 或权限 | 产出 owner decision packet 或 human gate proposal；paper executor 转 foreground sprint |
+| `not_blocking_paper_progress` | 缺陷存在但不阻断当前论文工作品继续产出 | 记录为低优先支线；不得打断 paper executor |
+
+### Repair Lane 开启条件
+
+满足任一条件才开或建议开独立 repair lane：
+
+- 缺陷会重复让 B002/B003 卡在同一 owner route/currentness/handoff/read-model 误判；
+- 修复能让当前 foreground paper materials 被 MAS/OPL owner surface 消费、拒绝或转成 typed blocker；
+- 缺陷导致系统把 provider completion、queue empty、read-model hygiene、handoff residue 或旧 package authority 误报为论文进展；
+- 缺陷导致 main 与 executor worktree 对同一 study 给出不同 progress-first classification；
+- 缺陷位于 OPL lifecycle / lease / execution authorization / no live session / cross-repo runtime owner，且不能由当前 paper executor 合法处理。
+
+不应开 repair lane 的情况：
+
+- 只是为了清理状态文案、telemetry 或报告格式；
+- 只会让 tests 更绿，但不影响当前论文 work unit；
+- 需要直接手写 MAS truth、publication authority、owner receipt、typed blocker 或 human gate；
+- root cause 尚未定位，只有“可能哪里不对”的猜测。
 
 ## 论文进展计分
 
