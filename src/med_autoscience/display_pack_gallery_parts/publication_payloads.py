@@ -167,49 +167,27 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "coefficient_path_panel": {
         "display_id": "Figure13",
         "template_id": "coefficient_path_panel",
-        "title": "Coefficient path across prespecified model stages",
-        "caption": "Effect estimates remain stable as clinical adjustment layers are added.",
-        "path_panel_title": "Coefficient path",
-        "x_label": "Adjusted odds ratio",
-        "reference_value": 1.0,
-        "step_legend_title": "Model stage",
-        "steps": [
-            {"step_id": "base", "step_label": "Base", "step_order": 1},
-            {"step_id": "clinical", "step_label": "Clinical", "step_order": 2},
-            {"step_id": "imaging", "step_label": "Imaging", "step_order": 3},
-            {"step_id": "full", "step_label": "Full", "step_order": 4},
-        ],
-        "coefficient_rows": [
-            {
-                "row_id": "age",
-                "row_label": "Age > 60",
-                "points": [
-                    {"step_id": "base", "estimate": 1.36, "lower": 1.08, "upper": 1.72},
-                    {"step_id": "clinical", "estimate": 1.30, "lower": 1.04, "upper": 1.62},
-                    {"step_id": "imaging", "estimate": 1.24, "lower": 1.00, "upper": 1.53},
-                    {"step_id": "full", "estimate": 1.21, "lower": 1.01, "upper": 1.47},
-                ],
-            },
-            {
-                "row_id": "tumor_size",
-                "row_label": "Tumor size",
-                "points": [
-                    {"step_id": "base", "estimate": 1.88, "lower": 1.34, "upper": 2.52},
-                    {"step_id": "clinical", "estimate": 1.78, "lower": 1.29, "upper": 2.38},
-                    {"step_id": "imaging", "estimate": 1.68, "lower": 1.24, "upper": 2.23},
-                    {"step_id": "full", "estimate": 1.61, "lower": 1.20, "upper": 2.15},
-                ],
-            },
-            {
-                "row_id": "albumin",
-                "row_label": "Albumin",
-                "points": [
-                    {"step_id": "base", "estimate": 0.76, "lower": 0.61, "upper": 0.94},
-                    {"step_id": "clinical", "estimate": 0.79, "lower": 0.64, "upper": 0.98},
-                    {"step_id": "imaging", "estimate": 0.82, "lower": 0.67, "upper": 1.00},
-                    {"step_id": "full", "estimate": 0.85, "lower": 0.70, "upper": 1.03},
-                ],
-            },
+        "title": "Regularized coefficient path",
+        "caption": "Coefficient trajectories are shown across the penalty path with the selected lambda marked.",
+        "x_label": "log(lambda)",
+        "y_label": "Coefficient",
+        "selected_log_lambda": -1.2,
+        "path_points": [
+            {"feature": feature, "log_lambda": log_lambda, "coefficient": round(coefficient, 3)}
+            for feature_index, feature in enumerate(
+                ["Feature A", "Feature B", "Feature C", "Feature D", "Feature E", "Feature F"],
+                start=1,
+            )
+            for log_lambda in [-4.0, -3.4, -2.8, -2.2, -1.6, -1.0, -0.4, 0.2, 0.8, 1.0]
+            for coefficient in [
+                (
+                    ((-1) ** feature_index)
+                    * (7 - feature_index)
+                    / 10
+                    * max(0.0, (log_lambda + 4.0) / 5.0)
+                    * (0.65 + 0.35 * ((feature_index + int((log_lambda + 4.0) * 10)) % 3) / 2)
+                )
+            ]
         ],
     },
     "cnv_recurrence_summary_panel": {
@@ -417,22 +395,15 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "risk_layering_monotonic_bars": {
         "display_id": "Figure22",
         "template_id": "risk_layering_monotonic_bars",
-        "title": "Risk layering by score band",
-        "caption": "Predicted and observed risk increase monotonically across prespecified score bands.",
-        "y_label": "Outcome risk (%)",
-        "left_panel_title": "Predicted risk",
-        "left_x_label": "Risk band",
-        "left_bars": [
-            {"label": "Low", "cases": 118, "events": 5, "risk": 0.04},
-            {"label": "Intermediate", "cases": 118, "events": 12, "risk": 0.10},
-            {"label": "High", "cases": 118, "events": 39, "risk": 0.33},
-        ],
-        "right_panel_title": "Observed risk",
-        "right_x_label": "Risk band",
-        "right_bars": [
-            {"label": "Low", "cases": 118, "events": 4, "risk": 0.03},
-            {"label": "Intermediate", "cases": 118, "events": 11, "risk": 0.09},
-            {"label": "High", "cases": 118, "events": 43, "risk": 0.36},
+        "title": "Monotonic risk layering",
+        "caption": "Risk strata show a clinical gradient.",
+        "x_label": "",
+        "y_label": "Event rate",
+        "risk_group_summaries": [
+            {"label": "Q1 lowest", "event_rate": 0.09, "lower": 0.05, "upper": 0.15},
+            {"label": "Q2", "event_rate": 0.16, "lower": 0.10, "upper": 0.24},
+            {"label": "Q3", "event_rate": 0.28, "lower": 0.20, "upper": 0.37},
+            {"label": "Q4 highest", "event_rate": 0.43, "lower": 0.33, "upper": 0.54},
         ],
     },
     "decision_curve_binary": {

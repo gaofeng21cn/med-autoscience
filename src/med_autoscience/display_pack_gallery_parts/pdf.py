@@ -76,6 +76,12 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "surface_kind": "display_pack_gallery_docs_manifest",
+        "asset_ref_base": "outputs/display-pack-gallery",
+        "asset_ref_docs_mirror": "docs/delivery/medical-display/examples",
+        "asset_ref_resolution": (
+            "template artifact refs are emitted relative to the generated gallery output root; "
+            "docs manifest is a compact readback surface, not a copied asset bundle"
+        ),
         "source_manifest_schema_version": payload.get("schema_version"),
         "status": payload.get("status"),
         **path_fields,
@@ -93,6 +99,7 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "palette_policy": payload.get("palette_policy"),
         "renderer_policy_completion": payload.get("renderer_policy_completion"),
         "analysis_responsibility_counts": payload.get("analysis_responsibility_counts"),
+        "lidocaineq_reference_coverage": payload.get("lidocaineq_reference_coverage"),
         "quality_summary": _quality_summary(payload),
         "composition_recipe_surface": payload.get("composition_recipe_surface"),
         "composition_gallery_surface": payload.get("composition_gallery_surface"),

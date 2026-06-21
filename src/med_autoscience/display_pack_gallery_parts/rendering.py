@@ -21,6 +21,8 @@ from med_autoscience.display_pack_gallery_parts.payloads import (
     _style_context_for,
 )
 
+R_GALLERY_PREVIEW_TEMPLATE_IDS = {"table1_baseline_characteristics"}
+
 def _render_r_template(record: TemplateRecord, seed_payloads: dict[str, dict[str, Any]]) -> RenderedAsset:
     payload = _load_r_gallery_payload(record.template_id, seed_payloads)
     payload_path = paths.ASSET_ROOT / f"{record.template_id}.payload.json"
@@ -98,6 +100,68 @@ def _gallery_dependency_environment_for(record: TemplateRecord) -> dict[str, str
         "run_context_ref": run_context_ref,
         "run_context_fingerprint": run_context_fingerprint,
     }
+
+
+def _render_r_gallery_preview(record: TemplateRecord, seed_payloads: dict[str, dict[str, Any]]) -> RenderedAsset:
+    payload = _load_r_gallery_payload(record.template_id, seed_payloads)
+    payload_path = paths.ASSET_ROOT / f"{record.template_id}.payload.json"
+    output_png = paths.ASSET_ROOT / f"{record.template_id}.png"
+    output_pdf = paths.ASSET_ROOT / f"{record.template_id}.pdf"
+    output_layout = paths.ASSET_ROOT / f"{record.template_id}.layout.json"
+    request_path = paths.ASSET_ROOT / f"{record.template_id}.render_request.json"
+    write_json(payload_path, payload)
+    request = {
+        "schema_version": 1,
+        "execution_mode": "subprocess",
+        "renderer_family": "r_ggplot2",
+        "figure_id": record.template_id,
+        "template_id": record.full_template_id,
+        "short_template_id": record.template_id,
+        "display_payload": payload,
+        "output_png_path": str(output_png),
+        "output_pdf_path": str(output_pdf),
+        "layout_sidecar_path": str(output_layout),
+        "gallery_preview_only": True,
+    }
+    write_json(request_path, request)
+    env = {
+        **dict(os.environ),
+        "MAS_DISPLAY_OUTPUT_WIDTH_IN": "5",
+        "MAS_DISPLAY_OUTPUT_HEIGHT_IN": "5",
+    }
+    result = subprocess.run(
+        [
+            "Rscript",
+            str(paths.REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core" / "rlib" / "medicaldisplaycore" / "evidence_renderer.R"),
+            "--request",
+            str(request_path),
+        ],
+        cwd=paths.REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+        env=env,
+    )
+    request_path.unlink(missing_ok=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"{record.template_id} gallery preview failed with code {result.returncode}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+        )
+    for path in (output_png, output_pdf, output_layout):
+        if not path.is_file():
+            raise FileNotFoundError(f"{record.template_id} did not write {path}")
+    preview_path, preview_size = _square_gallery_preview(output_png)
+    return RenderedAsset(
+        status="rendered",
+        image_ref=_relative_ref(output_png),
+        preview_image_ref=_relative_ref(preview_path),
+        payload_ref=_relative_ref(payload_path),
+        layout_ref=_relative_ref(output_layout),
+        pdf_ref=_relative_ref(output_pdf),
+        image_size_px=_image_size(output_png),
+        preview_image_size_px=preview_size,
+    )
 
 
 def _render_python_template(

@@ -37,6 +37,9 @@ source_renderer_helper <- function(file_name) {
 
 source_renderer_helper("embedding_workflow.R")
 source_renderer_helper("lidocaineq_publication_renderers.R")
+source_renderer_helper("lidocaineq_curve_renderers.R")
+source_renderer_helper("lidocaineq_survival_effect_heatmap_renderers.R")
+source_renderer_helper("lidocaineq_ml_omics_renderers.R")
 
 normalize_template_id <- function(value) {
   template_id <- trimws(as.character(value %||% ""))
@@ -1197,7 +1200,7 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     forest_layout <- build_forest_layout(display_payload, panel_box, axis_left_box)
     layout_boxes <- c(layout_boxes, forest_layout$layout_boxes)
     guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
-    metrics <- forest_layout$metrics
+    metrics <- c(metrics[setdiff(names(metrics), names(forest_layout$metrics))], forest_layout$metrics)
   }
   if (exists("build_candidate_layout_override", mode = "function")) {
     candidate_override <- build_candidate_layout_override(template_id, display_payload, panel_box, guide_box)
@@ -1205,7 +1208,8 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
       layout_boxes <- candidate_override$layout_boxes %||% layout_boxes
       panel_boxes <- candidate_override$panel_boxes %||% Filter(Negate(is.null), list(panel_box))
       guide_boxes <- candidate_override$guide_boxes %||% guide_boxes
-      metrics <- candidate_override$metrics %||% metrics
+      candidate_only <- identical(Sys.getenv("MAS_DISPLAY_RENDERER_CANDIDATE_ONLY", unset = ""), "1")
+      metrics <- if (!candidate_only && !is.null(metrics$source_renderer)) metrics else candidate_override$metrics %||% metrics
       metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, metrics)
       return(list(
         template_id = template_id,

@@ -1,6 +1,9 @@
 {
   "schema_version": 1,
   "surface_kind": "display_pack_gallery_docs_manifest",
+  "asset_ref_base": "outputs/display-pack-gallery",
+  "asset_ref_docs_mirror": "docs/delivery/medical-display/examples",
+  "asset_ref_resolution": "template artifact refs are emitted relative to the generated gallery output root; docs manifest is a compact readback surface, not a copied asset bundle",
   "source_manifest_schema_version": 9,
   "status": "rendered",
   "html_path": "outputs/display-pack-gallery/medical_display_gallery.html",
@@ -107,6 +110,919 @@
     "illustration_shell": 1,
     "table_shell": 1,
     "validated_summary_required": 32
+  },
+  "lidocaineq_reference_coverage": {
+    "schema_version": 1,
+    "source_project": "LidocaineQ/Figure_Template",
+    "reference_template_count": 33,
+    "covered_reference_template_count": 33,
+    "coverage_complete": true,
+    "missing_or_downgraded_reference_template_ids": [],
+    "mapping_relation_counts": {
+      "renamed_current_template": 9,
+      "direct_current_template": 18,
+      "retired_alias_to_current_template": 6
+    },
+    "replacement_template_count": 15,
+    "retired_alias_reference_template_count": 6,
+    "do_not_restore_legacy_alias_count": 6,
+    "items": [
+      {
+        "reference_template_id": "survival_km",
+        "title": "Kaplan-Meier survival with risk table",
+        "category_label": "Survival / Kaplan-Meier",
+        "mas_template_id": "kaplan_meier_grouped",
+        "mas_template_ids": [
+          "kaplan_meier_grouped"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template is grouped Kaplan-Meier evidence; keep PDF reference id as external source id.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::survival_km",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::survival_km",
+        "actual_source_renderers": {
+          "kaplan_meier_grouped": "LidocaineQ/Figure_Template::survival_km"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "kaplan_meier_grouped": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "kaplan_meier_grouped"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "cumulative_incidence_grouped",
+        "title": "Cumulative incidence curve",
+        "category_label": "Survival / Kaplan-Meier",
+        "mas_template_id": "cumulative_incidence_grouped",
+        "mas_template_ids": [
+          "cumulative_incidence_grouped"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::cumulative_incidence_grouped",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::cumulative_incidence_grouped",
+        "actual_source_renderers": {
+          "cumulative_incidence_grouped": "LidocaineQ/Figure_Template::cumulative_incidence_grouped"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "cumulative_incidence_grouped": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "cumulative_incidence_grouped"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "roc_auc",
+        "title": "ROC curve with model comparison",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "roc_curve_binary",
+        "mas_template_ids": [
+          "roc_curve_binary"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template names the binary ROC curve surface; roc_auc remains a source renderer id.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::roc_auc",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::roc_auc",
+        "actual_source_renderers": {
+          "roc_curve_binary": "LidocaineQ/Figure_Template::roc_auc"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "roc_curve_binary": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "roc_curve_binary"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "time_dependent_roc_horizon",
+        "title": "Time-dependent ROC horizon",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "time_dependent_roc_horizon",
+        "mas_template_ids": [
+          "time_dependent_roc_horizon"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::time_dependent_roc_horizon",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::time_dependent_roc_horizon",
+        "actual_source_renderers": {
+          "time_dependent_roc_horizon": "LidocaineQ/Figure_Template::time_dependent_roc_horizon"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "time_dependent_roc_horizon": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "time_dependent_roc_horizon"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "calibration_curve_binary",
+        "title": "Calibration curve (binary outcome)",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "calibration_curve_binary",
+        "mas_template_ids": [
+          "calibration_curve_binary"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::calibration_curve_binary",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::calibration_curve_binary",
+        "actual_source_renderers": {
+          "calibration_curve_binary": "LidocaineQ/Figure_Template::calibration_curve_binary"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "calibration_curve_binary": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "calibration_curve_binary"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "pr_curve_binary",
+        "title": "Precision-recall curve",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "pr_curve_binary",
+        "mas_template_ids": [
+          "pr_curve_binary"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::pr_curve_binary",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::pr_curve_binary",
+        "actual_source_renderers": {
+          "pr_curve_binary": "LidocaineQ/Figure_Template::pr_curve_binary"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "pr_curve_binary": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "pr_curve_binary"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "decision_curve_binary",
+        "title": "Decision curve (binary outcome)",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "decision_curve_binary",
+        "mas_template_ids": [
+          "decision_curve_binary"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::decision_curve_binary",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::decision_curve_binary",
+        "actual_source_renderers": {
+          "decision_curve_binary": "LidocaineQ/Figure_Template::decision_curve_binary"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "decision_curve_binary": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "decision_curve_binary"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "time_to_event_decision_curve",
+        "title": "Decision curve (time-to-event horizon)",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "time_to_event_decision_curve",
+        "mas_template_ids": [
+          "time_to_event_decision_curve"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_decision_curve",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::time_to_event_decision_curve",
+        "actual_source_renderers": {
+          "time_to_event_decision_curve": "LidocaineQ/Figure_Template::time_to_event_decision_curve"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "time_to_event_decision_curve": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "time_to_event_decision_curve"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "time_to_event_multihorizon_calibration_panel",
+        "title": "Multi-horizon calibration panel",
+        "category_label": "ROC / AUC",
+        "mas_template_id": "time_to_event_multihorizon_calibration_panel",
+        "mas_template_ids": [
+          "time_to_event_multihorizon_calibration_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel",
+        "actual_source_renderers": {
+          "time_to_event_multihorizon_calibration_panel": "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "time_to_event_multihorizon_calibration_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "time_to_event_multihorizon_calibration_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "forest_cox",
+        "title": "Cox/effect forest plot",
+        "category_label": "Forest / Cox model",
+        "mas_template_id": "forest_effect_main",
+        "mas_template_ids": [
+          "forest_effect_main"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template generalizes Cox forest to effect forest while preserving the LidocaineQ source renderer.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::forest_cox",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::forest_cox",
+        "actual_source_renderers": {
+          "forest_effect_main": "LidocaineQ/Figure_Template::forest_cox"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "forest_effect_main": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "forest_effect_main"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "coefficient_path_panel",
+        "title": "Coefficient path panel",
+        "category_label": "Forest / Cox model",
+        "mas_template_id": "coefficient_path_panel",
+        "mas_template_ids": [
+          "coefficient_path_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::coefficient_path_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::coefficient_path_panel",
+        "actual_source_renderers": {
+          "coefficient_path_panel": "LidocaineQ/Figure_Template::coefficient_path_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "coefficient_path_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "coefficient_path_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "generalizability_subgroup_composite_panel",
+        "title": "Generalizability subgroup composite",
+        "category_label": "Forest / Cox model",
+        "mas_template_id": "generalizability_subgroup_composite_panel",
+        "mas_template_ids": [
+          "generalizability_subgroup_composite_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
+        "actual_source_renderers": {
+          "generalizability_subgroup_composite_panel": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "generalizability_subgroup_composite_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "generalizability_subgroup_composite_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "violin_box",
+        "title": "Distribution comparison violin-box",
+        "category_label": "Violin / box comparison",
+        "mas_template_id": "distribution_violin_box",
+        "mas_template_ids": [
+          "distribution_violin_box"
+        ],
+        "mapping_relation": "retired_alias_to_current_template",
+        "replacement_reason": "PDF reference id is preserved as LidocaineQ source id; MAS current canonical template replaces the retired duplicate alias.",
+        "legacy_alias_status": "retired_do_not_restore",
+        "do_not_restore_legacy_alias": true,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::violin_box",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::violin_box",
+        "actual_source_renderers": {
+          "distribution_violin_box": "LidocaineQ/Figure_Template::violin_box"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "distribution_violin_box": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "distribution_violin_box"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "bar_stacked",
+        "title": "Stacked proportion bars",
+        "category_label": "Bar / stacked proportion",
+        "mas_template_id": "composition_stacked_bar",
+        "mas_template_ids": [
+          "composition_stacked_bar"
+        ],
+        "mapping_relation": "retired_alias_to_current_template",
+        "replacement_reason": "PDF reference id is preserved as LidocaineQ source id; MAS current canonical template replaces the retired duplicate alias.",
+        "legacy_alias_status": "retired_do_not_restore",
+        "do_not_restore_legacy_alias": true,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::bar_stacked",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::bar_stacked",
+        "actual_source_renderers": {
+          "composition_stacked_bar": "LidocaineQ/Figure_Template::bar_stacked"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "composition_stacked_bar": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "composition_stacked_bar"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "risk_layering_monotonic_bars",
+        "title": "Monotonic risk layering bars",
+        "category_label": "Bar / stacked proportion",
+        "mas_template_id": "risk_layering_monotonic_bars",
+        "mas_template_ids": [
+          "risk_layering_monotonic_bars"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars",
+        "actual_source_renderers": {
+          "risk_layering_monotonic_bars": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "risk_layering_monotonic_bars": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "risk_layering_monotonic_bars"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "scatter_correlation",
+        "title": "Scatter correlation panel",
+        "category_label": "Scatter / correlation",
+        "mas_template_id": "correlation_scatter",
+        "mas_template_ids": [
+          "correlation_scatter"
+        ],
+        "mapping_relation": "retired_alias_to_current_template",
+        "replacement_reason": "PDF reference id is preserved as LidocaineQ source id; MAS current canonical template replaces the retired duplicate alias.",
+        "legacy_alias_status": "retired_do_not_restore",
+        "do_not_restore_legacy_alias": true,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::scatter_correlation",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::scatter_correlation",
+        "actual_source_renderers": {
+          "correlation_scatter": "LidocaineQ/Figure_Template::scatter_correlation"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "correlation_scatter": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "correlation_scatter"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "embedding_umap_tsne",
+        "title": "Embedding scatter",
+        "category_label": "UMAP / t-SNE embedding",
+        "mas_template_id": "umap_scatter_grouped",
+        "mas_template_ids": [
+          "umap_scatter_grouped",
+          "tsne_scatter_grouped"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "One LidocaineQ embedding reference covers MAS current UMAP and t-SNE computed-workflow templates; do not add a duplicate external-id alias.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+        "actual_source_renderers": {
+          "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+          "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "umap_scatter_grouped": "rendered",
+          "tsne_scatter_grouped": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "umap_scatter_grouped",
+          "tsne_scatter_grouped"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "heatmap",
+        "title": "ComplexHeatmap annotated matrix",
+        "category_label": "Heatmap / matrix pattern",
+        "mas_template_id": "heatmap_group_comparison",
+        "mas_template_ids": [
+          "heatmap_group_comparison"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template names the group-comparison heatmap surface; heatmap remains the external source renderer id.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::heatmap",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::heatmap",
+        "actual_source_renderers": {
+          "heatmap_group_comparison": "LidocaineQ/Figure_Template::heatmap"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "heatmap_group_comparison": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "heatmap_group_comparison"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "confusion_matrix_heatmap_binary",
+        "title": "Binary confusion matrix heatmap",
+        "category_label": "Heatmap / matrix pattern",
+        "mas_template_id": "confusion_matrix_heatmap_binary",
+        "mas_template_ids": [
+          "confusion_matrix_heatmap_binary"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary",
+        "actual_source_renderers": {
+          "confusion_matrix_heatmap_binary": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "confusion_matrix_heatmap_binary": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "confusion_matrix_heatmap_binary"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "volcano_deg",
+        "title": "Differential-expression volcano",
+        "category_label": "Volcano / differential expression",
+        "mas_template_id": "omics_volcano_panel",
+        "mas_template_ids": [
+          "omics_volcano_panel"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template names the omics volcano panel surface; volcano_deg remains the source renderer id.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::volcano_deg",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::volcano_deg",
+        "actual_source_renderers": {
+          "omics_volcano_panel": "LidocaineQ/Figure_Template::volcano_deg"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "omics_volcano_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "omics_volcano_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "gsea_enrichment",
+        "title": "Pathway enrichment dotplot",
+        "category_label": "GSEA / enrichment",
+        "mas_template_id": "pathway_enrichment_dotplot_panel",
+        "mas_template_ids": [
+          "pathway_enrichment_dotplot_panel"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template names the pathway enrichment dotplot surface; gsea_enrichment remains the source renderer id.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::gsea_enrichment",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::gsea_enrichment",
+        "actual_source_renderers": {
+          "pathway_enrichment_dotplot_panel": "LidocaineQ/Figure_Template::gsea_enrichment"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "pathway_enrichment_dotplot_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "pathway_enrichment_dotplot_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "oncoplot_mutation",
+        "title": "Mutation landscape oncoplot",
+        "category_label": "Oncoplot / mutation landscape",
+        "mas_template_id": "genomic_alteration_landscape_panel",
+        "mas_template_ids": [
+          "genomic_alteration_landscape_panel"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template names the genomic alteration landscape surface; oncoplot_mutation remains the source renderer id.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::oncoplot_mutation",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::oncoplot_mutation",
+        "actual_source_renderers": {
+          "genomic_alteration_landscape_panel": "LidocaineQ/Figure_Template::oncoplot_mutation"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "genomic_alteration_landscape_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "genomic_alteration_landscape_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "genomic_alteration_consequence_panel",
+        "title": "Genomic alteration consequence",
+        "category_label": "Oncoplot / mutation landscape",
+        "mas_template_id": "genomic_alteration_consequence_panel",
+        "mas_template_ids": [
+          "genomic_alteration_consequence_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel",
+        "actual_source_renderers": {
+          "genomic_alteration_consequence_panel": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "genomic_alteration_consequence_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "genomic_alteration_consequence_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "cnv_recurrence_summary_panel",
+        "title": "CNV recurrence summary",
+        "category_label": "Oncoplot / mutation landscape",
+        "mas_template_id": "cnv_recurrence_summary_panel",
+        "mas_template_ids": [
+          "cnv_recurrence_summary_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::cnv_recurrence_summary_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::cnv_recurrence_summary_panel",
+        "actual_source_renderers": {
+          "cnv_recurrence_summary_panel": "LidocaineQ/Figure_Template::cnv_recurrence_summary_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "cnv_recurrence_summary_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "cnv_recurrence_summary_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "waterfall",
+        "title": "Ranked risk-score waterfall",
+        "category_label": "Waterfall / ranked risk score",
+        "mas_template_id": "waterfall_response",
+        "mas_template_ids": [
+          "waterfall_response"
+        ],
+        "mapping_relation": "retired_alias_to_current_template",
+        "replacement_reason": "PDF reference id is preserved as LidocaineQ source id; MAS current canonical template replaces the retired duplicate alias.",
+        "legacy_alias_status": "retired_do_not_restore",
+        "do_not_restore_legacy_alias": true,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::waterfall",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::waterfall",
+        "actual_source_renderers": {
+          "waterfall_response": "LidocaineQ/Figure_Template::waterfall"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "waterfall_response": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "waterfall_response"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "shap_dependence_panel",
+        "title": "SHAP dependence panel",
+        "category_label": "Scatter / correlation",
+        "mas_template_id": "shap_dependence_panel",
+        "mas_template_ids": [
+          "shap_dependence_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::shap_dependence_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::shap_dependence_panel",
+        "actual_source_renderers": {
+          "shap_dependence_panel": "LidocaineQ/Figure_Template::shap_dependence_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "shap_dependence_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "shap_dependence_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "shap_summary_beeswarm",
+        "title": "SHAP summary beeswarm",
+        "category_label": "Scatter / correlation",
+        "mas_template_id": "shap_summary_beeswarm",
+        "mas_template_ids": [
+          "shap_summary_beeswarm"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::shap_summary_beeswarm",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::shap_summary_beeswarm",
+        "actual_source_renderers": {
+          "shap_summary_beeswarm": "LidocaineQ/Figure_Template::shap_summary_beeswarm"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "shap_summary_beeswarm": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "shap_summary_beeswarm"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "shap_waterfall_local_explanation_panel",
+        "title": "SHAP waterfall local explanation",
+        "category_label": "Waterfall / ranked risk score",
+        "mas_template_id": "shap_waterfall_local_explanation_panel",
+        "mas_template_ids": [
+          "shap_waterfall_local_explanation_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel",
+        "actual_source_renderers": {
+          "shap_waterfall_local_explanation_panel": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "shap_waterfall_local_explanation_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "shap_waterfall_local_explanation_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "model_complexity_audit_panel",
+        "title": "Model complexity audit",
+        "category_label": "Scatter / correlation",
+        "mas_template_id": "model_complexity_audit_panel",
+        "mas_template_ids": [
+          "model_complexity_audit_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::model_complexity_audit_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::model_complexity_audit_panel",
+        "actual_source_renderers": {
+          "model_complexity_audit_panel": "LidocaineQ/Figure_Template::model_complexity_audit_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "model_complexity_audit_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "model_complexity_audit_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "celltype_marker_dotplot_panel",
+        "title": "Cell-type marker dotplot",
+        "category_label": "Heatmap / matrix pattern",
+        "mas_template_id": "celltype_marker_dotplot_panel",
+        "mas_template_ids": [
+          "celltype_marker_dotplot_panel"
+        ],
+        "mapping_relation": "direct_current_template",
+        "replacement_reason": "reference_template_id_matches_current_mas_template",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::celltype_marker_dotplot_panel",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::celltype_marker_dotplot_panel",
+        "actual_source_renderers": {
+          "celltype_marker_dotplot_panel": "LidocaineQ/Figure_Template::celltype_marker_dotplot_panel"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "celltype_marker_dotplot_panel": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "celltype_marker_dotplot_panel"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "sankey_alluvial",
+        "title": "Subtype transition alluvial",
+        "category_label": "Sankey / alluvial flow",
+        "mas_template_id": "alluvial_transition",
+        "mas_template_ids": [
+          "alluvial_transition"
+        ],
+        "mapping_relation": "retired_alias_to_current_template",
+        "replacement_reason": "PDF reference id is preserved as LidocaineQ source id; MAS current canonical template replaces the retired duplicate alias.",
+        "legacy_alias_status": "retired_do_not_restore",
+        "do_not_restore_legacy_alias": true,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::sankey_alluvial",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::sankey_alluvial",
+        "actual_source_renderers": {
+          "alluvial_transition": "LidocaineQ/Figure_Template::sankey_alluvial"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "alluvial_transition": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "alluvial_transition"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "radar",
+        "title": "Radial immune/pathology profile",
+        "category_label": "Radar / radial profile",
+        "mas_template_id": "radar_profile",
+        "mas_template_ids": [
+          "radar_profile"
+        ],
+        "mapping_relation": "retired_alias_to_current_template",
+        "replacement_reason": "PDF reference id is preserved as LidocaineQ source id; MAS current canonical template replaces the retired duplicate alias.",
+        "legacy_alias_status": "retired_do_not_restore",
+        "do_not_restore_legacy_alias": true,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::radar",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::radar",
+        "actual_source_renderers": {
+          "radar_profile": "LidocaineQ/Figure_Template::radar"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "radar_profile": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "radar_profile"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      },
+      {
+        "reference_template_id": "baseline_table",
+        "title": "Baseline summary table",
+        "category_label": "Baseline / summary table",
+        "mas_template_id": "table1_baseline_characteristics",
+        "mas_template_ids": [
+          "table1_baseline_characteristics"
+        ],
+        "mapping_relation": "renamed_current_template",
+        "replacement_reason": "MAS current canonical template keeps Table 1 semantics and uses a Gallery-only R preview for the LidocaineQ baseline table reference.",
+        "legacy_alias_status": "not_a_mas_legacy_alias",
+        "do_not_restore_legacy_alias": false,
+        "expected_source_renderer": "LidocaineQ/Figure_Template::baseline_table",
+        "actual_source_renderer": "LidocaineQ/Figure_Template::baseline_table",
+        "actual_source_renderers": {
+          "table1_baseline_characteristics": "LidocaineQ/Figure_Template::baseline_table"
+        },
+        "render_status": "rendered",
+        "render_status_by_template_id": {
+          "table1_baseline_characteristics": "rendered"
+        },
+        "covered_mas_template_ids": [
+          "table1_baseline_characteristics"
+        ],
+        "missing_or_downgraded_mas_template_ids": [],
+        "coverage_status": "covered"
+      }
+    ]
   },
   "quality_summary": {
     "overall_status": "not_publication_ready",
@@ -1825,10 +2741,21 @@
             },
             {
               "language": "r",
+              "name": "dplyr",
+              "required": true,
+              "role": "ggconsort cohort data manipulation and plotting helpers",
+              "template_ids": []
+            },
+            {
+              "language": "r",
               "name": "ggconsort",
               "required": true,
               "role": "mature CONSORT/STROBE-style cohort participant flow grammar",
-              "template_ids": []
+              "template_ids": [],
+              "source": {
+                "type": "github",
+                "repo": "tgerke/ggconsort"
+              }
             },
             {
               "language": "r",

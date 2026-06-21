@@ -51,6 +51,14 @@
             "role": "grob layout inspection for sidecars"
           },
           {
+            "name": "patchwork",
+            "required": true,
+            "template_ids": [
+              "kaplan_meier_grouped"
+            ],
+            "role": "Kaplan-Meier curve plus at-risk table composition following LidocaineQ/Figure_Template survival_km"
+          },
+          {
             "name": "Rtsne",
             "required": true,
             "template_ids": [

@@ -133,6 +133,26 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
             )
         ],
     },
+    "table1_baseline_characteristics": {
+        "display_id": "Table1",
+        "template_id": "table1_baseline_characteristics",
+        "title": "Baseline characteristics",
+        "caption": "Aligned columns with restrained journal styling.",
+        "overall_header": "Overall\n(n=256)",
+        "group_a_header": "Low risk\n(n=128)",
+        "group_b_header": "High risk\n(n=128)",
+        "p_header": "P value",
+        "rows": [
+            {"variable": "Age, years", "overall": "63.4 (11.2)", "group_a": "61.8 (10.9)", "group_b": "65.0 (11.3)", "p_value": "0.021"},
+            {"variable": "Female sex", "overall": "118 (46.1)", "group_a": "61 (47.7)", "group_b": "57 (44.5)", "p_value": "0.706"},
+            {"variable": "Tumor size, mm", "overall": "32.6 (14.8)", "group_a": "27.9 (12.1)", "group_b": "37.3 (15.8)", "p_value": "<0.001"},
+            {"variable": "Stage", "row_type": "section", "overall": "", "group_a": "", "group_b": "", "p_value": "0.018"},
+            {"variable": "Stage", "level": "I-II", "overall": "142 (55.5)", "group_a": "82 (64.1)", "group_b": "60 (46.9)", "p_value": ""},
+            {"variable": "Stage", "level": "III-IV", "overall": "114 (44.5)", "group_a": "46 (35.9)", "group_b": "68 (53.1)", "p_value": ""},
+            {"variable": "Albumin, g/L", "overall": "38.1 (4.9)", "group_a": "39.4 (4.4)", "group_b": "36.8 (5.1)", "p_value": "<0.001"},
+            {"variable": "Inflammation index", "overall": "2.1 (1.4-3.6)", "group_a": "1.7 (1.1-2.6)", "group_b": "2.8 (1.8-4.5)", "p_value": "<0.001"},
+        ],
+    },
 }
 
 

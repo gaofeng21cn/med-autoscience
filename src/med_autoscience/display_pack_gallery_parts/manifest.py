@@ -44,6 +44,10 @@ from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.composition_gallery import (
     build_composition_gallery_surface,
 )
+from med_autoscience.display_pack_gallery_parts.lidocaineq_coverage import (
+    LIDOCAINEQ_COVERAGE_ITEMS,
+    lidocaineq_coverage_payload,
+)
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit
 
 
@@ -138,6 +142,21 @@ def _layout_sidecar_readback(
     }
 
 
+def _source_renderer_readback(rendered: dict[str, RenderedAsset]) -> dict[str, str]:
+    source_renderers: dict[str, str] = {}
+    for template_id, asset in rendered.items():
+        if asset.status != "rendered":
+            continue
+        sidecar = _read_layout_sidecar(asset)
+        metrics = sidecar.get("metrics")
+        if not isinstance(metrics, dict):
+            continue
+        source_renderer = metrics.get("source_renderer")
+        if isinstance(source_renderer, str) and source_renderer.strip():
+            source_renderers[template_id] = source_renderer.strip()
+    return source_renderers
+
+
 def build_manifest(
     *,
     records: list[TemplateRecord],
@@ -153,6 +172,7 @@ def build_manifest(
     non_visual_records = non_visual_canonical_records(records)
     catalog_default_records = canonical_catalog_default_records(records)
     default_excluded_records = default_surface_excluded_records(records)
+    lidocaineq_preview_template_ids = {item.mas_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS}
     canonical_rendered_count = sum(
         1
         for record in visual_records
@@ -185,6 +205,10 @@ def build_manifest(
     palette = display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD["palette"]
     composition_recipe_surface = composition_recipe_discovery_payload(include_recipes=True)
     composition_gallery_surface = build_composition_gallery_surface(composition_recipe_surface, records)
+    lidocaineq_coverage = lidocaineq_coverage_payload(
+        rendered_by_template_id=rendered,
+        source_renderer_by_template_id=_source_renderer_readback(rendered),
+    )
     return {
         "schema_version": 9,
         "status": "rendered",
@@ -199,6 +223,7 @@ def build_manifest(
         "template_count": len(all_gallery_visual_records),
         "active_template_count": len(visual_records),
         "evidence_gallery_template_count": len(visual_records),
+        "lidocaineq_reference_template_count": len(LIDOCAINEQ_COVERAGE_ITEMS),
         "reporting_flow_gallery_template_count": len(reporting_flow_records),
         "design_gallery_template_count": len(design_records),
         "visual_gallery_template_count": len(all_gallery_visual_records),
@@ -266,6 +291,7 @@ def build_manifest(
         "figure_workflow_policy": figure_workflow_policy(),
         "composition_recipe_surface": composition_recipe_surface,
         "composition_gallery_surface": composition_gallery_surface,
+        "lidocaineq_reference_coverage": lidocaineq_coverage,
         "publication_polish_policy": publication_polish_policy(),
         "quality_audit": quality_audit,
         "canonical_category_ontology": canonical_category_ontology(),
@@ -327,7 +353,7 @@ def build_manifest(
             _template_payload(
                 record,
                 rendered[record.template_id],
-                visual_gallery_visible=record in [*reporting_flow_records, *design_records],
+                visual_gallery_visible=record in [*reporting_flow_records, *design_records] or record.template_id in lidocaineq_preview_template_ids,
             )
             for record in non_visual_records
         ],

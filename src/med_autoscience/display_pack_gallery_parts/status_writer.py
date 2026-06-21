@@ -58,6 +58,29 @@ def _analysis_responsibility_rows(manifest: dict[str, Any]) -> str:
     return "\n".join(f"| `{key}` | {value} |" for key, value in sorted(counts.items()))
 
 
+def _lidocaineq_coverage_rows(manifest: dict[str, Any]) -> str:
+    coverage = manifest.get("lidocaineq_reference_coverage")
+    if not isinstance(coverage, dict):
+        return "| none | none | none | none |"
+    items = coverage.get("items")
+    if not isinstance(items, list) or not items:
+        return "| none | none | none | none |"
+    rows: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        mas_template_ids = item.get("mas_template_ids")
+        if isinstance(mas_template_ids, list) and mas_template_ids:
+            mas_templates = ", ".join(f"`{template_id}`" for template_id in mas_template_ids if isinstance(template_id, str))
+        else:
+            mas_templates = f"`{item.get('mas_template_id', '')}`"
+        rows.append(
+            f"| `{item.get('reference_template_id', '')}` | {mas_templates} | "
+            f"`{item.get('mapping_relation', '')}` | `{item.get('coverage_status', '')}` |"
+        )
+    return "\n".join(rows)
+
+
 def _join_counted(values: object) -> str:
     if not isinstance(values, list):
         return "0"
@@ -94,6 +117,11 @@ def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
     composition_gallery = (
         manifest.get("composition_gallery_surface")
         if isinstance(manifest.get("composition_gallery_surface"), dict)
+        else {}
+    )
+    lidocaineq_coverage = (
+        manifest.get("lidocaineq_reference_coverage")
+        if isinstance(manifest.get("lidocaineq_reference_coverage"), dict)
         else {}
     )
     composition_policy = (
@@ -140,6 +168,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Current Python evidence templates | {renderer_completion.get("python_evidence_retained_count", 0)} |
 | Page-level composition recipes | {composition_surface.get("composition_recipe_count", 0)} |
 | Composition storyboard gallery pages | {composition_gallery.get("composition_recipe_count", 0)} |
+| LidocaineQ reference templates covered | {lidocaineq_coverage.get("covered_reference_template_count", 0)}/{lidocaineq_coverage.get("reference_template_count", 0)} |
+| LidocaineQ replacement mappings | {lidocaineq_coverage.get("replacement_template_count", 0)} |
+| Retired alias references not restored | {lidocaineq_coverage.get("do_not_restore_legacy_alias_count", 0)} |
 
 `Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
@@ -166,6 +197,15 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - publication polish policy: `{policy.get("policy_id", "")}`
 - figure workflow policy: `{workflow_policy.get("policy_id", "")}`
 - composition recipe policy: `{composition_policy.get("policy_id", "")}`
+- LidocaineQ 33 项参考覆盖完整: `{str(lidocaineq_coverage.get("coverage_complete", False)).lower()}`
+
+## LidocaineQ 发表级参考覆盖
+
+`mapping_relation` 说明 PDF 参考 ID 与 MAS current canonical template 的关系。`renamed_current_template` 和 `retired_alias_to_current_template` 都表示 MAS 保留 current template surface，只把 LidocaineQ ID 作为 source renderer / reference id；`retired_alias_to_current_template` 明确禁止恢复旧 alias。
+
+| Reference template | MAS current template | Mapping relation | Status |
+| --- | --- | --- | --- |
+{_lidocaineq_coverage_rows(manifest)}
 
 ## 数据处理责任
 

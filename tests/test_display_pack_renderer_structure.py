@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import importlib
+import os
 import sys
 from pathlib import Path
 import json
 import subprocess
 import tempfile
 import tomllib
+
+from med_autoscience.display_pack_gallery_parts.lidocaineq_coverage import (
+    LIDOCAINEQ_COVERAGE_ITEMS,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -203,7 +208,9 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert r_profile["renderer_family"] == "r_ggplot2"
     assert r_profile["execution_mode"] == "subprocess"
     assert r_profile["entrypoint_pattern"] == "Rscript render.R --request {request_json}"
-    assert {"jsonlite", "ggplot2", "ggsci", "grid"} <= package_names
+    assert {"jsonlite", "ggplot2", "ggsci", "grid", "patchwork"} <= package_names
+    assert packages_by_name["patchwork"]["template_ids"] == ["kaplan_meier_grouped"]
+    assert packages_by_name["patchwork"]["required"] is True
     assert packages_by_name["Rtsne"]["template_ids"] == ["tsne_scatter_grouped"]
     assert packages_by_name["uwot"]["template_ids"] == ["umap_scatter_grouped"]
     assert r_profile["shared_helper_ref"] == "rlib/medicaldisplaycore/evidence_renderer.R"
@@ -236,6 +243,93 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert candidate_profile["surface_role"] == "legacy_comparison_receipt"
     assert candidate_profile["default_renderer_profile_ref"] == "r_ggplot2_evidence_subprocess_v1"
     assert candidate_profile["publication_readiness_verdict"] is False
+
+
+def test_lidocaineq_reference_coverage_contract_lists_all_33_reference_items() -> None:
+    assert len(LIDOCAINEQ_COVERAGE_ITEMS) == 33
+    reference_ids = [item.reference_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS]
+    assert len(reference_ids) == len(set(reference_ids))
+    assert "baseline_table" in reference_ids
+    assert "embedding_umap_tsne" in reference_ids
+    embedding_item = next(item for item in LIDOCAINEQ_COVERAGE_ITEMS if item.reference_template_id == "embedding_umap_tsne")
+    assert embedding_item.mas_template_id == "umap_scatter_grouped"
+    assert embedding_item.required_mas_template_ids == ("umap_scatter_grouped", "tsne_scatter_grouped")
+    assert {item.mas_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS} <= {
+        path.parent.name
+        for path in (CORE_PACK_ROOT / "templates").glob("*/template.toml")
+    }
+    assert set(embedding_item.required_mas_template_ids) <= {
+        path.parent.name
+        for path in (CORE_PACK_ROOT / "templates").glob("*/template.toml")
+    }
+
+
+def test_docs_gallery_manifest_reports_complete_lidocaineq_coverage_when_built() -> None:
+    manifest_path = REPO_ROOT / "docs" / "delivery" / "medical-display" / "examples" / "gallery_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    coverage = manifest["lidocaineq_reference_coverage"]
+
+    assert coverage["reference_template_count"] == 33
+    assert coverage["covered_reference_template_count"] == 33
+    assert coverage["coverage_complete"] is True
+    assert coverage["missing_or_downgraded_reference_template_ids"] == []
+    assert coverage["mapping_relation_counts"] == {
+        "direct_current_template": 18,
+        "renamed_current_template": 9,
+        "retired_alias_to_current_template": 6,
+    }
+    assert coverage["replacement_template_count"] == 15
+    assert coverage["retired_alias_reference_template_count"] == 6
+    assert coverage["do_not_restore_legacy_alias_count"] == 6
+    assert {item["reference_template_id"] for item in coverage["items"]} == {
+        item.reference_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS
+    }
+    embedding_item = next(item for item in coverage["items"] if item["reference_template_id"] == "embedding_umap_tsne")
+    assert embedding_item["mas_template_ids"] == ["umap_scatter_grouped", "tsne_scatter_grouped"]
+    assert embedding_item["covered_mas_template_ids"] == ["umap_scatter_grouped", "tsne_scatter_grouped"]
+    assert embedding_item["missing_or_downgraded_mas_template_ids"] == []
+    assert embedding_item["actual_source_renderers"] == {
+        "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+        "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+    }
+    retired_alias_items = {
+        item["reference_template_id"]: item
+        for item in coverage["items"]
+        if item["mapping_relation"] == "retired_alias_to_current_template"
+    }
+    assert set(retired_alias_items) == {
+        "violin_box",
+        "bar_stacked",
+        "scatter_correlation",
+        "waterfall",
+        "sankey_alluvial",
+        "radar",
+    }
+    assert all(item["do_not_restore_legacy_alias"] is True for item in retired_alias_items.values())
+    assert {item["legacy_alias_status"] for item in retired_alias_items.values()} == {"retired_do_not_restore"}
+    assert manifest["asset_ref_base"] == "outputs/display-pack-gallery"
+    assert manifest["asset_ref_docs_mirror"] == "docs/delivery/medical-display/examples"
+
+
+def test_gallery_builder_stdout_reports_lidocaineq_coverage_contract() -> None:
+    script_path = REPO_ROOT / "scripts" / "build-display-pack-gallery.py"
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        cwd=REPO_ROOT,
+        env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["lidocaineq_reference_template_count"] == 33
+    assert payload["lidocaineq_covered_reference_template_count"] == 33
+    assert payload["lidocaineq_reference_coverage_complete"] is True
+    assert payload["lidocaineq_missing_or_downgraded_reference_template_ids"] == []
+    assert payload["lidocaineq_replacement_template_count"] == 15
+    assert payload["lidocaineq_do_not_restore_legacy_alias_count"] == 6
 
 
 def test_embedding_templates_use_feature_matrix_workflow_schema() -> None:
@@ -428,8 +522,13 @@ stopifnot(length(unique(point_keys)) == length(point_keys))
     assert result.returncode == 0, result.stderr
 
 
-def test_core_pack_representative_p1_default_renderers_render_with_r_subprocess() -> None:
-    promoted_payloads: dict[str, dict[str, object]] = {
+def test_core_pack_representative_lidocaineq_default_renderers_render_with_r_subprocess() -> None:
+    source_renderers_by_template = {
+        "risk_layering_monotonic_bars": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars",
+        "omics_volcano_panel": "LidocaineQ/Figure_Template::volcano_deg",
+        "shap_summary_beeswarm": "LidocaineQ/Figure_Template::shap_summary_beeswarm",
+    }
+    default_payloads: dict[str, dict[str, object]] = {
         "risk_layering_monotonic_bars": {
             "title": "Risk group summary",
             "x_label": "Risk group",
@@ -483,9 +582,9 @@ def test_core_pack_representative_p1_default_renderers_render_with_r_subprocess(
             ],
         },
     }
-    with tempfile.TemporaryDirectory(prefix="mas-display-promoted-r-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="mas-display-lidocaineq-r-") as tmpdir:
         output_dir = Path(tmpdir)
-        for template_id, payload in promoted_payloads.items():
+        for template_id, payload in default_payloads.items():
             request_path = _candidate_request(template_id=template_id, payload=payload, output_dir=output_dir)
             completed = subprocess.run(
                 ["Rscript", "render.R", "--request", str(request_path)],
@@ -499,8 +598,9 @@ def test_core_pack_representative_p1_default_renderers_render_with_r_subprocess(
             assert (output_dir / f"{template_id}.pdf").is_file()
             sidecar = json.loads((output_dir / f"{template_id}.layout.json").read_text(encoding="utf-8"))
             assert sidecar["template_id"] == template_id
-            assert sidecar["metrics"]["renderer"] == "r_ggplot2_promoted_subprocess_v1"
+            assert sidecar["metrics"]["renderer"] == "r_ggplot2_evidence_subprocess_v1"
             assert sidecar["metrics"]["renderer_role"] == "default"
+            assert sidecar["metrics"]["source_renderer"] == source_renderers_by_template[template_id]
 
 
 def test_cli_display_pack_render_candidate_runs_legacy_comparison_surface(tmp_path: Path, capsys) -> None:

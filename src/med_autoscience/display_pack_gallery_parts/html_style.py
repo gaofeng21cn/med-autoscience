@@ -299,6 +299,12 @@ h1{
 .card-body{padding:10px 11px 12px}
 .card h4{margin:0 0 7px;font-size:15px;line-height:1.28}
 .card p{margin:6px 0;font-size:12px;color:#4a5057}
+.coverage-summary{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
+.coverage-summary span{font-size:12px;font-weight:700;color:var(--ink);background:#eef4f7;border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.coverage-table{width:100%;border-collapse:collapse;font-size:10px;background:var(--card)}
+.coverage-table th,.coverage-table td{border:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+.coverage-table th{font-size:10px;color:var(--ink);background:#f6f8fa}
+.coverage-table td{color:#3f4750}
 .callout{
   margin-top:8px;
   padding-top:7px;

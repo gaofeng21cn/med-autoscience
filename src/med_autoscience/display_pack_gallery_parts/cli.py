@@ -20,7 +20,9 @@ from med_autoscience.display_pack_gallery_parts.pdf import _copy_docs_gallery, _
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.reference_writer import _write_reference
 from med_autoscience.display_pack_gallery_parts.rendering import (
+    R_GALLERY_PREVIEW_TEMPLATE_IDS,
     _render_python_template,
+    _render_r_gallery_preview,
     _render_r_template,
 )
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
@@ -49,7 +51,7 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
     rendered: dict[str, RenderedAsset] = {}
     visible_template_ids = {record.template_id for record in gallery_visual_records(records)}
     for record in records:
-        if record.template_id not in visible_template_ids:
+        if record.template_id not in visible_template_ids and record.template_id not in R_GALLERY_PREVIEW_TEMPLATE_IDS:
             rendered[record.template_id] = RenderedAsset(
                 status="not_default",
                 reason="hidden_from_default_gallery_or_non_visual_inventory",
@@ -85,6 +87,8 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
                 status="policy_violation",
                 reason="python_evidence_templates_are_not_retained_without_documented_advantage_proof",
             )
+        elif record.template_id in R_GALLERY_PREVIEW_TEMPLATE_IDS:
+            rendered[record.template_id] = _render_r_gallery_preview(record, seed_r_payloads)
         else:
             rendered[record.template_id] = RenderedAsset(status="not_visual", reason="table_shell_or_non_visual_template")
     return rendered, {}
@@ -149,6 +153,12 @@ def main(argv: list[str] | None = None) -> int:
                 "non_visual_canonical_templates": manifest["non_visual_canonical_template_count"],
                 "rendered_image_templates": manifest["rendered_image_template_count"],
                 "internal_rendered_image_templates": manifest["internal_rendered_image_template_count"],
+                "lidocaineq_reference_template_count": manifest["lidocaineq_reference_coverage"]["reference_template_count"],
+                "lidocaineq_covered_reference_template_count": manifest["lidocaineq_reference_coverage"]["covered_reference_template_count"],
+                "lidocaineq_reference_coverage_complete": manifest["lidocaineq_reference_coverage"]["coverage_complete"],
+                "lidocaineq_missing_or_downgraded_reference_template_ids": manifest["lidocaineq_reference_coverage"]["missing_or_downgraded_reference_template_ids"],
+                "lidocaineq_replacement_template_count": manifest["lidocaineq_reference_coverage"]["replacement_template_count"],
+                "lidocaineq_do_not_restore_legacy_alias_count": manifest["lidocaineq_reference_coverage"]["do_not_restore_legacy_alias_count"],
                 "quality_overall_status": manifest["quality_audit"]["overall_status"],
                 "publication_ready_claim_authorized": manifest["quality_audit"]["publication_ready_claim_authorized"],
                 "html_path": str(paths.HTML_PATH),
