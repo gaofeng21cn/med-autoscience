@@ -9,14 +9,14 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 | 指标 | 数量 |
 | --- | ---: |
-| Gallery evidence figures | 28 |
+| Gallery evidence figures | 34 |
 | Gallery reporting flow figures | 1 |
 | Gallery design figures | 1 |
-| Gallery visual templates | 30 |
-| Current canonical templates | 31 |
+| Gallery visual templates | 36 |
+| Current canonical templates | 37 |
 | Current non-visual canonical inventory | 3 |
-| Retired alias / duplicate ids | 35 |
-| Migration index entries | 66 |
+| Retired alias / duplicate ids | 42 |
+| Migration index entries | 79 |
 | Current Python evidence templates | 0 |
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
@@ -34,15 +34,15 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - evidence figures default to R/ggplot2: `true`
 - Python illustration shells visible as design cards: `true`
 - Python evidence retained without advantage proof: `false`
-- style profile: `paper_neutral_clinical_v1`
-- journal palette: `nature_informed_clinical_publication_v1`
+- style profile: `student_curated_clinical_publication_v1`
+- journal palette: `lidocaineq_figure_template_palette_20260621`
 - quality overall status: `not_publication_ready`
 - publication-ready claim authorized: `false`
 - blocked evidence templates after current render: `0`
 - blocked gallery visual templates after current render: `1`
-- lower-bound review required: `28`
+- lower-bound review required: `34`
 - gallery lower-bound admission: `gallery_lower_bound_blocked`
-- publication quality profile coverage: `31/31` (100%)
+- publication quality profile coverage: `37/37` (100%)
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
@@ -54,7 +54,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | `computed_in_template` | 3 |
 | `illustration_shell` | 1 |
 | `table_shell` | 1 |
-| `validated_summary_required` | 26 |
+| `validated_summary_required` | 32 |
 
 - raw analysis requests fail closed unless the selected template declares `computed_in_template`
 - `validated_summary_required` templates render upstream analysis outputs; they do not fit models, recompute curves, run differential testing, infer SHAP values, or call variants
@@ -109,14 +109,17 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 | Category | Gallery evidence figures |
 | --- | ---: |
+| Clinical Trial Response and Safety | 1 |
 | Clinical Utility | 2 |
 | Data Geometry | 3 |
-| Effect Estimate | 2 |
+| Effect Estimate | 3 |
 | Generalizability | 1 |
 | Genomic and Omics | 6 |
+| Longitudinal and Patient Trajectory | 1 |
 | Matrix Pattern | 2 |
 | Model Audit | 1 |
 | Model Explanation | 3 |
+| Population and Baseline | 3 |
 | Prediction Performance | 3 |
 | Time-to-Event | 5 |
 

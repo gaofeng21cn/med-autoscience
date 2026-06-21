@@ -137,6 +137,18 @@ EVIDENCE_CATEGORY_COPY: dict[str, tuple[str, str]] = {
         "外部验证与泛化",
         "用于呈现跨队列、亚组、中心或时间窗的稳定性。",
     ),
+    "Population and Baseline": (
+        "人群、基线与组成",
+        "用于呈现连续变量分布、类别组成、变量相关性和少量指标概况。",
+    ),
+    "Longitudinal and Patient Trajectory": (
+        "纵向轨迹与状态转移",
+        "用于呈现患者路径、状态迁移、随访轨迹和事件时间结构。",
+    ),
+    "Clinical Trial Response and Safety": (
+        "试验疗效与安全性",
+        "用于呈现患者级别疗效响应、治疗过程、安全事件和临床试验图型。",
+    ),
     "Data Geometry": (
         "数据结构与降维",
         "用于呈现样本分布、降维结构、差异特征和高维数据几何。",
@@ -222,6 +234,36 @@ EVIDENCE_COPY: dict[str, EvidenceCopy] = {
         "展示风险层级与事件率或结局负担的单调关系。",
         "需要风险分层、事件率或结局统计和置信区间。",
         "用于说明模型分层具有可解释的临床梯度。",
+    ),
+    "distribution_violin_box": EvidenceCopy(
+        "展示连续变量或评分在不同组间的分布差异。",
+        "需要逐样本数值、分组标签和必要的统计检验结果。",
+        "用于 signature score、biomarker、风险评分或临床变量的组间比较。",
+    ),
+    "composition_stacked_bar": EvidenceCopy(
+        "展示类别组成在不同队列、亚组或时间点之间的变化。",
+        "需要组别、类别和比例或计数。",
+        "用于队列构成、细胞类型比例、反应类别或事件类别组成。",
+    ),
+    "correlation_scatter": EvidenceCopy(
+        "展示两个连续变量之间的关联趋势和统计注释。",
+        "需要成对数值、可选分组和相关/回归统计量。",
+        "用于 biomarker 相关性、模型分数与结局信号或特征关联展示。",
+    ),
+    "alluvial_transition": EvidenceCopy(
+        "展示类别状态从一个阶段到另一个阶段的转移关系。",
+        "需要来源状态、目标状态和转移计数。",
+        "用于治疗前后分型、照护路径、患者状态迁移或响应转换。",
+    ),
+    "radar_profile": EvidenceCopy(
+        "展示少量可比维度上的组别概况。",
+        "需要统一尺度的多个维度分数和组别标签。",
+        "用于免疫概况、临床综合画像或少数指标的摘要比较；维度过多时应改为条形图或点图。",
+    ),
+    "waterfall_response": EvidenceCopy(
+        "展示患者级别响应幅度的排序分布。",
+        "需要患者标识、变化幅度、响应类别和可选临床阈值。",
+        "用于肿瘤疗效、biomarker 改变量或个体风险变化的排序展示。",
     ),
     "forest_effect_main": EvidenceCopy(
         "展示主要效应估计及置信区间。",

@@ -63,7 +63,7 @@
       "family_id": "alluvial_transition",
       "title": "Alluvial Transition starter",
       "purpose": "Create a first renderable, auditable lower-bound figure for Show categorical state transitions across time, treatment lines, or care pathways.",
-      "starter_kind": "contract_only_seed",
+      "starter_kind": "display_pack_seeded",
       "panel_grammar": "paper_local_panel_grammar",
       "required_data_roles": [
         "subject_id",
@@ -72,7 +72,9 @@
         "count",
         "transition"
       ],
-      "recommended_template_seed_ids": [],
+      "recommended_template_seed_ids": [
+        "alluvial_transition"
+      ],
       "style_tokens": [
         "medpub_neutral"
       ],

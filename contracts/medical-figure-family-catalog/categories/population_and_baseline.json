@@ -80,8 +80,12 @@
         "raincloud",
         "distribution"
       ],
-      "external_refs": [],
-      "template_seed_ids": [],
+      "external_refs": [
+        "lidocaineq_figure_template"
+      ],
+      "template_seed_ids": [
+        "distribution_violin_box"
+      ],
       "ai_adaptation_notes": "AI may replace boxplots with raincloud or ECDF if sample size and skew make that more truthful."
     },
     {
@@ -207,6 +211,51 @@
       "ai_adaptation_notes": "AI may choose clustered heatmap or network view depending on variable count."
     },
     {
+      "family_id": "correlation_scatter",
+      "category_id": "population_and_baseline",
+      "title": "Correlation Scatter",
+      "intent": "Show pairwise continuous association with optional group coloring, trend line, and statistical annotation.",
+      "canonical_variants": [
+        "scatter_with_lm",
+        "scatter_with_correlation_annotation",
+        "grouped_association_scatter"
+      ],
+      "data_roles": [
+        "x_value",
+        "y_value",
+        "group",
+        "correlation",
+        "p_value"
+      ],
+      "starter_recipe_refs": [
+        "correlation_scatter"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "correlation scatter",
+        "association scatter",
+        "scatter correlation",
+        "biomarker association"
+      ],
+      "external_refs": [
+        "lidocaineq_figure_template"
+      ],
+      "template_seed_ids": [
+        "correlation_scatter"
+      ],
+      "ai_adaptation_notes": "AI may switch to correlation heatmap when many variables are compared, but should use scatter when the point-level association is the claim."
+    },
+    {
       "family_id": "composition_profile",
       "category_id": "population_and_baseline",
       "title": "Composition Profile",
@@ -241,9 +290,56 @@
         "proportion",
         "stacked bar"
       ],
-      "external_refs": [],
-      "template_seed_ids": [],
+      "external_refs": [
+        "lidocaineq_figure_template"
+      ],
+      "template_seed_ids": [
+        "composition_stacked_bar"
+      ],
       "ai_adaptation_notes": "AI may switch to dot or heatmap representation when stacked bars become unreadable."
+    },
+    {
+      "family_id": "profile_radar",
+      "category_id": "population_and_baseline",
+      "title": "Profile Radar",
+      "intent": "Show compact group profiles across a small number of comparable scaled dimensions.",
+      "canonical_variants": [
+        "radar_profile",
+        "spider_profile",
+        "multiaxis_profile"
+      ],
+      "data_roles": [
+        "group",
+        "axis",
+        "scaled_value"
+      ],
+      "starter_recipe_refs": [
+        "radar_profile"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "loose_match_terms": [
+        "radar",
+        "spider profile",
+        "immune profile",
+        "multiaxis profile"
+      ],
+      "external_refs": [
+        "lidocaineq_figure_template"
+      ],
+      "template_seed_ids": [
+        "radar_profile"
+      ],
+      "ai_adaptation_notes": "AI may replace radar with grouped bars or dotplots when axes are many, non-comparable, or require precise value reading."
     }
   ]
 }

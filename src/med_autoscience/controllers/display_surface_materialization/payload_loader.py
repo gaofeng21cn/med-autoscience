@@ -8,6 +8,14 @@ from .validation_curves_extended import _validate_model_complexity_audit_display
 from .validation_curves_primary import _validate_binary_curve_display_payload, _validate_risk_layering_display_payload, _validate_time_to_event_decision_curve_display_payload
 from .validation_effects import _validate_coefficient_path_panel_display_payload, _validate_forest_display_payload
 from .validation_generalizability import _validate_generalizability_subgroup_composite_display_payload
+from .validation_lidocaineq_publication import (
+    _validate_alluvial_transition_display_payload,
+    _validate_composition_stacked_bar_display_payload,
+    _validate_correlation_scatter_display_payload,
+    _validate_distribution_violin_box_display_payload,
+    _validate_radar_profile_display_payload,
+    _validate_waterfall_response_display_payload,
+)
 from .validation_omics_genomic import _validate_genomic_alteration_consequence_panel_display_payload, _validate_genomic_alteration_landscape_panel_display_payload, _validate_omics_volcano_panel_display_payload
 from .validation_omics_heatmaps import _validate_confusion_matrix_heatmap_binary_display_payload, _validate_heatmap_display_payload
 from .validation_omics_panels import _validate_celltype_marker_dotplot_panel_display_payload, _validate_cnv_recurrence_summary_panel_display_payload, _validate_pathway_enrichment_dotplot_panel_display_payload
@@ -37,6 +45,12 @@ _VALIDATOR_BY_SCHEMA_ID: dict[str, _EvidenceDisplayValidator] = {
     "shap_dependence_panel_inputs_v1": _validate_shap_dependence_panel_display_payload,
     "shap_waterfall_local_explanation_panel_inputs_v1": _validate_shap_waterfall_local_explanation_panel_display_payload,
     "generalizability_subgroup_composite_inputs_v1": _validate_generalizability_subgroup_composite_display_payload,
+    "distribution_violin_box_inputs_v1": _validate_distribution_violin_box_display_payload,
+    "composition_stacked_bar_inputs_v1": _validate_composition_stacked_bar_display_payload,
+    "correlation_scatter_inputs_v1": _validate_correlation_scatter_display_payload,
+    "alluvial_transition_inputs_v1": _validate_alluvial_transition_display_payload,
+    "radar_profile_inputs_v1": _validate_radar_profile_display_payload,
+    "waterfall_response_inputs_v1": _validate_waterfall_response_display_payload,
 }
 
 

@@ -11,16 +11,16 @@
   "docs_quality_audit_path": "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md",
   "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
   "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
-  "evidence_gallery_template_count": 28,
+  "evidence_gallery_template_count": 34,
   "reporting_flow_gallery_template_count": 1,
   "design_gallery_template_count": 1,
-  "visual_gallery_template_count": 30,
+  "visual_gallery_template_count": 36,
   "composition_recipe_gallery_count": 6,
-  "current_template_count": 31,
+  "current_template_count": 37,
   "non_visual_canonical_template_count": 3,
-  "retired_alias_template_count": 35,
-  "style_profile_id": "paper_neutral_clinical_v1",
-  "journal_palette_ref": "nature_informed_clinical_publication_v1",
+  "retired_alias_template_count": 42,
+  "style_profile_id": "student_curated_clinical_publication_v1",
+  "journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
   "template_surface_policy": {
     "gallery_default_surface": "canonical_current_visual_gallery_templates",
     "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
@@ -51,8 +51,8 @@
     "composition_recipes_are_visible_in_gallery_storyboard_section": true
   },
   "palette_policy": {
-    "style_profile_id": "paper_neutral_clinical_v1",
-    "journal_palette_ref": "nature_informed_clinical_publication_v1",
+    "style_profile_id": "student_curated_clinical_publication_v1",
+    "journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
     "categorical_roles": [
       "series_1",
       "series_2",
@@ -72,30 +72,30 @@
       "heatmap_high"
     ],
     "heatmap_sequential_palette": {
-      "heatmap_seq_low": "#F4F8FA",
-      "heatmap_seq_mid": "#9DD2D3",
-      "heatmap_seq_high": "#0B4F6C"
+      "heatmap_seq_low": "#EEF4F7",
+      "heatmap_seq_mid": "#86BCC2",
+      "heatmap_seq_high": "#245A6B"
     },
     "heatmap_diverging_palette": {
-      "heatmap_low": "#2B6CB0",
+      "heatmap_low": "#2166AC",
       "heatmap_mid": "#F7F7F7",
-      "heatmap_high": "#B64342"
+      "heatmap_high": "#B2182B"
     },
     "matrix_heatmap_uses_shared_palette_roles": true
   },
   "renderer_policy_completion": {
-    "current_template_count": 31,
-    "current_evidence_template_count": 28,
-    "current_r_ggplot2_evidence_template_count": 28,
+    "current_template_count": 37,
+    "current_evidence_template_count": 34,
+    "current_r_ggplot2_evidence_template_count": 34,
     "current_python_evidence_template_count": 0,
-    "default_visual_template_count": 30,
-    "default_evidence_template_count": 28,
-    "default_r_ggplot2_evidence_template_count": 28,
+    "default_visual_template_count": 36,
+    "default_evidence_template_count": 34,
+    "default_r_ggplot2_evidence_template_count": 34,
     "default_python_evidence_template_count": 0,
     "default_illustration_shell_count": 2,
     "default_surface_r_first_compliant": true,
-    "all_evidence_template_count": 28,
-    "all_r_ggplot2_evidence_template_count": 28,
+    "all_evidence_template_count": 34,
+    "all_r_ggplot2_evidence_template_count": 34,
     "python_evidence_template_count": 0,
     "python_evidence_retained_count": 0,
     "current_inventory_r_first_compliant": true,
@@ -106,22 +106,22 @@
     "computed_in_template": 3,
     "illustration_shell": 1,
     "table_shell": 1,
-    "validated_summary_required": 26
+    "validated_summary_required": 32
   },
   "quality_summary": {
     "overall_status": "not_publication_ready",
     "publication_ready_claim_authorized": false,
-    "visual_template_count": 28,
+    "visual_template_count": 34,
     "design_visual_template_count": 1,
-    "total_gallery_visual_template_count": 30,
+    "total_gallery_visual_template_count": 36,
     "non_visual_template_count": 3,
     "blocked_template_count": 0,
-    "lower_bound_review_required_count": 28,
+    "lower_bound_review_required_count": 34,
     "gallery_lower_bound_admission_status": "gallery_lower_bound_blocked",
     "publication_quality_profile_coverage": {
       "schema_version": 1,
-      "current_template_count": 31,
-      "complete_profile_template_count": 31,
+      "current_template_count": 37,
+      "complete_profile_template_count": 37,
       "complete_profile_percent": 100,
       "medical_family_missing_template_ids": [],
       "starter_recipe_missing_template_ids": [],
@@ -1065,11 +1065,11 @@
             "panel_role": "scale_channel_or_roi_context",
             "panel_kind": "supporting",
             "evidence_primitive_family_id": "distribution_comparison",
-            "template_id": "",
-            "canonical_family_title": "",
-            "canonical_family_category": "",
+            "template_id": "distribution_violin_box",
+            "canonical_family_title": "Distribution Violin-Box Plot",
+            "canonical_family_category": "Population and Baseline",
             "uses_gallery_proxy": false,
-            "visual_status": "storyboard_placeholder"
+            "visual_status": "preview_template"
           },
           {
             "panel_role": "statistical_comparison",
@@ -1085,6 +1085,7 @@
         "preview_template_ids": [
           "heatmap_group_comparison",
           "pca_scatter_grouped",
+          "distribution_violin_box",
           "forest_effect_main"
         ],
         "quality_floor_only": true,
@@ -1294,6 +1295,20 @@
   },
   "evidence_gallery_templates": [
     {
+      "template_id": "alluvial_transition",
+      "canonical_family_id": "alluvial_transition",
+      "canonical_family_title": "Alluvial Transition",
+      "canonical_family_category": "Longitudinal and Patient Trajectory",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "alluvial_transition"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/alluvial_transition.png",
+      "pdf_ref": "medical_display_gallery_assets/alluvial_transition.pdf",
+      "layout_ref": "medical_display_gallery_assets/alluvial_transition.layout.json"
+    },
+    {
       "template_id": "calibration_curve_binary",
       "canonical_family_id": "calibration_curve_binary",
       "canonical_family_title": "Calibration Curve",
@@ -1350,6 +1365,20 @@
       "layout_ref": "medical_display_gallery_assets/coefficient_path_panel.layout.json"
     },
     {
+      "template_id": "composition_stacked_bar",
+      "canonical_family_id": "composition_stacked_bar",
+      "canonical_family_title": "Composition Stacked Bar",
+      "canonical_family_category": "Population and Baseline",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "composition_profile"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/composition_stacked_bar.png",
+      "pdf_ref": "medical_display_gallery_assets/composition_stacked_bar.pdf",
+      "layout_ref": "medical_display_gallery_assets/composition_stacked_bar.layout.json"
+    },
+    {
       "template_id": "confusion_matrix_heatmap_binary",
       "canonical_family_id": "confusion_matrix_heatmap_binary",
       "canonical_family_title": "Confusion Matrix",
@@ -1362,6 +1391,20 @@
       "preview_image_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
       "pdf_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.pdf",
       "layout_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.layout.json"
+    },
+    {
+      "template_id": "correlation_scatter",
+      "canonical_family_id": "correlation_scatter",
+      "canonical_family_title": "Correlation Scatter",
+      "canonical_family_category": "Effect Estimate",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "correlation_scatter"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/correlation_scatter.png",
+      "pdf_ref": "medical_display_gallery_assets/correlation_scatter.pdf",
+      "layout_ref": "medical_display_gallery_assets/correlation_scatter.layout.json"
     },
     {
       "template_id": "cumulative_incidence_grouped",
@@ -1390,6 +1433,20 @@
       "preview_image_ref": "medical_display_gallery_assets/decision_curve_binary.png",
       "pdf_ref": "medical_display_gallery_assets/decision_curve_binary.pdf",
       "layout_ref": "medical_display_gallery_assets/decision_curve_binary.layout.json"
+    },
+    {
+      "template_id": "distribution_violin_box",
+      "canonical_family_id": "distribution_violin_box",
+      "canonical_family_title": "Distribution Violin-Box Plot",
+      "canonical_family_category": "Population and Baseline",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "distribution_comparison"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/distribution_violin_box.png",
+      "pdf_ref": "medical_display_gallery_assets/distribution_violin_box.pdf",
+      "layout_ref": "medical_display_gallery_assets/distribution_violin_box.layout.json"
     },
     {
       "template_id": "forest_effect_main",
@@ -1549,6 +1606,20 @@
       "layout_ref": "medical_display_gallery_assets/pr_curve_binary.layout.json"
     },
     {
+      "template_id": "radar_profile",
+      "canonical_family_id": "radar_profile",
+      "canonical_family_title": "Radar Profile",
+      "canonical_family_category": "Population and Baseline",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "profile_radar"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/radar_profile.png",
+      "pdf_ref": "medical_display_gallery_assets/radar_profile.pdf",
+      "layout_ref": "medical_display_gallery_assets/radar_profile.layout.json"
+    },
+    {
       "template_id": "risk_layering_monotonic_bars",
       "canonical_family_id": "risk_layering_monotonic_bars",
       "canonical_family_title": "Risk Layering Bars",
@@ -1687,6 +1758,20 @@
       "preview_image_ref": "medical_display_gallery_assets/umap_scatter_grouped.png",
       "pdf_ref": "medical_display_gallery_assets/umap_scatter_grouped.pdf",
       "layout_ref": "medical_display_gallery_assets/umap_scatter_grouped.layout.json"
+    },
+    {
+      "template_id": "waterfall_response",
+      "canonical_family_id": "waterfall_response",
+      "canonical_family_title": "Waterfall Response",
+      "canonical_family_category": "Clinical Trial Response and Safety",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "waterfall_response"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/waterfall_response.png",
+      "pdf_ref": "medical_display_gallery_assets/waterfall_response.pdf",
+      "layout_ref": "medical_display_gallery_assets/waterfall_response.layout.json"
     }
   ],
   "reporting_flow_gallery_templates": [

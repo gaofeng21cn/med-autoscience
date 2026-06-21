@@ -18,6 +18,9 @@ from med_autoscience.display_pack_gallery_parts.publication_payloads import (
 from med_autoscience.display_pack_gallery_parts.core_payloads import (
     CORE_R_DISPLAY_PAYLOADS,
 )
+from med_autoscience.display_pack_gallery_parts.lidocaineq_payloads import (
+    LIDOCAINEQ_R_DISPLAY_PAYLOADS,
+)
 MANUAL_GALLERY_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "cohort_flow_figure": {
         "schema_version": 1,
@@ -443,6 +446,10 @@ def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, 
     payloads.update({
         key: json.loads(json.dumps(value))
         for key, value in PUBLICATION_R_DISPLAY_PAYLOADS.items()
+    })
+    payloads.update({
+        key: json.loads(json.dumps(value))
+        for key, value in LIDOCAINEQ_R_DISPLAY_PAYLOADS.items()
     })
     for record in records:
         if record.renderer_family != "r_ggplot2":

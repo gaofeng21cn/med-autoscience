@@ -37,7 +37,7 @@
       "family_id": "distribution_comparison",
       "title": "Distribution Comparison starter",
       "purpose": "Create a first renderable, auditable lower-bound figure for Compare continuous or ordinal variable distributions across groups.",
-      "starter_kind": "contract_only_seed",
+      "starter_kind": "display_pack_seeded",
       "panel_grammar": "paper_local_panel_grammar",
       "required_data_roles": [
         "value",
@@ -45,7 +45,9 @@
         "stratum",
         "timepoint"
       ],
-      "recommended_template_seed_ids": [],
+      "recommended_template_seed_ids": [
+        "distribution_violin_box"
+      ],
       "style_tokens": [
         "medpub_neutral"
       ],
@@ -146,12 +148,43 @@
       "policy_id": "medical_starter_recipe_policy.v1"
     },
     {
+      "recipe_id": "correlation_scatter",
+      "category_id": "population_and_baseline",
+      "family_id": "correlation_scatter",
+      "title": "Correlation Scatter starter",
+      "purpose": "Create a first renderable, auditable lower-bound figure for pairwise continuous association with statistical annotation.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "scatter_panel_with_trend_and_statistic",
+      "required_data_roles": [
+        "x_value",
+        "y_value",
+        "group",
+        "correlation",
+        "p_value"
+      ],
+      "recommended_template_seed_ids": [
+        "correlation_scatter"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
       "recipe_id": "composition_stacked_bar",
       "category_id": "population_and_baseline",
       "family_id": "composition_profile",
       "title": "Composition Profile starter",
       "purpose": "Create a first renderable, auditable lower-bound figure for Show categorical composition such as sex, race, cell type, event type, or response class across groups.",
-      "starter_kind": "contract_only_seed",
+      "starter_kind": "display_pack_seeded",
       "panel_grammar": "ordered_bar_or_waterfall_panel",
       "required_data_roles": [
         "group",
@@ -159,7 +192,9 @@
         "count",
         "proportion"
       ],
-      "recommended_template_seed_ids": [],
+      "recommended_template_seed_ids": [
+        "composition_stacked_bar"
+      ],
       "style_tokens": [
         "medpub_neutral"
       ],
@@ -170,6 +205,35 @@
         "statistical_semantics_preserved",
         "color_accessibility",
         "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "radar_profile",
+      "category_id": "population_and_baseline",
+      "family_id": "profile_radar",
+      "title": "Profile Radar starter",
+      "purpose": "Create a compact profile overview for a small number of comparable scaled dimensions.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "multiaxis_profile_panel",
+      "required_data_roles": [
+        "group",
+        "axis",
+        "scaled_value"
+      ],
+      "recommended_template_seed_ids": [
+        "radar_profile"
+      ],
+      "style_tokens": [
+        "medpub_neutral"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "statistical_semantics_preserved",
+        "layout_readability",
+        "color_accessibility"
       ],
       "policy_id": "medical_starter_recipe_policy.v1"
     }

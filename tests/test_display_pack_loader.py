@@ -192,8 +192,8 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
         if record.template_manifest.renderer_family == "python"
     ]
 
-    assert len(evidence_records) == 28
-    assert len(r_records) == 28
+    assert len(evidence_records) == 34
+    assert len(r_records) == 34
     assert len(python_records) == 0
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
@@ -205,8 +205,8 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     default_records = load_enabled_local_display_pack_template_records(REPO_ROOT)
     full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
 
-    assert len(default_records) == 31
-    assert len(full_records) == 31
+    assert len(default_records) == 37
+    assert len(full_records) == 37
     assert {record.template_manifest.template_id for record in default_records} == {
         record.template_manifest.template_id for record in full_records
     }
@@ -227,7 +227,13 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
         for record in default_records
         if record.template_manifest.kind == "illustration_shell"
         and record.template_manifest.renderer_family == "python"
-    } == {"cohort_flow_figure", "submission_graphical_abstract"}
+    } == {"submission_graphical_abstract"}
+    assert {
+        record.template_manifest.template_id
+        for record in default_records
+        if record.template_manifest.kind == "illustration_shell"
+        and record.template_manifest.renderer_family == "r_ggplot2"
+    } == {"cohort_flow_figure"}
 
 
 def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(tmp_path: Path) -> None:

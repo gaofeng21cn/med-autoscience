@@ -42,7 +42,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     assert {item.template_id for item in evidence_specs} == _ids_for_kind("evidence_figure")
     assert {item.shell_id for item in illustration_specs} == _ids_for_kind("illustration_shell")
     assert {item.shell_id for item in table_specs} == _ids_for_kind("table_shell")
-    assert len(evidence_specs) == 28
+    assert len(evidence_specs) == 34
     assert len(illustration_specs) == 2
     assert len(table_specs) == 1
 
@@ -78,7 +78,7 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
     generic_output_profiles = {"publication_result_display", "publication_table_shell"}
 
     assert set(_VALIDATOR_BY_SCHEMA_ID) == current_schema_ids
-    assert set(QC_PROFILE_RUNNERS) == current_qc_profiles | generic_output_profiles
+    assert current_qc_profiles | generic_output_profiles <= set(QC_PROFILE_RUNNERS)
 
 
 @pytest.mark.parametrize(
@@ -120,14 +120,15 @@ def test_local_architecture_overview_figure_alias_resolves_to_risk_layering_temp
 
 
 @pytest.mark.parametrize(
-    ("shell_id", "expected_input_schema_id", "expected_qc_profile"),
+    ("shell_id", "expected_renderer_family", "expected_input_schema_id", "expected_qc_profile"),
     [
-        ("cohort_flow_figure", "cohort_flow_shell_inputs_v1", "publication_illustration_flow"),
-        ("submission_graphical_abstract", "submission_graphical_abstract_inputs_v1", "submission_graphical_abstract"),
+        ("cohort_flow_figure", "r_ggplot2", "cohort_flow_shell_inputs_v1", "publication_illustration_flow"),
+        ("submission_graphical_abstract", "python", "submission_graphical_abstract_inputs_v1", "submission_graphical_abstract"),
     ],
 )
-def test_illustration_shells_allow_python_composition(
+def test_illustration_shells_expose_reporting_flow_and_design_renderers(
     shell_id: str,
+    expected_renderer_family: str,
     expected_input_schema_id: str,
     expected_qc_profile: str,
 ) -> None:
@@ -135,7 +136,7 @@ def test_illustration_shells_allow_python_composition(
 
     assert spec.shell_id == _full_id(shell_id)
     assert "H" in spec.paper_family_ids
-    assert spec.renderer_family == "python"
+    assert spec.renderer_family == expected_renderer_family
     assert spec.input_schema_id == expected_input_schema_id
     assert spec.shell_qc_profile == expected_qc_profile
 

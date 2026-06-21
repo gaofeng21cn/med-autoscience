@@ -195,6 +195,14 @@
       "url": "https://www.nature.com/nature/for-authors/final-submission",
       "observed_date": "2026-06-20",
       "adopted_pattern": "Reduced-size readability, consistent lettering, vector/high-resolution export, and final visual QA inform nonblocking paper-use polish checks."
+    },
+    {
+      "source_id": "lidocaineq_figure_template",
+      "source_type": "student_curated_source_code_repository",
+      "url": "https://github.com/LidocaineQ/Figure_Template",
+      "observed_date": "2026-06-21",
+      "commit_sha": "22160e6783dbefdbc926db51aae60f22132437ef",
+      "adopted_pattern": "Student-curated clinical publication palette and manually polished R/ggplot2 templates inform MAS default palette plus distribution, composition, correlation scatter, alluvial, radar, and waterfall lower-bound seeds."
     }
   ]
 }

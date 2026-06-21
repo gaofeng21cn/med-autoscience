@@ -115,8 +115,12 @@
         "transition",
         "care pathway"
       ],
-      "external_refs": [],
-      "template_seed_ids": [],
+      "external_refs": [
+        "lidocaineq_figure_template"
+      ],
+      "template_seed_ids": [
+        "alluvial_transition"
+      ],
       "ai_adaptation_notes": "AI may replace sankey with transition matrix when there are too many flows."
     },
     {

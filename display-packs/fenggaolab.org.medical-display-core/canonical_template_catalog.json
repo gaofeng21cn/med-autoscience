@@ -47,7 +47,26 @@
       "deterministic layout sidecar QC before gallery admission"
     ],
     "plos_figure_guidelines": "https://journals.plos.org/plosmedicine/s/figures",
-    "okabe_ito_palette": "https://jfly.uni-koeln.de/color/"
+    "okabe_ito_palette": "https://jfly.uni-koeln.de/color/",
+    "lidocaineq_figure_template": {
+      "url": "https://github.com/LidocaineQ/Figure_Template",
+      "commit_sha": "22160e6783dbefdbc926db51aae60f22132437ef",
+      "observed_date": "2026-06-21",
+      "local_reference_path": "/tmp/Figure_Template_lidocaineq",
+      "adopted_patterns": [
+        "student curated low-saturation clinical palette",
+        "violin plus box plus jitter distribution comparison",
+        "stacked composition bars with compact bottom legends",
+        "correlation scatter with regression trend and statistic slot",
+        "alluvial state-transition grammar",
+        "radar profile grammar",
+        "ranked response waterfall grammar"
+      ],
+      "non_adopted_as_new_templates": [
+        "ROC/KM/calibration/decision/heatmap/forest/volcano/SHAP duplicates map to existing canonical families",
+        "Python evidence implementations are not retained without documented advantage over R/ggplot2"
+      ]
+    }
   },
   "families": [
     {
@@ -549,6 +568,109 @@
       "medical_family_ids": [
         "graphical_abstract",
         "causal_dag"
+      ]
+    },
+    {
+      "family_id": "distribution_violin_box",
+      "category": "Population and Baseline",
+      "title": "Distribution Violin-Box Plot",
+      "figure_archetype": "grouped_violin_box_jitter_distribution_comparison",
+      "canonical_template_id": "distribution_violin_box",
+      "default_visible": true,
+      "aliases": [
+        "violin_box",
+        "raincloud_distribution_comparison"
+      ],
+      "migration_reason": "Student-curated distribution template fills a distinct common medical-paper distribution comparison intent; it is not a heatmap/ROC/KM duplicate.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "distribution_comparison"
+      ]
+    },
+    {
+      "family_id": "composition_stacked_bar",
+      "category": "Population and Baseline",
+      "title": "Composition Stacked Bar",
+      "figure_archetype": "grouped_categorical_composition_stacked_bar",
+      "canonical_template_id": "composition_stacked_bar",
+      "default_visible": true,
+      "aliases": [
+        "bar_stacked"
+      ],
+      "migration_reason": "Student-curated stacked composition bars provide a distinct population/composition grammar and avoid overloading generic bar charts.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "composition_profile"
+      ]
+    },
+    {
+      "family_id": "correlation_scatter",
+      "category": "Effect Estimate",
+      "title": "Correlation Scatter",
+      "figure_archetype": "association_scatter_with_regression_and_statistic_slot",
+      "canonical_template_id": "correlation_scatter",
+      "default_visible": true,
+      "aliases": [
+        "scatter_correlation"
+      ],
+      "migration_reason": "Pairwise association scatter is visually and semantically distinct from correlation heatmaps and effect forest plots.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "correlation_scatter"
+      ]
+    },
+    {
+      "family_id": "alluvial_transition",
+      "category": "Longitudinal and Patient Trajectory",
+      "title": "Alluvial Transition",
+      "figure_archetype": "categorical_state_transition_alluvial",
+      "canonical_template_id": "alluvial_transition",
+      "default_visible": true,
+      "aliases": [
+        "sankey_alluvial"
+      ],
+      "migration_reason": "Alluvial state transitions are a common patient/pathway composition grammar and should not be represented as generic stacked bars.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "alluvial_transition"
+      ]
+    },
+    {
+      "family_id": "radar_profile",
+      "category": "Population and Baseline",
+      "title": "Radar Profile",
+      "figure_archetype": "multiaxis_group_profile_radar_chart",
+      "canonical_template_id": "radar_profile",
+      "default_visible": true,
+      "aliases": [
+        "radar"
+      ],
+      "migration_reason": "Radar profile is retained as a compact profile overview seed when axes are few and comparable; AI may replace it when bars or dotplots are clearer.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "profile_radar"
+      ]
+    },
+    {
+      "family_id": "waterfall_response",
+      "category": "Clinical Trial Response and Safety",
+      "title": "Waterfall Response",
+      "figure_archetype": "ranked_patient_response_waterfall",
+      "canonical_template_id": "waterfall_response",
+      "default_visible": true,
+      "aliases": [
+        "waterfall"
+      ],
+      "migration_reason": "Patient-level response waterfall is a distinct oncology/trial response grammar and should be callable as its own lower-bound seed.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "waterfall_response"
       ]
     },
     {

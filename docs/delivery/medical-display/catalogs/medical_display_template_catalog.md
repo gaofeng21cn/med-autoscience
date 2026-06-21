@@ -41,6 +41,7 @@ The current audited inventory is broader than the subset already proven against 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::decision_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::time_to_event_decision_curve` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Decision Curve (Time-to-Event Horizon) | `r_ggplot2` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::waterfall_response` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Waterfall Response | `r_ggplot2` | `waterfall_response_inputs_v1` | `publication_result_display` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Time-to-Event
 
@@ -56,6 +57,7 @@ The current audited inventory is broader than the subset already proven against 
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::alluvial_transition` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Alluvial Transition | `r_ggplot2` | `alluvial_transition_inputs_v1` | `publication_result_display` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` | `computed_in_template` / `raw_feature_matrix` |
 | `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` | `computed_in_template` / `raw_feature_matrix` |
 | `fenggaolab.org.medical-display-core::umap_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | UMAP Scatter (Grouped) | `r_ggplot2` | `dimensionality_reduction_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` | `computed_in_template` / `raw_feature_matrix` |
@@ -65,6 +67,7 @@ The current audited inventory is broader than the subset already proven against 
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::composition_stacked_bar` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Composition Stacked Bar | `r_ggplot2` | `composition_stacked_bar_inputs_v1` | `publication_result_display` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::confusion_matrix_heatmap_binary` | `evidence_figure` | `A. Predictive Performance and Decision`, `E. Feature Pattern and Matrix` | Binary Confusion Matrix Heatmap | `r_ggplot2` | `confusion_matrix_heatmap_binary_inputs_v1` | `publication_heatmap` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Genomic Alteration Landscape Panel | `r_ggplot2` | `genomic_alteration_landscape_panel_inputs_v1` | `publication_genomic_alteration_landscape_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
@@ -79,6 +82,8 @@ The current audited inventory is broader than the subset already proven against 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::coefficient_path_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Coefficient Path Panel | `r_ggplot2` | `coefficient_path_panel_inputs_v1` | `publication_coefficient_path_panel` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::distribution_violin_box` | `evidence_figure` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Distribution Violin-Box Plot | `r_ggplot2` | `distribution_violin_box_inputs_v1` | `publication_result_display` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
+| `fenggaolab.org.medical-display-core::correlation_scatter` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Correlation Scatter | `r_ggplot2` | `correlation_scatter_inputs_v1` | `publication_result_display` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Model Explanation
 
@@ -92,6 +97,7 @@ The current audited inventory is broader than the subset already proven against 
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::radar_profile` | `evidence_figure` | `H. Cohort and Study Design Evidence`, `G. Bioinformatics and Omics Evidence` | Radar Profile | `r_ggplot2` | `radar_profile_inputs_v1` | `publication_result_display` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 | `fenggaolab.org.medical-display-core::model_complexity_audit_panel` | `evidence_figure` | `F. Model Explanation`, `H. Cohort and Study Design Evidence` | Model Complexity Audit Panel | `r_ggplot2` | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` | `png`, `pdf` | `validated_summary_required` / `validated_display_payload` |
 
 ### Generalizability

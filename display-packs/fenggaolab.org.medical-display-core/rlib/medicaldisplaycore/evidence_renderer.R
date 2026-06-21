@@ -36,6 +36,7 @@ source_renderer_helper <- function(file_name) {
 }
 
 source_renderer_helper("embedding_workflow.R")
+source_renderer_helper("lidocaineq_publication_renderers.R")
 
 normalize_template_id <- function(value) {
   template_id <- trimws(as.character(value %||% ""))
@@ -1054,6 +1055,14 @@ build_embedding_metrics <- function(display_payload, panel_box) {
 }
 
 build_metrics <- function(template_id, display_payload, panel_box) {
+  lidocaineq_metrics <- if (exists("build_lidocaineq_metrics", mode = "function")) {
+    build_lidocaineq_metrics(template_id, display_payload, panel_box)
+  } else {
+    NULL
+  }
+  if (!is.null(lidocaineq_metrics)) {
+    return(lidocaineq_metrics)
+  }
   switch(
     template_id,
     roc_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
@@ -1224,6 +1233,14 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
 }
 
 build_evidence_plot <- function(template_id, payload) {
+  lidocaineq_plot <- if (exists("build_lidocaineq_evidence_plot", mode = "function")) {
+    build_lidocaineq_evidence_plot(template_id, payload)
+  } else {
+    NULL
+  }
+  if (!is.null(lidocaineq_plot)) {
+    return(lidocaineq_plot)
+  }
   switch(
     template_id,
     roc_curve_binary = plot_binary_curve(payload),

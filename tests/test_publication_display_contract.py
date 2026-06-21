@@ -163,8 +163,8 @@ def test_default_publication_style_profile_carries_shared_colorbar_tokens() -> N
     assert typography["colorbar_horizontal_height"] == 6.0
     assert typography["colorbar_max_breaks"] == 3.0
     assert typography["colorbar_label_size"] == 5.6
-    assert payload["palette"]["heatmap_seq_high"] == "#0B4F6C"
-    assert payload["palette"]["heatmap_high"] == "#B64342"
+    assert payload["palette"]["heatmap_seq_high"] == "#245A6B"
+    assert payload["palette"]["heatmap_high"] == "#B2182B"
 
 
 def test_load_publication_style_profile_rejects_non_boolean_grid_flags(tmp_path: Path) -> None:

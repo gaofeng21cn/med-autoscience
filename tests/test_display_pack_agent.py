@@ -113,10 +113,10 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
 
     assert payload["surface_kind"] == "display_pack_agent_capability"
     assert payload["status"] == "available"
-    assert payload["inventory"]["template_count"] == 31
-    assert payload["inventory"]["active_template_count"] == 31
-    assert payload["inventory"]["canonical_family_count"] == 31
-    assert payload["inventory"]["canonical_template_count"] == 31
+    assert payload["inventory"]["template_count"] == 37
+    assert payload["inventory"]["active_template_count"] == 37
+    assert payload["inventory"]["canonical_family_count"] == 37
+    assert payload["inventory"]["canonical_template_count"] == 37
     assert payload["inventory"]["legacy_alias_template_count"] == 0
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
@@ -124,7 +124,7 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
         "computed_in_template": 3,
         "illustration_shell": 1,
         "table_shell": 1,
-        "validated_summary_required": 26,
+        "validated_summary_required": 32,
     }
     assert payload["inventory"]["kind_counts"]["illustration_shell"] == 2
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
@@ -173,7 +173,7 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     assert payload["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert payload["template_surface_policy"]["template_analysis_responsibility_required"] is True
     assert payload["template_surface_policy"]["validated_summary_templates_fail_closed_on_raw_analysis_requests"] is True
-    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 66
+    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 79
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
     assert len(payload["composition_recipe_surface"]["recipes"]) == 6

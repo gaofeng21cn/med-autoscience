@@ -11,12 +11,12 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 - overall_status: `not_publication_ready`
 - publication_ready_claim_authorized: `false`
-- visual template count: `28`
+- visual template count: `34`
 - reporting flow visual template count: `1`
 - design visual template count: `1`
-- total Gallery visual template count: `30`
+- total Gallery visual template count: `36`
 - non-visual inventory count: `3`
-- lower-bound review required: `28`
+- lower-bound review required: `34`
 - blocked evidence templates: `0`
 - blocked gallery visual templates: `1`
 - publication polish policy: `mas_publication_polish_policy.v1`
@@ -113,13 +113,17 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 | Template | Category | Renderer | Status | Blockers |
 | --- | --- | --- | --- | --- |
+| `alluvial_transition` | Longitudinal and Patient Trajectory | r_ggplot2 | `lower_bound_review_required` | none |
 | `calibration_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
 | `celltype_marker_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `cnv_recurrence_summary_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `coefficient_path_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
+| `composition_stacked_bar` | Population and Baseline | r_ggplot2 | `lower_bound_review_required` | none |
 | `confusion_matrix_heatmap_binary` | Matrix Pattern | r_ggplot2 | `lower_bound_review_required` | none |
+| `correlation_scatter` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `cumulative_incidence_grouped` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `decision_curve_binary` | Clinical Utility | r_ggplot2 | `lower_bound_review_required` | none |
+| `distribution_violin_box` | Population and Baseline | r_ggplot2 | `lower_bound_review_required` | none |
 | `forest_effect_main` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `generalizability_subgroup_composite_panel` | Generalizability | r_ggplot2 | `lower_bound_review_required` | none |
 | `genomic_alteration_consequence_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
@@ -131,6 +135,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | `pathway_enrichment_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `pca_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
 | `pr_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
+| `radar_profile` | Population and Baseline | r_ggplot2 | `lower_bound_review_required` | none |
 | `risk_layering_monotonic_bars` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `roc_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
 | `shap_dependence_panel` | Model Explanation | r_ggplot2 | `lower_bound_review_required` | none |
@@ -141,19 +146,23 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | `time_to_event_multihorizon_calibration_panel` | Time-to-Event | r_ggplot2 | `lower_bound_review_required` | none |
 | `tsne_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
 | `umap_scatter_grouped` | Data Geometry | r_ggplot2 | `lower_bound_review_required` | none |
+| `waterfall_response` | Clinical Trial Response and Safety | r_ggplot2 | `lower_bound_review_required` | none |
 
 ## 分类完成度
 
 | Category | Status | Completion | Gallery visual | R/ggplot2 evidence | Current Python evidence |
 | --- | --- | ---: | ---: | ---: | ---: |
+| Clinical Trial Response and Safety | `done` | 100% | 1 | 1 | 0 |
 | Clinical Utility | `done` | 100% | 2 | 2 | 0 |
 | Data Geometry | `done` | 100% | 3 | 3 | 0 |
-| Effect Estimate | `done` | 100% | 2 | 2 | 0 |
+| Effect Estimate | `done` | 100% | 3 | 3 | 0 |
 | Generalizability | `done` | 100% | 1 | 1 | 0 |
 | Genomic and Omics | `done` | 100% | 6 | 6 | 0 |
+| Longitudinal and Patient Trajectory | `done` | 100% | 1 | 1 | 0 |
 | Matrix Pattern | `done` | 100% | 2 | 2 | 0 |
 | Model Audit | `done` | 100% | 1 | 1 | 0 |
 | Model Explanation | `done` | 100% | 3 | 3 | 0 |
+| Population and Baseline | `done` | 100% | 3 | 3 | 0 |
 | Prediction Performance | `done` | 100% | 3 | 3 | 0 |
 | Publication Shells and Tables | `done` | 100% | 0 | 0 | 0 |
 | Time-to-Event | `done` | 100% | 5 | 5 | 0 |

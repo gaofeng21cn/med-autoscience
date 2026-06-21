@@ -104,7 +104,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 28
+    assert len(r_templates) == 34
 
 
 def test_cohort_flow_checked_in_renderer_uses_ggconsort_without_installing_packages() -> None:
@@ -144,10 +144,10 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
 
     records_by_template = {item["template_id"]: item for item in records}
     assert sorted(records_by_template) == sorted(manifest_ids)
-    assert ledger["summary"]["current_template_count"] == 31
-    assert ledger["summary"]["current_evidence_template_count"] == 28
-    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 28
-    assert ledger["summary"]["retired_alias_template_count"] == 35
+    assert ledger["summary"]["current_template_count"] == 37
+    assert ledger["summary"]["current_evidence_template_count"] == 34
+    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 34
+    assert ledger["summary"]["retired_alias_template_count"] == 42
     assert ledger["summary"]["python_evidence_retained_count"] == 0
     assert "retired_python_evidence_template_count" not in ledger["summary"]
     assert "retired_python_evidence_template_ids" not in ledger
@@ -170,7 +170,7 @@ def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> Non
         and item["renderer_family"] == "r_ggplot2"
     ]
 
-    assert len(current_records) == 28
+    assert len(current_records) == 34
     for record in current_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
         render_path = template_root / "render.R"
@@ -194,8 +194,9 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     candidate_profile = next(
         item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_p1_comparison_subprocess_v1"
     )
-    package_names = {item["name"] for item in r_profile["language_packages"]["r"]}
-    packages_by_name = {item["name"]: item for item in r_profile["language_packages"]["r"]}
+    r_packages = r_profile["language_packages"]["r"]
+    package_names = {item["name"] for item in r_packages}
+    packages_by_name = {item["name"]: item for item in r_packages}
     reporting_flow_packages = {item["name"]: item for item in reporting_flow_profile["language_packages"]["r"]}
 
     assert r_profile["renderer_family"] == "r_ggplot2"

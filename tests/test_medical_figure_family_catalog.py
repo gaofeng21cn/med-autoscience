@@ -65,7 +65,7 @@ def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
     assert {"statistical_estimand", "source_data_and_statistics_refs", "auditability"} <= set(
         policy["default_ai_must_preserve"]
     )
-    assert len(catalog.starter_recipes) == 74
+    assert len(catalog.starter_recipes) == 76
     assert set(catalog.starter_recipes_by_id) == {
         recipe_ref
         for family in catalog.families_by_id.values()

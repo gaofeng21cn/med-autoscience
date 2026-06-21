@@ -77,8 +77,12 @@
         "RECIST",
         "tumor reduction"
       ],
-      "external_refs": [],
-      "template_seed_ids": [],
+      "external_refs": [
+        "lidocaineq_figure_template"
+      ],
+      "template_seed_ids": [
+        "waterfall_response"
+      ],
       "ai_adaptation_notes": "AI may add threshold lines and mutation annotations when they support the response claim."
     },
     {

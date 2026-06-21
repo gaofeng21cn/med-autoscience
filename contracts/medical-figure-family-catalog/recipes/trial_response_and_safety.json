@@ -37,7 +37,7 @@
       "family_id": "waterfall_response",
       "title": "Waterfall Response starter",
       "purpose": "Create a first renderable, auditable lower-bound figure for Show best percentage change in lesion burden or biomarker response by patient.",
-      "starter_kind": "contract_only_seed",
+      "starter_kind": "display_pack_seeded",
       "panel_grammar": "ordered_bar_or_waterfall_panel",
       "required_data_roles": [
         "patient_id",
@@ -45,7 +45,9 @@
         "response_class",
         "subgroup"
       ],
-      "recommended_template_seed_ids": [],
+      "recommended_template_seed_ids": [
+        "waterfall_response"
+      ],
       "style_tokens": [
         "clinical_journal"
       ],
