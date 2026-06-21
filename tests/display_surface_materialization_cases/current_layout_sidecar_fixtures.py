@@ -204,7 +204,7 @@ def minimal_current_layout_sidecar(template_id: str) -> dict[str, object] | None
     short_id = get_template_short_id(template_id) if "::" in template_id else template_id
     try:
         display_registry.get_evidence_figure_spec(short_id)
-    except KeyError:
+    except (KeyError, ValueError):
         return None
 
     if short_id in {"roc_curve_binary", "pr_curve_binary", "calibration_curve_binary", "decision_curve_binary"}:
