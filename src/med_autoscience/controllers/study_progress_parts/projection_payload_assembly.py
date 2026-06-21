@@ -640,6 +640,15 @@ def _refresh_rebuilt_current_owner_action_surfaces(
         )
     )
     refreshed = _sync_progress_first_owner_action_admission(refreshed)
+    refreshed["paper_recovery_state"] = build_paper_recovery_state(refreshed)
+    refreshed.update(
+        provider_admission_projection_fields(
+            payload=refreshed,
+            handoff=effective_handoff,
+            study_root=study_root,
+        )
+    )
+    refreshed = _sync_progress_first_owner_action_admission(refreshed)
     refreshed["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
         {**refreshed, "execution_owner_guard": execution_owner_guard}
     )

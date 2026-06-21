@@ -494,6 +494,101 @@ def test_matching_owner_gate_event_supersedes_current_typed_blocker() -> None:
     ]
 
 
+def test_successor_owner_gate_blocker_supersedes_prior_owner_receipt() -> None:
+    successor_fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "progress_first_monitoring_summary": {
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "owner_receipt_recorded",
+                    "owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "state": {
+                        "state_kind": "owner_receipt_recorded",
+                        "owner_receipt_ref": "studies/003/artifacts/controller/gate_clearing_batch/latest.json",
+                    },
+                }
+            },
+            "paper_recovery_state": {
+                "surface_kind": "paper_recovery_state",
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "owner": "write",
+                    "provider_admission_allowed": False,
+                    "successor_owner_action": {
+                        "action_type": "request_opl_stage_attempt",
+                        "owner": "write",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": successor_fingerprint,
+                    },
+                },
+            },
+            "study_intervention_events": [
+                {
+                    "surface": "study_intervention_event",
+                    "intent": "owner_gate_decision",
+                    "event_id": "intervention-event-000002-cd6e1991896a2d4d",
+                    "payload": {
+                        "decision": "deny_and_stable_typed_blocker",
+                        "provider_admission_allowed": False,
+                        "human_gate_ref": "human_gate:owner-gate-decision:d6d895635654560a85573c04",
+                        "owner_gate_decision_ref": "owner-gate-decision:d6d895635654560a85573c04",
+                        "stable_typed_blocker_ref": (
+                            "stable_typed_blocker:owner-gate-decision:"
+                            "d6d895635654560a85573c04"
+                        ),
+                        "current_owner_identity": {
+                            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                            "action_type": "request_opl_stage_attempt",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "work_unit_fingerprint": successor_fingerprint,
+                            "blocker_type": "runtime_recovery_retry_budget_exhausted",
+                        },
+                    },
+                }
+            ],
+        }
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "accepted_owner_gate_decision",
+            "decision": "deny_and_stable_typed_blocker",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "honor_stable_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["evidence_refs"] == [
+        "human_gate:owner-gate-decision:d6d895635654560a85573c04",
+        "owner-gate-decision:d6d895635654560a85573c04",
+        "stable_typed_blocker:owner-gate-decision:d6d895635654560a85573c04",
+    ]
+
+
 def test_observe_only_diagnostic_does_not_block_provider_admission() -> None:
     state = _module().build_paper_recovery_state(
         {

@@ -17,7 +17,17 @@ def matching_owner_gate_decision_event(
         payload = _mapping(event.get("payload"))
         if _owner_gate_identity_matches_obligation(payload, obligation=obligation):
             return dict(event)
+        if _owner_gate_identity_matches_current_execution(payload, progress=progress):
+            return dict(event)
     return None
+
+
+def owner_gate_decision_matches_obligation(
+    payload: Mapping[str, Any],
+    *,
+    obligation: Mapping[str, Any],
+) -> bool:
+    return _owner_gate_identity_matches_obligation(payload, obligation=obligation)
 
 
 def owner_gate_decision_refs(payload: Mapping[str, Any]) -> list[str]:
@@ -74,6 +84,56 @@ def _owner_gate_identity_matches_obligation(
     return _text(payload.get("human_gate_ref")) is not None
 
 
+def _owner_gate_identity_matches_current_execution(
+    payload: Mapping[str, Any],
+    *,
+    progress: Mapping[str, Any],
+) -> bool:
+    identity = _mapping(payload.get("current_owner_identity"))
+    if not identity or _text(payload.get("human_gate_ref")) is None:
+        return False
+    return any(
+        _owner_gate_identity_matches_source(identity, source)
+        for source in _current_execution_identity_sources(progress)
+    )
+
+
+def _current_execution_identity_sources(progress: Mapping[str, Any]) -> list[dict[str, Any]]:
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    recovery_next_action = _mapping(recovery.get("next_safe_action"))
+    sources = [
+        _mapping(progress.get("current_executable_owner_action")),
+        _mapping(progress.get("current_work_unit")),
+        _mapping(progress.get("current_execution_envelope")),
+        _mapping(recovery_next_action.get("accepted_owner_gate_decision")),
+        _mapping(recovery_next_action.get("successor_owner_action")),
+    ]
+    for key in ("provider_admission_candidates", "transition_request_candidates"):
+        sources.extend(_mapping(item) for item in progress.get(key) or [])
+    return [source for source in sources if source]
+
+
+def _owner_gate_identity_matches_source(
+    identity: Mapping[str, Any],
+    source: Mapping[str, Any],
+) -> bool:
+    source_study_id = _text(source.get("study_id"))
+    if source_study_id is not None and _text(identity.get("study_id")) not in {None, source_study_id}:
+        return False
+    for field in ("action_type", "work_unit_id", "work_unit_fingerprint"):
+        if _text(identity.get(field)) != _source_identity_field(source, field):
+            return False
+    return True
+
+
+def _source_identity_field(source: Mapping[str, Any], field: str) -> str | None:
+    if field == "work_unit_fingerprint":
+        return _text(source.get("work_unit_fingerprint")) or _text(source.get("action_fingerprint"))
+    if field == "work_unit_id":
+        return _text(source.get("work_unit_id")) or _text(source.get("next_work_unit"))
+    return _text(source.get(field))
+
+
 def _blocker_types_match(candidate: str | None, blocker_type: str | None) -> bool:
     if candidate == blocker_type:
         return True
@@ -112,5 +172,6 @@ def _dedupe(values: list[str | None]) -> list[str]:
 __all__ = [
     "accepted_owner_gate_decision",
     "matching_owner_gate_decision_event",
+    "owner_gate_decision_matches_obligation",
     "owner_gate_decision_refs",
 ]

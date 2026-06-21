@@ -297,6 +297,10 @@ def _build_recovery_state_unless_successor_current(
     if (
         _paper_recovery_successor_state_current(recovery)
         and _action_source(current_action) in {None, "paper_recovery_state.next_safe_action.successor_owner_action"}
+        and not _owner_gate_decision_targets_current_execution(
+            recovery_payload,
+            current_action=current_action,
+        )
         and not _terminal_typed_blocker_supersedes_recovery_successor(
             recovery_payload,
             recovery=recovery,
@@ -346,6 +350,80 @@ def _paper_recovery_successor_state_current(recovery: Mapping[str, Any]) -> bool
         bool(successor.get("action_type"))
         and bool(successor.get("work_unit_id"))
         and bool(successor.get("work_unit_fingerprint") or successor.get("action_fingerprint"))
+    )
+
+
+def _owner_gate_decision_targets_current_execution(
+    payload: Mapping[str, Any],
+    *,
+    current_action: Mapping[str, Any] | None,
+) -> bool:
+    recovery_next_action = _mapping_copy(
+        _mapping_copy(payload.get("paper_recovery_state")).get("next_safe_action")
+    )
+    sources = [
+        _mapping_copy(current_action),
+        _mapping_copy(payload.get("current_work_unit")),
+        _mapping_copy(payload.get("current_execution_envelope")),
+        _mapping_copy(recovery_next_action.get("successor_owner_action")),
+        _mapping_copy(recovery_next_action.get("accepted_owner_gate_decision")),
+        *[
+            _mapping_copy(item)
+            for item in payload.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ],
+        *[
+            _mapping_copy(item)
+            for item in payload.get("transition_request_candidates") or []
+            if isinstance(item, Mapping)
+        ],
+    ]
+    for event in payload.get("study_intervention_events") or []:
+        event_payload = _mapping_copy(event)
+        if _text(event_payload.get("intent")) != "owner_gate_decision":
+            continue
+        decision_payload = _mapping_copy(event_payload.get("payload"))
+        identity = _mapping_copy(decision_payload.get("current_owner_identity"))
+        if not _owner_gate_decision_has_owner_answer(decision_payload):
+            continue
+        if any(_execution_identity_matches(source, identity=identity) for source in sources):
+            return True
+    return False
+
+
+def _owner_gate_decision_has_owner_answer(payload: Mapping[str, Any]) -> bool:
+    return any(
+        _text(payload.get(key)) is not None
+        for key in (
+            "human_gate_ref",
+            "stable_typed_blocker_ref",
+            "route_back_evidence_ref",
+            "owner_gate_decision_ref",
+        )
+    )
+
+
+def _execution_identity_matches(
+    source: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    expected_action = _text(identity.get("action_type"))
+    expected_work_unit = _text(identity.get("work_unit_id"))
+    expected_fingerprint = _text(identity.get("work_unit_fingerprint")) or _text(
+        identity.get("action_fingerprint")
+    )
+    if expected_action is None or expected_work_unit is None or expected_fingerprint is None:
+        return False
+    source_action = _text(source.get("action_type"))
+    source_work_unit = _text(source.get("work_unit_id")) or _text(source.get("next_work_unit"))
+    source_fingerprint = _text(source.get("work_unit_fingerprint")) or _text(
+        source.get("action_fingerprint")
+    )
+    return (
+        source_action == expected_action
+        and source_work_unit == expected_work_unit
+        and source_fingerprint == expected_fingerprint
     )
 
 

@@ -31,6 +31,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
 from med_autoscience.controllers.paper_recovery_state_parts.owner_gate_decision import (
     accepted_owner_gate_decision as _accepted_owner_gate_decision,
     matching_owner_gate_decision_event as _matching_owner_gate_decision_event,
+    owner_gate_decision_matches_obligation as _owner_gate_decision_matches_obligation,
     owner_gate_decision_refs as _owner_gate_decision_refs,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.provider_admission_state import (
@@ -97,22 +98,23 @@ def build_paper_recovery_state(
 
     owner_gate_event = _matching_owner_gate_decision_event(progress, obligation=obligation)
     if owner_gate_event is not None:
-        owner_receipt = _same_work_unit_owner_receipt(
-            progress,
-            current_work_unit=current_work_unit,
-            current_action=current_action,
-            obligation=obligation,
-        )
-        if owner_receipt is not None:
-            owner_receipt_state = _owner_receipt_state(
-                progress,
-                obligation=obligation,
-                owner_receipt=owner_receipt,
-                diagnostic_report=diagnostic,
-            )
-            if owner_receipt_state is not None:
-                return owner_receipt_state
         owner_gate_payload = _mapping(owner_gate_event.get("payload"))
+        if _owner_gate_decision_matches_obligation(owner_gate_payload, obligation=obligation):
+            owner_receipt = _same_work_unit_owner_receipt(
+                progress,
+                current_work_unit=current_work_unit,
+                current_action=current_action,
+                obligation=obligation,
+            )
+            if owner_receipt is not None:
+                owner_receipt_state = _owner_receipt_state(
+                    progress,
+                    obligation=obligation,
+                    owner_receipt=owner_receipt,
+                    diagnostic_report=diagnostic,
+                )
+                if owner_receipt_state is not None:
+                    return owner_receipt_state
         decision = _text(owner_gate_payload.get("decision"))
         phase = "human_gate"
         next_action_kind = "resolve_owner_gate_decision"
