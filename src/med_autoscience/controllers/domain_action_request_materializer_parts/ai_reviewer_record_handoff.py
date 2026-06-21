@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,13 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execu
     build_ai_reviewer_record_worker_handoff,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_record_currentness import (
+    record_currentness_covers_ref,
+)
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_record_production_consumption import (
+    currentness_check_mappings,
+    currentness_check_matches_live_ref,
+)
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route_attempt_protocol
@@ -187,6 +195,13 @@ def _record_production_satisfaction(
         return None
     if not required_currentness_refs and not route_basis_matched:
         return None
+    missing_currentness_refs = _record_missing_required_currentness_refs(
+        study_root=study_root,
+        record=record,
+        required_currentness_refs=required_currentness_refs,
+    )
+    if missing_currentness_refs:
+        return None
     return {
         "status": "satisfied",
         "reason": "ai_reviewer_record_production_output_satisfied",
@@ -195,6 +210,51 @@ def _record_production_satisfaction(
         "required_currentness_refs": list(required_currentness_refs),
         "owner_route_basis": _record_production_route_basis(owner_route) or None,
     }
+
+
+def _record_missing_required_currentness_refs(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any],
+    required_currentness_refs: list[str],
+) -> list[str]:
+    missing: list[str] = []
+    for ref in required_currentness_refs:
+        resolved = _resolved_text_ref(study_root=study_root, value=ref)
+        if resolved is None:
+            missing.append(ref)
+            continue
+        if not record_currentness_covers_ref(
+            study_root=study_root,
+            record=record,
+            required_ref=resolved,
+            mapping=_mapping,
+            text=_text,
+            sha256_file=_sha256_file,
+            resolved_text_ref=_resolved_text_ref,
+            currentness_check_mappings=currentness_check_mappings,
+            currentness_check_matches_live_ref=currentness_check_matches_live_ref,
+        ):
+            missing.append(resolved)
+    return missing
+
+
+def _sha256_file(path: Path) -> str | None:
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+    return f"sha256:{digest}"
+
+
+def _resolved_text_ref(*, study_root: Path, value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute():
+        path = study_root / path
+    return str(path.resolve())
 
 
 def _latest_record_matching_owner_route_basis(

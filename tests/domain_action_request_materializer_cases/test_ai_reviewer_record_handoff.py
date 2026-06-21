@@ -314,3 +314,135 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["written_files"] == []
     assert dispatch["record_production_satisfaction_ref"]["eval_id"] == eval_id
+
+
+def test_materialize_ai_reviewer_record_handoff_does_not_suppress_stale_current_inputs_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nA previous AI reviewer record exists.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    current_inputs_ref = study_root / "paper" / "claim_evidence_map.json"
+    _write_json(current_inputs_ref, {"claims": [{"claim_id": "current-input"}]})
+    basis = {
+        "truth_epoch": "truth-event-000041-current-inputs",
+        "runtime_health_epoch": "runtime-health-event-006617-current-inputs",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": "truth-snapshot::current-inputs-record",
+    }
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_record_stale_after_current_inputs",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    route["runtime_health_epoch"] = basis["runtime_health_epoch"]
+    route["work_unit_fingerprint"] = basis["work_unit_fingerprint"]
+    route["source_refs"]["owner_route_currentness_basis"] = basis
+    route["source_refs"]["work_unit_fingerprint"] = basis["work_unit_fingerprint"]
+    route["source_refs"]["work_unit_id"] = basis["work_unit_id"]
+    eval_id = "publication-eval::dm002::stale-inputs-record::2026-06-05T04:55:53+00:00::ai-reviewer"
+    record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-06-05T04:55:53+00:00",
+    )
+    record["assessment_provenance"]["owner_route_currentness_basis"] = basis
+    record["assessment_provenance"]["work_unit_id"] = basis["work_unit_id"]
+    record["assessment_provenance"]["work_unit_fingerprint"] = basis["work_unit_fingerprint"]
+    _write_json(
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260605T045553Z_publication_eval_record.json",
+        record,
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                "stale_record_ref": str(
+                    study_root
+                    / "artifacts"
+                    / "publication_eval"
+                    / "ai_reviewer_responses"
+                    / "20260605T045553Z_publication_eval_record.json"
+                ),
+                "required_currentness_refs": [str(current_inputs_ref.resolve())],
+            },
+            "input_contract": {
+                "required_refs": {
+                    "claim_evidence_map": {
+                        "path": str(current_inputs_ref.resolve()),
+                        "present": True,
+                        "valid": True,
+                    }
+                },
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+        },
+    )
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "authority": "observability_only",
+                    "owner": "ai_reviewer",
+                    "reason": "ai_reviewer_record_stale_after_current_inputs",
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "owner_route": route,
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatch = result["domain_progress_transition_requests"][0]
+    assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
+    assert dispatch["repeat_suppressed"] is False
+    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert "record_production_satisfaction_ref" not in dispatch
+    assert dispatch["source_action_ref"]["required_currentness_refs"] == [str(current_inputs_ref.resolve())]
+    assert dispatch["prompt_contract_ref"]["owner_callable_payload_ref"].endswith(
+        "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
+    )
+    assert result["repeat_suppressed_count"] == 0
+    assert result["transition_request_pending_domain_progress_transition_request_count"] == 1
+    assert result["written_files"] == []
