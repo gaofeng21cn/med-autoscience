@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 1800 1800">
+<defs>
+<marker id="arrowhead" markerWidth="12" markerHeight="9" refX="10" refY="4.5" orient="auto"><path d="M0,0 L12,4.5 L0,9 Z" fill="#13293D"/></marker>
+</defs>
+<rect width="1800" height="1800" fill="#FFFFFF"/><text x="108.00" y="153.00" font-family="Arial, Helvetica, sans-serif" font-size="44.00" font-weight="700" fill="#13293D">Cohort to risk-stratified care</text>
+<rect x="99.00" y="360.00" width="480.00" height="1053.00" rx="26.00" fill="#EEF4F7" stroke="#245A6B" stroke-width="3.00"/>
+<rect x="125.40" y="417.92" width="48.00" height="84.24" rx="42.12" fill="#245A6B" stroke="#245A6B" stroke-width="0.00"/>
+<text x="149.40" y="473.51" font-family="Arial, Helvetica, sans-serif" font-size="40.44" font-weight="700" fill="#FFFFFF" text-anchor="middle">A</text>
+<rect x="195.00" y="496.89" width="288.00" height="315.90" rx="20.00" fill="#FFFFFF" stroke="#245A6B" stroke-width="3.00"/>
+<circle cx="292.92" cy="629.57" r="17.37" fill="#245A6B"/>
+<line x1="292.92" y1="650.10" x2="292.92" y2="689.59" stroke="#245A6B" stroke-width="4"/>
+<circle cx="339.00" cy="610.61" r="17.37" fill="#245A6B"/>
+<line x1="339.00" y1="631.15" x2="339.00" y2="670.63" stroke="#245A6B" stroke-width="4"/>
+<circle cx="385.08" cy="632.73" r="17.37" fill="#245A6B"/>
+<line x1="385.08" y1="653.26" x2="385.08" y2="692.75" stroke="#245A6B" stroke-width="4"/>
+<circle cx="315.96" cy="689.59" r="17.37" fill="#245A6B"/>
+<line x1="315.96" y1="710.12" x2="315.96" y2="749.61" stroke="#245A6B" stroke-width="4"/>
+<circle cx="362.04" cy="692.75" r="17.37" fill="#245A6B"/>
+<line x1="362.04" y1="713.28" x2="362.04" y2="752.77" stroke="#245A6B" stroke-width="4"/>
+<text x="156.60" y="897.03" font-family="Arial, Helvetica, sans-serif" font-size="30.00" font-weight="700" fill="#13293D">Population</text>
+<text x="156.60" y="986.53" font-family="Arial, Helvetica, sans-serif" font-size="21.00" font-weight="400" fill="#64748B">Cohort locked before modeling</text>
+<rect x="156.60" y="1139.22" width="364.80" height="189.54" rx="22.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="185.78" y="1190.40" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">Analytic</text>
+<text x="185.78" y="1215.20" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">cohort</text>
+<text x="346.30" y="1207.45" font-family="Arial, Helvetica, sans-serif" font-size="38.00" font-weight="700" fill="#245A6B">15,120</text>
+<text x="346.30" y="1264.32" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">auditable...</text>
+<rect x="660.00" y="360.00" width="480.00" height="1053.00" rx="26.00" fill="#EEF4F7" stroke="#2166AC" stroke-width="3.00"/>
+<rect x="686.40" y="417.92" width="48.00" height="84.24" rx="42.12" fill="#2166AC" stroke="#2166AC" stroke-width="0.00"/>
+<text x="710.40" y="473.51" font-family="Arial, Helvetica, sans-serif" font-size="40.44" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+<rect x="756.00" y="496.89" width="288.00" height="315.90" rx="20.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="3.00"/>
+<polyline points="807.84,724.34 871.20,670.63 928.80,620.09 992.16,572.71" fill="none" stroke="#2166AC" stroke-width="5"/>
+<rect x="812.16" y="699.07" width="31.68" height="37.91" rx="8.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.00"/>
+<text x="828.00" y="724.84" font-family="Arial, Helvetica, sans-serif" font-size="22.11" font-weight="700" fill="#2166AC" text-anchor="middle">X</text>
+<rect x="884.16" y="699.07" width="31.68" height="37.91" rx="8.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.00"/>
+<text x="900.00" y="724.84" font-family="Arial, Helvetica, sans-serif" font-size="22.11" font-weight="700" fill="#2166AC" text-anchor="middle">f</text>
+<rect x="956.16" y="699.07" width="31.68" height="37.91" rx="8.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.00"/>
+<text x="972.00" y="724.84" font-family="Arial, Helvetica, sans-serif" font-size="22.11" font-weight="700" fill="#2166AC" text-anchor="middle">Y</text>
+<text x="717.60" y="897.03" font-family="Arial, Helvetica, sans-serif" font-size="30.00" font-weight="700" fill="#13293D">Model signal</text>
+<text x="717.60" y="986.53" font-family="Arial, Helvetica, sans-serif" font-size="21.00" font-weight="400" fill="#64748B">Primary endpoint risk ranking</text>
+<rect x="717.60" y="1139.22" width="364.80" height="189.54" rx="22.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="746.78" y="1190.40" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">Validation</text>
+<text x="746.78" y="1215.20" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">C-index</text>
+<text x="907.30" y="1207.45" font-family="Arial, Helvetica, sans-serif" font-size="38.00" font-weight="700" fill="#2166AC">0.86</text>
+<text x="907.30" y="1264.32" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">temporal...</text>
+<rect x="1221.00" y="360.00" width="480.00" height="1053.00" rx="26.00" fill="#EEF4F7" stroke="#8B3A3A" stroke-width="3.00"/>
+<rect x="1247.40" y="417.92" width="48.00" height="84.24" rx="42.12" fill="#8B3A3A" stroke="#8B3A3A" stroke-width="0.00"/>
+<text x="1271.40" y="473.51" font-family="Arial, Helvetica, sans-serif" font-size="40.44" font-weight="700" fill="#FFFFFF" text-anchor="middle">C</text>
+<rect x="1317.00" y="496.89" width="288.00" height="315.90" rx="20.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="3.00"/>
+<rect x="1409.16" y="585.34" width="103.68" height="56.86" rx="10.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="2.00"/>
+<text x="1461.00" y="623.44" font-family="Arial, Helvetica, sans-serif" font-size="22.11" font-weight="700" fill="#8B3A3A" text-anchor="middle">Risk</text>
+<rect x="1389.00" y="686.43" width="51.84" height="47.38" rx="10.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.00"/>
+<text x="1414.92" y="717.23" font-family="Arial, Helvetica, sans-serif" font-size="17.37" fill="#8B3A3A" text-anchor="middle">Low</text>
+<rect x="1481.16" y="686.43" width="51.84" height="47.38" rx="10.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.00"/>
+<text x="1507.08" y="717.23" font-family="Arial, Helvetica, sans-serif" font-size="17.37" fill="#8B3A3A" text-anchor="middle">High</text>
+<text x="1278.60" y="897.03" font-family="Arial, Helvetica, sans-serif" font-size="30.00" font-weight="700" fill="#13293D">Clinical use</text>
+<text x="1278.60" y="986.53" font-family="Arial, Helvetica, sans-serif" font-size="21.00" font-weight="400" fill="#64748B">Risk-stratified follow-up</text>
+<rect x="1278.60" y="1139.22" width="364.80" height="189.54" rx="22.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="1307.78" y="1190.40" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">High-risk</text>
+<text x="1307.78" y="1215.20" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">group</text>
+<text x="1468.30" y="1207.45" font-family="Arial, Helvetica, sans-serif" font-size="38.00" font-weight="700" fill="#8B3A3A">3.4x</text>
+<text x="1468.30" y="1264.32" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">event...</text>
+<line x1="600.60" y1="754.78" x2="638.40" y2="754.78" stroke="#13293D" stroke-width="4.0" marker-end="url(#arrowhead)"/>
+<line x1="1161.60" y1="754.78" x2="1199.40" y2="754.78" stroke="#13293D" stroke-width="4.0" marker-end="url(#arrowhead)"/>
+<rect x="216.00" y="1503.00" width="432.00" height="108.00" rx="22.00" fill="#DCEBF0" stroke="#245A6B" stroke-width="2.00"/>
+<text x="250.56" y="1565.64" font-family="Arial, Helvetica, sans-serif" font-size="19.00" font-weight="400" fill="#13293D">Cohort lock</text>
+<rect x="684.00" y="1503.00" width="432.00" height="108.00" rx="22.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.00"/>
+<text x="718.56" y="1565.64" font-family="Arial, Helvetica, sans-serif" font-size="19.00" font-weight="400" fill="#13293D">Model evidence</text>
+<rect x="1152.00" y="1503.00" width="432.00" height="108.00" rx="22.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="2.00"/>
+<text x="1186.56" y="1565.64" font-family="Arial, Helvetica, sans-serif" font-size="19.00" font-weight="400" fill="#13293D">Clinical message</text>
+</svg>

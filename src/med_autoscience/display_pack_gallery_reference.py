@@ -28,10 +28,16 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 - [生成状态](./display_pack_gallery_status.md)：从 manifest 生成的数量、路由和生成口径。
 - [质量审计](./display_pack_gallery_quality_audit.md)：从质量门生成的模板入库状态、风险项和论文使用前检查项。
 
-HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。需要重建时运行：
+HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。代码、payload 或 style 可能变化时运行默认增量构建：
 
 ```bash
 ./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
+```
+
+只调整 Gallery 文档组织、标题、索引或 PDF 打包，不需要重新渲染图资产时，运行 package-only 快速打包：
+
+```bash
+./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs --package-only
 ```
 
 ## 设计目的

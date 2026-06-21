@@ -1,11 +1,19 @@
 {
   "schema_version": 1,
   "surface_kind": "display_pack_gallery_docs_manifest",
-  "asset_ref_base": "outputs/display-pack-gallery",
+  "asset_ref_base": "docs/delivery/medical-display/examples",
   "asset_ref_docs_mirror": "docs/delivery/medical-display/examples",
-  "asset_ref_resolution": "template artifact refs are emitted relative to the generated gallery output root; docs manifest is a compact readback surface, not a copied asset bundle",
+  "asset_ref_resolution": "template artifact refs are emitted relative to this docs examples directory; medical_display_gallery_assets is copied with the PDF so Markdown and browser readers can resolve images",
   "source_manifest_schema_version": 9,
   "status": "rendered",
+  "force_render": true,
+  "package_only": false,
+  "render_cache_summary": {
+    "cache_hit": 0,
+    "cache_miss": 37,
+    "package_only": 0,
+    "cache_untracked": 0
+  },
   "html_path": "outputs/display-pack-gallery/medical_display_gallery.html",
   "pdf_path": "outputs/display-pack-gallery/medical_display_gallery.pdf",
   "quality_audit_path": "outputs/display-pack-gallery/display_pack_gallery_quality_audit.md",
@@ -17,7 +25,8 @@
   "evidence_gallery_template_count": 34,
   "reporting_flow_gallery_template_count": 1,
   "design_gallery_template_count": 1,
-  "visual_gallery_template_count": 36,
+  "table_preview_gallery_template_count": 1,
+  "visual_gallery_template_count": 37,
   "composition_recipe_gallery_count": 6,
   "current_template_count": 37,
   "non_visual_canonical_template_count": 3,
@@ -29,10 +38,12 @@
     "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
     "reporting_flow_gallery_default_surface": "canonical_current_validated_reporting_flow_shells",
     "design_gallery_default_surface": "canonical_current_non_statistical_illustration_shell_templates",
+    "table_preview_gallery_default_surface": "canonical_current_table_shell_preview_templates",
     "active_inventory_is_canonical_current_templates": true,
     "canonical_representatives_are_evidence_gallery_card_filter": true,
     "illustration_shells_are_design_gallery_cards": true,
     "validated_reporting_flow_shells_are_separate_gallery_cards": true,
+    "table_shells_keep_table_authority_but_may_have_gallery_preview_cards": true,
     "canonical_non_visual_inventory_preserved_in_manifest": true,
     "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": false,
     "explicit_alias_requests_migrate_to_canonical_template": true,
@@ -1029,11 +1040,12 @@
     "publication_ready_claim_authorized": false,
     "visual_template_count": 34,
     "design_visual_template_count": 1,
-    "total_gallery_visual_template_count": 36,
+    "table_preview_visual_template_count": 1,
+    "total_gallery_visual_template_count": 37,
     "non_visual_template_count": 3,
     "blocked_template_count": 0,
     "lower_bound_review_required_count": 34,
-    "gallery_lower_bound_admission_status": "gallery_lower_bound_blocked",
+    "gallery_lower_bound_admission_status": "gallery_lower_bound_passed_requires_paper_audit",
     "publication_quality_profile_coverage": {
       "schema_version": 1,
       "current_template_count": 37,
@@ -2783,11 +2795,11 @@
           }
         }
       ],
-      "preview_image_ref": "",
-      "image_ref": "",
+      "preview_image_ref": "medical_display_gallery_assets/cohort_flow_figure.png",
+      "image_ref": "medical_display_gallery_assets/cohort_flow_figure.png",
       "svg_ref": "",
-      "pdf_ref": "",
-      "layout_ref": ""
+      "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.pdf",
+      "layout_ref": "medical_display_gallery_assets/cohort_flow_figure.layout.json"
     }
   ],
   "design_gallery_templates": [
@@ -2807,6 +2819,23 @@
       "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
       "pdf_ref": "",
       "layout_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.layout.json"
+    }
+  ],
+  "table_preview_gallery_templates": [
+    {
+      "template_id": "table1_baseline_characteristics",
+      "canonical_family_id": "table1_baseline_characteristics",
+      "canonical_family_title": "Table 1 Baseline Characteristics",
+      "canonical_family_category": "Publication Shells and Tables",
+      "renderer_family": "n/a",
+      "analysis_responsibility": "table_shell",
+      "medical_family_ids": [
+        "table_one_baseline"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
+      "image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
+      "pdf_ref": "medical_display_gallery_assets/table1_baseline_characteristics.pdf",
+      "layout_ref": "medical_display_gallery_assets/table1_baseline_characteristics.layout.json"
     }
   ]
 }

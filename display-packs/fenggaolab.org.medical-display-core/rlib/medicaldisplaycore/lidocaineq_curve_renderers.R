@@ -335,9 +335,14 @@ plot_lidocaine_multihorizon_calibration <- function(display_payload) {
     coord_equal(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "Multi-horizon calibration"),
-      subtitle = lidocaine_curve_subtitle(display_payload, "Time-to-event predicted risk reliability"),
+      subtitle = lidocaine_wrap_label(lidocaine_curve_subtitle(display_payload, "Time-to-event predicted risk reliability"), 72),
       x = lidocaine_non_empty(display_payload$x_label, "Predicted risk"),
       y = lidocaine_non_empty(display_payload$y_label, "Observed risk")
     ) +
-    lidocaine_publication_theme(display_payload)
+    lidocaine_publication_theme(display_payload) +
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      plot.margin = margin(10, 10, 14, 16, unit = "pt")
+    )
 }

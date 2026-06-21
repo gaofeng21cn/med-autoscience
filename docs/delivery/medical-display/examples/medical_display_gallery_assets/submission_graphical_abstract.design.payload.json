@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "shell_id": "fenggaolab.org.medical-display-core::submission_graphical_abstract",
+  "display_id": "submission_graphical_abstract",
+  "catalog_id": "GA1",
+  "paper_role": "submission_companion",
+  "layout_style": "square_storyline",
+  "title": "Cohort to risk-stratified care",
+  "caption": "Synthetic graphical abstract preview for the Display Pack Gallery.",
+  "panels": [
+    {
+      "panel_id": "population",
+      "panel_label": "A",
+      "visual_role": "population",
+      "evidence_token": "n=15,120",
+      "title": "Population",
+      "subtitle": "Cohort locked before modeling",
+      "rows": [
+        {
+          "cards": [
+            {
+              "card_id": "cohort",
+              "title": "Analytic cohort",
+              "value": "15,120",
+              "evidence_token": "n=15,120",
+              "detail": "auditable outcomes",
+              "accent_role": "primary"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "panel_id": "model_signal",
+      "panel_label": "B",
+      "visual_role": "model_signal",
+      "evidence_token": "C=0.86",
+      "title": "Model signal",
+      "subtitle": "Primary endpoint risk ranking",
+      "rows": [
+        {
+          "cards": [
+            {
+              "card_id": "c_index",
+              "title": "Validation C-index",
+              "value": "0.86",
+              "evidence_token": "C=0.86",
+              "detail": "temporal holdout",
+              "accent_role": "contrast"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "panel_id": "clinical_use",
+      "panel_label": "C",
+      "visual_role": "clinical_use",
+      "evidence_token": "3.4x",
+      "title": "Clinical use",
+      "subtitle": "Risk-stratified follow-up",
+      "rows": [
+        {
+          "cards": [
+            {
+              "card_id": "risk_group",
+              "title": "High-risk group",
+              "value": "3.4x",
+              "evidence_token": "3.4x",
+              "detail": "event enrichment",
+              "accent_role": "secondary"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "footer_pills": [
+    {
+      "pill_id": "p1",
+      "panel_id": "population",
+      "label": "Cohort lock",
+      "style_role": "primary"
+    },
+    {
+      "pill_id": "p2",
+      "panel_id": "model_signal",
+      "label": "Model evidence",
+      "style_role": "contrast"
+    },
+    {
+      "pill_id": "p3",
+      "panel_id": "clinical_use",
+      "label": "Clinical message",
+      "style_role": "secondary"
+    }
+  ]
+}

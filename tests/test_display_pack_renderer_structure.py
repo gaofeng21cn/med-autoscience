@@ -4,6 +4,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 import json
 import subprocess
 import tempfile
@@ -140,6 +141,36 @@ def test_cohort_flow_checked_in_renderer_uses_ggconsort_without_installing_packa
         assert call in source
 
 
+def test_alluvial_transition_checked_in_renderer_uses_ggalluvial_without_fallback_or_installs() -> None:
+    manifest_path = CORE_PACK_ROOT / "templates" / "alluvial_transition" / "template.toml"
+    render_path = CORE_PACK_ROOT / "templates" / "alluvial_transition" / "render.R"
+    renderer_source = (
+        CORE_PACK_ROOT
+        / "rlib"
+        / "medicaldisplaycore"
+        / "lidocaineq_publication_renderers.R"
+    ).read_text(encoding="utf-8")
+    payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert payload["renderer_family"] == "r_ggplot2"
+    assert payload["execution_mode"] == "subprocess"
+    assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert render_path.is_file()
+    assert 'requireNamespace("ggalluvial", quietly = TRUE)' in renderer_source
+    assert "ggalluvial::geom_alluvium" in renderer_source
+    assert "ggalluvial::geom_stratum" in renderer_source
+    assert "ggalluvial::stat_stratum" in renderer_source
+    assert "build_alluvial_segment_dataframe" not in renderer_source
+    for forbidden in (
+        "install.packages",
+        "pak::",
+        "renv::install",
+        "remotes::install",
+        "BiocManager::install",
+    ):
+        assert forbidden not in renderer_source
+
+
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
     records = ledger["records"]
@@ -197,6 +228,9 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     reporting_flow_profile = next(
         item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
     )
+    alluvial_profile = next(
+        item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_alluvial_transition_v1"
+    )
     candidate_profile = next(
         item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_p1_comparison_subprocess_v1"
     )
@@ -208,9 +242,21 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert r_profile["renderer_family"] == "r_ggplot2"
     assert r_profile["execution_mode"] == "subprocess"
     assert r_profile["entrypoint_pattern"] == "Rscript render.R --request {request_json}"
-    assert {"jsonlite", "ggplot2", "ggsci", "grid", "patchwork"} <= package_names
+    assert {"jsonlite", "ggplot2", "ggsci", "grid", "patchwork", "gridExtra"} <= package_names
     assert packages_by_name["patchwork"]["template_ids"] == ["kaplan_meier_grouped"]
     assert packages_by_name["patchwork"]["required"] is True
+    assert packages_by_name["gridExtra"]["template_ids"] == ["table1_baseline_characteristics"]
+    assert packages_by_name["gridExtra"]["required"] is True
+    assert "ggalluvial" not in package_names
+    alluvial_packages = {item["name"]: item for item in alluvial_profile["language_packages"]["r"]}
+    assert alluvial_profile["template_ids"] == [
+        "alluvial_transition",
+        "fenggaolab.org.medical-display-core::alluvial_transition",
+    ]
+    assert alluvial_profile["surface_role"] == "ggalluvial_capable_state_transition_dependency_intent"
+    assert alluvial_packages["ggalluvial"]["required"] is True
+    assert alluvial_profile["render_contract"]["checked_in_renderer_uses_ggalluvial"] is True
+    assert alluvial_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
     assert packages_by_name["Rtsne"]["template_ids"] == ["tsne_scatter_grouped"]
     assert packages_by_name["uwot"]["template_ids"] == ["umap_scatter_grouped"]
     assert r_profile["shared_helper_ref"] == "rlib/medicaldisplaycore/evidence_renderer.R"
@@ -307,29 +353,338 @@ def test_docs_gallery_manifest_reports_complete_lidocaineq_coverage_when_built()
     }
     assert all(item["do_not_restore_legacy_alias"] is True for item in retired_alias_items.values())
     assert {item["legacy_alias_status"] for item in retired_alias_items.values()} == {"retired_do_not_restore"}
-    assert manifest["asset_ref_base"] == "outputs/display-pack-gallery"
+    assert manifest["surface_kind"] == "display_pack_gallery_docs_manifest"
+    assert manifest["asset_ref_base"] == "docs/delivery/medical-display/examples"
     assert manifest["asset_ref_docs_mirror"] == "docs/delivery/medical-display/examples"
+    assert manifest["source_manifest_schema_version"] == 9
+    assert manifest["quality_summary"]["gallery_lower_bound_admission_status"] == (
+        "gallery_lower_bound_passed_requires_paper_audit"
+    )
 
 
-def test_gallery_builder_stdout_reports_lidocaineq_coverage_contract() -> None:
+def test_gallery_builder_fails_closed_without_opl_dependency_run_context(tmp_path: Path) -> None:
     script_path = REPO_ROOT / "scripts" / "build-display-pack-gallery.py"
+    env = dict(os.environ)
+    env.pop("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_PATH", None)
+    env.pop("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_REF", None)
+    env.pop("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_FINGERPRINT", None)
     result = subprocess.run(
-        [sys.executable, str(script_path)],
+        [
+            sys.executable,
+            str(script_path),
+            "--force-render",
+            "--output-root",
+            str(tmp_path / "gallery-output"),
+        ],
         cwd=REPO_ROOT,
-        env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
+        env={**env, "PYTHONPATH": str(REPO_ROOT / "src")},
         capture_output=True,
         text=True,
         check=False,
         timeout=120,
     )
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["lidocaineq_reference_template_count"] == 33
-    assert payload["lidocaineq_covered_reference_template_count"] == 33
-    assert payload["lidocaineq_reference_coverage_complete"] is True
-    assert payload["lidocaineq_missing_or_downgraded_reference_template_ids"] == []
-    assert payload["lidocaineq_replacement_template_count"] == 15
-    assert payload["lidocaineq_do_not_restore_legacy_alias_count"] == 6
+    assert result.returncode != 0
+    assert "requires OPL-prepared dependency run-context" in result.stderr
+
+
+def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_path: Path) -> None:
+    from med_autoscience.display_pack_gallery_catalog import TemplateRecord
+    from med_autoscience.display_pack_gallery_parts import paths
+    from med_autoscience.display_pack_gallery_parts import rendering
+
+    paths.configure_output_paths(tmp_path / "gallery")
+    run_context_path = tmp_path / "dependency_run_context.json"
+    run_context_path.write_text(
+        json.dumps(
+                {
+                    "surface_kind": "opl_runtime_environment_dependency_run_context",
+                    "status": "prepared",
+                    "selected_requirement_profile_ids": [
+                        "r_ggplot2_evidence_subprocess_v1",
+                        "r_ggplot2_alluvial_transition_v1",
+                    ],
+                    "binary_paths": {"Rscript": "/opt/opl/bin/Rscript"},
+                    "env_vars": {
+                    "OPL_RUNTIME_ENVIRONMENT_STATUS": "prepared",
+                    "R_LIBS_USER": str(tmp_path / "opl-managed-r-lib"),
+                },
+                "execution_fingerprint": "sha256:test-opl-run-context",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_PATH", str(run_context_path))
+    monkeypatch.setenv("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_FINGERPRINT", "sha256:test-opl-run-context")
+    monkeypatch.setattr(
+        rendering,
+        "_load_r_gallery_payload",
+        lambda template_id, seed_payloads: {"title": template_id},
+    )
+    monkeypatch.setattr(
+        "med_autoscience.display_pack_gallery_parts.dependency_run_context._missing_required_r_packages",
+        lambda **kwargs: [],
+    )
+
+    record = TemplateRecord(
+        template_id="alluvial_transition",
+        full_template_id="fenggaolab.org.medical-display-core::alluvial_transition",
+        display_name="Alluvial Transition",
+        kind="evidence_figure",
+        audit_family="Publication",
+        renderer_family="r_ggplot2",
+        execution_mode="subprocess",
+        entrypoint="Rscript render.R --request {request_json}",
+        paper_proven=False,
+        required_exports=("png", "pdf"),
+        template_dir=CORE_PACK_ROOT / "templates" / "alluvial_transition",
+        canonical_family_id="",
+        canonical_family_title="",
+        canonical_family_category="",
+        canonical_template_id="alluvial_transition",
+        figure_archetype="",
+        migration_status="canonical",
+        default_visible=True,
+        migrated_alias_template_ids=(),
+        migration_reason="",
+        analysis_responsibility="",
+        analysis_input_state="",
+        medical_family_ids=(),
+        publication_quality_profile={},
+    )
+    preview_record = TemplateRecord(
+        template_id="table1_baseline_characteristics",
+        full_template_id="fenggaolab.org.medical-display-core::table1_baseline_characteristics",
+        display_name="Table 1 Baseline Characteristics",
+        kind="table_shell",
+        audit_family="Publication Shells and Tables",
+        renderer_family="n/a",
+        execution_mode="python_plugin",
+        entrypoint="fenggaolab_org_medical_display_core.table_shells:render_table_shell",
+        paper_proven=False,
+        required_exports=("csv", "md"),
+        template_dir=CORE_PACK_ROOT / "templates" / "table1_baseline_characteristics",
+        canonical_family_id="",
+        canonical_family_title="",
+        canonical_family_category="",
+        canonical_template_id="table1_baseline_characteristics",
+        figure_archetype="",
+        migration_status="canonical",
+        default_visible=True,
+        migrated_alias_template_ids=(),
+        migration_reason="",
+        analysis_responsibility="",
+        analysis_input_state="",
+        medical_family_ids=(),
+        publication_quality_profile={},
+    )
+    calls: list[dict[str, object]] = []
+    png_bytes = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+        b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc```\x00\x00"
+        b"\x00\x04\x00\x01\xf6\x178U\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+
+    def fake_run(argv, *, cwd, capture_output, text, check, timeout, env):
+        request_path = Path(argv[-1])
+        request_payload = json.loads(request_path.read_text(encoding="utf-8"))
+        calls.append(
+            {
+                "argv": list(argv),
+                "env": dict(env),
+                "request": request_payload,
+                "cwd": Path(cwd),
+            }
+        )
+        Path(request_payload["output_png_path"]).parent.mkdir(parents=True, exist_ok=True)
+        Path(request_payload["output_png_path"]).write_bytes(png_bytes)
+        Path(request_payload["output_pdf_path"]).write_bytes(b"%PDF-1.4\n")
+        Path(request_payload["layout_sidecar_path"]).write_text(
+            json.dumps({"template_id": request_payload["short_template_id"]}) + "\n",
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(rendering.subprocess, "run", fake_run)
+
+    rendering._render_r_template(record, {}, force_render=True)
+    rendering._render_r_gallery_preview(preview_record, {}, force_render=True)
+
+    assert len(calls) == 2
+    assert {call["request"]["short_template_id"] for call in calls} == {
+        "alluvial_transition",
+        "table1_baseline_characteristics",
+    }
+    for call in calls:
+        assert call["argv"][0] == "/opt/opl/bin/Rscript"
+        assert call["env"]["R_LIBS_USER"] == str(tmp_path / "opl-managed-r-lib")
+        assert call["env"]["OPL_RUNTIME_ENVIRONMENT_STATUS"] == "prepared"
+        assert call["request"]["dependency_environment"] == {
+            "status": "prepared",
+            "run_context_ref": str(run_context_path),
+            "run_context_fingerprint": "sha256:test-opl-run-context",
+            "required_profile_ids": (
+                "r_ggplot2_alluvial_transition_v1"
+                if call["request"]["short_template_id"] == "alluvial_transition"
+                else "r_ggplot2_evidence_subprocess_v1"
+            ),
+        }
+        assert call["request"]["dependency_cache_context"] == {
+            "status": "prepared",
+            "run_context_ref": str(run_context_path),
+            "run_context_fingerprint": "sha256:test-opl-run-context",
+            "required_profile_ids": (
+                "r_ggplot2_alluvial_transition_v1"
+                if call["request"]["short_template_id"] == "alluvial_transition"
+                else "r_ggplot2_evidence_subprocess_v1"
+            ),
+            "rscript_path": "/opt/opl/bin/Rscript",
+            "r_libs_user": str(tmp_path / "opl-managed-r-lib"),
+        }
+
+
+def test_gallery_builder_packages_cached_assets_by_default(monkeypatch, tmp_path: Path, capsys) -> None:
+    from med_autoscience.display_pack_gallery_parts import cli as gallery_cli
+
+    calls: dict[str, object] = {
+        "clean_assets": 0,
+        "force_render_values": [],
+    }
+
+    def fake_manifest(
+        *,
+        records,
+        rendered,
+        baseline_rendered,
+        publish_docs,
+        render_cache_summary,
+        force_render,
+        package_only,
+    ):
+        return {
+            "quality_audit": {
+                "overall_status": "not_publication_ready",
+                "publication_ready_claim_authorized": False,
+            },
+            "design_gallery_template_count": 0,
+            "non_visual_canonical_template_count": 0,
+            "rendered_image_template_count": 0,
+            "internal_rendered_image_template_count": 0,
+            "lidocaineq_reference_coverage": {
+                "reference_template_count": 0,
+                "covered_reference_template_count": 0,
+                "coverage_complete": True,
+                "missing_or_downgraded_reference_template_ids": [],
+                "replacement_template_count": 0,
+                "do_not_restore_legacy_alias_count": 0,
+            },
+            "quality_overall_status": "not_publication_ready",
+            "force_render": force_render,
+            "package_only": package_only,
+            "render_cache_summary": render_cache_summary,
+        }
+
+    def fake_render_records(records, *, force_render, package_only):
+        calls["force_render_values"].append((force_render, package_only))
+        return {}, {}
+
+    def fake_clean_assets() -> None:
+        calls["clean_assets"] = int(calls["clean_assets"]) + 1
+
+    def fake_write_reference(records, rendered, baseline_rendered, *, reference_path: Path) -> None:
+        reference_path.parent.mkdir(parents=True, exist_ok=True)
+        reference_path.write_text("reference\n", encoding="utf-8")
+
+    monkeypatch.setattr(gallery_cli.shutil, "which", lambda name: "/usr/bin/Rscript" if name == "Rscript" else None)
+    monkeypatch.setattr(gallery_cli, "read_template_records", lambda *_: [])
+    monkeypatch.setattr(gallery_cli, "_render_records", fake_render_records)
+    monkeypatch.setattr(gallery_cli, "_clean_assets", fake_clean_assets)
+    monkeypatch.setattr(gallery_cli, "_render_html", lambda *_: "<html></html>")
+    monkeypatch.setattr(gallery_cli, "_write_reference", fake_write_reference)
+    monkeypatch.setattr(gallery_cli, "build_manifest", fake_manifest)
+    monkeypatch.setattr(gallery_cli, "build_quality_audit_markdown", lambda *_: "quality\n")
+    monkeypatch.setattr(gallery_cli, "build_gallery_status_markdown", lambda *_: "status\n")
+    monkeypatch.setattr(gallery_cli, "_export_pdf", lambda: None)
+
+    assert gallery_cli.main(["--output-root", str(tmp_path / "default")]) == 0
+    default_stdout = json.loads(capsys.readouterr().out)
+    assert default_stdout["force_render"] is False
+    assert calls["force_render_values"] == [(False, False)]
+    assert calls["clean_assets"] == 0
+
+    assert gallery_cli.main(["--output-root", str(tmp_path / "force"), "--force-render"]) == 0
+    force_stdout = json.loads(capsys.readouterr().out)
+    assert force_stdout["force_render"] is True
+    assert calls["force_render_values"] == [(False, False), (True, False)]
+    assert calls["clean_assets"] == 1
+
+
+def test_gallery_builder_package_only_skips_renderer_preflight(monkeypatch, tmp_path: Path, capsys) -> None:
+    from med_autoscience.display_pack_gallery_parts import cli as gallery_cli
+
+    calls: dict[str, object] = {
+        "which": [],
+        "render_records": [],
+    }
+
+    def fake_manifest(
+        *,
+        records,
+        rendered,
+        baseline_rendered,
+        publish_docs,
+        render_cache_summary,
+        force_render,
+        package_only,
+    ):
+        return {
+            "quality_audit": {
+                "overall_status": "not_publication_ready",
+                "publication_ready_claim_authorized": False,
+            },
+            "design_gallery_template_count": 0,
+            "non_visual_canonical_template_count": 0,
+            "rendered_image_template_count": 0,
+            "internal_rendered_image_template_count": 0,
+            "lidocaineq_reference_coverage": {
+                "reference_template_count": 0,
+                "covered_reference_template_count": 0,
+                "coverage_complete": True,
+                "missing_or_downgraded_reference_template_ids": [],
+                "replacement_template_count": 0,
+                "do_not_restore_legacy_alias_count": 0,
+            },
+            "force_render": force_render,
+            "package_only": package_only,
+            "render_cache_summary": render_cache_summary,
+        }
+
+    def fake_render_records(records, *, force_render, package_only):
+        calls["render_records"].append((force_render, package_only))
+        return {}, {}
+
+    def fake_which(name: str) -> None:
+        calls["which"].append(name)
+        return None
+
+    def fake_write_reference(records, rendered, baseline_rendered, *, reference_path: Path) -> None:
+        reference_path.parent.mkdir(parents=True, exist_ok=True)
+        reference_path.write_text("reference\n", encoding="utf-8")
+
+    monkeypatch.setattr(gallery_cli.shutil, "which", fake_which)
+    monkeypatch.setattr(gallery_cli, "read_template_records", lambda *_: [])
+    monkeypatch.setattr(gallery_cli, "_render_records", fake_render_records)
+    monkeypatch.setattr(gallery_cli, "_render_html", lambda *_: "<html></html>")
+    monkeypatch.setattr(gallery_cli, "_write_reference", fake_write_reference)
+    monkeypatch.setattr(gallery_cli, "build_manifest", fake_manifest)
+    monkeypatch.setattr(gallery_cli, "build_quality_audit_markdown", lambda *_: "quality\n")
+    monkeypatch.setattr(gallery_cli, "build_gallery_status_markdown", lambda *_: "status\n")
+    monkeypatch.setattr(gallery_cli, "_export_pdf", lambda: None)
+
+    assert gallery_cli.main(["--output-root", str(tmp_path / "package-only"), "--package-only"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["package_only"] is True
+    assert calls["which"] == []
+    assert calls["render_records"] == [(False, True)]
 
 
 def test_embedding_templates_use_feature_matrix_workflow_schema() -> None:

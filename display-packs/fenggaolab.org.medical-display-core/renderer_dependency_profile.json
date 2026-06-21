@@ -59,6 +59,14 @@
             "role": "Kaplan-Meier curve plus at-risk table composition following LidocaineQ/Figure_Template survival_km"
           },
           {
+            "name": "gridExtra",
+            "required": true,
+            "template_ids": [
+              "table1_baseline_characteristics"
+            ],
+            "role": "Publication-style baseline table grob composition following LidocaineQ/Figure_Template baseline_table"
+          },
+          {
             "name": "Rtsne",
             "required": true,
             "template_ids": [
@@ -86,6 +94,69 @@
       },
       "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
       "template_wrapper_ref": "templates/<template_id>/render.R"
+    },
+    {
+      "profile_id": "r_ggplot2_alluvial_transition_v1",
+      "execution_mode": "subprocess",
+      "renderer_family": "r_ggplot2",
+      "entrypoint_pattern": "Rscript render.R --request {request_json}",
+      "template_ids": [
+        "alluvial_transition",
+        "fenggaolab.org.medical-display-core::alluvial_transition"
+      ],
+      "surface_role": "ggalluvial_capable_state_transition_dependency_intent",
+      "runtime_binaries": [
+        {
+          "name": "Rscript",
+          "required": true,
+          "run_context_key": "binary_paths.Rscript"
+        }
+      ],
+      "language_packages": {
+        "r": [
+          {
+            "name": "jsonlite",
+            "required": true,
+            "role": "render request and layout sidecar JSON IO"
+          },
+          {
+            "name": "ggplot2",
+            "required": true,
+            "role": "core grammar-of-graphics rendering"
+          },
+          {
+            "name": "ggsci",
+            "required": true,
+            "role": "medical journal inspired palettes"
+          },
+          {
+            "name": "grid",
+            "required": true,
+            "role": "grob layout inspection for sidecars"
+          },
+          {
+            "name": "ggalluvial",
+            "required": true,
+            "role": "Mature alluvial grammar following LidocaineQ/Figure_Template sankey_alluvial"
+          }
+        ]
+      },
+      "run_context_requirements": {
+        "binary_path_handoff_required": true,
+        "r_lib_path_required": true,
+        "session_info_required_in_receipt": true,
+        "network_access_during_render": false,
+        "package_install_during_render_allowed": false
+      },
+      "render_contract": {
+        "checked_in_renderer_family": "r_ggplot2",
+        "checked_in_execution_mode": "subprocess",
+        "checked_in_renderer_uses_ggalluvial": true,
+        "checked_in_renderer_ref": "templates/alluvial_transition/render.R",
+        "prepared_dependency_receipt_required_before_render": true
+      },
+      "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
+      "template_wrapper_ref": "templates/alluvial_transition/render.R"
     },
     {
       "profile_id": "r_ggplot2_ggconsort_reporting_flow_v1",

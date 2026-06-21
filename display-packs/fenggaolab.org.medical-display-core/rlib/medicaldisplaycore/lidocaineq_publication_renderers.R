@@ -43,42 +43,43 @@ lidocaine_publication_theme <- function(display_payload) {
   } else {
     element_blank()
   }
+  base_size <- style_numeric(typography, "base_size", 11.0)
   theme_bw(
-    base_size = style_numeric(typography, "base_size", 11.0),
+    base_size = base_size,
     base_family = font_family
   ) +
     theme(
       plot.title = element_text(
         face = "bold",
         colour = text_color,
-        size = style_numeric(typography, "title_size", 12.5),
+        size = style_numeric(typography, "title_size", base_size + 1.5),
         margin = margin(b = 6, unit = "pt")
       ),
       plot.subtitle = element_text(
         colour = style_color(display_payload, role_name = "subtitle", palette_key = "muted", fallback = "#64748B"),
-        size = style_numeric(typography, "subtitle_size", 9.5),
+        size = style_numeric(typography, "subtitle_size", max(7.5, base_size - 1.0)),
         margin = margin(b = 8, unit = "pt")
       ),
       text = element_text(family = font_family, colour = text_color),
       axis.title = element_text(face = "bold"),
       axis.text = element_text(
         colour = text_color,
-        size = style_numeric(typography, "tick_size", 9.2)
+        size = style_numeric(typography, "tick_size", max(7.0, base_size - 1.8))
       ),
       axis.title.x = element_text(
         colour = text_color,
-        size = style_numeric(typography, "axis_title_size", 10.5)
+        size = style_numeric(typography, "axis_title_size", max(7.8, base_size - 0.5))
       ),
       axis.title.y = element_text(
         colour = text_color,
-        size = style_numeric(typography, "axis_title_size", 10.5)
+        size = style_numeric(typography, "axis_title_size", max(7.8, base_size - 0.5))
       ),
       legend.position = "bottom",
       legend.box = "horizontal",
       legend.title = element_blank(),
       legend.text = element_text(
         colour = text_color,
-        size = style_numeric(typography, "legend_size", 9.0)
+        size = style_numeric(typography, "legend_size", max(7.0, base_size - 2.0))
       ),
       legend.key = element_blank(),
       legend.background = element_blank(),
@@ -106,6 +107,14 @@ lidocaine_publication_theme <- function(display_payload) {
       ),
       plot.margin = margin(9, 10, 8, 10, unit = "pt")
     )
+}
+
+lidocaine_wrap_label <- function(value, width = 68) {
+  label <- lidocaine_non_empty(value)
+  if (!nzchar(label)) {
+    return("")
+  }
+  paste(strwrap(label, width = width), collapse = "\n")
 }
 
 build_distribution_violin_box_dataframe <- function(display_payload) {
@@ -278,10 +287,12 @@ plot_correlation_scatter <- function(display_payload) {
     ) +
     labs(
       title = lidocaine_non_empty(display_payload$title),
+      subtitle = lidocaine_wrap_label(display_payload$subtitle %||% display_payload$caption, 74),
       x = lidocaine_non_empty(display_payload$x_label, "Feature score"),
       y = lidocaine_non_empty(display_payload$y_label, "Outcome-associated score")
     ) +
-    lidocaine_publication_theme(display_payload)
+    lidocaine_publication_theme(display_payload) +
+    theme(aspect.ratio = 1)
   annotation <- lidocaine_non_empty(display_payload$annotation)
   if (nzchar(annotation)) {
     plot <- plot + annotate(
@@ -328,70 +339,79 @@ build_baseline_table_dataframe <- function(display_payload) {
 }
 
 plot_lidocaine_baseline_table <- function(display_payload) {
+  suppressPackageStartupMessages({
+    library(gridExtra)
+    library(grid)
+  })
   table_df <- build_baseline_table_dataframe(display_payload)
-  headers <- c(
+  table_for_grob <- data.frame(
+    Characteristic = table_df$display_variable,
+    Overall = table_df$overall,
+    GroupA = table_df$group_a,
+    GroupB = table_df$group_b,
+    P = table_df$p_value,
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  section_rows <- table_df$row_type == "section"
+  if (any(section_rows)) {
+    table_for_grob[section_rows, c("Overall", "GroupA", "GroupB")] <- ""
+  }
+  names(table_for_grob) <- c(
     "Characteristic",
     lidocaine_non_empty(display_payload$overall_header, "Overall"),
     lidocaine_non_empty(display_payload$group_a_header, "Group A"),
     lidocaine_non_empty(display_payload$group_b_header, "Group B"),
     lidocaine_non_empty(display_payload$p_header, "P")
   )
-  x_positions <- c(0.02, 0.50, 0.68, 0.84, 0.97)
-  header_df <- data.frame(x = x_positions, y = max(table_df$y) + 1.0, label = headers)
-  body_frames <- list(
-    data.frame(x = x_positions[[1]], y = table_df$y, label = table_df$display_variable, hjust = 0),
-    data.frame(x = x_positions[[2]], y = table_df$y, label = table_df$overall, hjust = 0.5),
-    data.frame(x = x_positions[[3]], y = table_df$y, label = table_df$group_a, hjust = 0.5),
-    data.frame(x = x_positions[[4]], y = table_df$y, label = table_df$group_b, hjust = 0.5),
-    data.frame(x = x_positions[[5]], y = table_df$y, label = table_df$p_value, hjust = 1)
+  row_fills <- rep(
+    c(
+      style_color(display_payload, "figure_background", "background", "#FFFFFF"),
+      style_color(display_payload, "highlight_band", "light", "#EEF4F7")
+    ),
+    length.out = nrow(table_for_grob)
   )
-  body_df <- do.call(rbind, body_frames)
-  band_df <- table_df[table_df$row_index %% 2 == 0, , drop = FALSE]
-  ggplot() +
-    geom_rect(
-      data = band_df,
-      aes(xmin = 0, xmax = 1, ymin = y - 0.43, ymax = y + 0.43),
-      fill = style_color(display_payload, "highlight_band", "light", "#EEF4F7"),
-      alpha = 0.72,
-      inherit.aes = FALSE
-    ) +
-    geom_segment(
-      aes(x = 0, xend = 1, y = max(table_df$y) + 0.48, yend = max(table_df$y) + 0.48),
-      linewidth = 0.52,
-      colour = style_color(display_payload, "axis_line", "axis", "#13293D")
-    ) +
-    geom_text(
-      data = header_df,
-      aes(x = x, y = y, label = label),
-      fontface = "bold",
-      size = style_numeric(style_typography(display_payload), "tick_size", 8.0) * 0.34,
-      hjust = c(0, 0.5, 0.5, 0.5, 1),
-      colour = style_text_color(display_payload)
-    ) +
-    geom_text(
-      data = body_df,
-      aes(x = x, y = y, label = label, hjust = hjust),
-      size = style_numeric(style_typography(display_payload), "tick_size", 8.0) * 0.32,
-      colour = style_text_color(display_payload),
-      lineheight = 0.92
-    ) +
-    coord_cartesian(xlim = c(0, 1), ylim = c(0.35, max(table_df$y) + 1.55), expand = FALSE, clip = "off") +
-    labs(
-      title = lidocaine_non_empty(display_payload$title, "Baseline summary table"),
-      subtitle = lidocaine_curve_subtitle(display_payload, "Publication Table 1 preview"),
-      x = NULL,
-      y = NULL
-    ) +
-    lidocaine_publication_theme(display_payload) +
-    theme(
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      axis.line = element_blank(),
-      axis.title = element_blank(),
-      panel.grid = element_blank(),
-      panel.border = element_blank(),
-      plot.margin = margin(12, 12, 12, 12, unit = "pt")
+  row_fills[section_rows] <- style_color(display_payload, "highlight_band", "light", "#EEF4F7")
+  table_theme <- gridExtra::ttheme_minimal(
+    base_size = style_numeric(style_typography(display_payload), "tick_size", 8.8),
+    padding = grid::unit(c(3.0, 4.0), "pt"),
+    core = list(
+      fg_params = list(col = style_text_color(display_payload), hjust = 0.5, x = 0.5),
+      bg_params = list(
+        fill = row_fills,
+        col = "white"
+      )
+    ),
+    colhead = list(
+      fg_params = list(fontface = "bold", col = "white", hjust = 0.5, x = 0.5),
+      bg_params = list(fill = style_color(display_payload, "model_curve", "primary", "#245A6B"), col = "white")
     )
+  )
+  table_grob <- gridExtra::tableGrob(table_for_grob, rows = NULL, theme = table_theme)
+  table_grob$widths <- grid::unit(c(0.34, 0.18, 0.18, 0.18, 0.12), "npc")
+  table_grob$heights <- grid::unit(rep(1 / length(table_grob$heights), length(table_grob$heights)), "npc")
+  title_grob <- grid::textGrob(
+    lidocaine_non_empty(display_payload$title, "Baseline characteristics table"),
+    x = 0.02,
+    hjust = 0,
+    gp = grid::gpar(
+      fontface = "bold",
+      fontsize = style_numeric(style_typography(display_payload), "title_size", 12.0) * 0.84,
+      col = style_text_color(display_payload)
+    )
+  )
+  subtitle <- lidocaine_curve_subtitle(display_payload, "Publication Table 1 preview")
+  subtitle_grob <- grid::textGrob(
+    lidocaine_wrap_label(subtitle, 82),
+    x = 0.02,
+    hjust = 0,
+    gp = grid::gpar(
+      fontsize = style_numeric(style_typography(display_payload), "subtitle_size", 8.4) * 0.82,
+      col = style_color(display_payload, role_name = "subtitle", palette_key = "muted", fallback = "#64748B")
+    )
+  )
+  arranged <- gridExtra::arrangeGrob(title_grob, subtitle_grob, table_grob, heights = c(0.085, 0.055, 0.860))
+  gridExtra::arrangeGrob(arranged, padding = grid::unit(7, "pt"))
 }
 
 build_alluvial_transition_dataframe <- function(display_payload) {
@@ -414,118 +434,65 @@ build_alluvial_transition_dataframe <- function(display_payload) {
   flow_df
 }
 
-build_alluvial_segment_dataframe <- function(flow_df, n_steps = 28) {
-  source_totals <- stats::aggregate(value ~ source, flow_df, sum)
-  source_totals <- source_totals[order(source_totals$source), , drop = FALSE]
-  source_totals$start <- c(0, head(cumsum(source_totals$value), -1))
-  source_offsets <- setNames(source_totals$start, source_totals$source)
-  source_running <- source_offsets
-
-  target_totals <- stats::aggregate(value ~ target, flow_df, sum)
-  target_totals <- target_totals[order(target_totals$target), , drop = FALSE]
-  target_totals$start <- c(0, head(cumsum(target_totals$value), -1))
-  target_offsets <- setNames(target_totals$start, target_totals$target)
-  target_running <- target_offsets
-
-  paths <- list()
-  for (index in seq_len(nrow(flow_df))) {
-    row <- flow_df[index, ]
-    source_bottom <- source_running[[row$source]]
-    source_top <- source_bottom + row$value
-    target_bottom <- target_running[[row$target]]
-    target_top <- target_bottom + row$value
-    source_running[[row$source]] <- source_top
-    target_running[[row$target]] <- target_top
-    x <- seq(0, 1, length.out = n_steps)
-    smooth <- stats::plogis((x - 0.5) * 7)
-    paths[[length(paths) + 1]] <- data.frame(
-      flow_id = paste(row$source, row$target, index, sep = "::"),
-      source = row$source,
-      target = row$target,
-      x = c(x, rev(x)),
-      y = c(source_bottom + (target_bottom - source_bottom) * smooth, rev(source_top + (target_top - source_top) * smooth)),
-      fill_label = row$target,
-      stringsAsFactors = FALSE
-    )
-  }
-  list(
-    segments = do.call(rbind, paths),
-    source_totals = source_totals,
-    target_totals = target_totals,
-    total = sum(flow_df$value)
-  )
-}
-
 plot_alluvial_transition <- function(display_payload) {
   flow_df <- build_alluvial_transition_dataframe(display_payload)
-  layout <- build_alluvial_segment_dataframe(flow_df)
-  segment_df <- layout$segments
-  palette_values <- lidocaine_palette(display_payload, segment_df$fill_label)
-  source_labels <- data.frame(
-    x = 0,
-    y = layout$source_totals$start + layout$source_totals$value / 2,
-    label = layout$source_totals$source,
-    stringsAsFactors = FALSE
-  )
-  target_labels <- data.frame(
-    x = 1,
-    y = layout$target_totals$start + layout$target_totals$value / 2,
-    label = layout$target_totals$target,
-    stringsAsFactors = FALSE
-  )
-  axis_labels <- data.frame(
-    x = c(0, 1),
-    y = rep(layout$total * 1.04, 2),
-    label = c(
-      lidocaine_non_empty(display_payload$source_axis_label, "Baseline state"),
-      lidocaine_non_empty(display_payload$target_axis_label, "Follow-up state")
-    ),
-    stringsAsFactors = FALSE
-  )
-  ggplot(segment_df, aes(x = x, y = y, group = flow_id, fill = fill_label)) +
-    geom_polygon(alpha = 0.82, colour = "white", linewidth = 0.22) +
-    geom_rect(
-      data = layout$source_totals,
-      aes(xmin = -0.055, xmax = 0.055, ymin = start, ymax = start + value),
-      inherit.aes = FALSE,
-      fill = "white",
-      colour = style_color(display_payload, "axis_line", "axis", "#13293D"),
-      linewidth = 0.34
+  if (!requireNamespace("ggalluvial", quietly = TRUE)) {
+    stop("alluvial_transition requires OPL-prepared dependency package `ggalluvial`")
+  }
+  flow_df$source <- factor(flow_df$source, levels = unique(flow_df$source))
+  target_levels <- sort(unique(as.character(flow_df$target)))
+  flow_df$target <- factor(flow_df$target, levels = target_levels)
+  palette_values <- lidocaine_palette(display_payload, target_levels)
+  ggplot(flow_df, aes(axis1 = source, axis2 = target, y = value)) +
+    ggalluvial::geom_alluvium(aes(fill = target), width = 0.18, alpha = 0.88, knot.pos = 0.42) +
+    ggalluvial::geom_stratum(
+      width = 0.18,
+      fill = style_color(display_payload, "figure_background", "background", "#FFFFFF"),
+      colour = style_grid_color(display_payload),
+      linewidth = 0.24
     ) +
-    geom_rect(
-      data = layout$target_totals,
-      aes(xmin = 0.945, xmax = 1.055, ymin = start, ymax = start + value),
-      inherit.aes = FALSE,
-      fill = "white",
-      colour = style_color(display_payload, "axis_line", "axis", "#13293D"),
-      linewidth = 0.34
-    ) +
-    geom_text(
-      data = rbind(source_labels, target_labels),
-      aes(x = x, y = y, label = label),
-      inherit.aes = FALSE,
-      size = style_numeric(style_typography(display_payload), "tick_size", 8.0) * 0.33,
+    ggalluvial::stat_stratum(
+      geom = "text",
+      aes(label = after_stat(stratum)),
+      size = style_numeric(style_typography(display_payload), "tick_size", 8.0) * 0.34,
       colour = style_text_color(display_payload)
     ) +
-    geom_text(
-      data = axis_labels,
-      aes(x = x, y = y, label = label),
-      inherit.aes = FALSE,
-      fontface = "bold",
-      size = style_numeric(style_typography(display_payload), "axis_title_size", 9.0) * 0.34,
-      colour = style_text_color(display_payload)
+    scale_fill_manual(
+      values = palette_values,
+      breaks = target_levels,
+      guide = publication_legend_guides(display_payload, target_levels)
     ) +
-    scale_fill_manual(values = palette_values, guide = "none") +
-    coord_cartesian(xlim = c(-0.15, 1.15), ylim = c(0, layout$total * 1.11), expand = FALSE, clip = "off") +
-    labs(title = lidocaine_non_empty(display_payload$title), x = NULL, y = NULL) +
+    scale_x_discrete(
+      limits = c(
+        lidocaine_non_empty(display_payload$source_axis_label, "Baseline state"),
+        lidocaine_non_empty(display_payload$target_axis_label, "Follow-up state")
+      ),
+      expand = c(0.035, 0.035)
+    ) +
+    labs(
+      title = lidocaine_non_empty(display_payload$title),
+      subtitle = lidocaine_wrap_label(display_payload$subtitle %||% display_payload$caption, 72),
+      x = NULL,
+      y = NULL
+    ) +
     lidocaine_publication_theme(display_payload) +
     theme(
-      axis.text = element_blank(),
+      legend.position = "top",
+      legend.justification = "center",
+      legend.box = "horizontal",
+      axis.text.x = element_text(
+        colour = style_text_color(display_payload),
+        size = style_numeric(style_typography(display_payload), "axis_title_size", 9.0) * 0.88,
+        margin = margin(t = 8, unit = "pt")
+      ),
+      axis.text.y = element_blank(),
       axis.ticks = element_blank(),
       axis.line = element_blank(),
       axis.title = element_blank(),
-      panel.grid = element_blank(),
-      plot.margin = margin(12, 16, 12, 16, unit = "pt")
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      plot.margin = margin(8, 32, 18, 32, unit = "pt")
     )
 }
 

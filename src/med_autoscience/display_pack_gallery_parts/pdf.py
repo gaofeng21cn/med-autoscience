@@ -45,6 +45,10 @@ def _copy_docs_gallery() -> None:
     shutil.copy2(paths.REFERENCE_PATH, paths.DOCS_REFERENCE_PATH)
     shutil.copy2(paths.QUALITY_AUDIT_PATH, paths.DOCS_QUALITY_AUDIT_PATH)
     shutil.copy2(paths.STATUS_PATH, paths.DOCS_STATUS_PATH)
+    docs_asset_root = paths.EXAMPLES_ROOT / paths.ASSET_ROOT.name
+    if docs_asset_root.exists():
+        shutil.rmtree(docs_asset_root)
+    shutil.copytree(paths.ASSET_ROOT, docs_asset_root)
     _write_docs_manifest()
 
 
@@ -76,18 +80,22 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "surface_kind": "display_pack_gallery_docs_manifest",
-        "asset_ref_base": "outputs/display-pack-gallery",
+        "asset_ref_base": "docs/delivery/medical-display/examples",
         "asset_ref_docs_mirror": "docs/delivery/medical-display/examples",
         "asset_ref_resolution": (
-            "template artifact refs are emitted relative to the generated gallery output root; "
-            "docs manifest is a compact readback surface, not a copied asset bundle"
+            "template artifact refs are emitted relative to this docs examples directory; "
+            "medical_display_gallery_assets is copied with the PDF so Markdown and browser readers can resolve images"
         ),
         "source_manifest_schema_version": payload.get("schema_version"),
         "status": payload.get("status"),
+        "force_render": payload.get("force_render"),
+        "package_only": payload.get("package_only"),
+        "render_cache_summary": payload.get("render_cache_summary"),
         **path_fields,
         "evidence_gallery_template_count": payload.get("evidence_gallery_template_count"),
         "reporting_flow_gallery_template_count": payload.get("reporting_flow_gallery_template_count"),
         "design_gallery_template_count": payload.get("design_gallery_template_count"),
+        "table_preview_gallery_template_count": payload.get("table_preview_gallery_template_count"),
         "visual_gallery_template_count": payload.get("visual_gallery_template_count"),
         "composition_recipe_gallery_count": payload.get("composition_recipe_gallery_count"),
         "current_template_count": payload.get("current_template_count"),
@@ -157,6 +165,23 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
             for item in payload.get("design_gallery_templates", [])
             if isinstance(item, dict)
         ],
+        "table_preview_gallery_templates": [
+            {
+                "template_id": item.get("template_id"),
+                "canonical_family_id": item.get("canonical_family_id"),
+                "canonical_family_title": item.get("canonical_family_title"),
+                "canonical_family_category": item.get("canonical_family_category"),
+                "renderer_family": item.get("renderer_family"),
+                "analysis_responsibility": item.get("analysis_responsibility"),
+                "medical_family_ids": item.get("medical_family_ids"),
+                "preview_image_ref": item.get("preview_image_ref"),
+                "image_ref": item.get("image_ref"),
+                "pdf_ref": item.get("pdf_ref"),
+                "layout_ref": item.get("layout_ref"),
+            }
+            for item in payload.get("table_preview_gallery_templates", [])
+            if isinstance(item, dict)
+        ],
     }
 
 
@@ -169,6 +194,7 @@ def _quality_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "publication_ready_claim_authorized": quality.get("publication_ready_claim_authorized"),
         "visual_template_count": quality.get("visual_template_count"),
         "design_visual_template_count": quality.get("design_visual_template_count"),
+        "table_preview_visual_template_count": quality.get("table_preview_visual_template_count"),
         "total_gallery_visual_template_count": quality.get("total_gallery_visual_template_count"),
         "non_visual_template_count": quality.get("non_visual_template_count"),
         "blocked_template_count": quality.get("blocked_template_count"),

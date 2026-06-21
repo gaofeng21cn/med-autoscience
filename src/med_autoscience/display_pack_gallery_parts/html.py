@@ -9,6 +9,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     family_categories,
     gallery_display_records,
     reporting_flow_gallery_records,
+    table_preview_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset
 from med_autoscience.display_pack_gallery_parts.composition_gallery import (
@@ -235,11 +236,12 @@ def _render_html(
     visible_records = gallery_display_records(records)
     reporting_flow_records = reporting_flow_gallery_records(records)
     design_records = design_gallery_records(records)
+    table_preview_records = table_preview_gallery_records(records)
     composition_surface = composition_recipe_discovery_payload(include_recipes=True)
     composition_gallery = build_composition_gallery_surface(composition_surface, records)
     rendered_count = sum(
         1
-        for record in [*visible_records, *reporting_flow_records, *design_records]
+        for record in [*visible_records, *reporting_flow_records, *design_records, *table_preview_records]
         if rendered[record.template_id].status == "rendered"
     )
     nav = "\n".join(
@@ -250,6 +252,7 @@ def _render_html(
                 f'<strong>{composition_gallery["composition_recipe_count"]}</strong></a>'
                 f'<a href="#reporting-flows"><span>报告流程图</span><strong>{len(reporting_flow_records)}</strong></a>'
                 f'<a href="#design-shells"><span>设计图</span><strong>{len(design_records)}</strong></a>'
+                f'<a href="#table-previews"><span>表格预览</span><strong>{len(table_preview_records)}</strong></a>'
             )
         ]
         + [
@@ -323,6 +326,19 @@ def _render_html(
         pane_label="非数据设计图",
         card_class="design-card",
     )
+    table_preview_section = _non_evidence_gallery_html(
+        records=table_preview_records,
+        rendered=rendered,
+        section_id="table-previews",
+        section_label="第四部分",
+        title="发表级表格预览",
+        lead=(
+            "这些卡片展示 Table shell 的 Gallery-only 可视预览。表格权威仍属于 table shell 和人工审阅值，"
+            "R/gridExtra 只用于让 Gallery 直观看到 baseline summary table 的版式下限。"
+        ),
+        pane_label="Table shell 可视预览",
+        card_class="table-preview-card",
+    )
     coverage_section = _lidocaineq_coverage_html(rendered)
 
     return f"""<!doctype html>
@@ -349,8 +365,9 @@ def _render_html(
   {composition_section}
   {reporting_flow_section}
   {design_section}
+  {table_preview_section}
   <section class="section" id="evidence-primitives">
-    <div class="section-label">第四部分</div>
+    <div class="section-label">第五部分</div>
     <h2>R/ggplot2 数据证据图起点 <span>{len(visible_records)} 个</span></h2>
     <p class="section-lead">这些证据图起点是 MAS 默认数据证据图入口。它们按医学表达目的组织，强调输入数据、统计语义、统一风格和可审计导出；AI 可在论文级语义约束下继续调整图形结构。</p>
     {''.join(sections)}

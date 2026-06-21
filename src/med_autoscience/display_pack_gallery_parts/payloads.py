@@ -464,7 +464,15 @@ def _load_r_gallery_payload(template_id: str, seed_payloads: dict[str, dict[str,
         payload = json.loads(json.dumps(seed_payloads[template_id]))
     except KeyError as exc:
         raise FileNotFoundError(f"missing seed payload for {template_id}") from exc
-    payload["render_context"] = _style_context_for(template_id)
+    payload_context = payload.get("render_context")
+    render_context = _style_context_for(template_id)
+    if isinstance(payload_context, dict):
+        for key, value in payload_context.items():
+            if isinstance(value, dict) and isinstance(render_context.get(key), dict):
+                render_context[key] = {**render_context[key], **value}
+            else:
+                render_context[key] = value
+    payload["render_context"] = render_context
     return payload
 def _load_python_payload_fixtures() -> dict[str, dict[str, Any]]:
     return {

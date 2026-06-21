@@ -135,8 +135,22 @@ plot_lidocaine_celltype_marker_dotplot <- function(display_payload) {
     ) +
     lidocaine_publication_theme(display_payload) +
     theme_publication_colorbar(display_payload) +
-    guides(size = guide_legend(nrow = 1, byrow = TRUE)) +
-    theme(axis.text.x = element_text(angle = 35, hjust = 1), panel.grid.major = element_blank())
+    guides(
+      colour = publication_colorbar_guide(
+        display_payload,
+        title = lidocaine_non_empty(display_payload$effect_scale_label, "Avg exp"),
+        bar_orientation = "horizontal"
+      ),
+      size = guide_legend(nrow = 1, byrow = TRUE, title.position = "top")
+    ) +
+    theme(
+      legend.box = "vertical",
+      legend.spacing.y = unit(1.5, "pt"),
+      legend.margin = margin(2, 28, 6, 28, unit = "pt"),
+      axis.text.x = element_text(angle = 35, hjust = 1),
+      panel.grid.major = element_blank(),
+      plot.margin = margin(8, 18, 14, 18, unit = "pt")
+    )
 }
 
 lidocaine_volcano_dataframe <- function(display_payload) {
@@ -300,13 +314,54 @@ lidocaine_alteration_palette <- function(display_payload, values) {
 }
 
 plot_lidocaine_cnv_recurrence <- function(display_payload) {
+  records <- display_payload$cnv_records %||% list()
+  if (length(records) > 0) {
+    first_record <- records[[1]]
+    if (!is.null(first_record$chrom) || !is.null(first_record$event) || !is.null(first_record$freq)) {
+      cnv_df <- do.call(rbind, lapply(seq_along(records), function(index) {
+        item <- records[[index]]
+        data.frame(
+          chrom = lidocaine_non_empty(item$chrom %||% item$chromosome %||% item$region_label, sprintf("chr%d", index)),
+          event = lidocaine_non_empty(item$event %||% item$cnv_state, "Gain"),
+          freq = abs(lidocaine_numeric(item$freq %||% item$frequency %||% item$value, NA)),
+          stringsAsFactors = FALSE
+        )
+      }))
+      if (any(!is.finite(cnv_df$freq))) {
+        stop("cnv recurrence frequency records must contain finite freq values")
+      }
+      chrom_levels <- unique(cnv_df$chrom)
+      cnv_df$chrom <- factor(cnv_df$chrom, levels = chrom_levels)
+      cnv_df$signed_freq <- ifelse(tolower(cnv_df$event) == "loss", -cnv_df$freq, cnv_df$freq)
+      cnv_df$event <- factor(cnv_df$event, levels = c("Gain", "Loss"))
+      return(ggplot(cnv_df, aes(chrom, signed_freq, fill = event)) +
+        geom_col(width = 0.70, colour = "white", linewidth = 0.25) +
+        geom_hline(yintercept = 0, colour = style_color(display_payload, "axis_line", "axis", "#13293D"), linewidth = 0.45) +
+        scale_fill_manual(
+          values = c(
+            Gain = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
+            Loss = style_color(display_payload, "model_curve", "primary", "#245A6B")
+          ),
+          guide = publication_legend_guides(display_payload, c("Gain", "Loss"))
+        ) +
+        scale_y_continuous(labels = function(x) paste0(abs(round(x * 100)), "%")) +
+        labs(
+          title = lidocaine_non_empty(display_payload$title, "CNV recurrence summary"),
+          subtitle = lidocaine_wrap_label(display_payload$subtitle %||% display_payload$caption, 72),
+          x = lidocaine_non_empty(display_payload$x_label),
+          y = lidocaine_non_empty(display_payload$y_label, "Sample frequency")
+        ) +
+        lidocaine_publication_theme(display_payload))
+    } else {
+      NULL
+    }
+  }
   regions <- if (!is.null(display_payload$region_order)) extract_label_vector(display_payload$region_order, "region_order") else character()
   samples <- if (!is.null(display_payload$sample_order)) {
     vapply(display_payload$sample_order, function(item) lidocaine_non_empty(item$sample_id %||% item$label, ""), character(1))
   } else {
     character()
   }
-  records <- display_payload$cnv_records %||% list()
   if (length(regions) < 1 || length(samples) < 1 || length(records) < 1) {
     stop("cnv recurrence payload requires region_order, sample_order, and cnv_records")
   }
@@ -543,7 +598,7 @@ plot_lidocaine_coefficient_path <- function(display_payload) {
   if (any(!is.finite(path_df$log_lambda)) || any(!is.finite(path_df$coefficient))) {
     stop("coefficient path values must be finite")
   }
-  ggplot(path_df, aes(log_lambda, coefficient, colour = feature)) +
+  ggplot(path_df, aes(log_lambda, coefficient, colour = feature, group = feature)) +
     geom_hline(yintercept = 0, linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
     geom_vline(
       xintercept = lidocaine_numeric(display_payload$selected_log_lambda, stats::median(path_df$log_lambda)),
@@ -555,7 +610,7 @@ plot_lidocaine_coefficient_path <- function(display_payload) {
     scale_colour_manual(values = lidocaine_palette(display_payload, path_df$feature), guide = publication_legend_guides(display_payload, path_df$feature)) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "Coefficient path panel"),
-      subtitle = lidocaine_curve_subtitle(display_payload, "Regularization path with selected lambda"),
+      subtitle = lidocaine_wrap_label(lidocaine_curve_subtitle(display_payload, "Regularization path with selected lambda"), 74),
       x = lidocaine_non_empty(display_payload$x_label, "log(lambda)"),
       y = lidocaine_non_empty(display_payload$y_label, "Coefficient")
     ) +

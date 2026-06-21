@@ -158,11 +158,21 @@ def reporting_flow_gallery_records(records: list[TemplateRecord]) -> list[Templa
     ]
 
 
+def table_preview_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in non_visual_canonical_records(records)
+        if record.kind == "table_shell"
+        and record.template_id == "table1_baseline_characteristics"
+    ]
+
+
 def gallery_visual_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [
         *gallery_display_records(records),
         *reporting_flow_gallery_records(records),
         *design_gallery_records(records),
+        *table_preview_gallery_records(records),
     ]
 
 

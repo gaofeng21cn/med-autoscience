@@ -2,14 +2,16 @@
 
 Owner: `MedAutoScience`
 Purpose: `medical_display_dependency_environment_os_target`
-State: `target_architecture`
-Machine boundary: 本文是人读 consumer 设计。canonical OPL substrate contract 位于 OPL 主仓 `contracts/opl-framework/runtime-environment-substrate-contract.json`；MAS 机器真相只包含 `renderer_dependency_profile.json` dependency intent、Display Pack runtime、真实 render/QC/audit refs、owner receipt 和 publication gate。本文不声明 OPL 依赖环境基座 materializer 已落地，也不授权 publication-ready、submission-ready、artifact authority 或 study truth mutation。
+State: `consumer_runtime_slice_landed`
+Machine boundary: 本文是人读 consumer 设计与当前落地边界。canonical OPL substrate contract 位于 OPL 主仓 `contracts/opl-framework/runtime-environment-substrate-contract.json`，可执行 readback 以 OPL 主仓 `opl runtime env * --json` 为准；MAS 机器真相只包含 `renderer_dependency_profile.json` dependency intent、Display Pack runtime、真实 render/QC/audit refs、owner receipt 和 publication gate。本文不授权 publication-ready、submission-ready、artifact authority、study truth mutation、App release readiness 或 production online runtime readiness。
 
 ## 结论
 
 医学绘图依赖环境应该由 OPL 基座统一解决。Display Pack 和模板只声明“需要什么”，不在 renderer 内安装、升级、修补或猜测依赖。OPL 负责把依赖需求解析成锁文件、准备可复用环境、产出 run-context 和可审计回执；MAS 负责把这些 refs 接入 display preflight、render receipt、display lock、visual audit 和 typed repair route。
 
-这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot` 等依赖，也能表达 `cohort_flow_figure` 需要 `ggconsort`-capable reporting-flow profile。该 profile 把 `ggconsort` 声明为 GitHub source dependency：`type=github`、`repo=tgerke/ggconsort`。它是 pack-local dependency intent，不是 OPL environment contract 副本；MAS Display Pack 和 renderer 只声明、引用和消费依赖，不安装依赖。模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台、诊断和 managed run context 准备由 OPL prepare 负责。
+这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot`、`gridExtra` 等依赖，也能用 scoped profile 表达 `alluvial_transition` 需要 `ggalluvial`，以及 `cohort_flow_figure` 需要 `ggconsort`-capable reporting-flow profile。它是 pack-local dependency intent，不是 OPL environment contract 副本；MAS Display Pack 和 renderer 只声明、引用和消费依赖，不安装依赖。模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台、诊断和 managed run context 准备由 OPL prepare 负责。
+
+当前本地 landing evidence：OPL 主仓 `opl runtime env prepare --domain mas --profile display --platform macos-arm64 --requirement-profile <MAS renderer_dependency_profile.json> --paper-root /tmp/mas-lidocaineq-opl-env-paper --apply --json` 已对 MAS display aggregate profile 产出 `status=prepared`、`missing_r_packages=[]`、managed `R_LIBS_USER` 和 `dependency_run_context.json`，并验证 `ggalluvial` 位于 OPL managed R library。MAS Gallery forced render 必须提供该 run-context ref/fingerprint；缺失时 fail closed，不再直接使用 host PATH / site library 作为真实渲染路径。
 
 OPL 通用基座设计见 `docs/runtime/designs/opl_dependency_environment_substrate_target.md`；本文只说明 medical display 如何消费该基座。
 
@@ -86,7 +88,9 @@ renderer_dependency_profile.json
 
 模板作者只维护这个需求声明。OPL 可根据 policy 选择 `renv`、`pak sysreqs`、conda/pixi、container digest 或混合 profile；MAS 不应该在每个 `render.R` 里重复判断依赖环境。
 
-`cohort_flow_figure` 另有 `r_ggplot2_ggconsort_reporting_flow_v1` profile：它声明 `ggconsort`、`ggplot2`、`jsonlite` 和 `grid` 等 R 包能力，其中 `ggconsort` 是 GitHub source dependency `tgerke/ggconsort`，要求 OPL prepare 先产出 prepared receipt / run-context 后才允许进入 MAS render。若 OPL 当前环境无法准备 `ggconsort`，MAS 应 fail closed 到 dependency route；不得在 renderer 内 `install.packages()` 或 `remotes::install_github()`，也不得把任何 generated participant-flow 输出写成 `ggconsort` render evidence。该声明只说明依赖目标和 handoff 边界，不构成 OPL materializer landed、live runtime ready 或 publication-ready 证据。
+`alluvial_transition` 另有 `r_ggplot2_alluvial_transition_v1` profile：它声明 `ggalluvial` 是该模板的成熟 alluvial grammar dependency。MAS checked-in renderer 使用 `ggalluvial::geom_alluvium` / `geom_stratum` / `stat_stratum`，不保留自绘 polygon fallback，也不在 renderer 内安装包。缺 OPL prepared run-context 时，Gallery 和 runtime 渲染都应 fail closed 到 dependency route。
+
+`cohort_flow_figure` 另有 `r_ggplot2_ggconsort_reporting_flow_v1` profile：它声明 `ggconsort`、`ggplot2`、`jsonlite` 和 `grid` 等 R 包能力，要求 OPL prepare 先产出 prepared receipt / run-context 后才允许进入 MAS render。若 OPL 当前环境无法准备 `ggconsort`，MAS 应 fail closed 到 dependency route；不得在 renderer 内 `install.packages()` 或 `remotes::install_github()`，也不得把任何 generated participant-flow 输出写成 `ggconsort` render evidence。该声明只说明依赖目标和 handoff 边界，不构成 live runtime ready、App release ready 或 publication-ready 证据。
 
 ## 回执和锁文件
 
@@ -120,16 +124,21 @@ renderer_dependency_profile.json
 4. 依赖问题和视觉质量问题分开：缺 `uwot`、`Rtsne`、系统库、字体或容器权限时走 substrate repair；legend 重叠、配色漂移、panel 拥挤时走 template/style/QC/visual audit repair。
 5. `display_pack_lock.json` 和 publication manifest 保存 dependency lock/receipt refs，方便一篇论文多张图使用同一个环境 fingerprint。
 
-## 落地门槛
+## 已落地与后续门槛
 
-把本文从 `target_architecture` 晋级为 landed，至少需要：
+已落地的 consumer/runtime slice：
 
-- OPL repo 在 `opl runtime env inspect|lock|cache status|doctor|run-context|contract --json` readback skeleton 之外，继续落 materialize / prepare / verify / prune 可执行面和 focused tests。
-- MAS `display_pack_agent.preflight` 能读取 dependency receipt，缺环境时 fail closed 到 typed route。
-- MAS render runtime 能消费 OPL run-context，而不是直接依赖 host PATH / site library。
-- `ggconsort` GitHub source dependency `tgerke/ggconsort` 能由 OPL prepare 解算、缓存并交付 managed run-context；MAS renderer 只消费 receipt 和 run-context。
-- `display_pack_lock.json`、render receipt 和 publication manifest 保存 dependency lock / receipt refs。
-- 至少一个 R/ggplot2 evidence renderer 用 prepared environment 生成图，并在 receipt 中记录 R session/package versions。
+- OPL repo 已有 `opl runtime env prepare --apply --json` 可执行面，能对 MAS display aggregate profile 产出 lock / receipt / run-context，并把缺失 R packages 安装到 OPL managed library。
+- MAS Gallery R subprocess 和 gallery-only Table 1 preview 都消费 `MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_PATH/REF/FINGERPRINT`；缺 prepared run-context 时真实渲染 fail closed。
+- `alluvial_transition` 使用 `ggalluvial`，`table1_baseline_characteristics` gallery preview 使用 `gridExtra` grob，`cohort_flow_figure` 使用 `ggconsort`；renderer 不安装包。
+- Gallery manifest 记录 dependency environment readback、render cache summary、force-render/package-only 标记和 LidocaineQ coverage；`--package-only` 只能复用既有资产，不能作为依赖验证证据。
+- 至少一轮 MAS Gallery forced render 在 OPL prepared run-context 下完成，覆盖 LidocaineQ 33/33 reference templates，`cache_miss=37`。
+
+仍然不是完成态的后续门槛：
+
+- MAS paper-level `display_pack_lock.json`、render receipt 和 publication manifest 继续扩大保存 dependency lock / receipt refs。
+- 缺依赖、系统库、权限、lock stale、cache corrupt 的错误类别继续进入 typed route / doctor surface，而不是被写成 publication quality failure。
+- production online runtime、App Full release、真实 paper owner receipt、visual audit clear 和 publication gate 需要各自 live / owner evidence；不能由 dependency prepare 或 Gallery render 代签。
 - 缺依赖、系统库、权限、lock stale、cache corrupt 的错误类别可区分，并不会被写成 publication quality failure。
 
 ## 当前不做

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from typing import Any
 
 
@@ -111,30 +113,40 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "kaplan_meier_grouped": {
         "display_id": "Figure6",
         "template_id": "kaplan_meier_grouped",
-        "title": "Kaplan-Meier risk stratification",
-        "caption": "Time-to-event separation across prespecified risk groups with censor marks and compact at-risk table.",
-        "x_label": "Months from surgery",
+        "title": "Kaplan-Meier curve with risk table",
+        "caption": "ctcluster v4-style No. at risk.",
+        "x_label": "Time (months)",
         "y_label": "Survival probability",
         "groups": [
             {
-                "label": "Low risk",
-                "times": [0, 6, 12, 18, 24],
-                "values": [1.0, 0.96, 0.93, 0.90, 0.88],
-                "censor_times": [9, 15, 21],
+                "label": "Low Risk",
+                "times": [0, 12, 24, 36, 48, 60],
+                "values": [1.0, 0.97, 0.92, 0.86, 0.80, 0.74],
             },
             {
-                "label": "High risk",
-                "times": [0, 6, 12, 18, 24],
-                "values": [1.0, 0.88, 0.77, 0.69, 0.62],
-                "censor_times": [7, 14, 20],
+                "label": "High Risk",
+                "times": [0, 12, 24, 36, 48, 60],
+                "values": [1.0, 0.93, 0.84, 0.74, 0.65, 0.56],
             },
         ],
-        "risk_table_title": "Number at risk",
+        "risk_table_title": "",
+        "hide_risk_table_title": True,
         "risk_table": [
-            {"label": "Low risk", "times": [0, 6, 12, 18, 24], "at_risk": [128, 121, 110, 97, 84]},
-            {"label": "High risk", "times": [0, 6, 12, 18, 24], "at_risk": [126, 112, 94, 73, 55]},
+            {"label": "Low Risk", "times": [0, 12, 24, 36, 48, 60], "at_risk": [162, 145, 128, 96, 71, 55]},
+            {"label": "High Risk", "times": [0, 12, 24, 36, 48, 60], "at_risk": [168, 132, 101, 78, 49, 29]},
         ],
-        "annotation": "Log-rank P < .001",
+        "annotation": "log-rank P = 0.012",
+        "render_context": {
+            "typography": {
+                "base_size": 9.5,
+                "title_size": 11.0,
+                "subtitle_size": 8.2,
+                "axis_title_size": 8.6,
+                "tick_size": 7.6,
+                "legend_size": 7.8
+            },
+            "layout_override": {"output_width_in": 4.8, "output_height_in": 4.8}
+        },
     },
     "celltype_marker_dotplot_panel": {
         "display_id": "Figure24",
@@ -173,19 +185,16 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         "y_label": "Coefficient",
         "selected_log_lambda": -1.2,
         "path_points": [
-            {"feature": feature, "log_lambda": log_lambda, "coefficient": round(coefficient, 3)}
-            for feature_index, feature in enumerate(
-                ["Feature A", "Feature B", "Feature C", "Feature D", "Feature E", "Feature F"],
-                start=1,
-            )
-            for log_lambda in [-4.0, -3.4, -2.8, -2.2, -1.6, -1.0, -0.4, 0.2, 0.8, 1.0]
+            {"feature": feature, "log_lambda": round(log_lambda, 4), "coefficient": round(coefficient, 4)}
+            for feature_index, feature in enumerate(["Feature A", "Feature B", "Feature C", "Feature D", "Feature E", "Feature F"], start=1)
+            for step_index in range(80)
+            for log_lambda in [-4.0 + step_index * 5.0 / 79.0]
             for coefficient in [
                 (
-                    ((-1) ** feature_index)
+                    math.sin(log_lambda + feature_index / 2.0)
                     * (7 - feature_index)
-                    / 10
+                    / 10.0
                     * max(0.0, (log_lambda + 4.0) / 5.0)
-                    * (0.65 + 0.35 * ((feature_index + int((log_lambda + 4.0) * 10)) % 3) / 2)
                 )
             ]
         ],
@@ -194,21 +203,20 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         "display_id": "Figure21",
         "template_id": "cnv_recurrence_summary_panel",
         "title": "CNV recurrence summary",
-        "caption": "Recurrent copy-number gains and losses across representative samples.",
-        "x_label": "Samples",
-        "y_label": "Chromosomal region",
-        "cnv_legend_title": "CNV state",
-        "region_order": [{"label": item} for item in ["8q gain", "7p gain", "3q gain", "17p loss", "9p loss"]],
-        "sample_order": [{"sample_id": item} for item in ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08"]],
+        "caption": "Recurrent gains and losses.",
+        "x_label": "",
+        "y_label": "Sample frequency",
         "cnv_records": [
-            {"sample_id": sample, "region_label": region, "cnv_state": state}
-            for sample, region, state in [
-                ("S01", "8q gain", "gain"), ("S02", "8q gain", "gain"), ("S03", "8q gain", "gain"), ("S05", "8q gain", "gain"),
-                ("S01", "7p gain", "gain"), ("S04", "7p gain", "gain"), ("S06", "7p gain", "gain"),
-                ("S02", "3q gain", "amplification"), ("S03", "3q gain", "gain"), ("S07", "3q gain", "gain"),
-                ("S01", "17p loss", "loss"), ("S04", "17p loss", "loss"), ("S05", "17p loss", "loss"), ("S08", "17p loss", "loss"),
-                ("S03", "9p loss", "deletion"), ("S06", "9p loss", "loss"), ("S08", "9p loss", "loss"),
+            {"chrom": chrom, "event": event, "freq": freq}
+            for chrom, gain, loss in [
+                ("chr1", 0.18, 0.05),
+                ("chr2", 0.22, 0.09),
+                ("chr3", 0.12, 0.16),
+                ("chr4", 0.28, 0.07),
+                ("chr5", 0.15, 0.11),
+                ("chr6", 0.10, 0.20),
             ]
+            for event, freq in [("Gain", gain), ("Loss", loss)]
         ],
     },
     "genomic_alteration_landscape_panel": {
@@ -483,33 +491,45 @@ PUBLICATION_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "time_to_event_multihorizon_calibration_panel": {
         "display_id": "Figure9",
         "template_id": "time_to_event_multihorizon_calibration_panel",
-        "title": "Grouped survival calibration across horizons",
-        "caption": "Observed risk tracks predicted risk across risk groups at 36 and 60 months.",
+        "title": "Multi-horizon calibration",
+        "caption": "Time-to-event predicted risk reliability.",
         "x_label": "Predicted risk",
         "y_label": "Observed risk",
         "panels": [
             {
-                "panel_id": "h36",
-                "panel_label": "A",
-                "title": "36 months",
-                "time_horizon_months": 36,
+                "panel_id": "h12",
+                "title": "12 months",
                 "calibration_summary": [
-                    {"group_label": "Q1", "group_order": 1, "n": 182, "events": 5, "predicted_risk": 0.03, "observed_risk": 0.04},
-                    {"group_label": "Q2", "group_order": 2, "n": 171, "events": 10, "predicted_risk": 0.07, "observed_risk": 0.06},
-                    {"group_label": "Q3", "group_order": 3, "n": 132, "events": 18, "predicted_risk": 0.14, "observed_risk": 0.16},
-                    {"group_label": "Q4", "group_order": 4, "n": 88, "events": 24, "predicted_risk": 0.26, "observed_risk": 0.28},
+                    {"predicted_risk": 0.10, "observed_risk": 0.05},
+                    {"predicted_risk": 0.26, "observed_risk": 0.27},
+                    {"predicted_risk": 0.42, "observed_risk": 0.45},
+                    {"predicted_risk": 0.58, "observed_risk": 0.56},
+                    {"predicted_risk": 0.74, "observed_risk": 0.76},
+                    {"predicted_risk": 0.90, "observed_risk": 0.93},
+                ],
+            },
+            {
+                "panel_id": "h36",
+                "title": "36 months",
+                "calibration_summary": [
+                    {"predicted_risk": 0.10, "observed_risk": 0.07},
+                    {"predicted_risk": 0.26, "observed_risk": 0.30},
+                    {"predicted_risk": 0.42, "observed_risk": 0.46},
+                    {"predicted_risk": 0.58, "observed_risk": 0.58},
+                    {"predicted_risk": 0.74, "observed_risk": 0.80},
+                    {"predicted_risk": 0.90, "observed_risk": 0.95},
                 ],
             },
             {
                 "panel_id": "h60",
-                "panel_label": "B",
                 "title": "60 months",
-                "time_horizon_months": 60,
                 "calibration_summary": [
-                    {"group_label": "Q1", "group_order": 1, "n": 182, "events": 8, "predicted_risk": 0.05, "observed_risk": 0.06},
-                    {"group_label": "Q2", "group_order": 2, "n": 171, "events": 17, "predicted_risk": 0.11, "observed_risk": 0.10},
-                    {"group_label": "Q3", "group_order": 3, "n": 132, "events": 26, "predicted_risk": 0.21, "observed_risk": 0.22},
-                    {"group_label": "Q4", "group_order": 4, "n": 88, "events": 31, "predicted_risk": 0.34, "observed_risk": 0.32},
+                    {"predicted_risk": 0.10, "observed_risk": 0.09},
+                    {"predicted_risk": 0.26, "observed_risk": 0.32},
+                    {"predicted_risk": 0.42, "observed_risk": 0.49},
+                    {"predicted_risk": 0.58, "observed_risk": 0.60},
+                    {"predicted_risk": 0.74, "observed_risk": 0.82},
+                    {"predicted_risk": 0.90, "observed_risk": 0.97},
                 ],
             },
         ],

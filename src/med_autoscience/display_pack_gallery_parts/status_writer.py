@@ -39,6 +39,18 @@ def _design_rows(manifest: dict[str, Any]) -> str:
     )
 
 
+def _table_preview_rows(manifest: dict[str, Any]) -> str:
+    inventory = manifest.get("table_preview_gallery_templates")
+    if not isinstance(inventory, list) or not inventory:
+        return "| none | none | none | none |"
+    return "\n".join(
+        f"| `{item.get('template_id', '')}` | {item.get('display_name', '')} | "
+        f"{item.get('renderer_family', '')} | {item.get('render_status', '')} |"
+        for item in inventory
+        if isinstance(item, dict)
+    )
+
+
 def _reporting_flow_rows(manifest: dict[str, Any]) -> str:
     inventory = manifest.get("reporting_flow_gallery_templates")
     if not isinstance(inventory, list) or not inventory:
@@ -89,6 +101,11 @@ def _join_counted(values: object) -> str:
 
 def build_gallery_status_markdown(manifest: dict[str, Any]) -> str:
     quality = manifest.get("quality_audit") if isinstance(manifest.get("quality_audit"), dict) else {}
+    render_cache = (
+        manifest.get("render_cache_summary")
+        if isinstance(manifest.get("render_cache_summary"), dict)
+        else {}
+    )
     profile_coverage = (
         manifest.get("publication_quality_profile_coverage")
         if isinstance(manifest.get("publication_quality_profile_coverage"), dict)
@@ -160,6 +177,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Gallery evidence figures | {_count(manifest, "evidence_gallery_template_count")} |
 | Gallery reporting flow figures | {_count(manifest, "reporting_flow_gallery_template_count")} |
 | Gallery design figures | {_count(manifest, "design_gallery_template_count")} |
+| Gallery table preview figures | {_count(manifest, "table_preview_gallery_template_count")} |
 | Gallery visual templates | {_count(manifest, "visual_gallery_template_count")} |
 | Current canonical templates | {_count(manifest, "canonical_template_count")} |
 | Current non-visual canonical inventory | {_count(manifest, "non_visual_canonical_template_count")} |
@@ -171,6 +189,10 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | LidocaineQ reference templates covered | {lidocaineq_coverage.get("covered_reference_template_count", 0)}/{lidocaineq_coverage.get("reference_template_count", 0)} |
 | LidocaineQ replacement mappings | {lidocaineq_coverage.get("replacement_template_count", 0)} |
 | Retired alias references not restored | {lidocaineq_coverage.get("do_not_restore_legacy_alias_count", 0)} |
+| Render cache hit | {render_cache.get("cache_hit", 0)} |
+| Render cache miss | {render_cache.get("cache_miss", 0)} |
+| Package-only reused assets | {render_cache.get("package_only", 0)} |
+| Render cache untracked | {render_cache.get("cache_untracked", 0)} |
 
 `Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
@@ -182,6 +204,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - reporting flow dependency profile: `{manifest.get("template_surface_policy", {}).get("reporting_flow_dependency_profile", "")}`
 - reporting flow generated fallback claims ggconsort: `{str(manifest.get("template_surface_policy", {}).get("reporting_flow_generated_fallback_claims_ggconsort", False)).lower()}`
 - design gallery default surface: `{manifest.get("template_surface_policy", {}).get("design_gallery_default_surface", "")}`
+- table preview gallery default surface: `{manifest.get("template_surface_policy", {}).get("table_preview_gallery_default_surface", "")}`
 - evidence figures default to R/ggplot2: `{str(manifest.get("template_surface_policy", {}).get("evidence_figures_default_to_r_ggplot2", False)).lower()}`
 - Python illustration shells visible as design cards: `{str(manifest.get("template_surface_policy", {}).get("python_illustration_shells_are_visible_design_gallery_cards", False)).lower()}`
 - Python evidence retained without advantage proof: `{str(not manifest.get("template_surface_policy", {}).get("python_evidence_templates_not_retained_without_advantage_proof", True)).lower()}`
@@ -189,6 +212,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - journal palette: `{manifest.get("journal_palette_ref", "")}`
 - quality overall status: `{quality.get("overall_status", "")}`
 - publication-ready claim authorized: `{str(quality.get("publication_ready_claim_authorized", False)).lower()}`
+- force render: `{str(manifest.get("force_render", False)).lower()}`
+- package only: `{str(manifest.get("package_only", False)).lower()}`
 - blocked evidence templates after current render: `{quality.get("blocked_template_count", 0)}`
 - blocked gallery visual templates after current render: `{quality.get("gallery_visual_blocked_template_count", quality.get("blocked_template_count", 0))}`
 - lower-bound review required: `{quality.get("lower_bound_review_required_count", 0)}`
@@ -241,6 +266,12 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Template | Display name | Renderer | Render status |
 | --- | --- | --- | --- |
 {_design_rows(manifest)}
+
+## 表格预览图 Gallery
+
+| Template | Display name | Renderer | Render status |
+| --- | --- | --- | --- |
+{_table_preview_rows(manifest)}
 
 ## 画册分类
 

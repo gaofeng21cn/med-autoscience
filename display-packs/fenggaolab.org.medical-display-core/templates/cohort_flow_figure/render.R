@@ -40,7 +40,7 @@ payload_from_request <- function(request) {
 require_prepared_dependency_environment <- function(request) {
   dependency_environment <- request$dependency_environment %||% list()
   status <- trimws(as.character(dependency_environment$status %||% ""))
-  if (!identical(status, "prepared")) {
+  if (!status %in% c("prepared", "gallery_preview")) {
     stop("cohort_flow_figure requires OPL prepared dependency_environment receipt before R/ggconsort render")
   }
   run_context_ref <- trimws(as.character(dependency_environment$run_context_ref %||% ""))
@@ -83,7 +83,7 @@ cohort_step_label <- function(step, index) {
   if (!nzchar(label) || is.na(n)) {
     stop(sprintf("cohort_flow_figure steps[%d] requires label and integer n", index))
   }
-  sprintf("%s<br>n=%s", label, format(n, big.mark = ",", scientific = FALSE))
+  sprintf("%s<br>n=%s", wrap_node_label(label, width = 26), format(n, big.mark = ",", scientific = FALSE))
 }
 
 cohort_exclusion_label <- function(exclusion, index) {
@@ -92,7 +92,12 @@ cohort_exclusion_label <- function(exclusion, index) {
   if (!nzchar(label) || is.na(n)) {
     stop(sprintf("cohort_flow_figure exclusions[%d] requires label and integer n", index))
   }
-  sprintf("%s<br>n=%s", label, format(n, big.mark = ",", scientific = FALSE))
+  sprintf("%s<br>n=%s", wrap_node_label(label, width = 20), format(n, big.mark = ",", scientific = FALSE))
+}
+
+wrap_node_label <- function(label, width) {
+  lines <- strwrap(label, width = width, simplify = FALSE)[[1]]
+  paste(lines, collapse = "<br>")
 }
 
 build_ggconsort_plot <- function(payload) {
@@ -141,7 +146,7 @@ build_ggconsort_plot <- function(payload) {
       }
       exclusion_id <- make.names(trimws(as.character(exclusion$exclusion_id %||% exclusion$branch_id %||% sprintf("exclusion_%d", index))))
       y_value <- y_top - max(0, from_index - 0.5) * y_gap
-      diagram <- ggconsort::consort_box_add(diagram, exclusion_id, 34, y_value, cohort_exclusion_label(exclusion, index))
+      diagram <- ggconsort::consort_box_add(diagram, exclusion_id, 24, y_value, cohort_exclusion_label(exclusion, index))
       diagram <- ggconsort::consort_arrow_add(
         diagram,
         end = exclusion_id,
@@ -213,9 +218,9 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
         paste0("participant_exclusion_", exclusion_id),
         "exclusion_box",
-        0.69,
+        0.64,
         y_center - 0.048,
-        0.95,
+        0.92,
         y_center + 0.048
       )
       guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
@@ -223,7 +228,7 @@ build_layout_sidecar <- function(payload, dependency_environment) {
         "flow_branch_connector",
         0.62,
         y_center - 0.01,
-        0.69,
+        0.64,
         y_center + 0.01
       )
       flow_nodes[[length(flow_nodes) + 1]] <- list(
@@ -255,6 +260,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       renderer_role = "default",
       opl_dependency_run_context_ref = dependency_environment$run_context_ref %||% "",
       opl_dependency_run_context_fingerprint = dependency_environment$run_context_fingerprint %||% "",
+      publication_runtime_receipt = identical(dependency_environment$status %||% "", "prepared"),
+      gallery_preview_dependency_context = identical(dependency_environment$status %||% "", "gallery_preview"),
       steps = steps,
       exclusions = exclusions,
       endpoint_inventory = payload$endpoint_inventory %||% list(),

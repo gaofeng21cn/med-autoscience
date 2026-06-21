@@ -182,8 +182,10 @@ table_payload$rows <- list(
   list(variable = "Stage", level = "I-II", overall = "142 (55.5)", group_a = "82 (64.1)", group_b = "60 (46.9)", p_value = "")
 )
 table_plot <- build_evidence_plot("table1_baseline_characteristics", table_payload)
+stopifnot(is_grid_renderable(table_plot))
 table_layout <- build_layout_sidecar(table_plot, "table1_baseline_characteristics", table_payload)
 stopifnot(identical(table_layout$metrics$source_renderer, "LidocaineQ/Figure_Template::baseline_table"))
+stopifnot(identical(table_layout$panel_boxes[[1]]$box_type, "table_region"))
 """
 
     result = subprocess.run(

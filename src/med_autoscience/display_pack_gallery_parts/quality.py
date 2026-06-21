@@ -111,7 +111,8 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
     warnings: list[str] = []
     if asset.status != "rendered":
         blockers.append(f"render_status_{asset.status}")
-    if record.renderer_family == "n/a" or record.kind == "table_shell":
+    table_preview_card = record.kind == "table_shell" and record.template_id == "table1_baseline_characteristics"
+    if (record.renderer_family == "n/a" or record.kind == "table_shell") and not table_preview_card:
         blockers.append("non_visual_template_not_gallery_card")
     if not record.medical_family_ids:
         blockers.append("medical_figure_family_mapping_missing")
@@ -127,6 +128,8 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
         warnings.append("vector_export_missing")
     if record.kind == "illustration_shell" and record.renderer_family == "python":
         warnings.append("python_renderer_style_alignment_required")
+    if table_preview_card:
+        warnings.append("table_shell_preview_not_table_authority")
     if record.kind == "evidence_figure" and record.renderer_family == "python":
         blockers.append("python_evidence_retained_without_advantage_proof")
     warnings.extend(FAMILY_BASELINE_WARNINGS.get(record.canonical_family_id, ()))
@@ -189,6 +192,7 @@ def build_quality_audit(
     non_visual_records: list[TemplateRecord],
     design_records: list[TemplateRecord],
     reporting_flow_records: list[TemplateRecord],
+    table_preview_records: list[TemplateRecord],
     default_surface_excluded_records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
@@ -217,19 +221,27 @@ def build_quality_audit(
         )
         for record in design_records
     ]
+    table_preview_audits = [
+        audit_template_quality(
+            record,
+            rendered[record.template_id],
+            baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
+        )
+        for record in table_preview_records
+    ]
     blocker_counts = Counter(
         blocker
-        for audit in [*template_audits, *reporting_flow_audits, *design_audits]
+        for audit in [*template_audits, *reporting_flow_audits, *design_audits, *table_preview_audits]
         for blocker in audit["blockers"]
     )
     warning_counts = Counter(
         warning
-        for audit in [*template_audits, *reporting_flow_audits, *design_audits]
+        for audit in [*template_audits, *reporting_flow_audits, *design_audits, *table_preview_audits]
         for warning in audit["warnings"]
     )
     blocked_count = sum(1 for audit in template_audits if audit["blockers"])
     gallery_visual_blocked_count = sum(
-        1 for audit in [*template_audits, *reporting_flow_audits, *design_audits] if audit["blockers"]
+        1 for audit in [*template_audits, *reporting_flow_audits, *design_audits, *table_preview_audits] if audit["blockers"]
     )
     ready_like_count = len(template_audits) - blocked_count
     profile_coverage = _publication_quality_profile_coverage(records)
@@ -249,8 +261,9 @@ def build_quality_audit(
         "visual_template_count": len(visual_records),
         "reporting_flow_visual_template_count": len(reporting_flow_records),
         "design_visual_template_count": len(design_records),
+        "table_preview_visual_template_count": len(table_preview_records),
         "total_gallery_visual_template_count": (
-            len(visual_records) + len(reporting_flow_records) + len(design_records)
+            len(visual_records) + len(reporting_flow_records) + len(design_records) + len(table_preview_records)
         ),
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
@@ -276,6 +289,7 @@ def build_quality_audit(
             "composition_recipe_policy": "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards",
             "reporting_flow_gallery_policy": "validated_reporting_flow_shells_are_programmatic_disposition_starting_points",
             "design_gallery_policy": "illustration_shells_are_visible_non_statistical_design_starting_points",
+            "table_preview_gallery_policy": "table_shells_keep_table_authority_with_gallery_only_gridextra_preview",
             "required_before_paper_use": publication_polish_policy()["required_before_paper_use"],
             "required_workflow_before_paper_use": figure_workflow_policy()["paper_use_acceptance"],
             "composition_recipe_required_before_paper_use": [
@@ -301,6 +315,7 @@ def build_quality_audit(
         "templates": template_audits,
         "reporting_flow_gallery_templates": reporting_flow_audits,
         "design_gallery_templates": design_audits,
+        "table_preview_gallery_templates": table_preview_audits,
         "non_visual_inventory": [
             {
                 "template_id": record.template_id,
@@ -313,6 +328,8 @@ def build_quality_audit(
                     if record in reporting_flow_records
                     else "design_gallery_card"
                     if record in design_records
+                    else "table_preview_gallery_card"
+                    if record in table_preview_records
                     else "kept_out_of_image_gallery"
                 ),
             }
@@ -471,6 +488,13 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
         )
         for item in audit.get("design_gallery_templates", [])
     ) or "| none | none | none | none | none |"
+    table_preview_lines = "\n".join(
+        (
+            f"| `{item['template_id']}` | {item['category']} | {item['renderer_family']} | "
+            f"`{item['status']}` | {', '.join(f'`{warning}`' for warning in item['warnings']) or 'none'} |"
+        )
+        for item in audit.get("table_preview_gallery_templates", [])
+    ) or "| none | none | none | none | none |"
     reporting_flow_lines = "\n".join(
         (
             f"| `{item['template_id']}` | {item['category']} | {item['renderer_family']} | "
@@ -533,6 +557,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - visual template count: `{audit["visual_template_count"]}`
 - reporting flow visual template count: `{audit["reporting_flow_visual_template_count"]}`
 - design visual template count: `{audit["design_visual_template_count"]}`
+- table preview visual template count: `{audit["table_preview_visual_template_count"]}`
 - total Gallery visual template count: `{audit["total_gallery_visual_template_count"]}`
 - non-visual inventory count: `{audit["non_visual_template_count"]}`
 - lower-bound review required: `{audit["lower_bound_review_required_count"]}`
@@ -573,6 +598,12 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 | Template | Category | Renderer | Status | Warnings |
 | --- | --- | --- | --- | --- |
 {design_lines}
+
+## 表格预览图起点
+
+| Template | Category | Renderer | Status | Warnings |
+| --- | --- | --- | --- | --- |
+{table_preview_lines}
 
 ## 高风险图族复核项
 

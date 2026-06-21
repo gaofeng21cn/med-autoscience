@@ -29,6 +29,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     gallery_template_family_ontology,
     non_visual_canonical_records,
     reporting_flow_gallery_records,
+    table_preview_gallery_records,
     visual_gallery_records,
 )
 from med_autoscience.display_pack_dependency_environment import (
@@ -63,6 +64,7 @@ def _asset_payload(asset: RenderedAsset) -> dict[str, Any]:
         "svg_ref": asset.svg_ref,
         "image_size_px": list(asset.image_size_px),
         "preview_image_size_px": list(asset.preview_image_size_px),
+        "dependency_environment": dict(asset.dependency_environment or {}),
     }
 
 
@@ -157,16 +159,53 @@ def _source_renderer_readback(rendered: dict[str, RenderedAsset]) -> dict[str, s
     return source_renderers
 
 
+def _dependency_environment_readback(rendered: dict[str, RenderedAsset]) -> dict[str, Any]:
+    tracked = {
+        template_id: dict(asset.dependency_environment or {})
+        for template_id, asset in rendered.items()
+        if asset.dependency_environment
+    }
+    statuses = Counter(
+        value.get("status", "unknown")
+        for value in tracked.values()
+    )
+    prepared = {
+        template_id: value
+        for template_id, value in tracked.items()
+        if value.get("status") == "prepared"
+    }
+    run_context_fingerprints = sorted(
+        {
+            value.get("run_context_fingerprint", "")
+            for value in prepared.values()
+            if value.get("run_context_fingerprint")
+        }
+    )
+    return {
+        "schema_version": 1,
+        "tracked_template_count": len(tracked),
+        "status_counts": dict(sorted(statuses.items())),
+        "prepared_template_count": len(prepared),
+        "prepared_template_ids": sorted(prepared),
+        "run_context_fingerprints": run_context_fingerprints,
+        "templates": tracked,
+    }
+
+
 def build_manifest(
     *,
     records: list[TemplateRecord],
     rendered: dict[str, RenderedAsset],
     baseline_rendered: dict[str, RenderedAsset],
     publish_docs: bool,
+    render_cache_summary: dict[str, int] | None = None,
+    force_render: bool = False,
+    package_only: bool = False,
 ) -> dict[str, Any]:
     visual_records = gallery_display_records(records)
     design_records = design_gallery_records(records)
     reporting_flow_records = reporting_flow_gallery_records(records)
+    table_preview_records = table_preview_gallery_records(records)
     all_gallery_visual_records = gallery_visual_records(records)
     canonical_visual_records = visual_gallery_records(records)
     non_visual_records = non_visual_canonical_records(records)
@@ -180,7 +219,7 @@ def build_manifest(
     )
     design_rendered_count = sum(
         1
-        for record in [*reporting_flow_records, *design_records]
+        for record in [*reporting_flow_records, *design_records, *table_preview_records]
         if rendered[record.template_id].status == "rendered"
     )
     internal_rendered_count = sum(
@@ -194,6 +233,7 @@ def build_manifest(
         non_visual_records=non_visual_records,
         design_records=design_records,
         reporting_flow_records=reporting_flow_records,
+        table_preview_records=table_preview_records,
         default_surface_excluded_records=default_excluded_records,
         rendered=rendered,
         baseline_rendered=baseline_rendered,
@@ -209,9 +249,14 @@ def build_manifest(
         rendered_by_template_id=rendered,
         source_renderer_by_template_id=_source_renderer_readback(rendered),
     )
+    dependency_environment_readback = _dependency_environment_readback(rendered)
     return {
         "schema_version": 9,
         "status": "rendered",
+        "force_render": force_render,
+        "package_only": package_only,
+        "render_cache_summary": dict(render_cache_summary or {}),
+        "dependency_environment_readback": dependency_environment_readback,
         "html_path": str(paths.HTML_PATH),
         "pdf_path": str(paths.PDF_PATH),
         "quality_audit_path": str(paths.QUALITY_AUDIT_PATH),
@@ -226,6 +271,7 @@ def build_manifest(
         "lidocaineq_reference_template_count": len(LIDOCAINEQ_COVERAGE_ITEMS),
         "reporting_flow_gallery_template_count": len(reporting_flow_records),
         "design_gallery_template_count": len(design_records),
+        "table_preview_gallery_template_count": len(table_preview_records),
         "visual_gallery_template_count": len(all_gallery_visual_records),
         "composition_recipe_gallery_count": composition_gallery_surface["composition_recipe_count"],
         "non_visual_canonical_template_count": len(non_visual_records),
@@ -302,10 +348,12 @@ def build_manifest(
             "evidence_gallery_default_surface": "canonical_current_r_ggplot2_evidence_templates",
             "reporting_flow_gallery_default_surface": "canonical_current_validated_reporting_flow_shells",
             "design_gallery_default_surface": "canonical_current_non_statistical_illustration_shell_templates",
+            "table_preview_gallery_default_surface": "canonical_current_table_shell_preview_templates",
             "active_inventory_is_canonical_current_templates": True,
             "canonical_representatives_are_evidence_gallery_card_filter": True,
             "illustration_shells_are_design_gallery_cards": True,
             "validated_reporting_flow_shells_are_separate_gallery_cards": True,
+            "table_shells_keep_table_authority_but_may_have_gallery_preview_cards": True,
             "canonical_non_visual_inventory_preserved_in_manifest": True,
             "migrated_alias_templates_rendered_when_they_are_current_r_ggplot2_evidence": False,
             "explicit_alias_requests_migrate_to_canonical_template": True,
@@ -349,11 +397,19 @@ def build_manifest(
             )
             for record in design_records
         ],
+        "table_preview_gallery_templates": [
+            _template_payload(
+                record,
+                rendered[record.template_id],
+                visual_gallery_visible=True,
+            )
+            for record in table_preview_records
+        ],
         "non_visual_inventory": [
             _template_payload(
                 record,
                 rendered[record.template_id],
-                visual_gallery_visible=record in [*reporting_flow_records, *design_records] or record.template_id in lidocaineq_preview_template_ids,
+                visual_gallery_visible=record in [*reporting_flow_records, *design_records, *table_preview_records] or record.template_id in lidocaineq_preview_template_ids,
             )
             for record in non_visual_records
         ],
@@ -430,6 +486,7 @@ def _template_payload(
             repo_root=paths.REPO_ROOT,
             template_ids={record.template_id, record.full_template_id},
         ),
+        "dependency_environment": dict(asset.dependency_environment or {}),
         "render_status": asset.status,
         "render_reason": asset.reason,
         "image_size_px": list(asset.image_size_px),
@@ -440,6 +497,8 @@ def _template_payload(
         "layout_ref": asset.layout_ref,
         "pdf_ref": asset.pdf_ref,
         "svg_ref": asset.svg_ref,
+        "render_cache_status": asset.render_cache_status,
+        "render_cache_key": asset.render_cache_key,
     }
 
 

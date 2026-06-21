@@ -1,0 +1,518 @@
+{
+  "display_id": "Figure17",
+  "template_id": "umap_scatter_grouped",
+  "title": "UMAP embedding by subtype",
+  "caption": "UMAP manifold projection computed from the shared high-dimensional feature matrix.",
+  "x_label": "UMAP 1",
+  "y_label": "UMAP 2",
+  "embedding_input_mode": "feature_matrix",
+  "source_feature_matrix_digest": "gallery-shared-synthetic-embedding-matrix-v1",
+  "feature_matrix": [
+    {
+      "sample_id": "S01",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -1.6408,
+        "stromal_signal": 0.4448,
+        "proliferation": 0.5616,
+        "hypoxia": -1.3248,
+        "metabolic_shift": 0.9833279999999999,
+        "antigen_presentation": -0.12768000000000002,
+        "cell_cycle_curvature": 0.46224,
+        "microenvironment_bridge": -2.2168
+      }
+    },
+    {
+      "sample_id": "S02",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -1.6196000000000002,
+        "stromal_signal": 0.22719999999999996,
+        "proliferation": -0.045599999999999974,
+        "hypoxia": -0.7152,
+        "metabolic_shift": 0.8756880000000001,
+        "antigen_presentation": -0.25248,
+        "cell_cycle_curvature": 0.2502,
+        "microenvironment_bridge": -2.1716
+      }
+    },
+    {
+      "sample_id": "S03",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -1.3492,
+        "stromal_signal": 0.6992,
+        "proliferation": 0.39760000000000006,
+        "hypoxia": -1.3032000000000001,
+        "metabolic_shift": 0.4686479999999998,
+        "antigen_presentation": 0.1343200000000001,
+        "cell_cycle_curvature": 0.3946,
+        "microenvironment_bridge": -2.2131999999999996
+      }
+    },
+    {
+      "sample_id": "S04",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -1.2724,
+        "stromal_signal": 0.47120000000000006,
+        "proliferation": -0.23519999999999996,
+        "hypoxia": -0.678,
+        "metabolic_shift": 0.34720799999999985,
+        "antigen_presentation": -0.04361999999999991,
+        "cell_cycle_curvature": 0.35712,
+        "microenvironment_bridge": -2.1003999999999996
+      }
+    },
+    {
+      "sample_id": "S05",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -0.9056,
+        "stromal_signal": 0.8768,
+        "proliferation": 0.8112,
+        "hypoxia": -1.1856,
+        "metabolic_shift": 0.06256799999999996,
+        "antigen_presentation": 0.35008000000000006,
+        "cell_cycle_curvature": 0.50752,
+        "microenvironment_bridge": -1.7376
+      }
+    },
+    {
+      "sample_id": "S06",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -0.9348,
+        "stromal_signal": 0.2424,
+        "proliferation": -0.23360000000000003,
+        "hypoxia": -0.24519999999999997,
+        "metabolic_shift": 0.17383199999999996,
+        "antigen_presentation": -0.12697999999999998,
+        "cell_cycle_curvature": 0.17896,
+        "microenvironment_bridge": -1.4508
+      }
+    },
+    {
+      "sample_id": "S07",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -1.3424,
+        "stromal_signal": 0.0023999999999999855,
+        "proliferation": 0.1416,
+        "hypoxia": -0.3184,
+        "metabolic_shift": 0.697632,
+        "antigen_presentation": -0.29978000000000005,
+        "cell_cycle_curvature": 0.09424,
+        "microenvironment_bridge": -1.5304
+      }
+    },
+    {
+      "sample_id": "S08",
+      "group": "Transition",
+      "features": {
+        "immune_signal": -0.5464,
+        "stromal_signal": -0.3232,
+        "proliferation": -0.1872,
+        "hypoxia": 0.1536,
+        "metabolic_shift": 0.19996799999999998,
+        "antigen_presentation": -0.09312,
+        "cell_cycle_curvature": -0.027360000000000002,
+        "microenvironment_bridge": -0.35440000000000005
+      }
+    },
+    {
+      "sample_id": "S09",
+      "group": "Transition",
+      "features": {
+        "immune_signal": -0.28280000000000005,
+        "stromal_signal": -0.6744,
+        "proliferation": 0.0864,
+        "hypoxia": 0.14840000000000003,
+        "metabolic_shift": 0.271752,
+        "antigen_presentation": 0.12982000000000002,
+        "cell_cycle_curvature": -0.015920000000000004,
+        "microenvironment_bridge": 0.4412
+      }
+    },
+    {
+      "sample_id": "S10",
+      "group": "Transition",
+      "features": {
+        "immune_signal": -0.19240000000000002,
+        "stromal_signal": -0.41600000000000004,
+        "proliferation": -0.532,
+        "hypoxia": 0.14079999999999998,
+        "metabolic_shift": 0.1482,
+        "antigen_presentation": 0.06400000000000003,
+        "cell_cycle_curvature": 0.11147999999999998,
+        "microenvironment_bridge": 0.03960000000000008
+      }
+    },
+    {
+      "sample_id": "S11",
+      "group": "Transition",
+      "features": {
+        "immune_signal": 0.1796,
+        "stromal_signal": -0.6976,
+        "proliferation": -0.021600000000000008,
+        "hypoxia": -0.144,
+        "metabolic_shift": 0.267432,
+        "antigen_presentation": 0.31872,
+        "cell_cycle_curvature": 0.052919999999999995,
+        "microenvironment_bridge": 0.9716
+      }
+    },
+    {
+      "sample_id": "S12",
+      "group": "Transition",
+      "features": {
+        "immune_signal": 0.336,
+        "stromal_signal": -0.2392,
+        "proliferation": -0.28400000000000003,
+        "hypoxia": -0.06599999999999999,
+        "metabolic_shift": 0.168648,
+        "antigen_presentation": 0.1407,
+        "cell_cycle_curvature": 0.0622,
+        "microenvironment_bridge": 0.5559999999999999
+      }
+    },
+    {
+      "sample_id": "S13",
+      "group": "Transition",
+      "features": {
+        "immune_signal": 0.6568,
+        "stromal_signal": -0.49039999999999995,
+        "proliferation": 0.27759999999999996,
+        "hypoxia": -0.4304,
+        "metabolic_shift": 0.34051200000000004,
+        "antigen_presentation": 0.31942000000000004,
+        "cell_cycle_curvature": 0.23295999999999997,
+        "microenvironment_bridge": 1.4128
+      }
+    },
+    {
+      "sample_id": "S14",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 0.7788,
+        "stromal_signal": 0.6808000000000001,
+        "proliferation": -0.30879999999999996,
+        "hypoxia": 0.5856,
+        "metabolic_shift": 0.13084799999999996,
+        "antigen_presentation": 0.37158,
+        "cell_cycle_curvature": 0.005559999999999982,
+        "microenvironment_bridge": 0.05479999999999996
+      }
+    },
+    {
+      "sample_id": "S15",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 1.1284,
+        "stromal_signal": 1.0928,
+        "proliferation": 0.4776,
+        "hypoxia": 0.9408000000000002,
+        "metabolic_shift": 0.15868800000000005,
+        "antigen_presentation": 0.72472,
+        "cell_cycle_curvature": -0.2642,
+        "microenvironment_bridge": 0.2964
+      }
+    },
+    {
+      "sample_id": "S16",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 1.3588,
+        "stromal_signal": 0.6184,
+        "proliferation": 0.6576000000000001,
+        "hypoxia": 0.39119999999999994,
+        "metabolic_shift": 0.49459200000000003,
+        "antigen_presentation": 0.39461999999999997,
+        "cell_cycle_curvature": 0.047880000000000006,
+        "microenvironment_bridge": 1.1548
+      }
+    },
+    {
+      "sample_id": "S17",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 1.3803999999999998,
+        "stromal_signal": 1.0072,
+        "proliferation": 0.038400000000000045,
+        "hypoxia": 1.1507999999999998,
+        "metabolic_shift": 0.5660879999999999,
+        "antigen_presentation": 0.67542,
+        "cell_cycle_curvature": -0.30960000000000004,
+        "microenvironment_bridge": 0.5283999999999999
+      }
+    },
+    {
+      "sample_id": "S18",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 1.6948,
+        "stromal_signal": 0.5392000000000001,
+        "proliferation": 0.41840000000000005,
+        "hypoxia": 0.37200000000000005,
+        "metabolic_shift": 1.0014480000000001,
+        "antigen_presentation": 0.43192,
+        "cell_cycle_curvature": -0.05516,
+        "microenvironment_bridge": 1.5508000000000002
+      }
+    },
+    {
+      "sample_id": "S19",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 1.7208,
+        "stromal_signal": 0.9680000000000001,
+        "proliferation": -0.16959999999999995,
+        "hypoxia": 1.3104000000000002,
+        "metabolic_shift": 1.116,
+        "antigen_presentation": 0.68632,
+        "cell_cycle_curvature": -0.27648000000000006,
+        "microenvironment_bridge": 0.8968000000000002
+      }
+    },
+    {
+      "sample_id": "S20",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -1.7576,
+        "stromal_signal": 0.8815999999999999,
+        "proliferation": 0.24480000000000002,
+        "hypoxia": -1.9991999999999996,
+        "metabolic_shift": 0.8539920000000001,
+        "antigen_presentation": 0.32248,
+        "cell_cycle_curvature": 0.61,
+        "microenvironment_bridge": -2.9495999999999998
+      }
+    },
+    {
+      "sample_id": "S21",
+      "group": "Subtype A",
+      "features": {
+        "immune_signal": -0.9556,
+        "stromal_signal": 1.1264,
+        "proliferation": 0.37840000000000007,
+        "hypoxia": -1.2335999999999998,
+        "metabolic_shift": -0.07372800000000002,
+        "antigen_presentation": 0.6707200000000002,
+        "cell_cycle_curvature": 0.36891999999999997,
+        "microenvironment_bridge": -2.2276000000000002
+      }
+    },
+    {
+      "sample_id": "S22",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 0.9756,
+        "stromal_signal": 1.3568,
+        "proliferation": 0.316,
+        "hypoxia": 1.1807999999999998,
+        "metabolic_shift": -0.028632000000000046,
+        "antigen_presentation": 1.0272000000000001,
+        "cell_cycle_curvature": -0.35251999999999994,
+        "microenvironment_bridge": -0.23239999999999997
+      }
+    },
+    {
+      "sample_id": "S23",
+      "group": "Subtype B",
+      "features": {
+        "immune_signal": 1.802,
+        "stromal_signal": 1.3248,
+        "proliferation": 0.3912,
+        "hypoxia": 1.8272000000000002,
+        "metabolic_shift": 0.9563279999999998,
+        "antigen_presentation": 1.02208,
+        "cell_cycle_curvature": -0.5483600000000001,
+        "microenvironment_bridge": 0.802
+      }
+    },
+    {
+      "sample_id": "S24",
+      "group": "Transition",
+      "features": {
+        "immune_signal": 0.0156,
+        "stromal_signal": -0.9568,
+        "proliferation": -0.28880000000000006,
+        "hypoxia": -0.0144,
+        "metabolic_shift": 0.34576799999999996,
+        "antigen_presentation": 0.51168,
+        "cell_cycle_curvature": 0.006039999999999999,
+        "microenvironment_bridge": 0.9676
+      }
+    }
+  ],
+  "embedding_options": {
+    "seed": 2,
+    "n_neighbors": 10,
+    "min_dist": 0.3,
+    "metric": "euclidean"
+  },
+  "render_context": {
+    "style_profile_id": "student_curated_clinical_publication_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "e53f3dffc6283db324910686db115b1306bddd12ac2cf24e66b4737d130cbb43",
+    "journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
+    "palette": {
+      "primary": "#245A6B",
+      "secondary": "#8B3A3A",
+      "contrast": "#2166AC",
+      "tertiary": "#D8A24A",
+      "quaternary": "#2A9D8F",
+      "violet": "#6D5BD0",
+      "neutral": "#13293D",
+      "neutral_mid": "#64748B",
+      "neutral_light": "#B7C4CC",
+      "light": "#EEF4F7",
+      "primary_soft": "#DCEBF0",
+      "secondary_soft": "#F1DADA",
+      "contrast_soft": "#DCE8F4",
+      "tertiary_soft": "#F5E6C2",
+      "quaternary_soft": "#DAF0EC",
+      "violet_soft": "#E8E4F8",
+      "audit": "#B2182B",
+      "audit_soft": "#F3D7DA",
+      "text": "#13293D",
+      "axis": "#13293D",
+      "grid": "#E6EDF2",
+      "background": "#FFFFFF",
+      "muted": "#64748B",
+      "heatmap_seq_low": "#EEF4F7",
+      "heatmap_seq_mid": "#86BCC2",
+      "heatmap_seq_high": "#245A6B",
+      "heatmap_low": "#2166AC",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B2182B",
+      "volcano_up": "#B2182B",
+      "volcano_down": "#2166AC",
+      "volcano_background": "#B7C4CC"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "heatmap_seq_low": "heatmap_seq_low",
+      "heatmap_seq_mid": "heatmap_seq_mid",
+      "heatmap_seq_high": "heatmap_seq_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "light",
+      "flow_secondary_edge": "neutral",
+      "flow_context_fill": "contrast_soft",
+      "flow_context_edge": "contrast",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#245A6B",
+      "comparator_curve": "#8B3A3A",
+      "reference_line": "#64748B",
+      "highlight_band": "#EEF4F7",
+      "text": "#13293D",
+      "axis_line": "#13293D",
+      "grid_line": "#E6EDF2",
+      "figure_background": "#FFFFFF",
+      "series_1": "#245A6B",
+      "series_2": "#8B3A3A",
+      "series_3": "#D8A24A",
+      "series_4": "#2A9D8F",
+      "series_5": "#6D5BD0",
+      "series_6": "#64748B",
+      "heatmap_low": "#2166AC",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B2182B",
+      "heatmap_seq_low": "#EEF4F7",
+      "heatmap_seq_mid": "#86BCC2",
+      "heatmap_seq_high": "#245A6B",
+      "volcano_up": "#B2182B",
+      "volcano_down": "#2166AC",
+      "volcano_background": "#B7C4CC",
+      "flow_main_fill": "#EEF4F7",
+      "flow_main_edge": "#13293D",
+      "flow_exclusion_fill": "#F3D7DA",
+      "flow_exclusion_edge": "#B2182B",
+      "flow_primary_fill": "#DCEBF0",
+      "flow_primary_edge": "#245A6B",
+      "flow_secondary_fill": "#EEF4F7",
+      "flow_secondary_edge": "#13293D",
+      "flow_context_fill": "#DCE8F4",
+      "flow_context_edge": "#2166AC",
+      "flow_audit_fill": "#F3D7DA",
+      "flow_audit_edge": "#B2182B",
+      "flow_title_text": "#13293D",
+      "flow_body_text": "#13293D",
+      "flow_panel_label": "#13293D",
+      "flow_connector": "#13293D"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.2,
+      "title_size": 10.4,
+      "axis_title_size": 9.0,
+      "tick_size": 8.0,
+      "legend_size": 6.8,
+      "panel_label_size": 9.2,
+      "legend_key_width": 20.0,
+      "legend_key_height": 7.0,
+      "legend_key_spacing_x": 7.0,
+      "legend_key_spacing_y": 3.5,
+      "colorbar_width": 5.0,
+      "colorbar_height": 42.0,
+      "colorbar_horizontal_width": 260.0,
+      "colorbar_horizontal_height": 6.0,
+      "colorbar_max_breaks": 3.0,
+      "colorbar_label_size": 5.6,
+      "colorbar_title_size": 6.0
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2.0,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.2,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#E6EDF2",
+      "linetype": "solid"
+    },
+    "layout_override": {
+      "output_width_in": 5.0,
+      "output_height_in": 5.0,
+      "show_figure_title": false
+    },
+    "readability_override": {}
+  }
+}

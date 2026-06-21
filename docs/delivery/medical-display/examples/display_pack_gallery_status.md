@@ -12,7 +12,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Gallery evidence figures | 34 |
 | Gallery reporting flow figures | 1 |
 | Gallery design figures | 1 |
-| Gallery visual templates | 36 |
+| Gallery table preview figures | 1 |
+| Gallery visual templates | 37 |
 | Current canonical templates | 37 |
 | Current non-visual canonical inventory | 3 |
 | Retired alias / duplicate ids | 42 |
@@ -23,6 +24,10 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | LidocaineQ reference templates covered | 33/33 |
 | LidocaineQ replacement mappings | 15 |
 | Retired alias references not restored | 6 |
+| Render cache hit | 0 |
+| Render cache miss | 37 |
+| Package-only reused assets | 0 |
+| Render cache untracked | 0 |
 
 `Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
@@ -34,6 +39,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - reporting flow dependency profile: `r_ggplot2_ggconsort_reporting_flow_v1`
 - reporting flow generated fallback claims ggconsort: `false`
 - design gallery default surface: `canonical_current_non_statistical_illustration_shell_templates`
+- table preview gallery default surface: `canonical_current_table_shell_preview_templates`
 - evidence figures default to R/ggplot2: `true`
 - Python illustration shells visible as design cards: `true`
 - Python evidence retained without advantage proof: `false`
@@ -41,10 +47,12 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - journal palette: `lidocaineq_figure_template_palette_20260621`
 - quality overall status: `not_publication_ready`
 - publication-ready claim authorized: `false`
+- force render: `true`
+- package only: `false`
 - blocked evidence templates after current render: `0`
-- blocked gallery visual templates after current render: `1`
+- blocked gallery visual templates after current render: `0`
 - lower-bound review required: `34`
-- gallery lower-bound admission: `gallery_lower_bound_blocked`
+- gallery lower-bound admission: `gallery_lower_bound_passed_requires_paper_audit`
 - publication quality profile coverage: `37/37` (100%)
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
@@ -141,13 +149,19 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 | Template | Display name | Renderer | Render status |
 | --- | --- | --- | --- |
-| `cohort_flow_figure` | Cohort Flow Figure | r_ggplot2 | not_rendered |
+| `cohort_flow_figure` | Cohort Flow Figure | r_ggplot2 | rendered |
 
 ## 非数据设计图 Gallery
 
 | Template | Display name | Renderer | Render status |
 | --- | --- | --- | --- |
 | `submission_graphical_abstract` | Submission Graphical Abstract | python | rendered |
+
+## 表格预览图 Gallery
+
+| Template | Display name | Renderer | Render status |
+| --- | --- | --- | --- |
+| `table1_baseline_characteristics` | Table 1 Baseline Characteristics | n/a | rendered |
 
 ## 画册分类
 

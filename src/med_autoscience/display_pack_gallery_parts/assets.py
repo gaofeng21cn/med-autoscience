@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import struct
 import json
 import shutil
 
@@ -21,6 +22,9 @@ class RenderedAsset:
     reason: str = ""
     image_size_px: tuple[int, int] = (0, 0)
     preview_image_size_px: tuple[int, int] = (0, 0)
+    render_cache_status: str = ""
+    render_cache_key: str = ""
+    dependency_environment: dict[str, str] | None = None
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -32,9 +36,21 @@ def _image_size(path: Path) -> tuple[int, int]:
     try:
         from PIL import Image
     except ImportError:
-        return (0, 0)
+        return _png_image_size(path)
     with Image.open(path) as image:
         return image.size
+
+
+def _png_image_size(path: Path) -> tuple[int, int]:
+    try:
+        with path.open("rb") as handle:
+            header = handle.read(24)
+    except OSError:
+        return (0, 0)
+    if len(header) < 24 or not header.startswith(b"\x89PNG\r\n\x1a\n") or header[12:16] != b"IHDR":
+        return (0, 0)
+    width, height = struct.unpack(">II", header[16:24])
+    return (int(width), int(height))
 
 
 def _square_gallery_preview(path: Path) -> tuple[Path, tuple[int, int]]:

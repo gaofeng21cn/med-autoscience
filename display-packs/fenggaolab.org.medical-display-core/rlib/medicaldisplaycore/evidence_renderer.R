@@ -51,7 +51,12 @@ normalize_template_id <- function(value) {
 }
 
 read_render_request <- function(request_path) {
-  request <- fromJSON(request_path, simplifyVector = FALSE)
+  request_json <- if (file.exists(request_path)) {
+    paste(readLines(request_path, warn = FALSE), collapse = "\n")
+  } else {
+    request_path
+  }
+  request <- fromJSON(request_json, simplifyVector = FALSE)
   if (is.null(request$display_payload)) {
     stop("render request must contain display_payload")
   }
@@ -193,7 +198,7 @@ publication_legend_guides <- function(display_payload, labels = NULL) {
 publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
   typography <- style_typography(display_payload)
   horizontal <- identical(bar_orientation, "horizontal")
-  default_barwidth <- if (horizontal) 260.0 else 5.0
+  default_barwidth <- if (horizontal) 150.0 else 5.0
   default_barheight <- if (horizontal) 6.0 else 42.0
   label_size <- style_numeric(typography, "colorbar_label_size", 5.6)
   title_size <- style_numeric(typography, "colorbar_title_size", 6.0)
@@ -1158,7 +1163,46 @@ render_device_dimension <- function(display_payload, field_name, env_name, fallb
   numeric_value
 }
 
+is_grid_renderable <- function(plot) {
+  inherits(plot, "grob") || inherits(plot, "gTree") || inherits(plot, "gtable")
+}
+
+save_grid_renderable <- function(plot, output_png, output_pdf, output_width, output_height) {
+  grDevices::png(output_png, width = output_width, height = output_height, units = "in", res = 320, bg = "white")
+  grid::grid.newpage()
+  grid::grid.draw(plot)
+  grDevices::dev.off()
+  grDevices::pdf(output_pdf, width = output_width, height = output_height, bg = "white")
+  grid::grid.newpage()
+  grid::grid.draw(plot)
+  grDevices::dev.off()
+}
+
+save_rendered_plot <- function(plot, output_png, output_pdf, output_width, output_height) {
+  if (is_grid_renderable(plot)) {
+    save_grid_renderable(plot, output_png, output_pdf, output_width, output_height)
+    return(invisible(TRUE))
+  }
+  ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
+  ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
+  invisible(TRUE)
+}
+
 build_layout_sidecar <- function(plot, template_id, display_payload) {
+  if (is_grid_renderable(plot)) {
+    panel_box <- list(box_id = "table_panel", box_type = "table_region", x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+    metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
+    return(list(
+      template_id = template_id,
+      device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+      layout_boxes = list(list(box_id = "table_title", box_type = "title", x0 = 0.04, y0 = 0.91, x1 = 0.96, y1 = 0.98)),
+      panel_boxes = list(panel_box),
+      guide_boxes = list(),
+      metrics = metrics,
+      render_context = render_context_from_payload(display_payload),
+      style_profile = style_profile_sidecar(display_payload)
+    ))
+  }
   tmp_pdf <- tempfile(fileext = ".pdf")
   output_width <- render_device_dimension(display_payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
   output_height <- render_device_dimension(display_payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
@@ -1292,8 +1336,7 @@ render_evidence_request <- function(request_path, expected_template_id = NULL) {
   write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
   output_width <- render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
   output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
-  ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
-  ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
+  save_rendered_plot(plot, output_png, output_pdf, output_width, output_height)
   invisible(list(template_id = template_id, output_png_path = output_png, output_pdf_path = output_pdf, layout_sidecar_path = output_layout))
 }
 
@@ -1316,7 +1359,7 @@ if (!identical(Sys.getenv("MAS_DISPLAY_RENDERER_SOURCE_ONLY", unset = ""), "1"))
   args <- commandArgs(trailingOnly = TRUE)
   if (length(args) == 0) {
     invisible(NULL)
-  } else if (length(args) == 2 && identical(args[[1]], "--request")) {
+  } else if (length(args) == 2 && args[[1]] %in% c("--request", "--file")) {
     render_evidence_request(args[[2]])
   } else if (length(args) == 5) {
     render_legacy_payload(args[[1]], args[[2]], args[[3]], args[[4]], args[[5]])

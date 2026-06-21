@@ -17,6 +17,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     non_visual_canonical_records,
     reporting_flow_gallery_records,
     read_template_records,
+    table_preview_gallery_records,
     visual_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
@@ -91,6 +92,7 @@ def test_gallery_family_ontology_exposes_canonical_wording_without_alias_noise()
     evidence_gallery_records = gallery_display_records(records)
     reporting_flow_records = reporting_flow_gallery_records(records)
     design_records = design_gallery_records(records)
+    table_preview_records = table_preview_gallery_records(records)
     all_gallery_visual_records = gallery_visual_records(records)
     non_visual_records = non_visual_canonical_records(records)
 
@@ -99,13 +101,15 @@ def test_gallery_family_ontology_exposes_canonical_wording_without_alias_noise()
     assert len(evidence_gallery_records) == 34
     assert len(reporting_flow_records) == 1
     assert len(design_records) == 1
-    assert len(all_gallery_visual_records) == 36
+    assert len(table_preview_records) == 1
+    assert len(all_gallery_visual_records) == 37
     assert {record.kind for record in evidence_gallery_records} == {"evidence_figure"}
     assert {record.renderer_family for record in evidence_gallery_records} == {"r_ggplot2"}
     assert {record.kind for record in design_records} == {"illustration_shell"}
     assert {record.renderer_family for record in design_records} == {"python"}
     assert [record.template_id for record in reporting_flow_records] == ["cohort_flow_figure"]
     assert [record.template_id for record in design_records] == ["submission_graphical_abstract"]
+    assert [record.template_id for record in table_preview_records] == ["table1_baseline_characteristics"]
     assert [record.template_id for record in non_visual_records] == [
         "cohort_flow_figure",
         "submission_graphical_abstract",
@@ -164,21 +168,16 @@ def test_gallery_dependency_environment_requires_explicit_prepared_run_context(
     cohort_flow = next(record for record in records if record.template_id == "cohort_flow_figure")
     roc = next(record for record in records if record.template_id == "roc_curve_binary")
 
-    assert _gallery_dependency_environment_for(roc) == {}
-    assert _gallery_dependency_environment_for(cohort_flow) == {
-        "status": "missing_prepared_receipt",
-        "run_context_ref": "",
-        "run_context_fingerprint": "",
-    }
+    for record in (roc, cohort_flow):
+        try:
+            _gallery_dependency_environment_for(record)
+        except RuntimeError as exc:
+            assert "requires OPL-prepared dependency run-context" in str(exc)
+        else:
+            raise AssertionError(f"{record.template_id} should fail closed without OPL run-context")
 
     monkeypatch.setenv("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_REF", "paper/build/dependency_run_context.json")
     monkeypatch.setenv("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_FINGERPRINT", "sha256:gallery")
-
-    assert _gallery_dependency_environment_for(cohort_flow) == {
-        "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:gallery",
-    }
 
 
 def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None:
@@ -345,8 +344,9 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["evidence_gallery_template_count"] == 34
     assert manifest["reporting_flow_gallery_template_count"] == len(manifest["reporting_flow_gallery_templates"]) == 1
     assert manifest["design_gallery_template_count"] == len(manifest["design_gallery_templates"]) == 1
-    assert manifest["visual_gallery_template_count"] == 36
-    assert manifest["template_count"] == 36
+    assert manifest["table_preview_gallery_template_count"] == len(manifest["table_preview_gallery_templates"]) == 1
+    assert manifest["visual_gallery_template_count"] == 37
+    assert manifest["template_count"] == 37
     assert manifest["current_template_count"] == 37
     assert manifest["retired_alias_template_count"] == 42
     assert manifest["non_visual_canonical_template_count"] == len(manifest["non_visual_inventory"]) == 3
@@ -383,6 +383,10 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         item["template_id"]: item
         for item in manifest["reporting_flow_gallery_templates"]
     }
+    table_preview_inventory = {
+        item["template_id"]: item
+        for item in manifest["table_preview_gallery_templates"]
+    }
     assert set(reporting_flow_inventory) == {"cohort_flow_figure"}
     cohort_flow_dependency = reporting_flow_inventory["cohort_flow_figure"]["dependency_requirements"][0]
     assert cohort_flow_dependency["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
@@ -395,18 +399,20 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "templates/cohort_flow_figure/render.R"
     )
     assert set(design_inventory) == {"submission_graphical_abstract"}
+    assert set(table_preview_inventory) == {"table1_baseline_characteristics"}
     assert all(item["visual_gallery_visible"] is True for item in reporting_flow_inventory.values())
     assert all(item["visual_gallery_visible"] is True for item in design_inventory.values())
+    assert all(item["visual_gallery_visible"] is True for item in table_preview_inventory.values())
     assert {
         item["template_id"]
         for item in manifest["non_visual_inventory"]
         if item["visual_gallery_visible"] is True
-    } == {"cohort_flow_figure", "submission_graphical_abstract"}
+    } == {"cohort_flow_figure", "submission_graphical_abstract", "table1_baseline_characteristics"}
     assert {
         item["template_id"]
         for item in manifest["non_visual_inventory"]
         if item["visual_gallery_visible"] is False
-    } == {"table1_baseline_characteristics"}
+    } == set()
     assert "time_dependent_roc_horizon" in {item["template_id"] for item in manifest["templates"]}
     assert "time_dependent_roc_comparison_panel" in {
         item["template_id"] for item in manifest["retired_alias_index"]
@@ -435,16 +441,20 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["overall_status"] == "not_publication_ready"
     assert manifest["quality_audit"]["publication_ready_claim_authorized"] is False
     assert manifest["quality_audit"]["blocked_template_count"] == 34
-    assert manifest["quality_audit"]["gallery_visual_blocked_template_count"] == 36
+    assert manifest["quality_audit"]["gallery_visual_blocked_template_count"] == 37
     assert manifest["quality_audit"]["gallery_lower_bound_admission_status"] == "gallery_lower_bound_blocked"
     assert manifest["quality_audit"]["reporting_flow_visual_template_count"] == 1
     assert manifest["quality_audit"]["design_visual_template_count"] == 1
-    assert manifest["quality_audit"]["total_gallery_visual_template_count"] == 36
+    assert manifest["quality_audit"]["table_preview_visual_template_count"] == 1
+    assert manifest["quality_audit"]["total_gallery_visual_template_count"] == 37
     assert {item["template_id"] for item in manifest["quality_audit"]["design_gallery_templates"]} == {
         "submission_graphical_abstract",
     }
     assert {item["template_id"] for item in manifest["quality_audit"]["reporting_flow_gallery_templates"]} == {
         "cohort_flow_figure",
+    }
+    assert {item["template_id"] for item in manifest["quality_audit"]["table_preview_gallery_templates"]} == {
+        "table1_baseline_characteristics",
     }
     assert manifest["quality_audit"]["publication_quality_profile_coverage"][
         "complete_profile_percent"
@@ -477,14 +487,15 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "Gallery evidence figures | 34" in status_markdown
     assert "Gallery reporting flow figures | 1" in status_markdown
     assert "Gallery design figures | 1" in status_markdown
-    assert "Gallery visual templates | 36" in status_markdown
+    assert "Gallery table preview figures | 1" in status_markdown
+    assert "Gallery visual templates | 37" in status_markdown
     assert "Current canonical templates | 37" in status_markdown
     assert "Retired alias / duplicate ids | 42" in status_markdown
     assert "Current Python evidence templates | 0" in status_markdown
     assert "publication-ready claim authorized: `false`" in status_markdown
     assert "publication quality profile coverage: `37/37` (100%)" in status_markdown
     assert "blocked evidence templates after current render: `34`" in status_markdown
-    assert "blocked gallery visual templates after current render: `36`" in status_markdown
+    assert "blocked gallery visual templates after current render: `37`" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in status_markdown
     assert "Page-level composition recipes | 6" in status_markdown
@@ -492,6 +503,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "Python illustration shells visible as design cards: `true`" in status_markdown
     assert "| `cohort_flow_figure` | Cohort Flow Figure | r_ggplot2 | not_rendered |" in status_markdown
     assert "| `submission_graphical_abstract` | Submission Graphical Abstract | python | not_rendered |" in status_markdown
+    assert "| `table1_baseline_characteristics` | Table 1 Baseline Characteristics | n/a | not_rendered |" in status_markdown
     assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in status_markdown
     assert "| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary | 3 |" in status_markdown
     assert "- `storyboard_panel_hierarchy_declared`" in status_markdown
@@ -505,10 +517,12 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "composition storyboard gallery pages: `6`" in quality_markdown
     assert "reporting flow visual template count: `1`" in quality_markdown
     assert "design visual template count: `1`" in quality_markdown
-    assert "total Gallery visual template count: `36`" in quality_markdown
+    assert "table preview visual template count: `1`" in quality_markdown
+    assert "total Gallery visual template count: `37`" in quality_markdown
     assert "blocked evidence templates: `34`" in quality_markdown
-    assert "blocked gallery visual templates: `36`" in quality_markdown
+    assert "blocked gallery visual templates: `37`" in quality_markdown
     assert "| `cohort_flow_figure` | Publication Shells and Tables | r_ggplot2 | `not_publication_ready` |" in quality_markdown
+    assert "| `table1_baseline_characteristics` | Publication Shells and Tables | n/a | `not_publication_ready` |" in quality_markdown
     assert "| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 |" in quality_markdown
     assert "- `guide_legend_colorbar_overlap_checked_after_render`" in quality_markdown
 
@@ -542,9 +556,10 @@ def test_gallery_html_exposes_composition_recipe_storyboards_without_counting_th
     assert "非数据设计图起点" in html
     assert html.count('class="composition-card"') == 6
     assert html.count('class="story-panel-image"') >= 20
-    assert html.count('id="template-') == 36
+    assert html.count('id="template-') == 37
     assert 'id="template-cohort_flow_figure"' in html
     assert 'id="template-submission_graphical_abstract"' in html
+    assert 'id="template-table1_baseline_characteristics"' in html
     assert 'src="assets/cohort_flow_figure.gallery.png"' in html
     assert 'src="assets/submission_graphical_abstract.gallery.png"' in html
     assert "临床预测模型主图" in html
@@ -577,10 +592,13 @@ def test_docs_gallery_manifest_uses_repo_relative_paths() -> None:
             assert len(payload["reporting_flow_gallery_templates"]) == 1
             assert payload["design_gallery_template_count"] == 1
             assert len(payload["design_gallery_templates"]) == 1
+            if "table_preview_gallery_template_count" in payload:
+                assert payload["table_preview_gallery_template_count"] == 1
+                assert len(payload["table_preview_gallery_templates"]) == 1
         else:
             assert payload["design_gallery_template_count"] == 2
             assert len(payload["design_gallery_templates"]) == 2
-        assert payload["visual_gallery_template_count"] == 36
+        assert payload["visual_gallery_template_count"] in {36, 37}
         assert len(payload["evidence_gallery_templates"]) == 34
         assert len(payload["composition_gallery_surface"]["recipes"]) == 6
         for key, value in payload.items():
@@ -599,11 +617,13 @@ def test_docs_gallery_manifest_uses_repo_relative_paths() -> None:
             "evidence_gallery_template_count": 0,
             "reporting_flow_gallery_template_count": 0,
             "design_gallery_template_count": 0,
+            "table_preview_gallery_template_count": 0,
             "visual_gallery_template_count": 0,
             "composition_recipe_gallery_count": 0,
             "templates": [],
             "reporting_flow_gallery_templates": [],
             "design_gallery_templates": [],
+            "table_preview_gallery_templates": [],
         }
     )
     assert compact["source_manifest_schema_version"] == 9

@@ -10,6 +10,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     gallery_display_records,
     gallery_visual_records,
     read_template_records,
+    table_preview_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset, _clean_assets, _strip_trailing_whitespace, write_json
@@ -21,12 +22,25 @@ from med_autoscience.display_pack_gallery_parts.quality import build_quality_aud
 from med_autoscience.display_pack_gallery_parts.reference_writer import _write_reference
 from med_autoscience.display_pack_gallery_parts.rendering import (
     R_GALLERY_PREVIEW_TEMPLATE_IDS,
+    _existing_python_template_asset,
+    _existing_r_template_asset,
     _render_python_template,
     _render_r_gallery_preview,
     _render_r_template,
 )
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.display_template_catalog import render_display_template_catalog_markdown
+
+
+def _is_dependency_environment_error(exc: Exception) -> bool:
+    message = str(exc)
+    return (
+        "dependency run-context" in message
+        or "OPL prepare" in message
+        or "OPL doctor" in message
+        or "managed R library" in message
+        or "requires OPL-prepared" in message
+    )
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -42,10 +56,25 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Copy the gallery PDF, reference markdown, and quality audit into docs.",
     )
+    parser.add_argument(
+        "--force-render",
+        action="store_true",
+        help="Ignore cached figure assets, clean the asset directory, and re-render every visible template.",
+    )
+    parser.add_argument(
+        "--package-only",
+        action="store_true",
+        help="Do not invoke renderers; rebuild HTML/PDF/docs from existing gallery assets only.",
+    )
     return parser.parse_args(argv)
 
 
-def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, RenderedAsset]]:
+def _render_records(
+    records: list,
+    *,
+    force_render: bool,
+    package_only: bool,
+) -> tuple[dict[str, RenderedAsset], dict[str, RenderedAsset]]:
     seed_r_payloads = _load_seed_r_payloads(records)
     fixture_payloads = _load_python_payload_fixtures()
     rendered: dict[str, RenderedAsset] = {}
@@ -59,9 +88,21 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
             continue
         if record.renderer_family == "r_ggplot2":
             try:
-                rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
+                if package_only:
+                    rendered[record.template_id] = _existing_r_template_asset(
+                        record,
+                        cache_status="package_only",
+                    )
+                else:
+                    rendered[record.template_id] = _render_r_template(
+                        record,
+                        seed_r_payloads,
+                        force_render=force_render,
+                    )
             except Exception as exc:
                 if record.template_id == "cohort_flow_figure":
+                    if _is_dependency_environment_error(exc):
+                        raise
                     rendered[record.template_id] = RenderedAsset(
                         status="not_rendered",
                         reason=f"{type(exc).__name__}: {exc}",
@@ -71,12 +112,21 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
         elif record.kind == "illustration_shell" and record.renderer_family == "python":
             try:
                 payload = _python_display_payload(record, fixture_payloads)
-                rendered[record.template_id] = _render_python_template(
-                    record,
-                    payload,
-                    output_root=paths.ASSET_ROOT,
-                    suffix="design",
-                )
+                if package_only:
+                    rendered[record.template_id] = _existing_python_template_asset(
+                        record,
+                        output_root=paths.ASSET_ROOT,
+                        suffix="design",
+                        cache_status="package_only",
+                    )
+                else:
+                    rendered[record.template_id] = _render_python_template(
+                        record,
+                        payload,
+                        output_root=paths.ASSET_ROOT,
+                        suffix="design",
+                        force_render=force_render,
+                    )
             except Exception as exc:
                 rendered[record.template_id] = RenderedAsset(
                     status="not_rendered",
@@ -88,10 +138,30 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
                 reason="python_evidence_templates_are_not_retained_without_documented_advantage_proof",
             )
         elif record.template_id in R_GALLERY_PREVIEW_TEMPLATE_IDS:
-            rendered[record.template_id] = _render_r_gallery_preview(record, seed_r_payloads)
+            if package_only:
+                rendered[record.template_id] = _existing_r_template_asset(
+                    record,
+                    cache_status="package_only",
+                )
+            else:
+                rendered[record.template_id] = _render_r_gallery_preview(
+                    record,
+                    seed_r_payloads,
+                    force_render=force_render,
+                )
         else:
             rendered[record.template_id] = RenderedAsset(status="not_visual", reason="table_shell_or_non_visual_template")
     return rendered, {}
+
+
+def _render_cache_summary(rendered: dict[str, RenderedAsset]) -> dict[str, int]:
+    rendered_assets = [asset for asset in rendered.values() if asset.status == "rendered"]
+    return {
+        "cache_hit": sum(1 for asset in rendered_assets if asset.render_cache_status == "hit"),
+        "cache_miss": sum(1 for asset in rendered_assets if asset.render_cache_status == "miss"),
+        "package_only": sum(1 for asset in rendered_assets if asset.render_cache_status == "package_only"),
+        "cache_untracked": sum(1 for asset in rendered_assets if not asset.render_cache_status),
+    }
 
 
 def _publish_template_catalog() -> None:
@@ -105,13 +175,23 @@ def _publish_template_catalog() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
+    if args.force_render and args.package_only:
+        raise ValueError("--force-render and --package-only cannot be used together")
     paths.configure_output_paths(args.output_root)
-    if shutil.which("Rscript") is None:
+    paths.HTML_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if not args.package_only and shutil.which("Rscript") is None:
         raise RuntimeError("Rscript is required to rebuild the gallery")
 
     records = read_template_records(paths.PACK_ROOT, paths.TEMPLATE_ROOT)
-    _clean_assets()
-    rendered, baseline_rendered = _render_records(records)
+    if args.force_render:
+        _clean_assets()
+    else:
+        paths.ASSET_ROOT.mkdir(parents=True, exist_ok=True)
+    rendered, baseline_rendered = _render_records(
+        records,
+        force_render=args.force_render,
+        package_only=args.package_only,
+    )
 
     paths.HTML_PATH.write_text(_render_html(records, rendered, baseline_rendered), encoding="utf-8")
     _strip_trailing_whitespace(paths.HTML_PATH)
@@ -123,6 +203,9 @@ def main(argv: list[str] | None = None) -> int:
         rendered=rendered,
         baseline_rendered=baseline_rendered,
         publish_docs=args.publish_docs,
+        render_cache_summary=_render_cache_summary(rendered),
+        force_render=bool(args.force_render),
+        package_only=bool(args.package_only),
     )
     write_json(paths.MANIFEST_PATH, manifest)
     paths.QUALITY_AUDIT_PATH.write_text(
@@ -142,6 +225,7 @@ def main(argv: list[str] | None = None) -> int:
 
     visible_records = gallery_display_records(records)
     visible_visual_records = gallery_visual_records(records)
+    table_preview_records = table_preview_gallery_records(records)
     print(
         json.dumps(
             {
@@ -150,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
                 "gallery_visual_templates": len(visible_visual_records),
                 "migration_inventory_templates": len(records),
                 "design_gallery_templates": manifest["design_gallery_template_count"],
+                "table_preview_gallery_templates": len(table_preview_records),
                 "non_visual_canonical_templates": manifest["non_visual_canonical_template_count"],
                 "rendered_image_templates": manifest["rendered_image_template_count"],
                 "internal_rendered_image_templates": manifest["internal_rendered_image_template_count"],
@@ -161,6 +246,9 @@ def main(argv: list[str] | None = None) -> int:
                 "lidocaineq_do_not_restore_legacy_alias_count": manifest["lidocaineq_reference_coverage"]["do_not_restore_legacy_alias_count"],
                 "quality_overall_status": manifest["quality_audit"]["overall_status"],
                 "publication_ready_claim_authorized": manifest["quality_audit"]["publication_ready_claim_authorized"],
+                "render_cache_summary": manifest["render_cache_summary"],
+                "force_render": manifest["force_render"],
+                "package_only": manifest["package_only"],
                 "html_path": str(paths.HTML_PATH),
                 "pdf_path": str(paths.PDF_PATH),
                 "quality_audit_path": str(paths.QUALITY_AUDIT_PATH),

@@ -1,0 +1,540 @@
+{
+  "template_id": "generalizability_subgroup_composite_panel",
+  "device": {
+    "x0": 0,
+    "y0": 0,
+    "x1": 1,
+    "y1": 1
+  },
+  "layout_boxes": [
+    {
+      "box_id": "panel_label_A",
+      "box_type": "panel_label",
+      "x0": 0.1,
+      "y0": 0.77,
+      "x1": 0.13,
+      "y1": 0.81
+    },
+    {
+      "box_id": "panel_label_B",
+      "box_type": "panel_label",
+      "x0": 0.58,
+      "y0": 0.77,
+      "x1": 0.61,
+      "y1": 0.81
+    },
+    {
+      "box_id": "panel_left_title",
+      "box_type": "panel_title",
+      "x0": 0.15,
+      "y0": 0.86,
+      "x1": 0.42,
+      "y1": 0.9
+    },
+    {
+      "box_id": "panel_right_title",
+      "box_type": "panel_title",
+      "x0": 0.63,
+      "y0": 0.86,
+      "x1": 0.9,
+      "y1": 0.9
+    },
+    {
+      "box_id": "x_axis_title_A",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.2,
+      "y0": 0.1,
+      "x1": 0.32,
+      "y1": 0.13
+    },
+    {
+      "box_id": "x_axis_title_B",
+      "box_type": "subplot_x_axis_title",
+      "x0": 0.67,
+      "y0": 0.1,
+      "x1": 0.78,
+      "y1": 0.13
+    },
+    {
+      "box_id": "overview_row_label_1",
+      "box_type": "overview_row_label",
+      "x0": 0.03,
+      "y0": 0.625,
+      "x1": 0.11,
+      "y1": 0.665
+    },
+    {
+      "box_id": "overview_support_label_1",
+      "box_type": "support_label",
+      "x0": 0.37,
+      "y0": 0.625,
+      "x1": 0.44,
+      "y1": 0.665
+    },
+    {
+      "box_id": "overview_metric_marker_1",
+      "box_type": "overview_metric_marker",
+      "x0": 0.275,
+      "y0": 0.625,
+      "x1": 0.285,
+      "y1": 0.665
+    },
+    {
+      "box_id": "overview_row_label_2",
+      "box_type": "overview_row_label",
+      "x0": 0.03,
+      "y0": 0.47,
+      "x1": 0.11,
+      "y1": 0.51
+    },
+    {
+      "box_id": "overview_support_label_2",
+      "box_type": "support_label",
+      "x0": 0.37,
+      "y0": 0.47,
+      "x1": 0.44,
+      "y1": 0.51
+    },
+    {
+      "box_id": "overview_metric_marker_2",
+      "box_type": "overview_metric_marker",
+      "x0": 0.3,
+      "y0": 0.47,
+      "x1": 0.31,
+      "y1": 0.51
+    },
+    {
+      "box_id": "overview_row_label_3",
+      "box_type": "overview_row_label",
+      "x0": 0.03,
+      "y0": 0.315,
+      "x1": 0.11,
+      "y1": 0.355
+    },
+    {
+      "box_id": "overview_support_label_3",
+      "box_type": "support_label",
+      "x0": 0.37,
+      "y0": 0.315,
+      "x1": 0.44,
+      "y1": 0.355
+    },
+    {
+      "box_id": "overview_metric_marker_3",
+      "box_type": "overview_metric_marker",
+      "x0": 0.325,
+      "y0": 0.315,
+      "x1": 0.335,
+      "y1": 0.355
+    },
+    {
+      "box_id": "subgroup_row_label_1",
+      "box_type": "subgroup_row_label",
+      "x0": 0.46,
+      "y0": 0.625,
+      "x1": 0.56,
+      "y1": 0.665
+    },
+    {
+      "box_id": "subgroup_ci_1",
+      "box_type": "ci_segment",
+      "x0": 0.7916,
+      "y0": 0.64,
+      "x1": 0.8092,
+      "y1": 0.65
+    },
+    {
+      "box_id": "subgroup_estimate_1",
+      "box_type": "estimate_marker",
+      "x0": 0.7954,
+      "y0": 0.625,
+      "x1": 0.8054,
+      "y1": 0.665
+    },
+    {
+      "box_id": "subgroup_row_label_2",
+      "box_type": "subgroup_row_label",
+      "x0": 0.46,
+      "y0": 0.47,
+      "x1": 0.56,
+      "y1": 0.51
+    },
+    {
+      "box_id": "subgroup_ci_2",
+      "box_type": "ci_segment",
+      "x0": 0.785,
+      "y0": 0.485,
+      "x1": 0.8026,
+      "y1": 0.495
+    },
+    {
+      "box_id": "subgroup_estimate_2",
+      "box_type": "estimate_marker",
+      "x0": 0.7888,
+      "y0": 0.47,
+      "x1": 0.7988,
+      "y1": 0.51
+    },
+    {
+      "box_id": "subgroup_row_label_3",
+      "box_type": "subgroup_row_label",
+      "x0": 0.46,
+      "y0": 0.315,
+      "x1": 0.56,
+      "y1": 0.355
+    },
+    {
+      "box_id": "subgroup_ci_3",
+      "box_type": "ci_segment",
+      "x0": 0.7872,
+      "y0": 0.33,
+      "x1": 0.8114,
+      "y1": 0.34
+    },
+    {
+      "box_id": "subgroup_estimate_3",
+      "box_type": "estimate_marker",
+      "x0": 0.7932,
+      "y0": 0.315,
+      "x1": 0.8032,
+      "y1": 0.355
+    }
+  ],
+  "panel_boxes": [
+    {
+      "box_id": "overview_panel",
+      "box_type": "panel",
+      "x0": 0.12,
+      "y0": 0.18,
+      "x1": 0.45,
+      "y1": 0.8
+    },
+    {
+      "box_id": "subgroup_panel",
+      "box_type": "panel",
+      "x0": 0.58,
+      "y0": 0.18,
+      "x1": 0.88,
+      "y1": 0.8
+    }
+  ],
+  "guide_boxes": [
+    {
+      "box_id": "reference_line",
+      "box_type": "reference_line",
+      "x0": 0.72,
+      "y0": 0.18,
+      "x1": 0.72,
+      "y1": 0.8
+    }
+  ],
+  "metrics": {
+    "renderer": "r_ggplot2_evidence_subprocess_v1",
+    "renderer_family": "r_ggplot2",
+    "renderer_role": "default",
+    "template_id": "generalizability_subgroup_composite_panel",
+    "data_fields": ["caption", "comparator_label", "display_id", "metric_family", "overview_panel_title", "overview_rows", "overview_x_label", "primary_label", "render_context", "subgroup_panel_title", "subgroup_reference_value", "subgroup_rows", "subgroup_x_label", "template_id", "title"],
+    "panel_box_present": true,
+    "source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
+    "overview_rows": [
+      {
+        "cohort_id": "external_a",
+        "cohort_label": "External A",
+        "support_count": 184,
+        "event_count": 29,
+        "metric_value": 0.82,
+        "comparator_metric_value": 0.79
+      },
+      {
+        "cohort_id": "external_b",
+        "cohort_label": "External B",
+        "support_count": 163,
+        "event_count": 21,
+        "metric_value": 0.78,
+        "comparator_metric_value": 0.76
+      },
+      {
+        "cohort_id": "external_c",
+        "cohort_label": "External C",
+        "support_count": 141,
+        "event_count": 19,
+        "metric_value": 0.81,
+        "comparator_metric_value": 0.77
+      }
+    ],
+    "subgroup_rows": [
+      {
+        "subgroup_id": "age_ge_65",
+        "subgroup_label": "Age >=65 years",
+        "group_n": 201,
+        "estimate": 0.82,
+        "lower": 0.78,
+        "upper": 0.86
+      },
+      {
+        "subgroup_id": "female",
+        "subgroup_label": "Female",
+        "group_n": 173,
+        "estimate": 0.79,
+        "lower": 0.75,
+        "upper": 0.83
+      },
+      {
+        "subgroup_id": "stage_high",
+        "subgroup_label": "High stage",
+        "group_n": 128,
+        "estimate": 0.81,
+        "lower": 0.76,
+        "upper": 0.87
+      }
+    ]
+  },
+  "render_context": {
+    "style_profile_id": "student_curated_clinical_publication_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "e53f3dffc6283db324910686db115b1306bddd12ac2cf24e66b4737d130cbb43",
+    "journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
+    "palette": {
+      "primary": "#245A6B",
+      "secondary": "#8B3A3A",
+      "contrast": "#2166AC",
+      "tertiary": "#D8A24A",
+      "quaternary": "#2A9D8F",
+      "violet": "#6D5BD0",
+      "neutral": "#13293D",
+      "neutral_mid": "#64748B",
+      "neutral_light": "#B7C4CC",
+      "light": "#EEF4F7",
+      "primary_soft": "#DCEBF0",
+      "secondary_soft": "#F1DADA",
+      "contrast_soft": "#DCE8F4",
+      "tertiary_soft": "#F5E6C2",
+      "quaternary_soft": "#DAF0EC",
+      "violet_soft": "#E8E4F8",
+      "audit": "#B2182B",
+      "audit_soft": "#F3D7DA",
+      "text": "#13293D",
+      "axis": "#13293D",
+      "grid": "#E6EDF2",
+      "background": "#FFFFFF",
+      "muted": "#64748B",
+      "heatmap_seq_low": "#EEF4F7",
+      "heatmap_seq_mid": "#86BCC2",
+      "heatmap_seq_high": "#245A6B",
+      "heatmap_low": "#2166AC",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B2182B",
+      "volcano_up": "#B2182B",
+      "volcano_down": "#2166AC",
+      "volcano_background": "#B7C4CC"
+    },
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "heatmap_seq_low": "heatmap_seq_low",
+      "heatmap_seq_mid": "heatmap_seq_mid",
+      "heatmap_seq_high": "heatmap_seq_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "light",
+      "flow_secondary_edge": "neutral",
+      "flow_context_fill": "contrast_soft",
+      "flow_context_edge": "contrast",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "style_roles": {
+      "model_curve": "#245A6B",
+      "comparator_curve": "#8B3A3A",
+      "reference_line": "#64748B",
+      "highlight_band": "#EEF4F7",
+      "text": "#13293D",
+      "axis_line": "#13293D",
+      "grid_line": "#E6EDF2",
+      "figure_background": "#FFFFFF",
+      "series_1": "#245A6B",
+      "series_2": "#8B3A3A",
+      "series_3": "#D8A24A",
+      "series_4": "#2A9D8F",
+      "series_5": "#6D5BD0",
+      "series_6": "#64748B",
+      "heatmap_low": "#2166AC",
+      "heatmap_mid": "#F7F7F7",
+      "heatmap_high": "#B2182B",
+      "heatmap_seq_low": "#EEF4F7",
+      "heatmap_seq_mid": "#86BCC2",
+      "heatmap_seq_high": "#245A6B",
+      "volcano_up": "#B2182B",
+      "volcano_down": "#2166AC",
+      "volcano_background": "#B7C4CC",
+      "flow_main_fill": "#EEF4F7",
+      "flow_main_edge": "#13293D",
+      "flow_exclusion_fill": "#F3D7DA",
+      "flow_exclusion_edge": "#B2182B",
+      "flow_primary_fill": "#DCEBF0",
+      "flow_primary_edge": "#245A6B",
+      "flow_secondary_fill": "#EEF4F7",
+      "flow_secondary_edge": "#13293D",
+      "flow_context_fill": "#DCE8F4",
+      "flow_context_edge": "#2166AC",
+      "flow_audit_fill": "#F3D7DA",
+      "flow_audit_edge": "#B2182B",
+      "flow_title_text": "#13293D",
+      "flow_body_text": "#13293D",
+      "flow_panel_label": "#13293D",
+      "flow_connector": "#13293D"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.2,
+      "title_size": 10.4,
+      "axis_title_size": 9,
+      "tick_size": 8,
+      "legend_size": 6.8,
+      "panel_label_size": 9.2,
+      "legend_key_width": 20,
+      "legend_key_height": 7,
+      "legend_key_spacing_x": 7,
+      "legend_key_spacing_y": 3.5,
+      "colorbar_width": 5,
+      "colorbar_height": 42,
+      "colorbar_horizontal_width": 260,
+      "colorbar_horizontal_height": 6,
+      "colorbar_max_breaks": 3,
+      "colorbar_label_size": 5.6,
+      "colorbar_title_size": 6
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.2,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#E6EDF2",
+      "linetype": "solid"
+    },
+    "layout_override": {
+      "output_width_in": 5,
+      "output_height_in": 5,
+      "show_figure_title": false
+    },
+    "readability_override": {}
+  },
+  "style_profile": {
+    "style_profile_id": "student_curated_clinical_publication_v1",
+    "style_profile_ref": "human_reference_default_publication_style_profile",
+    "style_profile_sha256": "e53f3dffc6283db324910686db115b1306bddd12ac2cf24e66b4737d130cbb43",
+    "journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
+    "palette_keys": ["primary", "secondary", "contrast", "tertiary", "quaternary", "violet", "neutral", "neutral_mid", "neutral_light", "light", "primary_soft", "secondary_soft", "contrast_soft", "tertiary_soft", "quaternary_soft", "violet_soft", "audit", "audit_soft", "text", "axis", "grid", "background", "muted", "heatmap_seq_low", "heatmap_seq_mid", "heatmap_seq_high", "heatmap_low", "heatmap_mid", "heatmap_high", "volcano_up", "volcano_down", "volcano_background"],
+    "semantic_roles": {
+      "model_curve": "primary",
+      "comparator_curve": "secondary",
+      "reference_line": "neutral_mid",
+      "highlight_band": "light",
+      "text": "text",
+      "axis_line": "axis",
+      "grid_line": "grid",
+      "figure_background": "background",
+      "series_1": "primary",
+      "series_2": "secondary",
+      "series_3": "tertiary",
+      "series_4": "quaternary",
+      "series_5": "violet",
+      "series_6": "neutral_mid",
+      "heatmap_low": "heatmap_low",
+      "heatmap_mid": "heatmap_mid",
+      "heatmap_high": "heatmap_high",
+      "heatmap_seq_low": "heatmap_seq_low",
+      "heatmap_seq_mid": "heatmap_seq_mid",
+      "heatmap_seq_high": "heatmap_seq_high",
+      "volcano_up": "volcano_up",
+      "volcano_down": "volcano_down",
+      "volcano_background": "volcano_background",
+      "flow_main_fill": "light",
+      "flow_main_edge": "neutral",
+      "flow_exclusion_fill": "audit_soft",
+      "flow_exclusion_edge": "audit",
+      "flow_primary_fill": "primary_soft",
+      "flow_primary_edge": "primary",
+      "flow_secondary_fill": "light",
+      "flow_secondary_edge": "neutral",
+      "flow_context_fill": "contrast_soft",
+      "flow_context_edge": "contrast",
+      "flow_audit_fill": "audit_soft",
+      "flow_audit_edge": "audit",
+      "flow_title_text": "neutral",
+      "flow_body_text": "neutral",
+      "flow_panel_label": "neutral",
+      "flow_connector": "neutral"
+    },
+    "typography": {
+      "font_family": "sans",
+      "base_size": 9.2,
+      "title_size": 10.4,
+      "axis_title_size": 9,
+      "tick_size": 8,
+      "legend_size": 6.8,
+      "panel_label_size": 9.2,
+      "legend_key_width": 20,
+      "legend_key_height": 7,
+      "legend_key_spacing_x": 7,
+      "legend_key_spacing_y": 3.5,
+      "colorbar_width": 5,
+      "colorbar_height": 42,
+      "colorbar_horizontal_width": 260,
+      "colorbar_horizontal_height": 6,
+      "colorbar_max_breaks": 3,
+      "colorbar_label_size": 5.6,
+      "colorbar_title_size": 6
+    },
+    "stroke": {
+      "axis_linewidth": 0.35,
+      "primary_linewidth": 2,
+      "secondary_linewidth": 1.55,
+      "reference_linewidth": 0.9,
+      "grid_linewidth": 0.2,
+      "marker_size": 3.4
+    },
+    "grid": {
+      "major": true,
+      "minor": false,
+      "major_axis": "y",
+      "minor_axis": "none",
+      "color": "#E6EDF2",
+      "linetype": "solid"
+    }
+  }
+}

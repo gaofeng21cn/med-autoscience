@@ -68,17 +68,19 @@ plot_lidocaine_kaplan_meier <- function(display_payload) {
     scale_y_continuous(limits = c(max(0, min(curve_df$value, na.rm = TRUE) - 0.08), 1.01), expand = c(0, 0)) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "Kaplan-Meier curve with risk table"),
-      subtitle = lidocaine_curve_subtitle(display_payload, "No. at risk"),
+      subtitle = lidocaine_wrap_label(lidocaine_curve_subtitle(display_payload, "No. at risk"), 72),
       x = NULL,
       y = lidocaine_non_empty(display_payload$y_label, "Survival probability")
     ) +
     lidocaine_publication_theme(display_payload) +
     theme(
       aspect.ratio = 0.78,
+      legend.position = c(0.76, 0.90),
+      legend.background = element_rect(fill = scales::alpha("white", 0.72), colour = NA),
       axis.text.x = element_blank(),
       axis.ticks.x = element_blank(),
       axis.title.x = element_blank(),
-      plot.margin = margin(1, 2, 0, 2)
+      plot.margin = margin(1, 3, 0, 14)
     )
   annotation <- lidocaine_non_empty(display_payload$annotation)
   if (nzchar(annotation)) {
@@ -96,24 +98,68 @@ plot_lidocaine_kaplan_meier <- function(display_payload) {
     return(p_curve + labs(x = lidocaine_non_empty(display_payload$x_label, "Time (months)")))
   }
   risk_df$group <- factor(risk_df$group, levels = group_levels)
-  p_risk <- ggplot(risk_df, aes(time, group)) +
-    geom_text(aes(label = n_risk, colour = group, hjust = hjust), size = 2.55, fontface = "bold") +
-    scale_colour_manual(values = palette_values) +
-    scale_x_continuous(breaks = times, limits = c(0, max_time), expand = expansion(mult = c(0, 0.02))) +
-    labs(x = lidocaine_non_empty(display_payload$x_label, "Time (months)"), y = lidocaine_non_empty(display_payload$risk_table_title, "No. at risk")) +
-    lidocaine_publication_theme(display_payload) +
+  risk_y_map <- stats::setNames(
+    seq(0.27, 0.36, length.out = length(group_levels)),
+    group_levels
+  )
+  first_count_by_group <- stats::aggregate(n_risk ~ group, risk_df[risk_df$time <= min(times), , drop = FALSE], function(values) values[[1]])
+  risk_label_df <- data.frame(
+    group = factor(group_levels, levels = group_levels),
+    risk_y = unname(risk_y_map[group_levels]),
+    stringsAsFactors = FALSE
+  )
+  risk_label_df <- merge(risk_label_df, first_count_by_group, by = "group", all.x = TRUE, sort = FALSE)
+  risk_label_df$label <- ifelse(
+    is.finite(risk_label_df$n_risk),
+    sprintf("%s  %s", risk_label_df$group, risk_label_df$n_risk),
+    as.character(risk_label_df$group)
+  )
+  risk_label_df$label_x <- -max_time * 0.18
+  risk_count_df <- risk_df[risk_df$time > min(times), , drop = FALSE]
+  risk_count_df$risk_y <- unname(risk_y_map[as.character(risk_count_df$group)])
+  p_curve +
+    geom_rect(
+      aes(xmin = -max_time * 0.20, xmax = max_time, ymin = 0.22, ymax = 0.405),
+      inherit.aes = FALSE,
+      fill = NA,
+      colour = style_color(display_payload, "axis_line", "axis", "#13293D"),
+      linewidth = 0.32
+    ) +
+    geom_text(
+      data = risk_label_df,
+      aes(x = label_x, y = risk_y, label = label, colour = group),
+      inherit.aes = FALSE,
+      hjust = 0,
+      size = 2.65,
+      fontface = "bold",
+      show.legend = FALSE
+    ) +
+    geom_text(
+      data = risk_count_df,
+      aes(x = time, y = risk_y, label = n_risk, colour = group, hjust = hjust),
+      inherit.aes = FALSE,
+      size = 2.55,
+      fontface = "bold",
+      show.legend = FALSE
+    ) +
+    scale_x_continuous(
+      breaks = times,
+      limits = c(-max_time * 0.20, max_time),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = seq(0.5, 1.0, by = 0.1),
+      limits = c(0.20, 1.01),
+      expand = c(0, 0)
+    ) +
+    labs(x = lidocaine_non_empty(display_payload$x_label, "Time (months)")) +
     theme(
-      legend.position = "none",
-      panel.grid.major.y = element_blank(),
-      panel.grid.minor = element_blank(),
-      axis.title.y = element_text(size = 8, angle = 0, vjust = 0.5, margin = margin(r = 14)),
-      axis.text.y = element_text(face = "bold", colour = style_text_color(display_payload), margin = margin(r = 8)),
-      axis.ticks.y = element_blank(),
-      plot.title = element_blank(),
-      plot.subtitle = element_blank(),
-      plot.margin = margin(0, 2, 1, 2)
+      axis.text.x = element_text(colour = style_text_color(display_payload)),
+      axis.ticks.x = element_line(colour = style_text_color(display_payload), linewidth = 0.35),
+      axis.title.x = element_text(face = "bold", colour = style_text_color(display_payload), margin = margin(t = 4, unit = "pt")),
+      aspect.ratio = 1.05,
+      plot.margin = margin(1, 3, 1, 14)
     )
-  p_curve / patchwork::plot_spacer() / p_risk + patchwork::plot_layout(heights = c(0.60, 0.10, 0.30))
 }
 
 plot_lidocaine_cumulative_incidence <- function(display_payload) {

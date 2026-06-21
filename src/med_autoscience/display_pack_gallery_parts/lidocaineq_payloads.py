@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 from typing import Any
 
 
@@ -16,15 +18,14 @@ def _distribution_values() -> list[dict[str, Any]]:
 
 
 def _correlation_points() -> list[dict[str, Any]]:
-    x_values = [-1.8, -1.5, -1.2, -0.9, -0.6, -0.3, 0.0, 0.3, 0.6, 0.9, 1.2, 1.5]
-    return [
-        {
-            "x": x,
-            "y": round(0.54 * x + (0.18 if index % 3 == 0 else -0.08 if index % 3 == 1 else 0.04), 3),
-            "group": "Derivation" if index < 6 else "Validation",
-        }
-        for index, x in enumerate(x_values)
-    ]
+    rng = random.Random(5)
+    points: list[dict[str, Any]] = []
+    for index in range(120):
+        group = "A" if index < 60 else "B"
+        x = rng.gauss(0, 1)
+        y = 0.58 * x + rng.gauss(0, 0.72) + (0.25 if group == "B" else 0.0)
+        points.append({"x": round(x, 3), "y": round(y, 3), "group": group})
+    return points
 
 
 LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
@@ -74,7 +75,7 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         "display_id": "Figure32",
         "template_id": "alluvial_transition",
         "title": "Subtype transition after treatment",
-        "caption": "Alluvial state-transition grammar adapted from the student source project without extra runtime package installs.",
+        "caption": "Alluvial state-transition grammar rendered through the OPL-prepared ggalluvial runtime profile.",
         "source_axis_label": "Baseline subtype",
         "target_axis_label": "Post-treatment state",
         "flows": [
