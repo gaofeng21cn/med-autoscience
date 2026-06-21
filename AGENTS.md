@@ -7,6 +7,7 @@
 ## 工作方式
 
 - 根层 `TASTE.md` 记录 OPL family 共享维护开发偏好；进行架构、代码、文档、测试、review、cleanup 和 closeout 判断时，先按 `TASTE.md` 校准 taste，再读取 MAS 事实、contracts、docs 与源码。
+- `TASTE.md` 是 taste 校准层，不是根因诊断的验收门。遇到停滞、反复失败、heartbeat 告警、runtime/currentness/readiness 漂移、多线程任务停住或用户要求“根因/彻底/不要停在表象”时，必须走用户级 `debugger`、`verifier`、`mas-runtime-truth-audit` 和 `codex-ops-kit` 的 Root-Cause Depth Gate：至少区分表层症状、直接断点、跨面证据、owner surface 与修复/决策路径；只复述状态标签、blocked reason、no live session、queue empty 或“缺少 X”不能作为 closeout。
 - `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，Agent executor 是 stage 内最小执行单位；`Codex CLI` 是当前第一公民 executor，其他 executor adapter 只能显式接入且不承诺行为效果等价。执行与审阅/审计必须是两个独立智能体任务：executor agent 和 reviewer/auditor agent 要独立 invocation、独立 context/task record、独立 receipt；不能要求同一个 agent 先执行再审阅自己并据此关闭 AI-first quality gate。MAS 持有医学研究 truth、quality verdict、publication/study/artifact authority、runtime-facing owner surface 和 owner receipt；通用 runtime、queue、attempt ledger、state-machine runner、workspace/source/artifact/memory locator、lifecycle shell 与 App/workbench shell 归 OPL Framework / shared family layer。
 - MAS 的理想形态是标准 OPL Agent：`Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。当前仓内已存在的 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/product-entry/sidecar/status wrapper 只能作为迁移输入；不能因为已有 active caller 就写成长期合理私有平台。
 - 文档和开发计划先设理想态，再找差距；差距不是妥协清单。为了标准 OPL Agent 目标态，可以革命式重构 MAS 并完全抛弃旧模块、旧接口、旧测试、旧目录和旧文案，不以兼容为理由保留历史污染面。
