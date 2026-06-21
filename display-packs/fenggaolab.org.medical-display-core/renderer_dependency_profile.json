@@ -109,8 +109,17 @@
             "role": "grammar-of-graphics reporting-flow rendering substrate"
           },
           {
+            "name": "dplyr",
+            "required": true,
+            "role": "ggconsort cohort data manipulation and plotting helpers"
+          },
+          {
             "name": "ggconsort",
             "required": true,
+            "source": {
+              "type": "github",
+              "repo": "tgerke/ggconsort"
+            },
             "role": "mature CONSORT/STROBE-style cohort participant flow grammar"
           },
           {

@@ -118,6 +118,7 @@ def test_cohort_flow_checked_in_renderer_uses_ggconsort_without_installing_packa
     assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
     assert render_path.is_file()
     assert 'requireNamespace("ggconsort", quietly = TRUE)' in source
+    assert "library(dplyr)" in source
     assert "install.packages" not in source
     assert "pak::" not in source
     assert "renv::install" not in source
@@ -214,6 +215,7 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
         "cohort_flow_figure",
         "fenggaolab.org.medical-display-core::cohort_flow_figure",
     ]
+    assert reporting_flow_packages["dplyr"]["required"] is True
     assert reporting_flow_packages["ggconsort"]["required"] is True
     assert reporting_flow_profile["mature_dependency_intent"]["preferred_package"] == "ggconsort"
     assert reporting_flow_profile["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False

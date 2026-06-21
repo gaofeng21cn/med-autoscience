@@ -2,6 +2,7 @@
 suppressPackageStartupMessages({
   library(jsonlite)
   library(ggplot2)
+  library(dplyr)
   library(grid)
 })
 
@@ -104,28 +105,30 @@ build_ggconsort_plot <- function(payload) {
   }
 
   cohort_data <- data.frame(.row_id = seq_len(max(1, length(steps))), stringsAsFactors = FALSE)
-  consort <- ggconsort::cohort_start(cohort_data, "full")
-  label_args <- list(full = cohort_step_label(steps[[1]], 1))
-  if (length(steps) > 1) {
-    for (index in seq(2, length(steps))) {
-      label_args[[step_ids[[index]]]] <- cohort_step_label(steps[[index]], index)
-    }
+  consort <- ggconsort::cohort_start(cohort_data, cohort_step_label(steps[[1]], 1))
+  define_args <- setNames(rep(list(quote(.full)), length(step_ids)), step_ids)
+  consort <- do.call(ggconsort::cohort_define, c(list(consort), define_args))
+  label_args <- list()
+  for (index in seq_along(steps)) {
+    label_args[[step_ids[[index]]]] <- cohort_step_label(steps[[index]], index)
   }
   consort <- do.call(ggconsort::cohort_label, c(list(consort), label_args))
 
   y_top <- 90
   y_gap <- if (length(steps) > 1) min(22, max(10, 70 / (length(steps) - 1))) else 0
-  diagram <- ggconsort::consort_box_add(consort, "full", 0, y_top, label_args$full)
-  for (index in seq_along(steps)[-1]) {
-    y_value <- y_top - (index - 1) * y_gap
-    diagram <- ggconsort::consort_box_add(diagram, step_ids[[index]], 0, y_value, label_args[[step_ids[[index]]]])
-    diagram <- ggconsort::consort_arrow_add(
-      diagram,
-      start = if (index == 2) "full" else step_ids[[index - 1]],
-      start_side = "bottom",
-      end = step_ids[[index]],
-      end_side = "top"
-    )
+  diagram <- ggconsort::consort_box_add(consort, step_ids[[1]], 0, y_top, label_args[[step_ids[[1]]]])
+  if (length(steps) > 1) {
+    for (index in seq(2, length(steps))) {
+      y_value <- y_top - (index - 1) * y_gap
+      diagram <- ggconsort::consort_box_add(diagram, step_ids[[index]], 0, y_value, label_args[[step_ids[[index]]]])
+      diagram <- ggconsort::consort_arrow_add(
+        diagram,
+        start = step_ids[[index - 1]],
+        start_side = "bottom",
+        end = step_ids[[index]],
+        end_side = "top"
+      )
+    }
   }
 
   if (length(exclusions) > 0) {

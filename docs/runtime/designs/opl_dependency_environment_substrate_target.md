@@ -3,11 +3,11 @@
 Owner: `OPL Framework`
 Purpose: `mas_display_dependency_environment_consumer_design`
 State: `consumer_design`
-Machine boundary: 本文是 MAS 仓内记录的 OPL runtime environment substrate consumer 设计，用于约束 MAS display pack 如何声明 dependency intent、消费 receipt/run-context 并保持 false-ready 边界。canonical substrate contract 与可执行 readback 位于 OPL 主仓 `contracts/opl-framework/runtime-environment-substrate-contract.json` 与 `opl runtime env * --json`；本文不是 OPL materializer landed 证据，也不是 MAS runtime truth、publication truth、artifact authority、owner receipt 或 typed blocker。
+Machine boundary: 本文是 MAS 仓内记录的 OPL runtime environment substrate consumer 设计，用于约束 MAS display pack 如何声明 dependency intent、消费 receipt/run-context 并保持 false-ready 边界。canonical substrate contract 与可执行 readback 位于 OPL 主仓 `contracts/opl-framework/runtime-environment-substrate-contract.json` 与 `opl runtime env * --json`；本文不是 OPL materializer landed 证据，也不是 MAS live/runtime ready、publication truth、artifact authority、owner receipt 或 typed blocker。
 
 ## 目标结论
 
-依赖环境是 OPL Agent OS 的通用基座能力，不是 domain renderer、skill 或模板自己的职责。Domain pack 只声明依赖需求；OPL 负责解析、锁定、准备、缓存、诊断和生成 run context；domain runtime 只消费 OPL 提供的环境回执并执行自己的领域任务。
+依赖环境是 OPL Agent OS 的通用基座能力，不是 domain renderer、skill 或模板自己的职责。Domain pack 只声明依赖需求；OPL 负责解析、锁定、prepare、缓存、诊断和生成 managed run context；domain runtime 只消费 OPL 提供的环境回执并执行自己的领域任务。
 
 对 MAS medical display 来说，这意味着 R/ggplot2 模板可以直接选择最优 R 包和系统依赖，不需要为了“环境难装”退回低质量实现。对 OPL 来说，这是一套可复用的 substrate：写书、绘图、数据分析、PDF/Office 生成、图片处理和其他 domain pack 都可以共享同一环境准备机制。
 
@@ -51,12 +51,12 @@ Machine boundary: 本文是 MAS 仓内记录的 OPL runtime environment substrat
 
 MAS 侧目标接入点：
 
-- `renderer_dependency_profile.json` 升级为 OPL 可消费的 `DependencyRequirementProfile`，其中 R/ggplot2 evidence renderer 声明基础 R 包，cohort/reporting-flow shell 另声明 `ggconsort`-capable profile。
+- `renderer_dependency_profile.json` 升级为 OPL 可消费的 `DependencyRequirementProfile`，其中 R/ggplot2 evidence renderer 声明基础 R 包，cohort/reporting-flow shell 另声明 `ggconsort`-capable profile；该 profile 把 `ggconsort` 声明为 GitHub source dependency `tgerke/ggconsort`。
 - `display_pack_agent.preflight` 查询 dependency receipt；缺失时返回 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required`。
-- `display_pack_render` 只消费 `DependencyRunContext`，不直接依赖 host PATH / site library。
+- `display_pack_render` 只消费 `DependencyRunContext`，不直接依赖 host PATH / site library，也不在 renderer 内安装 R 包或拉取 GitHub source。
 - `display_pack_lock.json`、render receipt 和 publication manifest 保存 dependency lock / receipt refs。
 - visual audit 继续审图，不审依赖；依赖回执不能替代视觉审计。
-- `cohort_flow_figure` 当前 Python participant-flow renderer 是 generated fallback；只有 dependency intent 指向 `ggconsort`-capable profile，不能把 fallback 输出写成已使用 `ggconsort`。
+- `cohort_flow_figure` 当前 checked-in renderer 是 R/ggplot2 + `ggconsort` subprocess renderer；`ggconsort` 来自 dependency intent 中的 GitHub source `tgerke/ggconsort`，必须由 OPL prepare 交付 managed run context 后再执行。缺 prepared receipt / run-context 时，MAS fail closed 到 dependency route；不能在 renderer 内安装依赖，也不能把任何 fallback 输出写成已使用 `ggconsort`。
 
 详细 medical-display 消费设计见 `docs/delivery/medical-display/contracts/display_dependency_environment_os_target.md`。
 
@@ -77,5 +77,6 @@ MAS consumer slice 当前可以通过 display preflight/render 消费 prepared r
 - 可执行 CLI 或 API surface 覆盖 resolve / lock / prepare / doctor / run-context / cache。
 - focused tests 覆盖 R-first、Python、mixed profile、missing package、missing system requirement、permission required、stale lock、cache hit/miss。
 - MAS display pack preflight/render 使用 dependency receipt 和 run-context 的集成测试。
+- `ggconsort` GitHub source dependency `tgerke/ggconsort` 的 resolve / lock / prepare / cache / run-context readback。
 - 至少一个 R/ggplot2 evidence renderer 通过 prepared environment 完成 render，并记录 session/package versions。
 - contracts / docs / generated surfaces 明确 forbidden authority：不能写 MAS truth、不能签 publication readiness、不能替代 visual audit 或 owner receipt。

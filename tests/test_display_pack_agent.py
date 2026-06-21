@@ -632,7 +632,12 @@ def test_display_pack_preflight_blocks_cohort_flow_without_ggconsort_capable_rec
     assert requirement["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
     assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
     assert requirement["render_contract"]["checked_in_renderer_ref"] == "templates/cohort_flow_figure/render.R"
+    assert packages["dplyr"]["required"] is True
     assert packages["ggconsort"]["required"] is True
+    assert packages["ggconsort"]["source"] == {
+        "type": "github",
+        "repo": "tgerke/ggconsort",
+    }
     assert "r_ggplot2_evidence_subprocess_v1" not in {
         item["profile_id"] for item in requirements
     }

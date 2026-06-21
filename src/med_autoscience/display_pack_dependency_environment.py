@@ -166,17 +166,19 @@ def dependency_requirements_for_profile_entries(entries: list[Mapping[str, Any]]
                 name = _text(package_map.get("name"))
                 if not name:
                     continue
-                package_requirements.append(
-                    {
-                        "language": _text(language),
-                        "name": name,
-                        "required": package_map.get("required") is True,
-                        "role": _text(package_map.get("role")),
-                        "template_ids": [
-                            _text(value) for value in _list(package_map.get("template_ids")) if _text(value)
-                        ],
-                    }
-                )
+                package_requirement = {
+                    "language": _text(language),
+                    "name": name,
+                    "required": package_map.get("required") is True,
+                    "role": _text(package_map.get("role")),
+                    "template_ids": [
+                        _text(value) for value in _list(package_map.get("template_ids")) if _text(value)
+                    ],
+                }
+                source = _mapping(package_map.get("source"))
+                if source:
+                    package_requirement["source"] = source
+                package_requirements.append(package_requirement)
         requirements.append(
             {
                 "profile_id": _text(entry.get("profile_id")),

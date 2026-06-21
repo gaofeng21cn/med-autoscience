@@ -381,6 +381,240 @@ def _write_real_core_r_paper_inputs(paper_root: Path) -> None:
     )
 
 
+def _write_cohort_flow_paper_inputs(paper_root: Path) -> None:
+    _write_real_core_r_paper_inputs(paper_root)
+    style_profile_path = paper_root / "publication_style_profile.json"
+    style_profile = json.loads(style_profile_path.read_text(encoding="utf-8"))
+    style_profile["palette"].update(
+        {
+            "light": "#F2F5F7",
+            "primary_soft": "#D9EAF0",
+            "secondary_soft": "#D8F0EB",
+            "contrast": "#2F5D8A",
+            "contrast_soft": "#E6EDF5",
+            "audit": "#B64342",
+            "audit_soft": "#F6CFCB",
+        }
+    )
+    style_profile["semantic_roles"].update(
+        {
+            "flow_main_fill": "light",
+            "flow_main_edge": "neutral",
+            "flow_exclusion_fill": "audit_soft",
+            "flow_exclusion_edge": "audit",
+            "flow_primary_fill": "primary_soft",
+            "flow_primary_edge": "primary",
+            "flow_secondary_fill": "light",
+            "flow_secondary_edge": "neutral",
+            "flow_context_fill": "contrast_soft",
+            "flow_context_edge": "contrast",
+            "flow_audit_fill": "audit_soft",
+            "flow_audit_edge": "audit",
+            "flow_title_text": "text",
+            "flow_body_text": "text",
+            "flow_panel_label": "text",
+            "flow_connector": "neutral",
+        }
+    )
+    _write_json(style_profile_path, style_profile)
+    _write_json(
+        paper_root / "data" / "frozen" / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "source_data_digest": "data-digest-cohort-flow",
+            "title": "Study participant flow",
+            "steps": [
+                {"step_id": "screened", "label": "Screened", "n": 1200},
+                {"step_id": "eligible", "label": "Eligible", "n": 980},
+                {"step_id": "analysis", "label": "Analysis cohort", "n": 842},
+            ],
+            "exclusions": [
+                {
+                    "exclusion_id": "missing_baseline",
+                    "from_step_id": "screened",
+                    "label": "Missing baseline data",
+                    "n": 220,
+                },
+                {
+                    "exclusion_id": "lost_followup",
+                    "from_step_id": "eligible",
+                    "label": "Lost to follow-up",
+                    "n": 138,
+                },
+            ],
+            "endpoint_inventory": [
+                {"endpoint_id": "mace", "label": "MACE", "n_events": 86},
+            ],
+            "design_panels": [],
+            "comparison_summary": [],
+        },
+    )
+    _write_json(
+        paper_root / "figure_intent.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F_cohort",
+                    "claim_ref": "claim:cohort-flow",
+                    "data_ref": "paper/data/frozen/cohort_flow.json",
+                    "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                    "figure_kind": "illustration_shell",
+                    "statistical_value_refs": ["paper/data/frozen/cohort_flow.json#/source_data_digest"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        paper_root / "figure_spec.json",
+        {
+            "schema_version": 1,
+            "figure_id": "F_cohort",
+            "intent_ref": "paper/figure_intent.json#/figures/F_cohort",
+            "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+            "figure_kind": "illustration_shell",
+            "medical_semantics": {
+                "cohort_ref": "study/cohorts/derivation",
+                "endpoint_ref": "endpoint:mace",
+                "risk_horizon": "5y",
+                "claim_role": "participant_flow",
+            },
+            "panels": [{"panel_id": "A", "data_role": "participant_flow", "mark_role": "flow_diagram"}],
+        },
+    )
+
+
+def _install_fake_ggconsort_package(tmp_path: Path) -> Path:
+    package_root = tmp_path / "fake-ggconsort"
+    library_root = tmp_path / "managed-r-library"
+    (package_root / "R").mkdir(parents=True)
+    library_root.mkdir(parents=True)
+    (package_root / "DESCRIPTION").write_text(
+        "\n".join(
+            (
+                "Package: ggconsort",
+                "Type: Package",
+                "Title: Offline MAS Test Double for ggconsort",
+                "Version: 0.0.0.9000",
+                "Description: Minimal namespace used by MAS dependency run-context tests.",
+                "License: MIT",
+                "Encoding: UTF-8",
+                "Imports: ggplot2",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (package_root / "NAMESPACE").write_text(
+        "\n".join(
+            (
+                "export(cohort_start)",
+                "export(cohort_define)",
+                "export(cohort_label)",
+                "export(consort_box_add)",
+                "export(consort_arrow_add)",
+                "export(geom_consort)",
+                "export(theme_consort)",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (package_root / "R" / "ggconsort.R").write_text(
+        """
+cohort_start <- function(data, name) {
+  result <- data.frame(x = numeric(0), y = numeric(0), label = character(0), stringsAsFactors = FALSE)
+  attr(result, "name") <- name
+  attr(result, "cohort_names") <- c(".full")
+  attr(result, "labels") <- list()
+  attr(result, "arrows") <- list()
+  result
+}
+
+cohort_define <- function(consort, ...) {
+  exprs <- as.list(substitute(list(...)))[-1L]
+  attr(consort, "cohort_names") <- unique(c(attr(consort, "cohort_names"), names(exprs)))
+  consort
+}
+
+cohort_label <- function(consort, ...) {
+  labels <- list(...)
+  unknown <- setdiff(names(labels), attr(consort, "cohort_names"))
+  if (length(unknown) > 0L) {
+    stop(sprintf("Unknown cohort names: %s", paste(unknown, collapse = ", ")))
+  }
+  attr(consort, "labels") <- c(attr(consort, "labels"), labels)
+  consort
+}
+
+consort_box_add <- function(consort, id, x, y, label) {
+  rbind(
+    consort,
+    data.frame(x = as.numeric(x), y = as.numeric(y), label = as.character(label), stringsAsFactors = FALSE)
+  )
+}
+
+consort_arrow_add <- function(consort, ...) {
+  attr(consort, "arrows") <- c(attr(consort, "arrows"), list(list(...)))
+  consort
+}
+
+geom_consort <- function(...) {
+  ggplot2::geom_blank(ggplot2::aes(x = x, y = y))
+}
+
+theme_consort <- function(margin_h = 8, margin_v = 2, ...) {
+  ggplot2::theme_void()
+}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    completed = shutil.which("R")
+    assert completed is not None
+    import subprocess
+
+    install_result = subprocess.run(
+        ["R", "CMD", "INSTALL", "--library", str(library_root), str(package_root)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert install_result.returncode == 0, install_result.stderr
+    return library_root
+
+
+def _write_fake_dependency_run_context(paper_root: Path, *, r_library_root: Path) -> dict[str, object]:
+    fingerprint = "sha256:test-ggconsort-run-context"
+    run_context_ref = "paper/build/dependency_run_context.json"
+    build_root = paper_root / "build"
+    build_root.mkdir(parents=True, exist_ok=True)
+    _write_json(
+        build_root / "dependency_run_context.json",
+        {
+            "schema_version": 1,
+            "run_context_id": "test-ggconsort-run-context",
+            "execution_fingerprint": fingerprint,
+            "argv_prefix": [],
+            "env_vars": {
+                "R_LIBS_USER": str(r_library_root),
+                "MAS_TEST_DEPENDENCY_ENV": "fake_ggconsort_managed_library",
+            },
+            "binary_paths": {},
+        },
+    )
+    return {
+        "status": "prepared",
+        "failure_class": "",
+        "lock_ref": "paper/build/dependency_environment_lock.json",
+        "environment_ref": "test-ggconsort-managed-r-library",
+        "cache_key": "test-ggconsort-managed-r-library",
+        "target_platform": "test-platform",
+        "run_context_ref": run_context_ref,
+        "run_context_fingerprint": fingerprint,
+    }
+
+
 def _visual_audit_review() -> dict[str, object]:
     return {
         "audit_mode": "human_visual_review",
@@ -645,6 +879,100 @@ def test_materialize_display_pack_publication_manifest_runs_real_core_r_subproce
     assert locked_template["execution_mode"] == "subprocess"
     assert locked_template["entrypoint"] == "Rscript render.R --request {request_json}"
     assert locked_template["render_script_path"].endswith("templates/roc_curve_binary/render.R")
+    assert len(locked_template["render_script_sha256"]) == 64
+
+
+def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsort_exact_path(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
+
+    assert shutil.which("Rscript") is not None
+    repo_root = Path(__file__).resolve().parents[1]
+    paper_root = tmp_path / "workspace" / "paper"
+    r_library_root = _install_fake_ggconsort_package(tmp_path)
+    dependency_environment = _write_fake_dependency_run_context(
+        paper_root,
+        r_library_root=r_library_root,
+    )
+    _write_cohort_flow_paper_inputs(paper_root)
+
+    result = materialize_display_pack_publication_manifest(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        visual_audit_review=_visual_audit_review(),
+        figure_ids=["F_cohort"],
+        dependency_environment=dependency_environment,
+    )
+
+    figure = result["figures"][0]
+    render_result = figure["render_result"]
+    assert result["dependency_environment"] == dependency_environment
+    assert result["figure_render_receipt"]["dependency_environment"] == dependency_environment
+    assert figure["template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
+    assert figure["short_template_id"] == "cohort_flow_figure"
+    assert figure["figure_kind"] == "illustration_shell"
+    assert figure["renderer_family"] == "r_ggplot2"
+    assert figure["execution_mode"] == "subprocess"
+    assert figure["required_exports"] == ["png", "svg", "pdf"]
+    assert figure["dependency_environment"] == dependency_environment
+    assert render_result["execution_mode"] == "subprocess"
+    assert render_result["renderer_family"] == "r_ggplot2"
+    assert render_result["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert render_result["argv"][0] == "Rscript"
+    assert render_result["argv"][1] == "render.R"
+    assert render_result["argv"][2] == "--request"
+    assert Path(render_result["cwd"]).name == "cohort_flow_figure"
+    assert render_result["returncode"] == 0
+    assert render_result["dependency_environment"] == dependency_environment
+    assert render_result["dependency_run_context"] == {
+        "run_context_ref": "paper/build/dependency_run_context.json",
+        "execution_fingerprint": "sha256:test-ggconsort-run-context",
+    }
+    for path_key in ("png_path", "pdf_path", "layout_sidecar_path"):
+        assert Path(figure["rendered_artifacts"][path_key]).exists()
+
+    request_payload = json.loads(Path(render_result["request_path"]).read_text(encoding="utf-8"))
+    assert request_payload["short_template_id"] == "cohort_flow_figure"
+    assert request_payload["renderer_family"] == "r_ggplot2"
+    assert request_payload["dependency_environment"] == dependency_environment
+    assert request_payload["display_payload"]["data_payload"]["steps"][0]["step_id"] == "screened"
+
+    layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    metrics = layout_sidecar["metrics"]
+    assert layout_sidecar["template_id"] == "cohort_flow_figure"
+    assert figure["deterministic_qc"]["status"] == "pass"
+    assert metrics["uses_ggconsort"] is True
+    assert metrics["ggconsort_capable_prepared_environment_required"] is True
+    assert metrics["dependency_profile_ref"] == "r_ggplot2_ggconsort_reporting_flow_v1"
+    assert metrics["mature_dependency_intent"] == "ggconsort_capable_reporting_flow"
+    assert metrics["renderer_family"] == "r_ggplot2"
+    assert metrics["renderer_role"] == "default"
+    assert metrics["opl_dependency_run_context_ref"] == "paper/build/dependency_run_context.json"
+    assert metrics["opl_dependency_run_context_fingerprint"] == "sha256:test-ggconsort-run-context"
+    assert [step["step_id"] for step in metrics["steps"]] == ["screened", "eligible", "analysis"]
+    assert [item["exclusion_id"] for item in metrics["exclusions"]] == [
+        "missing_baseline",
+        "lost_followup",
+    ]
+    assert any(item["box_type"] == "main_step" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "exclusion_box" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "flow_connector" for item in layout_sidecar["guide_boxes"])
+    assert any(item["box_type"] == "flow_branch_connector" for item in layout_sidecar["guide_boxes"])
+
+    render_receipt = json.loads((paper_root / "figure_render_receipt.json").read_text(encoding="utf-8"))
+    assert render_receipt["dependency_environment"] == dependency_environment
+    assert render_receipt["figures"][0]["dependency_environment"] == dependency_environment
+    lock_payload = json.loads((paper_root / "build" / "display_pack_lock.json").read_text(encoding="utf-8"))
+    locked_template = next(
+        item
+        for pack in lock_payload["enabled_packs"]
+        for item in pack["templates"]
+        if item["full_template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
+    )
+    assert locked_template["execution_mode"] == "subprocess"
+    assert locked_template["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert locked_template["render_script_path"].endswith("templates/cohort_flow_figure/render.R")
     assert len(locked_template["render_script_sha256"]) == 64
 
 
