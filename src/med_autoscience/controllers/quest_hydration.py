@@ -288,7 +288,7 @@ def _merge_surface_stub_payload(
     if spec is not None:
         merged_payload[spec.schema_key] = stub_payload[spec.schema_key]
 
-    if spec is not None and spec.stub_kind == "evidence_inputs":
+    if spec is not None and spec.stub_kind == "display_inputs":
         merged_payload["displays"] = _merge_evidence_input_displays(
             existing_displays=existing_payload.get("displays"),
             stub_displays=list(stub_payload.get("displays") or []),

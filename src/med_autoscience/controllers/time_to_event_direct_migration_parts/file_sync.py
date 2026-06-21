@@ -10,11 +10,23 @@ _REQUIRED_DISPLAY_KEYS = {
     "risk_layering_monotonic_bars": ("risk_layering_monotonic_inputs.json", "risk_layering_monotonic_inputs_v1"),
     "time_to_event_decision_curve": ("time_to_event_decision_curve_inputs.json", "time_to_event_decision_curve_inputs_v1"),
 }
+DISCRIMINATION_CALIBRATION_REQUIREMENT_KEY = "time_to_event_discrimination_calibration_panel"
+RISK_GROUP_SUMMARY_REQUIREMENT_KEY = "time_to_event_risk_group_summary"
+F2_REQUIREMENT_KEYS = (
+    DISCRIMINATION_CALIBRATION_REQUIREMENT_KEY,
+    "time_dependent_roc_horizon",
+)
+F3_REQUIREMENT_KEYS = (
+    RISK_GROUP_SUMMARY_REQUIREMENT_KEY,
+    "risk_layering_monotonic_bars",
+)
 
 
 MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY = "generalizability_subgroup_composite_panel"
 TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY = "generalizability_subgroup_composite_panel"
+CENTER_TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY = "center_transportability_governance_summary_panel"
 F5_REQUIREMENT_KEYS = (
+    CENTER_TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY,
     TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY,
 )
 
@@ -141,4 +153,17 @@ def _require_f5_binding_variant(
         if binding is not None:
             return requirement_key, binding
     keys = " or ".join(F5_REQUIREMENT_KEYS)
+    raise ValueError(f"missing required display binding: {keys}")
+
+
+def _require_binding_variant(
+    *,
+    registry_payload: dict[str, Any],
+    requirement_keys: tuple[str, ...],
+) -> tuple[str, dict[str, str]]:
+    for requirement_key in requirement_keys:
+        binding = _optional_binding(registry_payload=registry_payload, requirement_key=requirement_key)
+        if binding is not None:
+            return requirement_key, binding
+    keys = " or ".join(requirement_keys)
     raise ValueError(f"missing required display binding: {keys}")

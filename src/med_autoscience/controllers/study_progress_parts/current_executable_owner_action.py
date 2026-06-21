@@ -140,6 +140,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         repair_progress_action=repair_progress_action,
     ):
         return domain_transition_action
+    if _fresh_ai_reviewer_transition_supersedes_stale_handoff(
+        payload=payload,
+        domain_transition_action=domain_transition_action,
+    ):
+        return domain_transition_action
     if paper_recovery_successor_action_ready(paper_recovery_action):
         return paper_recovery_action
     if _gate_followthrough_supersedes_repair_progress(
@@ -557,6 +562,42 @@ def _ai_reviewer_transition_supersedes_consumed_write_followthrough(
         and transition_fingerprint is not None
         and consumed_fingerprint != transition_fingerprint
     ):
+        return False
+    return True
+
+
+def _fresh_ai_reviewer_transition_supersedes_stale_handoff(
+    *,
+    payload: Mapping[str, Any],
+    domain_transition_action: Mapping[str, Any] | None,
+) -> bool:
+    transition_action = _mapping_copy(domain_transition_action)
+    if not transition_action:
+        return False
+    if _non_empty_text(transition_action.get("source")) != "domain_transition":
+        return False
+    if _non_empty_text(transition_action.get("next_owner")) != AI_REVIEWER_OWNER:
+        return False
+    if _non_empty_text(transition_action.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    if _non_empty_text(transition_action.get("domain_transition_decision_type")) != "ai_reviewer_re_eval":
+        return False
+    transition_work_unit = _non_empty_text(transition_action.get("work_unit_id"))
+    if transition_work_unit is None:
+        return False
+    transition_fingerprint = (
+        _non_empty_text(transition_action.get("work_unit_fingerprint"))
+        or _non_empty_text(transition_action.get("action_fingerprint"))
+    )
+    if transition_fingerprint != f"domain-transition::ai_reviewer_re_eval::{transition_work_unit}":
+        return False
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    if _non_empty_text(handoff.get("blocked_reason")) != "anti_loop_budget_exhausted":
+        return False
+    transition = _mapping_copy(payload.get("domain_transition"))
+    if _non_empty_text(transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return False
+    if _non_empty_text(transition.get("emitted_at")) is None and _non_empty_text(transition.get("generated_at")) is None:
         return False
     return True
 

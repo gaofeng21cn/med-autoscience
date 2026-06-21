@@ -3,6 +3,7 @@ from __future__ import annotations
 
 INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "binary_prediction_curve_inputs_v1": "binary_prediction_curve_inputs.json",
+    "time_to_event_discrimination_calibration_inputs_v1": "time_to_event_discrimination_calibration_inputs.json",
     "time_to_event_multihorizon_calibration_inputs_v1": "time_to_event_multihorizon_calibration_inputs.json",
     "time_to_event_grouped_inputs_v1": "time_to_event_grouped_inputs.json",
     "time_to_event_decision_curve_inputs_v1": "time_to_event_decision_curve_inputs.json",

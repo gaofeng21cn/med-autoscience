@@ -214,6 +214,44 @@ def test_current_owner_action_accepts_ai_reviewer_transition_consumed_route_work
     assert action["work_unit_fingerprint"] == AI_REVIEWER_FINGERPRINT
 
 
+def test_fresh_ai_reviewer_transition_supersedes_stale_anti_loop_handoff() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    payload = _dm003_post_write_repair_payload()
+    payload["domain_transition"] = {
+        "decision_type": "ai_reviewer_re_eval",
+        "emitted_at": "2026-06-20T11:42:52+00:00",
+        "route_target": "ai_reviewer",
+        "owner": "ai_reviewer",
+        "controller_action": "return_to_ai_reviewer_workflow",
+        "next_work_unit": {
+            "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "lane": "review",
+        },
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        ),
+    }
+    payload["opl_current_control_state_handoff"] = {
+        "recorded_at": "2026-06-20T11:43:00+00:00",
+        "next_owner": "one-person-lab",
+        "blocked_reason": "anti_loop_budget_exhausted",
+        "quest_status": "blocked",
+    }
+
+    action = module.build_current_executable_owner_action(payload)
+
+    assert action is not None
+    assert action["source"] == "domain_transition"
+    assert action["next_owner"] == "ai_reviewer"
+    assert action["action_type"] == "return_to_ai_reviewer_workflow"
+    assert action["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+
+
 def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipts(
     tmp_path: Path,
 ) -> None:

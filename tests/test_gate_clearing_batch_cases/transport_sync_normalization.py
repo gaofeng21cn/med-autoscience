@@ -64,6 +64,48 @@ def test_run_gate_clearing_batch_blocks_f3_payload_rewritten_by_transport_sync(
             ],
         },
     )
+    _write_json(
+        paper_root / "generalizability_subgroup_composite_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel",
+                    "catalog_id": "F5",
+                    "title": "China-US transportability and recalibration summary",
+                    "caption": "Current transportability evidence is already materialized.",
+                    "metric_family": "discrimination",
+                    "primary_label": "China-derived score",
+                    "overview_panel_title": "Discrimination transportability",
+                    "overview_x_label": "C-index",
+                    "overview_rows": [
+                        {
+                            "cohort_id": "china_reference",
+                            "cohort_label": "China",
+                            "support_count": 15789,
+                            "event_count": 321,
+                            "metric_value": 0.7599854745055089,
+                        }
+                    ],
+                    "subgroup_panel_title": "Recalibration governance metrics",
+                    "subgroup_x_label": "Ratio or retained separation",
+                    "subgroup_reference_value": 1.0,
+                    "subgroup_rows": [
+                        {
+                            "subgroup_id": "risk_separation_retention",
+                            "subgroup_label": "NHANES/China risk separation",
+                            "group_n": 5659,
+                            "estimate": 0.01,
+                            "lower": 0.01,
+                            "upper": 1.0,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
     _write_blocked_publication_eval(study_root, quest_id="quest-002")
 
     monkeypatch.setattr(

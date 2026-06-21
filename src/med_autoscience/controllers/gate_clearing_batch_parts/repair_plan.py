@@ -9,8 +9,18 @@ from med_autoscience.profiles import WorkspaceProfile
 def _stale_time_to_event_grouped_payload_blocker(
     *,
     paper_root: Path,
+    stale_time_to_event_grouped_payloads_need_rematerialization: Callable[..., bool] | None = None,
 ) -> dict[str, Any]:
     payload_path = Path(paper_root) / "time_to_event_grouped_inputs.json"
+    if (
+        stale_time_to_event_grouped_payloads_need_rematerialization is not None
+        and not stale_time_to_event_grouped_payloads_need_rematerialization(paper_root=paper_root)
+    ):
+        return {
+            "status": "current",
+            "payload_path": str(payload_path),
+            "stale_payload_detected": False,
+        }
     return {
         "status": "failed",
         "blocker": "stale_legacy_time_to_event_grouped_payload",
@@ -113,7 +123,19 @@ def _append_display_materialization_units(
                 ),
             )
         )
-    if time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root):
+    transportability_sync_scheduled = any(
+        unit.unit_id == "sync_transportability_reporting_surface" for unit in repair_units
+    )
+    f5_needs_materialization_after_transportability_sync = (
+        transportability_sync_scheduled
+        and gate_clearing_batch_transportability.transportability_governance_display_inputs_need_refresh(
+            paper_root=paper_root
+        )
+    )
+    if (
+        time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root)
+        or f5_needs_materialization_after_transportability_sync
+    ):
         repair_units.append(
             repair_unit_cls(
                 unit_id="time_to_event_direct_migration",
@@ -147,7 +169,12 @@ def _append_display_materialization_units(
                     "sync_transportability_reporting_surface",
                     "time_to_event_direct_migration",
                 ),
-                run=lambda: _stale_time_to_event_grouped_payload_blocker(paper_root=paper_root),
+                run=lambda: _stale_time_to_event_grouped_payload_blocker(
+                    paper_root=paper_root,
+                    stale_time_to_event_grouped_payloads_need_rematerialization=(
+                        stale_time_to_event_grouped_payloads_need_rematerialization
+                    ),
+                ),
             )
         )
     if publication_shell_surface_needs_sync(study_root=study_root, paper_root=paper_root):

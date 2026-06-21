@@ -103,6 +103,81 @@ def _build_transportability_discrimination_payload(
     }
 
 
+def _build_transportability_discrimination_calibration_payload(
+    *,
+    metrics_payload: dict[str, Any],
+    display_id: str,
+    catalog_id: str,
+) -> dict[str, Any]:
+    context = "current transportability discrimination/calibration layout"
+    discrimination = _require_mapping(metrics_payload, "discrimination", context=context)
+    calibration = _require_mapping(metrics_payload, "calibration_drift", context=context)
+    china_n = _parse_int(discrimination.get("china_n"), label="china_n")
+    nhanes_n = _parse_int(discrimination.get("nhanes_n"), label="nhanes_n")
+    if china_n <= 0 or nhanes_n <= 0:
+        raise ValueError(f"{context} requires positive cohort sizes")
+    china_c = _require_probability(discrimination, "china_c_index", context=context)
+    nhanes_c = _require_probability(discrimination, "nhanes_c_index", context=context)
+    china_observed = _require_probability(calibration, "china_observed_5y_rate", context=context)
+    nhanes_observed = _require_probability(calibration, "nhanes_observed_5y_rate", context=context)
+    china_predicted = _require_probability(calibration, "china_predicted_mean_5y_risk", context=context)
+    nhanes_predicted = _require_probability(calibration, "nhanes_predicted_mean_5y_risk", context=context)
+    return {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "status": "materialized_from_current_transportability_layout",
+        "displays": [
+            {
+                "display_id": display_id,
+                "template_id": "fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel",
+                "catalog_id": catalog_id,
+                "paper_role": "main_text",
+                "title": "External discrimination and cohort-level calibration",
+                "caption": (
+                    "Discrimination and cohort-level 5-year mortality calibration for the China-derived "
+                    "score in the China cohort and the NHANES external-validation cohort."
+                ),
+                "panel_a_title": "Discrimination",
+                "panel_b_title": "Observed versus predicted 5-year risk",
+                "discrimination_x_label": "C-index",
+                "calibration_x_label": "Analysis cohort",
+                "calibration_y_label": "5-year mortality risk",
+                "discrimination_points": [
+                    {"label": "China", "c_index": china_c, "annotation": "Reference cohort"},
+                    {"label": "NHANES", "c_index": nhanes_c, "annotation": "External cohort"},
+                ],
+                "calibration_summary": [
+                    {
+                        "group_label": "China reference cohort",
+                        "group_order": 1,
+                        "n": china_n,
+                        "events_5y": _event_count_from_rate(support_count=china_n, rate=china_observed),
+                        "predicted_risk_5y": china_predicted,
+                        "observed_risk_5y": china_observed,
+                    },
+                    {
+                        "group_label": "NHANES external cohort",
+                        "group_order": 2,
+                        "n": nhanes_n,
+                        "events_5y": _event_count_from_rate(support_count=nhanes_n, rate=nhanes_observed),
+                        "predicted_risk_5y": nhanes_predicted,
+                        "observed_risk_5y": nhanes_observed,
+                    },
+                ],
+                "calibration_callout": {
+                    "group_label": "NHANES external cohort",
+                    "group_order": 2,
+                    "n": nhanes_n,
+                    "events_5y": _event_count_from_rate(support_count=nhanes_n, rate=nhanes_observed),
+                    "predicted_risk_5y": nhanes_predicted,
+                    "observed_risk_5y": nhanes_observed,
+                },
+            }
+        ],
+    }
+
+
 def _normalize_risk_group_label(cohort: str, risk_group: str) -> str:
     normalized_group = risk_group.strip().replace("_", " ")
     if not normalized_group:
@@ -212,6 +287,40 @@ def _build_transportability_risk_group_payload(
                 "right_panel_title": "Observed risk by group",
                 "right_x_label": "China-derived risk group",
                 "right_bars": _risk_bars_from_rows(rows, value_field="observed_km_risk_5y"),
+            }
+        ],
+    }
+
+
+def _build_transportability_time_to_event_grouped_payload(
+    *,
+    risk_group_report_path: Path,
+    display_id: str,
+    catalog_id: str,
+) -> dict[str, Any]:
+    rows = _risk_group_rows_from_report(risk_group_report_path)
+    return {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_grouped_inputs_v1",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "status": "materialized_from_current_transportability_layout",
+        "displays": [
+            {
+                "display_id": display_id,
+                "template_id": "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+                "catalog_id": catalog_id,
+                "paper_role": "main_text",
+                "title": "Transported 5-year mortality risk-group summary",
+                "caption": (
+                    "Observed and predicted 5-year mortality risk across China-derived risk groups "
+                    "in the China and NHANES analysis cohorts."
+                ),
+                "panel_a_title": "Predicted and observed five-year risk",
+                "panel_b_title": "Observed five-year events",
+                "x_label": "Risk group",
+                "y_label": "5-year mortality risk",
+                "event_count_y_label": "Observed five-year events",
+                "risk_group_summaries": rows,
             }
         ],
     }
@@ -396,7 +505,9 @@ def run_current_transportability_layout_migration(
     study_root: Path,
     paper_root: Path,
     bindings: dict[str, dict[str, str]],
+    binding_requirement_keys: dict[str, str],
     f5_binding: dict[str, str],
+    f5_requirement_key: str,
 ) -> dict[str, Any]:
     transportability_root = Path(study_root) / TRANSPORTABILITY_LAYOUT_RELATIVE_ROOT
     metrics_path = transportability_root / "metrics_summary.json"
@@ -408,43 +519,80 @@ def run_current_transportability_layout_migration(
     metrics_payload = _load_json(metrics_path)
     written_files: list[str] = []
 
-    discrimination_path = Path(paper_root) / "binary_prediction_curve_inputs.json"
-    _write_json(
-        discrimination_path,
-        _build_transportability_discrimination_payload(
-            metrics_payload=metrics_payload,
-            display_id=bindings["time_dependent_roc_horizon"]["display_id"],
-        ),
-    )
+    if binding_requirement_keys.get("f2") == "time_to_event_discrimination_calibration_panel":
+        discrimination_path = Path(paper_root) / "time_to_event_discrimination_calibration_inputs.json"
+        _write_json(
+            discrimination_path,
+            _build_transportability_discrimination_calibration_payload(
+                metrics_payload=metrics_payload,
+                display_id=bindings["f2"]["display_id"],
+                catalog_id=bindings["f2"]["catalog_id"],
+            ),
+        )
+    else:
+        discrimination_path = Path(paper_root) / "binary_prediction_curve_inputs.json"
+        _write_json(
+            discrimination_path,
+            _build_transportability_discrimination_payload(
+                metrics_payload=metrics_payload,
+                display_id=bindings["f2"]["display_id"],
+            ),
+        )
     written_files.append(str(discrimination_path))
 
-    grouped_path = Path(paper_root) / "risk_layering_monotonic_inputs.json"
-    _write_json(
-        grouped_path,
-        _build_transportability_risk_group_payload(
-            risk_group_report_path=risk_group_report_path,
-            display_id=bindings["risk_layering_monotonic_bars"]["display_id"],
-        ),
-    )
+    if binding_requirement_keys.get("f3") == "time_to_event_risk_group_summary":
+        grouped_path = Path(paper_root) / "time_to_event_grouped_inputs.json"
+        _write_json(
+            grouped_path,
+            _build_transportability_time_to_event_grouped_payload(
+                risk_group_report_path=risk_group_report_path,
+                display_id=bindings["f3"]["display_id"],
+                catalog_id=bindings["f3"]["catalog_id"],
+            ),
+        )
+    else:
+        grouped_path = Path(paper_root) / "risk_layering_monotonic_inputs.json"
+        _write_json(
+            grouped_path,
+            _build_transportability_risk_group_payload(
+                risk_group_report_path=risk_group_report_path,
+                display_id=bindings["f3"]["display_id"],
+            ),
+        )
     written_files.append(str(grouped_path))
 
-    governance_path = Path(paper_root) / "generalizability_subgroup_composite_inputs.json"
-    _write_json(
-        governance_path,
-        _build_transportability_governance_payload(
-            metrics_payload=metrics_payload,
-            display_id=f5_binding["display_id"],
-            catalog_id=f5_binding["catalog_id"],
-        ),
-    )
-    written_files.append(str(governance_path))
+    governance_path: Path | None = None
+    if f5_requirement_key == "center_transportability_governance_summary_panel":
+        center_governance_path = Path(paper_root) / "center_transportability_governance_summary_panel_inputs.json"
+        if not center_governance_path.exists():
+            raise FileNotFoundError(
+                "current transportability layout requires existing center-governance F5 payload; "
+                f"missing {center_governance_path}"
+            )
+        notes_governance = "preserved_existing_center_transportability_governance_payload"
+    else:
+        governance_path = Path(paper_root) / "generalizability_subgroup_composite_inputs.json"
+        _write_json(
+            governance_path,
+            _build_transportability_governance_payload(
+                metrics_payload=metrics_payload,
+                display_id=f5_binding["display_id"],
+                catalog_id=f5_binding["catalog_id"],
+            ),
+        )
+        written_files.append(str(governance_path))
+        notes_governance = "materialized_generalizability_subgroup_composite_payload"
     retired_governance_path = Path(paper_root) / "transportability_recalibration_governance_panel.json"
     if retired_governance_path.exists():
         retired_governance_path.unlink()
 
     notes: dict[str, Any] = {
         "analysis_layout": "transportability_current_layout",
-        "f5_template": "generalizability_subgroup_composite_panel",
+        "f2_requirement_key": binding_requirement_keys.get("f2"),
+        "f3_requirement_key": binding_requirement_keys.get("f3"),
+        "f5_requirement_key": f5_requirement_key,
+        "f5_template": f5_requirement_key,
+        "f5_payload": notes_governance,
     }
     decision_curve_path = Path(paper_root) / "time_to_event_decision_curve_inputs.json"
     if decision_curve_path.exists():

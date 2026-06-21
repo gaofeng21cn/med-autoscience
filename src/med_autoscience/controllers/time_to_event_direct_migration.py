@@ -6,10 +6,15 @@ from typing import Any
 from med_autoscience import display_registry
 
 from .time_to_event_direct_migration_parts.file_sync import (
+    DISCRIMINATION_CALIBRATION_REQUIREMENT_KEY,
+    F2_REQUIREMENT_KEYS,
+    F3_REQUIREMENT_KEYS,
     MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY,
+    RISK_GROUP_SUMMARY_REQUIREMENT_KEY,
     TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY,
     _REQUIRED_DISPLAY_KEYS,
     _require_binding,
+    _require_binding_variant,
     _require_f5_binding_variant,
     _sync_authority_paper_truth,
 )
@@ -266,6 +271,78 @@ def _build_time_dependent_roc_payload(
         ],
     }
 
+def _calibration_summary_from_rows(calibration_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for row in calibration_rows:
+        group_order = _parse_int(row.get("decile"), label="calibration decile")
+        n = _parse_int(row.get("n"), label=f"decile {group_order} n")
+        events_5y = _parse_int(row.get("events_5y"), label=f"decile {group_order} events_5y")
+        summaries.append(
+            {
+                "group_label": f"Decile {group_order}",
+                "group_order": group_order,
+                "n": n,
+                "events_5y": events_5y,
+                "predicted_risk_5y": _parse_float(
+                    row.get("mean_predicted_risk_5y"),
+                    label=f"decile {group_order} mean_predicted_risk_5y",
+                ),
+                "observed_risk_5y": _parse_float(
+                    row.get("observed_km_risk_5y"),
+                    label=f"decile {group_order} observed_km_risk_5y",
+                ),
+            }
+        )
+    if not summaries:
+        raise ValueError("time-to-event discrimination/calibration payload requires non-empty calibration rows")
+    return sorted(summaries, key=lambda item: item["group_order"])
+
+
+def _build_discrimination_calibration_payload(
+    *,
+    discrimination_points: list[dict[str, Any]],
+    calibration_rows: list[dict[str, str]],
+    display_id: str,
+    catalog_id: str,
+) -> dict[str, Any]:
+    calibration_summary = _calibration_summary_from_rows(calibration_rows)
+    callout = max(
+        calibration_summary,
+        key=lambda item: abs(item["observed_risk_5y"] - item["predicted_risk_5y"]),
+    )
+    return {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "displays": [
+            {
+                "display_id": display_id,
+                "template_id": DISCRIMINATION_CALIBRATION_REQUIREMENT_KEY,
+                "catalog_id": catalog_id,
+                "paper_role": "main_text",
+                "title": "Time-to-event discrimination and grouped calibration",
+                "caption": (
+                    "Validation discrimination and grouped five-year calibration summarize the "
+                    "current Cox model against its lasso comparator."
+                ),
+                "panel_a_title": "Validation discrimination",
+                "panel_b_title": "Grouped five-year calibration",
+                "discrimination_x_label": "Validation C-index",
+                "calibration_x_label": "Risk decile",
+                "calibration_y_label": "Five-year risk",
+                "discrimination_points": discrimination_points,
+                "calibration_summary": calibration_summary,
+                "calibration_callout": {
+                    "group_label": callout["group_label"],
+                    "events_5y": callout["events_5y"],
+                    "n": callout["n"],
+                    "predicted_risk_5y": callout["predicted_risk_5y"],
+                    "observed_risk_5y": callout["observed_risk_5y"],
+                },
+            }
+        ],
+    }
+
 def _build_risk_group_summary_payload(
     *,
     risk_group_rows: list[dict[str, str]],
@@ -320,6 +397,66 @@ def _build_risk_group_summary_payload(
                 "right_panel_title": "Observed risk by tertile",
                 "right_x_label": "Observed risk tertile",
                 "right_bars": observed_bars,
+            }
+        ],
+    }
+
+def _risk_group_summaries_from_rows(risk_group_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    label_map = {"low": "Low risk", "mid": "Intermediate risk", "high": "High risk"}
+    ordered_keys = ("low", "mid", "high")
+    risk_group_rows_by_key = {
+        str(row.get("risk_group") or "").strip().casefold(): row for row in risk_group_rows
+    }
+    summaries: list[dict[str, Any]] = []
+    for key in ordered_keys:
+        row = risk_group_rows_by_key.get(key)
+        if row is None:
+            raise ValueError(f"missing risk-group summary row for `{key}`")
+        summaries.append(
+            {
+                "label": label_map[key],
+                "sample_size": _parse_int(row.get("n"), label=f"{key} n"),
+                "events_5y": _parse_int(row.get("events_5y"), label=f"{key} events_5y"),
+                "mean_predicted_risk_5y": _parse_float(
+                    row.get("mean_predicted_risk_5y"),
+                    label=f"{key} mean_predicted_risk_5y",
+                ),
+                "observed_km_risk_5y": _parse_float(
+                    row.get("observed_km_risk_5y"),
+                    label=f"{key} observed_km_risk_5y",
+                ),
+            }
+        )
+    return summaries
+
+
+def _build_time_to_event_risk_group_summary_payload(
+    *,
+    risk_group_rows: list[dict[str, str]],
+    display_id: str,
+    catalog_id: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_grouped_inputs_v1",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "displays": [
+            {
+                "display_id": display_id,
+                "template_id": RISK_GROUP_SUMMARY_REQUIREMENT_KEY,
+                "catalog_id": catalog_id,
+                "paper_role": "main_text",
+                "title": "Five-year risk-group summary",
+                "caption": (
+                    "Predicted versus observed five-year cardiovascular mortality risk across "
+                    "prespecified validation risk groups."
+                ),
+                "panel_a_title": "Predicted and observed five-year risk",
+                "panel_b_title": "Observed five-year events",
+                "x_label": "Risk group",
+                "y_label": "Five-year risk",
+                "event_count_y_label": "Observed five-year events",
+                "risk_group_summaries": _risk_group_summaries_from_rows(risk_group_rows),
             }
         ],
     }
@@ -733,13 +870,29 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     written_files: list[str] = list(authority_sync.get("synced_files") or [])
     registry_payload = _load_json(resolved_paper_root / "display_registry.json")
 
+    f2_requirement_key, f2_binding = _require_binding_variant(
+        registry_payload=registry_payload,
+        requirement_keys=F2_REQUIREMENT_KEYS,
+    )
+    f3_requirement_key, f3_binding = _require_binding_variant(
+        registry_payload=registry_payload,
+        requirement_keys=F3_REQUIREMENT_KEYS,
+    )
+    decision_curve_binding = _require_binding(
+        registry_payload=registry_payload,
+        requirement_key="time_to_event_decision_curve",
+    )
     bindings = {
-        key: _require_binding(registry_payload=registry_payload, requirement_key=key)
-        for key in _REQUIRED_DISPLAY_KEYS
+        "f2": f2_binding,
+        "f3": f3_binding,
+        "time_to_event_decision_curve": decision_curve_binding,
     }
     f5_requirement_key, f5_binding = _require_f5_binding_variant(registry_payload=registry_payload)
     if (
         f5_requirement_key == TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY
+        and current_transportability_layout_available(study_root=resolved_study_root)
+    ) or (
+        f5_requirement_key == "center_transportability_governance_summary_panel"
         and current_transportability_layout_available(study_root=resolved_study_root)
     ):
         blockers: list[str] = []
@@ -747,7 +900,12 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
             study_root=resolved_study_root,
             paper_root=resolved_paper_root,
             bindings=bindings,
+            binding_requirement_keys={
+                "f2": f2_requirement_key,
+                "f3": f3_requirement_key,
+            },
             f5_binding=f5_binding,
+            f5_requirement_key=f5_requirement_key,
         )
         written_files.extend(current_layout_result["written_files"])
         report_path = resolved_paper_root / "direct_migration" / "time_to_event_direct_migration_report.json"
@@ -776,9 +934,10 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
         resolved_study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "derived"
     )
 
-    _load_validation_discrimination_points(primary_endpoint_root / "discrimination_report.md")
+    discrimination_points = _load_validation_discrimination_points(primary_endpoint_root / "discrimination_report.md")
     prediction_rows = _load_csv_rows(primary_derived_root / "coxph_validation_predictions.csv")
     lasso_rows = _load_csv_rows(primary_derived_root / "lassocox_validation_predictions.csv")
+    calibration_rows = _load_csv_rows(primary_derived_root / "coxph_calibration_5y.csv")
     risk_group_rows = _load_csv_rows(primary_derived_root / "coxph_km_risk_groups_5y.csv")
     dca_rows = _load_csv_rows(primary_derived_root / "coxph_dca_5y.csv")
     center_rows: list[dict[str, str]] = []
@@ -791,26 +950,43 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
 
     blockers: list[str] = []
 
-    discrimination_payload = _build_time_dependent_roc_payload(
-        prediction_rows=prediction_rows,
-        lasso_rows=lasso_rows,
-        display_id=bindings["time_dependent_roc_horizon"]["display_id"],
-    )
-    discrimination_path = resolved_paper_root / "binary_prediction_curve_inputs.json"
+    if f2_requirement_key == DISCRIMINATION_CALIBRATION_REQUIREMENT_KEY:
+        discrimination_payload = _build_discrimination_calibration_payload(
+            discrimination_points=discrimination_points,
+            calibration_rows=calibration_rows,
+            display_id=f2_binding["display_id"],
+            catalog_id=f2_binding["catalog_id"],
+        )
+        discrimination_path = resolved_paper_root / "time_to_event_discrimination_calibration_inputs.json"
+    else:
+        discrimination_payload = _build_time_dependent_roc_payload(
+            prediction_rows=prediction_rows,
+            lasso_rows=lasso_rows,
+            display_id=f2_binding["display_id"],
+        )
+        discrimination_path = resolved_paper_root / "binary_prediction_curve_inputs.json"
     _write_json(discrimination_path, discrimination_payload)
     written_files.append(str(discrimination_path))
 
-    grouped_payload = _build_risk_group_summary_payload(
-        risk_group_rows=risk_group_rows,
-        display_id=bindings["risk_layering_monotonic_bars"]["display_id"],
-    )
-    grouped_path = resolved_paper_root / "risk_layering_monotonic_inputs.json"
+    if f3_requirement_key == RISK_GROUP_SUMMARY_REQUIREMENT_KEY:
+        grouped_payload = _build_time_to_event_risk_group_summary_payload(
+            risk_group_rows=risk_group_rows,
+            display_id=f3_binding["display_id"],
+            catalog_id=f3_binding["catalog_id"],
+        )
+        grouped_path = resolved_paper_root / "time_to_event_grouped_inputs.json"
+    else:
+        grouped_payload = _build_risk_group_summary_payload(
+            risk_group_rows=risk_group_rows,
+            display_id=f3_binding["display_id"],
+        )
+        grouped_path = resolved_paper_root / "risk_layering_monotonic_inputs.json"
     _write_json(grouped_path, grouped_payload)
     written_files.append(str(grouped_path))
 
     decision_curve_payload = _build_decision_curve_payload(
         dca_rows=dca_rows,
-        display_id=bindings["time_to_event_decision_curve"]["display_id"],
+        display_id=decision_curve_binding["display_id"],
     )
     decision_curve_path = resolved_paper_root / "time_to_event_decision_curve_inputs.json"
     _write_json(decision_curve_path, decision_curve_payload)
@@ -829,6 +1005,9 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
         written_files.append(str(multicenter_generalizability_path))
     else:
         report_notes["transportability_governance_binding"] = "current_contract_preserved"
+    report_notes["f2_requirement_key"] = f2_requirement_key
+    report_notes["f3_requirement_key"] = f3_requirement_key
+    report_notes["f5_requirement_key"] = f5_requirement_key
 
     cohort_flow_payload = _load_json(resolved_paper_root / "cohort_flow.json")
     table2_header, table2_rows = _load_markdown_table(resolved_paper_root / "tables" / "table2_performance_summary.md")

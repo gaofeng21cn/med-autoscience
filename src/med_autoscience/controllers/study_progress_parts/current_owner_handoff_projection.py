@@ -233,6 +233,8 @@ def _external_supervisor_action(handoff: Mapping[str, Any]) -> str:
 
 
 def _handoff_superseded_by_domain_truth(payload: Mapping[str, Any], handoff: Mapping[str, Any]) -> bool:
+    if _fresh_ai_reviewer_transition_supersedes_anti_loop_handoff(payload, handoff):
+        return True
     handoff_timestamp = (
         _non_empty_text(handoff.get("generated_at"))
         or _non_empty_text(handoff.get("updated_at"))
@@ -241,7 +243,7 @@ def _handoff_superseded_by_domain_truth(payload: Mapping[str, Any], handoff: Map
     )
     if handoff_timestamp is None:
         return False
-    for item in payload.get("latest_events") or []:
+    for item in _domain_truth_event_candidates(payload):
         event = _mapping_copy(item)
         category = _non_empty_text(event.get("category"))
         source = _non_empty_text(event.get("source"))
@@ -254,6 +256,53 @@ def _handoff_superseded_by_domain_truth(payload: Mapping[str, Any], handoff: Map
         if _timestamp_is_newer(event_timestamp, handoff_timestamp):
             return True
     return False
+
+
+def _fresh_ai_reviewer_transition_supersedes_anti_loop_handoff(
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(handoff.get("blocked_reason")) != "anti_loop_budget_exhausted":
+        typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
+        if _non_empty_text(typed_blocker.get("blocker_type")) != "anti_loop_budget_exhausted":
+            return False
+    transition = _mapping_copy(payload.get("domain_transition"))
+    if _non_empty_text(transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return False
+    if _non_empty_text(transition.get("route_target")) != "ai_reviewer" and _non_empty_text(transition.get("owner")) != "ai_reviewer":
+        return False
+    if _non_empty_text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
+        return False
+    next_work_unit = _mapping_copy(transition.get("next_work_unit"))
+    return _non_empty_text(next_work_unit.get("unit_id")) is not None
+
+
+def _domain_truth_event_candidates(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates = [_mapping_copy(item) for item in payload.get("latest_events") or []]
+    for key, category in (
+        ("controller_decision", "controller_decision"),
+        ("latest_controller_decision", "controller_decision"),
+        ("domain_transition", "controller_decision"),
+        ("publication_eval", "publication_eval"),
+    ):
+        value = _mapping_copy(payload.get(key))
+        if not value:
+            continue
+        candidates.append(
+            {
+                **value,
+                "category": _non_empty_text(value.get("category")) or category,
+                "source": _non_empty_text(value.get("source")) or category,
+                "timestamp": (
+                    _non_empty_text(value.get("timestamp"))
+                    or _non_empty_text(value.get("emitted_at"))
+                    or _non_empty_text(value.get("generated_at"))
+                    or _non_empty_text(value.get("updated_at"))
+                    or _non_empty_text(value.get("recorded_at"))
+                ),
+            }
+        )
+    return candidates
 
 
 def current_owner_handoff_next_action(

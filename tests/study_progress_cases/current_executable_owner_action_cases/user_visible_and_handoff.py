@@ -302,6 +302,55 @@ def test_current_owner_handoff_decision_uses_current_executable_owner_action_nex
     assert result["status_narration_contract"]["next_step"] == result["next_system_action"]
 
 
+def test_stale_anti_loop_handoff_does_not_override_fresh_ai_reviewer_transition() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+    )
+
+    payload = {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "emitted_at": "2026-06-20T11:42:52+00:00",
+            "route_target": "ai_reviewer",
+            "owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            },
+        },
+        "opl_current_control_state_handoff": {
+            "recorded_at": "2026-06-20T11:43:00+00:00",
+            "next_owner": "one-person-lab",
+            "blocked_reason": "anti_loop_budget_exhausted",
+            "quest_status": "blocked",
+            "action_queue": [],
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "source": "domain_transition",
+            "next_owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        },
+        "user_visible_projection": {
+            "surface_kind": "study_progress_user_visible_projection",
+            "schema_version": 2,
+            "next_owner": "ai_reviewer",
+            "next_system_action": "等待 ai_reviewer owner 执行 return_to_ai_reviewer_workflow。",
+        },
+    }
+
+    assert module.current_owner_handoff_action(payload) is None
+
+    result = module.apply_current_owner_handoff_user_visible_status(payload)
+
+    assert result.get("next_owner") != "one-person-lab"
+    assert "anti_loop_budget_exhausted" not in str(result.get("next_system_action"))
+    assert result["user_visible_projection"]["next_owner"] == "ai_reviewer"
+
+
 def test_current_owner_action_projection_suppresses_non_human_stale_user_park() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"

@@ -38,6 +38,14 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         schema_value="table1_baseline_characteristics",
         status="required_pending_table_materialization",
     ),
+    "table2_time_to_event_performance_summary": RequiredDisplaySurfaceStub(
+        filename="time_to_event_performance_summary.json",
+        blocker_key="missing_time_to_event_performance_summary",
+        stub_kind="table_shell",
+        schema_key="table_shell_id",
+        schema_value="table2_time_to_event_performance_summary",
+        status="required_pending_table_materialization",
+    ),
     "phenotype_gap_structure_figure": RequiredDisplaySurfaceStub(
         filename="phenotype_gap_structure_inputs.json",
         blocker_key="missing_phenotype_gap_structure_inputs",
@@ -90,6 +98,15 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         status="required_pending_materialization",
         template_id="time_dependent_roc_horizon",
     ),
+    "time_to_event_discrimination_calibration_panel": RequiredDisplaySurfaceStub(
+        filename="time_to_event_discrimination_calibration_inputs.json",
+        blocker_key="missing_time_to_event_discrimination_calibration_inputs",
+        stub_kind="display_inputs",
+        schema_key="input_schema_id",
+        schema_value="time_to_event_discrimination_calibration_inputs_v1",
+        status="required_pending_materialization",
+        template_id="time_to_event_discrimination_calibration_panel",
+    ),
     "risk_layering_monotonic_bars": RequiredDisplaySurfaceStub(
         filename="risk_layering_monotonic_inputs.json",
         blocker_key="missing_risk_layering_monotonic_inputs",
@@ -98,6 +115,15 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         schema_value="risk_layering_monotonic_inputs_v1",
         status="required_pending_materialization",
         template_id="risk_layering_monotonic_bars",
+    ),
+    "time_to_event_risk_group_summary": RequiredDisplaySurfaceStub(
+        filename="time_to_event_grouped_inputs.json",
+        blocker_key="missing_time_to_event_grouped_inputs",
+        stub_kind="display_inputs",
+        schema_key="input_schema_id",
+        schema_value="time_to_event_grouped_inputs_v1",
+        status="required_pending_materialization",
+        template_id="time_to_event_risk_group_summary",
     ),
     "time_to_event_decision_curve": RequiredDisplaySurfaceStub(
         filename="time_to_event_decision_curve_inputs.json",
@@ -168,6 +194,8 @@ def build_required_display_surface_stub_payload(
             canonical_template_id = display_registry.get_evidence_figure_spec(spec.template_id).template_id
         elif spec.template_id and display_registry.is_illustration_shell(spec.template_id):
             canonical_template_id = display_registry.get_illustration_shell_spec(spec.template_id).shell_id
+        elif spec.template_id:
+            canonical_template_id = spec.template_id
         else:
             raise ValueError(f"unknown required display surface template `{spec.template_id}`")
         display_payload: dict[str, Any] = {
