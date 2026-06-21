@@ -234,6 +234,26 @@ def _write_ai_reviewer_request(study_root: Path, *, study_id: str, quest_id: str
     )
 
 
+def _write_current_ai_reviewer_record(study_root: Path, *, study_id: str, quest_id: str, eval_id: str) -> None:
+    refs = _ai_reviewer_refs(study_root)
+    manuscript_path = Path(refs["manuscript"])
+    record = _full_ai_reviewer_record(study_root, study_id=study_id, quest_id=quest_id, eval_id=eval_id)
+    record["reviewer_operating_system"] = current_manuscript_routeback_reviewer_os(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_path.read_text(encoding="utf-8"),
+        eval_id=eval_id,
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260621T000000Z_publication_eval_record.json",
+        record,
+    )
+
+
 class _DeveloperMode:
     def __init__(self, mode: str, *, safe_actions_enabled: bool, blocked_reason: str | None = None) -> None:
         self.mode = mode
@@ -516,3 +536,137 @@ def test_current_medical_prose_review_routeback_bypasses_repeat_suppression_for_
     assert prose_currentness["status"] == "current"
     assert prose_currentness["route_back_required"] is True
     assert prose_currentness["route_target"] == "write"
+
+
+def test_requested_ai_reviewer_dispatch_selects_materialized_write_routeback_successor(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    eval_id = "publication-eval::002::medical-prose-routeback::current"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    work_unit_fingerprint = f"domain-transition::ai_reviewer_re_eval::{work_unit_id}"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    _write_ai_reviewer_currentness_inputs(study_root, eval_id=eval_id)
+    _write_ai_reviewer_request(study_root, study_id=study_id, quest_id=quest_id, eval_id=eval_id)
+    _write_current_ai_reviewer_record(study_root, study_id=study_id, quest_id=quest_id, eval_id=eval_id)
+
+    stale_owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "next_owner": "analysis-campaign",
+        "owner_reason": "analysis_claim_evidence_repair",
+        "failure_signature": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "truth_epoch": "truth-event-stale-analysis",
+        "route_epoch": "truth-event-stale-analysis",
+        "runtime_health_epoch": "runtime-health-stale-analysis",
+        "source_fingerprint": "publication-blockers::stale-analysis",
+        "work_unit_fingerprint": "publication-blockers::stale-analysis",
+        "idempotency_key": "paper-policy-request:stale-analysis",
+        "source_refs": {
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::stale-analysis",
+            "source_eval_id": "publication-eval::002::stale-analysis",
+        },
+    }
+    stale_action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "run_quality_repair_batch",
+        "action_id": f"provider-admission::{study_id}::run_quality_repair_batch",
+        "owner": "analysis-campaign",
+        "request_owner": "analysis-campaign",
+        "recommended_owner": "analysis-campaign",
+        "reason": "provider_admission_pending",
+        "source_surface": "mas_opl_runtime_owner_handoff.provider_admission_identity",
+        "authority": "mas_provider_admission_identity",
+        "owner_route": stale_owner_route,
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "action_queue": [stale_action],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_owner_route,
+                    "action_queue": [stale_action],
+                    "current_execution_envelope": {"state_kind": "running_provider_attempt"},
+                }
+            ],
+        },
+    )
+
+    def fake_read_study_progress(**kwargs) -> dict[str, object]:
+        assert kwargs["study_id"] == study_id
+        typed_blocker = {
+            "blocker_id": "ai_reviewer_record_stale_after_current_inputs",
+            "owner": "ai_reviewer",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_ref": "artifacts/supervision/consumer/default_executor_execution/current.closeout.json",
+        }
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "ai_reviewer",
+                "typed_blocker": typed_blocker,
+            },
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": typed_blocker,
+                    "stale_queue_or_handoff_can_override": False,
+                },
+            },
+            "current_executable_owner_action": {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "source_surface": "study_progress.current_executable_owner_action",
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="external_observe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["blocked_count"] == 1
+    assert result["written_files"] == []
+    assert result["per_study_execution_summary"][0]["zero_dispatch_reason"] is None
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["next_executable_owner"] == "write"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["required_output_surface"] == (
+        "canonical manuscript story-surface delta or typed blocker:manuscript_story_surface_delta_missing"
+    )
+    assert execution["repeat_suppression_key"] == (
+        "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
+    )

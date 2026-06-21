@@ -274,7 +274,13 @@ def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
 
 def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:
     source_ref = {key: action[key] for key in SOURCE_ACTION_REF_FIELDS if key in action}
-    for key in ("work_unit_id", "work_unit_fingerprint", "action_fingerprint", "required_delta_kind"):
+    for key in (
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "required_delta_kind",
+        "materialized_from_action_type",
+    ):
         if key in action and key not in source_ref:
             source_ref[key] = action[key]
     supervisor_decision = _mapping(source_ref.get("supervisor_decision"))

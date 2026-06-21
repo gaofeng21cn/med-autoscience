@@ -245,6 +245,7 @@ def _story_surface_delta_action(
         ),
         "next_work_unit": work_unit_id,
         "materialization_decision": "story_surface_delta_or_typed_blocker_required",
+        "materialized_from_action_type": "return_to_ai_reviewer_workflow",
         "reviewer_record_ref": str(record_ref_path.resolve()),
         "source_eval_id": record_eval_id,
     }
@@ -481,6 +482,7 @@ def _ai_reviewer_record_production_work_unit(action: Mapping[str, Any]) -> bool:
     return (
         _text(action.get("controller_work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
         or _text(action.get("executable_work_unit")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+        or _text(action.get("work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
         or _text(action.get("next_work_unit")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
         or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
     )

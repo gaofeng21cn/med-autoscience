@@ -15,6 +15,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     fresh_progress_current_action,
     fresh_progress_arbitration,
     paper_recovery_owner_callable,
+    publication_owner_materialization,
     repair_progress_currentness,
     stage_native_next_action,
 )
@@ -441,6 +442,10 @@ def current_actions_for_studies(
         if (
             fresh_progress_action is not None
             and not _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
+            and not _fresh_progress_materializes_publication_routeback(
+                profile=profile,
+                fresh_action=fresh_progress_action,
+            )
             and _scan_currentness_preempts_fresh_progress(
                 study_payload,
                 fresh_action=fresh_progress_action,
@@ -451,6 +456,10 @@ def current_actions_for_studies(
         if (
             fresh_progress_action is not None
             and not _fresh_progress_is_accepted_owner_gate_decision(fresh_progress_action)
+            and not _fresh_progress_materializes_publication_routeback(
+                profile=profile,
+                fresh_action=fresh_progress_action,
+            )
             and not fresh_progress_arbitration.can_preempt_scan(
                 study=study_payload,
                 fresh_action=fresh_progress_action,
@@ -491,6 +500,28 @@ def current_actions_for_studies(
             continue
         if fresh_progress_action is not None:
             if currentness_owner_action is not None:
+                if _fresh_progress_materializes_publication_routeback(
+                    profile=profile,
+                    fresh_action=fresh_progress_action,
+                ):
+                    per_study_actions.append(fresh_progress_action)
+                    ignored.extend(
+                        _ignored_action(action, "superseded_by_fresh_publication_routeback_typed_blocker")
+                        for action in [
+                            currentness_owner_action,
+                            *([readiness_followup] if readiness_followup is not None else []),
+                            *([stage_native_action] if stage_native_action is not None else []),
+                            *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                            *top_level_study_actions,
+                            *[
+                                dict(item)
+                                for item in study_payload.get("action_queue") or []
+                                if isinstance(item, Mapping)
+                            ],
+                        ]
+                        if action != fresh_progress_action
+                    )
+                    continue
                 if (
                     fresh_progress_arbitration.fresh_action_supersedes_currentness_action(
                         fresh_action=fresh_progress_action,
@@ -837,6 +868,28 @@ def _fresh_progress_is_terminal_current_execution_envelope_barrier(
     return _fresh_progress_is_current_execution_envelope_barrier(action) and _text(
         action.get("reason")
     ) == "current_owner_receipt_recorded"
+
+
+def _fresh_progress_materializes_publication_routeback(
+    *,
+    profile: WorkspaceProfile | None,
+    fresh_action: Mapping[str, Any] | None,
+) -> bool:
+    if profile is None or fresh_action is None:
+        return False
+    if not _fresh_progress_is_current_execution_envelope_barrier(fresh_action):
+        return False
+    materialized = publication_owner_materialization.materialization_action(
+        profile=profile,
+        action=fresh_action,
+    )
+    if materialized is None:
+        return False
+    return (
+        _text(materialized.get("action_type")) == "run_quality_repair_batch"
+        and _text(materialized.get("owner")) == "write"
+        and _text(materialized.get("next_work_unit")) == "medical_prose_write_repair"
+    )
 
 
 def _requires_manuscript_story_surface_delta(value: object) -> bool:
