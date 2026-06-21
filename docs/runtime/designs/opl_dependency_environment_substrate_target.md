@@ -1,0 +1,80 @@
+# OPL Dependency Environment Substrate 目标架构
+
+Owner: `OPL Framework`
+Purpose: `opl_dependency_environment_substrate_target_architecture`
+State: `target_architecture`
+Machine boundary: 本文是 MAS 仓内记录的 OPL 基座目标设计，用于约束 MAS display pack 和后续 OPL 实现对齐。机器合同草案在 `contracts/opl-framework/dependency-environment-substrate-contract.json`。本文不是 OPL repo 已落地证据，也不是 MAS runtime truth、publication truth、artifact authority、owner receipt 或 typed blocker。
+
+## 目标结论
+
+依赖环境是 OPL Agent OS 的通用基座能力，不是 domain renderer、skill 或模板自己的职责。Domain pack 只声明依赖需求；OPL 负责解析、锁定、准备、缓存、诊断和生成 run context；domain runtime 只消费 OPL 提供的环境回执并执行自己的领域任务。
+
+对 MAS medical display 来说，这意味着 R/ggplot2 模板可以直接选择最优 R 包和系统依赖，不需要为了“环境难装”退回低质量实现。对 OPL 来说，这是一套可复用的 substrate：写书、绘图、数据分析、PDF/Office 生成、图片处理和其他 domain pack 都可以共享同一环境准备机制。
+
+## 为什么不能留在模板里
+
+如果每个 renderer 自己安装依赖，会产生四类问题：
+
+- 模板代码被环境治理污染，无法专注图形质量。
+- 同一论文多张图无法共享环境 fingerprint，难以复现。
+- 缺系统库、缺权限、lock stale 和视觉质量问题混在一起，MAS 无法给出正确 typed repair route。
+- 智能体现场临时修包会拖慢进度，并引入不可审计的隐式升级。
+
+正确边界是：renderer 失败只应该反映 renderer / data / style / layout 问题；依赖缺失应该在 render 前由 OPL doctor 识别并路由。
+
+## 通用能力面
+
+| Surface | 输入 | 输出 | 责任 |
+| --- | --- | --- | --- |
+| `opl pack env resolve` | dependency intent refs、目标平台、policy | normalized dependency graph、resolver plan | 解析需求，不安装。 |
+| `opl pack env lock` | resolver plan | `dependency_environment_lock.json` | 固定版本、系统需求、channel、container digest。 |
+| `opl pack env prepare` | lock ref | prepared environment、cache refs、receipt | 创建或复用环境。 |
+| `opl pack env doctor` | lock 或 prepared env ref | missing dependency / permission / platform diagnostics | 诊断并分类修复路线。 |
+| `opl pack env run-context` | prepared receipt、profile ref | argv prefix、env vars、binary path、fingerprint | 给 domain runtime 一个可执行上下文。 |
+| `opl pack env cache` | lock hash、cache policy | cache hit/miss/eviction receipt | 复用环境，避免每次重建。 |
+
+这些 surface 可以由不同底层实现承接：`renv`、`pak sysreqs`、`uv`、conda / pixi、versioned biomedical containers、digest-pinned Docker image 或混合 profile。OPL 对外暴露统一合同，不把底层工具泄漏给 domain agent。
+
+## 合同对象
+
+最小对象族：
+
+- `DependencyRequirementProfile`：domain pack 声明依赖需求。
+- `DependencyEnvironmentLock`：OPL 解算后的可复现环境锁。
+- `DependencyEnvironmentReceipt`：OPL 已准备环境或失败诊断的回执。
+- `DependencyRunContext`：domain runtime 执行 renderer / tool 时消费的环境上下文。
+- `DependencyEnvironmentDoctorFinding`：缺包、缺 binary、缺系统库、权限不足、平台不支持、lock stale、cache corrupt 等结构化 finding。
+
+这些对象都只能携 refs、fingerprint、版本和诊断，不携 paper body、artifact body、memory body、publication verdict 或 owner receipt body。
+
+## MAS medical display 接入
+
+MAS 侧目标接入点：
+
+- `renderer_dependency_profile.json` 升级为 OPL 可消费的 `DependencyRequirementProfile`。
+- `display_pack_agent.preflight` 查询 dependency receipt；缺失时返回 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required`。
+- `display_pack_render` 只消费 `DependencyRunContext`，不直接依赖 host PATH / site library。
+- `display_pack_lock.json`、render receipt 和 publication manifest 保存 dependency lock / receipt refs。
+- visual audit 继续审图，不审依赖；依赖回执不能替代视觉审计。
+
+详细 medical-display 消费设计见 `docs/delivery/medical-display/contracts/display_dependency_environment_os_target.md`。
+
+## OPL 基座优化原则
+
+1. 默认快路径优先：有 cache hit 时不重建环境；lock 未变时只做 cheap doctor。
+2. 显式更新：依赖升级必须走 lock refresh，不允许 renderer 静默升级。
+3. 可诊断失败：环境失败必须分类到 dependency / system / permission / platform / cache / stale lock，而不是只暴露 stderr。
+4. 可复用：同一 pack profile 在一篇论文或多个 stage 中共享 environment fingerprint。
+5. 可降噪：普通 agent 不需要理解 renv、uv、conda 或 Docker 细节，只看 prepared / missing / needs admin / stale lock。
+6. 权限分层：系统包安装、container daemon、外部网络或管理员权限必须是 OPL policy 或 human/admin gate，不由 domain renderer 请求。
+7. 证据不越界：prepared environment 证明环境可用，不证明科学正确、图达标、论文可投。
+
+## 晋级门槛
+
+当前状态是 `target_architecture`。晋级到 `landed` 前需要 OPL repo 给出：
+
+- 可执行 CLI 或 API surface 覆盖 resolve / lock / prepare / doctor / run-context / cache。
+- focused tests 覆盖 R-first、Python、mixed profile、missing package、missing system requirement、permission required、stale lock、cache hit/miss。
+- MAS display pack preflight/render 使用 dependency receipt 和 run-context 的集成测试。
+- 至少一个 R/ggplot2 evidence renderer 通过 prepared environment 完成 render，并记录 session/package versions。
+- contracts / docs / generated surfaces 明确 forbidden authority：不能写 MAS truth、不能签 publication readiness、不能替代 visual audit 或 owner receipt。
