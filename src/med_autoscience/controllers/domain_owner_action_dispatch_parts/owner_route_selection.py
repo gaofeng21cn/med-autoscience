@@ -91,6 +91,7 @@ def execution_owner_route(
         profile=profile,
         study_id=study_id,
         dispatch=dispatch,
+        fresh_progress=fresh_progress,
     )
     if (
         current_writer_route is not None
@@ -148,6 +149,7 @@ def execution_owner_route(
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
+        fresh_progress=fresh_progress,
     )
     if request_route is not None:
         if _paper_recovery_owner_callable_route(

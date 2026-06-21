@@ -17,6 +17,7 @@ def current_quality_repair_writer_handoff_route(
     profile: WorkspaceProfile,
     study_id: str,
     dispatch: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     action_type = _text(dispatch.get("action_type")) or ""
     if not current_quality_repair_writer_handoff_dispatch(
@@ -24,6 +25,7 @@ def current_quality_repair_writer_handoff_route(
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
+        fresh_progress=fresh_progress,
     ):
         return None
     route = dispatch_owner_route(dispatch)
@@ -40,6 +42,7 @@ def current_quality_repair_writer_handoff_dispatch(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> bool:
     if not self_authorized_quality_repair_writer_handoff(
         study_id=study_id,
@@ -51,6 +54,7 @@ def current_quality_repair_writer_handoff_dispatch(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
+        fresh_progress=fresh_progress,
     ):
         return False
     batch = _read_json_object(
@@ -145,8 +149,12 @@ def fresh_progress_ticket_supersedes_action(
     profile: WorkspaceProfile,
     study_id: str,
     action_type: str,
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> bool:
-    ticket = _fresh_progress_current_owner_ticket(profile=profile, study_id=study_id)
+    if isinstance(fresh_progress, Mapping):
+        ticket = _mapping(fresh_progress.get("current_owner_ticket"))
+    else:
+        ticket = _fresh_progress_current_owner_ticket(profile=profile, study_id=study_id)
     allowed_action = _text(ticket.get("allowed_action"))
     if allowed_action is None:
         return False

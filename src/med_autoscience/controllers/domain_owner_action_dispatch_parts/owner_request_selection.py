@@ -24,12 +24,14 @@ def owner_request_route(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     return _owner_request_effective_route(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
+        fresh_progress=fresh_progress,
     )
 
 
@@ -39,6 +41,7 @@ def owner_request_matches_dispatch(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> bool:
     return (
         _owner_request_effective_route(
@@ -46,6 +49,7 @@ def owner_request_matches_dispatch(
             study_id=study_id,
             action_type=action_type,
             dispatch=dispatch,
+            fresh_progress=fresh_progress,
         )
         is not None
     )
@@ -57,11 +61,13 @@ def _owner_request_effective_route(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
     if current_writer_handoff.fresh_progress_ticket_supersedes_action(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
+        fresh_progress=fresh_progress,
     ):
         return None
     return _owner_request_effective_route_for_scan(

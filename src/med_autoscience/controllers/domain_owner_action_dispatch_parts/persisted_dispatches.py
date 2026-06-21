@@ -153,6 +153,7 @@ def explicit_action_dispatches(
             profile=profile,
             study_id=study_id,
             action_type=action_type,
+            fresh_progress=fresh_progress,
         ):
             scan_route_current = False
         current_authority = _explicit_dispatch_current_authority(
@@ -160,7 +161,7 @@ def explicit_action_dispatches(
             study_id=study_id,
             action_type=action_type,
             dispatch=payload,
-            fresh_progress=_mapping(fresh_progress),
+            fresh_progress=fresh_progress,
             current_study=current_study,
             scan_payload=scan_payload,
             scan_route_current=scan_route_current,
@@ -191,19 +192,21 @@ def _explicit_dispatch_current_authority(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
-    fresh_progress: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any] | None,
     current_study: Mapping[str, Any],
     scan_payload: Mapping[str, Any] | None,
     scan_route_current: bool,
     provider_hosted_stage_run_current: bool,
     stage_native_next_action_current: bool,
 ) -> bool:
+    progress_for_selectors = _mapping(fresh_progress)
     return (
         owner_request_matches_dispatch(
             profile=profile,
             study_id=study_id,
             action_type=action_type,
             dispatch=dispatch,
+            fresh_progress=fresh_progress,
         )
         or scan_route_current
         or accepted_owner_gate_decision.dispatch_matches_study_progress(
@@ -211,7 +214,7 @@ def _explicit_dispatch_current_authority(
         )
         or _fresh_progress_owner_action_selectable(
             current_study=current_study,
-            progress=fresh_progress,
+            progress=progress_for_selectors,
             dispatch=dispatch,
         )
         or live_provider_attempt_owner_route_from_scan_payload(
@@ -226,6 +229,7 @@ def _explicit_dispatch_current_authority(
             study_id=study_id,
             action_type=action_type,
             dispatch=dispatch,
+            fresh_progress=fresh_progress,
         )
     )
 
@@ -434,6 +438,7 @@ def selected_dispatches(
                     study_id=study_id,
                     action_type=action_type,
                     dispatch=payload,
+                    fresh_progress=fresh_progress,
                 )
                 and not accepted_owner_gate_decision.dispatch_matches_progress(
                     progress=fresh_progress,
@@ -452,6 +457,7 @@ def selected_dispatches(
                     study_id=study_id,
                     action_type=action_type,
                     dispatch=payload,
+                    fresh_progress=fresh_progress,
                 )
             ):
                 continue
@@ -464,6 +470,7 @@ def selected_dispatches(
                     persisted_dispatch=payload,
                     scan_payload=scan_payload,
                     study_id=study_id,
+                    fresh_progress=fresh_progress,
                 )
                 continue
             selected_by_key[key] = len(selected)
@@ -584,6 +591,7 @@ def selected_dispatches(
                 persisted_dispatch=payload,
                 scan_payload=scan_payload,
                 study_id=study_id,
+                fresh_progress=fresh_progress,
             )
             continue
         elif key not in selected_keys:
@@ -720,6 +728,7 @@ def _selected_dispatches_only(
             study_id=study_id,
             action_type=action_type,
             dispatch=dispatch,
+            fresh_progress=fresh_progress,
         ):
             selected.append(dispatch)
             continue
@@ -760,6 +769,7 @@ def _selected_dispatches_only(
             study_id=study_id,
             action_type=action_type,
             dispatch=dispatch,
+            fresh_progress=fresh_progress,
         ):
             selected.append(dispatch)
             continue
@@ -858,6 +868,7 @@ def _dispatch_selectable_despite_blocking_progress(
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
+        fresh_progress=fresh_progress,
     ):
         return True
     if live_provider_attempt_owner_route_from_scan_payload(
@@ -888,6 +899,7 @@ def _dispatch_selectable_despite_blocking_progress(
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
+        fresh_progress=fresh_progress,
     ):
         return True
     return False
@@ -1025,6 +1037,7 @@ def _prefer_current_dispatch(
     persisted_dispatch: Mapping[str, Any],
     scan_payload: Mapping[str, Any] | None,
     study_id: str,
+    fresh_progress: Mapping[str, Any],
 ) -> dict[str, Any]:
     action_type = _text(persisted_dispatch.get("action_type")) or ""
     if persisted_handoff_selection.persisted_handoff_supersedes_consumer_inline(
@@ -1037,6 +1050,7 @@ def _prefer_current_dispatch(
             study_id=study_id,
             action_type=action_type,
             dispatch=persisted_dispatch,
+            fresh_progress=fresh_progress,
         ),
     ):
         return dict(persisted_dispatch)

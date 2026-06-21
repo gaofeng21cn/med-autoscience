@@ -8,6 +8,9 @@ from tests.domain_owner_action_dispatch_helpers import (
     owner_route as _owner_route,
     write_json as _write_json,
 )
+from tests.provider_admission_current_control_helpers import (
+    opl_transition_readback as _opl_transition_readback,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -59,6 +62,19 @@ def test_execute_dispatch_defaults_to_current_writer_handoff_after_consumed_revi
         owner_route=writer_route,
     )
     dispatch_payload["dispatch_authority"] = "quality_repair_batch_writer_handoff"
+    dispatch_payload["work_unit_id"] = work_unit_id
+    dispatch_payload["work_unit_fingerprint"] = "domain-transition::dm003::current-writer-handoff"
+    dispatch_payload["route_identity_key"] = "quality-repair-writer-handoff::003::current"
+    dispatch_payload["attempt_idempotency_key"] = "quality-repair-writer-handoff::003::current"
+    dispatch_payload["idempotency_key"] = f"dispatch::{study_id}::run_quality_repair_batch"
+    dispatch_payload["opl_domain_progress_transition_result"] = _opl_transition_readback(
+        study_id,
+        action_fingerprint="domain-transition::dm003::current-writer-handoff",
+        work_unit_id=work_unit_id,
+        route_identity_key="quality-repair-writer-handoff::003::current",
+        attempt_idempotency_key="quality-repair-writer-handoff::003::current",
+        request_idempotency_key=f"dispatch::{study_id}::run_quality_repair_batch",
+    )
     dispatch_payload["medical_claim_authoring_allowed"] = True
     dispatch_payload["required_closeout_packet"] = {
         "schema_version": 1,
@@ -201,7 +217,8 @@ def test_execute_dispatch_defaults_to_current_writer_handoff_after_consumed_revi
     )
 
     assert result["execution_count"] == 1
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["handoff_ready_count"] == 1
     assert result["blocked_count"] == 0
     execution = result["executions"][0]
     assert execution["execution_status"] == "handoff_ready"
@@ -327,3 +344,95 @@ def test_explicit_writer_handoff_is_rejected_when_fresh_progress_ticket_points_t
     )
 
     assert dispatches == []
+
+
+def test_dispatch_selection_reuses_supplied_fresh_progress_for_owner_request_currentness(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    persisted = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.persisted_dispatches"
+    )
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
+    route.update(
+        {
+            "owner_reason": "publication_gate_replay",
+            "failure_signature": "publication_gate_replay",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "source_fingerprint": "truth-source::dm003::gate-replay",
+            "source_refs": {
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                },
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "gate_clearing_batch" / "latest.json",
+        {
+            "surface": "supervisor_request_handoff_packet",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "request_owner": "gate_clearing_batch",
+            "expected_owner": "gate_clearing_batch",
+            "next_executable_owner": "gate_clearing_batch",
+            "owner_route": route,
+        },
+    )
+
+    def fail_if_reloaded(**_: object) -> dict[str, object]:
+        raise AssertionError("dispatch selection must reuse supplied fresh_progress")
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fail_if_reloaded)
+
+    dispatches = persisted.selected_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=("run_gate_clearing_batch",),
+        consumer_payload=None,
+        consumer_latest_path=profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
+        scan_payload={"studies": [{"study_id": study_id}]},
+        supported_action_types=frozenset({"run_gate_clearing_batch"}),
+        dispatch_relative_root=module.DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
+        fresh_progress={
+            "study_id": study_id,
+            "current_owner_ticket": {
+                "surface_kind": "mas_current_owner_ticket",
+                "owner": "gate_clearing_batch",
+                "allowed_action": "run_gate_clearing_batch",
+            },
+        },
+    )
+
+    assert [item["action_type"] for item in dispatches] == ["run_gate_clearing_batch"]
