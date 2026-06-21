@@ -223,6 +223,27 @@ def test_resolve_display_template_runtime_migrates_aliases_on_default_surface() 
     assert migration_runtime.template_manifest.template_id == "time_dependent_roc_horizon"
 
 
+def test_checked_in_cohort_flow_runtime_loads_pack_local_python_plugin() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+
+    runtime = resolve_display_template_runtime(
+        repo_root=repo_root,
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
+    )
+    target = load_python_plugin_callable(
+        repo_root=repo_root,
+        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
+    )
+
+    assert runtime.template_manifest.kind == "illustration_shell"
+    assert runtime.template_manifest.renderer_family == "python"
+    assert runtime.template_manifest.execution_mode == "python_plugin"
+    assert runtime.template_manifest.entrypoint == (
+        "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
+    )
+    assert callable(target)
+
+
 def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()

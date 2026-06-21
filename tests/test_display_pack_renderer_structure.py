@@ -113,15 +113,20 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
     assert len(r_templates) == 34
 
 
-def test_cohort_flow_checked_in_renderer_uses_ggconsort_without_installing_packages() -> None:
+def test_cohort_flow_materialization_manifest_uses_pack_local_python_plugin() -> None:
     manifest_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "template.toml"
-    render_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "render.R"
     payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert payload["kind"] == "illustration_shell"
+    assert payload["renderer_family"] == "python"
+    assert payload["execution_mode"] == "python_plugin"
+    assert payload["entrypoint"] == "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
+
+
+def test_cohort_flow_checked_in_ggconsort_renderer_asset_does_not_install_packages() -> None:
+    render_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "render.R"
     source = render_path.read_text(encoding="utf-8")
 
-    assert payload["renderer_family"] == "r_ggplot2"
-    assert payload["execution_mode"] == "subprocess"
-    assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
     assert render_path.is_file()
     assert 'requireNamespace("ggconsort", quietly = TRUE)' in source
     assert "library(dplyr)" in source
