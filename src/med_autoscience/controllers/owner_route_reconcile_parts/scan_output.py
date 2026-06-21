@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Callable
@@ -219,7 +220,13 @@ def persist_scan_domain_routes_payload(
     text: Callable[[object], str | None],
     mapping: Callable[[object], dict[str, Any]],
 ) -> None:
-    write_json(latest_path, payload)
+    previous_payload = _read_existing_payload(latest_path)
+    persistent_payload = merge_persistent_current_control_payload(
+        payload=payload,
+        previous_payload=previous_payload,
+        scanned_study_ids=resolved_study_ids,
+    )
+    write_json(latest_path, persistent_payload)
     for study in studies:
         owner_route = mapping(study.get("owner_route"))
         if not owner_route:
@@ -235,7 +242,12 @@ def persist_scan_domain_routes_payload(
             )
         except (OSError, TypeError, ValueError, RuntimeError):
             continue
-    write_json(latest_path, payload)
+    persistent_payload = merge_persistent_current_control_payload(
+        payload=payload,
+        previous_payload=previous_payload,
+        scanned_study_ids=resolved_study_ids,
+    )
+    write_json(latest_path, persistent_payload)
     append_json_line(
         history_path,
         {
@@ -245,6 +257,74 @@ def persist_scan_domain_routes_payload(
             "latest_action_count": len(action_queue),
         },
     )
+
+
+def merge_persistent_current_control_payload(
+    *,
+    payload: Mapping[str, Any],
+    previous_payload: Mapping[str, Any] | None,
+    scanned_study_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    merged = dict(payload)
+    scanned_ids = {study_id for item in scanned_study_ids if (study_id := _text(item)) is not None}
+    if not scanned_ids:
+        return merged
+    previous = _mapping(previous_payload)
+    retained_studies = [
+        {
+            **dict(item),
+            "handoff_generated_at": _text(item.get("handoff_generated_at"))
+            or _text(previous.get("generated_at"))
+            or _text(previous.get("recorded_at")),
+            "handoff_scan_status": _text(item.get("handoff_scan_status")) or "retained_from_previous_scan",
+        }
+        for item in previous.get("studies") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    scanned_studies = [dict(item) for item in payload.get("studies") or [] if isinstance(item, Mapping)]
+    if retained_studies:
+        merged["studies"] = [*retained_studies, *scanned_studies]
+    retained_actions = [
+        dict(item)
+        for item in previous.get("action_queue") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    scanned_actions = [dict(item) for item in payload.get("action_queue") or [] if isinstance(item, Mapping)]
+    if retained_actions:
+        merged["action_queue"] = [*retained_actions, *scanned_actions]
+    merged["current_execution_envelopes"] = merge_current_execution_envelopes(
+        previous_payload=previous,
+        output_studies=[dict(item) for item in merged.get("studies") or [] if isinstance(item, Mapping)],
+        scanned_studies=[{"study_id": study_id} for study_id in scanned_ids],
+        retain_unscanned_studies=True,
+    )
+    retained_candidates = [
+        dict(item)
+        for item in previous.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    scanned_candidates = [
+        dict(item)
+        for item in payload.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    merged["provider_admission_candidates"] = [*retained_candidates, *scanned_candidates]
+    merged["provider_admission_pending_count"] = len(merged["provider_admission_candidates"])
+    return merged
+
+
+def _read_existing_payload(path: Path) -> dict[str, Any] | None:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(value) if isinstance(value, Mapping) else None
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -259,6 +339,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "build_scan_domain_routes_payload",
     "attach_scan_delta",
+    "merge_persistent_current_control_payload",
     "merge_current_execution_envelopes",
     "merge_previous_unscanned_study_handoff",
     "persist_scan_domain_routes_payload",
