@@ -106,6 +106,28 @@ def handle_public_root_command(
         _print_json(result)
         return 0
 
+    if args.command == "root-cause-depth-gate":
+        from med_autoscience.runtime_protocol.root_cause_depth_gate import (
+            audit_records_from_bundle,
+            root_cause_depth_gate_readback,
+        )
+
+        audit_records = _load_optional_json_list(args.audit_record_file)
+        if args.audit_bundle_file is not None:
+            if audit_records is not None:
+                raise TypeError(
+                    "--audit-bundle-file cannot be combined with --audit-record-file"
+                )
+            audit_records = audit_records_from_bundle(
+                _load_json_payload(args.audit_bundle_file)
+            )
+        result = root_cause_depth_gate_readback(
+            repo_root=Path(args.repo_root).resolve(),
+            audit_records=audit_records,
+        )
+        _print_json(result)
+        return 0
+
     return None
 
 

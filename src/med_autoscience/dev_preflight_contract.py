@@ -191,6 +191,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/runtime/mas-live-runtime-evidence-rollup.json",
             "contracts/runtime/mas-live-runtime-gap-work-orders.json",
             "contracts/runtime/mas-runtime-live-tail-work-orders.json",
+            "contracts/runtime/mas-root-cause-depth-gate.json",
             "src/med_autoscience/controllers/study_outer_loop.py",
             "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
@@ -209,11 +210,13 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_opl_runtime_contract_no_provider_backend.py",
             "tests/test_domain_health_diagnostic.py",
             "tests/test_study_runtime_router.py",
+            "tests/test_runtime_root_cause_depth_gate.py",
         ),
         prefix_paths=(
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_root_cause_depth_gate.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_opl_runtime_contract.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_profiles.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_protocol_layout.py -q",

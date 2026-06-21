@@ -81,6 +81,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     live_runtime_rollup_parser.add_argument("--gap-evidence-file")
     live_runtime_rollup_parser.add_argument("--format", choices=("json",), default="json")
 
+    root_cause_depth_gate_parser = subparsers.add_parser("root-cause-depth-gate")
+    root_cause_depth_gate_parser.add_argument("--repo-root", default=".")
+    root_cause_depth_gate_parser.add_argument("--audit-record-file")
+    root_cause_depth_gate_parser.add_argument("--audit-bundle-file")
+    root_cause_depth_gate_parser.add_argument("--format", choices=("json",), default="json")
+
     seed_parser = subparsers.add_parser("publication-route-memory-apply-seed")
     seed_parser.add_argument("--workspace-root", required=True)
     seed_source = seed_parser.add_mutually_exclusive_group(required=True)

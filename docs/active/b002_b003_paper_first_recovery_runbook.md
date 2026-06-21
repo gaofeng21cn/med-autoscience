@@ -30,6 +30,33 @@ B002 / B003 的目标是推进论文，不是用论文测试 MAS / OPL。MAS / O
 
 修复旁路不得阻断论文主线。若一个缺陷不能在当前轮直接解除 governed owner path，paper executor 必须继续 foreground paper sprint，至少产出更具体的 manuscript/package/review/decision material；supervisor 同时把缺陷登记为 repair-lane proposal。这样论文持续推进，平台问题也不会丢失。
 
+### Root-Cause Depth Gate
+
+监督、heartbeat、repair lane、candidate absorption、currentness/readiness 判断和停滞 closeout 都必须走 `contracts/runtime/mas-root-cause-depth-gate.json`。可执行读回命令是：
+
+```bash
+medautosci doctor root-cause-depth-gate --repo-root <repo> --format json
+```
+
+每条 blocker / repair / absorption 判断至少包含 6 项：`symptom`、`failing_boundary`、`root_cause`、`owner_surface`、`fix_or_next_action`、`proof`。`proof` 还必须说明 evidence refs 证明什么、不证明什么。
+
+深度门按 L0-L4 读取：
+
+- `L0_symptom`：blocked、waiting、queue empty、no live session、handoff required、owner consumption wait 等可见状态。
+- `L1_failing_boundary`：具体断在 command、projection、owner route、authority、materializer、gate、queue 或 runtime dependency。
+- `L2_cross_surface_evidence`：至少一个相邻 truth surface 支持或反驳该断点，例如 live OPL state vs MAS projection、owner receipt vs pending candidate、source contract vs generated view、terminal closeout vs live readback。
+- `L3_owner_repair_path`：命名合法 owner surface、allowed / forbidden write set、修复或 owner-consumption 路径、验证/readback 和停止条件。
+- `L4_prevention_writeback`：说明为什么已有 workflow 没拦住，以及写回哪个 prompt、runbook、contract、test、automation 或 owner surface 防复发。
+
+一次性只读状态可在 L2 停；B002/B003 这类反复停滞、supervisor heartbeat、currentness drift、repair lane proposal、candidate absorption 和 mission closeout 至少要 L3。用户要求彻底、根因或不要停在表象时，必须到 L4 或明确写出仍缺哪条 prevention/writeback evidence。
+
+以下只是症状，不能单独写成根因或完成理由：`blocked`、`domain_blocked`、`waiting_human`、`not_actionable_without_owner`、`owner_consumption_saturation_wait`、`handoff_required`、`no_live_session`、`queue_empty`、`provider_admission_pending`、`current_owner_identity_unavailable_for_guard`、`typed_blocker_required`、`active_run_id_null`、`candidate_count_zero`。
+
+特别注意两条当前高风险误读：
+
+- `current_owner_identity_unavailable_for_guard` 只能说明 guarded no-write precheck 没有拿到 current owner identity；它可以证明没有越权写，但不能证明 B002 owner path 已修好。下一步必须追 current owner identity 为什么没有从 `current_owner_delta`、`current_work_unit`、owner-route read model、owner-answer 或 OPL live readback 稳定产出 / 传递。
+- `owner_consumption_saturation_wait` 只能说明 foreground package 已接近饱和，需要 owner consumption、human decision、route-back、typed blocker 或 repair candidate；它不能作为 mission closeout。下一步必须追饱和材料为什么没有变成 owner receipt、canonical delta、route-back、typed blocker 或 human gate。
+
 ### Repair Lane 分类
 
 每次发现 MAS/OPL 问题时必须按以下分类报告：
