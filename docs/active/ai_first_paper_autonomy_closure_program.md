@@ -15,6 +15,8 @@ Machine boundary: 本文是人读目标和验收合同。机器真相继续归 `
 
 它不持有 OPL provider 实现、One Person Lab App UI、通用 queue / attempt ledger / retry-dead-letter / human-gate transport，也不维护旧 MDS/Hermes/local scheduler 的退役清单。通用运行外围归 OPL Framework；MAS 持有医学研究 truth、paper quality、publication judgment、reviewer repair、route decision、evidence/review ledger、canonical manuscript/package authority 和 owner receipt。
 
+B002 / B003 当前采用 [论文优先恢复运行规则](./b002_b003_paper_first_recovery_runbook.md)：governed MAS / OPL path 仍是默认权威路径；当该路径被 OPL lease、execution authorization、currentness 或 handoff 缺口阻塞，且继续修平台不能在本轮产生论文 owner delta 时，executor 必须切到 foreground paper sprint，先产出可审阅、可接力的 manual paper work product 或 owner decision packet。该 work product 不自动更新 MAS truth、publication readiness 或 current package authority，后续必须由 MAS/OPL owner path 消费、采纳、拒绝或转成 blocker。
+
 ## 当前状态
 
 repo-level 论文自治 loop 已具备 callable surface、owner receipt 和 focused proof，但仍处在 production evidence gate：
@@ -41,6 +43,8 @@ repo-level 论文自治 loop 已具备 callable surface、owner receipt 和 focu
 - typed blocker，且 blocker 明确缺失的 owner、input、permission 或 scientific constraint。
 
 Worker liveness、queue item、status refresh、provider completion、只读 projection 和文档状态都只是支撑信号，不是 paper progress。
+
+Foreground paper sprint 的 manual work product 可以作为普通论文推进工作品和 owner 决策输入，但不能单独写成 autonomous work unit 完成。它只有在后续进入 MAS owner receipt、quality gate receipt、canonical changed surface ref、reviewer/gate delta、human gate、route-back evidence 或 stable typed blocker 后，才计入 governed recovery truth。
 
 ## Gate 分类
 
