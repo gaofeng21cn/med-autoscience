@@ -15,6 +15,7 @@ from med_autoscience.medical_prose_review import stable_medical_prose_review_pat
 from . import ai_reviewer_publication_eval_workflow, domain_status_projection
 from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
 from .domain_action_request_lifecycle import read_ai_reviewer_request, stable_ai_reviewer_request_path
+from .study_progress_parts import projection as study_progress_projection
 from .study_runtime_resolution import _execution_payload, _resolve_study
 
 __all__ = [
@@ -74,6 +75,25 @@ def _record_only_status_payload(
         "study_root": str(resolved_study_root),
         "quest_id": _optional_text(execution.get("quest_id")) or resolved_study_id,
     }
+
+
+def _precheck_status_payload(
+    *,
+    profile: Any,
+    study_id: str | None,
+    study_root: Path | None,
+    entry_mode: str | None,
+) -> dict[str, Any]:
+    return _mapping_payload(
+        study_progress_projection.read_study_progress(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            entry_mode=entry_mode,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+        )
+    )
 
 
 def _record_timestamp(record_payload: Mapping[str, Any]) -> str:
@@ -294,14 +314,11 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
 
-    status_payload = _mapping_payload(
-        domain_status_projection.progress_projection(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            entry_mode=entry_mode,
-            sync_runtime_summary=False,
-        )
+    status_payload = _precheck_status_payload(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        entry_mode=entry_mode,
     )
     resolved_study_root = _resolved_study_root(status_payload)
     resolved_study_id = _optional_text(status_payload.get("study_id")) or resolved_study_root.name
