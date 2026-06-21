@@ -299,6 +299,114 @@ def _record_request_kind(request: Mapping[str, Any]) -> str | None:
     )
 
 
+def _text_refs(value: object) -> list[str]:
+    if isinstance(value, Mapping):
+        values = value.values()
+    elif isinstance(value, list | tuple | set):
+        values = value
+    else:
+        return []
+    return [text for item in values if (text := _optional_text(item)) is not None]
+
+
+def _payload_currentness_guard_result(
+    *,
+    record: Mapping[str, Any] | None,
+    request: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+    required_currentness_refs: list[str],
+) -> dict[str, Any]:
+    if record is None:
+        return {
+            "enabled": False,
+            "matched": None,
+            "reason": None,
+            "mismatches": [],
+            "missing_observed_fields": [],
+        }
+
+    record_payload = _payload_record(record)
+    payload_required_refs = {
+        surface: ref
+        for surface, ref in {
+            key: _optional_text(value)
+            for key, value in _mapping(record.get("required_input_refs")).items()
+        }.items()
+        if ref is not None
+    }
+    input_bundle = _mapping(_mapping(record_payload.get("reviewer_operating_system")).get("input_bundle"))
+    observed_input_refs = {
+        surface: ref
+        for surface, ref in {
+            **{key: _optional_text(value) for key, value in input_bundle.items()},
+            **payload_required_refs,
+        }.items()
+        if ref is not None
+    }
+    expected_input_refs = {
+        surface: ref for surface, ref in required_refs.items() if ref is not None
+    }
+    mismatches: list[dict[str, str | None]] = []
+    missing_observed: list[str] = []
+    for surface, expected_ref in expected_input_refs.items():
+        observed_ref = observed_input_refs.get(surface)
+        if observed_ref is None:
+            missing_observed.append(f"required_input_refs.{surface}")
+            continue
+        if observed_ref != expected_ref:
+            mismatches.append({"surface": surface, "expected": expected_ref, "observed": observed_ref})
+
+    expected_required_ref_values = {ref for ref in expected_input_refs.values() if ref is not None}
+    observed_currentness_refs = set(_text_refs(record.get("required_currentness_refs")))
+    observed_currentness_refs.update(observed_input_refs.values())
+    for expected_ref in required_currentness_refs:
+        if expected_ref in expected_required_ref_values:
+            continue
+        if expected_ref not in observed_currentness_refs:
+            missing_observed.append(f"required_currentness_refs:{expected_ref}")
+
+    request_lifecycle = _mapping(request.get("request_lifecycle"))
+    expected_stale_record_ref = _optional_text(request_lifecycle.get("stale_record_ref")) or _optional_text(
+        request.get("publication_eval_record_ref")
+    )
+    observed_stale_record_ref = _optional_text(record.get("stale_record_ref"))
+    if expected_stale_record_ref and observed_stale_record_ref and observed_stale_record_ref != expected_stale_record_ref:
+        mismatches.append(
+            {
+                "surface": "stale_record_ref",
+                "expected": expected_stale_record_ref,
+                "observed": observed_stale_record_ref,
+            }
+        )
+
+    common = {
+        "enabled": True,
+        "mismatches": mismatches,
+        "missing_observed_fields": missing_observed,
+        "expected_input_refs": expected_input_refs,
+        "observed_input_refs": observed_input_refs,
+        "expected_required_currentness_refs": required_currentness_refs,
+        "observed_currentness_refs": sorted(observed_currentness_refs),
+    }
+    if mismatches:
+        return {
+            **common,
+            "matched": False,
+            "reason": "payload_currentness_mismatch",
+        }
+    if missing_observed:
+        return {
+            **common,
+            "matched": False,
+            "reason": "payload_currentness_refs_unavailable_for_guard",
+        }
+    return {
+        **common,
+        "matched": True,
+        "reason": None,
+    }
+
+
 def plan_ai_reviewer_publication_eval_record_materialization(
     *,
     profile: Any,
@@ -306,6 +414,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     study_root: Path | None,
     entry_mode: str | None,
     source: str,
+    record: PublicationEvalRecord | dict[str, Any] | None = None,
     expected_owner: str | None = None,
     expected_action_type: str | None = None,
     expected_work_unit_id: str | None = None,
@@ -346,7 +455,14 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         current_work_unit=current_work_unit,
         expected_identity=expected_identity,
     )
-    status = "blocked" if identity_guard.get("matched") is False else "dry_run"
+    record_payload = record.to_dict() if isinstance(record, PublicationEvalRecord) else record
+    payload_guard = _payload_currentness_guard_result(
+        record=record_payload,
+        request=request,
+        required_refs=required_refs,
+        required_currentness_refs=required_currentness_refs,
+    )
+    status = "blocked" if False in (identity_guard.get("matched"), payload_guard.get("matched")) else "dry_run"
     result = {
         "status": "dry_run",
         "dry_run": True,
@@ -364,10 +480,12 @@ def plan_ai_reviewer_publication_eval_record_materialization(
             "required_payload_field": "record_payload",
             "payload_may_be_absent_for_precheck": True,
             "payload_will_not_be_materialized": True,
+            "payload_currentness_guard_enabled": payload_guard.get("enabled") is True,
         },
         "current_work_unit": current_work_unit,
         "expected_current_work_unit": expected_identity if any(expected_identity.values()) else None,
         "identity_guard": identity_guard,
+        "payload_guard": payload_guard,
         "request": {
             "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
             "request_kind": _record_request_kind(request),
@@ -420,7 +538,11 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     }
     if status == "blocked":
         result["status"] = "blocked"
-        result["blocked_reason"] = _optional_text(identity_guard.get("reason")) or "current_owner_identity_guard_failed"
+        result["blocked_reason"] = (
+            _optional_text(identity_guard.get("reason"))
+            if identity_guard.get("matched") is False
+            else _optional_text(payload_guard.get("reason"))
+        ) or "current_owner_identity_guard_failed"
         result["publication_eval_surface"] = "not_written"
         result["publication_eval_record_surface"] = "not_written"
     return result

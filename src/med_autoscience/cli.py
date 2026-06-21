@@ -487,12 +487,19 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("Specify exactly one of --study-id or --study-root")
         profile = load_profile(args.profile)
         if args.dry_run or args.observe:
+            record = _load_optional_object_payload_from_args(
+                payload_file=args.payload_file,
+                payload_json=args.payload_json,
+                file_label="--payload-file",
+                json_label="--payload-json",
+            )
             result = ai_reviewer_publication_eval.plan_ai_reviewer_publication_eval_record_materialization(
                 profile=profile,
                 study_id=args.study_id,
                 study_root=Path(args.study_root) if args.study_root else None,
                 entry_mode=args.entry_mode,
                 source="cli",
+                record=record,
                 expected_owner=args.expected_owner,
                 expected_action_type=args.expected_action_type,
                 expected_work_unit_id=args.expected_work_unit_id,
