@@ -102,6 +102,25 @@ Foreground sprint 的验收是“可被人或后续 owner path 采纳/拒绝/消
 - what remains unconsumed by MAS/OPL；
 - next owner path that should consume or reject it。
 
+### Manual Package Saturation Gate
+
+Foreground sprint 不是无限产出 packet 的许可。若同一 work unit 已经具备最小可消费包，executor 必须切到 `owner-consumption-first`，不得继续新增同义 summary / index / cover letter / ballot / brief / escalation-request。
+
+最小可消费包的判定标准是：
+
+- 已有单一 bundle 或 manifest 指向必要输入 refs；
+- 已有 owner-facing request 或 cover letter 说明谁消费、消费什么、允许的 terminal results 和禁止结果；
+- 已有一页 ballot / decision brief 把 owner 或 human authority 的选择压缩成可直接接受、拒绝、route-back、签发 blocker 或 human gate 的问题；
+- 继续自动扩写只会降低接手效率，不能产生新的 manuscript / package / reviewer response / gate delta。
+
+达到 saturation 后，下一轮 stop condition 只能是：
+
+- governed owner path 消费成功，产生 owner receipt、paper/artifact delta、reviewer/gate delta、route-back、stable typed blocker 或 human gate；
+- 明确 `waiting_human` / `not_actionable_without_owner`，并命名最小 owner/human 决策问题与已饱和 refs；
+- 发现具体 repo/runtime 修复候选，带 root cause、diff、验证、fresh readback 和 absorption packet。
+
+达到 saturation 后仍可新增 foreground 文件的唯一例外是：该文件是具体 canonical manuscript/package/reviewer-response delta 候选，或是 governed owner consumption precheck 明确缺失的必要输入。不得用“更短摘要”“更完整索引”“再写一封信”替代 owner consumption gate。
+
 ## B002 当前运行口径
 
 Fresh 读法以 `study progress` / DHD 为准。2026-06-21 main 状态下，B002 已有 AI reviewer record 被投影为 successor action：
@@ -131,20 +150,24 @@ Executor 持有 goal，负责产出论文工作品或直接阻断论文推进的
 
 Supervisor 用 heartbeat 做干预型监督。每轮必须检查真实 paper artifact movement，包括 manuscript、delivery package、figure/table、review/gate、decision packet 的变化。若 executor 只停在 owner packet、precheck、readback、tests 或 absorption 状态，supervisor 必须立即 steering：要求本轮转入 governed owner path 或 foreground paper sprint。
 
+若 supervisor 发现 manual foreground materials 已经达到 saturation，监督重点必须从“有没有新 foreground artifact”切换到“有没有 owner consumption、human decision、route-back、stable typed blocker、human gate 或 repo repair candidate”。此时若 executor 继续新增同类 packet/summary/brief，supervisor 必须立即 steering 停止 packet sprawl，并把下一 stop condition 限定为 owner consumption、`waiting_human` / `not_actionable_without_owner` 或 `candidate_ready_for_absorption`。
+
 Main session 仍是 repo candidate 的 absorption owner。Foreground paper sprint 输出进入 Yang study workspace 时，不等于 repo absorption；repo 代码修复才需要 main absorption、commit、push 和 worktree cleanup。
 
 ## 停止条件
 
 单轮可以停止在以下任一状态：
 
-- paper-facing manual work product 已生成，并有 source refs、改动摘要、剩余 MAS/OPL consumption gap；
+- manual package 尚未达到 saturation 时，paper-facing manual work product 已生成，并有 source refs、改动摘要、剩余 MAS/OPL consumption gap；
 - governed owner path 产出 owner receipt、paper/artifact delta、reviewer/gate delta、route-back、stable typed blocker 或 human gate；
 - repo/runtime 修复候选已准备 absorption，并证明它直接解除当前论文 work unit 阻断；
-- human / authority decision packet 已完整，且继续自动推进会越权。
+- human / authority decision packet 已完整，且继续自动推进会越权；
+- manual package 已达到 saturation 后，明确停止在 `waiting_human` / `not_actionable_without_owner`，并列出最小 owner/human 决策问题和已饱和 refs。
 
 不能停止在：
 
 - “当前状态如此”；
 - “DHD/readback 已解释”；
 - “不能合法 apply”但没有 paper work product 或 owner decision packet；
+- manual package 已经饱和后，继续生成同义 summary / index / cover / ballot / brief / escalation-request；
 - “tests passed / candidate absorbed”但没有映射到论文推进。
