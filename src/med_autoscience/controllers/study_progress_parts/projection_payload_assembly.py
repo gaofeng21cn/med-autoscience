@@ -457,14 +457,14 @@ def _apply_provider_admission_fields_with_terminal_probe(
                     updated.pop("provider_admission_terminal_closeout_consumed", None)
                     handoff = original_handoff
                 else:
-                    return {
+                    return _payload_with_terminal_consumed_current_action_suppression({
                         **updated,
                         "provider_admission_pending_count": 0,
                         "provider_admission_candidates": [],
                         "transition_request_pending_count": 0,
                         "transition_request_candidates": [],
                         "provider_admission_terminal_closeout_consumed": consumed,
-                    }
+                    })
     provider_fields = provider_admission_projection_fields(
         payload=_provider_admission_candidate_payload(updated),
         handoff=handoff,
@@ -472,7 +472,7 @@ def _apply_provider_admission_fields_with_terminal_probe(
     )
     updated.update(provider_fields)
     if profile is None or int(updated.get("transition_request_pending_count") or 0) <= 0:
-        return updated
+        return _payload_with_terminal_consumed_current_action_suppression(updated)
     candidates = [
         dict(item)
         for item in updated.get("transition_request_candidates") or []
@@ -497,14 +497,14 @@ def _apply_provider_admission_fields_with_terminal_probe(
             updated["opl_current_control_state_handoff"] = dict(handoff)
             updated.pop("provider_admission_terminal_closeout_consumed", None)
             return updated
-        return {
+        return _payload_with_terminal_consumed_current_action_suppression({
             **updated,
             "provider_admission_pending_count": 0,
             "provider_admission_candidates": [],
             "transition_request_pending_count": 0,
             "transition_request_candidates": [],
             "provider_admission_terminal_closeout_consumed": consumed,
-        }
+        })
     updated.update(
         provider_admission_projection_fields(
             payload=updated,
@@ -512,6 +512,42 @@ def _apply_provider_admission_fields_with_terminal_probe(
             study_root=study_root,
         )
     )
+    return _payload_with_terminal_consumed_current_action_suppression(updated)
+
+
+def _payload_with_terminal_consumed_current_action_suppression(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(payload)
+    consumed = _mapping_copy(updated.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return updated
+    current_action = _mapping_copy(updated.get("current_executable_owner_action"))
+    if current_action and _terminal_consumption_matches_current_pending_identity(
+        consumed=consumed,
+        payload={"current_executable_owner_action": current_action},
+    ):
+        updated["current_executable_owner_action"] = None
+    current_work_unit = _mapping_copy(updated.get("current_work_unit"))
+    if current_work_unit and _terminal_consumption_matches_current_pending_identity(
+        consumed=consumed,
+        payload={"current_work_unit": current_work_unit},
+    ):
+        state = dict(_mapping_copy(current_work_unit.get("state")))
+        state.update(
+            {
+                "provider_admission_pending": False,
+                "transition_request_pending": False,
+                "provider_attempt_or_lease_required": False,
+                "provider_admission_requires_opl_runtime_result": False,
+                "provider_admission_terminal_consumed": True,
+                "provider_admission_terminal_consumed_readback": dict(consumed),
+            }
+        )
+        current_work_unit["state"] = {
+            key: value for key, value in state.items() if value not in (None, "", [], {})
+        }
+        updated["current_work_unit"] = current_work_unit
     return updated
 
 

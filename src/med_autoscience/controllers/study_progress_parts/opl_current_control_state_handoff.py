@@ -312,10 +312,15 @@ def opl_current_control_state_study_handoff_projection(
     )
     if latest_opl_terminal_closeout is not None:
         latest_terminal_stage_log = latest_opl_terminal_closeout
+    latest_terminal_consumed_readback = _latest_provider_admission_terminal_consumed_readback_for_study(
+        payload,
+        study_id=study_id,
+    )
     if matching is None:
         if (
             latest_terminal_stage_log is None
             and latest_typed_closeout is None
+            and not latest_terminal_consumed_readback
             and not matching_top_level_provider_admissions
             and not matching_top_level_transition_requests
         ):
@@ -336,6 +341,11 @@ def opl_current_control_state_study_handoff_projection(
             projection = _apply_top_level_transition_requests_to_handoff(
                 projection,
                 matching_top_level_transition_requests,
+            )
+        if latest_terminal_consumed_readback:
+            projection = _apply_terminal_consumed_readback_to_handoff(
+                projection,
+                latest_terminal_consumed_readback,
             )
         return projection
     matching = _matching_with_live_log_transition_readbacks(
@@ -494,6 +504,11 @@ def opl_current_control_state_study_handoff_projection(
         projection["latest_terminal_stage_log"] = latest_terminal_stage_log
     elif matching_terminal_stage_log:
         projection["latest_terminal_stage_log"] = matching_terminal_stage_log
+    if latest_terminal_consumed_readback:
+        projection = _apply_terminal_consumed_readback_to_handoff(
+            projection,
+            latest_terminal_consumed_readback,
+        )
     projection.update(_opl_current_control_state_mode_fields(payload))
     return _apply_matching_terminal_closeout_to_handoff(projection)
 
@@ -1080,6 +1095,37 @@ def _stage_ref_items(value: object) -> list[str]:
 def _apply_action_queue_provider_readbacks_to_handoff(
     projection: Mapping[str, Any],
 ) -> dict[str, Any]:
+    consumed = _observability_mapping(projection.get("provider_admission_terminal_closeout_consumed"))
+    if consumed:
+        terminal = _terminal_stage_log_from_terminal_consumed_readback(consumed)
+        action_queue = _handoff_candidate_list(projection.get("action_queue"))
+        matching_actions = _terminal_matching_handoff_candidates(
+            terminal=terminal,
+            candidates=action_queue,
+        )
+        if matching_actions:
+            projection = {
+                **dict(projection),
+                "action_queue": [
+                    dict(item)
+                    for item in action_queue
+                    if item not in matching_actions
+                ],
+                "consumed_action_queue": [
+                    {
+                        **dict(item),
+                        "consumption": {
+                            **_observability_mapping(item.get("consumption")),
+                            "state": "consumed_by_provider_admission_terminal_readback",
+                            "terminal_stage_attempt_id": _non_empty_text(
+                                consumed.get("terminal_stage_attempt_id")
+                            )
+                            or _non_empty_text(consumed.get("stage_attempt_id")),
+                        },
+                    }
+                    for item in matching_actions
+                ],
+            }
     projection_readback_candidate = _provider_readback_candidate_from_projection(projection)
     action_provider_candidates = [
         dict(item)
@@ -1253,6 +1299,131 @@ def _same_provider_readback_identity(
         if action_value is not None and readback_value is not None and action_value != readback_value:
             return False
     return True
+
+
+def _latest_provider_admission_terminal_consumed_readback_for_study(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> dict[str, Any]:
+    readback = _observability_mapping(payload.get("latest_provider_admission_terminal_consumed_readback"))
+    if _non_empty_text(readback.get("status")) != "provider_admission_terminal_consumed":
+        return {}
+    identity = _observability_mapping(readback.get("currentness_identity"))
+    readback_study = _non_empty_text(identity.get("study_id")) or _non_empty_text(readback.get("study_id"))
+    if readback_study is not None and readback_study != study_id:
+        return {}
+    return dict(readback)
+
+
+def _apply_terminal_consumed_readback_to_handoff(
+    projection: Mapping[str, Any],
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    terminal = _terminal_stage_log_from_terminal_consumed_readback(readback)
+    if not terminal:
+        return dict(projection)
+    updated = dict(projection)
+    existing_terminal = _observability_mapping(updated.get("latest_terminal_stage_log"))
+    if not existing_terminal:
+        updated["latest_terminal_stage_log"] = terminal
+    candidate_sources = [
+        *_handoff_candidate_list(updated.get("provider_admission_candidates")),
+        *_handoff_candidate_list(updated.get("transition_request_candidates")),
+        *_handoff_candidate_list(updated.get("action_queue")),
+    ]
+    if candidate_sources and not _terminal_matching_handoff_candidates(
+        terminal=terminal,
+        candidates=candidate_sources,
+    ):
+        return updated
+    updated = _apply_matching_terminal_closeout_to_handoff(updated)
+    return _consume_terminal_matching_action_queue(
+        updated,
+        terminal=terminal,
+        consumed_readback=readback,
+    )
+
+
+def _consume_terminal_matching_action_queue(
+    projection: Mapping[str, Any],
+    *,
+    terminal: Mapping[str, Any],
+    consumed_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    action_queue = _handoff_candidate_list(projection.get("action_queue"))
+    matching_actions = _terminal_matching_handoff_candidates(
+        terminal=terminal,
+        candidates=action_queue,
+    )
+    if not matching_actions:
+        return dict(projection)
+    updated = dict(projection)
+    consumed_entries = [
+        {
+            **dict(item),
+            "consumption": {
+                **_observability_mapping(item.get("consumption")),
+                "state": "consumed_by_provider_admission_terminal_readback",
+                "terminal_stage_attempt_id": _non_empty_text(
+                    consumed_readback.get("terminal_stage_attempt_id")
+                )
+                or _non_empty_text(consumed_readback.get("stage_attempt_id")),
+            },
+        }
+        for item in matching_actions
+    ]
+    prior_consumed = [
+        dict(item)
+        for item in updated.get("consumed_action_queue") or []
+        if isinstance(item, Mapping)
+    ]
+    updated["consumed_action_queue"] = [*prior_consumed, *consumed_entries]
+    updated["action_queue"] = [
+        dict(item)
+        for item in action_queue
+        if item not in matching_actions
+    ]
+    updated["provider_admission_terminal_closeout_consumed"] = _provider_admission_terminal_closeout_consumed(
+        terminal=terminal,
+        matching_provider_admission=matching_actions[0],
+    )
+    return updated
+
+
+def _terminal_stage_log_from_terminal_consumed_readback(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _non_empty_text(readback.get("status")) != "provider_admission_terminal_consumed":
+        return {}
+    identity = _observability_mapping(readback.get("currentness_identity"))
+    terminal = {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "source": "opl_current_control_state.latest_provider_admission_terminal_consumed_readback",
+        "status": _non_empty_text(readback.get("terminal_stage_attempt_status")) or "completed",
+        "stage_attempt_id": _non_empty_text(readback.get("terminal_stage_attempt_id"))
+        or _non_empty_text(identity.get("stage_attempt_id")),
+        "action_type": _non_empty_text(identity.get("action_type")) or _non_empty_text(readback.get("action_type")),
+        "work_unit_id": _work_unit_identity(identity.get("work_unit_id"))
+        or _work_unit_identity(readback.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(identity.get("work_unit_fingerprint"))
+        or _non_empty_text(identity.get("action_fingerprint"))
+        or _non_empty_text(readback.get("work_unit_fingerprint")),
+        "action_fingerprint": _non_empty_text(identity.get("action_fingerprint"))
+        or _non_empty_text(identity.get("work_unit_fingerprint"))
+        or _non_empty_text(readback.get("action_fingerprint")),
+        "route_identity_key": _non_empty_text(identity.get("route_identity_key"))
+        or _non_empty_text(readback.get("route_identity_key")),
+        "attempt_idempotency_key": _non_empty_text(identity.get("attempt_idempotency_key"))
+        or _non_empty_text(readback.get("attempt_idempotency_key")),
+        "idempotency_key": _non_empty_text(identity.get("idempotency_key"))
+        or _non_empty_text(readback.get("idempotency_key"))
+        or _non_empty_text(identity.get("attempt_idempotency_key")),
+        "closeout_refs": _string_list(readback.get("closeout_refs")),
+        "provider_completion_is_domain_completion": readback.get("provider_completion_is_domain_completion"),
+        "provider_completion_is_domain_ready": readback.get("provider_completion_is_domain_ready"),
+    }
+    return {key: value for key, value in terminal.items() if value not in (None, "", [], {})}
 
 
 def _closeout_only_study_handoff_projection(

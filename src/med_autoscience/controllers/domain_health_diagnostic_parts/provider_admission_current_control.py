@@ -13,6 +13,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts import (
     provider_admission_current_control_receipts as current_control_receipts,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_arbiter import (
+    _arbiter_decision,
     _candidates_not_covered_by_live_attempt,
     _matching_accepted_closeout,
     _running_attempt_from_study,
@@ -54,6 +55,14 @@ def materialize_provider_admission_current_control_state(
     history_path = supervision_surfaces.history_path(profile)
     previous_payload = supervision_surfaces.read_json_object(latest_path)
     scanned_studies = _normalized_scanned_studies(scanned_studies)
+    previous_terminal_consumed_readback = (
+        _latest_provider_admission_terminal_consumed_readback(previous_payload)
+    )
+    if previous_terminal_consumed_readback:
+        scanned_studies = _scanned_studies_with_previous_terminal_consumed_readback(
+            scanned_studies,
+            previous_terminal_consumed_readback=previous_terminal_consumed_readback,
+        )
     scanned_studies_by_id = {
         study_id: dict(study)
         for study in scanned_studies or []
@@ -82,6 +91,17 @@ def materialize_provider_admission_current_control_state(
         candidates,
         scanned_studies_by_id=scanned_studies_by_id,
     )
+    original_candidate_count = len(candidates)
+    previous_terminal_consumed_decisions = (
+        _previous_terminal_consumed_readback_decisions(
+            candidates,
+            previous_terminal_consumed_readback=previous_terminal_consumed_readback,
+        )
+    )
+    candidates = _candidates_without_previous_terminal_consumed_readback(
+        candidates,
+        previous_terminal_consumed_readback=previous_terminal_consumed_readback,
+    )
     scanned_studies = _scanned_studies_with_candidate_closeout_projection(
         scanned_studies,
         candidates=candidates,
@@ -92,11 +112,14 @@ def materialize_provider_admission_current_control_state(
         if (study_id := _non_empty_text(study.get("study_id"))) is not None
     }
     live_studies_by_id = _live_scanned_studies_by_id(scanned_studies)
-    arbiter_decisions = _stage_route_arbiter_decisions(
-        candidates,
-        live_studies_by_id=live_studies_by_id,
-        scanned_studies_by_id=scanned_studies_by_id,
-    )
+    arbiter_decisions = [
+        *previous_terminal_consumed_decisions,
+        *_stage_route_arbiter_decisions(
+            candidates,
+            live_studies_by_id=live_studies_by_id,
+            scanned_studies_by_id=scanned_studies_by_id,
+        ),
+    ]
     unresolved_candidates = _candidates_not_covered_by_live_attempt(
         candidates,
         live_studies_by_id=live_studies_by_id,
@@ -230,12 +253,16 @@ def materialize_provider_admission_current_control_state(
     ]
     payload["stage_route_arbiter"] = _stage_route_arbiter_summary(
         decisions=arbiter_decisions,
-        candidate_count=len(candidates),
+        candidate_count=original_candidate_count,
         pending_count=len(pending_candidates),
     )
     payload["stage_route_arbiter_decisions"] = arbiter_decisions
     payload["unscanned_handoff_retention"] = unscanned_audit
     payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
+    if previous_terminal_consumed_readback:
+        payload["latest_provider_admission_terminal_consumed_readback"] = dict(
+            previous_terminal_consumed_readback
+        )
     payload = _payload_with_consumed_closeout_typed_blockers(payload)
     if apply:
         supervision_surfaces.write_json(latest_path, payload)
@@ -406,6 +433,159 @@ def _candidates_without_transition_requests_consumed_by_currentness(
             scanned_studies_by_id=scanned_studies_by_id,
         )
     ]
+
+
+def _latest_provider_admission_terminal_consumed_readback(
+    previous_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload = _mapping(previous_payload)
+    readback = _mapping(payload.get("latest_provider_admission_terminal_consumed_readback"))
+    if _non_empty_text(readback.get("status")) == "provider_admission_terminal_consumed":
+        return dict(readback)
+    return {}
+
+
+def _previous_terminal_consumed_readback_decisions(
+    candidates: list[dict[str, Any]],
+    *,
+    previous_terminal_consumed_readback: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        _arbiter_decision(
+            candidate,
+            decision="provider_admission_terminal_consumed",
+            effect="suppress_provider_admission_pending",
+            evidence=previous_terminal_consumed_readback,
+        )
+        for candidate in candidates
+        if _terminal_consumed_readback_matches_candidate(
+            previous_terminal_consumed_readback,
+            candidate,
+        )
+    ]
+
+
+def _candidates_without_previous_terminal_consumed_readback(
+    candidates: list[dict[str, Any]],
+    *,
+    previous_terminal_consumed_readback: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    if not previous_terminal_consumed_readback:
+        return [dict(candidate) for candidate in candidates]
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if not _terminal_consumed_readback_matches_candidate(
+            previous_terminal_consumed_readback,
+            candidate,
+        )
+    ]
+
+
+def _scanned_studies_with_previous_terminal_consumed_readback(
+    scanned_studies: list[dict[str, Any]],
+    *,
+    previous_terminal_consumed_readback: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        _scanned_study_with_previous_terminal_consumed_readback(
+            study,
+            previous_terminal_consumed_readback=previous_terminal_consumed_readback,
+        )
+        for study in scanned_studies
+    ]
+
+
+def _scanned_study_with_previous_terminal_consumed_readback(
+    study: Mapping[str, Any],
+    *,
+    previous_terminal_consumed_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    provider_candidates = [
+        dict(candidate)
+        for candidate in study.get("provider_admission_candidates") or []
+        if isinstance(candidate, Mapping)
+        and not _terminal_consumed_readback_matches_candidate(
+            previous_terminal_consumed_readback,
+            candidate,
+        )
+    ]
+    action_queue = [
+        dict(action)
+        for action in study.get("action_queue") or []
+        if isinstance(action, Mapping)
+        and not _terminal_consumed_readback_matches_candidate(
+            previous_terminal_consumed_readback,
+            action,
+        )
+    ]
+    payload = dict(study)
+    if len(provider_candidates) != len(study.get("provider_admission_candidates") or []):
+        payload["provider_admission_candidates"] = provider_candidates
+        payload["provider_admission_pending_count"] = len(provider_candidates)
+        payload["provider_admission_terminal_closeout_consumed"] = dict(
+            previous_terminal_consumed_readback
+        )
+    if len(action_queue) != len(study.get("action_queue") or []):
+        payload["action_queue"] = action_queue
+    return payload
+
+
+def _terminal_consumed_readback_matches_candidate(
+    readback: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+) -> bool:
+    if not readback:
+        return False
+    identity = _mapping(readback.get("currentness_identity")) or readback
+    if _non_empty_text(identity.get("study_id")) not in (
+        None,
+        _non_empty_text(candidate.get("study_id")),
+    ):
+        return False
+    if _non_empty_text(identity.get("action_type")) not in (
+        None,
+        _non_empty_text(candidate.get("action_type")),
+    ):
+        return False
+    if _non_empty_text(identity.get("work_unit_id")) not in (
+        None,
+        _non_empty_text(candidate.get("work_unit_id")),
+    ):
+        return False
+    readback_fingerprint = _non_empty_text(
+        identity.get("work_unit_fingerprint")
+    ) or _non_empty_text(identity.get("action_fingerprint"))
+    candidate_fingerprint = _non_empty_text(
+        candidate.get("work_unit_fingerprint")
+    ) or _non_empty_text(candidate.get("action_fingerprint"))
+    if readback_fingerprint not in (None, candidate_fingerprint):
+        return False
+    readback_runtime_identity_keys = [
+        _non_empty_text(identity.get(key))
+        for key in (
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "idempotency_key",
+        )
+    ]
+    has_readback_runtime_identity = any(
+        value is not None for value in readback_runtime_identity_keys
+    )
+    has_candidate_runtime_identity = False
+    for key in (
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "idempotency_key",
+    ):
+        readback_value = _non_empty_text(identity.get(key))
+        candidate_value = _non_empty_text(candidate.get(key))
+        has_candidate_runtime_identity = has_candidate_runtime_identity or candidate_value is not None
+        if readback_value is not None and candidate_value is not None:
+            return readback_value == candidate_value
+    if has_readback_runtime_identity or has_candidate_runtime_identity:
+        return False
+    return readback_fingerprint is not None
 
 
 def _transition_request_consumed_by_scanned_currentness(

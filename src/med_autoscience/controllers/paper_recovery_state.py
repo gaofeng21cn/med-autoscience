@@ -1222,6 +1222,12 @@ def _provider_admission_terminal_closeout_consumed(
                 typed_blocker.get("work_unit_fingerprint"),
             ),
             "stage_attempt_id": _first_text(consumed.get("stage_attempt_id"), terminal.get("stage_attempt_id")),
+            "terminal_stage_attempt_id": _first_text(
+                consumed.get("terminal_stage_attempt_id"),
+                terminal.get("terminal_stage_attempt_id"),
+                consumed.get("stage_attempt_id"),
+                terminal.get("stage_attempt_id"),
+            ),
             "closeout_refs": refs,
             "closeout_ref": refs[0] if refs else None,
             "source": "opl_current_control_state_handoff.provider_admission_terminal_closeout_consumed",
@@ -1259,6 +1265,7 @@ def _closeout_matches_obligation(
             return False
     return bool(
         _text(closeout.get("stage_attempt_id"))
+        or _text(closeout.get("terminal_stage_attempt_id"))
         or _text(closeout.get("active_stage_attempt_id"))
         or _closeout_refs(closeout)
     )

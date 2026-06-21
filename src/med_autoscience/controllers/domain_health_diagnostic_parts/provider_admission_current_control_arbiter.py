@@ -303,7 +303,8 @@ def _arbiter_decision(
             candidate.get("same_tick_materialization_source")
         ),
         "active_stage_attempt_id": _non_empty_text(evidence.get("active_stage_attempt_id"))
-        or _non_empty_text(evidence.get("stage_attempt_id")),
+        or _non_empty_text(evidence.get("stage_attempt_id"))
+        or _non_empty_text(evidence.get("terminal_stage_attempt_id")),
         "active_run_id": _non_empty_text(evidence.get("active_run_id")),
         "active_workflow_id": _non_empty_text(evidence.get("active_workflow_id")),
         "missing_identity_fields": _missing_identity_fields(evidence),

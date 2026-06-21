@@ -695,6 +695,162 @@ def test_provider_admission_report_sync_clears_stale_managed_action_pending_stat
     assert "provider_admission_state" not in evidence_action
 
 
+def test_provider_admission_report_sync_consumes_terminal_readback_in_managed_action(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    fingerprint = "sha256:c82b52d55725eb89ed014ff1f805c07d6a6c2ee25a47c5e5713367a54fd88917"
+    route_key = "paper-policy-request:4ad0ec722ffd3cb666e615ac"
+    stale_candidate = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint=fingerprint,
+        ),
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "provider_admission_pending": True,
+        "opl_domain_progress_transition_runtime_live_readback": _opl_transition_readback(
+            study_id,
+            action_fingerprint=fingerprint,
+            work_unit_id=work_unit_id,
+            route_identity_key=route_key,
+            attempt_idempotency_key=route_key,
+            request_idempotency_key=route_key,
+        ),
+    }
+    stale_action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "provider_admission_candidates": [dict(stale_candidate)],
+        "provider_admission_state": {
+            "status": "pending",
+            "candidate_count": 1,
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "opl_current_control_state.provider_admission_candidates",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "next_owner": "gate_clearing_batch",
+            "owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+            "provider_admission_pending": True,
+        },
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "state": {
+                "state_kind": "executable_owner_action",
+                "source": "opl_current_control_state.provider_admission_candidates",
+                "provider_admission_pending": True,
+                "transition_request_pending": False,
+                "provider_attempt_or_lease_required": True,
+            },
+        },
+        "paper_recovery_state": {
+            "surface_kind": "paper_recovery_state",
+            "phase": "admission_pending",
+            "next_safe_action": {
+                "kind": "consume_opl_provider_admission_readback",
+                "provider_admission_allowed": True,
+            },
+        },
+    }
+    terminal_readback = {
+        "surface_kind": "opl_current_control_provider_admission_terminal_consumed_readback",
+        "status": "provider_admission_terminal_consumed",
+        "reason": "terminal_stage_attempt_consumed_same_transition_identity",
+        "terminal_stage_attempt_id": "sat_d00368adb115dbeba62a7e41",
+        "terminal_stage_attempt_status": "completed",
+        "terminal_provider_status": "completed",
+        "closeout_refs": [
+            "runtime/artifacts/opl_family_domain_handler/dispatch_receipts/1b3ff330ad0e62476a78.json",
+            f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet",
+            "temporal://attempt/sat_d00368adb115dbeba62a7e41",
+        ],
+        "currentness_identity": {
+            "task_id": "frt_f3103ddf54ddde2fd07ca747",
+            "stage_attempt_id": "sat_d00368adb115dbeba62a7e41",
+            "study_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+        },
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+    }
+    report = {
+        "managed_study_opl_provider_admission_candidates": [dict(stale_candidate)],
+        "provider_admission_pending_count": 1,
+        "current_execution_evidence": {
+            "provider_admission_candidates": [dict(stale_candidate)],
+            "managed_study_actions": [dict(stale_action)],
+        },
+        "managed_study_actions": [dict(stale_action)],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [],
+            "transition_request_candidates": [],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "provider_admission_pending_count": 0,
+                    "provider_admission_candidates": [],
+                    "transition_request_pending_count": 0,
+                    "transition_request_candidates": [],
+                    "provider_admission_terminal_closeout_consumed": dict(terminal_readback),
+                }
+            ],
+            "latest_provider_admission_terminal_consumed_readback": dict(terminal_readback),
+        },
+    )
+
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    assert report["provider_admission_pending_count"] == 0
+    action = report["managed_study_actions"][0]
+    assert action["provider_admission_candidates"] == []
+    assert action["provider_admission_pending_count"] == 0
+    assert "provider_admission_state" not in action
+    assert "current_executable_owner_action" not in action
+    assert action["provider_admission_terminal_closeout_consumed"] == terminal_readback
+    assert action["current_work_unit"]["state"]["provider_admission_pending"] is False
+    assert action["current_work_unit"]["state"]["provider_admission_terminal_consumed"] is True
+    assert action["paper_recovery_state"]["phase"] == "terminal_closeout_ready"
+    assert action["paper_recovery_state"]["next_safe_action"]["kind"] == "consume_terminal_closeout"
+    evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
+    assert evidence_action["paper_recovery_state"]["phase"] == "terminal_closeout_ready"
+
+
 def test_provider_admission_report_sync_keeps_transition_request_out_of_managed_admission_surface(
     tmp_path: Path,
 ) -> None:

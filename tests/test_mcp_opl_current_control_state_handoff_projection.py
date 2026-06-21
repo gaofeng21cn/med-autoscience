@@ -657,6 +657,110 @@ def test_study_progress_opl_current_control_state_handoff_preserves_runtime_back
     assert projection["provider_admission_candidates"][0]["attempt_idempotency_key"] == idempotency_key
 
 
+def test_study_progress_opl_current_control_state_handoff_consumes_global_terminal_readback_action_queue(
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    fingerprint = "sha256:c82b52d55725eb89ed014ff1f805c07d6a6c2ee25a47c5e5713367a54fd88917"
+    route_key = "paper-policy-request:4ad0ec722ffd3cb666e615ac"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    readback = opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit_id,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+        stage_run_id=f"stage-run:{study_id}:{work_unit_id}",
+    )
+    action = {
+        "status": "queued",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "gate_clearing_batch",
+        "next_executable_owner": "gate_clearing_batch",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "next_work_unit": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "idempotency_key": route_key,
+        "dispatch_ref": f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet",
+        "checkpoint_refs": [f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet"],
+        "handoff_packet": {
+            "opl_domain_progress_transition_runtime_live_readback": readback,
+        },
+    }
+    terminal_readback = {
+        "surface_kind": "opl_current_control_provider_admission_terminal_consumed_readback",
+        "status": "provider_admission_terminal_consumed",
+        "reason": "terminal_stage_attempt_consumed_same_transition_identity",
+        "terminal_stage_attempt_id": "sat_d00368adb115dbeba62a7e41",
+        "terminal_stage_attempt_status": "completed",
+        "terminal_provider_status": "completed",
+        "closeout_refs": [
+            "runtime/artifacts/opl_family_domain_handler/dispatch_receipts/1b3ff330ad0e62476a78.json",
+            f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet",
+            "temporal://attempt/sat_d00368adb115dbeba62a7e41",
+        ],
+        "currentness_identity": {
+            "task_id": "frt_f3103ddf54ddde2fd07ca747",
+            "stage_attempt_id": "sat_d00368adb115dbeba62a7e41",
+            "study_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+        },
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+    }
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-21T07:15:22+00:00",
+            "provider_admission_pending_count": 0,
+            "transition_request_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_candidates": [],
+            "latest_provider_admission_terminal_consumed_readback": terminal_readback,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "active",
+                    "provider_admission_pending_count": 0,
+                    "transition_request_pending_count": 0,
+                    "provider_admission_candidates": [],
+                    "transition_request_candidates": [],
+                    "action_queue": [action],
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
+
+    assert projection["provider_admission_pending_count"] == 0
+    assert projection["provider_admission_candidates"] == []
+    assert projection["transition_request_pending_count"] == 0
+    assert projection["transition_request_candidates"] == []
+    assert projection["action_queue"] == []
+    assert projection["consumed_action_queue"][0]["work_unit_id"] == work_unit_id
+    assert (
+        projection["provider_admission_terminal_closeout_consumed"]["stage_attempt_id"]
+        == "sat_d00368adb115dbeba62a7e41"
+    )
+    assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_id"] == work_unit_id
+    assert projection["provider_admission_terminal_closeout_consumed"]["work_unit_fingerprint"] == fingerprint
+
+
 def test_study_progress_opl_current_control_state_handoff_preserves_replayed_provider_admission_over_old_typed_blocker_closeout(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
