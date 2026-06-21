@@ -627,9 +627,15 @@ def test_display_pack_preflight_blocks_cohort_flow_without_ggconsort_capable_rec
     assert requirement["surface_role"] == "ggconsort_capable_reporting_flow_dependency_intent"
     assert requirement["mature_dependency_intent"]["preferred_package"] == "ggconsort"
     assert requirement["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False
-    assert requirement["render_contract"]["checked_in_renderer_family"] == "python"
-    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert requirement["render_contract"]["checked_in_renderer_family"] == "r_ggplot2"
+    assert requirement["render_contract"]["checked_in_execution_mode"] == "subprocess"
+    assert requirement["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
+    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
+    assert requirement["render_contract"]["checked_in_renderer_ref"] == "templates/cohort_flow_figure/render.R"
     assert packages["ggconsort"]["required"] is True
+    assert "r_ggplot2_evidence_subprocess_v1" not in {
+        item["profile_id"] for item in requirements
+    }
     assert {item["code"] for item in payload["blocking_findings"]} >= {"dependency_environment_not_prepared"}
     assert payload["repair_owner"] == "OPL Framework"
 
@@ -656,7 +662,8 @@ def test_display_pack_preflight_reports_cohort_flow_prepared_ggconsort_capable_p
     assert payload["r_runtime"]["required"] is True
     assert payload["r_runtime"]["status"] == "delegated_to_opl_dependency_environment"
     assert requirement["mature_dependency_intent"]["family"] == "ggconsort_capable_reporting_flow"
-    assert requirement["render_contract"]["checked_in_renderer_is_generated_fallback"] is True
+    assert requirement["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
+    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
     assert payload["templates"][0]["dependency_requirements"][0]["profile_id"] == (
         "r_ggplot2_ggconsort_reporting_flow_v1"
     )
@@ -852,7 +859,7 @@ def test_display_pack_render_fail_closes_cohort_flow_missing_ggconsort_capable_r
     assert payload["status"] == "blocked"
     assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
     assert requirement["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
-    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
     assert payload["typed_blocker"]["code"] == "dependency_environment_not_prepared"
     assert payload["typed_blocker"]["repair_owner"] == "OPL Framework"
     assert not (paper_root / "figure_render_receipt.json").exists()

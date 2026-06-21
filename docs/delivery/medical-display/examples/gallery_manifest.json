@@ -117,7 +117,7 @@
     "non_visual_template_count": 3,
     "blocked_template_count": 0,
     "lower_bound_review_required_count": 28,
-    "gallery_lower_bound_admission_status": "gallery_lower_bound_passed_requires_paper_audit",
+    "gallery_lower_bound_admission_status": "gallery_lower_bound_blocked",
     "publication_quality_profile_coverage": {
       "schema_version": 1,
       "current_template_count": 31,
@@ -1695,7 +1695,7 @@
       "canonical_family_id": "cohort_flow_figure",
       "canonical_family_title": "Cohort Flow",
       "canonical_family_category": "Publication Shells and Tables",
-      "renderer_family": "python",
+      "renderer_family": "r_ggplot2",
       "analysis_responsibility": "validated_summary_required",
       "analysis_input_state": "validated_reporting_flow_payload",
       "medical_family_ids": [
@@ -1761,20 +1761,21 @@
             "package_install_during_render_allowed": false
           },
           "render_contract": {
-            "checked_in_renderer_family": "python",
-            "checked_in_execution_mode": "python_plugin",
-            "checked_in_renderer_is_generated_fallback": true,
-            "checked_in_renderer_uses_ggconsort": false,
+            "checked_in_renderer_family": "r_ggplot2",
+            "checked_in_execution_mode": "subprocess",
+            "checked_in_renderer_is_generated_fallback": false,
+            "checked_in_renderer_uses_ggconsort": true,
+            "checked_in_renderer_ref": "templates/cohort_flow_figure/render.R",
             "prepared_dependency_receipt_required_before_render": true,
             "missing_prepared_receipt_blocks_render": true
           }
         }
       ],
-      "preview_image_ref": "medical_display_gallery_assets/cohort_flow_figure.design.gallery.png",
-      "image_ref": "medical_display_gallery_assets/cohort_flow_figure.design.png",
-      "svg_ref": "medical_display_gallery_assets/cohort_flow_figure.design.svg",
-      "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.design.pdf",
-      "layout_ref": "medical_display_gallery_assets/cohort_flow_figure.design.layout.json"
+      "preview_image_ref": "",
+      "image_ref": "",
+      "svg_ref": "",
+      "pdf_ref": "",
+      "layout_ref": ""
     }
   ],
   "design_gallery_templates": [

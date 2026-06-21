@@ -21,7 +21,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
 
-`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 dependency intent 指向 `ggconsort`-capable reporting-flow profile，当前 checked-in 可视 fallback 仍是 Python generated participant flow，不能宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
+`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
 ## 渲染器与质量口径
 
@@ -38,9 +38,10 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - journal palette: `nature_informed_clinical_publication_v1`
 - quality overall status: `not_publication_ready`
 - publication-ready claim authorized: `false`
-- blocked templates after current render: `0`
+- blocked evidence templates after current render: `0`
+- blocked gallery visual templates after current render: `1`
 - lower-bound review required: `28`
-- gallery lower-bound admission: `gallery_lower_bound_passed_requires_paper_audit`
+- gallery lower-bound admission: `gallery_lower_bound_blocked`
 - publication quality profile coverage: `31/31` (100%)
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
@@ -96,7 +97,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 | Template | Display name | Renderer | Render status |
 | --- | --- | --- | --- |
-| `cohort_flow_figure` | Cohort Flow Figure | python | rendered |
+| `cohort_flow_figure` | Cohort Flow Figure | r_ggplot2 | not_rendered |
 
 ## 非数据设计图 Gallery
 

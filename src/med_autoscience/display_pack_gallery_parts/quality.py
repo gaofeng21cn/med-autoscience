@@ -201,17 +201,36 @@ def build_quality_audit(
         )
         for record in visual_records
     ]
+    reporting_flow_audits = [
+        audit_template_quality(
+            record,
+            rendered[record.template_id],
+            baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
+        )
+        for record in reporting_flow_records
+    ]
+    design_audits = [
+        audit_template_quality(
+            record,
+            rendered[record.template_id],
+            baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
+        )
+        for record in design_records
+    ]
     blocker_counts = Counter(
         blocker
-        for audit in template_audits
+        for audit in [*template_audits, *reporting_flow_audits, *design_audits]
         for blocker in audit["blockers"]
     )
     warning_counts = Counter(
         warning
-        for audit in template_audits
+        for audit in [*template_audits, *reporting_flow_audits, *design_audits]
         for warning in audit["warnings"]
     )
     blocked_count = sum(1 for audit in template_audits if audit["blockers"])
+    gallery_visual_blocked_count = sum(
+        1 for audit in [*template_audits, *reporting_flow_audits, *design_audits] if audit["blockers"]
+    )
     ready_like_count = len(template_audits) - blocked_count
     profile_coverage = _publication_quality_profile_coverage(records)
     completion_by_category = _category_completion(
@@ -236,9 +255,10 @@ def build_quality_audit(
         "non_visual_template_count": len(non_visual_records),
         "lower_bound_review_required_count": ready_like_count,
         "blocked_template_count": blocked_count,
+        "gallery_visual_blocked_template_count": gallery_visual_blocked_count,
         "gallery_lower_bound_admission_status": (
             "gallery_lower_bound_passed_requires_paper_audit"
-            if blocked_count == 0 and profile_coverage["complete_profile_percent"] == 100
+            if gallery_visual_blocked_count == 0 and profile_coverage["complete_profile_percent"] == 100
             else "gallery_lower_bound_blocked"
         ),
         "publication_quality_profile_coverage": profile_coverage,
@@ -279,22 +299,8 @@ def build_quality_audit(
         "publication_polish_policy": publication_polish_policy(),
         "external_quality_references": list(EXTERNAL_QUALITY_REFERENCES),
         "templates": template_audits,
-        "reporting_flow_gallery_templates": [
-            audit_template_quality(
-                record,
-                rendered[record.template_id],
-                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
-            )
-            for record in reporting_flow_records
-        ],
-        "design_gallery_templates": [
-            audit_template_quality(
-                record,
-                rendered[record.template_id],
-                baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
-            )
-            for record in design_records
-        ],
+        "reporting_flow_gallery_templates": reporting_flow_audits,
+        "design_gallery_templates": design_audits,
         "non_visual_inventory": [
             {
                 "template_id": record.template_id,
@@ -530,7 +536,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - total Gallery visual template count: `{audit["total_gallery_visual_template_count"]}`
 - non-visual inventory count: `{audit["non_visual_template_count"]}`
 - lower-bound review required: `{audit["lower_bound_review_required_count"]}`
-- blocked templates: `{audit["blocked_template_count"]}`
+- blocked evidence templates: `{audit["blocked_template_count"]}`
+- blocked gallery visual templates: `{audit["gallery_visual_blocked_template_count"]}`
 - publication polish policy: `{polish["policy_id"]}`
 - figure workflow policy: `{workflow["policy_id"]}`
 - composition recipe policy: `{composition["policy"]["policy_id"]}`

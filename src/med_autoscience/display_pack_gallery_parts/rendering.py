@@ -41,6 +41,9 @@ def _render_r_template(record: TemplateRecord, seed_payloads: dict[str, dict[str
         "output_pdf_path": str(output_pdf),
         "layout_sidecar_path": str(output_layout),
     }
+    dependency_environment = _gallery_dependency_environment_for(record)
+    if dependency_environment:
+        request["dependency_environment"] = dependency_environment
     write_json(request_path, request)
     env = {
         **dict(os.environ),
@@ -75,6 +78,28 @@ def _render_r_template(record: TemplateRecord, seed_payloads: dict[str, dict[str
         image_size_px=_image_size(output_png),
         preview_image_size_px=preview_size,
     )
+
+
+def _gallery_dependency_environment_for(record: TemplateRecord) -> dict[str, str]:
+    if record.template_id != "cohort_flow_figure":
+        return {}
+    run_context_ref = str(os.environ.get("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_REF", "")).strip()
+    run_context_fingerprint = str(
+        os.environ.get("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_FINGERPRINT", "")
+    ).strip()
+    if not run_context_ref or not run_context_fingerprint:
+        return {
+            "status": "missing_prepared_receipt",
+            "run_context_ref": "",
+            "run_context_fingerprint": "",
+        }
+    return {
+        "status": "prepared",
+        "run_context_ref": run_context_ref,
+        "run_context_fingerprint": run_context_fingerprint,
+    }
+
+
 def _render_python_template(
     record: TemplateRecord,
     payload: dict[str, Any],

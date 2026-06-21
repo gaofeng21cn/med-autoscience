@@ -104,7 +104,7 @@ The current audited inventory is broader than the subset already proven against 
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports | Analysis Responsibility |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `fenggaolab.org.medical-display-core::cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg`, `pdf` | `validated_summary_required` / `validated_reporting_flow_payload` |
+| `fenggaolab.org.medical-display-core::cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `r_ggplot2` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg`, `pdf` | `validated_summary_required` / `validated_reporting_flow_payload` |
 | `fenggaolab.org.medical-display-core::submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` | `illustration_shell` / `not_statistical_evidence` |
 | `fenggaolab.org.medical-display-core::table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` | `table_shell` / `validated_table_values` |
 

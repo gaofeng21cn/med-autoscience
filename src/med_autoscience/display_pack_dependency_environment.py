@@ -114,16 +114,44 @@ def dependency_profile_entries_for_records(
     records: list[LoadedDisplayTemplate],
 ) -> list[dict[str, Any]]:
     profile = load_renderer_dependency_profile(repo_root=repo_root)
-    entries: list[dict[str, Any]] = []
+    scoped_entries: list[dict[str, Any]] = []
+    generic_entries: list[dict[str, Any]] = []
     seen_profile_ids: set[str] = set()
     for profile_entry in _list(profile.get("profiles")):
         entry = _mapping(profile_entry)
         profile_id = _text(entry.get("profile_id"))
         if not profile_id or profile_id in seen_profile_ids:
             continue
-        if any(_profile_entry_matches_record(entry, record) for record in records):
-            entries.append(entry)
+        matching_records = [
+            record
+            for record in records
+            if _profile_entry_matches_record(entry, record)
+        ]
+        if not matching_records:
+            continue
+        if _profile_template_ids(entry):
+            scoped_entries.append(entry)
             seen_profile_ids.add(profile_id)
+            continue
+        generic_entries.append(entry)
+        seen_profile_ids.add(profile_id)
+    scoped_template_ids = set().union(
+        *(_profile_template_ids(entry) for entry in scoped_entries),
+    ) if scoped_entries else set()
+    unscoped_records = [
+        record
+        for record in records
+        if not (_record_template_ids(record) & scoped_template_ids)
+    ]
+    entries = list(scoped_entries)
+    seen_entry_ids = {_text(entry.get("profile_id")) for entry in entries}
+    for entry in generic_entries:
+        profile_id = _text(entry.get("profile_id"))
+        if profile_id in seen_entry_ids:
+            continue
+        if any(_profile_entry_matches_record(entry, record) for record in unscoped_records):
+            entries.append(entry)
+            seen_entry_ids.add(profile_id)
     return entries
 
 

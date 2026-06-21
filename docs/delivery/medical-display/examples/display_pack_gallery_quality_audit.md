@@ -17,7 +17,8 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - total Gallery visual template count: `30`
 - non-visual inventory count: `3`
 - lower-bound review required: `28`
-- blocked templates: `0`
+- blocked evidence templates: `0`
+- blocked gallery visual templates: `1`
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
@@ -69,7 +70,7 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 | Template | Category | Renderer | Status | Warnings |
 | --- | --- | --- | --- | --- |
-| `cohort_flow_figure` | Publication Shells and Tables | python | `lower_bound_review_required` | `composition_density_risk`, `illustration_shell_style_review_required`, `python_renderer_style_alignment_required` |
+| `cohort_flow_figure` | Publication Shells and Tables | r_ggplot2 | `not_publication_ready` | `composition_density_risk`, `illustration_shell_style_review_required`, `vector_export_missing` |
 
 ## 非数据设计图起点
 
@@ -92,18 +93,21 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 
 | Blocker | Templates |
 | --- | ---: |
-| none | 0 |
+| `render_status_not_rendered` | 1 |
 
 ## 主要风险项
 
 | Warning | Templates |
 | --- | ---: |
 | `coefficient_path_semantic_fit_review` | 1 |
-| `composition_density_risk` | 1 |
+| `composition_density_risk` | 3 |
+| `illustration_shell_style_review_required` | 2 |
 | `km_risk_table_and_censor_mark_review` | 1 |
 | `legend_or_colorbar_overlap_risk` | 5 |
 | `multi_panel_readability_review` | 2 |
 | `oncoprint_annotation_track_review` | 1 |
+| `python_renderer_style_alignment_required` | 1 |
+| `vector_export_missing` | 1 |
 
 ## 模板审计
 

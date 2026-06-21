@@ -482,7 +482,13 @@ def _render_figure(
         "data_payload": data_payload,
         "render_context": render_context,
     }
-    if template_manifest.kind != "evidence_figure":
+    reporting_flow_shell_allowed = (
+        template_manifest.kind == "illustration_shell"
+        and template_manifest.template_id == "cohort_flow_figure"
+        and template_manifest.renderer_family == "r_ggplot2"
+        and template_manifest.execution_mode == "subprocess"
+    )
+    if template_manifest.kind != "evidence_figure" and not reporting_flow_shell_allowed:
         raise ValueError(
             "display pack publication manifest evidence path only materializes evidence_figure templates; "
             f"observed `{template_manifest.kind}` for `{full_template_id}`"

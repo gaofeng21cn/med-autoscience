@@ -141,7 +141,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Page-level composition recipes | {composition_surface.get("composition_recipe_count", 0)} |
 | Composition storyboard gallery pages | {composition_gallery.get("composition_recipe_count", 0)} |
 
-`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 dependency intent 指向 `ggconsort`-capable reporting-flow profile，当前 checked-in 可视 fallback 仍是 Python generated participant flow，不能宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
+`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
 ## 渲染器与质量口径
 
@@ -158,7 +158,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - journal palette: `{manifest.get("journal_palette_ref", "")}`
 - quality overall status: `{quality.get("overall_status", "")}`
 - publication-ready claim authorized: `{str(quality.get("publication_ready_claim_authorized", False)).lower()}`
-- blocked templates after current render: `{quality.get("blocked_template_count", 0)}`
+- blocked evidence templates after current render: `{quality.get("blocked_template_count", 0)}`
+- blocked gallery visual templates after current render: `{quality.get("gallery_visual_blocked_template_count", quality.get("blocked_template_count", 0))}`
 - lower-bound review required: `{quality.get("lower_bound_review_required_count", 0)}`
 - gallery lower-bound admission: `{quality.get("gallery_lower_bound_admission_status", "")}`
 - publication quality profile coverage: `{profile_coverage.get("complete_profile_template_count", 0)}/{profile_coverage.get("current_template_count", 0)}` ({profile_coverage.get("complete_profile_percent", 0)}%)

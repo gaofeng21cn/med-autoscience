@@ -137,14 +137,15 @@
         "package_install_during_render_allowed": false
       },
       "render_contract": {
-        "checked_in_renderer_family": "python",
-        "checked_in_execution_mode": "python_plugin",
-        "checked_in_renderer_is_generated_fallback": true,
-        "checked_in_renderer_uses_ggconsort": false,
+        "checked_in_renderer_family": "r_ggplot2",
+        "checked_in_execution_mode": "subprocess",
+        "checked_in_renderer_is_generated_fallback": false,
+        "checked_in_renderer_uses_ggconsort": true,
+        "checked_in_renderer_ref": "templates/cohort_flow_figure/render.R",
         "prepared_dependency_receipt_required_before_render": true,
         "missing_prepared_receipt_blocks_render": true
       },
-      "template_wrapper_ref": "templates/cohort_flow_figure/template.toml"
+      "template_wrapper_ref": "templates/cohort_flow_figure/render.R"
     },
     {
       "profile_id": "r_ggplot2_p1_comparison_subprocess_v1",

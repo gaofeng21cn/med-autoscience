@@ -107,6 +107,33 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
     assert len(r_templates) == 28
 
 
+def test_cohort_flow_checked_in_renderer_uses_ggconsort_without_installing_packages() -> None:
+    manifest_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "template.toml"
+    render_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "render.R"
+    payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+    source = render_path.read_text(encoding="utf-8")
+
+    assert payload["renderer_family"] == "r_ggplot2"
+    assert payload["execution_mode"] == "subprocess"
+    assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert render_path.is_file()
+    assert 'requireNamespace("ggconsort", quietly = TRUE)' in source
+    assert "install.packages" not in source
+    assert "pak::" not in source
+    assert "renv::install" not in source
+    assert "remotes::install" not in source
+    assert "BiocManager::install" not in source
+    for call in (
+        "ggconsort::cohort_start",
+        "ggconsort::cohort_label",
+        "ggconsort::consort_box_add",
+        "ggconsort::consort_arrow_add",
+        "ggconsort::geom_consort",
+        "ggconsort::theme_consort",
+    ):
+        assert call in source
+
+
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
     records = ledger["records"]
@@ -189,8 +216,13 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert reporting_flow_packages["ggconsort"]["required"] is True
     assert reporting_flow_profile["mature_dependency_intent"]["preferred_package"] == "ggconsort"
     assert reporting_flow_profile["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False
-    assert reporting_flow_profile["render_contract"]["checked_in_renderer_family"] == "python"
-    assert reporting_flow_profile["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert reporting_flow_profile["render_contract"]["checked_in_renderer_family"] == "r_ggplot2"
+    assert reporting_flow_profile["render_contract"]["checked_in_execution_mode"] == "subprocess"
+    assert reporting_flow_profile["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
+    assert reporting_flow_profile["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
+    assert reporting_flow_profile["render_contract"]["checked_in_renderer_ref"] == (
+        "templates/cohort_flow_figure/render.R"
+    )
     assert reporting_flow_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
     assert candidate_profile["renderer_family"] == "r_ggplot2"
     assert candidate_profile["execution_mode"] == "subprocess"

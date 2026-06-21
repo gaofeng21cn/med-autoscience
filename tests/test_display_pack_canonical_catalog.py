@@ -22,6 +22,7 @@ from med_autoscience.display_pack_gallery_catalog import (
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.payloads import _load_seed_r_payloads
 from med_autoscience.display_pack_gallery_parts.pdf import _docs_manifest_payload, _repo_relative_path
+from med_autoscience.display_pack_gallery_parts.rendering import _gallery_dependency_environment_for
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.display_pack_gallery_parts.html import _render_html
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
@@ -154,6 +155,30 @@ def test_default_gallery_r_templates_have_runtime_seed_payloads_without_generic_
         if seed_payloads[record.template_id].get("caption")
         == "Synthetic gallery preview payload for local visual inspection only."
     } == set()
+
+
+def test_gallery_dependency_environment_requires_explicit_prepared_run_context(
+    monkeypatch,
+) -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    cohort_flow = next(record for record in records if record.template_id == "cohort_flow_figure")
+    roc = next(record for record in records if record.template_id == "roc_curve_binary")
+
+    assert _gallery_dependency_environment_for(roc) == {}
+    assert _gallery_dependency_environment_for(cohort_flow) == {
+        "status": "missing_prepared_receipt",
+        "run_context_ref": "",
+        "run_context_fingerprint": "",
+    }
+
+    monkeypatch.setenv("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_REF", "paper/build/dependency_run_context.json")
+    monkeypatch.setenv("MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_FINGERPRINT", "sha256:gallery")
+
+    assert _gallery_dependency_environment_for(cohort_flow) == {
+        "status": "prepared",
+        "run_context_ref": "paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:gallery",
+    }
 
 
 def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None:
@@ -363,7 +388,12 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert cohort_flow_dependency["profile_id"] == "r_ggplot2_ggconsort_reporting_flow_v1"
     assert cohort_flow_dependency["mature_dependency_intent"]["preferred_package"] == "ggconsort"
     assert cohort_flow_dependency["mature_dependency_intent"]["fallback_generated_renderer_claims_ggconsort"] is False
-    assert cohort_flow_dependency["render_contract"]["checked_in_renderer_uses_ggconsort"] is False
+    assert cohort_flow_dependency["render_contract"]["checked_in_renderer_family"] == "r_ggplot2"
+    assert cohort_flow_dependency["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
+    assert cohort_flow_dependency["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
+    assert cohort_flow_dependency["render_contract"]["checked_in_renderer_ref"] == (
+        "templates/cohort_flow_figure/render.R"
+    )
     assert set(design_inventory) == {"submission_graphical_abstract"}
     assert all(item["visual_gallery_visible"] is True for item in reporting_flow_inventory.values())
     assert all(item["visual_gallery_visible"] is True for item in design_inventory.values())
@@ -405,6 +435,8 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["overall_status"] == "not_publication_ready"
     assert manifest["quality_audit"]["publication_ready_claim_authorized"] is False
     assert manifest["quality_audit"]["blocked_template_count"] == 28
+    assert manifest["quality_audit"]["gallery_visual_blocked_template_count"] == 30
+    assert manifest["quality_audit"]["gallery_lower_bound_admission_status"] == "gallery_lower_bound_blocked"
     assert manifest["quality_audit"]["reporting_flow_visual_template_count"] == 1
     assert manifest["quality_audit"]["design_visual_template_count"] == 1
     assert manifest["quality_audit"]["total_gallery_visual_template_count"] == 30
@@ -451,12 +483,14 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "Current Python evidence templates | 0" in status_markdown
     assert "publication-ready claim authorized: `false`" in status_markdown
     assert "publication quality profile coverage: `31/31` (100%)" in status_markdown
+    assert "blocked evidence templates after current render: `28`" in status_markdown
+    assert "blocked gallery visual templates after current render: `30`" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in status_markdown
     assert "Page-level composition recipes | 6" in status_markdown
     assert "Composition storyboard gallery pages | 6" in status_markdown
     assert "Python illustration shells visible as design cards: `true`" in status_markdown
-    assert "| `cohort_flow_figure` | Cohort Flow Figure | python | not_rendered |" in status_markdown
+    assert "| `cohort_flow_figure` | Cohort Flow Figure | r_ggplot2 | not_rendered |" in status_markdown
     assert "| `submission_graphical_abstract` | Submission Graphical Abstract | python | not_rendered |" in status_markdown
     assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in status_markdown
     assert "| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary | 3 |" in status_markdown
@@ -472,7 +506,9 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "reporting flow visual template count: `1`" in quality_markdown
     assert "design visual template count: `1`" in quality_markdown
     assert "total Gallery visual template count: `30`" in quality_markdown
-    assert "| `cohort_flow_figure` | Publication Shells and Tables | python | `not_publication_ready` |" in quality_markdown
+    assert "blocked evidence templates: `28`" in quality_markdown
+    assert "blocked gallery visual templates: `30`" in quality_markdown
+    assert "| `cohort_flow_figure` | Publication Shells and Tables | r_ggplot2 | `not_publication_ready` |" in quality_markdown
     assert "| `single_cell_atlas_storyboard` | Single-cell or Spatial Atlas Storyboard | cell_state_geometry_or_spatial_context | 3 |" in quality_markdown
     assert "- `guide_legend_colorbar_overlap_checked_after_render`" in quality_markdown
 

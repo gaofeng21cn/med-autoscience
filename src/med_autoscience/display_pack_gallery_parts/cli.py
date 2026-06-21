@@ -56,7 +56,16 @@ def _render_records(records: list) -> tuple[dict[str, RenderedAsset], dict[str, 
             )
             continue
         if record.renderer_family == "r_ggplot2":
-            rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
+            try:
+                rendered[record.template_id] = _render_r_template(record, seed_r_payloads)
+            except Exception as exc:
+                if record.template_id == "cohort_flow_figure":
+                    rendered[record.template_id] = RenderedAsset(
+                        status="not_rendered",
+                        reason=f"{type(exc).__name__}: {exc}",
+                    )
+                    continue
+                raise
         elif record.kind == "illustration_shell" and record.renderer_family == "python":
             try:
                 payload = _python_display_payload(record, fixture_payloads)

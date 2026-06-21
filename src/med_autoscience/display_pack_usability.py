@@ -359,6 +359,12 @@ def _seed_scaffold_inputs(
         paper_root=normalized_paper_root,
         template_id=template_id,
     )
+    runtime = resolve_display_template_runtime(
+        repo_root=normalized_repo_root,
+        paper_root=normalized_paper_root,
+        template_id=template_id,
+    )
+    figure_kind = runtime.template_manifest.kind
     seeded_files: list[str] = []
     data_target = normalized_paper_root / "data" / "frozen" / f"{figure_id}.payload.json"
     data_target.parent.mkdir(parents=True, exist_ok=True)
@@ -376,7 +382,7 @@ def _seed_scaffold_inputs(
                     "claim_ref": claim_ref,
                     "data_ref": data_ref,
                     "template_id": full_template_id,
-                    "figure_kind": "evidence_figure",
+                    "figure_kind": figure_kind,
                     "statistical_value_refs": [f"scaffold/statistics/{figure_id}"],
                 }
             ],
@@ -392,7 +398,7 @@ def _seed_scaffold_inputs(
                     "figure_id": figure_id,
                     "intent_ref": f"paper/figure_intent.json#/figures/{figure_id}",
                     "template_id": full_template_id,
-                    "figure_kind": "evidence_figure",
+                    "figure_kind": figure_kind,
                     "medical_semantics": {
                         "cohort_ref": cohort_ref,
                         "endpoint_ref": endpoint_ref,

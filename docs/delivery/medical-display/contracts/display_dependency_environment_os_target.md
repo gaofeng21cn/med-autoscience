@@ -45,7 +45,7 @@ renderer_dependency_profile.json
 - `dependency_environment_receipt.json` 证明环境已准备、包和 binary 检查通过、run-context 可用。
 - render 前如果缺 prepared receipt，MAS 应 fail closed 到 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required`，而不是让 R/Python 脚本报错后再猜。
 - renderer 可检查包是否存在，但不得 `install.packages()`、`pip install`、`conda install`、`brew install` 或静默升级。
-- `cohort_flow_figure` 的 reporting-flow dependency intent 优先指向 `ggconsort`；当前 checked-in renderer 仍是 Python generated participant-flow fallback，只能作为结构化人数流 fallback 输出，不能宣称已使用 `ggconsort`。
+- `cohort_flow_figure` 的 reporting-flow dependency intent 指向 `ggconsort`；当前 checked-in renderer 是 R/ggplot2 + `ggconsort` subprocess renderer。缺 OPL prepared dependency receipt / run-context 或缺 `ggconsort` 时，MAS fail closed 到 dependency route，不回退到 Python generated participant-flow，也不宣称已使用 `ggconsort`。
 
 ## MAS / OPL 分工
 
@@ -86,7 +86,7 @@ renderer_dependency_profile.json
 
 模板作者只维护这个需求声明。OPL 可根据 policy 选择 `renv`、`pak sysreqs`、conda/pixi、container digest 或混合 profile；MAS 不应该在每个 `render.R` 里重复判断依赖环境。
 
-`cohort_flow_figure` 另有 `r_ggplot2_ggconsort_reporting_flow_v1` profile：它声明 `ggconsort`、`ggplot2`、`jsonlite` 和 `grid` 等 R 包能力，要求 prepared receipt / run-context 后才允许进入 MAS render。若 OPL 当前环境无法准备 `ggconsort`，MAS 应 fail closed 到 dependency route；不得在 renderer 内 `install.packages()`，也不得把 Python generated participant-flow fallback 写成 `ggconsort` render evidence。
+`cohort_flow_figure` 另有 `r_ggplot2_ggconsort_reporting_flow_v1` profile：它声明 `ggconsort`、`ggplot2`、`jsonlite` 和 `grid` 等 R 包能力，要求 prepared receipt / run-context 后才允许进入 MAS render。若 OPL 当前环境无法准备 `ggconsort`，MAS 应 fail closed 到 dependency route；不得在 renderer 内 `install.packages()`，也不得把任何 generated participant-flow 输出写成 `ggconsort` render evidence。
 
 ## 回执和锁文件
 
