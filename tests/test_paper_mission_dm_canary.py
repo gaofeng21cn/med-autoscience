@@ -7,6 +7,7 @@ from med_autoscience.paper_mission import (
     DM002_STUDY_ID,
     DM003_STUDY_ID,
     build_dm_paper_mission_canary_import_pack,
+    consume_paper_mission_canary_candidate,
     paper_mission_by_study,
 )
 from med_autoscience.paper_mission_run import PaperMissionRun
@@ -109,3 +110,53 @@ def test_dhd_diagnostics_are_imported_as_platform_diagnostics_not_paper_progress
         assert readback["platform_diagnostics"]["provider_admission_current_control"][
             "transition_request_pending_count"
         ] == 0
+
+
+def test_dm002_canary_candidate_is_consumable_without_authority_writes() -> None:
+    mission = paper_mission_by_study(_import_pack(), DM002_STUDY_ID)
+
+    readback = consume_paper_mission_canary_candidate(mission)
+    candidate = readback["candidate_manifest"]
+    authority = readback["authority_consume_readback"]
+
+    assert readback["surface_kind"] == "paper_mission_canary_candidate_consume_readback"
+    assert candidate["study_id"] == DM002_STUDY_ID
+    assert candidate["requested_outcome"] == "accepted_candidate"
+    assert candidate["candidate_artifact_refs"] == [
+        "mission://002-dm-china-us-mortality-attribution/canary/"
+        "dm002_gate_clearing_claim_evidence_repair"
+    ]
+    assert candidate["quality_auditor_requirement"]["independent_auditor_required"] is True
+    assert candidate["artifact_authority_boundary"]["candidate_is_authority"] is False
+    assert authority["status"] == "accepted_candidate"
+    assert authority["consume_result"]["status"] == "accepted"
+    assert authority["accepted_candidate"]["authority_materialized"] is False
+    assert authority["write_plan"]["written_files"] == []
+    assert authority["authority_boundary"]["can_write_publication_eval"] is False
+    assert authority["authority_boundary"]["can_write_controller_decisions"] is False
+    assert authority["authority_boundary"]["can_write_owner_receipt"] is False
+    assert authority["authority_boundary"]["can_write_current_package"] is False
+
+
+def test_dm003_canary_candidate_consumes_as_typed_blocker_request_without_writing() -> None:
+    mission = paper_mission_by_study(_import_pack(), DM003_STUDY_ID)
+
+    readback = consume_paper_mission_canary_candidate(mission)
+    candidate = readback["candidate_manifest"]
+    authority = readback["authority_consume_readback"]
+
+    assert candidate["study_id"] == DM003_STUDY_ID
+    assert candidate["requested_outcome"] == "typed_blocker_required"
+    assert candidate["typed_blocker_request"]["blocker_id"] == (
+        "opl_execution_authorization_required"
+    )
+    assert candidate["typed_blocker_request"]["blocker_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat_9afe683ca699e4186f556fec.closeout.json"
+    )
+    assert authority["status"] == "typed_blocker_required"
+    assert authority["consume_result"]["status"] == "typed_blocker"
+    assert authority["typed_blocker_required"]["materialized"] is False
+    assert authority["write_plan"]["written_files"] == []
+    assert authority["write_plan"]["can_write_typed_blockers"] is False
+    assert authority["authority_boundary"]["can_write_typed_blocker"] is False

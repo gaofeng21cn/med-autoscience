@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
@@ -108,6 +110,11 @@ def build_paper_mission_readback(
         paper_mission_command=paper_mission_command,
     )
     candidate_ref = str(candidate) if candidate is not None else None
+    authority_consume_readback = (
+        consume_paper_mission_candidate(candidate)
+        if paper_mission_command == "consume-candidate" and candidate is not None
+        else None
+    )
     mission_candidate = _paper_mission_run_candidate(
         mission_id=selected_mission_id,
         study_id=study_id,
@@ -116,6 +123,7 @@ def build_paper_mission_readback(
         profile_ref=profile_ref,
         study_root=Path(profile.studies_root) / study_id,
         candidate_ref=candidate_ref,
+        authority_consume_readback=authority_consume_readback,
     )
     return {
         "surface_kind": "paper_mission_no_write_readback",
@@ -140,6 +148,11 @@ def build_paper_mission_readback(
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         "paper_mission_run_candidate": mission_candidate,
+        **(
+            {"authority_consume_readback": authority_consume_readback}
+            if authority_consume_readback is not None
+            else {}
+        ),
         "contract_validation": _validate_with_contract_if_available(mission_candidate),
         "dispatch_plan": {
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
@@ -289,6 +302,7 @@ def _paper_mission_run_candidate(
     profile_ref: str | Path,
     study_root: Path,
     candidate_ref: str | None,
+    authority_consume_readback: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_refs = [
         {"ref_id": "profile", "ref_kind": "profile_ref", "uri": str(profile_ref)},
@@ -298,18 +312,31 @@ def _paper_mission_run_candidate(
         source_refs.append(
             {"ref_id": "candidate", "ref_kind": "candidate_ref", "uri": candidate_ref}
         )
+    consume_result = (
+        dict(authority_consume_readback.get("consume_result") or {})
+        if authority_consume_readback is not None
+        else {"status": "not_consumed"}
+    )
+    mission_state = _mission_state_for_consume_result(consume_result)
+    artifact_delta_status = (
+        "candidate_consumed"
+        if consume_result.get("status") == "accepted"
+        else "planned"
+        if consume_result.get("status") == "not_consumed"
+        else "candidate_consume_result_recorded"
+    )
     return {
         "schema_version": PAPER_MISSION_CONTRACT_VERSION,
         "mission_id": mission_id,
         "study_id": study_id,
         "objective": objective,
-        "mission_state": "planned",
+        "mission_state": mission_state,
         "artifact_delta_ledger": [
             {
                 "delta_id": f"{paper_mission_command}_no_write_plan",
                 "artifact_ref": str(study_root / "paper"),
                 "delta_kind": "no_write_plan",
-                "status": "planned",
+                "status": artifact_delta_status,
             }
         ],
         "source_refs": source_refs,
@@ -344,7 +371,7 @@ def _paper_mission_run_candidate(
             ],
             "forbidden_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         },
-        "consume_result": {"status": "not_consumed"},
+        "consume_result": consume_result,
         "claim_permissions": {
             "can_claim_artifact_delta": False,
             "can_claim_owner_handoff": True,
@@ -354,6 +381,21 @@ def _paper_mission_run_candidate(
             "claims": ["paper_mission_no_write_plan"],
         },
     }
+
+
+def _mission_state_for_consume_result(consume_result: dict[str, Any]) -> str:
+    status = consume_result.get("status")
+    if status == "accepted":
+        return "consumed"
+    if status == "route_back":
+        return "route_back"
+    if status == "typed_blocker":
+        return "stable_blocker"
+    if status == "human_gate":
+        return "waiting_human_decision"
+    if status == "rejected":
+        return "route_back"
+    return "planned"
 
 
 def _mutation_policy(*, paper_mission_command: str) -> dict[str, Any]:

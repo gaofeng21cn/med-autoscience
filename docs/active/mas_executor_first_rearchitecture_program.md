@@ -52,6 +52,48 @@ scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnos
 | L3 owner repair path | 设计 owner 是 MAS + OPL 的边界：OPL 应持有 session / attempt / queue / outbox / StageRun；MAS 应只持有 medical paper mission policy、artifact authority、quality verdict、owner receipt / typed blocker 和 human gate。修复路径是新建 executor-first mission loop，再迁移旧 study。 |
 | L4 prevention | 把“paper-facing artifact delta or accepted owner blocker”作为 primary progress metric，把 currentness / read-model / DHD / storage / admission 修复列入 sidecar platform repair，不再让平台修复默认中断论文主线。 |
 
+2026-06-23 implementation/readback evidence 使用当前 `main` 工作区代码和真实 DM-CVD profile，不执行 apply、hydrate、tick、redrive、provider start，也不写 Yang / publication / controller / owner / runtime authority surface：
+
+```bash
+scripts/run-python-clean.sh -m med_autoscience.cli study progress \
+  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml \
+  --study-id 002-dm-china-us-mortality-attribution \
+  --format json
+
+scripts/run-python-clean.sh -m med_autoscience.cli study progress \
+  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml \
+  --study-id 003-dpcc-primary-care-phenotype-treatment-gap \
+  --format json
+
+scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic \
+  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml \
+  --studies 002-dm-china-us-mortality-attribution 003-dpcc-primary-care-phenotype-treatment-gap \
+  --request-opl-stage-attempts \
+  --dry-run
+
+scripts/run-python-clean.sh -m med_autoscience.cli paper-mission inspect \
+  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml \
+  --study-id 002-dm-china-us-mortality-attribution \
+  --format json
+
+scripts/run-python-clean.sh -m med_autoscience.cli paper-mission consume-candidate \
+  --candidate /tmp/mas_paper_mission_dm002_candidate_20260623.json \
+  --dry-run \
+  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml \
+  --study-id 002-dm-china-us-mortality-attribution \
+  --format json
+```
+
+`003-dpcc-primary-care-phenotype-treatment-gap` 使用同一 profile 和 `/tmp/mas_paper_mission_dm003_candidate_20260623.json` 跑 `paper-mission inspect` / `consume-candidate`。读回产物保存在 `/tmp/mas_paper_mission_dm002_cli_inspect_20260623.json`、`/tmp/mas_paper_mission_dm003_cli_inspect_20260623.json`、`/tmp/mas_paper_mission_dm002_cli_consume_20260623.json`、`/tmp/mas_paper_mission_dm003_cli_consume_20260623.json`。
+
+| Surface | Fresh finding | Current claim boundary |
+| --- | --- | --- |
+| New paper mission default entry | CLI `paper-mission inspect/start/resume/consume-candidate` 已接入 `PaperMissionRun` validator；product entry `medical_paper_product_entry.default_action_intent` 指向 `paper_mission/start_or_resume`；domain-handler export 默认追加 `paper_mission/start_or_resume` task。 | 可以声明 repo 默认 product/domain-handler 入口已转向 no-write `paper-mission` readback；不能声明 live provider run、paper artifact completion、owner receipt、publication-ready 或 current package。 |
+| DM002 canary consume | `paper-mission inspect` contract validation 为 `validated`、`mission_state=planned`、`consume_result.status=not_consumed`；`consume-candidate` contract validation 为 `validated`、`mission_state=consumed`、`consume_result.status=accepted`、`authority_materialized=false`、`authority_consume_readback.status=accepted_candidate`、`write_plan.written_files=[]`、`mutation_policy.writes_yang=false`、`writes_authority=false`。 | 这证明 DM002 canary candidate 可被 MAS authority consume path 接收为 no-write candidate readback；不能写成真实 owner receipt、paper body patch、publication eval、controller decision、current package 或投稿完成。 |
+| DM003 canary consume | `paper-mission inspect` contract validation 为 `validated`、`mission_state=planned`、`consume_result.status=not_consumed`；`consume-candidate` contract validation 为 `validated`、`mission_state=stable_blocker`、`consume_result.status=typed_blocker`、`authority_materialized=false`、`authority_consume_readback.status=typed_blocker_required`、`write_plan.written_files=[]`、`mutation_policy.writes_yang=false`、`writes_authority=false`。 | 这证明 DM003 canary 能把当前 typed blocker 转成 authority consume readback；不能写成 typed blocker 文件已物化、human gate 已写、owner receipt 已写或 runtime 已恢复。 |
+| Old default dispatch demotion | `domain_handler_export._mark_legacy_default_executor_tasks` 会把 `domain_owner/default-executor-dispatch` 标为 `migration_diagnostic_only` / `default_paper_mission_entry=false`；tombstone `dhd_owner_route_dispatch_paper_recovery_default_paper_mainline` 禁止旧链路声明默认 mainline、paper progress、runtime-ready、DM002/DM003 complete。 | 可以声明旧 dispatch 不再是 paper mission 默认入口；不能声明旧 DHD / dispatch / recovery surface 已全部物理删除或满足 no-active-caller。 |
+| Remaining legacy references | 有界 caller/search evidence 仍命中 DHD、PaperRecovery、`domain_owner/default-executor-dispatch` carrier / ABI / fixture / migration references。 | 物理 no-active-caller proof 仍未满足；旧面只能继续作为 diagnostic、migration、authority readback 或 provenance carrier 分类处理。 |
+
 ## 设计理念调整
 
 1. 从 `status-first` 改为 `artifact-first`。每轮必须产生 canonical manuscript / figure / table / evidence ledger / reviewer response / owner decision packet / stable blocker 中至少一种。read-model clean、DHD clean、queue empty、receipt accounting、projection freshness 只算平台观测。
@@ -150,7 +192,9 @@ medautosci paper-mission consume-candidate --profile <profile> --study-id <study
 
 验收：新 study 和 DM002/DM003 后续回合都能从 `paper-mission inspect` 读到唯一 next objective、latest paper delta、next owner 和 forbidden claims。
 
-2026-06-23 progress/workbench slice：`study_progress` projection 和 Progress Portal / study workbench 已新增 artifact-first mission summary read model。顶层暴露 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision`、`platform_diagnostics`；内部 `artifact_first_mission_summary.paper_mission_run` 对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1` 和 `med_autoscience.paper_mission_run.PaperMissionRun` canonical shape。DHD、currentness、storage、owner-route、dispatch 和 PaperRecovery 只折叠为 diagnostics / migration / provenance，不再作为 progress/workbench 默认论文主线。该 slice 不声明 `paper-mission inspect` CLI 已接入当前 branch，也不声明 DM002/DM003 已产生 live mission artifact delta、owner receipt、route-back、human gate、stable typed blocker 或 consume result。
+2026-06-23 progress/workbench slice：`study_progress` projection 和 Progress Portal / study workbench 已新增 artifact-first mission summary read model。顶层暴露 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision`、`platform_diagnostics`；内部 `artifact_first_mission_summary.paper_mission_run` 对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1` 和 `med_autoscience.paper_mission_run.PaperMissionRun` canonical shape。DHD、currentness、storage、owner-route、dispatch 和 PaperRecovery 只折叠为 diagnostics / migration / provenance，不再作为 progress/workbench 默认论文主线。
+
+2026-06-23 CLI/product-entry/domain-handler slice：`paper-mission inspect/start/resume/consume-candidate` 已作为 no-write readback 入口接入 CLI，product entry 的 `medical_paper_product_entry.default_action_intent` 指向 `paper_mission/start_or_resume`，domain-handler export 默认追加 `paper_mission/start_or_resume` task，并把旧 `domain_owner/default-executor-dispatch` task 标成 `migration_diagnostic_only`。`consume-candidate` 现在调用 MAS authority consume readback，把 accepted / rejected / route-back / typed blocker / human gate 映射回 `PaperMissionRun.consume_result` 与 `mission_state`。该 slice 只证明默认入口与 dry-run/consume readback 边界已经转向 PaperMissionRun；它不声明 live provider run、paper body patch、current package 或 publication-ready。
 
 ### Phase 4: Retire old way
 
@@ -164,24 +208,26 @@ medautosci paper-mission consume-candidate --profile <profile> --study-id <study
 - DM002/DM003 canary 至少各产生一个被 MAS consume path 处理的 mission artifact delta、owner receipt、route-back、human gate 或 stable typed blocker。
 - active docs、product docs、skill docs 和 progress portal 不再把旧 DHD/dispatch/recovery 链写成主执行方式。
 
-2026-06-23 tombstone slice：`contracts/runtime/legacy-active-path-tombstones.json` 新增 `dhd_owner_route_dispatch_paper_recovery_default_paper_mainline`，把旧 DHD / owner-route / dispatch / PaperRecovery 默认主路径降为 `diagnostics_migration_provenance_only`，并禁止 product/default domain-handler mainline、paper progress、publication-ready、runtime-ready、provider-running、DM002 complete 和 DM003 complete claim。该 tombstone 关闭默认叙事边界，不等于旧物理 caller 全部删除，也不等于 live mission consume / DM canary 完成。
+2026-06-23 tombstone slice：`contracts/runtime/legacy-active-path-tombstones.json` 新增 `dhd_owner_route_dispatch_paper_recovery_default_paper_mainline`，把旧 DHD / owner-route / dispatch / PaperRecovery 默认主路径降为 `diagnostics_migration_provenance_only`，并禁止 product/default domain-handler mainline、paper progress、publication-ready、runtime-ready、provider-running、DM002 complete 和 DM003 complete claim。该 tombstone 关闭默认叙事边界，不等于旧物理 caller 全部删除。
+
+2026-06-23 caller proof status：有界 caller/search evidence 已证明旧路径仍有 repo 内 active references。`domain-health-diagnostic` 仍作为 runtime diagnostic / authority consumer 暴露；`paper_recovery_state` / PaperRecovery 仍被 `current_work_unit`、`study_progress`、DHD report 和 provider-admission projection 消费；`domain_owner/default-executor-dispatch` 仍作为 OPL StageRun ABI、migration diagnostic、legacy fixture 和 transition carrier 出现在源码/测试/contract。当前能声明的是“默认 product/domain-handler mainline 已转向 PaperMissionRun，旧链路默认主线 claim 被 tombstone 禁止”；不能声明“old DHD / dispatch / recovery surface 已满足 no-active-caller physical retirement”。
 
 ## Completion Audit
 
-| Item | Completion evidence |
-| --- | --- |
-| New entry exists | CLI/API/domain-handler contract + dry-run inspect + schema validation。 |
-| Paper mission produces work | DM002/DM003 mission candidate refs、artifact delta ledger、source refs、post-write no-forbidden-write readback。 |
-| MAS authority preserved | consume path 能 accept / reject / route-back / typed blocker / human gate，且不允许 candidate 自封 publication-ready。 |
-| OPL owns runtime | mission run 的 attempt/session/readback 从 OPL surface 读取；MAS 不写 OPL queue/outbox/stagerun。 |
-| Platform repair demoted | progress top-level 不再把 DHD/currentness/storage/dispatch 修复计为论文进展。 |
-| Old path retired | no-active-caller proof、replacement parity、tombstone/provenance、focused/default verification。 |
+| Item | Current status | Fresh evidence | Gap / forbidden interpretation |
+| --- | --- | --- | --- |
+| New entry exists | `done_for_no_write_default_entry` | CLI `paper-mission` parsers/readback、product entry `default_action_intent=paper_mission/start_or_resume`、domain-handler default task、contract validation `validated`。 | 这不是 live mission execution、paper artifact completion、owner receipt 或 provider running proof。 |
+| Paper mission produces work | `partial_canary_candidate_readback` | `PaperMissionRun` contract / validator、artifact-first mission summary、DM002/DM003 canary candidate manifests、DM002 `consume_result.status=accepted`、DM003 `consume_result.status=typed_blocker`、两者 `written_files=[]`。 | 还缺真实 manuscript / figure / table / evidence ledger / reviewer response / owner decision packet 物化到 study workspace 并被 authority consume；当前只是 no-write canary candidate/readback。 |
+| MAS authority preserved | `done_for_no_write_consume_boundary` | `consume_paper_mission_candidate` 与 CLI `consume-candidate` 均保留 accepted / rejected / route-back / typed blocker / human gate outcome；DM002/DM003 fresh consume readback 均 `authority_materialized=false` 且不写 authority。 | 不能把 readback 写成真实 `publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package 或 paper body mutation。 |
+| OPL owns runtime | `not_satisfied_live` | 设计与 forbidden-write guard 指向 OPL runtime owner；MAS no-write readback 禁止写 runtime queue/provider attempts。 | 还缺 OPL-hosted `PaperMissionRun` attempt/session/readback；不能从 dry-run inspect、queue empty、read-model clean 或 DHD dry-run 推导 runtime ready。 |
+| Platform repair demoted | `done_for_projection_boundary` | `artifact_first_mission_summary.platform_diagnostics.counts_as_paper_progress=false`，product/docs/status 把 DHD/currentness/storage/dispatch/PaperRecovery 折叠为 diagnostics / migration / provenance。 | 这只关闭默认读面和完成口径，不说明平台修复已经全部完成。 |
+| Old path retired | `partial_default_retired_physical_open` | Tombstone contract 禁止默认 mainline claim；domain-handler export 标记 legacy dispatch 为 `migration_diagnostic_only`；focused tests 锁住 replacement/forbidden claims。 | 有界 caller evidence 仍命中 DHD、PaperRecovery、default-executor-dispatch carrier / ABI / fixture / migration references；no-active-caller physical proof 未满足。 |
 
-`100%` 只能在上述 evidence 全部新鲜可读时声明。文档、plan、schema、focused tests、DHD dry-run、queue empty、read-model clean 或 old surface deletion 均不能单独支撑目标态完成。
+`100%` 只能在上述 evidence 全部新鲜可读时声明。文档、plan、schema、focused tests、DHD dry-run、queue empty、read-model clean、contract/tombstone landed、CLI no-write readback 或 old surface deletion 均不能单独支撑目标态完成；DM002/DM003 只有在 authority consume readback 或等价 owner-answer readback 指向真实 artifact delta、owner receipt、route-back、human gate、stable typed blocker 或 rejection 时才可计入目标态 paper progress。
 
 ## Immediate Next Work
 
-1. 将 contract lane 的 `contracts/paper_mission_run_contract.json` 与 `src/med_autoscience/paper_mission_run.py` 合入当前执行分支后，用 validator 对 `artifact_first_mission_summary.paper_mission_run` 做同源校验。
-2. 实现或接入 `paper-mission inspect/start/resume/consume-candidate` CLI / product-entry lane；progress/docs lane 当前只引用 canonical contract shape，不提供 CLI claim。
-3. 以 DM002 / DM003 建 canary mission，不先改旧 authority surface，并产出可消费 paper-facing artifact delta 或 owner decision packet。
-4. 通过 mission consume path 处理第一批 candidate 后，再推进旧 DHD / dispatch / recovery 物理 caller 退役和 no-active-caller proof。
+1. 将旧 `domain_owner/default-executor-dispatch`、DHD 和 PaperRecovery references 分成三类：必须保留的 diagnostic / authority readback、OPL ABI / provenance carrier、可删除默认 caller；只对第三类做物理退役。
+2. 对可删除 caller 做 focused no-active-caller proof：product entry、domain-handler default export、MCP/skill/default action catalog、OPL active caller 均不得再把旧链路作为 paper mission mainline。
+3. 在 OPL hosted run 接入前，继续把 `paper-mission` CLI / domain-handler 输出标为 no-write readback；不得声明 runtime-ready、provider-running、publication-ready、DM002 complete 或 DM003 complete。
+4. 下一轮真正论文推进必须从 canary readback 进入 study workspace artifact delta 或 owner decision packet 物化，并由 MAS authority consume/route-back/human-gate/typed-blocker surface 处理。

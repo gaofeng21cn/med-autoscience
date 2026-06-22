@@ -30,6 +30,47 @@ def _assert_forbidden_authority_untouched(tmp_path: Path, *, study_id: str = "00
         assert not (study_root / relative_path).exists()
 
 
+def _write_candidate_manifest(
+    tmp_path: Path,
+    *,
+    study_id: str = "001-paper",
+    requested_outcome: str = "accepted_candidate",
+) -> Path:
+    candidate_path = tmp_path / "candidate.json"
+    candidate = {
+        "candidate_id": "pmc-001",
+        "mission_id": f"paper-mission::{study_id}::gate-clearing::manual",
+        "study_id": study_id,
+        "requested_outcome": requested_outcome,
+        "candidate_manifest_ref": "paper-mission/pmc-001.json",
+        "candidate_artifact_refs": ["paper-mission/patch-plan.md"],
+        "source_readiness_refs": ["source-readiness:001"],
+        "quality_auditor_requirement": {
+            "independent_auditor_required": True,
+            "owner": "MedAutoScience",
+        },
+        "artifact_authority_boundary": {
+            "artifact_authority_owner": "MedAutoScience",
+            "candidate_is_authority": False,
+            "can_update_current_package": False,
+            "can_write_paper_body": False,
+        },
+        "next_owner": "mas_authority_kernel",
+        "resume_condition": "MAS consumes or routes back the mission candidate",
+    }
+    if requested_outcome == "typed_blocker_required":
+        candidate["typed_blocker_request"] = {
+            "blocker_id": "source_readiness_missing",
+            "blocker_ref": "typed-blocker-request:pmc-001",
+        }
+    if requested_outcome == "human_gate_required":
+        candidate["human_gate_request"] = {
+            "decision_packet_ref": "human-gate-request:pmc-001",
+        }
+    candidate_path.write_text(json.dumps(candidate), encoding="utf-8")
+    return candidate_path
+
+
 def test_paper_mission_help_exposes_default_commands(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
@@ -191,4 +232,102 @@ def test_domain_handler_dispatch_accepts_paper_mission_dry_run_without_authority
     assert payload["dispatch"]["action_intent"] == "paper_mission/start_or_resume"
     assert payload["dispatch"]["execution_policy"] == "paper_mission_no_write_dry_run"
     assert payload["dispatch"]["result"]["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_uses_authority_consume_readback(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    candidate_path = _write_candidate_manifest(tmp_path)
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["paper_mission_command"] == "consume-candidate"
+    assert payload["action_intent"] == "paper_mission/consume_candidate"
+    assert payload["authority_consume_readback"]["status"] == "accepted_candidate"
+    assert payload["authority_consume_readback"]["consume_result"]["status"] == "accepted"
+    assert (
+        payload["paper_mission_run_candidate"]["consume_result"]
+        == payload["authority_consume_readback"]["consume_result"]
+    )
+    assert payload["paper_mission_run_candidate"]["mission_state"] == "consumed"
+    assert payload["paper_mission_run_candidate"]["artifact_delta_ledger"][0]["status"] == (
+        "candidate_consumed"
+    )
+    assert payload["contract_validation"]["status"] == "validated"
+    assert payload["mutation_policy"]["writes_authority"] is False
+    assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
+    _assert_forbidden_authority_untouched(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("requested_outcome", "expected_consume_status", "expected_mission_state"),
+    (
+        ("route_back", "route_back", "route_back"),
+        ("typed_blocker_required", "typed_blocker", "stable_blocker"),
+        ("human_gate_required", "human_gate", "waiting_human_decision"),
+    ),
+)
+def test_paper_mission_consume_candidate_maps_non_accept_outcomes(
+    tmp_path: Path,
+    capsys,
+    requested_outcome: str,
+    expected_consume_status: str,
+    expected_mission_state: str,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        requested_outcome=requested_outcome,
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["authority_consume_readback"]["consume_result"]["status"] == (
+        expected_consume_status
+    )
+    assert payload["paper_mission_run_candidate"]["consume_result"]["status"] == (
+        expected_consume_status
+    )
+    assert payload["paper_mission_run_candidate"]["mission_state"] == expected_mission_state
+    assert payload["contract_validation"]["status"] == "validated"
+    assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
     _assert_forbidden_authority_untouched(tmp_path)

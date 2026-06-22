@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 from med_autoscience.paper_mission_run import CONTRACT_VERSION, PaperMissionRun
 
 
@@ -158,6 +159,101 @@ def paper_mission_by_study(import_pack: Mapping[str, Any], study_id: str) -> dic
         if mission.get("study_id") == study_id:
             return mission
     raise KeyError(study_id)
+
+
+def paper_mission_canary_candidate_manifest(
+    mission: Mapping[str, Any],
+    *,
+    requested_outcome: str | None = None,
+) -> dict[str, Any]:
+    readback = _mapping(mission.get("canary_import_readback"))
+    mission_objective = _mapping(readback.get("mission_objective"))
+    current_blocker = _mapping(readback.get("current_blocker"))
+    requirement = _mapping(readback.get("owner_decision_packet_requirement"))
+    selected_outcome = requested_outcome or _candidate_requested_outcome(
+        current_blocker=current_blocker,
+        requirement=requirement,
+    )
+    candidate_id = (
+        "paper-mission-candidate::"
+        f"{_text(mission.get('study_id')) or 'unknown-study'}::"
+        f"{_text(mission_objective.get('objective_id')) or 'canary-import'}"
+    )
+    source_refs = _mapping_list(mission.get("source_refs"))
+    source_uris = [_text(source_ref.get("uri")) for source_ref in source_refs]
+    source_readiness_refs = _dedupe(
+        [
+            item
+            for item in (
+                [
+                    f"study-progress:{_text(mission.get('study_id')) or 'unknown-study'}",
+                    f"mission-objective:{_text(mission_objective.get('objective_id')) or 'unknown'}",
+                ]
+                + [uri for uri in source_uris if uri]
+            )
+            if item
+        ]
+    )
+    return {
+        "candidate_id": candidate_id,
+        "mission_id": _text(mission.get("mission_id")) or "unknown_mission",
+        "study_id": _text(mission.get("study_id")) or "unknown_study",
+        "requested_outcome": selected_outcome,
+        "candidate_manifest_ref": f"mission://{candidate_id}/manifest.json",
+        "candidate_artifact_refs": [
+            _text(item.get("artifact_ref"))
+            for item in _mapping_list(mission.get("artifact_delta_ledger"))
+            if _text(item.get("artifact_ref"))
+        ],
+        "source_readiness_refs": source_readiness_refs,
+        "quality_auditor_requirement": {
+            "independent_auditor_required": True,
+            "owner": "MedAutoScience",
+            "requirement_ref": (
+                "paper-mission-quality-audit::"
+                f"{_text(mission.get('study_id')) or 'unknown-study'}::"
+                f"{_text(mission_objective.get('objective_id')) or 'canary-import'}"
+            ),
+        },
+        "artifact_authority_boundary": {
+            "artifact_authority_owner": "MedAutoScience",
+            "candidate_is_authority": False,
+            "can_update_current_package": False,
+            "can_write_paper_body": False,
+        },
+        "next_owner": _text(requirement.get("owner"))
+        or _text(current_blocker.get("owner"))
+        or "mas_authority_kernel",
+        "resume_condition": (
+            "MAS authority kernel consumes, routes back, records a human-gate request, "
+            "or records a typed-blocker request for this paper mission candidate"
+        ),
+        **_candidate_outcome_request_payload(
+            selected_outcome=selected_outcome,
+            candidate_id=candidate_id,
+            current_blocker=current_blocker,
+            requirement=requirement,
+        ),
+    }
+
+
+def consume_paper_mission_canary_candidate(
+    mission: Mapping[str, Any],
+    *,
+    requested_outcome: str | None = None,
+) -> dict[str, Any]:
+    candidate = paper_mission_canary_candidate_manifest(
+        mission,
+        requested_outcome=requested_outcome,
+    )
+    return {
+        "surface_kind": "paper_mission_canary_candidate_consume_readback",
+        "schema_version": 1,
+        "study_id": _text(mission.get("study_id")) or "unknown_study",
+        "mission_id": _text(mission.get("mission_id")) or "unknown_mission",
+        "candidate_manifest": candidate,
+        "authority_consume_readback": consume_paper_mission_candidate(candidate),
+    }
 
 
 def _build_mission(
@@ -701,6 +797,66 @@ def _dhd_current_execution_envelope(
     provider_state = _mapping(dhd.get("provider_admission_current_control_state"))
     envelopes = _mapping(provider_state.get("current_execution_envelopes"))
     return _mapping(envelopes.get(study_id))
+
+
+def _candidate_requested_outcome(
+    *,
+    current_blocker: Mapping[str, Any],
+    requirement: Mapping[str, Any],
+) -> str:
+    if current_blocker.get("status") == "typed_blocker":
+        return "typed_blocker_required"
+    accepted = _text_items(requirement.get("accepted_terminal_results"))
+    if "route_back" in accepted:
+        return "route_back"
+    return "accepted_candidate"
+
+
+def _candidate_outcome_request_payload(
+    *,
+    selected_outcome: str,
+    candidate_id: str,
+    current_blocker: Mapping[str, Any],
+    requirement: Mapping[str, Any],
+) -> dict[str, Any]:
+    if selected_outcome == "typed_blocker_required":
+        return {
+            "typed_blocker_request": {
+                "blocker_id": _text(current_blocker.get("blocker_id"))
+                or "paper_mission_typed_blocker_requested",
+                "blocker_ref": _text(requirement.get("existing_owner_answer_ref"))
+                or f"typed-blocker-request:{candidate_id}",
+                "next_owner": _text(current_blocker.get("owner")) or "mas_authority_kernel",
+                "resume_condition": (
+                    "MAS authority kernel materializes or rejects the typed blocker request"
+                ),
+            }
+        }
+    if selected_outcome == "human_gate_required":
+        return {
+            "human_gate_request": {
+                "decision_packet_ref": f"human-gate-request:{candidate_id}",
+                "next_owner": "human_owner",
+                "resume_condition": "human decision ref is returned to MAS authority kernel",
+            }
+        }
+    if selected_outcome == "route_back":
+        return {
+            "route_back_reason_code": (
+                _text(current_blocker.get("blocker_id"))
+                or "paper_mission_owner_packet_requires_revision"
+            ),
+            "route_back_resume_condition": (
+                "mission executor revises the paper-facing candidate with current work-unit "
+                "identity, artifact refs, source refs, and forbidden-write acknowledgement"
+            ),
+        }
+    if selected_outcome == "rejected_candidate":
+        return {
+            "rejection_reason_code": "paper_mission_candidate_rejected_by_canary_policy",
+            "rejection_resume_condition": "mission executor submits a corrected candidate",
+        }
+    return {}
 
 
 def _progress_payloads_by_study(
