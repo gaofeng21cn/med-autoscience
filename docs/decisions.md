@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-23：Progress / Workbench 默认读面切到 artifact-first mission summary
+
+- 决策：`study_progress` projection、Progress Portal 和 study workbench 的默认叙事从旧 `DHD / owner-route / dispatch / PaperRecovery` 状态链切到 artifact-first paper mission summary。默认 top-level 字段固定为 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision` 和 `platform_diagnostics`。
+- 决策：mission summary 不另造合同模型；其 canonical machine shape 是 `artifact_first_mission_summary.paper_mission_run`，对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1` 与 `med_autoscience.paper_mission_run.PaperMissionRun`。当前 progress/docs lane 只投影该 shape；contract lane 的源码/validator 仍以主线 contract commit 为准。
+- 决策：DHD、currentness、storage、owner-route、dispatch、PaperRecovery 和 provider-admission repair 只进入 `platform_diagnostics`、migration input 或 provenance。只有真实 artifact delta、owner decision packet、accepted owner receipt、route-back、human gate 或 stable typed blocker 这类 mission artifact/owner outcome 才能进入 paper mission progress 口径；platform repair、read-model clean、focused tests 或 tombstone 不能计为 paper progress。
+- 决策：旧默认路径新增 tombstone entry `dhd_owner_route_dispatch_paper_recovery_default_paper_mainline`，显式禁止 product default mainline、domain-handler default mainline、paper progress、publication-ready、runtime-ready、provider-running、DM002 complete 和 DM003 complete claim。
+- 理由：2026-06-22 executor-first 决策已经确认旧链路把论文推进拆成多个平台控制面。若 progress/workbench 仍默认展示 DHD/currentness/dispatch/PaperRecovery，用户和 operator 会继续把平台 repair 当作论文推进。默认读面必须先回答 mission artifact、current objective、next owner/human decision，再把平台状态折叠到 diagnostics。
+- 影响：这是 projection、product docs 和 tombstone 边界切换，不执行 live DHD apply、hydrate、tick、redrive、provider start、paper mission consume 或 CLI lane 集成；不写 Yang artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package 或 runtime queue/provider attempts。不声明 DM002/DM003 已完成、paper progress、publication-ready、domain-ready、runtime-ready 或 production-ready。
+
 ## 2026-06-22：MAS 默认论文推进改向 executor-first paper mission
 
 - 决策：MAS 下一目标态从旧 `DHD / owner-route / dispatch / recovery` 多控制面链路，改为 `executor-first paper mission`。默认入口应先启动或恢复一个粗粒度 `PaperMissionRun`，以同一 mission identity 产出 manuscript、figure/table、evidence/review ledger、reviewer response、gate-clearing plan、owner decision packet、owner receipt、typed blocker 或 human gate。DHD、currentness、provider admission、storage/index、read-model hygiene 和 dispatch ledger 只作为 platform diagnostics / repair sidecar。

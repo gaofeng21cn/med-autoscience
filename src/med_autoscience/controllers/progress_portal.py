@@ -159,6 +159,7 @@ def build_progress_portal_payload(
         study_id=resolved_study_id,
     )
     progress_first = build_progress_first_operator_projection(progress)
+    mission_summary = _mission_summary(progress)
     study_workbench = (
         build_study_workbench_payload(
             progress,
@@ -170,6 +171,8 @@ def build_progress_portal_payload(
         if resolved_page_scope == "study"
         else {}
     )
+    if study_workbench:
+        study_workbench = _study_workbench_with_mission_summary(study_workbench, mission_summary)
     owner_delta_summary = owner_delta_read_only_summary(_mapping(study_workbench.get("current_owner_delta")))
     legacy_next_action = legacy_next_action_diagnostic(
         user_visible.get("next_system_action"),
@@ -256,10 +259,19 @@ def build_progress_portal_payload(
             "paper_stage": _field(user_visible, "paper_stage"),
             "paper_stage_summary": _field(user_visible, "paper_stage_summary"),
             "current_blockers": _list_field(user_visible, "current_blockers"),
+            "artifact_first_mission_summary": mission_summary,
+            "mission_state": mission_summary.get("mission_state"),
+            "current_objective": _mapping(mission_summary.get("current_objective")),
+            "latest_artifact_delta": _mapping(mission_summary.get("latest_artifact_delta")),
+            "next_owner_or_human_decision": _mapping(
+                mission_summary.get("next_owner_or_human_decision")
+            ),
+            "platform_diagnostics": _mapping(mission_summary.get("platform_diagnostics")),
             "owner_delta_summary": owner_delta_summary,
-            "next_system_action": owner_delta_summary["summary"]
-            or "等待 OPL/current_owner_delta readback 生成只读下一步摘要。",
-            "next_system_action_role": "read_only_owner_delta_summary",
+            "next_system_action": _mission_next_step_summary(mission_summary)
+            or owner_delta_summary["summary"]
+            or "等待 artifact-first mission summary 生成论文产物下一步。",
+            "next_system_action_role": "artifact_first_mission_summary",
             "legacy_next_system_action_diagnostic": legacy_next_action,
             "needs_user_decision": bool(user_visible.get("needs_user_decision")),
             "decision_trace": _body_free_trace(user_visible.get("decision_trace")),
@@ -325,6 +337,84 @@ def build_progress_portal_payload(
             "refresh_mode": "read_only_server_request_refresh",
         }
     return payload
+
+
+def _mission_summary(progress: Mapping[str, Any]) -> dict[str, Any]:
+    existing = _mapping(progress.get("artifact_first_mission_summary"))
+    if existing:
+        return existing
+    from med_autoscience.controllers.study_progress_parts.mission_summary import (
+        build_artifact_first_mission_summary,
+    )
+
+    return build_artifact_first_mission_summary(progress)
+
+
+def _mission_next_step_summary(summary: Mapping[str, Any]) -> str | None:
+    objective = _mapping(summary.get("current_objective"))
+    decision = _mapping(summary.get("next_owner_or_human_decision"))
+    latest_delta = _mapping(summary.get("latest_artifact_delta"))
+    parts: list[str] = []
+    if text := _non_empty_text(summary.get("mission_state")):
+        parts.append(f"mission_state={text}")
+    if text := _non_empty_text(objective.get("objective")):
+        parts.append(f"objective={text}")
+    if text := _non_empty_text(decision.get("next_owner")):
+        parts.append(f"next_owner={text}")
+    elif decision.get("human_decision_required") is True:
+        parts.append("human_decision_required=true")
+    if count := latest_delta.get("count"):
+        parts.append(f"artifact_delta_count={count}")
+    return "; ".join(parts) if parts else None
+
+
+def _study_workbench_with_mission_summary(
+    study_workbench: Mapping[str, Any],
+    mission_summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(study_workbench)
+    updated["mission_summary"] = dict(mission_summary)
+    tabs = [dict(item) for item in updated.get("tabs") or [] if isinstance(item, Mapping)]
+    mission_tab = {
+        "id": "mission_summary",
+        "label": "Mission Summary",
+        "status": _non_empty_text(mission_summary.get("mission_state")) or "missing",
+    }
+    updated["tabs"] = [mission_tab, *[item for item in tabs if item.get("id") != "mission_summary"]]
+    overview = _mapping(updated.get("overview"))
+    overview["mission_summary"] = dict(mission_summary)
+    overview["next_system_action"] = _mission_next_step_summary(mission_summary) or overview.get(
+        "next_system_action"
+    )
+    overview["next_system_action_role"] = "artifact_first_mission_summary"
+    overview["next_system_action_boundary"] = _mission_overview_action_boundary(
+        _mapping(overview.get("next_system_action_boundary"))
+    )
+    updated["overview"] = overview
+    updated["overview_action_boundary"] = overview["next_system_action_boundary"]
+    summary = _mapping(updated.get("summary"))
+    summary["default_read_surface"] = "artifact_first_mission_summary"
+    summary["mission_state"] = mission_summary.get("mission_state")
+    summary["platform_repair_folded_to_diagnostics"] = True
+    updated["summary"] = summary
+    return updated
+
+
+def _mission_overview_action_boundary(existing: Mapping[str, Any]) -> dict[str, Any]:
+    boundary = dict(existing)
+    boundary["next_system_action_role"] = "artifact_first_mission_summary"
+    boundary["default_read_surface"] = "artifact_first_mission_summary"
+    boundary["legacy_owner_delta_role"] = "diagnostic_input"
+    boundary["projection_only"] = True
+    boundary["can_generate_action"] = False
+    boundary["can_execute"] = False
+    boundary["can_authorize_provider_admission"] = False
+    boundary["can_authorize_worker_attempt"] = False
+    boundary["must_not_be_used_as_provider_admission"] = True
+    boundary["must_not_be_used_as_next_action_authority"] = True
+    boundary["must_not_be_used_as_publication_ready"] = True
+    boundary["must_not_be_used_as_paper_progress"] = True
+    return boundary
 
 
 def _attach_study_hrefs(studies: list[dict[str, Any]], *, from_study_page: bool) -> None:

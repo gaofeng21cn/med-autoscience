@@ -35,12 +35,16 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["workspace"]["profile_name"] == "diabetes"
     assert payload["study"]["study_id"] == "001-risk"
     assert payload["study"]["state_label"] == "质量修复/复审中"
-    assert payload["study"]["next_system_action_role"] == "read_only_owner_delta_summary"
+    assert payload["study"]["next_system_action_role"] == "artifact_first_mission_summary"
+    assert payload["study"]["mission_state"] == "stable_blocker"
     assert payload["study"]["next_system_action"] == (
-        "owner=ai_reviewer; action_type=run_quality_repair_batch; "
-        "required_delta=owner_receipt_or_typed_blocker; work_unit_id=quality-repair-001; "
-        "typed_blocker_ref=studies/001-risk/artifacts/owner/typed_blocker.json"
+        "mission_state=stable_blocker; objective=owner_receipt_or_typed_blocker; "
+        "next_owner=ai_reviewer"
     )
+    assert payload["study"]["artifact_first_mission_summary"]["paper_mission_run"]["mission_state"] == (
+        "stable_blocker"
+    )
+    assert payload["study"]["platform_diagnostics"]["counts_as_paper_progress"] is False
     assert payload["study"]["legacy_next_system_action_diagnostic"]["values"] == [
         "补充 subgroup 分析并更新 review ledger。",
         "wait",

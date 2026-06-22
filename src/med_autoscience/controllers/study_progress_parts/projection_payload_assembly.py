@@ -29,6 +29,9 @@ from .current_owner_action_projection_reconcile import (
     reconcile_current_owner_action_projection,
 )
 from .macro_state_projection import compact_study_macro_state_from_payload
+from .mission_summary import (
+    attach_artifact_first_mission_summary,
+)
 from .opl_supervisor_decision_readback import (
     attach_opl_supervisor_decision_readback as _attach_opl_supervisor_decision_readback,
 )
@@ -410,11 +413,12 @@ def assemble_study_progress_payload(
         profile=profile,
         study_id=study_id,
     )
-    return attach_ai_first_runtime_projection(
+    payload = attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,
         generated_at=generated_at,
     )
+    return attach_artifact_first_mission_summary(payload)
 
 
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:

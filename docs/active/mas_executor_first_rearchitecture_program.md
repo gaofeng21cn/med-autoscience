@@ -150,6 +150,8 @@ medautosci paper-mission consume-candidate --profile <profile> --study-id <study
 
 验收：新 study 和 DM002/DM003 后续回合都能从 `paper-mission inspect` 读到唯一 next objective、latest paper delta、next owner 和 forbidden claims。
 
+2026-06-23 progress/workbench slice：`study_progress` projection 和 Progress Portal / study workbench 已新增 artifact-first mission summary read model。顶层暴露 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision`、`platform_diagnostics`；内部 `artifact_first_mission_summary.paper_mission_run` 对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1` 和 `med_autoscience.paper_mission_run.PaperMissionRun` canonical shape。DHD、currentness、storage、owner-route、dispatch 和 PaperRecovery 只折叠为 diagnostics / migration / provenance，不再作为 progress/workbench 默认论文主线。该 slice 不声明 `paper-mission inspect` CLI 已接入当前 branch，也不声明 DM002/DM003 已产生 live mission artifact delta、owner receipt、route-back、human gate、stable typed blocker 或 consume result。
+
 ### Phase 4: Retire old way
 
 目标：彻底退役旧控制面，而不是长期双轨。
@@ -161,6 +163,8 @@ medautosci paper-mission consume-candidate --profile <profile> --study-id <study
 - no-forbidden-write proof 覆盖 study truth、publication eval、controller decisions、paper body、owner receipt、typed blocker、human gate、current package 和 runtime state。
 - DM002/DM003 canary 至少各产生一个被 MAS consume path 处理的 mission artifact delta、owner receipt、route-back、human gate 或 stable typed blocker。
 - active docs、product docs、skill docs 和 progress portal 不再把旧 DHD/dispatch/recovery 链写成主执行方式。
+
+2026-06-23 tombstone slice：`contracts/runtime/legacy-active-path-tombstones.json` 新增 `dhd_owner_route_dispatch_paper_recovery_default_paper_mainline`，把旧 DHD / owner-route / dispatch / PaperRecovery 默认主路径降为 `diagnostics_migration_provenance_only`，并禁止 product/default domain-handler mainline、paper progress、publication-ready、runtime-ready、provider-running、DM002 complete 和 DM003 complete claim。该 tombstone 关闭默认叙事边界，不等于旧物理 caller 全部删除，也不等于 live mission consume / DM canary 完成。
 
 ## Completion Audit
 
@@ -177,8 +181,7 @@ medautosci paper-mission consume-candidate --profile <profile> --study-id <study
 
 ## Immediate Next Work
 
-1. 把本设计折回 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 的 next active lane，不作为第二 backlog。
-2. 实现 `PaperMissionRun` 最小 machine contract 和 dry-run inspect。
-3. 以 DM002 / DM003 建 canary mission，不先改旧 authority surface。
-4. 让 Progress Portal / `study progress` 新增 artifact-first mission summary。
-5. 通过 mission consume path 处理第一批 candidate 后，再开始旧 DHD / dispatch / recovery 默认路径退役。
+1. 将 contract lane 的 `contracts/paper_mission_run_contract.json` 与 `src/med_autoscience/paper_mission_run.py` 合入当前执行分支后，用 validator 对 `artifact_first_mission_summary.paper_mission_run` 做同源校验。
+2. 实现或接入 `paper-mission inspect/start/resume/consume-candidate` CLI / product-entry lane；progress/docs lane 当前只引用 canonical contract shape，不提供 CLI claim。
+3. 以 DM002 / DM003 建 canary mission，不先改旧 authority surface，并产出可消费 paper-facing artifact delta 或 owner decision packet。
+4. 通过 mission consume path 处理第一批 candidate 后，再推进旧 DHD / dispatch / recovery 物理 caller 退役和 no-active-caller proof。

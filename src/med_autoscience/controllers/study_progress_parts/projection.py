@@ -20,6 +20,7 @@ from .delivery_inspection import (
 )
 from . import existing_projection_refresh as _existing_projection_refresh
 from .medical_writing_surfaces import medical_writing_quality_surface_status
+from .mission_summary import attach_artifact_first_mission_summary
 from .parked_projection import (
     build_progress_parked_projection,
     parked_text_override,
@@ -188,7 +189,7 @@ def build_study_progress_projection(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
         )
-        return _attach_existing_autonomy_slo_projection(
+        refreshed_existing = _attach_existing_autonomy_slo_projection(
             _refresh_existing_projection_user_visible_status(
                 _refresh_existing_projection_current_owner_surfaces(
                     payload=normalized_existing,
@@ -201,6 +202,7 @@ def build_study_progress_projection(
             ),
             study_root=study_root,
         )
+        return attach_artifact_first_mission_summary(refreshed_existing)
 
     resolved_study_id = study_id
     resolved_study_root = study_root

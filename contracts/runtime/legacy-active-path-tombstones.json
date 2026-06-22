@@ -6,6 +6,63 @@
   "default_active_path": "OPL/Temporal hosted autonomous runtime with Codex CLI as the default stage executor and MAS direct skill as a direct entry surface",
   "tombstoned_surfaces": [
     {
+      "surface_id": "dhd_owner_route_dispatch_paper_recovery_default_paper_mainline",
+      "classification": "diagnostics_migration_provenance_only",
+      "default_caller": false,
+      "default_product_mainline_claim_allowed": false,
+      "default_domain_handler_mainline_claim_allowed": false,
+      "tombstone_ref": "docs/active/mas_executor_first_rearchitecture_program.md#phase-4-retire-old-way",
+      "replacement_ref": "contracts/paper_mission_run_contract.json",
+      "replacement_projection_ref": "study_progress.artifact_first_mission_summary.paper_mission_run",
+      "retained_context": "DHD, owner-route, dispatch, and PaperRecovery may be used only as diagnostics, migration input, provenance, or consume/readback evidence; they must not be the product/default domain-handler paper mission mainline.",
+      "legacy_surfaces": [
+        "domain_health_diagnostic",
+        "DHD",
+        "owner-route",
+        "owner_route",
+        "domain-handler export",
+        "default-executor dispatch",
+        "dispatch",
+        "PaperRecovery",
+        "paper_recovery_state"
+      ],
+      "replacement_contract": {
+        "contract_ref": "contracts/paper_mission_run_contract.json",
+        "schema_version": "paper-mission-run.v1",
+        "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
+        "projection_ref": "artifact_first_mission_summary.paper_mission_run"
+      },
+      "authority_boundary": {
+        "read_only": true,
+        "history_provenance_only": true,
+        "diagnostics_only": true,
+        "migration_input_only": true,
+        "can_write_domain_truth": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_artifact_mutation": false,
+        "can_authorize_provider_admission": false,
+        "can_claim_paper_progress": false,
+        "can_claim_publication_ready": false,
+        "can_claim_runtime_ready": false,
+        "can_claim_dm002_complete": false,
+        "can_claim_dm003_complete": false
+      },
+      "forbidden_default_claims": [
+        "product_default_mainline",
+        "domain_handler_default_mainline",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "runtime_ready",
+        "provider_running",
+        "owner_receipt_written",
+        "typed_blocker_written",
+        "current_package",
+        "DM002_complete",
+        "DM003_complete"
+      ]
+    },
+    {
       "surface_id": "hermes_scheduler_hosted_runtime",
       "classification": "retired_no_default_caller",
       "default_caller": false,

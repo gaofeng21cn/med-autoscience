@@ -1,0 +1,636 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+from typing import Any
+
+
+PAPER_MISSION_RUN_CONTRACT_VERSION = "paper-mission-run.v1"
+PAPER_MISSION_RUN_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
+PAPER_MISSION_RUN_VALIDATOR = "med_autoscience.paper_mission_run.PaperMissionRun"
+MISSION_STATES = (
+    "planned",
+    "running",
+    "candidate_ready_for_consumption",
+    "consumed",
+    "route_back",
+    "stable_blocker",
+    "waiting_human_decision",
+    "terminal_handoff",
+)
+PLATFORM_DIAGNOSTIC_TERMS = (
+    "DHD",
+    "domain-health-diagnostic",
+    "currentness",
+    "storage",
+    "dispatch",
+    "owner-route",
+    "owner_route",
+    "provider-admission",
+    "provider_admission",
+    "PaperRecovery",
+    "paper_recovery",
+    "read-model",
+    "read_model",
+)
+
+
+def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    progress = _mapping(payload)
+    paper_delta = _mapping(
+        progress.get("paper_progress_delta")
+        or progress.get("deliverable_progress_delta")
+    )
+    deliverable_delta = _mapping(progress.get("deliverable_progress_delta") or paper_delta)
+    platform_delta = _mapping(progress.get("platform_repair_delta"))
+    next_forced_delta = _mapping(progress.get("next_forced_delta"))
+    current_owner_delta = _mapping(progress.get("current_owner_delta"))
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    user_visible = _mapping(progress.get("user_visible_projection"))
+    source_refs = _source_refs(progress)
+    latest_artifact_delta = _latest_artifact_delta(
+        paper_delta=paper_delta,
+        deliverable_delta=deliverable_delta,
+        next_forced_delta=next_forced_delta,
+        progress=progress,
+    )
+    artifact_delta_ledger = _artifact_delta_ledger(
+        latest_artifact_delta=latest_artifact_delta,
+        study_id=_study_id(progress),
+    )
+    platform_diagnostics = _platform_diagnostics(
+        platform_delta=platform_delta,
+        progress=progress,
+    )
+    mission_state = _mission_state(
+        latest_artifact_delta=latest_artifact_delta,
+        platform_diagnostics=platform_diagnostics,
+        user_visible=user_visible,
+        progress=progress,
+    )
+    current_objective = _current_objective(
+        next_forced_delta=next_forced_delta,
+        current_owner_delta=current_owner_delta,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
+        user_visible=user_visible,
+    )
+    next_owner_or_human_decision = _next_owner_or_human_decision(
+        next_forced_delta=next_forced_delta,
+        current_owner_delta=current_owner_delta,
+        current_work_unit=current_work_unit,
+        current_action=current_action,
+        user_visible=user_visible,
+    )
+    paper_mission_run = _paper_mission_run_payload(
+        progress=progress,
+        mission_state=mission_state,
+        current_objective=current_objective,
+        artifact_delta_ledger=artifact_delta_ledger,
+        source_refs=source_refs,
+        platform_diagnostics=platform_diagnostics,
+        next_owner_or_human_decision=next_owner_or_human_decision,
+    )
+    summary = {
+        "surface_kind": "artifact_first_paper_mission_summary",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_RUN_CONTRACT_REF,
+        "validator": PAPER_MISSION_RUN_VALIDATOR,
+        "paper_mission_run": paper_mission_run,
+        "mission_state": mission_state,
+        "current_objective": current_objective,
+        "latest_artifact_delta": {
+            **latest_artifact_delta,
+            "artifact_delta_ledger": artifact_delta_ledger,
+        },
+        "next_owner_or_human_decision": next_owner_or_human_decision,
+        "platform_diagnostics": platform_diagnostics,
+        "default_progress_metric": "paper_artifact_delta",
+        "legacy_path_role": "diagnostics_migration_provenance_only",
+        "paper_progress_counting_policy": {
+            "counts_as_paper_progress": [
+                "canonical_manuscript_delta",
+                "figure_or_table_delta",
+                "evidence_ledger_delta",
+                "reviewer_response_delta",
+                "owner_decision_packet",
+                "accepted_owner_receipt",
+                "route_back",
+                "human_gate",
+                "stable_typed_blocker_with_recoverable_path",
+            ],
+            "diagnostics_only": list(PLATFORM_DIAGNOSTIC_TERMS),
+            "platform_repair_counts_as_paper_progress": False,
+        },
+        "authority": {
+            "projection_only": True,
+            "writes_authority_surface": False,
+            "can_authorize_publication_ready": False,
+            "can_authorize_quality_verdict": False,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_mutate_current_package": False,
+            "can_start_provider_attempt": False,
+            "can_mark_dm002_dm003_complete": False,
+        },
+    }
+    summary["status"] = mission_state
+    return summary
+
+
+def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    summary = build_artifact_first_mission_summary(updated)
+    updated["artifact_first_mission_summary"] = summary
+    updated["mission_state"] = summary["mission_state"]
+    updated["current_objective"] = summary["current_objective"]
+    updated["latest_artifact_delta"] = summary["latest_artifact_delta"]
+    updated["next_owner_or_human_decision"] = summary["next_owner_or_human_decision"]
+    updated["platform_diagnostics"] = summary["platform_diagnostics"]
+    return updated
+
+
+def _mission_state(
+    *,
+    latest_artifact_delta: Mapping[str, Any],
+    platform_diagnostics: Mapping[str, Any],
+    user_visible: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> str:
+    if bool(user_visible.get("needs_user_decision")):
+        return "waiting_human_decision"
+    owner_answer_kind = _owner_answer_kind(progress)
+    if owner_answer_kind == "typed_blocker":
+        return "stable_blocker"
+    if owner_answer_kind == "owner_receipt":
+        return "consumed"
+    if owner_answer_kind in {"route_back", "routeback"}:
+        return "route_back"
+    if _delta_count(latest_artifact_delta) > 0:
+        return "candidate_ready_for_consumption"
+    if _has_current_objective(progress) or _non_empty_text(user_visible.get("writer_state")) == "live":
+        return "running"
+    if _diagnostic_count(platform_diagnostics) > 0:
+        return "planned"
+    return "planned"
+
+
+def _current_objective(
+    *,
+    next_forced_delta: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    user_visible: Mapping[str, Any],
+) -> dict[str, Any]:
+    target_surface = (
+        _mapping(next_forced_delta.get("target_surface"))
+        or _mapping(current_owner_delta.get("target_surface"))
+        or _mapping(current_action.get("target_surface"))
+    )
+    owner_action = _mapping(next_forced_delta.get("owner_action"))
+    return _compact(
+        {
+            "objective": _first_text(
+                next_forced_delta.get("required_delta_kind"),
+                current_owner_delta.get("required_delta_kind"),
+                current_work_unit.get("required_output_contract"),
+                user_visible.get("paper_stage_summary"),
+                user_visible.get("current_stage_summary"),
+            ),
+            "work_unit_id": _first_text(
+                next_forced_delta.get("work_unit_id"),
+                current_owner_delta.get("work_unit_id"),
+                current_work_unit.get("work_unit_id"),
+                current_action.get("work_unit_id"),
+            ),
+            "action_type": _first_text(
+                current_owner_delta.get("action_type"),
+                current_action.get("action_type"),
+                current_work_unit.get("action_type"),
+            ),
+            "target_surface": target_surface or None,
+            "acceptance_refs": _text_list(next_forced_delta.get("acceptance_refs")),
+            "next_owner": _first_text(
+                owner_action.get("next_owner"),
+                current_owner_delta.get("owner"),
+                current_action.get("next_owner"),
+                current_action.get("owner"),
+                current_work_unit.get("owner"),
+            ),
+        }
+    )
+
+
+def _latest_artifact_delta(
+    *,
+    paper_delta: Mapping[str, Any],
+    deliverable_delta: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> dict[str, Any]:
+    refs = _dedupe_texts(
+        [
+            *_text_list(paper_delta.get("refs")),
+            *_text_list(deliverable_delta.get("refs")),
+            *_text_list(next_forced_delta.get("acceptance_refs")),
+        ]
+    )
+    return {
+        "count": _delta_count(paper_delta) or _delta_count(deliverable_delta),
+        "token_usage_total": _number(
+            paper_delta.get("token_usage_total")
+            if paper_delta
+            else deliverable_delta.get("token_usage_total")
+        )
+        or 0,
+        "sources": _dedupe_texts(
+            [
+                *_text_list(paper_delta.get("sources")),
+                *_text_list(deliverable_delta.get("sources")),
+            ]
+        ),
+        "refs": refs,
+        "classification": _non_empty_text(progress.get("progress_delta_classification")),
+        "counts_as_paper_progress": (_delta_count(paper_delta) or _delta_count(deliverable_delta)) > 0,
+        "platform_repair_excluded": True,
+    }
+
+
+def _artifact_delta_ledger(
+    *,
+    latest_artifact_delta: Mapping[str, Any],
+    study_id: str,
+) -> list[dict[str, Any]]:
+    if _delta_count(latest_artifact_delta) <= 0:
+        return []
+    refs = _text_list(latest_artifact_delta.get("refs"))
+    if not refs:
+        refs = [f"mission://{study_id}/candidate-artifact-delta"]
+    result: list[dict[str, Any]] = []
+    for index, ref in enumerate(refs, start=1):
+        result.append(
+            {
+                "delta_id": f"delta::{study_id}::{index}",
+                "artifact_ref": ref,
+                "delta_kind": "paper_artifact_delta",
+                "status": "candidate",
+            }
+        )
+    return result
+
+
+def _next_owner_or_human_decision(
+    *,
+    next_forced_delta: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    user_visible: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner_action = _mapping(next_forced_delta.get("owner_action"))
+    needs_human = bool(user_visible.get("needs_user_decision"))
+    decision = {
+        "kind": "human_decision" if needs_human else "owner_or_route",
+        "next_owner": _first_text(
+            owner_action.get("next_owner"),
+            current_owner_delta.get("owner"),
+            current_action.get("next_owner"),
+            current_action.get("owner"),
+            current_work_unit.get("owner"),
+        ),
+        "human_decision_required": needs_human,
+        "summary": _first_text(
+            user_visible.get("physician_decision_summary"),
+            user_visible.get("user_decision_summary"),
+            current_owner_delta.get("latest_owner_answer_kind"),
+            next_forced_delta.get("reason"),
+            user_visible.get("user_next"),
+        ),
+        "owner_receipt_ref": _first_text(
+            current_owner_delta.get("owner_receipt_ref"),
+            current_owner_delta.get("latest_owner_answer_ref")
+            if current_owner_delta.get("latest_owner_answer_kind") == "owner_receipt"
+            else None,
+        ),
+        "typed_blocker_ref": _first_text(
+            current_owner_delta.get("typed_blocker_ref"),
+            current_owner_delta.get("latest_owner_answer_ref")
+            if current_owner_delta.get("latest_owner_answer_kind") == "typed_blocker"
+            else None,
+        ),
+        "can_execute": False,
+        "can_authorize_provider_admission": False,
+    }
+    return _compact(decision)
+
+
+def _paper_mission_run_payload(
+    *,
+    progress: Mapping[str, Any],
+    mission_state: str,
+    current_objective: Mapping[str, Any],
+    artifact_delta_ledger: list[dict[str, Any]],
+    source_refs: list[dict[str, Any]],
+    platform_diagnostics: Mapping[str, Any],
+    next_owner_or_human_decision: Mapping[str, Any],
+) -> dict[str, Any]:
+    study_id = _study_id(progress)
+    objective = _non_empty_text(current_objective.get("objective")) or "inspect next paper artifact delta"
+    mission_id = _mission_id(
+        study_id=study_id,
+        objective=objective,
+        progress=progress,
+        current_objective=current_objective,
+    )
+    return {
+        "schema_version": PAPER_MISSION_RUN_CONTRACT_VERSION,
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": objective,
+        "mission_state": mission_state,
+        "artifact_delta_ledger": artifact_delta_ledger,
+        "source_refs": source_refs,
+        "authority_touchpoints": _authority_touchpoints(
+            platform_diagnostics=platform_diagnostics,
+        ),
+        "forbidden_write_guard": _forbidden_write_guard(),
+        "consume_result": _consume_result(
+            mission_state=mission_state,
+            next_owner_or_human_decision=next_owner_or_human_decision,
+        ),
+        "claim_permissions": {
+            "can_claim_artifact_delta": bool(artifact_delta_ledger),
+            "can_claim_owner_handoff": bool(next_owner_or_human_decision),
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+            "claims": [],
+        },
+    }
+
+
+def _source_refs(progress: Mapping[str, Any]) -> list[dict[str, Any]]:
+    refs = _mapping(progress.get("refs"))
+    result: list[dict[str, Any]] = []
+    for key, value in refs.items():
+        if text := _non_empty_text(value):
+            result.append({"ref_id": str(key), "ref_kind": str(key), "uri": text})
+    for ref in _text_list(progress.get("source_refs")):
+        result.append({"ref_id": f"source::{len(result) + 1}", "ref_kind": "source_ref", "uri": ref})
+    return result
+
+
+def _authority_touchpoints(*, platform_diagnostics: Mapping[str, Any]) -> list[dict[str, Any]]:
+    result = [
+        {
+            "touchpoint_id": "touchpoint::mas-authority-kernel",
+            "owner": "MedAutoScience",
+            "surface": "MAS Authority Kernel",
+            "status": "not_touched",
+        },
+        {
+            "touchpoint_id": "touchpoint::opl-runtime-readback",
+            "owner": "one-person-lab",
+            "surface": "OPL runtime/readback",
+            "status": "read_only" if _diagnostic_count(platform_diagnostics) > 0 else "not_touched",
+        },
+    ]
+    return result
+
+
+def _forbidden_write_guard() -> dict[str, Any]:
+    return {
+        "blocked_paths": [
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "current_package",
+            "runtime queue/provider attempts",
+            "/Users/gaofeng/workspace/Yang/**",
+        ],
+        "forbidden_claims": [
+            "publication_ready",
+            "current_package",
+            "owner_receipt_written",
+        ],
+        "candidate_writes_authority": False,
+    }
+
+
+def _consume_result(
+    *,
+    mission_state: str,
+    next_owner_or_human_decision: Mapping[str, Any],
+) -> dict[str, Any]:
+    if mission_state == "consumed":
+        return {"status": "accepted"}
+    if mission_state == "route_back":
+        return {"status": "route_back"}
+    if mission_state == "stable_blocker":
+        result = {"status": "typed_blocker"}
+        if ref := _non_empty_text(next_owner_or_human_decision.get("typed_blocker_ref")):
+            result["ref"] = ref
+        return result
+    if mission_state == "waiting_human_decision":
+        return {"status": "human_gate"}
+    return {"status": "not_consumed"}
+
+
+def _platform_diagnostics(
+    *,
+    platform_delta: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> dict[str, Any]:
+    diagnostic_refs = _diagnostic_refs(progress)
+    return {
+        "count": _delta_count(platform_delta),
+        "sources": _dedupe_texts(
+            [
+                *_text_list(platform_delta.get("sources")),
+                *_diagnostic_sources(progress),
+            ]
+        ),
+        "refs": diagnostic_refs,
+        "classification": "diagnostics_only" if _delta_count(platform_delta) or diagnostic_refs else "none",
+        "folded_surfaces": list(PLATFORM_DIAGNOSTIC_TERMS),
+        "counts_as_paper_progress": False,
+        "repair_lane_required_for_platform_claims": (_delta_count(platform_delta) or len(diagnostic_refs)) > 0,
+    }
+
+
+def _diagnostic_sources(progress: Mapping[str, Any]) -> list[str]:
+    refs = _mapping(progress.get("refs"))
+    sources: list[str] = []
+    if _non_empty_text(refs.get("domain_health_diagnostic")):
+        sources.append("refs.domain_health_diagnostic")
+    for key in (
+        "runtime_health_snapshot",
+        "opl_current_control_state_handoff",
+        "provider_admission_candidates",
+        "transition_request_candidates",
+        "paper_recovery_state",
+        "repair_progress_projection",
+    ):
+        value = progress.get(key)
+        if value not in (None, "", [], {}):
+            sources.append(key)
+    return sources
+
+
+def _diagnostic_refs(progress: Mapping[str, Any]) -> list[str]:
+    refs = _mapping(progress.get("refs"))
+    result = [
+        _non_empty_text(refs.get("domain_health_diagnostic")),
+        _non_empty_text(refs.get("progress_projection")),
+    ]
+    for key in (
+        "diagnostic_ref",
+        "domain_health_diagnostic_ref",
+        "owner_route_ref",
+        "dispatch_ref",
+        "paper_recovery_ref",
+    ):
+        result.append(_non_empty_text(progress.get(key)))
+    return _dedupe_texts(result)
+
+
+def _owner_answer_kind(progress: Mapping[str, Any]) -> str | None:
+    current_owner_delta = _mapping(progress.get("current_owner_delta"))
+    if text := _non_empty_text(current_owner_delta.get("latest_owner_answer_kind")):
+        return text
+    if _non_empty_text(current_owner_delta.get("typed_blocker_ref")) is not None:
+        return "typed_blocker"
+    if _non_empty_text(current_owner_delta.get("owner_receipt_ref")) is not None:
+        return "owner_receipt"
+    if _non_empty_text(current_owner_delta.get("human_gate_ref")) is not None:
+        return "human_gate"
+    return None
+
+
+def _has_current_objective(progress: Mapping[str, Any]) -> bool:
+    for key in ("next_forced_delta", "current_owner_delta", "current_work_unit", "current_executable_owner_action"):
+        if _mapping(progress.get(key)):
+            return True
+    return False
+
+
+def _study_id(progress: Mapping[str, Any]) -> str:
+    return _non_empty_text(progress.get("study_id")) or "unknown-study"
+
+
+def _mission_id(
+    *,
+    study_id: str,
+    objective: str,
+    progress: Mapping[str, Any],
+    current_objective: Mapping[str, Any],
+) -> str:
+    slug = _slug(objective)
+    run_ref = _first_text(
+        progress.get("active_run_id"),
+        progress.get("current_active_run_id"),
+        current_objective.get("work_unit_id"),
+        progress.get("generated_at"),
+        "projection",
+    )
+    return f"paper-mission::{study_id}::{slug}::{_slug(run_ref or 'projection')}"
+
+
+def _slug(value: object) -> str:
+    text = _non_empty_text(value) or "unknown"
+    chars: list[str] = []
+    previous_dash = False
+    for char in text.lower():
+        if char.isalnum():
+            chars.append(char)
+            previous_dash = False
+        elif not previous_dash:
+            chars.append("-")
+            previous_dash = True
+    slug = "".join(chars).strip("-")
+    return slug or "unknown"
+
+
+def _has_owner_answer(progress: Mapping[str, Any]) -> bool:
+    if _owner_answer_kind(progress) is not None:
+        return True
+    current_owner_delta = _mapping(progress.get("current_owner_delta"))
+    for key in ("owner_receipt_ref", "typed_blocker_ref", "human_gate_ref"):
+        if _non_empty_text(current_owner_delta.get(key)) is not None:
+            return True
+    return False
+
+
+def _delta_count(value: Mapping[str, Any]) -> int:
+    number = _number(value.get("count"))
+    return number or 0
+
+
+def _diagnostic_count(value: Mapping[str, Any]) -> int:
+    return _delta_count(value) + len(_text_list(value.get("refs")))
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _non_empty_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        if text := _non_empty_text(value):
+            return text
+    return None
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, Iterable) or isinstance(value, (bytes, Mapping)):
+        return []
+    return [text for item in value if (text := _non_empty_text(item)) is not None]
+
+
+def _dedupe_texts(values: Iterable[object]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if text := _non_empty_text(value):
+            if text not in result:
+                result.append(text)
+    return result
+
+
+def _number(value: object) -> int | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return int(float(text))
+        except ValueError:
+            return None
+    return None
+
+
+def _compact(value: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: item for key, item in value.items() if item not in (None, "", [], {})}
+
+
+__all__ = [
+    "PLATFORM_DIAGNOSTIC_TERMS",
+    "attach_artifact_first_mission_summary",
+    "build_artifact_first_mission_summary",
+]

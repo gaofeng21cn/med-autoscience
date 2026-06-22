@@ -25,10 +25,13 @@ def _workbench_retirement_surface(inventory: dict[str, object]) -> dict[str, obj
 
 
 def _study_workbench_payload() -> dict[str, object]:
-    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
-    return parts.build_study_workbench_payload(
-        progress=progress_payload(),
-        cockpit={
+    portal = importlib.import_module("med_autoscience.controllers.progress_portal")
+    payload = portal.build_progress_portal_payload(
+        profile_name="test-profile",
+        workspace_root=str(REPO_ROOT),
+        study_id="001-risk",
+        progress_payload=progress_payload(),
+        cockpit_payload={
             "studies": [
                 {
                     "study_id": "001-risk",
@@ -37,10 +40,11 @@ def _study_workbench_payload() -> dict[str, object]:
                 }
             ]
         },
-        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
-        package={"study_id": "001-risk"},
-        study_id="001-risk",
+        runtime_payload={"study_id": "001-risk", "active_run_id": "run-001"},
+        package_payload={"study_id": "001-risk"},
+        generated_at="2026-06-18T00:00:00+08:00",
     )
+    return payload["study_workbench"]
 
 
 def _runtime_workbench_projection(study_workbench: dict[str, object]) -> dict[str, object]:
@@ -73,14 +77,29 @@ def _runtime_workbench_projection(study_workbench: dict[str, object]) -> dict[st
     )
 
 
-def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -> None:
+def test_study_workbench_next_system_action_defaults_to_artifact_first_mission_summary() -> None:
     payload = _study_workbench_payload()
 
     assert payload["tabs"][0] == {
+        "id": "mission_summary",
+        "label": "Mission Summary",
+        "status": "stable_blocker",
+    }
+    assert payload["tabs"][1] == {
         "id": "current_owner_delta",
         "label": "Current Owner Delta",
         "status": "available",
     }
+    mission = payload["mission_summary"]
+    assert mission["surface_kind"] == "artifact_first_paper_mission_summary"
+    assert mission["contract_ref"] == "contracts/paper_mission_run_contract.json"
+    assert mission["validator"] == "med_autoscience.paper_mission_run.PaperMissionRun"
+    assert mission["paper_mission_run"]["schema_version"] == "paper-mission-run.v1"
+    assert mission["paper_mission_run"]["mission_state"] == "stable_blocker"
+    assert mission["latest_artifact_delta"]["counts_as_paper_progress"] is False
+    assert mission["platform_diagnostics"]["counts_as_paper_progress"] is False
+    assert payload["summary"]["default_read_surface"] == "artifact_first_mission_summary"
+    assert payload["summary"]["platform_repair_folded_to_diagnostics"] is True
     default_read = payload["current_owner_delta"]
     assert default_read["surface_kind"] == "mas_progress_portal_current_owner_delta_default_read"
     assert default_read["read_surface_role"] == "ordinary_default_current_owner_delta"
@@ -105,7 +124,11 @@ def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -
     )
     assert owner_delta_summary["can_generate_action"] is False
     assert owner_delta_summary["can_authorize_provider_admission"] is False
-    assert payload["overview"]["next_system_action"] == owner_delta_summary["summary"]
+    assert payload["overview"]["next_system_action"] == (
+        "mission_state=stable_blocker; objective=owner_receipt_or_typed_blocker; "
+        "next_owner=ai_reviewer"
+    )
+    assert payload["overview"]["next_system_action_role"] == "artifact_first_mission_summary"
     legacy = payload["overview"]["legacy_next_system_action_diagnostic"]
     assert legacy["role"] == "diagnostic_legacy_projection_input"
     assert legacy["values"] == [
@@ -118,7 +141,9 @@ def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -
     boundary = payload["overview_action_boundary"]
     assert payload["overview"]["next_system_action_boundary"] == boundary
     assert boundary["surface_kind"] == "mas_progress_portal_study_workbench_overview_action_boundary"
-    assert boundary["next_system_action_role"] == "read_only_owner_delta_summary"
+    assert boundary["next_system_action_role"] == "artifact_first_mission_summary"
+    assert boundary["default_read_surface"] == "artifact_first_mission_summary"
+    assert boundary["legacy_owner_delta_role"] == "diagnostic_input"
     assert boundary["projection_only"] is True
     assert boundary["can_generate_action"] is False
     assert boundary["can_execute"] is False
@@ -131,13 +156,17 @@ def test_study_workbench_next_system_action_is_read_only_owner_delta_summary() -
     assert boundary["must_not_be_used_as_paper_progress"] is True
 
 
-def test_study_workbench_renders_current_owner_delta_before_diagnostics() -> None:
-    module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.study_workbench")
-    html = module.render_study_workbench_sections(_study_workbench_payload())
+def test_progress_portal_workbench_payload_prioritizes_mission_summary_before_diagnostics() -> None:
+    payload = _study_workbench_payload()
 
-    assert html.index("Current Owner Delta") < html.index("运行")
-    assert "run_quality_repair_batch" in html
-    assert "provider_trace" in html
+    assert payload["tabs"][0]["id"] == "mission_summary"
+    assert payload["mission_summary"]["paper_mission_run"]["schema_version"] == "paper-mission-run.v1"
+    assert payload["tabs"].index(
+        {"id": "mission_summary", "label": "Mission Summary", "status": "stable_blocker"}
+    ) < payload["tabs"].index(
+        {"id": "runtime", "label": "运行", "status": "available"}
+    )
+    assert "provider_trace" in payload["current_owner_delta"]["audit_plane_exclusions"]
 
 
 def test_action_owner_routing_policy_cannot_dispatch_or_admit_provider() -> None:
