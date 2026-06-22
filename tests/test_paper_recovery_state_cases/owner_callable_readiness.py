@@ -163,6 +163,58 @@ def test_publication_gate_typed_blocker_with_registered_callable_is_owner_action
     )
 
 
+def test_opl_authorization_typed_blocker_never_becomes_mas_owner_callable() -> None:
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": _typed_blocker_work_unit(
+                study_id="002-dm-china-us-mortality-attribution",
+                owner="one-person-lab",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                blocker_type="opl_execution_authorization_required",
+            )
+            | {
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+            },
+            "study_truth_snapshot": {
+                "allowed_controller_actions": [
+                    "record_user_decision",
+                    "direct_study_execution",
+                    "direct_paper_line_write",
+                ],
+            },
+        }
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["current_authority"]["owner"] == "one-person-lab"
+    assert state["current_authority"]["obligation"]["owner"] == "one-person-lab"
+    assert state["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "opl_execution_authorization_required",
+        }
+    ]
+    assert state["next_safe_action"] == {
+        "kind": "provide_opl_execution_authorization_or_human_gate",
+        "owner": "one-person-lab",
+        "provider_admission_allowed": False,
+        "required_input": "OPL provider attempt, active lease, and execution authorization decision",
+    }
+    assert "owner_callable" not in state["next_safe_action"]
+
+
 def test_terminal_publication_gate_typed_blocker_does_not_rerun_same_owner_callable() -> None:
     fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
     successor_fingerprint = "publication-blockers::0915410f804b3697"

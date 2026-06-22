@@ -22,6 +22,10 @@ def current_mas_owner_callable(
         "typed_blocker",
     }:
         return None
+    if current_status == "typed_blocker" and _typed_blocker_reason(current_work_unit) == (
+        "opl_execution_authorization_required"
+    ):
+        return None
     if current_status == "typed_blocker" and _typed_blocker_has_terminal_owner_answer(current_work_unit):
         return None
     action_type = _text(obligation.get("action_type"))
@@ -54,6 +58,20 @@ def _typed_blocker_has_terminal_owner_answer(current_work_unit: Mapping[str, Any
             typed_blocker.get("typed_blocker_ref"),
             required_output_contract.get("typed_blocker_ref"),
         )
+    )
+
+
+def _typed_blocker_reason(current_work_unit: Mapping[str, Any]) -> str | None:
+    state = _mapping(current_work_unit.get("state"))
+    typed_blocker = _mapping(state.get("typed_blocker")) or _mapping(current_work_unit.get("typed_blocker"))
+    for key in ("blocked_reason", "blocker_type", "blocker_kind", "reason", "blocker_id"):
+        if text := _text(typed_blocker.get(key)):
+            return text
+    return (
+        _text(current_work_unit.get("blocked_reason"))
+        or _text(current_work_unit.get("blocker_type"))
+        or _text(state.get("blocked_reason"))
+        or _text(state.get("blocker_type"))
     )
 
 
