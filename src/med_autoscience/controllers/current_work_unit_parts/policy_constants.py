@@ -44,6 +44,7 @@ MEDICAL_READINESS_BLOCKERS = frozenset(
 )
 CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
     {
+        "ai_reviewer_record_stale_after_current_inputs",
         "domain_owner_action_dispatch_execution_count_zero",
         "domain_owner_action_dispatch_zero_selected_dispatch",
         "domain_owner_dispatch_zero_selected_after_materialized_current_request",

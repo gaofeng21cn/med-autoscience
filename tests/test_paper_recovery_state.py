@@ -140,6 +140,90 @@ def test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuil
     assert state["supervisor_decision"]["mas_can_run_supervisor_decision_engine"] is False
 
 
+def test_current_ai_reviewer_gate_replay_action_supersedes_stale_ai_reviewer_blocker() -> None:
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "current-ai-reviewer-record::sha256-a05623df"
+    )
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "quest_id": "002-dm-china-us-mortality-attribution",
+                "owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
+                        "owner": "ai_reviewer",
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "work_unit_id": (
+                            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                        ),
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                    },
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "finalize",
+                "owner": "finalize",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "owner_receipt_required": True,
+                "required_delta_kind": "publication_eval_gate_replay_delta_or_typed_blocker",
+                "publication_eval_id": eval_id,
+                "owner_route_currentness_basis": {
+                    "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                    "source_eval_id": eval_id,
+                    "work_unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                },
+                "target_surface": {
+                    "ref_kind": "publication_eval_recommended_action",
+                    "route_target": "finalize",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "next_work_unit": {
+                        "unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+                        "lane": "finalize",
+                    },
+                },
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [
+        {
+            "condition": "current_owner_action_supersedes_terminal_typed_blocker",
+            "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
+    assert state["next_safe_action"]["successor_owner_action"]["action_type"] == "run_gate_clearing_batch"
+    assert state["current_authority"]["owner"] == "finalize"
+
+
 def test_paper_recovery_state_consumes_opl_supervisor_decision_readback() -> None:
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"

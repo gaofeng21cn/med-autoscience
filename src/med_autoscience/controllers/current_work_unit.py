@@ -1536,10 +1536,16 @@ def _publication_eval_repair_action_supersedes_readiness_blocker(action: Mapping
         return False
     action_type = _text(action.get("action_type"))
     action_types = {action_type, *_text_items(action.get("allowed_actions"))}
-    if "run_quality_repair_batch" not in action_types:
+    if not action_types.intersection({"run_quality_repair_batch", "run_gate_clearing_batch"}):
         return False
     if _text(action.get("work_unit_id")) in {None, "complete_medical_paper_readiness_surface"}:
         return False
+    if "run_gate_clearing_batch" in action_types:
+        target = _mapping(action.get("target_surface"))
+        if _text(target.get("route_target")) != "finalize":
+            return False
+        if _text(target.get("surface_ref")) != "artifacts/controller/gate_clearing_batch/latest.json":
+            return False
     return bool(_mapping(action.get("target_surface")).get("next_work_unit"))
 
 
