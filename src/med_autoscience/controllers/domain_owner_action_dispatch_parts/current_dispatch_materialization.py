@@ -34,15 +34,7 @@ def current_materialized_dispatches(
         dict(dispatch)
         for dispatch in domain_progress_transition_requests(payload)
         if isinstance(dispatch, Mapping)
-        and (
-            not requested
-            or text(dispatch.get("action_type")) in requested
-            or _materialized_from_requested_action(
-                dispatch=dispatch,
-                requested=requested,
-                text=text,
-            )
-        )
+        and (not requested or text(dispatch.get("action_type")) in requested)
     ]
 
 

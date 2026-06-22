@@ -148,6 +148,46 @@ def test_execute_dispatch_filters_action_that_is_not_current_owner_route_action(
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_current_materialized_dispatches_do_not_select_successor_for_explicit_requested_action(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.current_dispatch_materialization"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    successor_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+    successor_dispatch["source_action_ref"] = {
+        "materialized_from_action_type": "return_to_ai_reviewer_workflow",
+    }
+    successor_dispatch["owner_route_ref"] = {
+        "source_refs": {
+            "materialized_from_action_type": "return_to_ai_reviewer_workflow",
+        }
+    }
+
+    def fake_transition_request_projection_producer(**_: object) -> dict[str, object]:
+        return _transition_request_consumer_latest(successor_dispatch)
+
+    dispatches = module.current_materialized_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=False,
+        transition_request_projection_producer=fake_transition_request_projection_producer,
+        text=lambda value: str(value).strip() if str(value or "").strip() else None,
+    )
+
+    assert dispatches == []
+
+
 def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_blocker(
     monkeypatch,
     tmp_path: Path,
