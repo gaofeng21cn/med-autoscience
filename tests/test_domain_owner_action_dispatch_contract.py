@@ -263,6 +263,78 @@ def test_dispatch_receipt_projection_never_exports_mas_private_authority_claims(
     assert payload["owner_callable_adapter_boundary"]["opl_readback_requirement"] == readback_requirement
 
 
+def test_opl_authorization_block_receipt_preserves_current_owner_identity(tmp_path) -> None:
+    dispatch = _projection(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="002-dm-china-us-mortality-attribution",
+        action_type="run_quality_repair_batch",
+        next_executable_owner="analysis-campaign",
+        next_work_unit={"unit_id": "analysis_claim_evidence_repair"},
+        work_unit_fingerprint="publication-blockers::f11710a114497b27",
+        owner_route={
+            "next_owner": "analysis-campaign",
+            "owner_reason": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::f11710a114497b27",
+            "source_refs": {
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::f11710a114497b27",
+            },
+        },
+    )
+
+    payload = domain_owner_action_dispatch._dispatch_execution_payload(
+        profile=object(),
+        generated_at="2026-06-22T13:00:00+00:00",
+        study_id="002-dm-china-us-mortality-attribution",
+        dispatch_path=tmp_path / "dispatch.json",
+        dispatch=dispatch,
+        action_type="run_quality_repair_batch",
+        guard_ok=False,
+        guard_reason="opl_execution_authorization_required",
+        current_route={
+            "next_owner": "analysis-campaign",
+            "owner_reason": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::f11710a114497b27",
+            "source_refs": {
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::f11710a114497b27",
+            },
+        },
+        owner_route_basis="provider_admission_candidates",
+        owner_route_block_reason=None,
+        prompt_contract=dict(dispatch["prompt_contract"]),
+        repeat_guard={
+            "repeat_suppressed": False,
+            "repeat_suppression_key": "publication-blockers::f11710a114497b27",
+        },
+        action_fingerprint="publication-blockers::f11710a114497b27",
+        action_cost={
+            "action_class": "owner_callable",
+            "will_start_llm": False,
+        },
+        stall_handoff_allowed=False,
+        stall_diagnostic={},
+        current_study={},
+        apply=False,
+        developer_mode_payload={},
+        execution=domain_owner_action_dispatch._opl_execution_authorization_block_fields(),
+    )
+
+    assert payload["execution_status"] == "blocked"
+    assert payload["blocked_reason"] == "opl_execution_authorization_required"
+    assert payload["owner"] == "analysis-campaign"
+    assert payload["next_owner"] == "analysis-campaign"
+    assert payload["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert payload["work_unit_fingerprint"] == "publication-blockers::f11710a114497b27"
+    assert payload["action_fingerprint"] == "publication-blockers::f11710a114497b27"
+    assert payload["provider_admission_requires_opl_runtime_result"] is True
+    assert payload["mas_dispatch_authority"] is False
+    typed_blocker = payload["typed_blocker"]
+    assert typed_blocker["owner"] == "one-person-lab"
+    assert typed_blocker["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert typed_blocker["work_unit_fingerprint"] == "publication-blockers::f11710a114497b27"
+
+
 def test_closeout_binding_does_not_authorize_owner_callable_execution() -> None:
     binding = {
         "surface_kind": "medical_paper_readiness_closeout_binding",

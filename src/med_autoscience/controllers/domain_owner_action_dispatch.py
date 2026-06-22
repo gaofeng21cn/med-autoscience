@@ -761,6 +761,86 @@ def _opl_execution_authorization_block_fields() -> dict[str, Any]:
     }
 
 
+def _execution_owner_identity(
+    *,
+    dispatch: Mapping[str, Any],
+    current_route: Mapping[str, Any] | None,
+    prompt_contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner_route = owner_route_selection.dispatch_owner_route(dispatch) or {}
+    route = _mapping(current_route) or _mapping(owner_route)
+    source_refs = _mapping(route.get("source_refs")) or _mapping(owner_route.get("source_refs"))
+    route_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(route.get("currentness_contract")).get("basis")
+    )
+    prompt_route = _mapping(prompt_contract.get("owner_route"))
+    prompt_refs = _mapping(prompt_route.get("source_refs"))
+    owner = (
+        _text(dispatch.get("owner"))
+        or _text(dispatch.get("next_executable_owner"))
+        or _text(route.get("next_owner"))
+        or _text(route.get("owner"))
+        or _text(owner_route.get("next_owner"))
+        or _text(prompt_route.get("next_owner"))
+    )
+    work_unit_id = (
+        _work_unit_id(dispatch.get("next_work_unit"))
+        or _text(dispatch.get("work_unit_id"))
+        or _text(route.get("work_unit_id"))
+        or _text(source_refs.get("work_unit_id"))
+        or _text(route_basis.get("work_unit_id"))
+        or _text(prompt_contract.get("work_unit_id"))
+        or _work_unit_id(prompt_contract.get("next_work_unit"))
+        or _text(prompt_refs.get("work_unit_id"))
+    )
+    work_unit_fingerprint = (
+        _text(dispatch.get("work_unit_fingerprint"))
+        or _text(dispatch.get("action_fingerprint"))
+        or _text(route.get("work_unit_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(route_basis.get("work_unit_fingerprint"))
+        or _text(prompt_contract.get("work_unit_fingerprint"))
+        or _text(prompt_contract.get("action_fingerprint"))
+        or _text(prompt_refs.get("work_unit_fingerprint"))
+    )
+    identity = {
+        "owner": owner,
+        "next_owner": owner,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+    }
+    return {key: value for key, value in identity.items() if value is not None}
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
+    return _text(value)
+
+
+def _typed_blocker_with_execution_identity(
+    typed_blocker: object,
+    *,
+    identity: Mapping[str, Any],
+) -> object:
+    if not isinstance(typed_blocker, Mapping):
+        return typed_blocker
+    if _text(typed_blocker.get("blocker_id")) != "opl_execution_authorization_required":
+        return typed_blocker
+    return {
+        **dict(typed_blocker),
+        **{
+            key: value
+            for key, value in {
+                "work_unit_id": identity.get("work_unit_id"),
+                "work_unit_fingerprint": identity.get("work_unit_fingerprint"),
+                "action_fingerprint": identity.get("work_unit_fingerprint"),
+            }.items()
+            if _text(value) is not None
+        },
+    }
+
+
 def _materialize_post_gate_handoffs(execution: Mapping[str, Any]) -> dict[str, Any]:
     if _text(execution.get("execution_status")) != "handoff_ready":
         return dict(execution)
@@ -1023,6 +1103,17 @@ def _dispatch_execution_payload(
     )
     if execution_status := _text(execution_payload.get("execution_status")):
         execution_payload["status"] = execution_status
+    execution_identity = _execution_owner_identity(
+        dispatch=dispatch,
+        current_route=current_route,
+        prompt_contract=prompt_contract,
+    )
+    for key, value in execution_identity.items():
+        execution_payload.setdefault(key, value)
+    execution_payload["typed_blocker"] = _typed_blocker_with_execution_identity(
+        execution_payload.get("typed_blocker"),
+        identity=execution_identity,
+    )
     progress_first_typed_blocker = _progress_first_typed_blocker(
         dispatch=dispatch,
         execution=execution_payload,
