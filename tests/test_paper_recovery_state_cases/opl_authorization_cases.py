@@ -249,7 +249,7 @@ def test_opl_execution_authorization_obligation_keeps_blocked_domain_owner() -> 
     assert state["current_authority"]["obligation"]["owner"] == "gate_clearing_batch"
 
 
-def test_opl_authorization_blocker_yields_owner_action_ready_when_repair_followup_is_current() -> None:
+def test_opl_authorization_blocker_keeps_opl_owner_even_when_repair_followup_is_current() -> None:
     state = _module().build_paper_recovery_state(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -291,17 +291,25 @@ def test_opl_authorization_blocker_yields_owner_action_ready_when_repair_followu
         }
     )
 
-    assert state["phase"] == "owner_action_ready"
-    assert state["current_authority"]["owner"] == "gate_clearing_batch"
-    assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
+    assert state["phase"] == "domain_blocked"
+    assert state["current_authority"]["owner"] == "one-person-lab"
+    assert state["current_authority"]["authority"] == "one-person-lab"
+    assert state["current_authority"]["obligation"]["owner"] == "gate_clearing_batch"
+    assert state["conditions"] == [
+        {
+            "condition": "current_work_unit_typed_blocker",
+            "blocker_type": "opl_execution_authorization_required",
+        }
+    ]
     assert state["next_safe_action"] == {
-        "kind": "materialize_mas_transition_request_or_owner_callable",
-        "owner": "gate_clearing_batch",
-        "provider_admission_allowed": True,
+        "kind": "provide_opl_execution_authorization_or_human_gate",
+        "owner": "one-person-lab",
+        "provider_admission_allowed": False,
+        "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
 
 
-def test_opl_authorization_blocker_yields_recovery_successor_when_current_action_supersedes_it() -> None:
+def test_opl_authorization_blocker_keeps_opl_owner_when_successor_action_is_current() -> None:
     source_eval_id = (
         "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
         "ai-reviewer-record::20260612T142918Z::sat_433e34b1795d4f3c3fbe1fbb"
@@ -354,21 +362,18 @@ def test_opl_authorization_blocker_yields_recovery_successor_when_current_action
         }
     )
 
-    assert state["phase"] == "owner_action_ready"
+    assert state["phase"] == "domain_blocked"
     assert state["conditions"] == [
         {
-            "condition": "current_owner_action_supersedes_typed_blocker",
+            "condition": "current_work_unit_typed_blocker",
             "blocker_type": "opl_execution_authorization_required",
         }
     ]
-    assert state["current_authority"]["owner"] == "write"
-    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
-    assert state["next_safe_action"]["provider_admission_allowed"] is True
-    assert state["next_safe_action"]["successor_owner_action"] == {
-        "action_type": "run_quality_repair_batch",
-        "owner": "write",
-        "work_unit_id": "medical_prose_write_repair",
-        "work_unit_fingerprint": repair_fingerprint,
-        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
-        "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+    assert state["current_authority"]["owner"] == "one-person-lab"
+    assert state["current_authority"]["obligation"]["owner"] == "one-person-lab"
+    assert state["next_safe_action"] == {
+        "kind": "provide_opl_execution_authorization_or_human_gate",
+        "owner": "one-person-lab",
+        "provider_admission_allowed": False,
+        "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }

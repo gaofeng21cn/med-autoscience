@@ -583,7 +583,7 @@ def test_current_work_unit_projects_current_publication_eval_gate_replay_over_st
     assert "typed_blocker" not in work_unit["state"]
 
 
-def test_current_work_unit_projects_gate_consumption_action_over_opl_authorization_residue_after_paper_delta() -> None:
+def test_current_work_unit_keeps_opl_authorization_blocker_over_gate_consumption_action() -> None:
     module = _module()
 
     work_unit = module.build_current_work_unit(
@@ -625,12 +625,11 @@ def test_current_work_unit_projects_gate_consumption_action_over_opl_authorizati
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "ai_reviewer_record_gate_consumption"
-    assert work_unit["state"]["source"] == "study_progress.next_forced_delta.owner_action"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["state"]["source"] == "typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["owner"] == "write"
 
 
 def test_current_work_unit_binds_anti_loop_typed_blocker_as_owner_answer_ref() -> None:

@@ -26,7 +26,6 @@ SUPERSEDED_RECOVERY_SUCCESSOR_BLOCKERS = frozenset(
         "blocked:unsupported_dispatch_surface",
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
-        "opl_execution_authorization_required",
         "publication_gate_replay_blocked",
     }
 )

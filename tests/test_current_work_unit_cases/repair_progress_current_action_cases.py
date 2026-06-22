@@ -224,7 +224,7 @@ def test_current_work_unit_projects_repair_progress_gate_replay_over_stale_stage
     assert "typed_blocker" not in work_unit["state"]
 
 
-def test_current_work_unit_projects_paper_recovery_successor_over_opl_authorization_blocker() -> None:
+def test_current_work_unit_keeps_opl_authorization_blocker_over_paper_recovery_successor() -> None:
     module = _module()
     repair_fingerprint = "publication-blockers::0915410f804b3697"
 
@@ -275,13 +275,14 @@ def test_current_work_unit_projects_paper_recovery_successor_over_opl_authorizat
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["action_type"] == "run_quality_repair_batch"
-    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
-    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
-    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "publication_gate_replay"
+    assert work_unit["state"]["source"] == "typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert work_unit["required_output_contract"]["domain_ready_authorized"] is False
 
 
 def test_current_work_unit_projects_same_work_unit_owner_receipt_over_current_action() -> None:
@@ -359,7 +360,7 @@ def test_current_work_unit_projects_same_work_unit_owner_receipt_over_current_ac
     }
 
 
-def test_current_work_unit_projects_paper_recovery_successor_over_terminal_opl_authorization_blocker() -> None:
+def test_current_work_unit_keeps_terminal_opl_authorization_blocker_over_paper_recovery_successor() -> None:
     module = _module()
     repair_fingerprint = "publication-blockers::0915410f804b3697"
 
@@ -435,13 +436,15 @@ def test_current_work_unit_projects_paper_recovery_successor_over_terminal_opl_a
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
     assert work_unit["action_type"] == "run_quality_repair_batch"
     assert work_unit["work_unit_id"] == "medical_prose_write_repair"
     assert work_unit["work_unit_fingerprint"] == repair_fingerprint
-    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert work_unit["required_output_contract"]["domain_ready_authorized"] is False
 
 
 def test_current_work_unit_keeps_paper_recovery_successor_over_repair_progress_followup() -> None:

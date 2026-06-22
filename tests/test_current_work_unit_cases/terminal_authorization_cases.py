@@ -126,6 +126,68 @@ def test_current_work_unit_routes_opl_authorization_typed_blocker_over_stage_rea
     assert work_unit["state"]["typed_blocker"]["owner"] == "gate_clearing_batch"
 
 
+def test_current_work_unit_opl_authorization_blocker_precedes_same_identity_action() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "consume_current_ai_reviewer_publication_eval_record_and_replay_gate"
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "source_surface": "paper_recovery_state.next_safe_action.successor_owner_action",
+                "next_owner": "finalize",
+                "owner": "finalize",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "owner_receipt_required": True,
+                "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            }
+        ],
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "blocker_type": "opl_execution_authorization_required",
+            "blocked_reason": "opl_execution_authorization_required",
+            "owner": "finalize",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "required_input": "OPL provider attempt, active lease, and execution authorization decision",
+            "typed_blocker_ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_execution/sat-b002.closeout.json#typed_blocker"
+            ),
+        },
+        next_owner="finalize",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["owner"] == "finalize"
+    assert work_unit["required_output_contract"]["domain_ready_authorized"] is False
+
+
 def test_current_work_unit_normalizes_structured_terminal_authorization_blocker() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
