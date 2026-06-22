@@ -43,6 +43,11 @@ def test_accepts_candidate_with_required_refs_and_no_authority_claims() -> None:
     assert result["surface_kind"] == "mas_paper_mission_candidate_consume_readback"
     assert result["status"] == "accepted_candidate"
     assert result["selected_outcome"] == "accepted_candidate"
+    assert result["consume_result"] == {
+        "status": "accepted",
+        "outcome": "accepted_candidate",
+        "authority_materialized": False,
+    }
     assert result["allowed_outcomes"] == [
         "accepted_candidate",
         "rejected_candidate",
@@ -84,6 +89,7 @@ def test_accepts_candidate_manifest_path_as_read_only_payload(tmp_path: Path) ->
 
     assert result["status"] == "accepted_candidate"
     assert result["selected_outcome"] == "accepted_candidate"
+    assert result["consume_result"]["status"] == "accepted"
     assert result["candidate_manifest_input"]["path"] == str(manifest)
     assert result["candidate_manifest_input"]["loaded"] is True
     assert result["write_plan"]["written_files"] == []
@@ -102,6 +108,8 @@ def test_rejects_candidate_that_claims_publication_or_owner_authority() -> None:
     )
 
     assert result["status"] == "rejected_candidate"
+    assert result["consume_result"]["status"] == "rejected"
+    assert result["consume_result"]["outcome"] == "rejected_candidate"
     assert result["rejected_candidate"]["reason_code"] == "forbidden_authority_claim"
     assert set(result["rejected_candidate"]["violations"]) == {
         "publication_ready",
@@ -126,6 +134,8 @@ def test_routes_back_candidate_with_authority_write_path_without_writing(tmp_pat
     )
 
     assert result["status"] == "route_back"
+    assert result["consume_result"]["status"] == "route_back"
+    assert result["consume_result"]["outcome"] == "route_back"
     assert result["route_back"]["reason_code"] == "forbidden_authority_write_path"
     assert result["route_back"]["next_owner"] == "mission_executor"
     assert result["route_back"]["resume_condition"] == (
@@ -150,6 +160,8 @@ def test_human_gate_required_is_allowed_but_not_materialized() -> None:
     )
 
     assert result["status"] == "human_gate_required"
+    assert result["consume_result"]["status"] == "human_gate"
+    assert result["consume_result"]["outcome"] == "human_gate_required"
     assert result["human_gate_required"] == {
         "candidate_id": "pmc-001",
         "materialized": False,
@@ -174,6 +186,8 @@ def test_typed_blocker_required_is_allowed_but_not_written() -> None:
     )
 
     assert result["status"] == "typed_blocker_required"
+    assert result["consume_result"]["status"] == "typed_blocker"
+    assert result["consume_result"]["outcome"] == "typed_blocker_required"
     assert result["typed_blocker_required"] == {
         "candidate_id": "pmc-001",
         "materialized": False,
@@ -195,6 +209,8 @@ def test_missing_non_degradation_fields_route_back_to_candidate_owner() -> None:
     result = consume_paper_mission_candidate(candidate)
 
     assert result["status"] == "route_back"
+    assert result["consume_result"]["status"] == "route_back"
+    assert result["consume_result"]["outcome"] == "route_back"
     assert result["route_back"]["reason_code"] == "missing_required_non_degradation_refs"
     assert result["route_back"]["missing_fields"] == [
         "source_readiness_refs",

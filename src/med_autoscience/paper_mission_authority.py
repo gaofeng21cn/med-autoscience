@@ -53,6 +53,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "route_back",
             "selected_outcome": "route_back",
+            "consume_result": _consume_result("route_back"),
             "accepted_candidate": None,
             "route_back": {
                 "candidate_id": base["candidate_id"],
@@ -70,6 +71,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "rejected_candidate",
             "selected_outcome": "rejected_candidate",
+            "consume_result": _consume_result("rejected_candidate"),
             "accepted_candidate": None,
             "rejected_candidate": {
                 "candidate_id": base["candidate_id"],
@@ -88,6 +90,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "route_back",
             "selected_outcome": "route_back",
+            "consume_result": _consume_result("route_back"),
             "accepted_candidate": None,
             "route_back": {
                 "candidate_id": base["candidate_id"],
@@ -111,6 +114,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "route_back",
             "selected_outcome": "route_back",
+            "consume_result": _consume_result("route_back"),
             "accepted_candidate": None,
             "route_back": {
                 "candidate_id": base["candidate_id"],
@@ -129,6 +133,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "human_gate_required",
             "selected_outcome": "human_gate_required",
+            "consume_result": _consume_result("human_gate_required"),
             "accepted_candidate": None,
             "human_gate_required": _human_gate_payload(payload),
         }
@@ -137,6 +142,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "typed_blocker_required",
             "selected_outcome": "typed_blocker_required",
+            "consume_result": _consume_result("typed_blocker_required"),
             "accepted_candidate": None,
             "typed_blocker_required": _typed_blocker_payload(payload),
         }
@@ -145,6 +151,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "route_back",
             "selected_outcome": "route_back",
+            "consume_result": _consume_result("route_back"),
             "accepted_candidate": None,
             "route_back": {
                 "candidate_id": base["candidate_id"],
@@ -163,6 +170,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             **base,
             "status": "rejected_candidate",
             "selected_outcome": "rejected_candidate",
+            "consume_result": _consume_result("rejected_candidate"),
             "accepted_candidate": None,
             "rejected_candidate": {
                 "candidate_id": base["candidate_id"],
@@ -178,6 +186,7 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
         **base,
         "status": "accepted_candidate",
         "selected_outcome": "accepted_candidate",
+        "consume_result": _consume_result("accepted_candidate"),
         "accepted_candidate": {
             "candidate_id": base["candidate_id"],
             "mission_id": base["mission_id"],
@@ -207,6 +216,21 @@ def _base_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         "write_plan": _no_write_plan(),
         "forbidden_authority_writes": _forbidden_authority_writes(),
         "authority_boundary": _authority_boundary(),
+    }
+
+
+def _consume_result(outcome: str) -> dict[str, Any]:
+    status_by_outcome = {
+        "accepted_candidate": "accepted",
+        "rejected_candidate": "rejected",
+        "route_back": "route_back",
+        "typed_blocker_required": "typed_blocker",
+        "human_gate_required": "human_gate",
+    }
+    return {
+        "status": status_by_outcome[outcome],
+        "outcome": outcome,
+        "authority_materialized": False,
     }
 
 
