@@ -353,6 +353,7 @@ def _base_payload(*, spec: CandidateSpec, path: Path, actual_sha: str) -> dict[s
         "owner_identity": dict(spec.owner_identity),
         "required_governed_answer_shapes": list(spec.accepted_response_kinds),
         "next_legal_surface": dict(spec.next_legal_surface),
+        "governed_owner_response_transport": _governed_owner_response_transport(spec),
         "write_plan": _no_write_plan(),
         "forbidden_authority_writes": _forbidden_authority_writes(),
         "authority_boundary": _authority_boundary(),
@@ -371,7 +372,83 @@ def _blocked_owner(spec: CandidateSpec) -> dict[str, Any]:
         "study_id": spec.study_id,
         "owner_identity": dict(spec.owner_identity),
         "required_governed_answer_shapes": list(spec.accepted_response_kinds),
+        "governed_owner_response_transport": _governed_owner_response_transport(spec),
         "missing_authority": "governed_owner_answer_consuming_package_candidate",
+    }
+
+
+def _governed_owner_response_transport(spec: CandidateSpec) -> dict[str, Any]:
+    owner = spec.owner_identity
+    if spec.candidate_id.startswith("B002-"):
+        return {
+            "status": "available",
+            "owner_surface": spec.owner_surface,
+            "authoring_surface": "ai_reviewer_record_payload_authoring_target",
+            "authoring_target_ref": (
+                "artifacts/supervision/requests/ai_reviewer/record_production_payloads/"
+                "return_to_ai_reviewer_workflow_payload.json"
+            ),
+            "owner_authored_field": "record_payload",
+            "transport_command": (
+                "medautosci publication materialize-ai-reviewer-record "
+                "--profile <profile.toml> "
+                f"--study-id {spec.study_id} "
+                "--payload-file <ai_reviewer_record_payload_authoring_target.json> "
+                "--entry-mode owner_consumption_payload_guard "
+                "--expected-owner ai_reviewer "
+                f"--expected-action-type {owner.get('action_type')} "
+                f"--expected-work-unit-id {owner.get('work_unit_id')} "
+                f"--expected-work-unit-fingerprint {owner.get('work_unit_fingerprint')} "
+                "--build-production-trace"
+            ),
+            "no_write_readback_command": (
+                "medautosci publication materialize-ai-reviewer-record "
+                "--profile <profile.toml> "
+                f"--study-id {spec.study_id} "
+                "--entry-mode owner_consumption_payload_guard "
+                "--expected-owner ai_reviewer "
+                f"--expected-action-type {owner.get('action_type')} "
+                f"--expected-work-unit-id {owner.get('work_unit_id')} "
+                f"--expected-work-unit-fingerprint {owner.get('work_unit_fingerprint')} "
+                "--build-production-trace --dry-run"
+            ),
+            "response_kind": "publication_eval_record_ref",
+            "response_ref_source": "publication_eval_record_ref",
+            "record_only_surface": True,
+            "publication_eval_latest_write_allowed": False,
+            "controller_decision_write_allowed": False,
+            "paper_progress_claim_allowed": False,
+        }
+    if spec.candidate_id.startswith("B003-"):
+        return {
+            "status": "available",
+            "owner_surface": spec.owner_surface,
+            "authoring_surface": "study_owner_gate_decision_record",
+            "transport_command": (
+                "medautosci study-owner-gate-decision "
+                "--profile <profile.toml> "
+                f"--study-id {spec.study_id} "
+                f"--action-type {owner.get('action_type')} "
+                f"--work-unit-id {owner.get('work_unit_id')} "
+                f"--work-unit-fingerprint {owner.get('work_unit_fingerprint')} "
+                "--blocker-type <current_blocker_type> "
+                "--decision <preserve_existing_stable_blocker|narrow_stable_blocker|"
+                "route_back_to_publication_owner|explicitly_supersede_stable_blocker> "
+                "--reason <owner_reason> "
+                f"--supersedes-owner-gate-decision-ref {spec.stable_blocker_ref or '<owner-gate-decision-ref>'} "
+                "--dry-run"
+            ),
+            "response_kind": "human_gate_ref",
+            "response_ref_source": "human_gate_ref",
+            "preserve_or_explicitly_supersede": spec.stable_blocker_ref,
+            "provider_redrive_allowed": False,
+            "publication_gate_replay_authorized": False,
+            "paper_progress_claim_allowed": False,
+        }
+    return {
+        "status": "not_declared",
+        "owner_surface": spec.owner_surface,
+        "paper_progress_claim_allowed": False,
     }
 
 

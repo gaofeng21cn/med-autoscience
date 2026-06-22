@@ -196,6 +196,11 @@ def test_b002_1055_governed_answer_target_fails_closed_without_governed_ref(tmp_
     assert result["next_legal_surface"]["kind"] == (
         "ai_reviewer_payload_currentness_guard_owner_answer"
     )
+    transport = result["blocked_owner"]["governed_owner_response_transport"]
+    assert transport["authoring_surface"] == "ai_reviewer_record_payload_authoring_target"
+    assert transport["response_kind"] == "publication_eval_record_ref"
+    assert "--expected-owner ai_reviewer" in transport["no_write_readback_command"]
+    assert transport["paper_progress_claim_allowed"] is False
 
 
 def test_b003_1105_governed_answer_target_fails_closed_and_preserves_blocker(
@@ -232,6 +237,13 @@ def test_b003_1105_governed_answer_target_fails_closed_and_preserves_blocker(
     assert result["next_legal_surface"]["kind"] == (
         "publication_gate_write_repair_stable_blocker_owner_answer"
     )
+    transport = result["blocked_owner"]["governed_owner_response_transport"]
+    assert transport["authoring_surface"] == "study_owner_gate_decision_record"
+    assert transport["response_kind"] == "human_gate_ref"
+    assert transport["preserve_or_explicitly_supersede"] == (
+        "owner-gate-decision:d6d895635654560a85573c04"
+    )
+    assert transport["provider_redrive_allowed"] is False
 
 
 def test_governed_response_consumed_only_for_allowed_kind_and_matching_ownership(
