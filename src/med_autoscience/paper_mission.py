@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.paper_mission_run import CONTRACT_VERSION, PaperMissionRun
+
 
 DM002_STUDY_ID = "002-dm-china-us-mortality-attribution"
 DM003_STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -37,6 +39,7 @@ _DM_MISSION_OBJECTIVES: dict[str, dict[str, Any]] = {
 }
 
 _FORBIDDEN_WRITES = (
+    "/Users/gaofeng/workspace/Yang/**",
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
     "owner_receipt",
@@ -51,6 +54,28 @@ _FORBIDDEN_WRITES = (
     "redrive",
     "apply",
 )
+_PAPER_MISSION_RUN_BLOCKED_PATHS = (
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "current_package",
+    "runtime queue/provider attempts",
+    "/Users/gaofeng/workspace/Yang/**",
+)
+_FORBIDDEN_AUTHORITY_CLAIMS = (
+    "publication_ready",
+    "submission_ready",
+    "current_package",
+    "owner_receipt_written",
+    "typed_blocker_written",
+    "human_gate_written",
+    "controller_decision_written",
+    "publication_eval_written",
+    "quality_verdict",
+    "artifact_authority",
+    "runtime_queue_written",
+    "provider_attempt_written",
+    "yang_workspace_written",
+)
 
 
 def build_paper_mission_canary_import_pack(
@@ -62,7 +87,7 @@ def build_paper_mission_canary_import_pack(
 ) -> dict[str, Any]:
     progress_by_study = _progress_payloads_by_study(study_progress_payloads)
     dhd = _mapping(domain_health_diagnostic_payload)
-    missions = [
+    mission_payloads = [
         _build_mission(
             study_id=study_id,
             progress=progress,
@@ -108,7 +133,7 @@ def build_paper_mission_canary_import_pack(
             ],
         },
         "authority_boundary": _authority_boundary(),
-        "missions": missions,
+        "missions": mission_payloads,
     }
 
 
@@ -187,12 +212,10 @@ def _build_mission(
         typed_blocker=typed_blocker,
         intervention_lane=intervention_lane,
     )
-    return {
+    readback = {
         "surface_kind": "paper_mission_canary_readback",
         "schema_version": 1,
         "mode": "no_write_import_inspect",
-        "mission_id": f"paper-mission-canary::{study_id}",
-        "study_id": study_id,
         "quest_id": _text(progress.get("quest_id")) or study_id,
         "mission_objective": mission_objective,
         "current_stage": _text(progress.get("current_stage")),
@@ -223,6 +246,72 @@ def _build_mission(
         ),
         "platform_diagnostics": platform_diagnostics,
         "authority_boundary": _authority_boundary(),
+    }
+    payload = _paper_mission_run_payload(
+        study_id=study_id,
+        mission_objective=mission_objective,
+        artifact_refs=artifact_refs,
+        readback=readback,
+        current_blocker=current_blocker,
+        platform_diagnostics=platform_diagnostics,
+    )
+    return PaperMissionRun.from_payload(payload).to_dict()
+
+
+def _paper_mission_run_payload(
+    *,
+    study_id: str,
+    mission_objective: Mapping[str, Any],
+    artifact_refs: list[str],
+    readback: Mapping[str, Any],
+    current_blocker: Mapping[str, Any],
+    platform_diagnostics: Mapping[str, Any],
+) -> dict[str, Any]:
+    objective_id = _text(mission_objective.get("objective_id")) or "paper_mission_import"
+    objective_kind = _text(mission_objective.get("objective_kind")) or "paper_mission_import"
+    objective = _text(mission_objective.get("summary")) or objective_id
+    source_refs = _source_ref_payloads(artifact_refs)
+    return {
+        "schema_version": CONTRACT_VERSION,
+        "mission_id": f"paper-mission::{study_id}::{objective_kind}::canary-import-readback",
+        "study_id": study_id,
+        "objective": objective,
+        "mission_state": "planned",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": f"delta::{study_id}::{objective_id}",
+                "artifact_ref": f"mission://{study_id}/canary/{objective_id}",
+                "delta_kind": "owner_decision_packet_requirement",
+                "status": "planned_no_write",
+            }
+        ],
+        "source_refs": source_refs,
+        "authority_touchpoints": _authority_touchpoints(
+            study_id=study_id,
+            source_refs=source_refs,
+            platform_diagnostics=platform_diagnostics,
+        ),
+        "forbidden_write_guard": {
+            "blocked_paths": list(_PAPER_MISSION_RUN_BLOCKED_PATHS),
+            "forbidden_claims": list(_FORBIDDEN_AUTHORITY_CLAIMS),
+            "candidate_writes_authority": False,
+        },
+        "consume_result": {
+            "status": "not_consumed",
+            "reason": "no_write_canary_import_inspect",
+        },
+        "claim_permissions": {
+            "can_claim_artifact_delta": False,
+            "can_claim_owner_handoff": bool(_text(current_blocker.get("owner"))),
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+            "claims": [
+                "canary_import_readback",
+                "owner_decision_packet_required",
+            ],
+        },
+        "canary_import_readback": dict(readback),
     }
 
 
@@ -280,6 +369,94 @@ def _artifact_refs(
         )
     )
     return _dedupe(refs)
+
+
+def _source_ref_payloads(refs: list[str]) -> list[dict[str, str]]:
+    payloads = [
+        {
+            "ref_id": f"source_ref::{index}",
+            "ref_kind": _ref_kind(ref),
+            "uri": ref,
+        }
+        for index, ref in enumerate(refs, start=1)
+    ]
+    if payloads:
+        return payloads
+    return [
+        {
+            "ref_id": "source_ref::missing",
+            "ref_kind": "missing_readback_ref",
+            "uri": "mission://source-refs/missing",
+        }
+    ]
+
+
+def _authority_touchpoints(
+    *,
+    study_id: str,
+    source_refs: list[dict[str, str]],
+    platform_diagnostics: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    touchpoints = [
+        {
+            "touchpoint_id": f"touchpoint::{study_id}::study-progress",
+            "owner": "MedAutoScience",
+            "surface": "study progress",
+            "status": "read_only",
+        },
+        {
+            "touchpoint_id": f"touchpoint::{study_id}::domain-health-diagnostic",
+            "owner": "MedAutoScience",
+            "surface": "domain-health-diagnostic dry-run",
+            "status": "read_only"
+            if platform_diagnostics.get("dhd_available")
+            else "not_touched",
+        },
+        {
+            "touchpoint_id": f"touchpoint::{study_id}::mas-authority-kernel",
+            "owner": "MedAutoScience",
+            "surface": "MAS Authority Kernel",
+            "status": "not_touched",
+        },
+        {
+            "touchpoint_id": f"touchpoint::{study_id}::opl-runtime",
+            "owner": "one-person-lab",
+            "surface": "OPL runtime/current-control",
+            "status": "read_only"
+            if platform_diagnostics.get("dhd_available")
+            else "not_touched",
+        },
+    ]
+    for source_ref in source_refs:
+        kind = source_ref["ref_kind"]
+        if kind in {"publication_eval", "controller_decision", "owner_answer"}:
+            touchpoints.append(
+                {
+                    "touchpoint_id": f"touchpoint::{study_id}::{kind}",
+                    "owner": "MedAutoScience",
+                    "surface": kind,
+                    "status": "read_only",
+                }
+            )
+    return touchpoints
+
+
+def _ref_kind(ref: str) -> str:
+    if "publication_eval/latest.json" in ref:
+        return "publication_eval"
+    if "controller_decisions/latest.json" in ref:
+        return "controller_decision"
+    if "domain_health_diagnostic" in ref:
+        return "domain_health_diagnostic"
+    if "runtime_status_summary.json" in ref:
+        return "runtime_status_summary"
+    if "closeout" in ref or "owner_answer" in ref:
+        return "owner_answer"
+    if ref.startswith("supervisor-decision::"):
+        return "supervisor_decision"
+    if ref.startswith("provider_admission_pending_count="):
+        return "provider_admission_readback"
+    return "artifact_ref"
 
 
 def _touchpoints(
