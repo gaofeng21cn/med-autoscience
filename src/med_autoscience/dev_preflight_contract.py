@@ -541,6 +541,18 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="owner_answer_candidate_intake_surface",
+        exact_paths=(
+            "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
+            "src/med_autoscience/cli_parts/current_owner_delta_owner_answer_commands.py",
+            "tests/test_owner_answer_candidate_intake.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_owner_answer_candidate_intake.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="runtime_lifecycle_payload_retention_surface",
         exact_paths=(
             "src/med_autoscience/cli_parts/retention_commands.py",

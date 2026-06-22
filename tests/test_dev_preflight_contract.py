@@ -524,6 +524,24 @@ def test_classify_changed_files_matches_cli_parser_surface() -> None:
     ]
 
 
+def test_classify_changed_files_matches_owner_answer_candidate_intake_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
+            "src/med_autoscience/cli_parts/current_owner_delta_owner_answer_commands.py",
+            "tests/test_owner_answer_candidate_intake.py",
+        ]
+    )
+
+    assert result.matched_categories == ("owner_answer_candidate_intake_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_owner_answer_candidate_intake.py -q",
+    ]
+
+
 def test_classify_changed_files_matches_runtime_lifecycle_payload_retention_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
