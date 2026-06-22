@@ -195,7 +195,77 @@
     "active_default_callers": [],
     "default_cli_mcp_product_entry_or_skill_caller_count": 0,
     "opl_active_reference_count": 0,
-    "replacement_proof_required": true
+    "replacement_proof_required": true,
+    "default_mainline_replacement": {
+      "action_intent": "paper_mission/start_or_resume",
+      "product_entry_surface": "medical_paper_product_entry",
+      "domain_handler_task_kind": "paper_mission/start_or_resume",
+      "contract_ref": "contracts/paper_mission_run_contract.json"
+    },
+    "proof_scope": [
+      {
+        "surface_id": "product_entry_manifest.medical_paper_product_entry",
+        "source_ref": "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py::_with_paper_mission_product_entry",
+        "required_default_fields": {
+          "default_action_intent": "paper_mission/start_or_resume",
+          "default_command_contains": "paper-mission inspect"
+        },
+        "forbidden_default_markers": [
+          "domain-health-diagnostic",
+          "default-executor-dispatch",
+          "PaperRecovery"
+        ]
+      },
+      {
+        "surface_id": "domain_handler_export.dispatch",
+        "source_ref": "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
+        "required_default_fields": {
+          "dispatch.default_action_intent": "paper_mission/start_or_resume"
+        },
+        "legacy_carrier_policy": {
+          "task_kind": "domain_owner/default-executor-dispatch",
+          "default_paper_mission_entry": false,
+          "migration_diagnostic_only": true
+        }
+      },
+      {
+        "surface_id": "domain_handler_export.pending_family_tasks",
+        "source_ref": "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py::_paper_mission_start_or_resume_task",
+        "required_default_task_kind": "paper_mission/start_or_resume",
+        "legacy_task_kind_allowed_only_when": {
+          "task_kind": "domain_owner/default-executor-dispatch",
+          "default_paper_mission_entry": false,
+          "migration_diagnostic_only": true
+        }
+      },
+      {
+        "surface_id": "family_action_catalog",
+        "source_ref": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
+        "required_policy": "no legacy DHD/default-executor/PaperRecovery action is a default paper mission action",
+        "allowed_legacy_reference_class": "descriptor-only domain handler export/dispatch refs; not a paper mission default"
+      },
+      {
+        "surface_id": "mcp_tool_manifest",
+        "source_ref": "src/med_autoscience/mcp_server.py::list_tools",
+        "required_policy": "no standalone DHD/default-executor/PaperRecovery MCP tool is exposed as the paper mission default",
+        "allowed_legacy_reference_class": "runtime diagnostic internals and descriptor metadata only"
+      },
+      {
+        "surface_id": "plugin_skill_ordinary_path",
+        "source_ref": "plugins/mas/skills/mas/SKILL.md",
+        "required_ordinary_path": "study -> stage -> domain owner receipt or typed blocker -> handoff",
+        "allowed_legacy_reference_class": "Runtime controller tick may name domain-health-diagnostic as diagnostic/control readback, not ordinary paper mission execution"
+      }
+    ],
+    "allowed_legacy_reference_classes": [
+      "runtime diagnostic",
+      "authority consume/readback",
+      "OPL StageRun ABI carrier",
+      "migration diagnostic",
+      "history provenance",
+      "legacy fixture"
+    ],
+    "physical_reference_deletion_required_for_default_retirement": false
   },
   "authority_boundary": {
     "proof_owner": "med-autoscience",
