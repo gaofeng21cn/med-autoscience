@@ -531,16 +531,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
-        category_id="cli_parser_surface",
-        exact_paths=(
-            "src/med_autoscience/cli_parts/parser.py",
-        ),
-        prefix_paths=(),
-        commands=(
-            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_lifecycle_payload_retention.py -q",
-        ),
-    ),
-    PreflightCategorySpec(
         category_id="owner_answer_candidate_intake_surface",
         exact_paths=(
             "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
@@ -550,6 +540,30 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         prefix_paths=(),
         commands=(
             f"{PYTEST_CLEAN_RUNNER} tests/test_owner_answer_candidate_intake.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="study_owner_gate_decision_surface",
+        exact_paths=(
+            "src/med_autoscience/controllers/study_interventions.py",
+            "src/med_autoscience/cli_parts/study_owner_gate_commands.py",
+            "tests/test_study_interventions.py",
+            "tests/test_cli_cases/domain_action_request_materializer_command.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_study_interventions.py "
+            "tests/test_cli_cases/domain_action_request_materializer_command.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="cli_parser_surface",
+        exact_paths=(
+            "src/med_autoscience/cli_parts/parser.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_lifecycle_payload_retention.py -q",
         ),
     ),
     PreflightCategorySpec(

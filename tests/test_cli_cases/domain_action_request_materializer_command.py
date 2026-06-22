@@ -63,6 +63,8 @@ def test_study_owner_gate_decision_command_dispatches_controller(monkeypatch, tm
     assert called["reason"] == "current selected stage packet is missing"
     assert called["recorded_at"] == "2026-06-14T00:00:00+00:00"
     assert called["apply"] is False
+    assert called["supersedes_owner_gate_decision_ref"] is None
+    assert called["replacement_typed_blocker_ref"] is None
     assert json.loads(captured.out)["human_gate_ref"] == "human_gate:owner-gate-decision:test"
 
 
@@ -111,6 +113,70 @@ def test_study_owner_gate_decision_command_dry_run_does_not_write(tmp_path: Path
     assert payload["record_status"] == "dry_run"
     assert payload["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
     assert payload["truth_event_input"]["event_type"] == "human_gate"
+    assert not event_log.exists()
+
+
+def test_study_owner_gate_decision_command_routes_b003_governed_blocker_disposition(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--action-type",
+            "publication_gate_replay",
+            "--work-unit-id",
+            "publication-blockers::0915410f804b3697",
+            "--work-unit-fingerprint",
+            "owner-gate-decision:d6d895635654560a85573c04",
+            "--blocker-type",
+            "medical_publication_surface_blocked",
+            "--decision",
+            "route_back_to_publication_owner",
+            "--reason",
+            "route back to the missing write repair owner route",
+            "--supersedes-owner-gate-decision-ref",
+            "owner-gate-decision:d6d895635654560a85573c04",
+            "--route-back-evidence-ref",
+            "route-back:b003-write-repair-owner-route-gap",
+            "--recorded-at",
+            "2026-06-22T00:00:00+00:00",
+            "--dry-run",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    event_log = (
+        workspace_root
+        / "studies"
+        / "003-dpcc-primary-care-phenotype-treatment-gap"
+        / "artifacts"
+        / "interventions"
+        / "events.jsonl"
+    )
+
+    assert exit_code == 0
+    assert payload["record_status"] == "dry_run"
+    assert payload["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
+    event_payload = payload["event"]["payload"]
+    assert event_payload["decision"] == "route_back_to_publication_owner"
+    assert event_payload["route_back_evidence_ref"] == (
+        "route-back:b003-write-repair-owner-route-gap"
+    )
+    assert event_payload["provider_redrive_allowed"] is False
+    assert event_payload["provider_admission_allowed"] is False
+    assert event_payload["preserve_or_explicitly_supersede"] == (
+        "owner-gate-decision:d6d895635654560a85573c04"
+    )
     assert not event_log.exists()
 
 

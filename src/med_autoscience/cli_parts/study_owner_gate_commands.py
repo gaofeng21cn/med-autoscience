@@ -33,6 +33,8 @@ def handle_study_owner_gate_command(
         attempt_idempotency_key=args.attempt_idempotency_key,
         stable_typed_blocker_type=args.stable_typed_blocker_type,
         route_back_evidence_ref=args.route_back_evidence_ref,
+        supersedes_owner_gate_decision_ref=args.supersedes_owner_gate_decision_ref,
+        replacement_typed_blocker_ref=args.replacement_typed_blocker_ref,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

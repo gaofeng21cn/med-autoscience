@@ -17,7 +17,19 @@ OWNER_GATE_DECISIONS = frozenset(
     {
         "admit_identity_bound_stage_packet",
         "deny_and_stable_typed_blocker",
+        "preserve_existing_stable_blocker",
+        "narrow_stable_blocker",
+        "route_back_to_publication_owner",
+        "explicitly_supersede_stable_blocker",
         "route_back_to_mas_packet_materialization_bug",
+    }
+)
+STABLE_BLOCKER_DISPOSITION_DECISIONS = frozenset(
+    {
+        "preserve_existing_stable_blocker",
+        "narrow_stable_blocker",
+        "route_back_to_publication_owner",
+        "explicitly_supersede_stable_blocker",
     }
 )
 STORAGE_POLICY = {"primary_store": "file", "sqlite_role": "index_only"}
@@ -95,6 +107,8 @@ def owner_gate_decision_record(
     attempt_idempotency_key: str | None = None,
     stable_typed_blocker_type: str | None = None,
     route_back_evidence_ref: str | None = None,
+    supersedes_owner_gate_decision_ref: str | None = None,
+    replacement_typed_blocker_ref: str | None = None,
 ) -> dict[str, Any]:
     path = intervention_events_path(study_root=study_root)
     sequence = len(read_intervention_events(study_root=study_root)) + 1
@@ -112,6 +126,8 @@ def owner_gate_decision_record(
         attempt_idempotency_key=attempt_idempotency_key,
         stable_typed_blocker_type=stable_typed_blocker_type,
         route_back_evidence_ref=route_back_evidence_ref,
+        supersedes_owner_gate_decision_ref=supersedes_owner_gate_decision_ref,
+        replacement_typed_blocker_ref=replacement_typed_blocker_ref,
     )
     event = {
         **_intervention_event(
@@ -232,6 +248,8 @@ def _owner_gate_payload(
     attempt_idempotency_key: str | None,
     stable_typed_blocker_type: str | None,
     route_back_evidence_ref: str | None,
+    supersedes_owner_gate_decision_ref: str | None,
+    replacement_typed_blocker_ref: str | None,
 ) -> dict[str, Any]:
     identity = {
         "study_id": _required_text(study_id, field="study_id"),
@@ -252,6 +270,18 @@ def _owner_gate_payload(
         _required_text(attempt_idempotency_key, field="attempt_idempotency_key")
     if decision_text == "deny_and_stable_typed_blocker":
         _required_text(stable_typed_blocker_type, field="stable_typed_blocker_type")
+    superseded_ref_text = _text(supersedes_owner_gate_decision_ref)
+    replacement_ref_text = _text(replacement_typed_blocker_ref)
+    if decision_text in STABLE_BLOCKER_DISPOSITION_DECISIONS:
+        if superseded_ref_text is None:
+            raise ValueError(f"{decision_text} requires supersedes_owner_gate_decision_ref")
+        if decision_text in {"narrow_stable_blocker", "explicitly_supersede_stable_blocker"}:
+            if _text(stable_typed_blocker_type) is None and replacement_ref_text is None:
+                raise ValueError(
+                    f"{decision_text} requires stable_typed_blocker_type or replacement_typed_blocker_ref"
+                )
+        if decision_text == "route_back_to_publication_owner":
+            _required_text(route_back_evidence_ref, field="route_back_evidence_ref")
     decision_ref = _owner_gate_decision_ref(
         identity=identity,
         decision=decision_text,
@@ -272,7 +302,11 @@ def _owner_gate_payload(
         "do_not_redrive_same_work_unit": True,
         "paper_package_mutation_allowed": False,
         "runtime_artifact_mutation_allowed": False,
+        "provider_redrive_allowed": False,
     }
+    if superseded_ref_text:
+        payload["supersedes_owner_gate_decision_ref"] = superseded_ref_text
+        payload["preserve_or_explicitly_supersede"] = superseded_ref_text
     if refs:
         payload["stage_packet_refs"] = refs
         payload["stage_packet_ref"] = refs[0]
@@ -285,6 +319,9 @@ def _owner_gate_payload(
         payload["stable_typed_blocker_type"] = blocker_text
         payload["stable_typed_blocker_ref"] = f"stable_typed_blocker:{decision_ref}"
         payload["accepted_answer_shapes"].append("stable_typed_blocker_ref")
+    if replacement_ref_text:
+        payload["replacement_typed_blocker_ref"] = replacement_ref_text
+        payload["accepted_answer_shapes"].append("typed_blocker_ref")
     if route_back_ref_text := _text(route_back_evidence_ref):
         payload["route_back_evidence_ref"] = route_back_ref_text
     if decision_text == "route_back_to_mas_packet_materialization_bug" and "route_back_evidence_ref" not in payload:

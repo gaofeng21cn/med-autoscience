@@ -228,6 +228,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
         choices=(
             "admit_identity_bound_stage_packet",
             "deny_and_stable_typed_blocker",
+            "preserve_existing_stable_blocker",
+            "narrow_stable_blocker",
+            "route_back_to_publication_owner",
+            "explicitly_supersede_stable_blocker",
             "route_back_to_mas_packet_materialization_bug",
         ),
         required=True,
@@ -241,6 +245,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_parser.add_argument("--attempt-idempotency-key")
     study_owner_gate_decision_parser.add_argument("--stable-typed-blocker-type")
     study_owner_gate_decision_parser.add_argument("--route-back-evidence-ref")
+    study_owner_gate_decision_parser.add_argument("--supersedes-owner-gate-decision-ref")
+    study_owner_gate_decision_parser.add_argument("--replacement-typed-blocker-ref")
     study_owner_gate_decision_apply = study_owner_gate_decision_parser.add_mutually_exclusive_group(required=True)
     study_owner_gate_decision_apply.add_argument("--dry-run", action="store_true")
     study_owner_gate_decision_apply.add_argument("--apply", action="store_true")

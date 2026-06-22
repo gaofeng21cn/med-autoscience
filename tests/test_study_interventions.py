@@ -159,6 +159,69 @@ def test_owner_gate_decision_dry_run_returns_human_gate_ref_without_writing(tmp_
     assert not module.intervention_events_path(study_root=study_root).exists()
 
 
+def test_publication_gate_governed_answer_can_preserve_existing_blocker_without_redrive(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "003-dpcc"
+
+    result = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        action_type="publication_gate_replay",
+        work_unit_id="publication-blockers::0915410f804b3697",
+        work_unit_fingerprint="owner-gate-decision:d6d895635654560a85573c04",
+        blocker_type="medical_publication_surface_blocked",
+        decision="preserve_existing_stable_blocker",
+        reason="write repair owner route is not legally available without a governed answer",
+        recorded_at="2026-06-22T00:00:00+00:00",
+        apply=False,
+        supersedes_owner_gate_decision_ref="owner-gate-decision:d6d895635654560a85573c04",
+    )
+
+    payload = result["event"]["payload"]
+
+    assert result["record_status"] == "dry_run"
+    assert result["accepted_answer_shape"] == {"human_gate_ref": result["human_gate_ref"]}
+    assert result["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
+    assert payload["decision"] == "preserve_existing_stable_blocker"
+    assert payload["provider_redrive_allowed"] is False
+    assert payload["do_not_redrive_same_work_unit"] is True
+    assert payload["provider_admission_allowed"] is False
+    assert payload["preserve_or_explicitly_supersede"] == (
+        "owner-gate-decision:d6d895635654560a85573c04"
+    )
+    assert payload["supersedes_owner_gate_decision_ref"] == (
+        "owner-gate-decision:d6d895635654560a85573c04"
+    )
+    assert result["truth_event_input"]["event_type"] == "human_gate"
+    assert not module.intervention_events_path(study_root=study_root).exists()
+
+
+def test_publication_gate_governed_answer_narrow_requires_replacement_blocker(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "003-dpcc"
+
+    with pytest.raises(ValueError, match="requires stable_typed_blocker_type"):
+        module.owner_gate_decision_record(
+            study_root=study_root,
+            study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+            action_type="publication_gate_replay",
+            work_unit_id="publication-blockers::0915410f804b3697",
+            work_unit_fingerprint="owner-gate-decision:d6d895635654560a85573c04",
+            blocker_type="medical_publication_surface_blocked",
+            decision="narrow_stable_blocker",
+            reason="narrow the blocker to the missing write repair route",
+            recorded_at="2026-06-22T00:00:00+00:00",
+            apply=False,
+            supersedes_owner_gate_decision_ref="owner-gate-decision:d6d895635654560a85573c04",
+        )
+
+    assert not module.intervention_events_path(study_root=study_root).exists()
+
+
 def test_owner_gate_decision_apply_requires_exact_stage_packet_identity(tmp_path: Path) -> None:
     module = _module()
     study_root = tmp_path / "studies" / "002-dm"

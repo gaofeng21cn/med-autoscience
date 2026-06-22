@@ -277,8 +277,11 @@ def test_current_targets_consume_matching_governed_refs_without_writing(tmp_path
         candidate_id="B002-1055",
         candidate_path=b002,
         expected_sha256=None,
-        governed_response_kind="human_gate_ref",
-        governed_response_ref="human_gate:owner-answer:b002-1055",
+        governed_response_kind="publication_eval_record_ref",
+        governed_response_ref=(
+            "artifacts/publication_eval/ai_reviewer_responses/"
+            "20260621T1055Z_publication_eval_record.json"
+        ),
         governed_response_study_id="002-dm-china-us-mortality-attribution",
         governed_response_owner_surface="MAS publication AI-reviewer governed owner answer",
     )
@@ -294,12 +297,46 @@ def test_current_targets_consume_matching_governed_refs_without_writing(tmp_path
 
     assert b002_result["status"] == "governed_response_consumed"
     assert b002_result["governed_response"]["candidate_id"] == "B002-1055"
+    assert b002_result["governed_response"]["kind"] == "publication_eval_record_ref"
     assert b002_result["write_plan"]["written_files"] == []
     assert b002_result["write_plan"]["can_write_payload_targets"] is False
     assert b003_result["status"] == "governed_response_consumed"
     assert b003_result["governed_response"]["candidate_id"] == "B003-1105"
     assert b003_result["write_plan"]["written_files"] == []
     assert b003_result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
+
+
+def test_b003_current_target_rejects_publication_eval_record_ref_without_writing(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B003_1105_CANDIDATE
+    _write_candidate(candidate, sha_text="B003 1105 owner answer target\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B003-1105",
+        candidate_path=candidate,
+        expected_sha256=None,
+        governed_response_kind="publication_eval_record_ref",
+        governed_response_ref=(
+            "artifacts/publication_eval/ai_reviewer_responses/"
+            "20260621T1055Z_publication_eval_record.json"
+        ),
+        governed_response_study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        governed_response_owner_surface="MAS paper recovery / publication gate governed owner answer",
+    )
+
+    assert result["status"] == "governed_response_kind_not_accepted"
+    assert result["governed_answer_consumed"] is False
+    assert "publication_eval_record_ref" not in result["accepted_response_kinds"]
+    assert result["stable_blocker_policy"] == {
+        "preserve_or_explicitly_supersede": "owner-gate-decision:d6d895635654560a85573c04",
+        "provider_redrive_allowed": False,
+    }
+    assert result["write_plan"]["written_files"] == []
 
 
 def test_governed_response_rejects_unaccepted_kind_without_writing(tmp_path: Path) -> None:

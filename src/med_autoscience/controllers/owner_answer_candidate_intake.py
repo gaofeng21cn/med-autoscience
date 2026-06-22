@@ -14,6 +14,17 @@ REQUIRED_GOVERNED_ANSWER_SHAPES = (
     "typed_blocker_ref",
     "human_gate_ref",
 )
+B002_PUBLICATION_EVAL_RECORD_ANSWER_SHAPES = (
+    "domain_owner_receipt_ref",
+    "quality_gate_receipt_ref",
+    "publication_eval_record_ref",
+    "route_back_evidence_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+)
+B003_GOVERNED_ANSWER_SHAPES = tuple(
+    shape for shape in REQUIRED_GOVERNED_ANSWER_SHAPES if shape != "publication_eval_record_ref"
+)
 
 
 @dataclass(frozen=True)
@@ -27,6 +38,7 @@ class CandidateSpec:
     next_legal_surface: Mapping[str, str]
     stable_blocker_ref: str | None = None
     provider_redrive_allowed: bool = False
+    accepted_response_kinds: tuple[str, ...] = REQUIRED_GOVERNED_ANSWER_SHAPES
 
 
 _CANDIDATES: dict[str, CandidateSpec] = {
@@ -99,6 +111,7 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             "payload_target_persistence_authorized": "false",
             "non_dry_run_materialization_authorized": "false",
         },
+        accepted_response_kinds=B002_PUBLICATION_EVAL_RECORD_ANSWER_SHAPES,
     ),
     "B003-0751": CandidateSpec(
         candidate_id="B003-0751",
@@ -123,6 +136,7 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             ),
         },
         stable_blocker_ref="owner-gate-decision:d6d895635654560a85573c04",
+        accepted_response_kinds=B003_GOVERNED_ANSWER_SHAPES,
     ),
     "B003-0915": CandidateSpec(
         candidate_id="B003-0915",
@@ -151,6 +165,7 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             "provider_redrive_authorized": "false",
         },
         stable_blocker_ref="owner-gate-decision:d6d895635654560a85573c04",
+        accepted_response_kinds=B003_GOVERNED_ANSWER_SHAPES,
     ),
     "B003-1105": CandidateSpec(
         candidate_id="B003-1105",
@@ -177,6 +192,7 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             "provider_redrive_authorized": "false",
         },
         stable_blocker_ref="owner-gate-decision:d6d895635654560a85573c04",
+        accepted_response_kinds=B003_GOVERNED_ANSWER_SHAPES,
     ),
 }
 
@@ -279,12 +295,12 @@ def _validate_governed_response(
     governed_response: Mapping[str, str],
 ) -> dict[str, Any] | None:
     kind = governed_response.get("kind", "")
-    if kind not in REQUIRED_GOVERNED_ANSWER_SHAPES:
+    if kind not in spec.accepted_response_kinds:
         return {
             "status": "governed_response_kind_not_accepted",
             "governed_answer_consumed": False,
             "governed_response": dict(governed_response),
-            "accepted_response_kinds": list(REQUIRED_GOVERNED_ANSWER_SHAPES),
+            "accepted_response_kinds": list(spec.accepted_response_kinds),
         }
     missing = [
         key
@@ -335,7 +351,7 @@ def _base_payload(*, spec: CandidateSpec, path: Path, actual_sha: str) -> dict[s
         "governed_answer_consumed": False,
         "study_id": spec.study_id,
         "owner_identity": dict(spec.owner_identity),
-        "required_governed_answer_shapes": list(REQUIRED_GOVERNED_ANSWER_SHAPES),
+        "required_governed_answer_shapes": list(spec.accepted_response_kinds),
         "next_legal_surface": dict(spec.next_legal_surface),
         "write_plan": _no_write_plan(),
         "forbidden_authority_writes": _forbidden_authority_writes(),
@@ -354,7 +370,7 @@ def _blocked_owner(spec: CandidateSpec) -> dict[str, Any]:
         "owner_surface": spec.owner_surface,
         "study_id": spec.study_id,
         "owner_identity": dict(spec.owner_identity),
-        "required_governed_answer_shapes": list(REQUIRED_GOVERNED_ANSWER_SHAPES),
+        "required_governed_answer_shapes": list(spec.accepted_response_kinds),
         "missing_authority": "governed_owner_answer_consuming_package_candidate",
     }
 
