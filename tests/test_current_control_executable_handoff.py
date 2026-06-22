@@ -611,6 +611,52 @@ def test_terminal_probe_does_not_consume_different_identity_transition_request(
     assert handoff["transition_request_candidates"][0]["work_unit_id"] == work_unit_id
 
 
+def test_terminal_consumed_provider_candidate_is_not_active_provider_control() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.provider_admission_currentness"
+    )
+    fingerprint = "publication-blockers::f11710a114497b27"
+    route_key = "paper-policy-request:60cf5242a09d91458cb21e22"
+    readback = opl_transition_readback(
+        "002-dm-china-us-mortality-attribution",
+        action_fingerprint=fingerprint,
+        work_unit_id="analysis_claim_evidence_repair",
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+    )
+    handoff = {
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [
+            {
+                "action_type": "run_quality_repair_batch",
+                "owner": "analysis-campaign",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "route_identity_key": route_key,
+                "attempt_idempotency_key": route_key,
+                "opl_domain_progress_transition_live_readback": readback,
+            }
+        ],
+        "provider_admission_terminal_closeout_consumed": {
+            "surface_kind": "provider_admission_terminal_closeout_consumed",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "route_identity_key": route_key,
+            "attempt_idempotency_key": route_key,
+            "typed_blocker_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/sat.closeout.json"
+            ),
+        },
+    }
+
+    assert module.active_provider_control(handoff) is False
+    assert module.current_control_provider_admission_action(handoff) is None
+
+
 def test_complete_provider_readback_supersedes_same_identity_request_only_current_surface() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"

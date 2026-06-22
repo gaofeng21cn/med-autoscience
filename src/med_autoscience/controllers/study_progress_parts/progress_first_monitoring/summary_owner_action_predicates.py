@@ -44,6 +44,14 @@ def repair_progress_consumes_publication_repair(
     source_work_unit = _text(precedence.get("source_work_unit_id")) or _text(progress.get("work_unit_id"))
     if source_work_unit is None:
         return False
+    repair_eval = _text(progress.get("source_eval_id")) or _text(
+        repair_progress_current_action.get("source_eval_id")
+    )
+    publication_eval = _text(publication_eval_current_action.get("publication_eval_id")) or _text(
+        publication_eval_current_action.get("source_eval_id")
+    )
+    if repair_eval is not None and publication_eval is not None and repair_eval != publication_eval:
+        return False
     return source_work_unit == _text(publication_eval_current_action.get("work_unit_id"))
 
 
@@ -66,6 +74,18 @@ def repair_progress_consumes_canonical_publication_work_unit(
     precedence = _mapping(current_action.get("repair_progress_precedence"))
     source_work_unit = _text(precedence.get("source_work_unit_id")) or _text(progress.get("work_unit_id"))
     if source_work_unit is None:
+        return False
+    repair_eval = _text(progress.get("source_eval_id")) or _text(current_action.get("source_eval_id"))
+    canonical_state = _mapping(canonical_current_work_unit.get("state"))
+    canonical_basis = _mapping(canonical_current_work_unit.get("currentness_basis"))
+    canonical_eval = (
+        _text(canonical_current_work_unit.get("publication_eval_id"))
+        or _text(canonical_current_work_unit.get("source_eval_id"))
+        or _text(canonical_basis.get("source_eval_id"))
+        or _text(canonical_state.get("publication_eval_id"))
+        or _text(canonical_state.get("source_eval_id"))
+    )
+    if repair_eval is not None and canonical_eval is not None and repair_eval != canonical_eval:
         return False
     return source_work_unit == _text(canonical_current_work_unit.get("work_unit_id"))
 

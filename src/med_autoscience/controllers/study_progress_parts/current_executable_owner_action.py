@@ -164,6 +164,12 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         publication_repair_action=publication_repair_action,
         payload=payload,
     )
+    if _current_publication_repair_supersedes_stale_repair_progress(
+        repair_progress_action=repair_progress_action,
+        publication_repair_action=publication_repair_action,
+        payload=payload,
+    ):
+        return publication_repair_action
     if (
         repair_progress_consumes_publication_repair
         and repair_progress_action is not None
@@ -262,7 +268,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         return artifact_action
     if gate_followthrough_action is not None:
         return gate_followthrough_action
-    return next_forced_delta_action or domain_transition_action or paper_recovery_action
+    return next_forced_delta_action or domain_transition_action or publication_repair_action or paper_recovery_action
 
 
 def _canonical_current_work_unit_has_terminal_stop_loss(
@@ -642,6 +648,36 @@ def _repair_progress_consumes_publication_repair(
         publication_repair_action=publication_repair_action,
         payload=payload,
     )
+
+
+def _current_publication_repair_supersedes_stale_repair_progress(
+    *,
+    repair_progress_action: Mapping[str, Any] | None,
+    publication_repair_action: Mapping[str, Any] | None,
+    payload: Mapping[str, Any],
+) -> bool:
+    repair_action = _mapping_copy(repair_progress_action)
+    publication_action = _mapping_copy(publication_repair_action)
+    if not repair_action or not publication_action:
+        return False
+    if _non_empty_text(repair_action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
+    repair_eval = _non_empty_text(repair_progress.get("source_eval_id")) or _non_empty_text(
+        repair_action.get("source_eval_id")
+    )
+    publication_eval = (
+        _non_empty_text(publication_action.get("publication_eval_id"))
+        or _non_empty_text(publication_action.get("source_eval_id"))
+        or _non_empty_text(
+            _mapping_copy(publication_action.get("owner_route_currentness_basis")).get(
+                "source_eval_id"
+            )
+        )
+    )
+    if repair_eval is None or publication_eval is None or repair_eval == publication_eval:
+        return False
+    return _non_empty_text(publication_action.get("action_type")) is not None
 
 
 def _from_publication_eval_readiness_blocker_repair(payload: Mapping[str, Any]) -> dict[str, Any] | None:

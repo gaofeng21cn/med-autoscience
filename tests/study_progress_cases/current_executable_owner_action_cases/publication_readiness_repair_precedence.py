@@ -744,6 +744,152 @@ def test_progress_first_monitoring_uses_specificity_targets_for_publication_repa
     }
 
 
+def test_current_ai_reviewer_finalize_route_projects_gate_replay_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "current-ai-reviewer-record::sha256-a05623df"
+    )
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "publication_eval": {
+                "eval_id": eval_id,
+                "verdict": {"overall_verdict": "promising", "primary_claim_status": "supported"},
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::consume-current-ai-reviewer-record",
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "reason": "Consume current AI reviewer record and replay publication gate.",
+                        "evidence_refs": [
+                            "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                            "artifacts/publication_eval/latest.json",
+                        ],
+                        "requires_controller_decision": True,
+                        "route_target": "finalize",
+                        "route_key_question": (
+                            "Can MAS consume the current AI reviewer record and replay the gate?"
+                        ),
+                        "route_rationale": (
+                            "Authoritative latest/gate surfaces must be updated only through "
+                            "MAS owner consumption and gate replay."
+                        ),
+                        "work_unit_fingerprint": fingerprint,
+                        "next_work_unit": {
+                            "unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+                            "lane": "finalize",
+                            "summary": "Materialize record-only AI reviewer archive, then gate replay.",
+                        },
+                    }
+                ],
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["next_owner"] == "finalize"
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert action["work_unit_id"] == "consume_current_ai_reviewer_publication_eval_record_and_replay_gate"
+    assert action["work_unit_fingerprint"] == fingerprint
+    assert action["publication_eval_id"] == eval_id
+    assert action["required_delta_kind"] == "publication_eval_gate_replay_delta_or_typed_blocker"
+    assert action["target_surface"]["route_target"] == "finalize"
+    assert action["target_surface"]["surface_ref"] == "artifacts/controller/gate_clearing_batch/latest.json"
+    assert action["owner_route_currentness_basis"]["source_eval_id"] == eval_id
+    assert action["authority_boundary"]["can_write_runtime_owned_surfaces"] is False
+    assert "publication_eval_latest_manual_write" in action["required_output_contract"]["forbidden_outputs"]
+    assert "runtime_queue_or_provider_manual_write" in action["required_output_contract"]["forbidden_outputs"]
+
+
+def test_current_ai_reviewer_finalize_route_supersedes_stale_repair_progress_followup() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    current_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "current-ai-reviewer-record::sha256-a05623df"
+    )
+    stale_repair_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "2026-06-21T10:29:56+00:00"
+    )
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "dm002_same_line_publication_paper_repair",
+                "source_fingerprint": "sha256:old-repair-progress",
+                "source_eval_id": stale_repair_eval_id,
+                "repair_execution_evidence_ref": (
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_done": True,
+                "gate_replay_refs": [
+                    "runtime/quests/002/artifacts/reports/publishability_gate/old.json",
+                    "artifacts/controller/gate_clearing_batch/latest.json",
+                ],
+            },
+            "publication_eval": {
+                "eval_id": current_eval_id,
+                "verdict": {"overall_verdict": "mixed", "primary_claim_status": "partial"},
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::consume-current-ai-reviewer-record",
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "evidence_refs": [
+                            "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                            "artifacts/publication_eval/latest.json",
+                        ],
+                        "route_target": "finalize",
+                        "route_key_question": (
+                            "Can MAS consume the current AI reviewer record and replay the gate?"
+                        ),
+                        "route_rationale": (
+                            "Authoritative latest/gate surfaces must be updated only through "
+                            "MAS owner consumption and gate replay."
+                        ),
+                        "work_unit_fingerprint": fingerprint,
+                        "next_work_unit": {
+                            "unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+                            "lane": "finalize",
+                            "summary": "Materialize record-only AI reviewer archive, then gate replay.",
+                        },
+                    }
+                ],
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["next_owner"] == "finalize"
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["work_unit_id"] == "consume_current_ai_reviewer_publication_eval_record_and_replay_gate"
+    assert action["publication_eval_id"] == current_eval_id
+    assert action["owner_route_currentness_basis"]["source_eval_id"] == current_eval_id
+
+
 def test_gate_followthrough_specificity_targets_supersede_stale_terminal_prose_ticket() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

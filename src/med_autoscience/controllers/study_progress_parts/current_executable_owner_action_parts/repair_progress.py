@@ -112,6 +112,14 @@ def repair_progress_consumes_publication_repair(
         source_work_unit = _non_empty_text(progress.get("work_unit_id"))
     if source_work_unit is None:
         return False
+    repair_eval = _non_empty_text(progress.get("source_eval_id")) or _non_empty_text(
+        repair_action.get("source_eval_id")
+    )
+    publication_eval = _non_empty_text(publication_action.get("publication_eval_id")) or _non_empty_text(
+        publication_action.get("source_eval_id")
+    )
+    if repair_eval is not None and publication_eval is not None and repair_eval != publication_eval:
+        return False
     return source_work_unit == _non_empty_text(publication_action.get("work_unit_id"))
 
 

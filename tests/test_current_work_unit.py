@@ -483,6 +483,106 @@ def test_current_work_unit_projects_publication_eval_repair_over_stage_readiness
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_current_publication_eval_gate_replay_over_stale_ai_reviewer_blocker() -> None:
+    module = _module()
+    eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "current-ai-reviewer-record::sha256-a05623df"
+    )
+    fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": fingerprint,
+                "state": {
+                    "typed_blocker": {
+                        "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
+                        "owner": "ai_reviewer",
+                        "work_unit_id": (
+                            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                        ),
+                        "source_eval_id": "publication-eval::older",
+                    }
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+            "next_owner": "finalize",
+            "owner": "finalize",
+            "work_unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": eval_id,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_eval_gate_replay_delta_or_typed_blocker",
+            "required_output_contract": {
+                "owner_receipt_required": True,
+                "accepted_outputs_any": [
+                    "publication_gate_delta",
+                    "stage_owner_receipt_ref",
+                    "stable_typed_blocker_for_the_specific_repair_work_unit",
+                ],
+                "forbidden_outputs": [
+                    "publication_eval_latest_manual_write",
+                    "controller_decision_manual_write",
+                    "owner_receipt_manual_write",
+                    "typed_blocker_manual_write",
+                    "human_gate_manual_write",
+                    "runtime_queue_or_provider_manual_write",
+                ],
+            },
+            "source_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+            "acceptance_refs": [
+                "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                "artifacts/publication_eval/latest.json",
+            ],
+            "owner_route_currentness_basis": {
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "source_eval_id": eval_id,
+                "work_unit_id": "consume_current_ai_reviewer_publication_eval_record_and_replay_gate",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+            },
+            "target_surface": {
+                "ref_kind": "publication_eval_recommended_action",
+                "route_target": "finalize",
+                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "publication_eval_id": eval_id,
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "finalize"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "consume_current_ai_reviewer_publication_eval_record_and_replay_gate"
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["currentness_basis"]["source_eval_id"] == eval_id
+    assert work_unit["state"]["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert work_unit["required_output_contract"]["owner_receipt_required"] is True
+    assert "artifacts/publication_eval/ai_reviewer_responses/current.json" in work_unit["input_refs"]
+    assert "runtime_queue_or_provider_manual_write" in work_unit["required_output_contract"]["forbidden_outputs"]
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_projects_gate_consumption_action_over_opl_authorization_residue_after_paper_delta() -> None:
     module = _module()
 

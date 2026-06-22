@@ -12,6 +12,10 @@ from med_autoscience.controllers.study_progress_parts.shared import (
 from .action_types import QUALITY_REPAIR_ACTION
 from .stage_kernel_readiness import READINESS_ACTION, current_owner_delta
 
+FINALIZE_ROUTE_TARGET = "finalize"
+FINALIZE_GATE_REPLAY_ACTION = "run_gate_clearing_batch"
+FINALIZE_GATE_REPLAY_WORK_UNIT = "publication_gate_replay"
+
 
 def owner_action_from_publication_eval_readiness_blocker_repair(
     payload: Mapping[str, Any],
@@ -35,14 +39,19 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
     next_work_unit = _mapping_copy(derived_work_units.get("next_work_unit")) or _mapping_copy(
         action.get("next_work_unit")
     )
-    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
     lane = _non_empty_text(next_work_unit.get("lane")) or _non_empty_text(action.get("route_target"))
-    if work_unit_id is None or lane not in {"write", "analysis-campaign"}:
+    route_target = _non_empty_text(action.get("route_target")) or lane
+    if lane not in {"write", "analysis-campaign", FINALIZE_ROUTE_TARGET}:
         return None
     blocking_work_units = _mapping_items(derived_work_units.get("blocking_work_units")) or _mapping_items(
         action.get("blocking_work_units")
     )
-    action_type = QUALITY_REPAIR_ACTION
+    action_type = FINALIZE_GATE_REPLAY_ACTION if lane == FINALIZE_ROUTE_TARGET else QUALITY_REPAIR_ACTION
+    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+    if lane == FINALIZE_ROUTE_TARGET:
+        work_unit_id = work_unit_id or FINALIZE_GATE_REPLAY_WORK_UNIT
+    if work_unit_id is None:
+        return None
     source_ref = _text_items(action.get("evidence_refs"))[0] if _text_items(action.get("evidence_refs")) else None
     work_unit_fingerprint = _non_empty_text(derived_work_units.get("fingerprint")) or _non_empty_text(
         action.get("work_unit_fingerprint")
@@ -83,8 +92,22 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
             "current_package_authority",
             "publication_eval_latest_manual_write",
             "controller_decision_manual_write",
+            "owner_receipt_manual_write",
+            "typed_blocker_manual_write",
+            "human_gate_manual_write",
+            "runtime_queue_or_provider_manual_write",
         ],
     }
+    required_delta_kind = (
+        "publication_eval_gate_replay_delta_or_typed_blocker"
+        if lane == FINALIZE_ROUTE_TARGET
+        else "publication_eval_recommended_repair_delta_or_typed_blocker"
+    )
+    target_surface_ref = (
+        "artifacts/controller/gate_clearing_batch/latest.json"
+        if lane == FINALIZE_ROUTE_TARGET
+        else "artifacts/controller/repair_execution_evidence/latest.json"
+    )
     return _compact(
         {
             "surface_kind": surface_kind,
@@ -98,15 +121,15 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
             "action_type": action_type,
             "allowed_actions": [action_type],
             "owner_receipt_required": True,
-            "required_delta_kind": "publication_eval_recommended_repair_delta_or_typed_blocker",
+            "required_delta_kind": required_delta_kind,
             "required_output_contract": required_output_contract,
             "stage_typed_blocker_ref": stage_typed_blocker_ref,
             "publication_eval_id": publication_eval_id,
             "gap_ids": gap_ids,
             "target_surface": {
                 "ref_kind": "publication_eval_recommended_action",
-                "route_target": lane,
-                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "route_target": route_target,
+                "surface_ref": target_surface_ref,
                 "recommended_action_id": _non_empty_text(action.get("action_id")),
                 "route_key_question": _non_empty_text(action.get("route_key_question")),
                 "route_rationale": _non_empty_text(action.get("route_rationale")),
@@ -118,6 +141,13 @@ def owner_action_from_publication_eval_readiness_blocker_repair(
                 "blocking_work_units": blocking_work_units,
                 "specificity_targets": _mapping_items(action.get("specificity_targets")),
                 "gaps": [gap for gap in gaps if gap],
+            },
+            "owner_route_currentness_basis": {
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "source_eval_id": publication_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
             },
             "target_surface_specificity": "publication_eval_readiness_blocker_derived_repair",
             "source_ref": source_ref,

@@ -16,18 +16,17 @@ LIVE_READBACK_SOURCE = "opl_domain_progress_transition_runtime_live_readback"
 
 
 def active_provider_control(handoff: Mapping[str, Any]) -> bool:
+    active_candidates = _unconsumed_provider_admission_candidates(handoff)
     if handoff.get("running_provider_attempt") is True:
         return bool(provider_admission_opl_transition_readback(handoff))
     if handoff.get("provider_admission_pending_count") not in (None, 0):
         return has_provider_admission_opl_transition_readback(handoff) or any(
             has_provider_admission_opl_transition_readback(item)
-            for item in handoff.get("provider_admission_candidates") or []
-            if isinstance(item, Mapping)
+            for item in active_candidates
         )
     if any(
         has_provider_admission_opl_transition_readback(item)
-        for item in handoff.get("provider_admission_candidates") or []
-        if isinstance(item, Mapping)
+        for item in active_candidates
     ):
         return True
     return False
@@ -175,9 +174,57 @@ def with_provider_admission_executable_currentness(
 
 
 def first_handoff_provider_admission_candidate(handoff: Mapping[str, Any]) -> dict[str, Any] | None:
-    for item in handoff.get("provider_admission_candidates") or []:
-        if not isinstance(item, Mapping):
-            continue
+    for item in _unconsumed_provider_admission_candidates(handoff):
         if provider_admission_opl_transition_readback(item):
             return dict(item)
     return None
+
+
+def _unconsumed_provider_admission_candidates(handoff: Mapping[str, Any]) -> list[dict[str, Any]]:
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    candidates: list[dict[str, Any]] = []
+    for item in handoff.get("provider_admission_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        candidate = dict(item)
+        if consumed and _same_terminal_consumption_identity(
+            _identity_for_terminal_consumption(consumed),
+            _identity_for_terminal_consumption(candidate),
+        ):
+            continue
+        candidates.append(candidate)
+    return candidates
+
+
+def _identity_for_terminal_consumption(value: Mapping[str, Any]) -> dict[str, str]:
+    payload = _mapping_copy(value)
+    work_unit_fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    return {
+        key: result
+        for key, result in {
+            "action_type": _non_empty_text(payload.get("action_type")),
+            "work_unit_id": _non_empty_text(payload.get("work_unit_id"))
+            or _non_empty_text(payload.get("next_work_unit")),
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "route_identity_key": _non_empty_text(payload.get("route_identity_key")),
+            "attempt_idempotency_key": _non_empty_text(payload.get("attempt_idempotency_key")),
+        }.items()
+        if result is not None
+    }
+
+
+def _same_terminal_consumption_identity(
+    consumed: Mapping[str, str],
+    candidate: Mapping[str, str],
+) -> bool:
+    for key in ("action_type", "work_unit_id", "work_unit_fingerprint"):
+        if not consumed.get(key) or consumed.get(key) != candidate.get(key):
+            return False
+    for key in ("route_identity_key", "attempt_idempotency_key"):
+        consumed_value = consumed.get(key)
+        candidate_value = candidate.get(key)
+        if consumed_value is not None and candidate_value is not None and consumed_value != candidate_value:
+            return False
+    return True
