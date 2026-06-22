@@ -9,6 +9,7 @@ from med_autoscience.controllers.current_owner_delta_owner_answer import (
     materialize_current_owner_delta_owner_answer,
 )
 from med_autoscience.controllers.owner_answer_candidate_intake import (
+    SUPPORTED_CANDIDATE_IDS,
     intake_owner_answer_candidate,
 )
 
@@ -23,9 +24,13 @@ def register_current_owner_delta_owner_answer_parser(
     parser.add_argument("--format", choices=("json",), default="json")
 
     candidate_parser = subparsers.add_parser("owner-answer-candidate-intake")
-    candidate_parser.add_argument("--candidate-id", required=True, choices=("B002-0810", "B003-0751"))
+    candidate_parser.add_argument("--candidate-id", required=True, choices=SUPPORTED_CANDIDATE_IDS)
     candidate_parser.add_argument("--candidate-path", required=True)
     candidate_parser.add_argument("--expected-sha256")
+    candidate_parser.add_argument("--governed-response-kind")
+    candidate_parser.add_argument("--governed-response-ref")
+    candidate_parser.add_argument("--governed-response-study-id")
+    candidate_parser.add_argument("--governed-response-owner-surface")
     candidate_parser.add_argument("--format", choices=("json",), default="json")
 
 
@@ -44,9 +49,13 @@ def handle_current_owner_delta_owner_answer_command(args: argparse.Namespace) ->
             candidate_id=args.candidate_id,
             candidate_path=Path(args.candidate_path),
             expected_sha256=args.expected_sha256,
+            governed_response_kind=args.governed_response_kind,
+            governed_response_ref=args.governed_response_ref,
+            governed_response_study_id=args.governed_response_study_id,
+            governed_response_owner_surface=args.governed_response_owner_surface,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 2 if result.get("status") != "governed_answer_consumed" else 0
+        return 0 if result.get("status") == "governed_response_consumed" else 2
     return None
 
 

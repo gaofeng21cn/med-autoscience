@@ -26,6 +26,7 @@ class CandidateSpec:
     owner_identity: Mapping[str, str]
     next_legal_surface: Mapping[str, str]
     stable_blocker_ref: str | None = None
+    provider_redrive_allowed: bool = False
 
 
 _CANDIDATES: dict[str, CandidateSpec] = {
@@ -48,6 +49,32 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             "kind": "ai_reviewer_owner_answer_or_route_back",
             "accept_path": "accept_metadata_only_payload_target_refresh_after_0808",
             "owner_callable": "publication_ai_reviewer_owner_intake",
+        },
+    ),
+    "B002-0910": CandidateSpec(
+        candidate_id="B002-0910",
+        filename=(
+            "current_main_74ee64_b002_0901_payload_metadata_human_gate_"
+            "response_candidate_0910.md"
+        ),
+        study_id="002-dm-china-us-mortality-attribution",
+        packet_kind="b002_0901_payload_metadata_human_gate_response_candidate",
+        owner_surface="MAS publication AI-reviewer governed owner answer",
+        owner_identity={
+            "owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            ),
+        },
+        next_legal_surface={
+            "kind": "ai_reviewer_payload_metadata_human_gate_or_route_back",
+            "owner_callable": "publication_ai_reviewer_owner_intake",
+            "immediate_executor_action_if_accepted": "rerun_same_no_write_guard_only",
+            "payload_target_persistence_authorized": "false",
+            "non_dry_run_materialization_authorized": "false",
         },
     ),
     "B003-0751": CandidateSpec(
@@ -74,7 +101,37 @@ _CANDIDATES: dict[str, CandidateSpec] = {
         },
         stable_blocker_ref="owner-gate-decision:d6d895635654560a85573c04",
     ),
+    "B003-0915": CandidateSpec(
+        candidate_id="B003-0915",
+        filename=(
+            "current_main_74ee64_b003_0901_preserve_blocker_typed_blocker_"
+            "response_candidate_0915.md"
+        ),
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        packet_kind="b003_0901_preserve_blocker_typed_blocker_response_candidate",
+        owner_surface="MAS paper recovery / publication gate governed owner answer",
+        owner_identity={
+            "owner": "med-autoscience",
+            "action_type": "publication_gate_replay",
+            "work_unit_id": "publication-blockers::0915410f804b3697",
+            "work_unit_fingerprint": "owner-gate-decision:d6d895635654560a85573c04",
+        },
+        next_legal_surface={
+            "kind": "publication_gate_owner_answer_or_human_gate",
+            "owner_callable": "publication_gate_replay",
+            "allowed_dispositions": (
+                "preserve_existing_stable_blocker,"
+                "route_back_specific_story_surface,"
+                "human_gate_for_blocker_disposition"
+            ),
+            "publication_gate_replay_authorized": "false",
+            "provider_redrive_authorized": "false",
+        },
+        stable_blocker_ref="owner-gate-decision:d6d895635654560a85573c04",
+    ),
 }
+
+SUPPORTED_CANDIDATE_IDS = tuple(_CANDIDATES)
 
 
 def intake_owner_answer_candidate(
@@ -82,6 +139,10 @@ def intake_owner_answer_candidate(
     candidate_id: str,
     candidate_path: Path,
     expected_sha256: str | None,
+    governed_response_kind: str | None = None,
+    governed_response_ref: str | None = None,
+    governed_response_study_id: str | None = None,
+    governed_response_owner_surface: str | None = None,
 ) -> dict[str, Any]:
     spec = _candidate_spec(candidate_id)
     path = Path(candidate_path).expanduser().resolve()
@@ -103,6 +164,36 @@ def intake_owner_answer_candidate(
             "expected_sha256": expected_sha256,
             "blocked_owner": _blocked_owner(spec),
         }
+    governed_response = _normalize_governed_response(
+        kind=governed_response_kind,
+        ref=governed_response_ref,
+        study_id=governed_response_study_id,
+        owner_surface=governed_response_owner_surface,
+    )
+    if governed_response is not None:
+        validation = _validate_governed_response(spec=spec, governed_response=governed_response)
+        if validation is not None:
+            return {
+                **base,
+                **validation,
+                "blocked_owner": _blocked_owner(spec),
+            }
+        return {
+            **base,
+            "status": "governed_response_consumed",
+            "governed_answer_consumed": True,
+            "governed_response": {
+                **governed_response,
+                "candidate_id": spec.candidate_id,
+                "consumed_by_surface": "mas_owner_answer_candidate_intake_readback",
+            },
+            "write_plan": _no_write_plan(),
+            "reason": (
+                "A governed response ref was provided with an accepted response kind "
+                "and matching study/owner surface. The intake surface records a no-write "
+                "readback only; it does not materialize authority."
+            ),
+        }
     return {
         **base,
         "status": "exact_blocked_owner",
@@ -113,6 +204,66 @@ def intake_owner_answer_candidate(
             "shape before MAS can project it as consumed."
         ),
     }
+
+
+def _normalize_governed_response(
+    *,
+    kind: str | None,
+    ref: str | None,
+    study_id: str | None,
+    owner_surface: str | None,
+) -> dict[str, str] | None:
+    values = {
+        "kind": (kind or "").strip(),
+        "ref": (ref or "").strip(),
+        "study_id": (study_id or "").strip(),
+        "owner_surface": (owner_surface or "").strip(),
+    }
+    if not any(values.values()):
+        return None
+    return values
+
+
+def _validate_governed_response(
+    *,
+    spec: CandidateSpec,
+    governed_response: Mapping[str, str],
+) -> dict[str, Any] | None:
+    kind = governed_response.get("kind", "")
+    if kind not in REQUIRED_GOVERNED_ANSWER_SHAPES:
+        return {
+            "status": "governed_response_kind_not_accepted",
+            "governed_answer_consumed": False,
+            "governed_response": dict(governed_response),
+            "accepted_response_kinds": list(REQUIRED_GOVERNED_ANSWER_SHAPES),
+        }
+    missing = [
+        key
+        for key in ("ref", "study_id", "owner_surface")
+        if not governed_response.get(key)
+    ]
+    if missing:
+        return {
+            "status": "governed_response_incomplete",
+            "governed_answer_consumed": False,
+            "governed_response": dict(governed_response),
+            "missing_fields": missing,
+        }
+    if governed_response.get("study_id") != spec.study_id:
+        return {
+            "status": "governed_response_study_mismatch",
+            "governed_answer_consumed": False,
+            "governed_response": dict(governed_response),
+            "expected_study_id": spec.study_id,
+        }
+    if governed_response.get("owner_surface") != spec.owner_surface:
+        return {
+            "status": "governed_response_owner_surface_mismatch",
+            "governed_answer_consumed": False,
+            "governed_response": dict(governed_response),
+            "expected_owner_surface": spec.owner_surface,
+        }
+    return None
 
 
 def _candidate_spec(candidate_id: str) -> CandidateSpec:
@@ -144,7 +295,7 @@ def _base_payload(*, spec: CandidateSpec, path: Path, actual_sha: str) -> dict[s
     if spec.stable_blocker_ref:
         payload["stable_blocker_policy"] = {
             "preserve_or_explicitly_supersede": spec.stable_blocker_ref,
-            "provider_redrive_allowed": False,
+            "provider_redrive_allowed": spec.provider_redrive_allowed,
         }
     return payload
 
@@ -205,4 +356,4 @@ def _authority_boundary() -> dict[str, bool | str]:
     }
 
 
-__all__ = ["intake_owner_answer_candidate"]
+__all__ = ["SUPPORTED_CANDIDATE_IDS", "intake_owner_answer_candidate"]

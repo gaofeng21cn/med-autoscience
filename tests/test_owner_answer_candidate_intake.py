@@ -6,6 +6,14 @@ from pathlib import Path
 
 B002_CANDIDATE = "current_main_03c390_b002_post_0808_owner_answer_candidate_0810.md"
 B003_CANDIDATE = "current_main_03c390_b003_post_0736_blocker_disposition_packet_0751.md"
+B002_0910_CANDIDATE = (
+    "current_main_74ee64_b002_0901_payload_metadata_human_gate_"
+    "response_candidate_0910.md"
+)
+B003_0915_CANDIDATE = (
+    "current_main_74ee64_b003_0901_preserve_blocker_typed_blocker_"
+    "response_candidate_0915.md"
+)
 
 
 def _write_candidate(path: Path, *, sha_text: str) -> None:
@@ -91,6 +99,158 @@ def test_b003_package_candidate_preserves_stable_owner_gate_blocker_without_redr
     assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
 
 
+def test_b002_0910_response_candidate_fails_closed_without_governed_ref(tmp_path: Path) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B002_0910_CANDIDATE
+    _write_candidate(candidate, sha_text="B002 0910 human gate response candidate\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B002-0910",
+        candidate_path=candidate,
+        expected_sha256=None,
+    )
+
+    assert result["status"] == "exact_blocked_owner"
+    assert result["candidate_id"] == "B002-0910"
+    assert result["candidate_packet_kind"] == "b002_0901_payload_metadata_human_gate_response_candidate"
+    assert result["blocked_owner"]["owner_surface"] == (
+        "MAS publication AI-reviewer governed owner answer"
+    )
+    assert result["blocked_owner"]["required_governed_answer_shapes"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "route_back_evidence_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+    ]
+    assert result["governed_answer_consumed"] is False
+    assert result["write_plan"]["written_files"] == []
+    assert result["write_plan"]["can_write_payload_targets"] is False
+    assert result["forbidden_authority_writes"]["non_dry_run_ai_reviewer_materialization"] is True
+
+
+def test_b003_0915_response_candidate_fails_closed_and_preserves_blocker(tmp_path: Path) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B003_0915_CANDIDATE
+    _write_candidate(candidate, sha_text="B003 0915 typed blocker response candidate\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B003-0915",
+        candidate_path=candidate,
+        expected_sha256=None,
+    )
+
+    assert result["status"] == "exact_blocked_owner"
+    assert result["candidate_id"] == "B003-0915"
+    assert result["candidate_packet_kind"] == "b003_0901_preserve_blocker_typed_blocker_response_candidate"
+    assert result["stable_blocker_policy"] == {
+        "preserve_or_explicitly_supersede": "owner-gate-decision:d6d895635654560a85573c04",
+        "provider_redrive_allowed": False,
+    }
+    assert result["blocked_owner"]["owner_surface"] == (
+        "MAS paper recovery / publication gate governed owner answer"
+    )
+    assert result["governed_answer_consumed"] is False
+    assert result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
+    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
+
+
+def test_governed_response_consumed_only_for_allowed_kind_and_matching_ownership(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B002_0910_CANDIDATE
+    _write_candidate(candidate, sha_text="B002 0910 human gate response candidate\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B002-0910",
+        candidate_path=candidate,
+        expected_sha256=None,
+        governed_response_kind="human_gate_ref",
+        governed_response_ref="human_gate:owner-answer:b002-0910",
+        governed_response_study_id="002-dm-china-us-mortality-attribution",
+        governed_response_owner_surface="MAS publication AI-reviewer governed owner answer",
+    )
+
+    assert result["status"] == "governed_response_consumed"
+    assert result["governed_answer_consumed"] is True
+    assert result["governed_response"]["kind"] == "human_gate_ref"
+    assert result["governed_response"]["candidate_id"] == "B002-0910"
+    assert result["write_plan"]["written_files"] == []
+    assert result["write_plan"]["can_write_publication_eval_latest"] is False
+    assert result["write_plan"]["can_write_payload_targets"] is False
+
+
+def test_governed_response_rejects_unaccepted_kind_without_writing(tmp_path: Path) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B002_0910_CANDIDATE
+    _write_candidate(candidate, sha_text="B002 0910 human gate response candidate\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B002-0910",
+        candidate_path=candidate,
+        expected_sha256=None,
+        governed_response_kind="owner_gate_decision_ref",
+        governed_response_ref="owner-gate-decision:not-an-accepted-shape",
+        governed_response_study_id="002-dm-china-us-mortality-attribution",
+        governed_response_owner_surface="MAS publication AI-reviewer governed owner answer",
+    )
+
+    assert result["status"] == "governed_response_kind_not_accepted"
+    assert result["governed_answer_consumed"] is False
+    assert result["accepted_response_kinds"] == result["required_governed_answer_shapes"]
+    assert result["write_plan"]["written_files"] == []
+
+
+def test_governed_response_rejects_study_or_owner_surface_mismatch(tmp_path: Path) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B003_0915_CANDIDATE
+    _write_candidate(candidate, sha_text="B003 0915 typed blocker response candidate\n")
+
+    study_result = intake_owner_answer_candidate(
+        candidate_id="B003-0915",
+        candidate_path=candidate,
+        expected_sha256=None,
+        governed_response_kind="typed_blocker_ref",
+        governed_response_ref="typed-blocker:b003-0915",
+        governed_response_study_id="002-dm-china-us-mortality-attribution",
+        governed_response_owner_surface="MAS paper recovery / publication gate governed owner answer",
+    )
+    owner_result = intake_owner_answer_candidate(
+        candidate_id="B003-0915",
+        candidate_path=candidate,
+        expected_sha256=None,
+        governed_response_kind="typed_blocker_ref",
+        governed_response_ref="typed-blocker:b003-0915",
+        governed_response_study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        governed_response_owner_surface="MAS publication AI-reviewer governed owner answer",
+    )
+
+    assert study_result["status"] == "governed_response_study_mismatch"
+    assert study_result["expected_study_id"] == "003-dpcc-primary-care-phenotype-treatment-gap"
+    assert owner_result["status"] == "governed_response_owner_surface_mismatch"
+    assert owner_result["expected_owner_surface"] == (
+        "MAS paper recovery / publication gate governed owner answer"
+    )
+    assert study_result["write_plan"]["written_files"] == []
+    assert owner_result["write_plan"]["written_files"] == []
+
+
 def test_owner_answer_candidate_intake_rejects_sha_mismatch_without_writing(tmp_path: Path) -> None:
     from med_autoscience.controllers.owner_answer_candidate_intake import (
         intake_owner_answer_candidate,
@@ -138,6 +298,47 @@ def test_owner_answer_candidate_intake_cli_json_readback(tmp_path: Path, capsys)
     payload = json.loads(captured.out)
     assert payload["status"] == "exact_blocked_owner"
     assert payload["candidate_id"] == "B003-0751"
+    assert payload["stable_blocker_policy"]["preserve_or_explicitly_supersede"] == (
+        "owner-gate-decision:d6d895635654560a85573c04"
+    )
+    assert payload["write_plan"]["written_files"] == []
+
+
+def test_owner_answer_candidate_intake_cli_consumes_matching_governed_ref(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from med_autoscience import cli
+
+    candidate = tmp_path / B003_0915_CANDIDATE
+    _write_candidate(candidate, sha_text="B003 0915 typed blocker response candidate\n")
+
+    exit_code = cli.main(
+        [
+            "owner-answer-candidate-intake",
+            "--candidate-id",
+            "B003-0915",
+            "--candidate-path",
+            str(candidate),
+            "--governed-response-kind",
+            "typed_blocker_ref",
+            "--governed-response-ref",
+            "typed-blocker:b003-0915-preserve-owner-gate-decision",
+            "--governed-response-study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--governed-response-owner-surface",
+            "MAS paper recovery / publication gate governed owner answer",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["status"] == "governed_response_consumed"
+    assert payload["candidate_id"] == "B003-0915"
+    assert payload["governed_response"]["kind"] == "typed_blocker_ref"
     assert payload["stable_blocker_policy"]["preserve_or_explicitly_supersede"] == (
         "owner-gate-decision:d6d895635654560a85573c04"
     )
