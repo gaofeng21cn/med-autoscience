@@ -92,6 +92,7 @@ Progress Portal 与 OPL runtime drilldown 分工如下：
 - Progress Portal 不暴露 MAS 私有 console link/ref，也不解释 runtime run state。
 - Progress Portal 可以展示 OPL handoff 或 domain-handler owner-route refs；本仓 active Portal 不提供 pause / resume / stop apply endpoint、本地 HTTP service 或 action receipt writer。
 - 两个层级都不得修改 paper/package、publication gate、controller decisions 或 study truth；runtime mutation 归 OPL runtime owner。
+- `current_owner_delta` 的 operator summary 只展示当前 owner-route / OPL current-control owner。若输入 owner 命中 `contracts/runtime/legacy-active-path-tombstones.json#/legacy_control_receipt_exclusion_policy/legacy_markers`，Portal 必须抑制该 summary，返回 `suppressed_legacy_private_control_owner` 诊断和 contract ref；不得把 legacy private-control marker 渲染成当前 operator owner、action summary 或 provider admission basis。
 
 ## 用户体验合同
 

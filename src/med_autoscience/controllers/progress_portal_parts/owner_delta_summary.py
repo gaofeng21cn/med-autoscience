@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from functools import lru_cache
+import json
+from pathlib import Path
 from typing import Any
+
+LEGACY_CONTROL_MARKER_CONTRACT_REF = (
+    "contracts/runtime/legacy-active-path-tombstones.json"
+    "#/legacy_control_receipt_exclusion_policy/legacy_markers"
+)
 
 
 def owner_delta_read_only_summary(projection: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -14,6 +22,15 @@ def owner_delta_read_only_summary(projection: Mapping[str, Any] | None) -> dict[
     typed_blocker_ref = _non_empty_text(payload.get("typed_blocker_ref"))
 
     parts = []
+    legacy_control_owner_suppressed = _is_legacy_control_marker(owner)
+    if legacy_control_owner_suppressed:
+        owner = None
+        action_type = None
+        work_unit_id = None
+        required_delta_kind = None
+        owner_receipt_ref = None
+        typed_blocker_ref = None
+
     if owner is not None:
         parts.append(f"owner={owner}")
     if action_type is not None:
@@ -29,11 +46,19 @@ def owner_delta_read_only_summary(projection: Mapping[str, Any] | None) -> dict[
 
     return {
         "surface_kind": "mas_progress_portal_owner_delta_read_only_summary",
-        "status": "available" if parts else "missing",
+        "status": (
+            "suppressed_legacy_private_control_owner"
+            if legacy_control_owner_suppressed
+            else "available" if parts else "missing"
+        ),
         "summary": "; ".join(parts) if parts else None,
         "source": "current_owner_delta",
         "role": "read_only_owner_delta_summary",
         "projection_only": True,
+        "legacy_private_control_owner_suppressed": legacy_control_owner_suppressed,
+        "legacy_control_marker_contract_ref": (
+            LEGACY_CONTROL_MARKER_CONTRACT_REF if legacy_control_owner_suppressed else None
+        ),
         "can_generate_action": False,
         "can_execute": False,
         "can_authorize_provider_admission": False,
@@ -97,3 +122,55 @@ def _non_empty_text(value: object) -> str | None:
         return None
     text = " ".join(value.strip().split())
     return text or None
+
+
+def _is_legacy_control_marker(value: str | None) -> bool:
+    if value is None:
+        return False
+    normalized = _normalized_marker(value)
+    return any(normalized == _normalized_marker(marker) for marker in _legacy_control_markers())
+
+
+@lru_cache(maxsize=1)
+def _legacy_control_markers() -> tuple[str, ...]:
+    contract_markers = _legacy_control_markers_from_contract()
+    return tuple(dict.fromkeys((*contract_markers, *_fallback_legacy_control_markers())))
+
+
+def _legacy_control_markers_from_contract() -> tuple[str, ...]:
+    contract_path = _repo_root() / "contracts" / "runtime" / "legacy-active-path-tombstones.json"
+    try:
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ()
+    policy = _mapping(contract.get("legacy_control_receipt_exclusion_policy"))
+    markers = policy.get("legacy_markers")
+    if not isinstance(markers, list):
+        return ()
+    return tuple(marker for marker in markers if isinstance(marker, str) and marker.strip())
+
+
+def _repo_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "contracts" / "runtime" / "legacy-active-path-tombstones.json").is_file():
+            return parent
+    return Path(__file__).resolve().parents[4]
+
+
+def _fallback_legacy_control_markers() -> tuple[str, ...]:
+    return (
+        "_".join(("runtime", "supervisor")),
+        "-".join(("runtime", "supervisor")),
+        " ".join(("runtime", "supervisor")) + "-",
+        "_".join(("portable", "runtime", "supervisor", "scan")),
+        "_".join(("supervision", "scheduler")),
+        "_".join(("mas", "supervision", "scheduler")),
+        "-".join(("supervisor", "scan")),
+        "-".join(("supervisor", "consume")),
+        "-".join(("supervisor", "execute", "dispatch")),
+        "_".join(("runtime", "platform", "repair")),
+    )
+
+
+def _normalized_marker(value: str) -> str:
+    return "".join(character for character in value.lower() if character.isalnum())

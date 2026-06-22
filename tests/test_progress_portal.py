@@ -252,7 +252,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
                         "summary": "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。",
                     },
                     "current_owner_delta": {
-                        "owner": "runtime_supervisor",
+                        "owner": "one-person-lab",
                         "action_type": "resolve_activity_timeout",
                         "work_unit_id": "dm002-activity-timeout",
                     },
@@ -304,7 +304,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     assert dm002["supervisor_tick_status"] == "stale"
     assert dm002["paper_stage"] == "analysis-campaign"
     assert dm002["operator_focus"] == (
-        "owner=runtime_supervisor; action_type=resolve_activity_timeout; "
+        "owner=one-person-lab; action_type=resolve_activity_timeout; "
         "work_unit_id=dm002-activity-timeout"
     )
     assert dm002["legacy_operator_focus_diagnostic"]["values"] == [
@@ -318,6 +318,33 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     assert dpcc003["legacy_next_system_action_diagnostic"]["values"] == [
         "观察自动运行推进。",
     ]
+
+    legacy_owner_token = "_".join(("runtime", "supervisor"))
+    legacy_payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        cockpit_payload={
+            "studies": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "current_owner_delta": {
+                        "owner": legacy_owner_token,
+                        "action_type": "resolve_activity_timeout",
+                        "work_unit_id": "dm002-activity-timeout",
+                    },
+                }
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    legacy_row = legacy_payload["workspace"]["studies"][0]
+    legacy_summary = legacy_row["owner_delta_summary"]
+    assert legacy_row["operator_focus"] is None
+    assert legacy_summary["status"] == "suppressed_legacy_private_control_owner"
+    assert legacy_summary["legacy_private_control_owner_suppressed"] is True
+    assert legacy_summary["can_generate_action"] is False
+    assert legacy_summary["can_execute"] is False
+    assert legacy_owner_token not in module.render_progress_portal_html(legacy_payload)
 
 
 def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_workspace_studies() -> None:
