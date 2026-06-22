@@ -165,6 +165,206 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
     assert "ai_reviewer_record" not in original_request
 
 
+def test_ai_reviewer_request_refresh_adopts_owner_route_less_record_production_output_by_work_unit(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_lifecycle")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent inputs require an AI reviewer record.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    old_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260621T103510Z_publication_eval_record.json"
+    )
+    new_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260622T113103Z_publication_eval_record.json"
+    )
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    work_unit_fingerprint = f"domain-transition::ai_reviewer_re_eval::{work_unit_id}"
+    request_packet = {
+        "surface": "domain_action_request",
+        "schema_version": 1,
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "request_owner": "ai_reviewer",
+        "source_workflow_ref": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        },
+        "request_lifecycle": {
+            "state": "requested",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "stale_record_ref": str(old_record_path.resolve()),
+            "required_currentness_refs": [str(manuscript_path.resolve())],
+            "missing_currentness_refs": [str(manuscript_path.resolve())],
+        },
+        "input_contract": {
+            "required_refs": {
+                "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+            }
+        },
+    }
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id="publication-eval::002::quest::2026-06-22T11:31:03+00:00::ai-reviewer",
+        emitted_at="2026-06-22T11:31:03+00:00",
+    )
+    provenance = dict(record_payload["assessment_provenance"])
+    provenance.update(
+        {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        }
+    )
+    record_payload["assessment_provenance"] = provenance
+    _write_json(new_record_path, record_payload)
+
+    refreshed = module.ai_reviewer_request_with_latest_record(
+        study_root=study_root,
+        packet=request_packet,
+    )
+
+    assert refreshed["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert refreshed["ai_reviewer_record"]["eval_id"] == record_payload["eval_id"]
+    assert refreshed["request_lifecycle"]["blocked_reason"] is None
+    assert refreshed["request_lifecycle"]["assessment_ref"] == str(new_record_path.resolve())
+    assert "stale_record_ref" not in refreshed["request_lifecycle"]
+    assert "required_currentness_refs" not in refreshed["request_lifecycle"]
+
+
+def test_ai_reviewer_request_refresh_uses_record_production_payload_when_request_lacks_work_unit_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_lifecycle")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent inputs require an AI reviewer record.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    old_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260621T103510Z_publication_eval_record.json"
+    )
+    new_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260622T113103Z_publication_eval_record.json"
+    )
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    work_unit_fingerprint = f"domain-transition::ai_reviewer_re_eval::{work_unit_id}"
+    request_packet = {
+        "surface": "domain_action_request",
+        "schema_version": 1,
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "request_owner": "ai_reviewer",
+        "source_workflow_ref": {
+            "surface": "controller_decisions/latest.json",
+            "authority_owner": "ai_reviewer",
+            "authority_state": "requested",
+        },
+        "request_lifecycle": {
+            "state": "requested",
+            "assessment_ref": str(old_record_path.resolve()),
+            "blocked_reason": None,
+        },
+        "publication_eval_record_ref": str(old_record_path.resolve()),
+        "input_contract": {
+            "required_refs": {
+                "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+            }
+        },
+    }
+    stale_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id="publication-eval::002::quest::2026-06-21T10:35:10+00:00::ai-reviewer",
+        emitted_at="2026-06-21T10:35:10+00:00",
+    )
+    _write_json(old_record_path, stale_record)
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id="publication-eval::002::quest::2026-06-22T11:31:03+00:00::ai-reviewer",
+        emitted_at="2026-06-22T11:31:03+00:00",
+    )
+    provenance = dict(record_payload["assessment_provenance"])
+    provenance.update(
+        {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        }
+    )
+    record_payload["assessment_provenance"] = provenance
+    _write_json(new_record_path, record_payload)
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "requests"
+        / "ai_reviewer"
+        / "record_production_payloads"
+        / "return_to_ai_reviewer_workflow_payload.json",
+        {
+            "surface": "ai_reviewer_record_payload_authoring_target",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "request_kind": work_unit_id,
+            "request_owner": "ai_reviewer",
+            "record_payload": {
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                }
+            },
+        },
+    )
+
+    refreshed = module.ai_reviewer_request_with_latest_record(
+        study_root=study_root,
+        packet=request_packet,
+    )
+
+    assert refreshed["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert refreshed["ai_reviewer_record"]["eval_id"] == record_payload["eval_id"]
+    assert refreshed["request_lifecycle"]["blocked_reason"] is None
+    assert refreshed["request_lifecycle"]["assessment_ref"] == str(new_record_path.resolve())
+
+
 def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_owner_when_current(
     monkeypatch,
     tmp_path: Path,

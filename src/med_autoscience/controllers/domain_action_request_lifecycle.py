@@ -254,6 +254,17 @@ def _record_missing_currentness_refs(
     )
     required_refs = packet_refs or _analysis_harmonization_currentness_refs(study_root=study_root)
     source_refs = _record_source_refs(study_root=study_root, record=record)
+    production_refs = (
+        _ai_reviewer_request_production_currentness_refs(
+            study_root=study_root,
+            request_packet=request_packet,
+            record=record,
+        )
+        if request_packet is not None
+        else []
+    )
+    if production_refs:
+        required_refs = production_refs
     current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
     if current_manuscript_ref and current_manuscript_ref not in set(required_refs):
         required_refs = [*required_refs, current_manuscript_ref]
@@ -601,7 +612,12 @@ def _string_items(value: object) -> list[str]:
 def _latest_ai_reviewer_publication_eval_record(
     *,
     study_root: Path,
+    request_packet: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], Path] | None:
+    request_production_context = _ai_reviewer_request_production_context(
+        study_root=study_root,
+        request_packet=request_packet,
+    )
     candidates = sorted(
         (path for path in study_root.glob(AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB) if path.is_file()),
         key=lambda path: path.name,
@@ -609,15 +625,90 @@ def _latest_ai_reviewer_publication_eval_record(
     )
     for path in candidates:
         payload = _read_json_object(path)
-        if payload is not None and _ai_reviewer_publication_eval_record_valid(payload):
+        if (
+            payload is not None
+            and _ai_reviewer_publication_eval_record_valid(payload)
+            and _ai_reviewer_record_matches_request_production_context(
+                record=payload,
+                request_production_context=request_production_context,
+            )
+        ):
             return payload, path.resolve()
     return None
+
+
+def _ai_reviewer_request_production_currentness_refs(
+    *,
+    study_root: Path,
+    request_packet: Mapping[str, Any],
+    record: Mapping[str, Any],
+) -> list[str]:
+    record_context = _ai_reviewer_record_production_context(record)
+    if not record_context["work_unit_ids"] and not record_context["work_unit_fingerprints"]:
+        return []
+    refs: list[str] = []
+    for authoring_payload in _matching_record_production_authoring_payloads(
+        study_root=study_root,
+        request_packet=request_packet,
+    ):
+        authoring_context = _ai_reviewer_record_production_context(authoring_payload)
+        record_payload = _mapping(authoring_payload.get("record_payload"))
+        payload_context = _ai_reviewer_record_production_context(record_payload)
+        if not _production_contexts_match(record_context, authoring_context) and not _production_contexts_match(
+            record_context,
+            payload_context,
+        ):
+            continue
+        for source in (record_payload, _mapping(record_payload.get("assessment_provenance"))):
+            for item in _string_items(source.get("source_refs")):
+                resolved = _resolved_text_ref(study_root=study_root, value=item)
+                if resolved:
+                    refs.append(resolved)
+        reviewer_trace = _mapping(record_payload.get("reviewer_operating_system"))
+        currentness_checks = _mapping(reviewer_trace.get("currentness_checks"))
+        for check in currentness_check_mappings(currentness_checks):
+            for key in ("manuscript_ref", "ref", "path", "source_ref", "evidence_ref", "result_ref"):
+                resolved = _resolved_text_ref(study_root=study_root, value=check.get(key))
+                if resolved:
+                    refs.append(resolved)
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    return list(dict.fromkeys(ref for ref in refs if ref in source_refs))
+
+
+def _ai_reviewer_record_production_context(record: Mapping[str, Any]) -> dict[str, set[str]]:
+    context: dict[str, set[str]] = {"work_unit_ids": set(), "work_unit_fingerprints": set()}
+    provenance = _mapping(record.get("assessment_provenance"))
+    reviewer_trace = _mapping(record.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_trace.get("input_bundle"))
+    for source in (record, provenance, reviewer_trace, input_bundle):
+        for key in ("work_unit_id", "source_work_unit_id", "requested_work_unit_id", "request_kind"):
+            if text := _text(source.get(key)):
+                context["work_unit_ids"].add(text)
+        for key in (
+            "work_unit_fingerprint",
+            "source_work_unit_fingerprint",
+            "requested_work_unit_fingerprint",
+        ):
+            if text := _text(source.get(key)):
+                context["work_unit_fingerprints"].add(text)
+    return context
+
+
+def _production_contexts_match(left: Mapping[str, set[str]], right: Mapping[str, set[str]]) -> bool:
+    if left.get("work_unit_fingerprints", set()).intersection(right.get("work_unit_fingerprints", set())):
+        return True
+    return bool(left.get("work_unit_ids", set()).intersection(right.get("work_unit_ids", set())))
 
 
 def _latest_ai_reviewer_publication_eval_record_candidate(
     *,
     study_root: Path,
+    request_packet: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], Path] | None:
+    request_production_context = _ai_reviewer_request_production_context(
+        study_root=study_root,
+        request_packet=request_packet,
+    )
     candidates = sorted(
         (path for path in study_root.glob(AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB) if path.is_file()),
         key=lambda path: path.name,
@@ -625,15 +716,122 @@ def _latest_ai_reviewer_publication_eval_record_candidate(
     )
     for path in candidates:
         payload = _read_json_object(path)
-        if payload is not None and _ai_reviewer_publication_eval_record_candidate(payload):
+        if (
+            payload is not None
+            and _ai_reviewer_publication_eval_record_candidate(payload)
+            and _ai_reviewer_record_matches_request_production_context(
+                record=payload,
+                request_production_context=request_production_context,
+            )
+        ):
             return payload, path.resolve()
     return None
 
 
+def _ai_reviewer_request_production_context(
+    *,
+    study_root: Path,
+    request_packet: Mapping[str, Any] | None,
+) -> dict[str, set[str]]:
+    context: dict[str, set[str]] = {"work_unit_ids": set(), "work_unit_fingerprints": set()}
+    if request_packet is None:
+        return context
+
+    def add_context(source: Mapping[str, Any]) -> None:
+        for key in ("next_work_unit", "work_unit_id", "source_work_unit_id", "requested_work_unit_id"):
+            if text := _text(source.get(key)):
+                context["work_unit_ids"].add(text)
+        for key in (
+            "work_unit_fingerprint",
+            "source_work_unit_fingerprint",
+            "requested_work_unit_fingerprint",
+            "materialized_work_unit_fingerprint",
+        ):
+            if text := _text(source.get(key)):
+                context["work_unit_fingerprints"].add(text)
+
+    source_workflow_ref = _mapping(request_packet.get("source_workflow_ref"))
+    owner_route_source_refs = _mapping(_mapping(request_packet.get("owner_route")).get("source_refs"))
+    add_context(source_workflow_ref)
+    add_context(owner_route_source_refs)
+    for authoring_payload in _matching_record_production_authoring_payloads(
+        study_root=study_root,
+        request_packet=request_packet,
+    ):
+        add_context(authoring_payload)
+        record_payload = _mapping(authoring_payload.get("record_payload"))
+        add_context(record_payload)
+        add_context(_mapping(record_payload.get("assessment_provenance")))
+    return context
+
+
+def _matching_record_production_authoring_payloads(
+    *,
+    study_root: Path,
+    request_packet: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
+    request_kind = _text(request_packet.get("request_kind"))
+    payload_root = (
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "record_production_payloads"
+    )
+    payloads: list[Mapping[str, Any]] = []
+    for path in sorted(payload_root.glob("*_payload.json")):
+        payload = _read_json_object(path)
+        if payload is None:
+            continue
+        if request_kind and _text(payload.get("action_type")) != request_kind:
+            continue
+        payloads.append(payload)
+    return payloads
+
+
+def _ai_reviewer_record_matches_request_production_context(
+    *,
+    record: Mapping[str, Any],
+    request_production_context: Mapping[str, set[str]],
+) -> bool:
+    requested_work_unit_ids = request_production_context.get("work_unit_ids") or set()
+    requested_fingerprints = request_production_context.get("work_unit_fingerprints") or set()
+    if not requested_work_unit_ids and not requested_fingerprints:
+        return True
+
+    provenance = _mapping(record.get("assessment_provenance"))
+    reviewer_trace = _mapping(record.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_trace.get("input_bundle"))
+    record_work_unit_ids = {
+        text
+        for source in (record, provenance, reviewer_trace, input_bundle)
+        for text in (
+            _text(source.get("work_unit_id")),
+            _text(source.get("source_work_unit_id")),
+            _text(source.get("requested_work_unit_id")),
+        )
+        if text
+    }
+    record_fingerprints = {
+        text
+        for source in (record, provenance, reviewer_trace, input_bundle)
+        for text in (
+            _text(source.get("work_unit_fingerprint")),
+            _text(source.get("source_work_unit_fingerprint")),
+            _text(source.get("requested_work_unit_fingerprint")),
+        )
+        if text
+    }
+    if requested_fingerprints and record_fingerprints.intersection(requested_fingerprints):
+        return True
+    if requested_work_unit_ids and record_work_unit_ids.intersection(requested_work_unit_ids):
+        return True
+    return False
+
+
 def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(packet)
-    latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root)
-    latest_candidate = _latest_ai_reviewer_publication_eval_record_candidate(study_root=study_root)
+    latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root, request_packet=payload)
+    latest_candidate = _latest_ai_reviewer_publication_eval_record_candidate(
+        study_root=study_root,
+        request_packet=payload,
+    )
     existing_record = _mapping(payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"))
     if latest is not None:
         latest_record, latest_record_path = latest
