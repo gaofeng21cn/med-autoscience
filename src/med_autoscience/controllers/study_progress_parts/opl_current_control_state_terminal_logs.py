@@ -627,13 +627,13 @@ def _latest_typed_default_executor_closeout_projection(
         next_owner_action = _observability_mapping(next_forced_delta.get("owner_action"))
         anti_loop_budget = _observability_mapping(typed_blocker.get("anti_loop_budget"))
         blocked_reason = (
-            _non_empty_text(owner_result.get("blocked_reason"))
-            or _non_empty_text(execution.get("blocked_reason"))
-            or _non_empty_text(typed_blocker.get("blocker_type"))
+            _non_empty_text(typed_blocker.get("blocker_type"))
             or _non_empty_text(typed_blocker.get("blocker_kind"))
             or _non_empty_text(typed_blocker.get("blocker_id"))
             or _non_empty_text(typed_blocker.get("reason"))
             or _non_empty_text(typed_blocker.get("blocked_reason"))
+            or _non_empty_text(owner_result.get("blocked_reason"))
+            or _non_empty_text(execution.get("blocked_reason"))
             or _non_empty_text(paper_stage_log.get("outcome"))
         )
         if blocked_reason is None:

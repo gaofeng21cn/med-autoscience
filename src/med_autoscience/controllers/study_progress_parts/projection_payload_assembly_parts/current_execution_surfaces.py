@@ -883,8 +883,6 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
 ) -> dict[str, Any]:
     if handoff.get("running_provider_attempt") is True:
         return {}
-    if not _handoff_current_work_unit_is_owner_receipt(handoff):
-        return {}
     if paper_recovery_consumed_owner_receipt_successor(
         _mapping_copy(_mapping_copy(payload).get("paper_recovery_state"))
     ):
@@ -894,7 +892,7 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
         consumed.get("typed_blocker")
     ):
         return {}
-    typed_blocker = _canonical_typed_blocker_from_handoff(handoff)
+    typed_blocker = _mapping_copy(consumed.get("typed_blocker")) or _canonical_typed_blocker_from_handoff(handoff)
     if not typed_blocker:
         return {}
     typed_blocker = _with_consumed_terminal_closeout_marker(
@@ -916,11 +914,14 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
             progress=progress,
         ):
             return {}
-    current = _mapping_copy(handoff.get("current_work_unit"))
-    if not _identity_overlaps_without_conflict(current, typed_blocker):
-        return {}
     if not _identity_overlaps_without_conflict(consumed, typed_blocker):
         return {}
+    current = _mapping_copy(handoff.get("current_work_unit"))
+    if current and not _identity_overlaps_without_conflict(current, typed_blocker):
+        current_identity = _identity_values(current)
+        consumed_identity = _identity_values(consumed)
+        if not _identities_conflict(current_identity, consumed_identity):
+            return {}
     return typed_blocker
 
 

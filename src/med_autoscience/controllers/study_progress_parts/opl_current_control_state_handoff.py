@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,7 @@ from .opl_current_control_state_handoff_values import (
     _observability_mapping,
     _owner_route_projection,
     _stage_progress_log_mapping,
+    _number_value,
     _strict_running_provider_attempt,
     _string_list,
     _work_unit_identity,
@@ -45,6 +47,7 @@ from .opl_current_control_state_handoff_identity import bind_live_attempt_to_han
 from .opl_current_control_state_terminal_logs import (
     _latest_terminal_stage_log_projection,
     _latest_typed_default_executor_closeout_projection,
+    _source_path_mtime,
     _typed_closeout_supersedes_terminal,
 )
 from .shared_base import _mapping_copy, _non_empty_text, _read_json_object
@@ -496,7 +499,18 @@ def opl_current_control_state_study_handoff_projection(
     ):
         typed_closeout = _observability_mapping(latest_typed_closeout)
         projection["latest_typed_default_executor_closeout"] = typed_closeout
-        if not _handoff_has_complete_current_transition_readback(projection):
+        if _newer_typed_closeout_blocks_stale_current_control(
+            typed_closeout=typed_closeout,
+            projection=projection,
+            handoff_path=handoff_path,
+        ):
+            projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
+            projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
+            projection = _apply_typed_default_executor_closeout_to_handoff(
+                projection,
+                allow_stale_identity_override=True,
+            )
+        elif not _handoff_has_complete_current_transition_readback(projection):
             projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
             projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
             projection = _apply_typed_default_executor_closeout_to_handoff(projection)
@@ -2422,11 +2436,13 @@ def _terminal_closeout_owner_answer_blocker(
 
 def _apply_typed_default_executor_closeout_to_handoff(
     projection: dict[str, Any],
+    *,
+    allow_stale_identity_override: bool = False,
 ) -> dict[str, Any]:
     typed_closeout = _observability_mapping(projection.get("latest_typed_default_executor_closeout"))
     if not typed_closeout:
         return projection
-    if _handoff_has_complete_current_transition_readback(projection):
+    if _handoff_has_complete_current_transition_readback(projection) and not allow_stale_identity_override:
         return projection
     matching_actions = [
         item
@@ -2434,7 +2450,7 @@ def _apply_typed_default_executor_closeout_to_handoff(
         if isinstance(item, Mapping)
         and _typed_closeout_matches_handoff_action(typed_closeout=typed_closeout, action=item)
     ]
-    if projection.get("action_queue") and not matching_actions:
+    if projection.get("action_queue") and not matching_actions and not allow_stale_identity_override:
         return projection
     typed_blocker = _typed_closeout_blocker_projection(
         typed_closeout=typed_closeout,
@@ -2469,7 +2485,184 @@ def _apply_typed_default_executor_closeout_to_handoff(
     updated["runtime_owner"] = None
     updated["provider_attempt_owner"] = None
     updated["queue_owner"] = None
+    if allow_stale_identity_override:
+        updated["provider_admission_pending_count"] = 0
+        updated["provider_admission_candidates"] = []
+        updated["transition_request_pending_count"] = 0
+        updated["transition_request_candidates"] = []
+        updated["current_executable_owner_action"] = None
+        updated["current_work_unit"] = _typed_closeout_current_work_unit(
+            typed_blocker=typed_blocker,
+            typed_closeout=typed_closeout,
+        )
+        updated["current_execution_envelope"] = {
+            "state_kind": "typed_blocker",
+            "owner": _non_empty_text(typed_blocker.get("owner")),
+            "action_type": _non_empty_text(typed_blocker.get("action_type")),
+            "work_unit_id": _work_unit_identity(typed_blocker.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(typed_blocker.get("work_unit_fingerprint")),
+            "action_fingerprint": _non_empty_text(typed_blocker.get("action_fingerprint")),
+            "source": "latest_typed_default_executor_closeout",
+            "typed_blocker": typed_blocker,
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_completion_is_domain_completion": False,
+            },
+        }
+        updated["provider_admission_terminal_closeout_consumed"] = _provider_admission_terminal_closeout_consumed(
+            terminal={
+                **typed_closeout,
+                "typed_blocker_ref": _non_empty_text(typed_closeout.get("typed_blocker_ref"))
+                or _non_empty_text(typed_closeout.get("receipt_ref"))
+                or _non_empty_text(typed_closeout.get("source_path")),
+            },
+            matching_provider_admission=None,
+        )
+        updated["provider_admission_terminal_closeout_consumed"]["typed_blocker"] = typed_blocker
+        updated["provider_admission_terminal_closeout_consumed"]["currentness_precedence"] = (
+            "newer_terminal_typed_closeout_supersedes_stale_provider_admission"
+        )
     return updated
+
+
+def _newer_typed_closeout_blocks_stale_current_control(
+    *,
+    typed_closeout: Mapping[str, Any],
+    projection: Mapping[str, Any],
+    handoff_path: Path,
+) -> bool:
+    if not typed_closeout:
+        return False
+    embedded = _observability_mapping(typed_closeout.get("typed_blocker"))
+    if not embedded and _non_empty_text(typed_closeout.get("status")) != "typed_blocker":
+        return False
+    if _terminal_closeout_has_domain_delta(typed_closeout):
+        return False
+    has_stale_provider_admission = (
+        int(projection.get("provider_admission_pending_count") or 0) > 0
+        or bool(_handoff_candidate_list(projection.get("provider_admission_candidates")))
+        or any(
+            _action_queue_item_has_provider_admission_readback(item)
+            for item in projection.get("action_queue") or []
+            if isinstance(item, Mapping)
+        )
+    )
+    if not has_stale_provider_admission:
+        return False
+    closeout_observed_at = _closeout_observed_timestamp(typed_closeout)
+    current_control_observed_at = _current_control_observed_timestamp(
+        projection=projection,
+        handoff_path=handoff_path,
+    )
+    if closeout_observed_at <= current_control_observed_at:
+        return False
+    closeout_study = _non_empty_text(typed_closeout.get("study_id"))
+    projection_study = _non_empty_text(projection.get("study_id"))
+    return closeout_study is None or projection_study is None or closeout_study == projection_study
+
+
+def _closeout_observed_timestamp(typed_closeout: Mapping[str, Any]) -> float:
+    return max(
+        _number_value(typed_closeout.get("source_mtime"))
+        or _source_path_mtime(Path(_non_empty_text(typed_closeout.get("source_path")) or "")),
+        _epoch_seconds(_non_empty_text(typed_closeout.get("generated_at"))),
+    )
+
+
+def _current_control_observed_timestamp(
+    *,
+    projection: Mapping[str, Any],
+    handoff_path: Path,
+) -> float:
+    generated_at = _epoch_seconds(_non_empty_text(projection.get("generated_at")))
+    if generated_at:
+        return generated_at
+    return _source_path_mtime(handoff_path)
+
+
+def _epoch_seconds(value: str | None) -> float:
+    if value is None:
+        return 0.0
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return 0.0
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def _action_queue_item_has_provider_admission_readback(item: Mapping[str, Any]) -> bool:
+    candidate = _action_with_handoff_packet_readback(item)
+    if provider_admission_opl_transition_readback(candidate):
+        return True
+    readback = candidate_opl_transition_readback(candidate)
+    outcome = _observability_mapping(readback.get("exactly_one_outcome"))
+    return _non_empty_text(outcome.get("outcome_kind")) == LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME
+
+
+def _typed_closeout_current_work_unit(
+    *,
+    typed_blocker: Mapping[str, Any],
+    typed_closeout: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner = _non_empty_text(typed_blocker.get("owner")) or _non_empty_text(typed_closeout.get("next_owner"))
+    action = _non_empty_text(typed_blocker.get("action_type")) or _non_empty_text(typed_closeout.get("action_type"))
+    work_unit = _work_unit_identity(typed_blocker.get("work_unit_id")) or _work_unit_identity(
+        typed_closeout.get("work_unit_id")
+    )
+    fingerprint = _non_empty_text(typed_blocker.get("work_unit_fingerprint")) or _non_empty_text(
+        typed_closeout.get("work_unit_fingerprint")
+    )
+    action_fingerprint = _non_empty_text(typed_blocker.get("action_fingerprint")) or fingerprint
+    blocker_type = _non_empty_text(typed_blocker.get("blocker_type")) or _non_empty_text(
+        typed_blocker.get("blocked_reason")
+    )
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "current_work_unit",
+            "schema_version": 1,
+            "status": "typed_blocker",
+            "study_id": _non_empty_text(typed_closeout.get("study_id")),
+            "quest_id": _non_empty_text(typed_closeout.get("study_id")),
+            "owner": owner,
+            "action_type": action,
+            "work_unit_id": work_unit,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": action_fingerprint,
+            "blocker_type": blocker_type,
+            "typed_blocker_ref": _non_empty_text(typed_blocker.get("typed_blocker_ref"))
+            or _non_empty_text(typed_closeout.get("receipt_ref"))
+            or _non_empty_text(typed_closeout.get("source_path")),
+            "state": {
+                "state_kind": "typed_blocker",
+                "source": "latest_typed_default_executor_closeout",
+                "typed_blocker": dict(typed_blocker),
+                "stage_attempt_id": _non_empty_text(typed_closeout.get("stage_attempt_id")),
+                "stale_queue_or_handoff_can_override": False,
+                "provider_completion_is_domain_completion": False,
+            },
+            "required_output_contract": {
+                "owner_receipt_required": True,
+                "typed_blocker_allowed": True,
+                "provider_completion_is_domain_completion": False,
+            },
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_completion_is_domain_completion": False,
+            },
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _handoff_has_complete_current_transition_readback(projection: Mapping[str, Any]) -> bool:

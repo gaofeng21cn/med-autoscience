@@ -380,6 +380,7 @@ def _execution_from_stage_closeout(
         )
         or "closeout_refs",
         "stage_attempt_id": _text(closeout.get("stage_attempt_id")),
+        "generated_at": _text(closeout.get("generated_at")),
         "typed_blocker": _mapping(closeout.get("typed_blocker")),
         "paper_stage_log": user_stage_log or {},
         "missing_user_stage_log_fields": missing_user_stage_log_fields,
