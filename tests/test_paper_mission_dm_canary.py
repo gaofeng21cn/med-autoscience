@@ -68,7 +68,7 @@ def test_dm003_canary_import_builds_prose_repair_typed_blocker_readback() -> Non
     assert mission["consume_result"]["status"] == "not_consumed"
     assert mission["claim_permissions"]["can_claim_publication_ready"] is False
     assert readback["mission_objective"]["objective_kind"] == (
-        "medical_prose_write_repair"
+        "medical_prose_write_repair_publication_gate_replay"
     )
     assert readback["mission_objective"]["basis"]["next_work_units"] == [
         "medical_prose_write_repair"

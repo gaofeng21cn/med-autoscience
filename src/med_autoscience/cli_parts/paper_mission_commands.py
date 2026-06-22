@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.paper_mission import (
+    build_paper_mission_one_shot_migration_pack,
+    paper_mission_by_study,
+    paper_mission_canary_candidate_manifest,
+)
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 
 
@@ -22,6 +27,18 @@ FORBIDDEN_AUTHORITY_WRITES = (
     "current_package",
     "runtime queue/provider attempts",
     "/Users/gaofeng/workspace/Yang/**",
+)
+ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES = (
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "owner receipt",
+    "typed blocker",
+    "human gate",
+    "current_package",
+    "runtime queue/provider attempts",
+    "Yang study truth surfaces",
+    "Yang runtime authority surfaces",
+    "Yang output outside ops/medautoscience/paper_mission_one_shot_migration",
 )
 FORBIDDEN_AUTHORITY_CLAIMS = (
     "publication_ready",
@@ -46,6 +63,10 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
 
     inspect_parser = mission_subparsers.add_parser("inspect")
     _add_common_args(inspect_parser)
+    inspect_parser.add_argument("--one-shot-migration", action="store_true")
+    inspect_parser.add_argument("--study-progress-payload")
+    inspect_parser.add_argument("--domain-health-diagnostic-payload")
+    inspect_parser.add_argument("--output-root")
 
     start_parser = mission_subparsers.add_parser("start")
     _add_common_args(start_parser)
@@ -80,6 +101,14 @@ def handle_paper_mission_command(
         objective=getattr(args, "objective", None),
         mission_id=getattr(args, "mission_id", None),
         candidate=getattr(args, "candidate", None),
+        one_shot_migration=bool(getattr(args, "one_shot_migration", False)),
+        study_progress_payload=getattr(args, "study_progress_payload", None),
+        domain_health_diagnostic_payload=getattr(
+            args,
+            "domain_health_diagnostic_payload",
+            None,
+        ),
+        output_root=getattr(args, "output_root", None),
         dry_run=bool(getattr(args, "dry_run", False)),
         source="cli",
     )
@@ -96,9 +125,23 @@ def build_paper_mission_readback(
     objective: str | None = None,
     mission_id: str | None = None,
     candidate: str | Path | None = None,
+    one_shot_migration: bool = False,
+    study_progress_payload: str | Path | None = None,
+    domain_health_diagnostic_payload: str | Path | None = None,
+    output_root: str | Path | None = None,
     dry_run: bool = False,
     source: str = "unknown",
 ) -> dict[str, Any]:
+    if one_shot_migration:
+        return _build_one_shot_migration_cli_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            study_progress_payload=study_progress_payload,
+            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            output_root=output_root,
+            source=source,
+        )
     selected_objective = _objective_for_command(
         paper_mission_command=paper_mission_command,
         objective=objective,
@@ -193,6 +236,12 @@ def paper_mission_domain_handler_dispatch_receipt(
         objective=_optional_text(payload.get("objective")),
         mission_id=_optional_text(payload.get("mission_id")),
         candidate=_optional_text(payload.get("candidate")),
+        one_shot_migration=bool(payload.get("one_shot_migration", False)),
+        study_progress_payload=_optional_text(payload.get("study_progress_payload")),
+        domain_health_diagnostic_payload=_optional_text(
+            payload.get("domain_health_diagnostic_payload")
+        ),
+        output_root=_optional_text(payload.get("output_root")),
         dry_run=bool(payload.get("dry_run", True)),
         source="domain-handler-dispatch",
     )
@@ -246,6 +295,199 @@ def _paper_mission_dispatch_error(
         "reason": reason,
         "forbidden_domain_truth_write": False,
     }
+
+
+def _build_one_shot_migration_cli_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    study_progress_payload: str | Path | None,
+    domain_health_diagnostic_payload: str | Path | None,
+    output_root: str | Path | None,
+    source: str,
+) -> dict[str, Any]:
+    if study_progress_payload is None:
+        raise ValueError("--study-progress-payload is required for --one-shot-migration")
+    progress_path = Path(study_progress_payload).expanduser().resolve()
+    dhd_path = (
+        Path(domain_health_diagnostic_payload).expanduser().resolve()
+        if domain_health_diagnostic_payload is not None
+        else None
+    )
+    progress = _load_json_object(progress_path)
+    dhd = _load_json_object(dhd_path) if dhd_path is not None else {}
+    migration_pack = build_paper_mission_one_shot_migration_pack(
+        study_progress_payloads=progress,
+        domain_health_diagnostic_payload=dhd,
+        profile_ref=str(profile_ref),
+    )
+    mission = paper_mission_by_study(migration_pack, study_id)
+    readback = mission["one_shot_migration_readback"]
+    candidate_manifest = paper_mission_canary_candidate_manifest(mission)
+    output_manifest = (
+        _write_one_shot_migration_outputs(
+            output_root=Path(output_root),
+            study_id=study_id,
+            legacy_truth_import_pack=readback["legacy_truth_import_pack"],
+            paper_mission_run=mission,
+            default_readback=readback,
+            candidate_manifest=candidate_manifest,
+        )
+        if output_root is not None
+        else _no_write_output_manifest()
+    )
+    return {
+        "surface_kind": "paper_mission_one_shot_migration_cli_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": "inspect",
+        "action_intent": "paper_mission/inspect",
+        "source": source,
+        "dry_run": True,
+        "profile": {
+            "profile_name": str(getattr(profile, "name", "")),
+            "profile_ref": str(profile_ref),
+        },
+        "study_id": study_id,
+        "study_root": str(Path(profile.studies_root) / study_id),
+        "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
+        "study_progress_payload_ref": str(progress_path),
+        **(
+            {"domain_health_diagnostic_payload_ref": str(dhd_path)}
+            if dhd_path is not None
+            else {}
+        ),
+        "migration_pack": migration_pack,
+        "legacy_truth_import_pack": readback["legacy_truth_import_pack"],
+        "paper_mission_run": mission,
+        "default_readback": readback,
+        "candidate_manifest": candidate_manifest,
+        "authority_consume_readback": readback["consume_candidate_readback"],
+        "consume_candidate_status": readback["consume_candidate_status"],
+        "mutation_policy": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_yang_ops_candidate_package": _is_yang_ops_candidate_root(output_root),
+            "writes_paper_body": False,
+            "writes_candidate_workspace": output_root is not None,
+            "dry_run_only": True,
+            "forbidden_authority_writes": list(
+                ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES
+            ),
+        },
+        "output_manifest": output_manifest,
+        "contract_validation": _validate_with_contract_if_available(mission),
+        "cutover_proof": {
+            "legacy_truth_import_pack_generated": True,
+            "formal_paper_mission_run_generated": True,
+            "default_readback_surface": "PaperMissionRun",
+            "legacy_blocker_controls_default_execution": False,
+            "legacy_current_work_unit_role": "mission_input_constraint",
+            "authority_materialized": False,
+        },
+    }
+
+
+def _load_json_object(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"expected JSON object: {path}")
+    return payload
+
+
+def _write_one_shot_migration_outputs(
+    *,
+    output_root: Path,
+    study_id: str,
+    legacy_truth_import_pack: dict[str, Any],
+    paper_mission_run: dict[str, Any],
+    default_readback: dict[str, Any],
+    candidate_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    root = output_root.expanduser().resolve()
+    _assert_safe_candidate_output_root(root)
+    study_root = root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    outputs = {
+        "legacy_truth_import_pack": study_root / "legacy_truth_import_pack.json",
+        "paper_mission_run": study_root / "paper_mission_run.json",
+        "default_readback": study_root / "default_readback.json",
+        "candidate_manifest": study_root / "candidate_manifest.json",
+    }
+    payloads = {
+        "legacy_truth_import_pack": legacy_truth_import_pack,
+        "paper_mission_run": paper_mission_run,
+        "default_readback": default_readback,
+        "candidate_manifest": candidate_manifest,
+    }
+    written_files: list[str] = []
+    for key, path in outputs.items():
+        path.write_text(
+            json.dumps(payloads[key], ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        written_files.append(str(path))
+    return {
+        "mode": "non_authority_candidate_package",
+        "output_root": str(study_root),
+        "written_files": written_files,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_yang_ops_candidate_package": _is_yang_ops_candidate_root(root),
+        "candidate_manifest_ref": str(outputs["candidate_manifest"]),
+    }
+
+
+def _no_write_output_manifest() -> dict[str, Any]:
+    return {
+        "mode": "readback_only",
+        "written_files": [],
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_yang_ops_candidate_package": False,
+    }
+
+
+def _assert_safe_candidate_output_root(path: Path) -> None:
+    normalized = path.as_posix()
+    allowed_yang_candidate_root = (
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+        "ops/medautoscience/paper_mission_one_shot_migration/"
+    )
+    forbidden_parts = (
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "owner_receipt",
+        "typed_blocker",
+        "human_gate",
+        "current_package",
+        "runtime/queue",
+        "provider_attempt",
+    )
+    if normalized.startswith("/Users/gaofeng/workspace/Yang/") and not normalized.startswith(
+        allowed_yang_candidate_root
+    ):
+        raise ValueError(f"forbidden paper mission output root: {path}")
+    for forbidden in forbidden_parts:
+        if forbidden in normalized:
+            raise ValueError(f"forbidden paper mission output root: {path}")
+
+
+def _is_yang_ops_candidate_root(path: str | Path | None) -> bool:
+    if path is None:
+        return False
+    normalized = Path(path).expanduser().resolve().as_posix()
+    return normalized.startswith(
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+        "ops/medautoscience/paper_mission_one_shot_migration/"
+    )
 
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:

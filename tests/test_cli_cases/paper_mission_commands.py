@@ -14,6 +14,9 @@ FORBIDDEN_AUTHORITY_RELATIVE_PATHS = (
     "controller_decisions/latest.json",
     "paper/current_package",
 )
+DM_CANARY_FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "paper_mission_dm_canary"
+)
 
 
 def _write_profile_with_study(tmp_path: Path, *, study_id: str = "001-paper") -> Path:
@@ -331,3 +334,160 @@ def test_paper_mission_consume_candidate_maps_non_accept_outcomes(
     assert payload["contract_validation"]["status"] == "validated"
     assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_inspect_one_shot_migration_returns_default_readback(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(
+        tmp_path,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--one-shot-migration",
+            "--study-progress-payload",
+            str(DM_CANARY_FIXTURE_ROOT / "dm003_progress.json"),
+            "--domain-health-diagnostic-payload",
+            str(DM_CANARY_FIXTURE_ROOT / "dhd_dry_run.json"),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_one_shot_migration_cli_readback"
+    assert payload["contract_validation"]["status"] == "validated"
+    assert payload["default_readback"]["current_mission"]["objective_kind"] == (
+        "medical_prose_write_repair_publication_gate_replay"
+    )
+    assert (
+        payload["default_readback"]["current_mission"][
+            "legacy_blocker_is_default_execution_state"
+        ]
+        is False
+    )
+    assert payload["default_readback"]["next_owner"] == "one-person-lab"
+    assert payload["consume_candidate_status"] == "typed_blocker"
+    assert payload["legacy_truth_import_pack"]["legacy_constraints"][
+        "old_blocker_is_default_execution_state"
+    ] is False
+    assert payload["output_manifest"]["written_files"] == []
+    assert payload["mutation_policy"]["writes_authority"] is False
+    assert payload["mutation_policy"]["writes_yang_authority"] is False
+    assert payload["mutation_policy"]["writes_yang_ops_candidate_package"] is False
+    _assert_forbidden_authority_untouched(
+        tmp_path,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+    )
+
+
+def test_one_shot_migration_can_write_non_authority_candidate_package_and_consume_it(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(
+        tmp_path,
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+    output_root = tmp_path / "candidate-packages"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--one-shot-migration",
+            "--study-progress-payload",
+            str(DM_CANARY_FIXTURE_ROOT / "dm002_progress.json"),
+            "--domain-health-diagnostic-payload",
+            str(DM_CANARY_FIXTURE_ROOT / "dhd_dry_run.json"),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--format",
+            "json",
+        ]
+    )
+    first = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    written_files = first["output_manifest"]["written_files"]
+    assert len(written_files) == 4
+    assert first["output_manifest"]["writes_authority"] is False
+    assert first["output_manifest"]["writes_yang_authority"] is False
+    assert first["output_manifest"]["writes_yang_ops_candidate_package"] is False
+    candidate_manifest_ref = first["output_manifest"]["candidate_manifest_ref"]
+    assert Path(candidate_manifest_ref).exists()
+    _assert_forbidden_authority_untouched(
+        tmp_path,
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            candidate_manifest_ref,
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--format",
+            "json",
+        ]
+    )
+    second = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert second["authority_consume_readback"]["status"] == "accepted_candidate"
+    assert second["authority_consume_readback"]["consume_result"]["status"] == "accepted"
+    assert second["authority_consume_readback"]["write_plan"]["written_files"] == []
+    assert second["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(
+        tmp_path,
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+
+
+def test_one_shot_migration_allows_only_yang_ops_candidate_output_root() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+
+    commands._assert_safe_candidate_output_root(
+        Path(
+            "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+            "ops/medautoscience/paper_mission_one_shot_migration/20260623"
+        )
+    )
+
+    with pytest.raises(ValueError, match="forbidden paper mission output root"):
+        commands._assert_safe_candidate_output_root(
+            Path(
+                "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+                "studies/002-dm-china-us-mortality-attribution/artifacts/publication_eval"
+            )
+        )
+
+    with pytest.raises(ValueError, match="forbidden paper mission output root"):
+        commands._assert_safe_candidate_output_root(
+            Path(
+                "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+                "runtime/quests/002-dm-china-us-mortality-attribution/provider_attempt"
+            )
+        )

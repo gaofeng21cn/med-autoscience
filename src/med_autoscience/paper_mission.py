@@ -25,8 +25,8 @@ _DM_MISSION_OBJECTIVES: dict[str, dict[str, Any]] = {
         ),
     },
     DM003_STUDY_ID: {
-        "objective_id": "dm003_medical_prose_write_repair",
-        "objective_kind": "medical_prose_write_repair",
+        "objective_id": "dm003_medical_prose_write_repair_publication_gate_replay",
+        "objective_kind": "medical_prose_write_repair_publication_gate_replay",
         "summary": (
             "Prepare a no-write paper mission for medical prose repair and "
             "publication gate replay decision."
@@ -154,6 +154,65 @@ def build_dm_paper_mission_canary_import_pack(
     )
 
 
+def build_dm_paper_mission_one_shot_migration_pack(
+    *,
+    dm002_progress: Mapping[str, Any],
+    dm003_progress: Mapping[str, Any],
+    domain_health_diagnostic_payload: Mapping[str, Any] | None = None,
+    profile_ref: str | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    return build_paper_mission_one_shot_migration_pack(
+        study_progress_payloads=(dm002_progress, dm003_progress),
+        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        profile_ref=profile_ref,
+        generated_at=generated_at,
+    )
+
+
+def build_paper_mission_one_shot_migration_pack(
+    *,
+    study_progress_payloads: Mapping[str, Any] | Iterable[Mapping[str, Any]],
+    domain_health_diagnostic_payload: Mapping[str, Any] | None = None,
+    profile_ref: str | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    progress_by_study = _progress_payloads_by_study(study_progress_payloads)
+    dhd = _mapping(domain_health_diagnostic_payload)
+    missions = [
+        _build_one_shot_mission(
+            study_id=study_id,
+            progress=progress,
+            dhd=dhd,
+        )
+        for study_id, progress in progress_by_study.items()
+    ]
+    source_generated = generated_at or _first_text(
+        (progress.get("generated_at") for progress in progress_by_study.values())
+    )
+    return {
+        "surface_kind": "paper_mission_one_shot_migration_pack",
+        "schema_version": 1,
+        "mode": "legacy_truth_import_to_formal_paper_mission_run",
+        "generated_at": source_generated,
+        "profile_ref": profile_ref,
+        "authority_boundary": _authority_boundary(),
+        "paper_progress_accounting": {
+            "legacy_import_counts_as_paper_progress": False,
+            "new_mission_counts_as_default_execution_state": True,
+            "old_blockers_count_as_default_execution_state": False,
+            "paper_progress_requires": [
+                "mission_artifact_delta",
+                "accepted_owner_decision_packet",
+                "route_back",
+                "human_gate",
+                "stable_typed_blocker",
+            ],
+        },
+        "missions": missions,
+    }
+
+
 def paper_mission_by_study(import_pack: Mapping[str, Any], study_id: str) -> dict[str, Any]:
     for mission in _mapping_list(import_pack.get("missions")):
         if mission.get("study_id") == study_id:
@@ -254,6 +313,86 @@ def consume_paper_mission_canary_candidate(
         "candidate_manifest": candidate,
         "authority_consume_readback": consume_paper_mission_candidate(candidate),
     }
+
+
+def _build_one_shot_mission(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    dhd: Mapping[str, Any],
+) -> dict[str, Any]:
+    action = _dhd_action_for_study(dhd, study_id=study_id)
+    current_work_unit = _first_mapping(
+        action.get("current_work_unit"),
+        _mapping(progress.get("current_work_unit")),
+    )
+    current_owner_action = _first_mapping(
+        action.get("current_executable_owner_action"),
+        _mapping(progress.get("current_executable_owner_action")),
+    )
+    execution_envelope = _first_mapping(
+        action.get("current_execution_envelope"),
+        _dhd_current_execution_envelope(dhd, study_id=study_id),
+        _mapping(progress.get("current_execution_envelope")),
+    )
+    typed_blocker = _first_mapping(
+        execution_envelope.get("typed_blocker"),
+        _mapping(current_work_unit.get("typed_blocker")),
+    )
+    intervention_lane = _mapping(progress.get("intervention_lane"))
+    route_back_checklist = _mapping(intervention_lane.get("route_back_checklist"))
+    mission_objective = _mission_objective(
+        study_id=study_id,
+        progress=progress,
+        route_back_checklist=route_back_checklist,
+    )
+    legacy_import = _legacy_truth_import_pack(
+        study_id=study_id,
+        progress=progress,
+        dhd=dhd,
+        action=action,
+        current_work_unit=current_work_unit,
+        current_owner_action=current_owner_action,
+        execution_envelope=execution_envelope,
+        typed_blocker=typed_blocker,
+        route_back_checklist=route_back_checklist,
+        intervention_lane=intervention_lane,
+    )
+    current_blocker = _current_blocker(
+        progress=progress,
+        current_work_unit=current_work_unit,
+        current_owner_action=current_owner_action,
+        execution_envelope=execution_envelope,
+        typed_blocker=typed_blocker,
+        intervention_lane=intervention_lane,
+    )
+    platform_diagnostics = _platform_diagnostics(
+        study_id=study_id,
+        action=action,
+        dhd=dhd,
+    )
+    mission = _formal_one_shot_mission_payload(
+        study_id=study_id,
+        mission_objective=mission_objective,
+        legacy_import=legacy_import,
+        current_blocker=current_blocker,
+        platform_diagnostics=platform_diagnostics,
+    )
+    candidate = paper_mission_canary_candidate_manifest(mission)
+    consume_readback = consume_paper_mission_candidate(candidate)
+    readback = dict(mission["one_shot_migration_readback"])
+    readback["consume_candidate_status"] = consume_readback["consume_result"]["status"]
+    readback["consume_candidate_readback"] = consume_readback
+    mission["one_shot_migration_readback"] = readback
+    mission["consume_result"] = {
+        "status": consume_readback["consume_result"]["status"],
+        "outcome": consume_readback["consume_result"]["outcome"],
+        "authority_materialized": False,
+    }
+    mission["mission_state"] = _mission_state_for_consume_status(
+        mission["consume_result"]["status"]
+    )
+    return PaperMissionRun.from_payload(mission).to_dict()
 
 
 def _build_mission(
@@ -408,6 +547,252 @@ def _paper_mission_run_payload(
             ],
         },
         "canary_import_readback": dict(readback),
+    }
+
+
+def _formal_one_shot_mission_payload(
+    *,
+    study_id: str,
+    mission_objective: Mapping[str, Any],
+    legacy_import: Mapping[str, Any],
+    current_blocker: Mapping[str, Any],
+    platform_diagnostics: Mapping[str, Any],
+) -> dict[str, Any]:
+    objective_id = _text(mission_objective.get("objective_id")) or "paper_mission"
+    objective_kind = _text(mission_objective.get("objective_kind")) or "paper_mission"
+    mission_id = f"paper-mission::{study_id}::{objective_kind}::one-shot-migration"
+    artifact_refs = _text_items(legacy_import.get("current_artifact_refs"))
+    source_refs = _source_ref_payloads(_text_items(legacy_import.get("all_source_refs")))
+    required_output = _one_shot_required_output(
+        mission_objective=mission_objective,
+        legacy_import=legacy_import,
+        current_blocker=current_blocker,
+    )
+    readback = {
+        "surface_kind": "paper_mission_one_shot_migration_readback",
+        "schema_version": 1,
+        "mode": "formal_mission_default_readback",
+        "current_mission": {
+            "mission_id": mission_id,
+            "study_id": study_id,
+            "objective_id": objective_id,
+            "objective_kind": objective_kind,
+            "legacy_blocker_is_default_execution_state": False,
+        },
+        "next_owner": required_output["next_owner"],
+        "required_output": required_output,
+        "consume_candidate_status": "not_consumed",
+        "legacy_truth_import_pack": dict(legacy_import),
+        "mission_input": {
+            "legacy_truth_import_ref": f"mission://{study_id}/legacy-truth-import-pack",
+            "legacy_blocker": _mapping(legacy_import.get("legacy_constraints")).get("old_blocker"),
+            "source_refs": source_refs,
+            "non_degradation_evidence": _mapping(
+                legacy_import.get("non_degradation_evidence")
+            ),
+        },
+        "decision_constraints": _mapping(legacy_import.get("decision_constraints")),
+        "paper_progress_accounting": {
+            "legacy_import_counts_as_paper_progress": False,
+            "old_blocker_counts_as_default_execution_state": False,
+            "new_mission_is_default_execution_state": True,
+            "platform_diagnostics_count_as_paper_progress": False,
+        },
+        "authority_boundary": _authority_boundary(),
+        "platform_diagnostics": platform_diagnostics,
+    }
+    return {
+        "schema_version": CONTRACT_VERSION,
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": _text(mission_objective.get("summary")) or objective_id,
+        "mission_state": "candidate_ready_for_consumption",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": f"delta::{study_id}::{objective_id}::one-shot",
+                "artifact_ref": f"mission://{study_id}/one-shot/{objective_id}",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": source_refs,
+        "authority_touchpoints": _authority_touchpoints(
+            study_id=study_id,
+            source_refs=source_refs,
+            platform_diagnostics=platform_diagnostics,
+        ),
+        "forbidden_write_guard": {
+            "blocked_paths": list(_PAPER_MISSION_RUN_BLOCKED_PATHS),
+            "forbidden_claims": list(_FORBIDDEN_AUTHORITY_CLAIMS),
+            "candidate_writes_authority": False,
+        },
+        "consume_result": {
+            "status": "not_consumed",
+            "reason": "one_shot_migration_candidate_not_consumed",
+        },
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+            "claims": [
+                "legacy_truth_import_pack",
+                "formal_paper_mission_run",
+                "owner_decision_packet_candidate",
+            ],
+        },
+        "one_shot_migration_readback": readback,
+        "canary_import_readback": {
+            "mission_objective": dict(mission_objective),
+            "current_blocker": dict(current_blocker),
+            "owner_decision_packet_requirement": {
+                "required": True,
+                "owner": required_output["next_owner"],
+                "objective_id": objective_id,
+                "work_unit_id": required_output["work_unit_id"],
+                "accepted_terminal_results": [
+                    "owner_receipt",
+                    "typed_blocker",
+                ],
+                "authority_boundary": _authority_boundary(),
+            },
+        },
+    }
+
+
+def _legacy_truth_import_pack(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    dhd: Mapping[str, Any],
+    action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    current_owner_action: Mapping[str, Any],
+    execution_envelope: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+    route_back_checklist: Mapping[str, Any],
+    intervention_lane: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_refs = _artifact_refs(
+        progress=progress,
+        current_work_unit=current_work_unit,
+        current_owner_action=current_owner_action,
+        execution_envelope=execution_envelope,
+        typed_blocker=typed_blocker,
+        route_back_checklist=route_back_checklist,
+    )
+    publication_eval_refs = _refs_with_kinds(current_refs, {"publication_eval"})
+    controller_refs = _refs_with_kinds(current_refs, {"controller_decision"})
+    evidence_refs = _dedupe(
+        _text_items(route_back_checklist.get("evidence_refs"))
+        + _text_items(current_work_unit.get("input_refs"))
+        + _text_items(current_owner_action.get("acceptance_refs"))
+        + _text_items(typed_blocker.get("closeout_refs"))
+    )
+    legacy_owner_refs = _dedupe(
+        _text_items(
+            (
+                typed_blocker.get("typed_blocker_ref"),
+                typed_blocker.get("latest_owner_answer_ref"),
+                typed_blocker.get("source_ref"),
+                intervention_lane.get("handoff_source"),
+            )
+        )
+        + _text_items(typed_blocker.get("closeout_refs"))
+    )
+    opl_refs = _dedupe(
+        _text_items(
+            (
+                "provider_admission_pending_count="
+                f"{_platform_count(dhd, 'provider_admission_pending_count')}",
+                "transition_request_pending_count="
+                f"{_platform_count(dhd, 'transition_request_pending_count')}",
+                "opl_current_control_state.next_owner",
+                _text(_mapping(action.get("runtime_health_snapshot")).get("runtime_health_epoch")),
+            )
+        )
+    )
+    old_blocker = {
+        "current_blockers": _text_items(progress.get("current_blockers")),
+        "why_not_progressing": _text(progress.get("why_not_progressing")),
+        "current_work_unit_status": _text(current_work_unit.get("status")),
+        "typed_blocker": _compact_mapping(
+            typed_blocker,
+            (
+                "blocker_id",
+                "blocker_type",
+                "blocked_reason",
+                "owner",
+                "required_input",
+                "work_unit_id",
+                "work_unit_fingerprint",
+            ),
+        ),
+        "current_owner_action": _compact_mapping(
+            current_owner_action,
+            (
+                "status",
+                "next_owner",
+                "action_type",
+                "work_unit_id",
+                "work_unit_fingerprint",
+            ),
+        ),
+    }
+    legacy_constraints = {
+        "old_blocker": old_blocker,
+        "old_blocker_is_default_execution_state": False,
+        "must_not_resume_legacy_default_executor": True,
+        "must_not_write_authority_surfaces": True,
+        "must_not_update_current_package": True,
+    }
+    decision_constraints = {
+        "must_consume_through": "MAS authority consume path",
+        "candidate_can_be": [
+            "accepted_owner_decision_packet",
+            "route_back",
+            "human_gate",
+            "stable_typed_blocker",
+        ],
+        "forbidden_claims": list(_FORBIDDEN_AUTHORITY_CLAIMS),
+        "forbidden_writes": list(_FORBIDDEN_WRITES),
+        "legacy_blocker_may_inform_decision": True,
+        "legacy_blocker_may_select_default_execution_state": False,
+    }
+    return {
+        "surface_kind": "paper_mission_legacy_truth_import_pack",
+        "schema_version": 1,
+        "study_id": study_id,
+        "current_artifact_refs": current_refs,
+        "publication_eval_refs": publication_eval_refs,
+        "controller_decision_refs": controller_refs,
+        "evidence_and_review_ledger_refs": evidence_refs,
+        "legacy_owner_state_refs": legacy_owner_refs,
+        "opl_current_control_refs": opl_refs,
+        "legacy_constraints": legacy_constraints,
+        "decision_constraints": decision_constraints,
+        "non_degradation_evidence": {
+            "old_blocker_preserved_in_constraints": bool(
+                old_blocker["current_blockers"]
+                or old_blocker["why_not_progressing"]
+                or old_blocker["typed_blocker"]
+                or old_blocker["current_owner_action"]
+            ),
+            "publication_eval_refs_preserved": bool(publication_eval_refs),
+            "controller_decision_refs_preserved": bool(controller_refs),
+            "evidence_refs_preserved": bool(evidence_refs),
+            "opl_current_control_refs_preserved": bool(opl_refs),
+            "legacy_blocker_not_default_execution_state": True,
+        },
+        "all_source_refs": _dedupe(
+            current_refs
+            + publication_eval_refs
+            + controller_refs
+            + evidence_refs
+            + legacy_owner_refs
+            + opl_refs
+        ),
     }
 
 
@@ -857,6 +1242,61 @@ def _candidate_outcome_request_payload(
             "rejection_resume_condition": "mission executor submits a corrected candidate",
         }
     return {}
+
+
+def _one_shot_required_output(
+    *,
+    mission_objective: Mapping[str, Any],
+    legacy_import: Mapping[str, Any],
+    current_blocker: Mapping[str, Any],
+) -> dict[str, Any]:
+    constraints = _mapping(legacy_import.get("decision_constraints"))
+    accepted = _text_items(constraints.get("candidate_can_be")) or [
+        "accepted_owner_decision_packet",
+        "route_back",
+        "human_gate",
+        "stable_typed_blocker",
+    ]
+    return {
+        "kind": "owner_decision_packet_or_consumable_artifact_delta",
+        "objective_id": _text(mission_objective.get("objective_id")),
+        "objective_kind": _text(mission_objective.get("objective_kind")),
+        "target_delta": _text(mission_objective.get("target_delta")),
+        "next_owner": _text(current_blocker.get("owner")) or "mas_authority_kernel",
+        "work_unit_id": _text(current_blocker.get("work_unit_id")),
+        "accepted_terminal_results": accepted,
+        "must_include": [
+            "legacy_truth_import_pack",
+            "current_artifact_refs",
+            "publication_eval_refs",
+            "controller_decision_refs",
+            "evidence_and_review_ledger_refs",
+            "legacy_owner_state_refs",
+            "opl_current_control_refs",
+            "forbidden_write_acknowledgement",
+        ],
+    }
+
+
+def _mission_state_for_consume_status(status: str) -> str:
+    if status == "accepted":
+        return "consumed"
+    if status == "typed_blocker":
+        return "stable_blocker"
+    if status == "human_gate":
+        return "waiting_human_decision"
+    if status == "route_back":
+        return "route_back"
+    return "candidate_ready_for_consumption"
+
+
+def _refs_with_kinds(refs: list[str], kinds: set[str]) -> list[str]:
+    return [ref for ref in refs if _ref_kind(ref) in kinds]
+
+
+def _platform_count(dhd: Mapping[str, Any], key: str) -> int:
+    provider_state = _mapping(dhd.get("provider_admission_current_control_state"))
+    return _int_or_zero(provider_state.get(key))
 
 
 def _progress_payloads_by_study(
