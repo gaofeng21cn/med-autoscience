@@ -144,6 +144,85 @@ def _payload_record(value: PublicationEvalRecord | dict[str, Any]) -> dict[str, 
     return payload
 
 
+def _is_record_payload_authoring_target(value: Mapping[str, Any] | None) -> bool:
+    return _optional_text(_mapping(value).get("surface")) == "ai_reviewer_record_payload_authoring_target"
+
+
+def _payload_target_current_metadata(
+    *,
+    request: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+    required_currentness_refs: list[str],
+) -> dict[str, Any]:
+    lifecycle = _mapping(request.get("request_lifecycle"))
+    stale_record_ref = _optional_text(lifecycle.get("stale_record_ref")) or _optional_text(
+        request.get("publication_eval_record_ref")
+    )
+    return {
+        "stale_record_ref": stale_record_ref,
+        "required_input_refs": {surface: ref for surface, ref in required_refs.items() if ref is not None},
+        "required_currentness_refs": list(required_currentness_refs),
+    }
+
+
+def _refresh_record_payload_target_metadata(
+    *,
+    record: Mapping[str, Any] | None,
+    request: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+    required_currentness_refs: list[str],
+    enabled: bool,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    if record is None or not _is_record_payload_authoring_target(record):
+        return (
+            dict(record) if isinstance(record, Mapping) else None,
+            {
+                "enabled": False,
+                "refreshed_in_memory": False,
+                "written_files": [],
+                "reason": None,
+                "changed_fields": [],
+            },
+        )
+    current_metadata = _payload_target_current_metadata(
+        request=request,
+        required_refs=required_refs,
+        required_currentness_refs=required_currentness_refs,
+    )
+    if not enabled:
+        return (
+            dict(record),
+            {
+                "enabled": False,
+                "refreshed_in_memory": False,
+                "written_files": [],
+                "reason": "payload_target_metadata_refresh_not_requested",
+                "changed_fields": [],
+                "current_metadata": current_metadata,
+            },
+        )
+    refreshed = dict(record)
+    changed_fields: list[str] = []
+    for field, value in current_metadata.items():
+        observed = refreshed.get(field)
+        if observed != value:
+            changed_fields.append(field)
+        refreshed[field] = value
+    return (
+        refreshed,
+        {
+            "enabled": True,
+            "refreshed_in_memory": True,
+            "written_files": [],
+            "reason": None,
+            "changed_fields": changed_fields,
+            "current_metadata": current_metadata,
+            "record_payload_preserved": refreshed.get("record_payload") == record.get("record_payload"),
+            "record_payload_prefilled_by_mas": False,
+        },
+    )
+
+
 def _record_payload_missing_blocker(
     *,
     payload: Mapping[str, Any],
@@ -325,7 +404,8 @@ def _payload_currentness_guard_result(
             "missing_observed_fields": [],
         }
 
-    record_payload = _payload_record(record)
+    record_is_authoring_target = _is_record_payload_authoring_target(record)
+    record_payload = _mapping(record.get("record_payload")) if record_is_authoring_target else _payload_record(record)
     payload_required_refs = {
         surface: ref
         for surface, ref in {
@@ -379,6 +459,29 @@ def _payload_currentness_guard_result(
             }
         )
 
+    record_payload_mismatches: list[dict[str, str | None]] = []
+    record_payload_missing_observed: list[str] = []
+    if record_is_authoring_target:
+        if not record_payload:
+            record_payload_missing_observed.append("record_payload")
+        else:
+            for surface, expected_ref in expected_input_refs.items():
+                observed_ref = _optional_text(input_bundle.get(surface))
+                if observed_ref is None:
+                    record_payload_missing_observed.append(
+                        f"record_payload.reviewer_operating_system.input_bundle.{surface}"
+                    )
+                    continue
+                if observed_ref != expected_ref:
+                    record_payload_mismatches.append(
+                        {"surface": surface, "expected": expected_ref, "observed": observed_ref}
+                    )
+            for expected_ref in required_currentness_refs:
+                if expected_ref in expected_required_ref_values:
+                    continue
+                if expected_ref not in set(input_bundle.values()):
+                    record_payload_missing_observed.append(f"record_payload.required_currentness_refs:{expected_ref}")
+
     common = {
         "enabled": True,
         "mismatches": mismatches,
@@ -387,12 +490,26 @@ def _payload_currentness_guard_result(
         "observed_input_refs": observed_input_refs,
         "expected_required_currentness_refs": required_currentness_refs,
         "observed_currentness_refs": sorted(observed_currentness_refs),
+        "record_payload_mismatches": record_payload_mismatches,
+        "record_payload_missing_observed_fields": record_payload_missing_observed,
     }
     if mismatches:
         return {
             **common,
             "matched": False,
             "reason": "payload_currentness_mismatch",
+        }
+    if record_payload_mismatches:
+        return {
+            **common,
+            "matched": False,
+            "reason": "record_payload_currentness_mismatch",
+        }
+    if record_payload_missing_observed:
+        return {
+            **common,
+            "matched": False,
+            "reason": "record_payload_currentness_refs_unavailable_for_guard",
         }
     if missing_observed:
         return {
@@ -456,6 +573,13 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         expected_identity=expected_identity,
     )
     record_payload = record.to_dict() if isinstance(record, PublicationEvalRecord) else record
+    record_payload, payload_target_metadata_refresh = _refresh_record_payload_target_metadata(
+        record=record_payload,
+        request=request,
+        required_refs=required_refs,
+        required_currentness_refs=required_currentness_refs,
+        enabled=entry_mode == "owner_consumption_payload_guard",
+    )
     payload_guard = _payload_currentness_guard_result(
         record=record_payload,
         request=request,
@@ -481,11 +605,13 @@ def plan_ai_reviewer_publication_eval_record_materialization(
             "payload_may_be_absent_for_precheck": True,
             "payload_will_not_be_materialized": True,
             "payload_currentness_guard_enabled": payload_guard.get("enabled") is True,
+            "payload_target_metadata_refresh_enabled": payload_target_metadata_refresh.get("enabled") is True,
         },
         "current_work_unit": current_work_unit,
         "expected_current_work_unit": expected_identity if any(expected_identity.values()) else None,
         "identity_guard": identity_guard,
         "payload_guard": payload_guard,
+        "payload_target_metadata_refresh": payload_target_metadata_refresh,
         "request": {
             "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
             "request_kind": _record_request_kind(request),
