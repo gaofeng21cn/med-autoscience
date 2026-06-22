@@ -212,6 +212,7 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     ]
     assert all(task.get("default_paper_mission_entry") is False for task in legacy_tasks)
     assert all(task.get("migration_diagnostic_only") is True for task in legacy_tasks)
+    assert all(task.get("active_caller_class") == "diagnostic_only" for task in legacy_tasks)
 
 
 def test_legacy_default_executor_dispatch_task_is_demoted_when_carried() -> None:
@@ -236,6 +237,7 @@ def test_legacy_default_executor_dispatch_task_is_demoted_when_carried() -> None
         "action_intent": "legacy_default_executor_diagnostic",
         "default_paper_mission_entry": False,
         "migration_diagnostic_only": True,
+        "active_caller_class": "diagnostic_only",
     }
     assert paper_mission_task == {
         "task_kind": "paper_mission/start_or_resume",

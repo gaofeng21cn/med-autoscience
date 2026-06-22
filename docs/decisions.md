@@ -14,6 +14,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：2026-06-22 executor-first 决策已经确认旧链路把论文推进拆成多个平台控制面。若 progress/workbench 仍默认展示 DHD/currentness/dispatch/PaperRecovery，用户和 operator 会继续把平台 repair 当作论文推进。默认读面必须先回答 mission artifact、current objective、next owner/human decision，再把平台状态折叠到 diagnostics。
 - 影响：这是 projection、product docs 和 tombstone 边界切换，不执行 live DHD apply、hydrate、tick、redrive、provider start、paper mission consume 或 CLI lane 集成；不写 Yang artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package 或 runtime queue/provider attempts。不声明 DM002/DM003 已完成、paper progress、publication-ready、domain-ready、runtime-ready 或 production-ready。
 
+## 2026-06-23：Docs / skill / product 默认入口统一为 PaperMissionRun
+
+- 决策：用户、Codex skill-facing、product-entry 和 domain-handler 默认论文入口统一为 `paper-mission` / `PaperMissionRun`。普通入口先读 `medautosci paper-mission inspect|start|resume|consume-candidate`、`medical_paper_product_entry.default_action_intent=paper_mission/start_or_resume`、domain-handler `paper_mission/start_or_resume` task，以及 `artifact_first_mission_summary.paper_mission_run`。
+- 决策：domain-handler export 中旧 `domain_owner/default-executor-dispatch` 若仍作为 ABI carrier、fixture、migration 或 diagnostic 出现，必须带 `default_paper_mission_entry=false` / `migration_diagnostic_only=true`，不得作为 product default mainline、skill ordinary path、paper progress 或 runtime-ready 入口。
+- 决策：DHD、currentness、owner-route、dispatch、PaperRecovery 和 no-write readback 均不能替代论文完成证据。只有真实 artifact delta、owner decision packet、accepted owner receipt、route-back、human gate、stable typed blocker 或 MAS authority consume/readback 接受的等价 owner-answer，才能支撑 paper mission progress claim。
+- 理由：Big-Bang cutover 后，源码 product-entry 和 domain-handler 已把 default action intent 切到 `paper_mission/start_or_resume`，但用户文档入口若仍只提示 `domain-handler export/dispatch` 或 owner-route refs，operator 会继续从旧 default-executor / DHD 链路理解 MAS 主路径。
+- 影响：这是 docs/product/skill-facing 叙事一致性修正，不修改 `src/**`、`contracts/**`、Yang workspace、publication eval、controller decisions、owner receipts、typed blockers、human gates、current package、runtime queue/provider attempts 或 paper body；不声明 OPL hosted run、paper body patch、current package、publication-ready、runtime-ready、DM002 complete 或 DM003 complete。
+
 ## 2026-06-22：MAS 默认论文推进改向 executor-first paper mission
 
 - 决策：MAS 下一目标态从旧 `DHD / owner-route / dispatch / recovery` 多控制面链路，改为 `executor-first paper mission`。默认入口应先启动或恢复一个粗粒度 `PaperMissionRun`，以同一 mission identity 产出 manuscript、figure/table、evidence/review ledger、reviewer response、gate-clearing plan、owner decision packet、owner receipt、typed blocker 或 human gate。DHD、currentness、provider admission、storage/index、read-model hygiene 和 dispatch ledger 只作为 platform diagnostics / repair sidecar。

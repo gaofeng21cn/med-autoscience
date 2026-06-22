@@ -296,6 +296,93 @@ def paper_mission_canary_candidate_manifest(
     }
 
 
+def paper_mission_candidate_artifact_delta(mission: Mapping[str, Any]) -> dict[str, Any]:
+    readback = _mapping(mission.get("one_shot_migration_readback"))
+    legacy = _mapping(readback.get("legacy_truth_import_pack"))
+    required_output = _mapping(readback.get("required_output"))
+    current_mission = _mapping(readback.get("current_mission"))
+    deltas = _mapping_list(mission.get("artifact_delta_ledger"))
+    delta = deltas[0] if deltas else {}
+    return {
+        "surface_kind": "paper_mission_candidate_artifact_delta",
+        "schema_version": 1,
+        "study_id": _text(mission.get("study_id")) or "unknown_study",
+        "mission_id": _text(mission.get("mission_id")) or "unknown_mission",
+        "delta_id": _text(delta.get("delta_id"))
+        or f"delta::{_text(mission.get('study_id')) or 'unknown-study'}::candidate",
+        "artifact_ref": _text(delta.get("artifact_ref"))
+        or f"mission://{_text(mission.get('study_id')) or 'unknown-study'}/candidate",
+        "delta_kind": _text(delta.get("delta_kind"))
+        or "formal_paper_mission_owner_decision_packet",
+        "status": _text(delta.get("status")) or "candidate",
+        "counts_as_paper_progress": True,
+        "candidate_is_authority": False,
+        "current_mission": dict(current_mission),
+        "objective_kind": _text(current_mission.get("objective_kind")),
+        "required_output": dict(required_output),
+        "source_ref_families": {
+            "current_artifact_refs": _text_items(legacy.get("current_artifact_refs")),
+            "publication_eval_refs": _text_items(legacy.get("publication_eval_refs")),
+            "controller_decision_refs": _text_items(legacy.get("controller_decision_refs")),
+            "evidence_and_review_ledger_refs": _text_items(
+                legacy.get("evidence_and_review_ledger_refs")
+            ),
+            "legacy_owner_state_refs": _text_items(legacy.get("legacy_owner_state_refs")),
+            "opl_current_control_refs": _text_items(legacy.get("opl_current_control_refs")),
+        },
+        "forbidden_write_acknowledgement": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "forbidden_writes": list(_FORBIDDEN_WRITES),
+            "forbidden_authority_claims": list(_FORBIDDEN_AUTHORITY_CLAIMS),
+        },
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def paper_mission_owner_decision_packet(mission: Mapping[str, Any]) -> dict[str, Any]:
+    readback = _mapping(mission.get("one_shot_migration_readback"))
+    legacy = _mapping(readback.get("legacy_truth_import_pack"))
+    required_output = _mapping(readback.get("required_output"))
+    decision_constraints = _mapping(readback.get("decision_constraints"))
+    artifact_delta = paper_mission_candidate_artifact_delta(mission)
+    return {
+        "surface_kind": "paper_mission_owner_decision_packet",
+        "schema_version": 1,
+        "study_id": artifact_delta["study_id"],
+        "mission_id": artifact_delta["mission_id"],
+        "packet_id": f"owner-decision::{artifact_delta['study_id']}::{artifact_delta['delta_id']}",
+        "packet_status": "candidate_ready_for_mas_consume",
+        "candidate_is_authority": False,
+        "next_owner": _text(required_output.get("next_owner")) or "mas_authority_kernel",
+        "required_output_kind": _text(required_output.get("kind"))
+        or "owner_decision_packet_or_consumable_artifact_delta",
+        "accepted_terminal_results": _text_items(
+            required_output.get("accepted_terminal_results")
+        ),
+        "artifact_delta_ref": artifact_delta["artifact_ref"],
+        "consume_path": {
+            "surface": "MAS authority consume path",
+            "allowed_results": [
+                "accepted_owner_decision_packet",
+                "route_back",
+                "human_gate",
+                "stable_typed_blocker",
+            ],
+            "authority_materialized_by_this_packet": False,
+        },
+        "legacy_constraints": _mapping(legacy.get("legacy_constraints")),
+        "decision_constraints": decision_constraints,
+        "non_degradation_evidence": _mapping(legacy.get("non_degradation_evidence")),
+        "forbidden_write_acknowledgement": artifact_delta[
+            "forbidden_write_acknowledgement"
+        ],
+        "authority_boundary": _authority_boundary(),
+    }
+
+
 def consume_paper_mission_canary_candidate(
     mission: Mapping[str, Any],
     *,

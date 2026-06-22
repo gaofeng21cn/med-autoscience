@@ -8,7 +8,9 @@ from typing import Any, Callable
 from med_autoscience.paper_mission import (
     build_paper_mission_one_shot_migration_pack,
     paper_mission_by_study,
+    paper_mission_candidate_artifact_delta,
     paper_mission_canary_candidate_manifest,
+    paper_mission_owner_decision_packet,
 )
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 
@@ -325,6 +327,8 @@ def _build_one_shot_migration_cli_readback(
     mission = paper_mission_by_study(migration_pack, study_id)
     readback = mission["one_shot_migration_readback"]
     candidate_manifest = paper_mission_canary_candidate_manifest(mission)
+    candidate_artifact_delta = paper_mission_candidate_artifact_delta(mission)
+    owner_decision_packet = paper_mission_owner_decision_packet(mission)
     output_manifest = (
         _write_one_shot_migration_outputs(
             output_root=Path(output_root),
@@ -333,6 +337,8 @@ def _build_one_shot_migration_cli_readback(
             paper_mission_run=mission,
             default_readback=readback,
             candidate_manifest=candidate_manifest,
+            candidate_artifact_delta=candidate_artifact_delta,
+            owner_decision_packet=owner_decision_packet,
         )
         if output_root is not None
         else _no_write_output_manifest()
@@ -364,6 +370,8 @@ def _build_one_shot_migration_cli_readback(
         "paper_mission_run": mission,
         "default_readback": readback,
         "candidate_manifest": candidate_manifest,
+        "mission_candidate_artifact_delta": candidate_artifact_delta,
+        "owner_decision_packet": owner_decision_packet,
         "authority_consume_readback": readback["consume_candidate_readback"],
         "consume_candidate_status": readback["consume_candidate_status"],
         "mutation_policy": {
@@ -383,6 +391,8 @@ def _build_one_shot_migration_cli_readback(
         "cutover_proof": {
             "legacy_truth_import_pack_generated": True,
             "formal_paper_mission_run_generated": True,
+            "mission_candidate_artifact_delta_generated": True,
+            "owner_decision_packet_generated": True,
             "default_readback_surface": "PaperMissionRun",
             "legacy_blocker_controls_default_execution": False,
             "legacy_current_work_unit_role": "mission_input_constraint",
@@ -406,6 +416,8 @@ def _write_one_shot_migration_outputs(
     paper_mission_run: dict[str, Any],
     default_readback: dict[str, Any],
     candidate_manifest: dict[str, Any],
+    candidate_artifact_delta: dict[str, Any],
+    owner_decision_packet: dict[str, Any],
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
     _assert_safe_candidate_output_root(root)
@@ -416,12 +428,25 @@ def _write_one_shot_migration_outputs(
         "paper_mission_run": study_root / "paper_mission_run.json",
         "default_readback": study_root / "default_readback.json",
         "candidate_manifest": study_root / "candidate_manifest.json",
+        "mission_candidate_artifact_delta": study_root
+        / "mission_candidate_artifact_delta.json",
+        "owner_decision_packet": study_root / "owner_decision_packet.json",
     }
     payloads = {
         "legacy_truth_import_pack": legacy_truth_import_pack,
         "paper_mission_run": paper_mission_run,
         "default_readback": default_readback,
-        "candidate_manifest": candidate_manifest,
+        "candidate_manifest": {
+            **candidate_manifest,
+            "mission_candidate_sidecar_refs": {
+                "mission_candidate_artifact_delta": str(
+                    outputs["mission_candidate_artifact_delta"]
+                ),
+                "owner_decision_packet": str(outputs["owner_decision_packet"]),
+            },
+        },
+        "mission_candidate_artifact_delta": candidate_artifact_delta,
+        "owner_decision_packet": owner_decision_packet,
     }
     written_files: list[str] = []
     for key, path in outputs.items():
@@ -439,6 +464,10 @@ def _write_one_shot_migration_outputs(
         "writes_yang_authority": False,
         "writes_yang_ops_candidate_package": _is_yang_ops_candidate_root(root),
         "candidate_manifest_ref": str(outputs["candidate_manifest"]),
+        "mission_candidate_artifact_delta_ref": str(
+            outputs["mission_candidate_artifact_delta"]
+        ),
+        "owner_decision_packet_ref": str(outputs["owner_decision_packet"]),
     }
 
 

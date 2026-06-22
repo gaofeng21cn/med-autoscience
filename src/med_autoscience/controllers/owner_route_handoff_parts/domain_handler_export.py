@@ -473,6 +473,7 @@ def _mark_legacy_default_executor_tasks(tasks: list[dict[str, Any]]) -> list[dic
                 **task,
                 "default_paper_mission_entry": False,
                 "migration_diagnostic_only": True,
+                "active_caller_class": "diagnostic_only",
                 "action_intent": text(task.get("action_intent")) or "legacy_default_executor_diagnostic",
             }
         marked.append(task)

@@ -7,6 +7,8 @@ from med_autoscience.paper_mission import (
     DM002_STUDY_ID,
     DM003_STUDY_ID,
     build_dm_paper_mission_one_shot_migration_pack,
+    paper_mission_candidate_artifact_delta,
+    paper_mission_owner_decision_packet,
     paper_mission_by_study,
 )
 from med_autoscience.paper_mission_run import PaperMissionRun
@@ -121,3 +123,35 @@ def test_one_shot_migration_readback_remains_refs_only_and_no_authority_material
         assert consume["authority_boundary"]["can_write_current_package"] is False
         assert legacy["current_artifact_refs"]
         assert legacy["all_source_refs"]
+
+
+def test_one_shot_migration_generates_candidate_delta_and_owner_decision_packet() -> None:
+    for study_id in (DM002_STUDY_ID, DM003_STUDY_ID):
+        mission = paper_mission_by_study(_migration_pack(), study_id)
+        delta = paper_mission_candidate_artifact_delta(mission)
+        packet = paper_mission_owner_decision_packet(mission)
+
+        assert delta["surface_kind"] == "paper_mission_candidate_artifact_delta"
+        assert delta["study_id"] == study_id
+        assert delta["counts_as_paper_progress"] is True
+        assert delta["candidate_is_authority"] is False
+        assert delta["source_ref_families"]["current_artifact_refs"]
+        assert delta["source_ref_families"]["publication_eval_refs"]
+        assert delta["source_ref_families"]["controller_decision_refs"]
+        assert delta["source_ref_families"]["evidence_and_review_ledger_refs"]
+        assert delta["source_ref_families"]["opl_current_control_refs"]
+        assert delta["forbidden_write_acknowledgement"]["writes_authority"] is False
+        assert delta["forbidden_write_acknowledgement"]["writes_runtime"] is False
+        assert delta["forbidden_write_acknowledgement"]["writes_yang_authority"] is False
+        assert delta["forbidden_write_acknowledgement"]["writes_paper_body"] is False
+
+        assert packet["surface_kind"] == "paper_mission_owner_decision_packet"
+        assert packet["study_id"] == study_id
+        assert packet["packet_status"] == "candidate_ready_for_mas_consume"
+        assert packet["candidate_is_authority"] is False
+        assert packet["artifact_delta_ref"] == delta["artifact_ref"]
+        assert packet["consume_path"]["authority_materialized_by_this_packet"] is False
+        assert packet["legacy_constraints"]["old_blocker_is_default_execution_state"] is False
+        assert packet["decision_constraints"][
+            "legacy_blocker_may_select_default_execution_state"
+        ] is False
