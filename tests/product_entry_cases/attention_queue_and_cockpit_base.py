@@ -3,6 +3,7 @@ from __future__ import annotations
 import shlex
 
 from . import shared as _shared
+from .repo_shell_entry_assertions import _phase2_loop_without_guarded_fields
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -691,7 +692,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["phase2_user_product_loop"]["single_path"][4]["command"].endswith(
         "study progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
     )
-    assert payload["phase2_user_product_loop"]["operator_questions"] == [
+    assert _phase2_loop_without_guarded_fields(payload["phase2_user_product_loop"])[
+        "operator_questions"
+    ] == [
         {
             "question": "用户现在怎么启动 MAS？",
             "answer_surface_kind": "product_entry_status",

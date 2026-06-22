@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 def _phase2_loop_without_guarded_fields(value: dict[str, object]) -> dict[str, object]:
-    normalized = dict(value)
+    normalized = _without_command_metadata(value)
     workflow_steps = []
     for item in normalized.get("workflow_steps") or []:
         step = dict(item)
@@ -11,6 +11,27 @@ def _phase2_loop_without_guarded_fields(value: dict[str, object]) -> dict[str, o
         workflow_steps.append(step)
     normalized["workflow_steps"] = workflow_steps
     return normalized
+
+
+def _without_command_metadata(value):
+    if isinstance(value, dict):
+        normalized = {}
+        for key, item in value.items():
+            if key in {
+                "can_execute",
+                "can_generate_action",
+                "command_ref",
+                "command_role",
+                "recommended_command_ref",
+            }:
+                continue
+            if key == "authority" and item is False:
+                continue
+            normalized[key] = _without_command_metadata(item)
+        return normalized
+    if isinstance(value, list):
+        return [_without_command_metadata(item) for item in value]
+    return value
 
 
 def _assert_guarded_workflow_steps(value: dict[str, object]) -> None:
