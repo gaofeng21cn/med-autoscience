@@ -148,6 +148,68 @@ def test_request_only_candidate_is_not_pending_when_mas_owner_callable_is_curren
     assert state.transition_request_pending(progress) is False
 
 
+def test_live_readback_candidate_is_not_pending_when_mas_owner_callable_is_current() -> None:
+    state = _module()
+    progress = {
+        "provider_admission_pending_count": 1,
+        "provider_admission_candidates": [_candidate(readback=_live_readback())],
+        "paper_recovery_state": {
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "run_mas_owner_callable",
+                "owner": "write",
+                "provider_admission_allowed": False,
+                "owner_callable": {
+                    "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                },
+            },
+        },
+        "current_work_unit": {
+            "status": "executable_owner_action",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WORK_UNIT_ID,
+            "work_unit_fingerprint": FINGERPRINT,
+            "action_fingerprint": FINGERPRINT,
+            "state": {
+                "provider_admission_pending": False,
+                "provider_attempt_or_lease_required": False,
+                "provider_admission_requires_opl_runtime_result": False,
+                "opl_transition_runtime_required": False,
+            },
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "owner": "write",
+            "next_owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": WORK_UNIT_ID,
+            "work_unit_fingerprint": FINGERPRINT,
+            "action_fingerprint": FINGERPRINT,
+            "provider_admission_pending": False,
+            "transition_request_pending": False,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": False,
+            "opl_transition_runtime_required": False,
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "run_mas_owner_callable",
+                "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": False,
+                "opl_transition_runtime_required": False,
+            },
+        },
+    }
+
+    assert state.provider_admission_pending(progress) is False
+    assert state.transition_request_pending(progress) is False
+
+
 def test_same_identity_live_readback_promotes_request_to_provider_admission() -> None:
     state = _module()
     progress = {

@@ -188,6 +188,100 @@ def test_current_materialized_dispatches_do_not_select_successor_for_explicit_re
     assert dispatches == []
 
 
+def test_current_materialized_dispatches_skip_transition_projection_for_current_mas_owner_callable(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.current_dispatch_materialization"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    work_unit_id = "analysis_claim_evidence_repair"
+    fingerprint = "publication-blockers::f11710a114497b27"
+    stale_projection_source = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="analysis-campaign",
+        required_output_surface="canonical manuscript story-surface delta",
+    )
+    stale_projection_source.update(
+        {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+        }
+    )
+    stale_projection_source["owner_route"] = {
+        **stale_projection_source["owner_route"],
+        "next_owner": "analysis-campaign",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "source_refs": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "owner_route_currentness_basis": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    }
+    fresh_progress = {
+        "study_id": study_id,
+        "paper_recovery_state": {
+            "phase": "owner_action_ready",
+            "next_safe_action": {"kind": "run_mas_owner_callable"},
+        },
+        "current_work_unit": {
+            "status": "executable_owner_action",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "state": {
+                "provider_admission_pending": False,
+                "transition_request_pending": False,
+                "provider_attempt_or_lease_required": False,
+                "provider_admission_requires_opl_runtime_result": False,
+                "opl_transition_runtime_required": False,
+            },
+        },
+        "current_executable_owner_action": {
+            "status": "ready",
+            "action_type": "run_quality_repair_batch",
+            "next_owner": "analysis-campaign",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "provider_admission_pending": False,
+            "transition_request_pending": False,
+            "provider_attempt_or_lease_required": False,
+            "provider_admission_requires_opl_runtime_result": False,
+            "opl_transition_runtime_required": False,
+            "target_surface": {
+                "ref_kind": "mas_owner_callable",
+                "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            },
+        },
+    }
+
+    def fake_transition_request_projection_producer(**_: object) -> dict[str, object]:
+        return _transition_request_consumer_latest(stale_projection_source)
+
+    dispatches = module.current_materialized_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=False,
+        fresh_progress=fresh_progress,
+        transition_request_projection_producer=fake_transition_request_projection_producer,
+        text=lambda value: str(value).strip() if str(value or "").strip() else None,
+    )
+
+    assert dispatches == []
+
+
 def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_blocker(
     monkeypatch,
     tmp_path: Path,

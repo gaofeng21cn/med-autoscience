@@ -169,6 +169,7 @@ def _current_materialized_dispatches(
     action_types: tuple[str, ...],
     mode: str,
     apply: bool,
+    fresh_progress: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     return current_dispatch_materialization.current_materialized_dispatches(
         profile=profile,
@@ -176,6 +177,7 @@ def _current_materialized_dispatches(
         action_types=action_types,
         mode=mode,
         apply=apply,
+        fresh_progress=fresh_progress,
         transition_request_projection_producer=transition_request_projection_producer,
         text=_text,
     )
@@ -1268,6 +1270,7 @@ def dispatch_domain_owner_actions(
                     action_types=resolved_action_types,
                     mode=mode,
                     apply=False,
+                    fresh_progress=study_fresh_progress,
                 )
             )
         for dispatch in selected_dispatches:

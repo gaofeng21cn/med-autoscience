@@ -165,6 +165,7 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         None,
         "materialize_recovery_action",
         "execute_current_owner_delta",
+        "consume_terminal_closeout",
         "stop_with_stable_typed_blocker",
         "stop_with_owner_receipt",
     }:
@@ -179,6 +180,7 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         "domain_blocked",
         "admission_blocked",
         "human_gate",
+        "terminal_closeout_ready",
     } or next_kind in {
         "run_mas_owner_callable",
         "materialize_mas_transition_request_or_owner_callable",
@@ -191,6 +193,7 @@ def _recovery_requires_obligation_actuator(recovery: Mapping[str, Any]) -> bool:
         "route_back_to_owner_or_repair_materialization",
         "resolve_typed_blocker",
         "consume_owner_receipt",
+        "consume_terminal_closeout",
         "honor_stable_typed_blocker",
         "publish_stable_blocker_and_stop_same_identity_redrive",
         "authorize_opl_transport_recovery_or_stable_typed_blocker",
@@ -218,6 +221,26 @@ def _closed_obligation_outcome(
     fail_closed: bool,
     phase: str,
 ) -> dict[str, Any] | None:
+    if _action_next_safe_action_kind(action) == "consume_terminal_closeout":
+        owner_receipt = _owner_receipt_outcome(action=action, phase=phase)
+        if owner_receipt is not None:
+            return owner_receipt
+        typed_blocker = _typed_blocker_outcome(action=action, phase=phase)
+        if typed_blocker is not None:
+            return typed_blocker
+        if not fail_closed:
+            return None
+        return _fail_closed_obligation_outcome(
+            action=action,
+            profile=profile,
+            blocker_type="non_advancing_apply",
+            reason=(
+                "DHD apply was asked to consume a terminal closeout, but no MAS owner "
+                "receipt or stable typed blocker was available for the current paper "
+                "recovery obligation."
+            ),
+            phase=phase,
+        )
     for owner_callable_action in reversed(owner_callable_actions):
         outcome = _owner_callable_action_outcome(
             action=action,
@@ -1185,6 +1208,14 @@ def _action_supervisor_decision(action: Mapping[str, Any]) -> dict[str, Any]:
         if decision:
             return decision
     return {}
+
+
+def _action_next_safe_action_kind(action: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(
+        _mapping(_mapping(action.get("paper_recovery_state")).get("next_safe_action")).get(
+            "kind"
+        )
+    )
 
 
 def _supervisor_obligation(

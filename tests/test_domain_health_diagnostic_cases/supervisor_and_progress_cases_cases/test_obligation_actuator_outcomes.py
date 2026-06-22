@@ -103,6 +103,75 @@ def test_domain_health_diagnostic_apply_accepts_stable_typed_blocker_as_closed_o
     assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is True
 
 
+def test_domain_health_diagnostic_apply_fail_closes_terminal_closeout_without_owner_answer(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    recovery_state = {
+        "surface_kind": "paper_recovery_state",
+        "phase": "terminal_closeout_ready",
+        "current_authority": {
+            "obligation": {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "analysis-campaign",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::f11710a114497b27",
+            }
+        },
+        "next_safe_action": {
+            "kind": "consume_terminal_closeout",
+            "owner": "MedAutoScience",
+            "provider_admission_allowed": False,
+        },
+        "supervisor_decision": {"decision": "consume_terminal_closeout"},
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_run_domain_health_diagnostic_for_runtime_impl",
+        lambda **kwargs: _runtime_report_with_recovery_action(
+            study_id=study_id,
+            study_root=study_root,
+            recovery_state=recovery_state,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_report_provider_admission_current_control_state",
+        lambda **kwargs: {"surface": "opl_current_control_state_handoff"},
+    )
+    monkeypatch.setattr(module, "_sync_report_provider_admission_current_control_state", lambda report, **kwargs: None)
+    monkeypatch.setattr(module, "_fresh_progress_currentness_for_report", lambda **kwargs: {})
+
+    report = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    outcome = report["managed_study_obligation_actuator_outcomes"][0]
+    _assert_exactly_one_dhd_apply_outcome(outcome, "typed_blocker_ref")
+    assert outcome["paper_recovery_next_safe_action_kind"] == "consume_terminal_closeout"
+    assert outcome["paper_autonomy_supervisor_decision_kind"] == "consume_terminal_closeout"
+    assert outcome["paper_autonomy_supervisor_outcome_allowed"] is True
+    assert outcome["postcondition_ok"] is False
+    assert outcome["typed_control_blocker"]["blocker_type"] == "non_advancing_apply"
+    assert outcome["typed_control_blocker"]["next_safe_action_kind"] == "consume_terminal_closeout"
+    assert outcome["work_unit_fingerprint"] == "publication-blockers::f11710a114497b27"
+    assert report["managed_study_actions"][0]["dhd_apply_postcondition"]["ok"] is False
+
+
 def test_domain_health_diagnostic_apply_rejects_unconsumed_owner_receipt_as_closed_outcome(
     tmp_path: Path,
     monkeypatch,

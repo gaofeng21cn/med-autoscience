@@ -62,6 +62,8 @@ def admission_blocked_condition(
 
 
 def provider_admission_pending(progress: Mapping[str, Any]) -> bool:
+    if _mas_owner_callable_controls_current_action(progress):
+        return False
     candidates = _provider_admission_candidates(progress)
     if int(progress.get("provider_admission_pending_count") or 0) > 0 and any(
         _has_opl_transition_readback(candidate) for candidate in candidates
