@@ -53,6 +53,20 @@ def test_old_path_replacement_points_to_paper_mission_run_contract() -> None:
         "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
         "projection_ref": "artifact_first_mission_summary.paper_mission_run",
     }
+    assert tombstone["replacement_parity_proof"] == {
+        "status": "machine_proved",
+        "replacement_action_intent": "paper_mission/start_or_resume",
+        "product_entry_surface": "medical_paper_product_entry",
+        "product_entry_default_command_contains": "paper-mission inspect",
+        "domain_handler_default_task_kind": "paper_mission/start_or_resume",
+        "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
+        "legacy_task_kind_policy": {
+            "task_kind": "domain_owner/default-executor-dispatch",
+            "default_paper_mission_entry": False,
+            "migration_diagnostic_only": True,
+            "active_caller_class": "diagnostic_only",
+        },
+    }
 
 
 def test_old_path_forbidden_claims_include_progress_and_dm_completion() -> None:
@@ -104,6 +118,28 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
         "product_entry_surface": "medical_paper_product_entry",
         "domain_handler_task_kind": "paper_mission/start_or_resume",
         "contract_ref": "contracts/paper_mission_run_contract.json",
+        "study_progress_projection": "artifact_first_mission_summary.paper_mission_run",
+    }
+    assert proof["readback_proof"] == {
+        "status": "machine_proved",
+        "surfaces": [
+            "product_entry_manifest.medical_paper_product_entry",
+            "domain_handler_export.dispatch",
+            "domain_handler_export.pending_family_tasks",
+            "study_progress.artifact_first_mission_summary",
+        ],
+        "required_shared_replacement": {
+            "action_intent": "paper_mission/start_or_resume",
+            "contract_ref": "contracts/paper_mission_run_contract.json",
+            "schema_version": "paper-mission-run.v1",
+            "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
+        },
+        "legacy_active_caller_allowed_only_when": {
+            "task_kind": "domain_owner/default-executor-dispatch",
+            "default_paper_mission_entry": False,
+            "migration_diagnostic_only": True,
+            "active_caller_class": "diagnostic_only",
+        },
     }
     assert proof["physical_reference_deletion_required_for_default_retirement"] is False
     assert set(proof["allowed_legacy_reference_classes"]) >= {

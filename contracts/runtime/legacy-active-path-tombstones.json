@@ -32,6 +32,20 @@
         "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
         "projection_ref": "artifact_first_mission_summary.paper_mission_run"
       },
+      "replacement_parity_proof": {
+        "status": "machine_proved",
+        "replacement_action_intent": "paper_mission/start_or_resume",
+        "product_entry_surface": "medical_paper_product_entry",
+        "product_entry_default_command_contains": "paper-mission inspect",
+        "domain_handler_default_task_kind": "paper_mission/start_or_resume",
+        "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
+        "legacy_task_kind_policy": {
+          "task_kind": "domain_owner/default-executor-dispatch",
+          "default_paper_mission_entry": false,
+          "migration_diagnostic_only": true,
+          "active_caller_class": "diagnostic_only"
+        }
+      },
       "authority_boundary": {
         "read_only": true,
         "history_provenance_only": true,
@@ -200,7 +214,29 @@
       "action_intent": "paper_mission/start_or_resume",
       "product_entry_surface": "medical_paper_product_entry",
       "domain_handler_task_kind": "paper_mission/start_or_resume",
-      "contract_ref": "contracts/paper_mission_run_contract.json"
+      "contract_ref": "contracts/paper_mission_run_contract.json",
+      "study_progress_projection": "artifact_first_mission_summary.paper_mission_run"
+    },
+    "readback_proof": {
+      "status": "machine_proved",
+      "surfaces": [
+        "product_entry_manifest.medical_paper_product_entry",
+        "domain_handler_export.dispatch",
+        "domain_handler_export.pending_family_tasks",
+        "study_progress.artifact_first_mission_summary"
+      ],
+      "required_shared_replacement": {
+        "action_intent": "paper_mission/start_or_resume",
+        "contract_ref": "contracts/paper_mission_run_contract.json",
+        "schema_version": "paper-mission-run.v1",
+        "validator": "med_autoscience.paper_mission_run.PaperMissionRun"
+      },
+      "legacy_active_caller_allowed_only_when": {
+        "task_kind": "domain_owner/default-executor-dispatch",
+        "default_paper_mission_entry": false,
+        "migration_diagnostic_only": true,
+        "active_caller_class": "diagnostic_only"
+      }
     },
     "proof_scope": [
       {

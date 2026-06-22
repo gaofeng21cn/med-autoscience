@@ -41,6 +41,8 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert summary["surface_kind"] == "artifact_first_paper_mission_summary"
     assert summary["contract_ref"] == "contracts/paper_mission_run_contract.json"
     assert summary["validator"] == "med_autoscience.paper_mission_run.PaperMissionRun"
+    assert summary["legacy_path_role"] == "diagnostics_migration_provenance_only"
+    assert summary["default_progress_metric"] == "paper_artifact_delta"
     assert summary["mission_state"] == "running"
     assert summary["current_objective"] == {
         "objective": "paper_progress_delta_or_typed_blocker",
