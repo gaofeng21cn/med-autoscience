@@ -91,6 +91,21 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     )
 
 
+def _read_existing_record_payload_target(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"AI reviewer record payload target is not valid JSON: {path}") from exc
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"AI reviewer record payload target must be a JSON object: {path}")
+    payload = dict(payload)
+    if _text(payload.get("surface")) != "ai_reviewer_record_payload_authoring_target":
+        return {}
+    return payload
+
+
 def _record_production_payload_path(*, profile: WorkspaceProfile, study_id: str) -> Path:
     return profile.studies_root / study_id / RECORD_PRODUCTION_PAYLOAD_REF
 
@@ -205,7 +220,9 @@ def _record_payload_authoring_target(
     *,
     handoff: Mapping[str, Any],
     production_request: Mapping[str, Any],
+    existing_target: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    existing_payload = _mapping(existing_target).get("record_payload")
     return {
         "surface": "ai_reviewer_record_payload_authoring_target",
         "schema_version": 1,
@@ -219,7 +236,7 @@ def _record_payload_authoring_target(
         "required_input_refs": dict(_mapping(production_request.get("required_input_refs"))),
         "guard_consumed_metadata_fields": list(RECORD_PAYLOAD_TARGET_GUARD_METADATA_FIELDS),
         "owner_editable_fields": list(RECORD_PAYLOAD_TARGET_OWNER_EDITABLE_FIELDS),
-        "record_payload": None,
+        "record_payload": existing_payload,
         "record_payload_contract": dict(_mapping(production_request.get("owner_callable_payload_contract"))),
         "owner_callable_surface": _text(production_request.get("owner_callable_surface")),
         "owner_callable_command": _text(production_request.get("owner_callable_command")),
@@ -521,11 +538,13 @@ def materialize_ai_reviewer_record_worker_handoff(
     if payload_ref is None:
         raise ValueError("ai_reviewer_record_worker_handoff_payload_ref_missing")
     payload_path = Path(payload_ref).expanduser()
+    existing_target = _read_existing_record_payload_target(payload_path)
     _write_json(
         payload_path,
         _record_payload_authoring_target(
             handoff=handoff,
             production_request=production_request,
+            existing_target=existing_target,
         ),
     )
     dispatch_path = Path(dispatch_path_text).expanduser()

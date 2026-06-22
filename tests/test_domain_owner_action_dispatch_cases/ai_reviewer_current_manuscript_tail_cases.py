@@ -245,17 +245,41 @@ def test_record_payload_authoring_target_refreshes_guard_metadata_from_current_r
         },
         production_request=production_request,
     )
+    payload_ref = Path(handoff["refs"]["owner_callable_payload_ref"])
+    owner_record_payload = {
+        "eval_id": "publication-eval::002::owner-authored-stale",
+        "reviewer_operating_system": {
+            "input_bundle": {
+                "medical_prose_review": old_prose_review,
+            }
+        },
+    }
+    _write_json(
+        payload_ref,
+        {
+            "surface": "ai_reviewer_record_payload_authoring_target",
+            "schema_version": 1,
+            "study_id": study_id,
+            "stale_record_ref": old_record_ref,
+            "required_currentness_refs": [],
+            "required_input_refs": {"medical_prose_review": old_prose_review},
+            "record_payload": owner_record_payload,
+        },
+    )
 
     module.materialize_ai_reviewer_record_worker_handoff(handoff=handoff)
 
     refreshed_request = handoff["ai_reviewer_record_production_request"]
-    payload = json.loads(Path(handoff["refs"]["owner_callable_payload_ref"]).read_text(encoding="utf-8"))
+    payload = json.loads(payload_ref.read_text(encoding="utf-8"))
     assert refreshed_request["stale_record_ref"] == current_record_ref
     assert refreshed_request["required_input_refs"]["medical_prose_review"] == str(current_prose_review.resolve())
     assert refreshed_request["required_currentness_refs"] == [str(current_prose_review.resolve())]
     assert payload["stale_record_ref"] == current_record_ref
     assert payload["required_input_refs"]["medical_prose_review"] == str(current_prose_review.resolve())
     assert payload["required_currentness_refs"] == [str(current_prose_review.resolve())]
+    assert payload["record_payload"] == owner_record_payload
+    assert payload["record_payload"] is not None
+    assert payload["record_payload"]["reviewer_operating_system"]["input_bundle"]["medical_prose_review"] == old_prose_review
     assert payload["guard_consumed_metadata_fields"] == [
         "stale_record_ref",
         "required_input_refs",
@@ -267,8 +291,11 @@ def test_record_payload_authoring_target_refreshes_guard_metadata_from_current_r
         "required_currentness_refs",
         "record_payload",
     ]
-    assert old_record_ref not in json.dumps(payload)
-    assert old_prose_review not in json.dumps(payload)
+    metadata_without_record_payload = {key: value for key, value in payload.items() if key != "record_payload"}
+    assert old_record_ref not in json.dumps(metadata_without_record_payload)
+    assert old_prose_review not in json.dumps(metadata_without_record_payload)
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
 
 
 def test_execute_dispatch_routes_claim_evidence_alignment_blocker_to_write_owner(
