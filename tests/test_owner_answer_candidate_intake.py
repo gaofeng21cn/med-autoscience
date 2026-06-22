@@ -14,6 +14,14 @@ B003_0915_CANDIDATE = (
     "current_main_74ee64_b003_0901_preserve_blocker_typed_blocker_"
     "response_candidate_0915.md"
 )
+B002_1055_CANDIDATE = (
+    "current_main_6efcd4_b002_1045_payload_currentness_"
+    "governed_answer_target_1055.md"
+)
+B003_1105_CANDIDATE = (
+    "current_main_6efcd4_b003_1045_write_repair_stable_blocker_"
+    "governed_answer_target_1105.md"
+)
 
 
 def _write_candidate(path: Path, *, sha_text: str) -> None:
@@ -161,6 +169,71 @@ def test_b003_0915_response_candidate_fails_closed_and_preserves_blocker(tmp_pat
     assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
 
 
+def test_b002_1055_governed_answer_target_fails_closed_without_governed_ref(tmp_path: Path) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B002_1055_CANDIDATE
+    _write_candidate(candidate, sha_text="B002 1055 owner answer target\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B002-1055",
+        candidate_path=candidate,
+        expected_sha256=None,
+    )
+
+    assert result["status"] == "exact_blocked_owner"
+    assert result["candidate_id"] == "B002-1055"
+    assert result["candidate_packet_kind"] == "b002_payload_currentness_governed_answer_target"
+    assert result["blocked_owner"]["owner_surface"] == (
+        "MAS publication AI-reviewer governed owner answer"
+    )
+    assert result["governed_answer_consumed"] is False
+    assert result["write_plan"]["written_files"] == []
+    assert result["write_plan"]["can_write_payload_targets"] is False
+    assert result["forbidden_authority_writes"]["non_dry_run_ai_reviewer_materialization"] is True
+    assert result["next_legal_surface"]["kind"] == (
+        "ai_reviewer_payload_currentness_guard_owner_answer"
+    )
+
+
+def test_b003_1105_governed_answer_target_fails_closed_and_preserves_blocker(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B003_1105_CANDIDATE
+    _write_candidate(candidate, sha_text="B003 1105 owner answer target\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B003-1105",
+        candidate_path=candidate,
+        expected_sha256=None,
+    )
+
+    assert result["status"] == "exact_blocked_owner"
+    assert result["candidate_id"] == "B003-1105"
+    assert result["candidate_packet_kind"] == (
+        "b003_write_repair_stable_blocker_governed_answer_target"
+    )
+    assert result["stable_blocker_policy"] == {
+        "preserve_or_explicitly_supersede": "owner-gate-decision:d6d895635654560a85573c04",
+        "provider_redrive_allowed": False,
+    }
+    assert result["blocked_owner"]["owner_surface"] == (
+        "MAS paper recovery / publication gate governed owner answer"
+    )
+    assert result["governed_answer_consumed"] is False
+    assert result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
+    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
+    assert result["next_legal_surface"]["kind"] == (
+        "publication_gate_write_repair_stable_blocker_owner_answer"
+    )
+
+
 def test_governed_response_consumed_only_for_allowed_kind_and_matching_ownership(
     tmp_path: Path,
 ) -> None:
@@ -188,6 +261,45 @@ def test_governed_response_consumed_only_for_allowed_kind_and_matching_ownership
     assert result["write_plan"]["written_files"] == []
     assert result["write_plan"]["can_write_publication_eval_latest"] is False
     assert result["write_plan"]["can_write_payload_targets"] is False
+
+
+def test_current_targets_consume_matching_governed_refs_without_writing(tmp_path: Path) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    b002 = tmp_path / B002_1055_CANDIDATE
+    b003 = tmp_path / B003_1105_CANDIDATE
+    _write_candidate(b002, sha_text="B002 1055 owner answer target\n")
+    _write_candidate(b003, sha_text="B003 1105 owner answer target\n")
+
+    b002_result = intake_owner_answer_candidate(
+        candidate_id="B002-1055",
+        candidate_path=b002,
+        expected_sha256=None,
+        governed_response_kind="human_gate_ref",
+        governed_response_ref="human_gate:owner-answer:b002-1055",
+        governed_response_study_id="002-dm-china-us-mortality-attribution",
+        governed_response_owner_surface="MAS publication AI-reviewer governed owner answer",
+    )
+    b003_result = intake_owner_answer_candidate(
+        candidate_id="B003-1105",
+        candidate_path=b003,
+        expected_sha256=None,
+        governed_response_kind="typed_blocker_ref",
+        governed_response_ref="typed-blocker:b003-1105",
+        governed_response_study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        governed_response_owner_surface="MAS paper recovery / publication gate governed owner answer",
+    )
+
+    assert b002_result["status"] == "governed_response_consumed"
+    assert b002_result["governed_response"]["candidate_id"] == "B002-1055"
+    assert b002_result["write_plan"]["written_files"] == []
+    assert b002_result["write_plan"]["can_write_payload_targets"] is False
+    assert b003_result["status"] == "governed_response_consumed"
+    assert b003_result["governed_response"]["candidate_id"] == "B003-1105"
+    assert b003_result["write_plan"]["written_files"] == []
+    assert b003_result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
 
 
 def test_governed_response_rejects_unaccepted_kind_without_writing(tmp_path: Path) -> None:

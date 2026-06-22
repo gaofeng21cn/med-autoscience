@@ -77,6 +77,29 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             "non_dry_run_materialization_authorized": "false",
         },
     ),
+    "B002-1055": CandidateSpec(
+        candidate_id="B002-1055",
+        filename="current_main_6efcd4_b002_1045_payload_currentness_governed_answer_target_1055.md",
+        study_id="002-dm-china-us-mortality-attribution",
+        packet_kind="b002_payload_currentness_governed_answer_target",
+        owner_surface="MAS publication AI-reviewer governed owner answer",
+        owner_identity={
+            "owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            ),
+        },
+        next_legal_surface={
+            "kind": "ai_reviewer_payload_currentness_guard_owner_answer",
+            "owner_callable": "publication_ai_reviewer_owner_intake",
+            "immediate_executor_action_if_accepted": "rerun_same_no_write_guard_only",
+            "payload_target_persistence_authorized": "false",
+            "non_dry_run_materialization_authorized": "false",
+        },
+    ),
     "B003-0751": CandidateSpec(
         candidate_id="B003-0751",
         filename="current_main_03c390_b003_post_0736_blocker_disposition_packet_0751.md",
@@ -122,6 +145,32 @@ _CANDIDATES: dict[str, CandidateSpec] = {
             "allowed_dispositions": (
                 "preserve_existing_stable_blocker,"
                 "route_back_specific_story_surface,"
+                "human_gate_for_blocker_disposition"
+            ),
+            "publication_gate_replay_authorized": "false",
+            "provider_redrive_authorized": "false",
+        },
+        stable_blocker_ref="owner-gate-decision:d6d895635654560a85573c04",
+    ),
+    "B003-1105": CandidateSpec(
+        candidate_id="B003-1105",
+        filename="current_main_6efcd4_b003_1045_write_repair_stable_blocker_governed_answer_target_1105.md",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        packet_kind="b003_write_repair_stable_blocker_governed_answer_target",
+        owner_surface="MAS paper recovery / publication gate governed owner answer",
+        owner_identity={
+            "owner": "med-autoscience",
+            "action_type": "publication_gate_replay",
+            "work_unit_id": "publication-blockers::0915410f804b3697",
+            "work_unit_fingerprint": "owner-gate-decision:d6d895635654560a85573c04",
+        },
+        next_legal_surface={
+            "kind": "publication_gate_write_repair_stable_blocker_owner_answer",
+            "owner_callable": "publication_gate_replay",
+            "allowed_dispositions": (
+                "preserve_existing_stable_blocker,"
+                "narrow_blocker_to_write_repair_route_selection_gap,"
+                "route_back_missing_write_repair_owner_route,"
                 "human_gate_for_blocker_disposition"
             ),
             "publication_gate_replay_authorized": "false",
