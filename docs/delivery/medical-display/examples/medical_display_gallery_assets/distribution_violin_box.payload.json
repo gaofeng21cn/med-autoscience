@@ -1,114 +1,114 @@
 {
   "display_id": "Figure29",
   "template_id": "distribution_violin_box",
-  "title": "Signature score distribution by risk group",
-  "caption": "Student-curated violin, box and jitter grammar adapted for MAS R/ggplot2 evidence rendering.",
+  "title": "Distribution comparison",
+  "caption": "Violin + box + jitter.",
   "x_label": "",
   "y_label": "Signature score",
   "annotation": "Wilcoxon P = 0.004",
   "group_order": [
     {
-      "label": "Low-risk"
+      "label": "Responder"
     },
     {
-      "label": "High-risk"
+      "label": "Non-responder"
     }
   ],
   "values": [
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": -0.38
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": -0.24
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": -0.18
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": -0.1
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": -0.06
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.02
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.08
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.14
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.2
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.27
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.36
     },
     {
-      "group": "Low-risk",
+      "group": "Responder",
       "value": 0.44
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.18
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.28
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.36
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.44
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.52
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.61
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.7
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.78
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.86
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 0.94
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 1.04
     },
     {
-      "group": "High-risk",
+      "group": "Non-responder",
       "value": 1.16
     }
   ],
@@ -270,8 +270,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

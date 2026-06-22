@@ -305,18 +305,29 @@ compute_embedding_result <- function(template_id, display_payload) {
 plot_dimensionality_reduction_embedding <- function(template_id, display_payload) {
   result <- compute_embedding_result(template_id, display_payload)
   point_df <- result$points
+  center_df <- stats::aggregate(cbind(x, y) ~ group, point_df, mean)
   ggplot(point_df, aes(x = x, y = y, colour = group)) +
-    geom_point(size = style_numeric(style_stroke(display_payload), "marker_size", 4.5) * 0.62, alpha = 0.9) +
+    geom_point(size = style_numeric(style_stroke(display_payload), "marker_size", 4.5) * 0.44, alpha = 0.72) +
+    geom_text(
+      data = center_df,
+      aes(label = group),
+      colour = style_text_color(display_payload),
+      fontface = "bold",
+      size = 3.2,
+      show.legend = FALSE
+    ) +
     scale_color_manual(
       values = style_series_palette(display_payload, unique(point_df$group)),
       guide = publication_legend_guides(display_payload, point_df$group)
     ) +
+    coord_equal() +
     labs(
       title = trimws(as.character(display_payload$title %||% "")),
       x = trimws(as.character(display_payload$x_label %||% result$labels$x)),
       y = trimws(as.character(display_payload$y_label %||% result$labels$y))
     ) +
-    theme_publication(display_payload)
+    theme_publication(display_payload) +
+    theme(panel.grid = element_blank(), aspect.ratio = 1)
 }
 
 embedding_point_metrics <- function(point_df, panel_box) {

@@ -2,75 +2,38 @@
   "display_id": "model_audit",
   "template_id": "model_complexity_audit_panel",
   "title": "Model complexity audit",
-  "caption": "Discrimination, calibration error, and coefficient stability are reviewed together.",
-  "metric_panels": [
+  "caption": "Performance vs feature count.",
+  "selected_feature_count": 35,
+  "complexity_points": [
     {
-      "panel_id": "auroc_panel",
-      "panel_label": "A",
-      "title": "Discrimination",
-      "x_label": "AUROC",
-      "rows": [
-        {
-          "label": "Core model",
-          "value": 0.8
-        },
-        {
-          "label": "Clinical model",
-          "value": 0.82
-        },
-        {
-          "label": "RF comparator",
-          "value": 0.84
-        }
-      ]
+      "features": 5,
+      "cv_auc": 0.72,
+      "external_auc": 0.7
     },
     {
-      "panel_id": "brier_panel",
-      "panel_label": "B",
-      "title": "Calibration error",
-      "x_label": "Brier score",
-      "rows": [
-        {
-          "label": "Core model",
-          "value": 0.142
-        },
-        {
-          "label": "Clinical model",
-          "value": 0.112
-        },
-        {
-          "label": "RF comparator",
-          "value": 0.103
-        }
-      ]
-    }
-  ],
-  "panel_order": [
-    "Discrimination",
-    "Calibration error",
-    "Coefficient stability"
-  ],
-  "audit_panels": [
+      "features": 10,
+      "cv_auc": 0.79,
+      "external_auc": 0.77
+    },
     {
-      "panel_id": "coefficient_panel",
-      "panel_label": "C",
-      "title": "Coefficient stability",
-      "x_label": "Mean odds ratio",
-      "reference_value": 1.0,
-      "rows": [
-        {
-          "label": "Age",
-          "value": 0.91
-        },
-        {
-          "label": "Tumor size",
-          "value": 1.44
-        },
-        {
-          "label": "Knosp grade",
-          "value": 1.13
-        }
-      ]
+      "features": 20,
+      "cv_auc": 0.84,
+      "external_auc": 0.82
+    },
+    {
+      "features": 35,
+      "cv_auc": 0.86,
+      "external_auc": 0.84
+    },
+    {
+      "features": 55,
+      "cv_auc": 0.855,
+      "external_auc": 0.825
+    },
+    {
+      "features": 80,
+      "cv_auc": 0.845,
+      "external_auc": 0.8
     }
   ],
   "render_context": {
@@ -231,8 +194,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

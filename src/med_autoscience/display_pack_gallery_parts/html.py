@@ -28,9 +28,6 @@ from med_autoscience.display_pack_gallery_parts.gallery_copy import (
     evidence_copy,
 )
 from med_autoscience.display_pack_gallery_parts.html_style import GALLERY_CSS
-from med_autoscience.display_pack_gallery_parts.lidocaineq_coverage import (
-    lidocaineq_coverage_payload,
-)
 from med_autoscience.display_pack_gallery_parts.taxonomy import CATEGORY_ORDER
 from med_autoscience.display_pack_agent_parts.composition_recipe_projection import (
     composition_recipe_discovery_payload,
@@ -121,61 +118,6 @@ def _palette_html(palette: dict[str, str]) -> str:
         for key, label in labels
         if key in palette
     )
-
-
-def _source_renderer_readback(rendered: dict[str, RenderedAsset]) -> dict[str, str]:
-    source_renderers: dict[str, str] = {}
-    for template_id, asset in rendered.items():
-        if asset.status != "rendered" or not asset.layout_ref:
-            continue
-        layout_path = asset.layout_ref
-        try:
-            from med_autoscience.display_pack_gallery_parts import paths
-            import json
-
-            sidecar = json.loads((paths.HTML_PATH.parent / layout_path).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        metrics = sidecar.get("metrics")
-        if not isinstance(metrics, dict):
-            continue
-        source_renderer = metrics.get("source_renderer")
-        if isinstance(source_renderer, str) and source_renderer.strip():
-            source_renderers[template_id] = source_renderer.strip()
-    return source_renderers
-
-
-def _lidocaineq_coverage_html(rendered: dict[str, RenderedAsset]) -> str:
-    coverage = lidocaineq_coverage_payload(
-        rendered_by_template_id=rendered,
-        source_renderer_by_template_id=_source_renderer_readback(rendered),
-    )
-    rows: list[str] = []
-    for item in coverage["items"]:
-        mas_templates = ", ".join(item["mas_template_ids"])
-        rows.append(
-            f"<tr>"
-            f"<td>{html.escape(item['reference_template_id'])}</td>"
-            f"<td>{html.escape(mas_templates)}</td>"
-            f"<td>{html.escape(item['mapping_relation'])}</td>"
-            f"<td>{html.escape(item['coverage_status'])}</td>"
-            f"</tr>"
-        )
-    return f"""
-<section class="section coverage-section" id="lidocaineq-reference-coverage">
-  <div class="section-label">附录</div>
-  <h2>LidocaineQ 33 项发表级参考覆盖 <span>{coverage["covered_reference_template_count"]}/{coverage["reference_template_count"]}</span></h2>
-  <p class="section-lead">本附录把用户提供 PDF 中的 33 项 reference template 映射到 MAS current canonical templates。替换映射只保留 current MAS template surface，不恢复旧 alias；LidocaineQ ID 作为 source renderer 和 reference id 写入 layout sidecar / manifest。</p>
-  <div class="coverage-summary">
-    <span>coverage_complete={str(coverage["coverage_complete"]).lower()}</span>
-    <span>replacement_mappings={coverage["replacement_template_count"]}</span>
-    <span>do_not_restore_legacy_alias={coverage["do_not_restore_legacy_alias_count"]}</span>
-  </div>
-  <table class="coverage-table">
-    <thead><tr><th>Reference template</th><th>MAS current template</th><th>Mapping relation</th><th>Status</th></tr></thead>
-    <tbody>{''.join(rows)}</tbody>
-  </table>
-</section>"""
 
 
 def _non_evidence_gallery_html(
@@ -339,8 +281,6 @@ def _render_html(
         pane_label="Table shell 可视预览",
         card_class="table-preview-card",
     )
-    coverage_section = _lidocaineq_coverage_html(rendered)
-
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -372,7 +312,6 @@ def _render_html(
     <p class="section-lead">这些证据图起点是 MAS 默认数据证据图入口。它们按医学表达目的组织，强调输入数据、统计语义、统一风格和可审计导出；AI 可在论文级语义约束下继续调整图形结构。</p>
     {''.join(sections)}
   </section>
-  {coverage_section}
 </main>
 </div>
 </body>

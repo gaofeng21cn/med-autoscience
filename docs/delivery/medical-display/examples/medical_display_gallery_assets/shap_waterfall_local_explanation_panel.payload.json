@@ -1,37 +1,38 @@
 {
   "display_id": "Figure28",
   "template_id": "shap_waterfall_local_explanation_panel",
-  "title": "Local SHAP waterfall explanation",
-  "caption": "Patient-level contribution stack from baseline to final model output.",
-  "x_label": "Model output",
+  "title": "SHAP waterfall explanation",
+  "caption": "Single-patient local contribution.",
+  "y_label": "Prediction contribution",
   "panels": [
     {
       "panel_id": "case1",
       "panel_label": "A",
       "title": "Case 1",
       "case_label": "Patient 1",
-      "baseline_value": 0.18,
-      "predicted_value": 0.57,
+      "baseline_value": 0.0,
+      "predicted_value": 0.46,
       "contributions": [
         {
-          "feature": "Tumor size",
-          "shap_value": 0.21,
-          "feature_value_text": "large"
+          "feature": "Baseline",
+          "shap_value": 0.22,
+          "contribution_type": "base"
         },
         {
-          "feature": "Age",
-          "shap_value": 0.11,
-          "feature_value_text": "70 y"
+          "feature": "CEA",
+          "shap_value": 0.09
         },
         {
-          "feature": "Albumin",
-          "shap_value": -0.07,
-          "feature_value_text": "normal"
+          "feature": "N stage",
+          "shap_value": 0.13
         },
         {
-          "feature": "Knosp grade",
-          "shap_value": 0.14,
-          "feature_value_text": "III-IV"
+          "feature": "Texture",
+          "shap_value": -0.05
+        },
+        {
+          "feature": "KRAS",
+          "shap_value": 0.07
         }
       ]
     }
@@ -194,8 +195,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.3,
+      "output_height_in": 3.5,
       "show_figure_title": false
     },
     "readability_override": {}

@@ -1,99 +1,109 @@
 {
   "display_id": "Figure34",
   "template_id": "waterfall_response",
-  "title": "Best response waterfall",
-  "caption": "Ranked individual response plot with response-class palette and optional clinical threshold lines.",
-  "x_label": "Patients ordered by response",
-  "y_label": "Change from baseline (%)",
-  "thresholds": [
-    {
-      "label": "Partial response",
-      "value": -30
-    },
-    {
-      "label": "Progression",
-      "value": 20
-    }
-  ],
+  "title": "Risk-score waterfall",
+  "caption": "Ranked individual predictions.",
+  "x_label": "Patients ordered by score",
+  "y_label": "Risk score",
   "bars": [
     {
       "sample": "P01",
-      "value": -72,
+      "value": -2.65,
       "response": "Response"
     },
     {
       "sample": "P02",
-      "value": -61,
+      "value": -2.2,
       "response": "Response"
     },
     {
       "sample": "P03",
-      "value": -55,
+      "value": -1.85,
       "response": "Response"
     },
     {
       "sample": "P04",
-      "value": -48,
+      "value": -1.52,
       "response": "Response"
     },
     {
       "sample": "P05",
-      "value": -39,
+      "value": -1.21,
       "response": "Response"
     },
     {
       "sample": "P06",
-      "value": -31,
+      "value": -0.91,
       "response": "Response"
     },
     {
       "sample": "P07",
-      "value": -24,
-      "response": "Stable"
+      "value": -0.62,
+      "response": "Response"
     },
     {
       "sample": "P08",
-      "value": -18,
-      "response": "Stable"
+      "value": -0.41,
+      "response": "Response"
     },
     {
       "sample": "P09",
-      "value": -11,
+      "value": -0.24,
       "response": "Stable"
     },
     {
       "sample": "P10",
-      "value": -6,
+      "value": -0.08,
       "response": "Stable"
     },
     {
       "sample": "P11",
-      "value": 4,
+      "value": 0.06,
       "response": "Stable"
     },
     {
       "sample": "P12",
-      "value": 9,
+      "value": 0.18,
       "response": "Stable"
     },
     {
       "sample": "P13",
-      "value": 16,
+      "value": 0.31,
       "response": "Stable"
     },
     {
       "sample": "P14",
-      "value": 23,
-      "response": "Progression"
+      "value": 0.46,
+      "response": "Stable"
     },
     {
       "sample": "P15",
-      "value": 31,
+      "value": 0.61,
       "response": "Progression"
     },
     {
       "sample": "P16",
-      "value": 44,
+      "value": 0.77,
+      "response": "Progression"
+    },
+    {
+      "sample": "P17",
+      "value": 0.96,
+      "response": "Progression"
+    },
+    {
+      "sample": "P18",
+      "value": 1.14,
+      "response": "Progression"
+    },
+    {
+      "sample": "P19",
+      "value": 1.33,
+      "response": "Progression"
+    },
+    {
+      "sample": "P20",
+      "value": 1.58,
       "response": "Progression"
     }
   ],
@@ -255,8 +265,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.3,
+      "output_height_in": 3.4,
       "show_figure_title": false
     },
     "readability_override": {}

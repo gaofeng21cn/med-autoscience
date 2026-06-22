@@ -1,8 +1,8 @@
 {
   "display_id": "Figure31",
   "template_id": "correlation_scatter",
-  "title": "Feature score association with outcome signal",
-  "caption": "Correlation scatter seed with model trend and statistical annotation slot.",
+  "title": "Correlation scatter",
+  "caption": "Regression line with statistic slot.",
   "x_label": "Feature score",
   "y_label": "Outcome-associated score",
   "annotation": "Spearman r = 0.53\nP < 0.001",
@@ -766,8 +766,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

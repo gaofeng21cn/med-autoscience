@@ -176,6 +176,39 @@ def test_alluvial_transition_checked_in_renderer_uses_ggalluvial_without_fallbac
         assert forbidden not in renderer_source
 
 
+def test_lidocaineq_specialized_renderers_use_mature_packages_without_installing_packages() -> None:
+    ml_omics_source = (
+        CORE_PACK_ROOT
+        / "rlib"
+        / "medicaldisplaycore"
+        / "lidocaineq_ml_omics_renderers.R"
+    ).read_text(encoding="utf-8")
+    publication_source = (
+        CORE_PACK_ROOT
+        / "rlib"
+        / "medicaldisplaycore"
+        / "lidocaineq_publication_renderers.R"
+    ).read_text(encoding="utf-8")
+
+    assert 'requireNamespace("maftools", quietly = TRUE)' in ml_omics_source
+    assert "maftools::read.maf" in ml_omics_source
+    assert "maftools::oncoplot" in ml_omics_source
+    assert '"lidocaine_base_graphics_plot"' in ml_omics_source
+    assert "ComplexHeatmap::oncoPrint" not in ml_omics_source
+    assert 'requireNamespace("ggradar", quietly = TRUE)' in publication_source
+    assert "ggradar::ggradar" in publication_source
+
+    for source in (ml_omics_source, publication_source):
+        for forbidden in (
+            "install.packages",
+            "pak::",
+            "renv::install",
+            "remotes::install",
+            "BiocManager::install",
+        ):
+            assert forbidden not in source
+
+
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
     records = ledger["records"]
@@ -236,6 +269,12 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     alluvial_profile = next(
         item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_alluvial_transition_v1"
     )
+    maftools_profile = next(
+        item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_maftools_oncoplot_v1"
+    )
+    ggradar_profile = next(
+        item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_ggradar_profile_v1"
+    )
     candidate_profile = next(
         item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_p1_comparison_subprocess_v1"
     )
@@ -253,7 +292,11 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert packages_by_name["gridExtra"]["template_ids"] == ["table1_baseline_characteristics"]
     assert packages_by_name["gridExtra"]["required"] is True
     assert "ggalluvial" not in package_names
+    assert "maftools" not in package_names
+    assert "ggradar" not in package_names
     alluvial_packages = {item["name"]: item for item in alluvial_profile["language_packages"]["r"]}
+    maftools_packages = {item["name"]: item for item in maftools_profile["language_packages"]["r"]}
+    ggradar_packages = {item["name"]: item for item in ggradar_profile["language_packages"]["r"]}
     assert alluvial_profile["template_ids"] == [
         "alluvial_transition",
         "fenggaolab.org.medical-display-core::alluvial_transition",
@@ -262,6 +305,31 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert alluvial_packages["ggalluvial"]["required"] is True
     assert alluvial_profile["render_contract"]["checked_in_renderer_uses_ggalluvial"] is True
     assert alluvial_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
+    assert maftools_profile["template_ids"] == [
+        "genomic_alteration_landscape_panel",
+        "fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel",
+    ]
+    assert maftools_profile["surface_role"] == "maftools_oncoplot_mutation_landscape_dependency_intent"
+    assert {"jsonlite", "ggplot2", "ggsci", "grid", "maftools"} <= set(maftools_packages)
+    assert maftools_packages["maftools"]["required"] is True
+    assert maftools_packages["maftools"]["source"] == {
+        "type": "github",
+        "repo": "PoisonAlien/maftools",
+        "upstream_package_manager": "BiocManager",
+    }
+    assert maftools_profile["render_contract"]["checked_in_renderer_uses_maftools"] is True
+    assert maftools_profile["render_contract"]["checked_in_renderer_uses_base_graphics_device"] is True
+    assert maftools_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
+    assert ggradar_profile["template_ids"] == [
+        "radar_profile",
+        "fenggaolab.org.medical-display-core::radar_profile",
+    ]
+    assert ggradar_profile["surface_role"] == "ggradar_radial_profile_dependency_intent"
+    assert {"jsonlite", "ggplot2", "ggsci", "grid", "ggradar"} <= set(ggradar_packages)
+    assert ggradar_packages["ggradar"]["required"] is True
+    assert ggradar_packages["ggradar"]["source"] == {"type": "github", "repo": "ricardo-bion/ggradar"}
+    assert ggradar_profile["render_contract"]["checked_in_renderer_uses_ggradar"] is True
+    assert ggradar_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
     assert packages_by_name["Rtsne"]["template_ids"] == ["tsne_scatter_grouped"]
     assert packages_by_name["uwot"]["template_ids"] == ["umap_scatter_grouped"]
     assert r_profile["shared_helper_ref"] == "rlib/medicaldisplaycore/evidence_renderer.R"
@@ -304,7 +372,11 @@ def test_lidocaineq_reference_coverage_contract_lists_all_33_reference_items() -
     assert "embedding_umap_tsne" in reference_ids
     embedding_item = next(item for item in LIDOCAINEQ_COVERAGE_ITEMS if item.reference_template_id == "embedding_umap_tsne")
     assert embedding_item.mas_template_id == "umap_scatter_grouped"
-    assert embedding_item.required_mas_template_ids == ("umap_scatter_grouped", "tsne_scatter_grouped")
+    assert embedding_item.required_mas_template_ids == (
+        "pca_scatter_grouped",
+        "tsne_scatter_grouped",
+        "umap_scatter_grouped",
+    )
     assert {item.mas_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS} <= {
         path.parent.name
         for path in (CORE_PACK_ROOT / "templates").glob("*/template.toml")
@@ -336,10 +408,19 @@ def test_docs_gallery_manifest_reports_complete_lidocaineq_coverage_when_built()
         item.reference_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS
     }
     embedding_item = next(item for item in coverage["items"] if item["reference_template_id"] == "embedding_umap_tsne")
-    assert embedding_item["mas_template_ids"] == ["umap_scatter_grouped", "tsne_scatter_grouped"]
-    assert embedding_item["covered_mas_template_ids"] == ["umap_scatter_grouped", "tsne_scatter_grouped"]
+    assert embedding_item["mas_template_ids"] == [
+        "pca_scatter_grouped",
+        "tsne_scatter_grouped",
+        "umap_scatter_grouped",
+    ]
+    assert embedding_item["covered_mas_template_ids"] == [
+        "pca_scatter_grouped",
+        "tsne_scatter_grouped",
+        "umap_scatter_grouped",
+    ]
     assert embedding_item["missing_or_downgraded_mas_template_ids"] == []
     assert embedding_item["actual_source_renderers"] == {
+        "pca_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
         "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
         "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
     }

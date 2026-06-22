@@ -2,69 +2,73 @@
   "display_id": "Figure23",
   "template_id": "pathway_enrichment_dotplot_panel",
   "title": "Pathway enrichment dotplot",
-  "caption": "Normalized enrichment score and support size across candidate pathways.",
-  "x_label": "Normalized enrichment score",
+  "caption": "NES colour, FDR size.",
+  "x_label": "Gene ratio",
   "y_label": "Pathway",
   "effect_scale_label": "NES",
-  "size_scale_label": "Gene count",
-  "panel_order": [
-    {
-      "panel_id": "all",
-      "panel_title": "Pathway programs"
-    }
-  ],
+  "size_scale_label": "-log10 FDR",
   "pathway_order": [
     {
-      "label": "IFN response"
-    },
-    {
-      "label": "Cytotoxicity"
-    },
-    {
-      "label": "Hypoxia"
-    },
-    {
-      "label": "TGF-beta"
-    },
-    {
       "label": "EMT"
+    },
+    {
+      "label": "G2M checkpoint"
+    },
+    {
+      "label": "Angiogenesis"
+    },
+    {
+      "label": "IFN-gamma"
+    },
+    {
+      "label": "Oxidative phosphorylation"
+    },
+    {
+      "label": "T cell activation"
     }
   ],
   "points": [
     {
       "panel_id": "all",
-      "pathway_label": "IFN response",
-      "x_value": 2.45,
-      "effect_value": 1.08,
-      "size_value": 42
-    },
-    {
-      "panel_id": "all",
-      "pathway_label": "Cytotoxicity",
-      "x_value": 2.1,
-      "effect_value": 0.86,
-      "size_value": 36
-    },
-    {
-      "panel_id": "all",
-      "pathway_label": "Hypoxia",
-      "x_value": 1.55,
-      "effect_value": 0.44,
-      "size_value": 27
-    },
-    {
-      "panel_id": "all",
-      "pathway_label": "TGF-beta",
-      "x_value": -1.76,
-      "effect_value": -0.68,
-      "size_value": 31
-    },
-    {
-      "panel_id": "all",
       "pathway_label": "EMT",
-      "x_value": -2.02,
-      "effect_value": -0.82,
-      "size_value": 38
+      "x_value": 0.21,
+      "effect_value": 2.1,
+      "size_value": 3.0
+    },
+    {
+      "panel_id": "all",
+      "pathway_label": "G2M checkpoint",
+      "x_value": 0.18,
+      "effect_value": 1.7,
+      "size_value": 2.22
+    },
+    {
+      "panel_id": "all",
+      "pathway_label": "Angiogenesis",
+      "x_value": 0.14,
+      "effect_value": 1.35,
+      "size_value": 1.74
+    },
+    {
+      "panel_id": "all",
+      "pathway_label": "IFN-gamma",
+      "x_value": 0.12,
+      "effect_value": -1.4,
+      "size_value": 1.52
+    },
+    {
+      "panel_id": "all",
+      "pathway_label": "Oxidative phosphorylation",
+      "x_value": 0.1,
+      "effect_value": -1.65,
+      "size_value": 1.85
+    },
+    {
+      "panel_id": "all",
+      "pathway_label": "T cell activation",
+      "x_value": 0.08,
+      "effect_value": -2.0,
+      "size_value": 2.4
     }
   ],
   "render_context": {
@@ -225,8 +229,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.3,
+      "output_height_in": 3.7,
       "show_figure_title": false
     },
     "readability_override": {}

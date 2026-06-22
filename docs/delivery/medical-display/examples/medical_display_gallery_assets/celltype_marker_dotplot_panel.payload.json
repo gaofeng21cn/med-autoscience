@@ -1,12 +1,12 @@
 {
   "display_id": "Figure24",
   "template_id": "celltype_marker_dotplot_panel",
-  "title": "Cell-type marker expression dotplot",
-  "caption": "Marker-level effect size and detection fraction across immune cell types.",
-  "x_label": "Cell type",
-  "y_label": "Marker",
-  "effect_scale_label": "Scaled expression",
-  "size_scale_label": "Detection",
+  "title": "Cell-type marker dotplot",
+  "caption": "Expression percent and average expression.",
+  "x_label": "",
+  "y_label": "",
+  "effect_scale_label": "Avg exp",
+  "size_scale_label": "Pct",
   "panel_order": [
     {
       "panel_id": "all",
@@ -15,105 +15,213 @@
   ],
   "celltype_order": [
     {
-      "label": "CD8 T"
-    },
-    {
-      "label": "CD4 T"
-    },
-    {
-      "label": "B cell"
+      "label": "Fibroblast"
     },
     {
       "label": "Myeloid"
+    },
+    {
+      "label": "Treg"
+    },
+    {
+      "label": "CD8 T"
+    },
+    {
+      "label": "Tumor"
     }
   ],
   "marker_order": [
     {
-      "label": "GZMB"
+      "label": "EPCAM"
     },
     {
-      "label": "CD3D"
+      "label": "CD8A"
     },
     {
-      "label": "MS4A1"
+      "label": "FOXP3"
     },
     {
       "label": "LYZ"
     },
     {
-      "label": "S100A8"
+      "label": "COL1A1"
     }
   ],
   "points": [
     {
       "panel_id": "all",
-      "celltype_label": "CD8 T",
-      "marker_label": "GZMB",
-      "effect_value": 1.18,
-      "size_value": 0.84
+      "celltype_label": "Tumor",
+      "marker_label": "EPCAM",
+      "effect_value": 2.0,
+      "size_value": 0.8
     },
     {
       "panel_id": "all",
-      "celltype_label": "CD8 T",
-      "marker_label": "CD3D",
-      "effect_value": 0.92,
-      "size_value": 0.78
+      "celltype_label": "Tumor",
+      "marker_label": "CD8A",
+      "effect_value": -0.42,
+      "size_value": 0.08
     },
     {
       "panel_id": "all",
-      "celltype_label": "CD4 T",
-      "marker_label": "CD3D",
-      "effect_value": 0.86,
-      "size_value": 0.74
+      "celltype_label": "Tumor",
+      "marker_label": "FOXP3",
+      "effect_value": -0.7,
+      "size_value": 0.02
     },
     {
       "panel_id": "all",
-      "celltype_label": "B cell",
-      "marker_label": "MS4A1",
-      "effect_value": 1.05,
-      "size_value": 0.82
-    },
-    {
-      "panel_id": "all",
-      "celltype_label": "Myeloid",
+      "celltype_label": "Tumor",
       "marker_label": "LYZ",
-      "effect_value": 1.12,
-      "size_value": 0.88
+      "effect_value": -0.56,
+      "size_value": 0.05
     },
     {
       "panel_id": "all",
-      "celltype_label": "Myeloid",
-      "marker_label": "S100A8",
-      "effect_value": 0.74,
+      "celltype_label": "Tumor",
+      "marker_label": "COL1A1",
+      "effect_value": -0.84,
+      "size_value": 0.01
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "CD8 T",
+      "marker_label": "EPCAM",
+      "effect_value": -0.52,
+      "size_value": 0.04
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "CD8 T",
+      "marker_label": "CD8A",
+      "effect_value": 1.35,
+      "size_value": 0.72
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "CD8 T",
+      "marker_label": "FOXP3",
+      "effect_value": -0.35,
+      "size_value": 0.07
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "CD8 T",
+      "marker_label": "LYZ",
+      "effect_value": -0.58,
+      "size_value": 0.04
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "CD8 T",
+      "marker_label": "COL1A1",
+      "effect_value": -0.8,
+      "size_value": 0.02
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Treg",
+      "marker_label": "EPCAM",
+      "effect_value": -0.82,
+      "size_value": 0.01
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Treg",
+      "marker_label": "CD8A",
+      "effect_value": -0.38,
+      "size_value": 0.08
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Treg",
+      "marker_label": "FOXP3",
+      "effect_value": 1.05,
       "size_value": 0.62
     },
     {
       "panel_id": "all",
-      "celltype_label": "B cell",
-      "marker_label": "CD3D",
-      "effect_value": -0.42,
-      "size_value": 0.18
-    },
-    {
-      "panel_id": "all",
-      "celltype_label": "CD4 T",
-      "marker_label": "GZMB",
-      "effect_value": -0.16,
-      "size_value": 0.22
-    },
-    {
-      "panel_id": "all",
-      "celltype_label": "CD8 T",
+      "celltype_label": "Treg",
       "marker_label": "LYZ",
-      "effect_value": -0.38,
-      "size_value": 0.12
+      "effect_value": -0.2,
+      "size_value": 0.1
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Treg",
+      "marker_label": "COL1A1",
+      "effect_value": -0.72,
+      "size_value": 0.03
     },
     {
       "panel_id": "all",
       "celltype_label": "Myeloid",
-      "marker_label": "MS4A1",
-      "effect_value": -0.51,
-      "size_value": 0.14
+      "marker_label": "EPCAM",
+      "effect_value": -0.45,
+      "size_value": 0.04
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Myeloid",
+      "marker_label": "CD8A",
+      "effect_value": -0.5,
+      "size_value": 0.05
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Myeloid",
+      "marker_label": "FOXP3",
+      "effect_value": -0.2,
+      "size_value": 0.1
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Myeloid",
+      "marker_label": "LYZ",
+      "effect_value": 1.55,
+      "size_value": 0.7
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Myeloid",
+      "marker_label": "COL1A1",
+      "effect_value": -0.48,
+      "size_value": 0.05
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Fibroblast",
+      "marker_label": "EPCAM",
+      "effect_value": -0.35,
+      "size_value": 0.06
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Fibroblast",
+      "marker_label": "CD8A",
+      "effect_value": -0.82,
+      "size_value": 0.02
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Fibroblast",
+      "marker_label": "FOXP3",
+      "effect_value": -0.5,
+      "size_value": 0.05
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Fibroblast",
+      "marker_label": "LYZ",
+      "effect_value": -0.38,
+      "size_value": 0.08
+    },
+    {
+      "panel_id": "all",
+      "celltype_label": "Fibroblast",
+      "marker_label": "COL1A1",
+      "effect_value": 1.95,
+      "size_value": 0.76
     }
   ],
   "render_context": {
@@ -274,8 +382,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.4,
+      "output_height_in": 3.7,
       "show_figure_title": false
     },
     "readability_override": {}

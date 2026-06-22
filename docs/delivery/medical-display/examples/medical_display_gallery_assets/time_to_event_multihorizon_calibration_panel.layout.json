@@ -359,8 +359,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

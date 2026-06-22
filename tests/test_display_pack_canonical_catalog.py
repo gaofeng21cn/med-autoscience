@@ -22,7 +22,11 @@ from med_autoscience.display_pack_gallery_catalog import (
 )
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.payloads import _load_seed_r_payloads
-from med_autoscience.display_pack_gallery_parts.pdf import _docs_manifest_payload, _repo_relative_path
+from med_autoscience.display_pack_gallery_parts.pdf import (
+    _docs_manifest_payload,
+    _repo_relative_path,
+    docs_safe_gallery_asset_manifest_payload,
+)
 from med_autoscience.display_pack_gallery_parts.rendering import _gallery_dependency_environment_for
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.display_pack_gallery_parts.html import _render_html
@@ -628,3 +632,60 @@ def test_docs_gallery_manifest_uses_repo_relative_paths() -> None:
     )
     assert compact["source_manifest_schema_version"] == 9
     assert compact["html_path"] == "outputs/display-pack-gallery/x.html"
+    compact_with_parity = _docs_manifest_payload(
+        {
+            **compact,
+            "schema_version": 9,
+            "lidocaineq_visual_parity_audit_path": str(
+                REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_audit.md"
+            ),
+            "lidocaineq_visual_parity_audit": {
+                "markdown_path": str(
+                    REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_audit.md"
+                ),
+                "contact_sheet_path": str(
+                    REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_contact_sheet.png"
+                ),
+            },
+        }
+    )
+    assert compact_with_parity["lidocaineq_visual_parity_audit_path"] == (
+        "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md"
+    )
+    assert compact_with_parity["lidocaineq_visual_parity_audit"]["markdown_path"] == (
+        "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md"
+    )
+
+
+def test_docs_gallery_asset_manifest_recursively_uses_repo_relative_paths() -> None:
+    payload = {
+        "html_path": str(REPO_ROOT / "outputs" / "display-pack-gallery" / "x.html"),
+        "nested": {
+            "contact_sheet_path": str(
+                REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_contact_sheet.png"
+            ),
+            "rows": [
+                {
+                    "image": {
+                        "path": str(
+                            REPO_ROOT
+                            / "outputs"
+                            / "display-pack-gallery"
+                            / "medical_display_gallery_assets"
+                            / "roc_curve_binary.png"
+                        )
+                    }
+                }
+            ],
+        },
+    }
+
+    safe = docs_safe_gallery_asset_manifest_payload(payload)
+
+    assert safe["html_path"] == "outputs/display-pack-gallery/x.html"
+    assert safe["nested"]["contact_sheet_path"] == (
+        "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png"
+    )
+    assert safe["nested"]["rows"][0]["image"]["path"] == (
+        "outputs/display-pack-gallery/medical_display_gallery_assets/roc_curve_binary.png"
+    )

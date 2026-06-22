@@ -1,106 +1,3371 @@
 {
   "display_id": "Figure25",
   "template_id": "omics_volcano_panel",
-  "title": "Omics volcano panel",
-  "caption": "Differential features across a prespecified contrast.",
-  "x_label": "Effect size",
-  "y_label": "-log10(q)",
-  "legend_title": "Regulation",
-  "effect_threshold": 0.5,
+  "title": "Volcano plot",
+  "caption": "Differential-expression screening.",
+  "x_label": "log2 fold-change",
+  "y_label": "-log10 adjusted P",
+  "effect_threshold": 1.0,
   "significance_threshold": 1.3,
-  "panel_order": [
-    {
-      "panel_id": "rna",
-      "panel_title": "RNA"
-    }
-  ],
   "points": [
     {
       "panel_id": "rna",
+      "feature_label": "GENE001",
+      "effect_value": 0.55,
+      "significance_value": 0.18,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE002",
+      "effect_value": 0.9372,
+      "significance_value": 0.3998,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE003",
+      "effect_value": 1.265,
+      "significance_value": 1.6393,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE004",
+      "effect_value": 1.4877,
+      "significance_value": 2.8962,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE005",
+      "effect_value": 1.5732,
+      "significance_value": 3.9601,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE006",
+      "effect_value": 1.5071,
+      "significance_value": 4.6814,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE007",
+      "effect_value": 1.2948,
+      "significance_value": 4.9588,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE008",
+      "effect_value": 0.9608,
+      "significance_value": 4.7507,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE009",
+      "effect_value": 0.5455,
+      "significance_value": 4.9686,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE010",
+      "effect_value": 0.0995,
+      "significance_value": 4.8945,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE011",
+      "effect_value": -0.3227,
+      "significance_value": 4.5141,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE012",
+      "effect_value": -0.6706,
+      "significance_value": 3.8757,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
       "feature_label": "CXCL9",
-      "effect_value": 1.18,
-      "significance_value": 3.1,
-      "regulation_class": "upregulated",
+      "effect_value": -0.9037,
+      "significance_value": 5.8611,
+      "regulation_class": "NS",
       "label_text": "CXCL9"
     },
     {
       "panel_id": "rna",
+      "feature_label": "GENE014",
+      "effect_value": -0.9977,
+      "significance_value": 2.2804,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE015",
+      "effect_value": -0.9471,
+      "significance_value": 1.3358,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE016",
+      "effect_value": -0.7663,
+      "significance_value": 0.6583,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE017",
+      "effect_value": -0.4871,
+      "significance_value": 0.2496,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE018",
+      "effect_value": -0.1548,
+      "significance_value": 0.2339,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE019",
+      "effect_value": 0.1786,
+      "significance_value": 0.62,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE020",
+      "effect_value": 0.4607,
+      "significance_value": 1.2823,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE021",
+      "effect_value": 0.6469,
+      "significance_value": 2.1144,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE022",
+      "effect_value": 0.7057,
+      "significance_value": 3.0006,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE023",
+      "effect_value": 0.6232,
+      "significance_value": 3.8238,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE024",
+      "effect_value": 0.4055,
+      "significance_value": 4.4773,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE025",
+      "effect_value": 0.0774,
+      "significance_value": 4.8776,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE026",
+      "effect_value": -0.3206,
+      "significance_value": 4.9737,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE027",
+      "effect_value": -0.7378,
+      "significance_value": 4.7535,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE028",
+      "effect_value": -1.1204,
+      "significance_value": 4.6197,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE029",
+      "effect_value": -1.4181,
+      "significance_value": 4.5424,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE030",
+      "effect_value": -1.5915,
+      "significance_value": 4.0622,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE031",
+      "effect_value": -1.6172,
+      "significance_value": 3.2398,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE032",
+      "effect_value": -1.491,
+      "significance_value": 2.1839,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE033",
+      "effect_value": -1.2284,
+      "significance_value": 1.0409,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE034",
+      "effect_value": -0.8625,
+      "significance_value": 0.1816,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE035",
+      "effect_value": -0.4397,
+      "significance_value": 0.3727,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE036",
+      "effect_value": -0.0134,
+      "significance_value": 0.9001,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE037",
+      "effect_value": 0.3632,
+      "significance_value": 1.6552,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE038",
+      "effect_value": 0.6443,
+      "significance_value": 2.5273,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE039",
+      "effect_value": 0.7976,
+      "significance_value": 3.3984,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE040",
+      "effect_value": 0.8086,
+      "significance_value": 4.1547,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE041",
+      "effect_value": 0.6823,
+      "significance_value": 4.699,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE042",
+      "effect_value": 0.4428,
+      "significance_value": 4.9618,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE043",
+      "effect_value": 0.1298,
+      "significance_value": 4.9098,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE044",
+      "effect_value": -0.207,
+      "significance_value": 4.5495,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
       "feature_label": "GZMB",
-      "effect_value": 0.92,
-      "significance_value": 2.72,
-      "regulation_class": "upregulated",
+      "effect_value": -0.5147,
+      "significance_value": 6.7268,
+      "regulation_class": "NS",
       "label_text": "GZMB"
     },
     {
       "panel_id": "rna",
+      "feature_label": "GENE046",
+      "effect_value": -0.744,
+      "significance_value": 3.1213,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE047",
+      "effect_value": -0.8567,
+      "significance_value": 2.2369,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE048",
+      "effect_value": -0.8303,
+      "significance_value": 1.3902,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE049",
+      "effect_value": -0.6616,
+      "significance_value": 0.6978,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE050",
+      "effect_value": -0.367,
+      "significance_value": 0.2671,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE051",
+      "effect_value": 0.0199,
+      "significance_value": 0.22,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE052",
+      "effect_value": 0.4521,
+      "significance_value": 0.5832,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE053",
+      "effect_value": 0.8761,
+      "significance_value": 1.2296,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE054",
+      "effect_value": 1.2389,
+      "significance_value": 2.689,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE055",
+      "effect_value": 1.4949,
+      "significance_value": 4.1386,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE056",
+      "effect_value": 1.6124,
+      "significance_value": 5.2284,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE057",
+      "effect_value": 1.5777,
+      "significance_value": 5.8203,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE058",
+      "effect_value": 1.3967,
+      "significance_value": 5.842,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE059",
+      "effect_value": 1.0945,
+      "significance_value": 5.2952,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE060",
+      "effect_value": 0.7116,
+      "significance_value": 4.7786,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE061",
+      "effect_value": 0.2987,
+      "significance_value": 4.2883,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE062",
+      "effect_value": -0.0902,
+      "significance_value": 3.5689,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE063",
+      "effect_value": -0.4051,
+      "significance_value": 2.7126,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE064",
+      "effect_value": -0.607,
+      "significance_value": 1.831,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE065",
+      "effect_value": -0.6726,
+      "significance_value": 1.042,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE066",
+      "effect_value": -0.5979,
+      "significance_value": 0.4587,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE067",
+      "effect_value": -0.3984,
+      "significance_value": 0.1858,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE068",
+      "effect_value": -0.107,
+      "significance_value": 0.3472,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE069",
+      "effect_value": 0.2304,
+      "significance_value": 0.8549,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE070",
+      "effect_value": 0.5614,
+      "significance_value": 1.5977,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE071",
+      "effect_value": 0.8341,
+      "significance_value": 2.4654,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE072",
+      "effect_value": 1.0043,
+      "significance_value": 3.4598,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE073",
+      "effect_value": 1.0415,
+      "significance_value": 4.3095,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE074",
+      "effect_value": 0.9334,
+      "significance_value": 4.6697,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE075",
+      "effect_value": 0.687,
+      "significance_value": 4.9536,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE076",
+      "effect_value": 0.3285,
+      "significance_value": 4.9237,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE077",
+      "effect_value": -0.1006,
+      "significance_value": 4.5838,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE078",
+      "effect_value": -0.5489,
+      "significance_value": 3.977,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE079",
+      "effect_value": -0.9621,
+      "significance_value": 3.2077,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE080",
+      "effect_value": -1.2901,
+      "significance_value": 3.0467,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE081",
+      "effect_value": -1.4938,
+      "significance_value": 2.6416,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE082",
+      "effect_value": -1.5503,
+      "significance_value": 2.0592,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE083",
+      "effect_value": -1.456,
+      "significance_value": 1.3996,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE084",
+      "effect_value": -1.2269,
+      "significance_value": 0.8172,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE085",
+      "effect_value": -0.8967,
+      "significance_value": 0.5476,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE086",
+      "effect_value": -0.5117,
+      "significance_value": 1.1777,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE087",
+      "effect_value": -0.125,
+      "significance_value": 1.993,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE088",
+      "effect_value": 0.2108,
+      "significance_value": 2.8788,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
       "feature_label": "IFNG",
-      "effect_value": 0.74,
-      "significance_value": 2.2,
-      "regulation_class": "upregulated",
+      "effect_value": 0.451,
+      "significance_value": 6.5175,
+      "regulation_class": "NS",
+      "label_text": "IFNG"
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE090",
+      "effect_value": 0.5645,
+      "significance_value": 4.4002,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE091",
+      "effect_value": 0.5384,
+      "significance_value": 4.8395,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE092",
+      "effect_value": 0.3791,
+      "significance_value": 4.9794,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE093",
+      "effect_value": 0.112,
+      "significance_value": 4.8023,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE094",
+      "effect_value": -0.2224,
+      "significance_value": 4.3306,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE095",
+      "effect_value": -0.5736,
+      "significance_value": 3.6244,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE096",
+      "effect_value": -0.8885,
+      "significance_value": 2.7742,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE097",
+      "effect_value": -1.1183,
+      "significance_value": 2.2608,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE098",
+      "effect_value": -1.2254,
+      "significance_value": 1.6972,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE099",
+      "effect_value": -1.1883,
+      "significance_value": 1.0146,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE100",
+      "effect_value": -1.0049,
+      "significance_value": 0.3129,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE101",
+      "effect_value": -0.6926,
+      "significance_value": 0.3233,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE102",
+      "effect_value": -0.2863,
+      "significance_value": 0.8109,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE103",
+      "effect_value": 0.1665,
+      "significance_value": 1.5408,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE104",
+      "effect_value": 0.6119,
+      "significance_value": 2.4036,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE105",
+      "effect_value": 0.9967,
+      "significance_value": 3.3846,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE106",
+      "effect_value": 1.2757,
+      "significance_value": 4.7771,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE107",
+      "effect_value": 1.4178,
+      "significance_value": 5.6682,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE108",
+      "effect_value": 1.4098,
+      "significance_value": 5.9553,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE109",
+      "effect_value": 1.2583,
+      "significance_value": 5.6144,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE110",
+      "effect_value": 0.989,
+      "significance_value": 4.7026,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE111",
+      "effect_value": 0.6427,
+      "significance_value": 4.0263,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE112",
+      "effect_value": 0.27,
+      "significance_value": 3.2403,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE113",
+      "effect_value": -0.0758,
+      "significance_value": 2.3601,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE114",
+      "effect_value": -0.3456,
+      "significance_value": 1.501,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE115",
+      "effect_value": -0.5014,
+      "significance_value": 0.7805,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE116",
+      "effect_value": -0.5216,
+      "significance_value": 0.3075,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE117",
+      "effect_value": -0.4036,
+      "significance_value": 0.198,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE118",
+      "effect_value": -0.1645,
+      "significance_value": 0.5135,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE119",
+      "effect_value": 0.1615,
+      "significance_value": 1.1267,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE120",
+      "effect_value": 0.5278,
+      "significance_value": 1.9328,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE121",
+      "effect_value": 0.8814,
+      "significance_value": 2.8175,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE122",
+      "effect_value": 1.1702,
+      "significance_value": 4.1477,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE123",
+      "effect_value": 1.3506,
+      "significance_value": 5.2412,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE124",
+      "effect_value": 1.3928,
+      "significance_value": 5.7923,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE125",
+      "effect_value": 1.2851,
+      "significance_value": 5.7172,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE126",
+      "effect_value": 1.0358,
+      "significance_value": 5.0135,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE127",
+      "effect_value": 0.672,
+      "significance_value": 4.3718,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE128",
+      "effect_value": 0.2357,
+      "significance_value": 3.6792,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE129",
+      "effect_value": -0.2212,
+      "significance_value": 2.8356,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE130",
+      "effect_value": -0.6443,
+      "significance_value": 1.9505,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE131",
+      "effect_value": -0.9838,
+      "significance_value": 1.2159,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE132",
+      "effect_value": -1.2011,
+      "significance_value": 1.0758,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE133",
+      "effect_value": -1.2741,
+      "significance_value": 0.9137,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE134",
+      "effect_value": -1.2,
+      "significance_value": 0.851,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE135",
+      "effect_value": -0.9955,
+      "significance_value": 0.8682,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE136",
+      "effect_value": -0.6948,
+      "significance_value": 1.4845,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE137",
+      "effect_value": -0.3443,
+      "significance_value": 2.3418,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE138",
+      "effect_value": 0.003,
+      "significance_value": 3.2229,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE139",
+      "effect_value": 0.2955,
+      "significance_value": 4.0119,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE140",
+      "effect_value": 0.4894,
+      "significance_value": 4.6071,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE141",
+      "effect_value": 0.5552,
+      "significance_value": 4.9326,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE142",
+      "effect_value": 0.4812,
+      "significance_value": 4.9469,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE143",
+      "effect_value": 0.2756,
+      "significance_value": 4.6483,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE144",
+      "effect_value": -0.0349,
+      "significance_value": 4.0746,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE145",
+      "effect_value": -0.4083,
+      "significance_value": 3.2992,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE146",
+      "effect_value": -0.7938,
+      "significance_value": 2.4218,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE147",
+      "effect_value": -1.1376,
+      "significance_value": 1.9701,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE148",
+      "effect_value": -1.391,
+      "significance_value": 1.794,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE149",
+      "effect_value": -1.5169,
+      "significance_value": 1.5774,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE150",
+      "effect_value": -1.4945,
+      "significance_value": 1.3879,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE151",
+      "effect_value": -1.3224,
+      "significance_value": 1.3002,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE152",
+      "effect_value": -1.019,
+      "significance_value": 1.2285,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE153",
+      "effect_value": -0.6197,
+      "significance_value": 1.8729,
+      "regulation_class": "NS",
       "label_text": ""
     },
     {
       "panel_id": "rna",
       "feature_label": "COL1A1",
-      "effect_value": -1.05,
-      "significance_value": 2.9,
-      "regulation_class": "downregulated",
+      "effect_value": -0.1724,
+      "significance_value": 5.556,
+      "regulation_class": "NS",
       "label_text": "COL1A1"
     },
     {
       "panel_id": "rna",
+      "feature_label": "GENE155",
+      "effect_value": 0.2688,
+      "significance_value": 3.6081,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE156",
+      "effect_value": 0.651,
+      "significance_value": 4.3183,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE157",
+      "effect_value": 0.9298,
+      "significance_value": 4.7955,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE158",
+      "effect_value": 1.0747,
+      "significance_value": 5.2534,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE159",
+      "effect_value": 1.0736,
+      "significance_value": 5.1173,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE160",
+      "effect_value": 0.934,
+      "significance_value": 4.4118,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE161",
+      "effect_value": 0.6822,
+      "significance_value": 3.7333,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE162",
+      "effect_value": 0.3595,
+      "significance_value": 2.8968,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE163",
+      "effect_value": 0.0164,
+      "significance_value": 2.0108,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE164",
+      "effect_value": -0.2939,
+      "significance_value": 1.1929,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE165",
+      "effect_value": -0.5234,
+      "significance_value": 0.558,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE166",
+      "effect_value": -0.6352,
+      "significance_value": 0.2113,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE167",
+      "effect_value": -0.6092,
+      "significance_value": 0.2806,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE168",
+      "effect_value": -0.4444,
+      "significance_value": 0.7264,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE169",
+      "effect_value": -0.1594,
+      "significance_value": 1.4289,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE170",
+      "effect_value": 0.2105,
+      "significance_value": 2.2802,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE171",
+      "effect_value": 0.6174,
+      "significance_value": 3.1634,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE172",
+      "effect_value": 1.0078,
+      "significance_value": 4.0894,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE173",
+      "effect_value": 1.3295,
+      "significance_value": 5.4087,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE174",
+      "effect_value": 1.5389,
+      "significance_value": 6.2153,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE175",
+      "effect_value": 1.6067,
+      "significance_value": 6.4009,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE176",
+      "effect_value": 1.522,
+      "significance_value": 5.9369,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE177",
+      "effect_value": 1.2937,
+      "significance_value": 4.8781,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE178",
+      "effect_value": 0.9495,
+      "significance_value": 3.3576,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE179",
+      "effect_value": 0.5319,
+      "significance_value": 2.4837,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE180",
+      "effect_value": 0.0929,
+      "significance_value": 1.6146,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE181",
+      "effect_value": -0.3135,
+      "significance_value": 0.8681,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE182",
+      "effect_value": -0.6381,
+      "significance_value": 0.3546,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE183",
+      "effect_value": -0.8432,
+      "significance_value": 0.1843,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE184",
+      "effect_value": -0.9077,
+      "significance_value": 0.4496,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE185",
+      "effect_value": -0.83,
+      "significance_value": 1.0276,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE186",
+      "effect_value": -0.6278,
+      "significance_value": 1.8135,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE187",
+      "effect_value": -0.3358,
+      "significance_value": 2.6944,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE188",
+      "effect_value": -0.0011,
+      "significance_value": 3.5523,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE189",
+      "effect_value": 0.3237,
+      "significance_value": 4.2756,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE190",
+      "effect_value": 0.5872,
+      "significance_value": 4.7714,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE191",
+      "effect_value": 0.7468,
+      "significance_value": 4.9764,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE192",
+      "effect_value": 0.774,
+      "significance_value": 4.8648,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE193",
+      "effect_value": 0.6588,
+      "significance_value": 4.4507,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE194",
+      "effect_value": 0.4108,
+      "significance_value": 3.7867,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE195",
+      "effect_value": 0.058,
+      "significance_value": 2.9578,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE196",
+      "effect_value": -0.3565,
+      "significance_value": 2.0715,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE197",
+      "effect_value": -0.7808,
+      "significance_value": 1.245,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE198",
+      "effect_value": -1.1611,
+      "significance_value": 1.0583,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE199",
+      "effect_value": -1.4485,
+      "significance_value": 1.3206,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE200",
+      "effect_value": -1.6062,
+      "significance_value": 1.7054,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE201",
+      "effect_value": -1.6139,
+      "significance_value": 2.1466,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE202",
+      "effect_value": -1.471,
+      "significance_value": 2.5203,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE203",
+      "effect_value": -1.1963,
+      "significance_value": 2.7606,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE204",
+      "effect_value": -0.8257,
+      "significance_value": 3.1036,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE205",
+      "effect_value": -0.4073,
+      "significance_value": 3.9118,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE206",
+      "effect_value": 0.0052,
+      "significance_value": 4.5392,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE207",
+      "effect_value": 0.3595,
+      "significance_value": 4.9054,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE208",
+      "effect_value": 0.6119,
+      "significance_value": 4.964,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE209",
+      "effect_value": 0.7333,
+      "significance_value": 4.7074,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE210",
+      "effect_value": 0.7127,
+      "significance_value": 4.1683,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE211",
+      "effect_value": 0.559,
+      "significance_value": 3.4154,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
       "feature_label": "TGFB1",
-      "effect_value": -0.78,
-      "significance_value": 2.12,
-      "regulation_class": "downregulated",
+      "effect_value": 0.2993,
+      "significance_value": 5.3455,
+      "regulation_class": "NS",
+      "label_text": "TGFB1"
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE213",
+      "effect_value": -0.0242,
+      "significance_value": 1.6723,
+      "regulation_class": "NS",
       "label_text": ""
     },
     {
       "panel_id": "rna",
-      "feature_label": "MKI67",
-      "effect_value": 0.38,
-      "significance_value": 1.05,
-      "regulation_class": "background",
+      "feature_label": "GENE214",
+      "effect_value": -0.3606,
+      "significance_value": 0.9136,
+      "regulation_class": "NS",
       "label_text": ""
     },
     {
       "panel_id": "rna",
-      "feature_label": "EPCAM",
-      "effect_value": -0.34,
-      "significance_value": 0.96,
-      "regulation_class": "background",
+      "feature_label": "GENE215",
+      "effect_value": -0.6572,
+      "significance_value": 0.3806,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE216",
+      "effect_value": -0.8663,
+      "significance_value": 0.1808,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE217",
+      "effect_value": -0.9522,
+      "significance_value": 0.4248,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE218",
+      "effect_value": -0.8959,
+      "significance_value": 0.9796,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE219",
+      "effect_value": -0.6978,
+      "significance_value": 1.7545,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE220",
+      "effect_value": -0.3777,
+      "significance_value": 2.6327,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE221",
+      "effect_value": 0.0277,
+      "significance_value": 3.4959,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE222",
+      "effect_value": 0.4697,
+      "significance_value": 4.2318,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE223",
+      "effect_value": 0.8942,
+      "significance_value": 4.7458,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE224",
+      "effect_value": 1.249,
+      "significance_value": 5.6302,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE225",
+      "effect_value": 1.4906,
+      "significance_value": 6.0721,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE226",
+      "effect_value": 1.5902,
+      "significance_value": 5.8967,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE227",
+      "effect_value": 1.5374,
+      "significance_value": 5.1316,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE228",
+      "effect_value": 1.3419,
+      "significance_value": 3.8807,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE229",
+      "effect_value": 1.0316,
+      "significance_value": 2.3119,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE230",
+      "effect_value": 0.6494,
+      "significance_value": 1.298,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE231",
+      "effect_value": 0.247,
+      "significance_value": 0.6312,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE232",
+      "effect_value": -0.122,
+      "significance_value": 0.2383,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE233",
+      "effect_value": -0.4093,
+      "significance_value": 0.2448,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE234",
+      "effect_value": -0.5784,
+      "significance_value": 0.6468,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE235",
+      "effect_value": -0.6097,
+      "significance_value": 1.32,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE236",
+      "effect_value": -0.5027,
+      "significance_value": 2.1575,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE237",
+      "effect_value": -0.2767,
+      "significance_value": 3.0433,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE238",
+      "effect_value": 0.0328,
+      "significance_value": 3.8605,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE239",
+      "effect_value": 0.3779,
+      "significance_value": 4.5033,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE240",
+      "effect_value": 0.7057,
+      "significance_value": 4.8896,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE241",
+      "effect_value": 0.9653,
+      "significance_value": 5.0039,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE242",
+      "effect_value": 1.1145,
+      "significance_value": 5.0968,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE243",
+      "effect_value": 1.1259,
+      "significance_value": 4.6005,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE244",
+      "effect_value": 0.9906,
+      "significance_value": 3.5619,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE245",
+      "effect_value": 0.7194,
+      "significance_value": 2.6073,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE246",
+      "effect_value": 0.3416,
+      "significance_value": 1.7305,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE247",
+      "effect_value": -0.099,
+      "significance_value": 0.9602,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE248",
+      "effect_value": -0.5498,
+      "significance_value": 0.4081,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE249",
+      "effect_value": -0.9567,
+      "significance_value": 0.1948,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE250",
+      "effect_value": -1.271,
+      "significance_value": 1.0979,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE251",
+      "effect_value": -1.4563,
+      "significance_value": 2.0465,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE252",
+      "effect_value": -1.493,
+      "significance_value": 2.8906,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE253",
+      "effect_value": -1.3809,
+      "significance_value": 3.5189,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE254",
+      "effect_value": -1.1396,
+      "significance_value": 3.8561,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE255",
+      "effect_value": -0.8053,
+      "significance_value": 4.187,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE256",
+      "effect_value": -0.426,
+      "significance_value": 4.7188,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE257",
+      "effect_value": -0.0552,
+      "significance_value": 4.9667,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE258",
+      "effect_value": 0.2558,
+      "significance_value": 4.8991,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE259",
+      "effect_value": 0.4644,
+      "significance_value": 4.5247,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE260",
+      "effect_value": 0.5427,
+      "significance_value": 3.8909,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE261",
+      "effect_value": 0.4813,
+      "significance_value": 3.0789,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE262",
+      "effect_value": 0.2906,
+      "significance_value": 2.1936,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE263",
+      "effect_value": -0.001,
+      "significance_value": 1.3518,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE264",
+      "effect_value": -0.3503,
+      "significance_value": 0.6698,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE265",
+      "effect_value": -0.706,
+      "significance_value": 0.2546,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE266",
+      "effect_value": -1.015,
+      "significance_value": 0.3725,
+      "regulation_class": "NS",
       "label_text": ""
     },
     {
       "panel_id": "rna",
       "feature_label": "STAT1",
-      "effect_value": 0.58,
-      "significance_value": 1.74,
-      "regulation_class": "upregulated",
+      "effect_value": -1.23,
+      "significance_value": 4.025,
+      "regulation_class": "Down",
+      "label_text": "STAT1"
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE268",
+      "effect_value": -1.316,
+      "significance_value": 2.0719,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE269",
+      "effect_value": -1.2549,
+      "significance_value": 2.7672,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE270",
+      "effect_value": -1.0482,
+      "significance_value": 3.1987,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE271",
+      "effect_value": -0.7167,
+      "significance_value": 3.8083,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE272",
+      "effect_value": -0.298,
+      "significance_value": 4.4662,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE273",
+      "effect_value": 0.1587,
+      "significance_value": 4.8723,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE274",
+      "effect_value": 0.5989,
+      "significance_value": 4.975,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE275",
+      "effect_value": 0.9705,
+      "significance_value": 4.8062,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE276",
+      "effect_value": 1.2305,
+      "significance_value": 4.8749,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE277",
+      "effect_value": 1.3507,
+      "significance_value": 4.4107,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE278",
+      "effect_value": 1.3214,
+      "significance_value": 3.4861,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE279",
+      "effect_value": 1.1529,
+      "significance_value": 2.2357,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE280",
+      "effect_value": 0.8738,
+      "significance_value": 1.0078,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE281",
+      "effect_value": 0.5272,
+      "significance_value": 0.4372,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE282",
+      "effect_value": 0.1646,
+      "significance_value": 0.1826,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE283",
+      "effect_value": -0.161,
+      "significance_value": 0.365,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE284",
+      "effect_value": -0.4023,
+      "significance_value": 0.8866,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE285",
+      "effect_value": -0.5241,
+      "significance_value": 1.6382,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE286",
+      "effect_value": -0.5082,
+      "significance_value": 2.509,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE287",
+      "effect_value": -0.3559,
+      "significance_value": 3.3813,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE288",
+      "effect_value": -0.0877,
+      "significance_value": 4.1411,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE289",
+      "effect_value": 0.2594,
+      "significance_value": 4.6905,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE290",
+      "effect_value": 0.6368,
+      "significance_value": 4.9596,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE291",
+      "effect_value": 0.9911,
+      "significance_value": 5.0045,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE292",
+      "effect_value": 1.2713,
+      "significance_value": 5.2666,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE293",
+      "effect_value": 1.4356,
+      "significance_value": 5.01,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE294",
+      "effect_value": 1.4573,
+      "significance_value": 4.2549,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE295",
+      "effect_value": 1.3282,
+      "significance_value": 3.0871,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE296",
+      "effect_value": 1.0603,
+      "significance_value": 1.649,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE297",
+      "effect_value": 0.6835,
+      "significance_value": 0.7097,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE298",
+      "effect_value": 0.2423,
+      "significance_value": 0.2727,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE299",
+      "effect_value": -0.2107,
+      "significance_value": 0.2162,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE300",
+      "effect_value": -0.6211,
+      "significance_value": 0.5725,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE301",
+      "effect_value": -0.941,
+      "significance_value": 1.2142,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE302",
+      "effect_value": -1.1344,
+      "significance_value": 2.4414,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE303",
+      "effect_value": -1.1826,
+      "significance_value": 3.4337,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE304",
+      "effect_value": -1.0864,
+      "significance_value": 4.0555,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE305",
+      "effect_value": -0.866,
+      "significance_value": 4.4279,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE306",
+      "effect_value": -0.5581,
+      "significance_value": 4.8536,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE307",
+      "effect_value": -0.2108,
+      "significance_value": 4.9781,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE308",
+      "effect_value": 0.1227,
+      "significance_value": 4.7858,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE309",
+      "effect_value": 0.3918,
+      "significance_value": 4.3009,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE310",
+      "effect_value": 0.5551,
+      "significance_value": 3.5853,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE311",
+      "effect_value": 0.586,
+      "significance_value": 2.7308,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE312",
+      "effect_value": 0.4768,
+      "significance_value": 1.8485,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE313",
+      "effect_value": 0.2394,
+      "significance_value": 1.0565,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE314",
+      "effect_value": -0.0964,
+      "significance_value": 0.4679,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE315",
+      "effect_value": -0.4863,
+      "significance_value": 0.1874,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE316",
+      "effect_value": -0.8782,
+      "significance_value": 0.34,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE317",
+      "effect_value": -1.2188,
+      "significance_value": 1.4331,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE318",
+      "effect_value": -1.4608,
+      "significance_value": 2.7045,
+      "regulation_class": "Down",
       "label_text": ""
     },
     {
       "panel_id": "rna",
       "feature_label": "VEGFA",
-      "effect_value": -0.55,
-      "significance_value": 1.48,
-      "regulation_class": "downregulated",
+      "effect_value": -1.5696,
+      "significance_value": 6.6102,
+      "regulation_class": "Down",
+      "label_text": "VEGFA"
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE320",
+      "effect_value": -1.5278,
+      "significance_value": 4.5942,
+      "regulation_class": "Down",
       "label_text": ""
     },
     {
       "panel_id": "rna",
-      "feature_label": "ACTB",
-      "effect_value": 0.05,
-      "significance_value": 0.42,
-      "regulation_class": "background",
+      "feature_label": "GENE321",
+      "effect_value": -1.3376,
+      "significance_value": 4.9468,
+      "regulation_class": "Down",
       "label_text": ""
     },
     {
       "panel_id": "rna",
-      "feature_label": "GAPDH",
-      "effect_value": -0.08,
-      "significance_value": 0.36,
-      "regulation_class": "background",
+      "feature_label": "GENE322",
+      "effect_value": -1.0207,
+      "significance_value": 4.8163,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE323",
+      "effect_value": -0.6151,
+      "significance_value": 4.9509,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE324",
+      "effect_value": -0.1703,
+      "significance_value": 4.9275,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE325",
+      "effect_value": 0.2593,
+      "significance_value": 4.5936,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE326",
+      "effect_value": 0.622,
+      "significance_value": 3.9917,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE327",
+      "effect_value": 0.8755,
+      "significance_value": 3.1985,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE328",
+      "effect_value": 0.9925,
+      "significance_value": 2.41,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE329",
+      "effect_value": 0.9645,
+      "significance_value": 1.4935,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE330",
+      "effect_value": 0.8027,
+      "significance_value": 0.7508,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE331",
+      "effect_value": 0.5364,
+      "significance_value": 0.2925,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE332",
+      "effect_value": 0.2091,
+      "significance_value": 0.2048,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE333",
+      "effect_value": -0.1276,
+      "significance_value": 0.5374,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE334",
+      "effect_value": -0.4212,
+      "significance_value": 1.1626,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE335",
+      "effect_value": -0.6252,
+      "significance_value": 1.9752,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE336",
+      "effect_value": -0.7056,
+      "significance_value": 2.8608,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE337",
+      "effect_value": -0.6458,
+      "significance_value": 3.7015,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE338",
+      "effect_value": -0.4484,
+      "significance_value": 4.3884,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE339",
+      "effect_value": -0.1356,
+      "significance_value": 4.8333,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE340",
+      "effect_value": 0.2545,
+      "significance_value": 4.9798,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE341",
+      "effect_value": 0.6723,
+      "significance_value": 4.8091,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE342",
+      "effect_value": 1.0639,
+      "significance_value": 4.5935,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE343",
+      "effect_value": 1.3781,
+      "significance_value": 4.5825,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE344",
+      "effect_value": 1.5734,
+      "significance_value": 4.1638,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE345",
+      "effect_value": 1.6234,
+      "significance_value": 3.3897,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE346",
+      "effect_value": 1.5209,
+      "significance_value": 2.3621,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE347",
+      "effect_value": 1.2782,
+      "significance_value": 1.2219,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE348",
+      "effect_value": 0.9259,
+      "significance_value": 0.1945,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE349",
+      "effect_value": 0.5087,
+      "significance_value": 0.3166,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE350",
+      "effect_value": 0.0793,
+      "significance_value": 0.7981,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE351",
+      "effect_value": -0.3085,
+      "significance_value": 1.5241,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE352",
+      "effect_value": -0.6074,
+      "significance_value": 2.3854,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE353",
+      "effect_value": -0.7826,
+      "significance_value": 3.2645,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE354",
+      "effect_value": -0.8164,
+      "significance_value": 4.0462,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE355",
+      "effect_value": -0.7108,
+      "significance_value": 4.6298,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE356",
+      "effect_value": -0.4871,
+      "significance_value": 4.9407,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE357",
+      "effect_value": -0.1826,
+      "significance_value": 4.9394,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE358",
+      "effect_value": 0.154,
+      "significance_value": 4.6261,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE359",
+      "effect_value": 0.4697,
+      "significance_value": 4.0407,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE360",
+      "effect_value": 0.7145,
+      "significance_value": 3.2577,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE361",
+      "effect_value": 0.8477,
+      "significance_value": 2.3783,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE362",
+      "effect_value": 0.8442,
+      "significance_value": 1.5176,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE363",
+      "effect_value": 0.6976,
+      "significance_value": 0.7932,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE364",
+      "effect_value": 0.4211,
+      "significance_value": 0.314,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE365",
+      "effect_value": 0.0461,
+      "significance_value": 0.1954,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE366",
+      "effect_value": -0.3824,
+      "significance_value": 0.5037,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE367",
+      "effect_value": -0.8114,
+      "significance_value": 1.1119,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE368",
+      "effect_value": -1.1872,
+      "significance_value": 2.4369,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE369",
+      "effect_value": -1.4628,
+      "significance_value": 3.9275,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE370",
+      "effect_value": -1.6038,
+      "significance_value": 5.0853,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE371",
+      "effect_value": -1.5934,
+      "significance_value": 5.7632,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE372",
+      "effect_value": -1.4345,
+      "significance_value": 5.8776,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE373",
+      "effect_value": -1.1492,
+      "significance_value": 5.4181,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE374",
+      "effect_value": -0.7759,
+      "significance_value": 4.8309,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE375",
+      "effect_value": -0.3642,
+      "significance_value": 4.3837,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE376",
+      "effect_value": 0.032,
+      "significance_value": 3.6953,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE377",
+      "effect_value": 0.3617,
+      "significance_value": 2.8537,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "MKI67",
+      "effect_value": 0.5836,
+      "significance_value": 4.7682,
+      "regulation_class": "NS",
+      "label_text": "MKI67"
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE379",
+      "effect_value": 0.6717,
+      "significance_value": 1.1567,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE380",
+      "effect_value": 0.6188,
+      "significance_value": 0.5335,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE381",
+      "effect_value": 0.4374,
+      "significance_value": 0.2037,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE382",
+      "effect_value": 0.1578,
+      "significance_value": 0.2949,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE383",
+      "effect_value": -0.1757,
+      "significance_value": 0.7556,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE384",
+      "effect_value": -0.5113,
+      "significance_value": 1.468,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE385",
+      "effect_value": -0.7965,
+      "significance_value": 2.3237,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE386",
+      "effect_value": -0.9855,
+      "significance_value": 3.2834,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE387",
+      "effect_value": -1.0452,
+      "significance_value": 4.2069,
+      "regulation_class": "Down",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE388",
+      "effect_value": -0.9603,
+      "significance_value": 4.62,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE389",
+      "effect_value": -0.7346,
+      "significance_value": 4.9289,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE390",
+      "effect_value": -0.3916,
+      "significance_value": 4.9498,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE391",
+      "effect_value": 0.0295,
+      "significance_value": 4.6573,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE392",
+      "effect_value": 0.4785,
+      "significance_value": 4.0887,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE393",
+      "effect_value": 0.9008,
+      "significance_value": 3.3165,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE394",
+      "effect_value": 1.2454,
+      "significance_value": 3.0899,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE395",
+      "effect_value": 1.4709,
+      "significance_value": 2.7202,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE396",
+      "effect_value": 1.5516,
+      "significance_value": 2.1601,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE397",
+      "effect_value": 1.4807,
+      "significance_value": 1.5047,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE398",
+      "effect_value": 1.2712,
+      "significance_value": 0.8948,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE399",
+      "effect_value": 0.9542,
+      "significance_value": 0.4808,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE400",
+      "effect_value": 0.5745,
+      "significance_value": 1.0621,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE401",
+      "effect_value": 0.1845,
+      "significance_value": 1.8553,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE402",
+      "effect_value": -0.1627,
+      "significance_value": 2.7379,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE403",
+      "effect_value": -0.4206,
+      "significance_value": 3.5917,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE404",
+      "effect_value": -0.5557,
+      "significance_value": 4.3058,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE405",
+      "effect_value": -0.5519,
+      "significance_value": 4.7885,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE406",
+      "effect_value": -0.4125,
+      "significance_value": 4.9784,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE407",
+      "effect_value": -0.1602,
+      "significance_value": 4.8513,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE408",
+      "effect_value": 0.1666,
+      "significance_value": 4.4234,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE409",
+      "effect_value": 0.5187,
+      "significance_value": 3.7492,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE410",
+      "effect_value": 0.8429,
+      "significance_value": 2.9149,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE411",
+      "effect_value": 1.0891,
+      "significance_value": 2.3348,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE412",
+      "effect_value": 1.2177,
+      "significance_value": 1.7971,
+      "regulation_class": "Up",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE413",
+      "effect_value": 1.2042,
+      "significance_value": 1.1276,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE414",
+      "effect_value": 1.0434,
+      "significance_value": 0.4203,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE415",
+      "effect_value": 0.7497,
+      "significance_value": 0.2748,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE416",
+      "effect_value": 0.3554,
+      "significance_value": 0.7143,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE417",
+      "effect_value": -0.0935,
+      "significance_value": 1.4127,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE418",
+      "effect_value": -0.5437,
+      "significance_value": 2.2621,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE419",
+      "effect_value": -0.9415,
+      "significance_value": 3.1458,
+      "regulation_class": "NS",
+      "label_text": ""
+    },
+    {
+      "panel_id": "rna",
+      "feature_label": "GENE420",
+      "effect_value": -1.2398,
+      "significance_value": 4.5852,
+      "regulation_class": "Down",
       "label_text": ""
     }
   ],
@@ -262,8 +3527,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

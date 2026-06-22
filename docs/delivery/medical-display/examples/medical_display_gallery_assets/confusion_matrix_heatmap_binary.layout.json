@@ -10,46 +10,46 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.255,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.1626,
+      "y0": 0.9296,
+      "x1": 0.9712,
+      "y1": 0.9741
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.255,
-      "y0": 0.1489,
-      "x1": 0.9723,
-      "y1": 0.1787
+      "x0": 0.1626,
+      "y0": 0.1551,
+      "x1": 0.9712,
+      "y1": 0.1861
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.211,
-      "x1": 0.0575,
-      "y1": 0.8894
+      "x0": 0.0288,
+      "y0": 0.2198,
+      "x1": 0.0599,
+      "y1": 0.8848
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "heatmap_tile_region",
-      "x0": 0.255,
-      "y0": 0.211,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.1626,
+      "y0": 0.2198,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "guide_boxes": [
     {
       "box_id": "colorbar",
       "box_type": "colorbar",
-      "x0": 0.9723,
-      "y0": 0.211,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.9712,
+      "y0": 0.2198,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "metrics": {
@@ -57,29 +57,29 @@
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
     "template_id": "confusion_matrix_heatmap_binary",
-    "data_fields": ["caption", "cells", "column_order", "display_id", "metric_name", "normalization", "render_context", "row_order", "template_id", "title", "x_label", "y_label"],
+    "data_fields": ["caption", "cells", "column_order", "display_id", "metric_name", "render_context", "row_order", "template_id", "title", "x_label", "y_label"],
     "panel_box_present": true,
     "source_renderer": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary",
     "cells": [
       {
-        "x": "Predicted negative",
-        "y": "Observed negative",
-        "value": 0.88
+        "x": "Negative",
+        "y": "Negative",
+        "value": 132
       },
       {
-        "x": "Predicted positive",
-        "y": "Observed negative",
-        "value": 0.12
+        "x": "Positive",
+        "y": "Negative",
+        "value": 18
       },
       {
-        "x": "Predicted negative",
-        "y": "Observed positive",
-        "value": 0.19
+        "x": "Negative",
+        "y": "Positive",
+        "value": 24
       },
       {
-        "x": "Predicted positive",
-        "y": "Observed positive",
-        "value": 0.81
+        "x": "Positive",
+        "y": "Positive",
+        "value": 96
       }
     ]
   },
@@ -241,8 +241,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

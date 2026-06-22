@@ -373,8 +373,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 7.0,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

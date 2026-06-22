@@ -1,8 +1,8 @@
 {
   "display_id": "Figure14",
   "template_id": "generalizability_subgroup_composite_panel",
-  "title": "Generalizability and subgroup discrimination composite",
-  "caption": "External cohort discrimination and prespecified subgroup stability are displayed together.",
+  "title": "Generalizability composite",
+  "caption": "Performance stability across cohorts and subgroups.",
   "metric_family": "discrimination",
   "primary_label": "Locked model",
   "comparator_label": "Derivation cohort",
@@ -10,28 +10,25 @@
   "overview_x_label": "AUROC",
   "overview_rows": [
     {
+      "cohort_id": "internal",
+      "cohort_label": "Internal",
+      "metric_value": 0.86,
+      "lower": 0.82,
+      "upper": 0.9
+    },
+    {
       "cohort_id": "external_a",
       "cohort_label": "External A",
-      "support_count": 184,
-      "event_count": 29,
       "metric_value": 0.82,
-      "comparator_metric_value": 0.79
+      "lower": 0.76,
+      "upper": 0.88
     },
     {
       "cohort_id": "external_b",
       "cohort_label": "External B",
-      "support_count": 163,
-      "event_count": 21,
-      "metric_value": 0.78,
-      "comparator_metric_value": 0.76
-    },
-    {
-      "cohort_id": "external_c",
-      "cohort_label": "External C",
-      "support_count": 141,
-      "event_count": 19,
-      "metric_value": 0.81,
-      "comparator_metric_value": 0.77
+      "metric_value": 0.79,
+      "lower": 0.71,
+      "upper": 0.86
     }
   ],
   "subgroup_panel_title": "Prespecified subgroups",
@@ -39,28 +36,32 @@
   "subgroup_reference_value": 0.8,
   "subgroup_rows": [
     {
+      "subgroup_id": "age_lt_65",
+      "subgroup_label": "Age <65",
+      "estimate": 0.85,
+      "lower": 0.79,
+      "upper": 0.91
+    },
+    {
       "subgroup_id": "age_ge_65",
-      "subgroup_label": "Age >=65 years",
-      "group_n": 201,
-      "estimate": 0.82,
-      "lower": 0.78,
-      "upper": 0.86
-    },
-    {
-      "subgroup_id": "female",
-      "subgroup_label": "Female",
-      "group_n": 173,
-      "estimate": 0.79,
-      "lower": 0.75,
-      "upper": 0.83
-    },
-    {
-      "subgroup_id": "stage_high",
-      "subgroup_label": "High stage",
-      "group_n": 128,
+      "subgroup_label": "Age >=65",
       "estimate": 0.81,
-      "lower": 0.76,
+      "lower": 0.75,
       "upper": 0.87
+    },
+    {
+      "subgroup_id": "stage_ii",
+      "subgroup_label": "Stage II",
+      "estimate": 0.83,
+      "lower": 0.77,
+      "upper": 0.89
+    },
+    {
+      "subgroup_id": "stage_iii",
+      "subgroup_label": "Stage III",
+      "estimate": 0.84,
+      "lower": 0.78,
+      "upper": 0.9
     }
   ],
   "render_context": {
@@ -221,8 +222,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

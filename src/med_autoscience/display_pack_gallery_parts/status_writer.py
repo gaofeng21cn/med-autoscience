@@ -51,13 +51,30 @@ def _table_preview_rows(manifest: dict[str, Any]) -> str:
     )
 
 
+def _reporting_flow_renderer_family(item: dict[str, Any]) -> object:
+    dependency_requirements = item.get("dependency_requirements")
+    if isinstance(dependency_requirements, list):
+        for dependency in dependency_requirements:
+            if not isinstance(dependency, dict):
+                continue
+            render_contract = dependency.get("render_contract")
+            if isinstance(render_contract, dict):
+                checked_in_family = render_contract.get("checked_in_renderer_family")
+                if isinstance(checked_in_family, str) and checked_in_family:
+                    return checked_in_family
+            renderer_family = dependency.get("renderer_family")
+            if isinstance(renderer_family, str) and renderer_family:
+                return renderer_family
+    return item.get("renderer_family", "")
+
+
 def _reporting_flow_rows(manifest: dict[str, Any]) -> str:
     inventory = manifest.get("reporting_flow_gallery_templates")
     if not isinstance(inventory, list) or not inventory:
         return "| none | none | none | none |"
     return "\n".join(
         f"| `{item.get('template_id', '')}` | {item.get('display_name', '')} | "
-        f"{item.get('renderer_family', '')} | {item.get('render_status', '')} |"
+        f"{_reporting_flow_renderer_family(item)} | {item.get('render_status', '')} |"
         for item in inventory
         if isinstance(item, dict)
     )
@@ -186,9 +203,9 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Current Python evidence templates | {renderer_completion.get("python_evidence_retained_count", 0)} |
 | Page-level composition recipes | {composition_surface.get("composition_recipe_count", 0)} |
 | Composition storyboard gallery pages | {composition_gallery.get("composition_recipe_count", 0)} |
-| LidocaineQ reference templates covered | {lidocaineq_coverage.get("covered_reference_template_count", 0)}/{lidocaineq_coverage.get("reference_template_count", 0)} |
-| LidocaineQ replacement mappings | {lidocaineq_coverage.get("replacement_template_count", 0)} |
-| Retired alias references not restored | {lidocaineq_coverage.get("do_not_restore_legacy_alias_count", 0)} |
+| LidocaineQ reference coverage audit | {lidocaineq_coverage.get("covered_reference_template_count", 0)}/{lidocaineq_coverage.get("reference_template_count", 0)} |
+| LidocaineQ visual parity audit | {manifest.get("lidocaineq_visual_parity_audit_path", "")} |
+| LidocaineQ parity contact sheet | {manifest.get("lidocaineq_visual_parity_contact_sheet_path", "")} |
 | Render cache hit | {render_cache.get("cache_hit", 0)} |
 | Render cache miss | {render_cache.get("cache_miss", 0)} |
 | Package-only reused assets | {render_cache.get("package_only", 0)} |
@@ -223,10 +240,11 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - figure workflow policy: `{workflow_policy.get("policy_id", "")}`
 - composition recipe policy: `{composition_policy.get("policy_id", "")}`
 - LidocaineQ 33 项参考覆盖完整: `{str(lidocaineq_coverage.get("coverage_complete", False)).lower()}`
+- LidocaineQ 33 项逐图视觉审计: `{manifest.get("lidocaineq_visual_parity_audit_path", "")}`
 
-## LidocaineQ 发表级参考覆盖
+## LidocaineQ 质量审计面
 
-`mapping_relation` 说明 PDF 参考 ID 与 MAS current canonical template 的关系。`renamed_current_template` 和 `retired_alias_to_current_template` 都表示 MAS 保留 current template surface，只把 LidocaineQ ID 作为 source renderer / reference id；`retired_alias_to_current_template` 明确禁止恢复旧 alias。
+LidocaineQ 33 项是学习和质量审计输入，不作为 Gallery 永久章节。Gallery 只展示 MAS current canonical templates；逐图视觉对比、差距和修复状态写入独立审计文件与 contact sheet。
 
 | Reference template | MAS current template | Mapping relation | Status |
 | --- | --- | --- | --- |

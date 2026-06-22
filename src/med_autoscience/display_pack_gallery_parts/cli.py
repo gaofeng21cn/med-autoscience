@@ -16,6 +16,9 @@ from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset, _clean_assets, _strip_trailing_whitespace, write_json
 from med_autoscience.display_pack_gallery_parts.html import _render_html
 from med_autoscience.display_pack_gallery_parts.manifest import build_manifest
+from med_autoscience.display_pack_gallery_parts.lidocaineq_parity_audit import (
+    write_lidocaineq_visual_parity_audit,
+)
 from med_autoscience.display_pack_gallery_parts.payloads import _load_python_payload_fixtures, _load_seed_r_payloads, _python_display_payload
 from med_autoscience.display_pack_gallery_parts.pdf import _copy_docs_gallery, _export_pdf
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
@@ -207,6 +210,20 @@ def main(argv: list[str] | None = None) -> int:
         force_render=bool(args.force_render),
         package_only=bool(args.package_only),
     )
+    manifest["lidocaineq_visual_parity_audit_path"] = str(paths.LIDOCAINEQ_PARITY_AUDIT_PATH)
+    manifest["lidocaineq_visual_parity_audit_json_path"] = str(paths.LIDOCAINEQ_PARITY_AUDIT_JSON_PATH)
+    manifest["lidocaineq_visual_parity_contact_sheet_path"] = str(paths.LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH)
+    parity_audit = write_lidocaineq_visual_parity_audit(manifest)
+    manifest["lidocaineq_visual_parity_audit"] = {
+        "schema_version": parity_audit["schema_version"],
+        "source_project": parity_audit["source_project"],
+        "reference_root": parity_audit["reference_root"],
+        "reference_template_count": parity_audit["reference_template_count"],
+        "status_counts": parity_audit["status_counts"],
+        "contact_sheet_path": paths.repo_relative_path(paths.LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH),
+        "markdown_path": paths.repo_relative_path(paths.LIDOCAINEQ_PARITY_AUDIT_PATH),
+        "json_path": paths.repo_relative_path(paths.LIDOCAINEQ_PARITY_AUDIT_JSON_PATH),
+    }
     write_json(paths.MANIFEST_PATH, manifest)
     paths.QUALITY_AUDIT_PATH.write_text(
         build_quality_audit_markdown(manifest["quality_audit"]),
@@ -252,6 +269,9 @@ def main(argv: list[str] | None = None) -> int:
                 "html_path": str(paths.HTML_PATH),
                 "pdf_path": str(paths.PDF_PATH),
                 "quality_audit_path": str(paths.QUALITY_AUDIT_PATH),
+                "lidocaineq_visual_parity_audit_path": str(paths.LIDOCAINEQ_PARITY_AUDIT_PATH),
+                "lidocaineq_visual_parity_audit_json_path": str(paths.LIDOCAINEQ_PARITY_AUDIT_JSON_PATH),
+                "lidocaineq_visual_parity_contact_sheet_path": str(paths.LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH),
                 "status_path": str(paths.STATUS_PATH),
                 "docs_pdf_path": str(paths.DOCS_PDF_PATH) if args.publish_docs else "",
                 "docs_reference_path": str(paths.DOCS_REFERENCE_PATH) if args.publish_docs else "",

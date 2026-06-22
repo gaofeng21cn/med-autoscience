@@ -44,22 +44,30 @@ def _copy_docs_gallery() -> None:
     shutil.copy2(paths.PDF_PATH, paths.DOCS_PDF_PATH)
     shutil.copy2(paths.REFERENCE_PATH, paths.DOCS_REFERENCE_PATH)
     shutil.copy2(paths.QUALITY_AUDIT_PATH, paths.DOCS_QUALITY_AUDIT_PATH)
+    shutil.copy2(paths.LIDOCAINEQ_PARITY_AUDIT_PATH, paths.DOCS_LIDOCAINEQ_PARITY_AUDIT_PATH)
+    shutil.copy2(paths.LIDOCAINEQ_PARITY_AUDIT_JSON_PATH, paths.DOCS_LIDOCAINEQ_PARITY_AUDIT_JSON_PATH)
+    shutil.copy2(paths.LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH, paths.DOCS_LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH)
     shutil.copy2(paths.STATUS_PATH, paths.DOCS_STATUS_PATH)
     docs_asset_root = paths.EXAMPLES_ROOT / paths.ASSET_ROOT.name
     if docs_asset_root.exists():
         shutil.rmtree(docs_asset_root)
     shutil.copytree(paths.ASSET_ROOT, docs_asset_root)
+    _write_docs_asset_manifest(docs_asset_root / paths.MANIFEST_PATH.name)
     _write_docs_manifest()
 
 
 def _repo_relative_path(value: str) -> str:
-    path = Path(value)
-    if not path.is_absolute():
-        return value
-    try:
-        return str(path.relative_to(paths.REPO_ROOT))
-    except ValueError:
-        return value
+    return paths.repo_relative_path(value)
+
+
+def _docs_safe_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _docs_safe_payload(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_docs_safe_payload(item) for item in value]
+    if isinstance(value, str):
+        return _repo_relative_path(value)
+    return value
 
 
 def _write_docs_manifest() -> None:
@@ -67,6 +75,14 @@ def _write_docs_manifest() -> None:
     docs_payload = _docs_manifest_payload(payload)
     paths.DOCS_MANIFEST_PATH.write_text(
         json.dumps(docs_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_docs_asset_manifest(path: Path) -> None:
+    payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    path.write_text(
+        json.dumps(docs_safe_gallery_asset_manifest_payload(payload), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -108,6 +124,7 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "renderer_policy_completion": payload.get("renderer_policy_completion"),
         "analysis_responsibility_counts": payload.get("analysis_responsibility_counts"),
         "lidocaineq_reference_coverage": payload.get("lidocaineq_reference_coverage"),
+        "lidocaineq_visual_parity_audit": _docs_safe_payload(payload.get("lidocaineq_visual_parity_audit", {})),
         "quality_summary": _quality_summary(payload),
         "composition_recipe_surface": payload.get("composition_recipe_surface"),
         "composition_gallery_surface": payload.get("composition_gallery_surface"),
@@ -202,3 +219,7 @@ def _quality_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "gallery_lower_bound_admission_status": quality.get("gallery_lower_bound_admission_status"),
         "publication_quality_profile_coverage": quality.get("publication_quality_profile_coverage"),
     }
+
+
+def docs_safe_gallery_asset_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return _docs_safe_payload(payload)

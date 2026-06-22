@@ -37,6 +37,23 @@ payload_from_request <- function(request) {
   display_payload
 }
 
+render_device_dimension <- function(payload, field_name, env_name, fallback) {
+  render_context <- payload$render_context %||% list()
+  layout_override <- render_context$layout_override %||% list()
+  value <- layout_override[[field_name]]
+  if (is.null(value)) {
+    value <- Sys.getenv(env_name, unset = "")
+  }
+  if (is.null(value) || !nzchar(trimws(as.character(value)))) {
+    return(as.numeric(fallback))
+  }
+  numeric_value <- suppressWarnings(as.numeric(value))
+  if (!is.finite(numeric_value) || numeric_value <= 0) {
+    return(as.numeric(fallback))
+  }
+  numeric_value
+}
+
 require_prepared_dependency_environment <- function(request) {
   dependency_environment <- request$dependency_environment %||% list()
   status <- trimws(as.character(dependency_environment$status %||% ""))
@@ -293,8 +310,8 @@ render_cohort_flow_request <- function(request_path) {
   plot <- build_ggconsort_plot(payload)
   layout_sidecar <- build_layout_sidecar(payload, dependency_environment)
   write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
-  output_width <- as.numeric(Sys.getenv("MAS_DISPLAY_OUTPUT_WIDTH_IN", unset = "7.2"))
-  output_height <- as.numeric(Sys.getenv("MAS_DISPLAY_OUTPUT_HEIGHT_IN", unset = "5.0"))
+  output_width <- render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
+  output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
   ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
   ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
   invisible(list(template_id = template_id, output_png_path = output_png, output_pdf_path = output_pdf, layout_sidecar_path = output_layout))

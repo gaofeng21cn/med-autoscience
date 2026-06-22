@@ -45,28 +45,9 @@
       ]
     }
   ],
-  "risk_table_title": "",
+  "risk_table_title": "No. at risk",
   "hide_risk_table_title": true,
   "risk_table": [
-    {
-      "label": "Low Risk",
-      "times": [
-        0,
-        12,
-        24,
-        36,
-        48,
-        60
-      ],
-      "at_risk": [
-        162,
-        145,
-        128,
-        96,
-        71,
-        55
-      ]
-    },
     {
       "label": "High Risk",
       "times": [
@@ -84,6 +65,25 @@
         78,
         49,
         29
+      ]
+    },
+    {
+      "label": "Low Risk",
+      "times": [
+        0,
+        12,
+        24,
+        36,
+        48,
+        60
+      ],
+      "at_risk": [
+        162,
+        145,
+        128,
+        96,
+        71,
+        55
       ]
     }
   ],

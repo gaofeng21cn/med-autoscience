@@ -10,46 +10,46 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.1293,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.1522,
+      "y0": 0.9035,
+      "x1": 0.9739,
+      "y1": 0.9644
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.1293,
-      "y0": 0.0221,
-      "x1": 0.9723,
-      "y1": 0.052
+      "x0": 0.1522,
+      "y0": 0.0316,
+      "x1": 0.9739,
+      "y1": 0.0742
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.0843,
-      "x1": 0.0277,
-      "y1": 0.8894
+      "x0": 0.0261,
+      "y0": 0.1204,
+      "x1": 0.0261,
+      "y1": 0.8421
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "panel",
-      "x0": 0.1293,
-      "y0": 0.0843,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.1522,
+      "y0": 0.1204,
+      "x1": 0.9739,
+      "y1": 0.8421
     }
   ],
   "guide_boxes": [
     {
       "box_id": "legend",
       "box_type": "legend",
-      "x0": 0.9723,
-      "y0": 0.0843,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.9739,
+      "y0": 0.1204,
+      "x1": 0.9739,
+      "y1": 0.8421
     }
   ],
   "metrics": {
@@ -57,73 +57,37 @@
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
     "template_id": "genomic_alteration_consequence_panel",
-    "data_fields": ["caption", "consequence_legend_title", "consequence_panel_order", "consequence_points", "consequence_x_label", "consequence_y_label", "display_id", "effect_threshold", "render_context", "significance_threshold", "template_id", "title"],
+    "data_fields": ["caption", "consequence_points", "consequence_x_label", "display_id", "reference_value", "render_context", "template_id", "title"],
     "panel_box_present": true,
     "source_renderer": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel",
     "consequence_points": [
       {
-        "panel_id": "rna",
-        "gene_label": "TP53",
-        "effect_value": 0.92,
-        "significance_value": 3.05,
-        "regulation_class": "upregulated",
-        "label_text": "TP53"
+        "gene_label": "KRAS mut",
+        "estimate": 1.32,
+        "lower": 1.05,
+        "upper": 1.72,
+        "q": ".030"
       },
       {
-        "panel_id": "rna",
-        "gene_label": "ERBB2",
-        "effect_value": 1.18,
-        "significance_value": 2.72,
-        "regulation_class": "upregulated",
-        "label_text": "ERBB2"
+        "gene_label": "BRAF mut",
+        "estimate": 1.78,
+        "lower": 1.18,
+        "upper": 2.65,
+        "q": ".008"
       },
       {
-        "panel_id": "rna",
-        "gene_label": "KRAS",
-        "effect_value": 0.64,
-        "significance_value": 2.18,
-        "regulation_class": "upregulated",
-        "label_text": ""
+        "gene_label": "SMAD4 loss",
+        "estimate": 1.55,
+        "lower": 1.1,
+        "upper": 2.3,
+        "q": ".018"
       },
       {
-        "panel_id": "rna",
-        "gene_label": "SMAD4",
-        "effect_value": -0.82,
-        "significance_value": 2.46,
-        "regulation_class": "downregulated",
-        "label_text": "SMAD4"
-      },
-      {
-        "panel_id": "rna",
-        "gene_label": "APC",
-        "effect_value": -0.61,
-        "significance_value": 1.92,
-        "regulation_class": "downregulated",
-        "label_text": ""
-      },
-      {
-        "panel_id": "rna",
-        "gene_label": "PIK3CA",
-        "effect_value": 0.42,
-        "significance_value": 1.15,
-        "regulation_class": "background",
-        "label_text": ""
-      },
-      {
-        "panel_id": "rna",
-        "gene_label": "CDKN2A",
-        "effect_value": -0.74,
-        "significance_value": 2.08,
-        "regulation_class": "downregulated",
-        "label_text": "CDKN2A"
-      },
-      {
-        "panel_id": "rna",
-        "gene_label": "MYC",
-        "effect_value": 0.78,
-        "significance_value": 2.34,
-        "regulation_class": "upregulated",
-        "label_text": "MYC"
+        "gene_label": "PIK3CA mut",
+        "estimate": 0.82,
+        "lower": 0.58,
+        "upper": 1.16,
+        "q": ".24"
       }
     ]
   },
@@ -285,8 +249,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 5.3,
+      "output_height_in": 3.5,
       "show_figure_title": false
     },
     "readability_override": {}

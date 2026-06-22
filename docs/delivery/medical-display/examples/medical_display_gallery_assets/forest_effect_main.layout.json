@@ -10,150 +10,174 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.2794,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.199,
+      "y0": 0.9296,
+      "x1": 0.9712,
+      "y1": 0.9741
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.2794,
-      "y0": 0.0221,
-      "x1": 0.9723,
-      "y1": 0.052
+      "x0": 0.199,
+      "y0": 0.0231,
+      "x1": 0.9712,
+      "y1": 0.0541
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.0843,
-      "x1": 0.0277,
-      "y1": 0.8894
+      "x0": 0.0288,
+      "y0": 0.0878,
+      "x1": 0.0288,
+      "y1": 0.8848
     },
     {
       "box_id": "row_label_1",
       "box_type": "row_label",
-      "x0": 0.0277,
-      "y0": 0.7334,
-      "x1": 0.2794,
-      "y1": 0.8442
+      "x0": 0.0288,
+      "y0": 0.7613,
+      "x1": 0.199,
+      "y1": 0.849
     },
     {
       "box_id": "estimate_marker_1",
       "box_type": "estimate_marker",
-      "x0": 0.5547,
-      "y0": 0.7611,
-      "x1": 0.5747,
-      "y1": 0.8165
+      "x0": 0.6486,
+      "y0": 0.7832,
+      "x1": 0.6686,
+      "y1": 0.8271
     },
     {
       "box_id": "ci_segment_1",
       "box_type": "ci_segment",
-      "x0": 0.4595,
-      "y0": 0.7888,
-      "x1": 0.704,
-      "y1": 0.7888
+      "x0": 0.4502,
+      "y0": 0.8051,
+      "x1": 0.9712,
+      "y1": 0.8051
     },
     {
       "box_id": "row_label_2",
       "box_type": "row_label",
-      "x0": 0.0277,
-      "y0": 0.5321,
-      "x1": 0.2794,
-      "y1": 0.6429
+      "x0": 0.0288,
+      "y0": 0.6019,
+      "x1": 0.199,
+      "y1": 0.6896
     },
     {
       "box_id": "estimate_marker_2",
       "box_type": "estimate_marker",
-      "x0": 0.7144,
-      "y0": 0.5598,
-      "x1": 0.7344,
-      "y1": 0.6152
+      "x0": 0.5107,
+      "y0": 0.6238,
+      "x1": 0.5307,
+      "y1": 0.6676
     },
     {
       "box_id": "ci_segment_2",
       "box_type": "ci_segment",
-      "x0": 0.541,
-      "y0": 0.5875,
-      "x1": 0.9723,
-      "y1": 0.5875
+      "x0": 0.3522,
+      "y0": 0.6457,
+      "x1": 0.7781,
+      "y1": 0.6457
     },
     {
       "box_id": "row_label_3",
       "box_type": "row_label",
-      "x0": 0.0277,
-      "y0": 0.3308,
-      "x1": 0.2794,
-      "y1": 0.4416
+      "x0": 0.0288,
+      "y0": 0.4425,
+      "x1": 0.199,
+      "y1": 0.5301
     },
     {
       "box_id": "estimate_marker_3",
       "box_type": "estimate_marker",
-      "x0": 0.3238,
-      "y0": 0.3585,
-      "x1": 0.3438,
-      "y1": 0.4139
+      "x0": 0.4586,
+      "y0": 0.4644,
+      "x1": 0.4786,
+      "y1": 0.5082
     },
     {
       "box_id": "ci_segment_3",
       "box_type": "ci_segment",
-      "x0": 0.2794,
-      "y0": 0.3862,
-      "x1": 0.4017,
-      "y1": 0.3862
+      "x0": 0.3277,
+      "y0": 0.4863,
+      "x1": 0.6739,
+      "y1": 0.4863
     },
     {
       "box_id": "row_label_4",
       "box_type": "row_label",
-      "x0": 0.0277,
-      "y0": 0.1295,
-      "x1": 0.2794,
-      "y1": 0.2403
+      "x0": 0.0288,
+      "y0": 0.2831,
+      "x1": 0.199,
+      "y1": 0.3707
     },
     {
       "box_id": "estimate_marker_4",
       "box_type": "estimate_marker",
-      "x0": 0.6431,
-      "y0": 0.1572,
-      "x1": 0.6631,
-      "y1": 0.2126
+      "x0": 0.3483,
+      "y0": 0.305,
+      "x1": 0.3683,
+      "y1": 0.3488
     },
     {
       "box_id": "ci_segment_4",
       "box_type": "ci_segment",
-      "x0": 0.4866,
-      "y0": 0.1849,
-      "x1": 0.884,
-      "y1": 0.1849
+      "x0": 0.2664,
+      "y0": 0.3269,
+      "x1": 0.4901,
+      "y1": 0.3269
+    },
+    {
+      "box_id": "row_label_5",
+      "box_type": "row_label",
+      "x0": 0.0288,
+      "y0": 0.1236,
+      "x1": 0.199,
+      "y1": 0.2113
+    },
+    {
+      "box_id": "estimate_marker_5",
+      "box_type": "estimate_marker",
+      "x0": 0.2564,
+      "y0": 0.1456,
+      "x1": 0.2764,
+      "y1": 0.1894
+    },
+    {
+      "box_id": "ci_segment_5",
+      "box_type": "ci_segment",
+      "x0": 0.199,
+      "y0": 0.1675,
+      "x1": 0.3644,
+      "y1": 0.1675
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "panel",
-      "x0": 0.2794,
-      "y0": 0.0843,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.199,
+      "y0": 0.0878,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "guide_boxes": [
     {
       "box_id": "legend",
       "box_type": "legend",
-      "x0": 0.9723,
-      "y0": 0.0843,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.9712,
+      "y0": 0.0878,
+      "x1": 0.9712,
+      "y1": 0.8848
     },
     {
       "box_id": "reference_line",
       "box_type": "reference_line",
-      "x0": 0.4221,
-      "y0": 0.0843,
-      "x1": 0.4221,
-      "y1": 0.8894
+      "x0": 0.3215,
+      "y0": 0.0878,
+      "x1": 0.3215,
+      "y1": 0.8848
     }
   ],
   "metrics": {
@@ -166,32 +190,39 @@
     "source_renderer": "LidocaineQ/Figure_Template::forest_cox",
     "rows": [
       {
-        "row_id": "Age > 60 years",
-        "label": "Age > 60 years",
-        "lower": 1.11,
-        "estimate": 1.42,
-        "upper": 1.83
+        "row_id": "Risk score high",
+        "label": "Risk score high",
+        "lower": 1.42,
+        "estimate": 2.1,
+        "upper": 3.12
       },
       {
-        "row_id": "Tumor size > 30 mm",
-        "label": "Tumor size > 30 mm",
-        "lower": 1.35,
-        "estimate": 1.89,
-        "upper": 2.62
+        "row_id": "cT stage III-IV",
+        "label": "cT stage III-IV",
+        "lower": 1.1,
+        "estimate": 1.65,
+        "upper": 2.49
       },
       {
-        "row_id": "Albumin < 35 g/L",
-        "label": "Albumin < 35 g/L",
-        "lower": 0.58,
-        "estimate": 0.74,
-        "upper": 0.94
+        "row_id": "N positive",
+        "label": "N positive",
+        "lower": 1.02,
+        "estimate": 1.48,
+        "upper": 2.15
       },
       {
-        "row_id": "High-risk imaging grade",
-        "label": "High-risk imaging grade",
-        "lower": 1.19,
-        "estimate": 1.68,
-        "upper": 2.36
+        "row_id": "Age >= 65",
+        "label": "Age >= 65",
+        "lower": 0.82,
+        "estimate": 1.12,
+        "upper": 1.55
+      },
+      {
+        "row_id": "Left-sided",
+        "label": "Left-sided",
+        "lower": 0.6,
+        "estimate": 0.82,
+        "upper": 1.14
       }
     ]
   },
@@ -353,8 +384,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

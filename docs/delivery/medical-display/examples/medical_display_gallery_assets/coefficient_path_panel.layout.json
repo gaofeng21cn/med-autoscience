@@ -10,46 +10,46 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.1128,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.1175,
+      "y0": 0.9296,
+      "x1": 0.9712,
+      "y1": 0.9741
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.1128,
-      "y0": 0.1223,
-      "x1": 0.9723,
-      "y1": 0.1521
+      "x0": 0.1175,
+      "y0": 0.1274,
+      "x1": 0.9712,
+      "y1": 0.1584
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.1844,
-      "x1": 0.0575,
-      "y1": 0.8648
+      "x0": 0.0288,
+      "y0": 0.1921,
+      "x1": 0.0599,
+      "y1": 0.8848
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "panel",
-      "x0": 0.1128,
-      "y0": 0.1844,
-      "x1": 0.9723,
-      "y1": 0.8648
+      "x0": 0.1175,
+      "y0": 0.1921,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "guide_boxes": [
     {
       "box_id": "legend",
       "box_type": "legend",
-      "x0": 0.9723,
-      "y0": 0.1844,
-      "x1": 0.9723,
-      "y1": 0.8648
+      "x0": 0.9712,
+      "y0": 0.1921,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "metrics": {
@@ -220,8 +220,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

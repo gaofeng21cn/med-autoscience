@@ -21,6 +21,44 @@ from med_autoscience.display_pack_gallery_parts.core_payloads import (
 from med_autoscience.display_pack_gallery_parts.lidocaineq_payloads import (
     LIDOCAINEQ_R_DISPLAY_PAYLOADS,
 )
+
+
+LIDOCAINEQ_REFERENCE_DEVICE_SIZES: dict[str, tuple[float, float]] = {
+    "alluvial_transition": (5.3, 3.5),
+    "calibration_curve_binary": (4.8, 4.8),
+    "celltype_marker_dotplot_panel": (5.4, 3.7),
+    "cnv_recurrence_summary_panel": (5.3, 3.4),
+    "coefficient_path_panel": (4.8, 4.8),
+    "composition_stacked_bar": (5.2, 3.4),
+    "confusion_matrix_heatmap_binary": (4.8, 4.8),
+    "correlation_scatter": (4.8, 4.8),
+    "cumulative_incidence_grouped": (4.8, 4.8),
+    "decision_curve_binary": (4.8, 4.8),
+    "distribution_violin_box": (4.8, 4.8),
+    "forest_effect_main": (4.8, 4.8),
+    "generalizability_subgroup_composite_panel": (4.8, 4.8),
+    "genomic_alteration_consequence_panel": (5.3, 3.5),
+    "genomic_alteration_landscape_panel": (7.0, 4.8),
+    "heatmap_group_comparison": (5.2, 3.7),
+    "kaplan_meier_grouped": (4.8, 4.8),
+    "model_complexity_audit_panel": (4.8, 4.8),
+    "omics_volcano_panel": (4.8, 4.8),
+    "pathway_enrichment_dotplot_panel": (5.3, 3.7),
+    "pr_curve_binary": (4.8, 4.8),
+    "radar_profile": (4.8, 4.8),
+    "risk_layering_monotonic_bars": (5.2, 3.4),
+    "roc_curve_binary": (4.8, 4.8),
+    "shap_dependence_panel": (4.8, 4.8),
+    "shap_summary_beeswarm": (4.8, 4.8),
+    "shap_waterfall_local_explanation_panel": (5.3, 3.5),
+    "table1_baseline_characteristics": (5.7, 3.2),
+    "time_dependent_roc_horizon": (4.8, 4.8),
+    "time_to_event_decision_curve": (4.8, 4.8),
+    "time_to_event_multihorizon_calibration_panel": (4.8, 4.8),
+    "waterfall_response": (5.3, 3.4),
+}
+
+
 MANUAL_GALLERY_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "cohort_flow_figure": {
         "schema_version": 1,
@@ -237,19 +275,18 @@ GALLERY_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "confusion_matrix_heatmap_binary": {
         "display_id": "Figure26",
         "template_id": "confusion_matrix_heatmap_binary",
-        "title": "Binary confusion matrix on the held-out cohort",
-        "caption": "Row-normalized confusion matrix summarizing false-positive and false-negative error modes.",
-        "x_label": "Predicted class",
-        "y_label": "Observed class",
-        "metric_name": "Observed proportion",
-        "normalization": "row_fraction",
-        "row_order": [{"label": "Observed negative"}, {"label": "Observed positive"}],
-        "column_order": [{"label": "Predicted negative"}, {"label": "Predicted positive"}],
+        "title": "Binary confusion matrix",
+        "caption": "Fixed-threshold classification errors.",
+        "x_label": "Predicted label",
+        "y_label": "True label",
+        "metric_name": "N",
+        "row_order": [{"label": "Negative"}, {"label": "Positive"}],
+        "column_order": [{"label": "Negative"}, {"label": "Positive"}],
         "cells": [
-            {"x": "Predicted negative", "y": "Observed negative", "value": 0.88},
-            {"x": "Predicted positive", "y": "Observed negative", "value": 0.12},
-            {"x": "Predicted negative", "y": "Observed positive", "value": 0.19},
-            {"x": "Predicted positive", "y": "Observed positive", "value": 0.81},
+            {"x": "Negative", "y": "Negative", "value": 132},
+            {"x": "Positive", "y": "Negative", "value": 18},
+            {"x": "Negative", "y": "Positive", "value": 24},
+            {"x": "Positive", "y": "Positive", "value": 96},
         ],
     },
     "gsva_ssgsea_heatmap": {
@@ -339,6 +376,7 @@ def _style_context_for(template_id: str) -> dict[str, Any]:
         style_path.write_text(serialized, encoding="utf-8")
         style_profile = load_publication_style_profile(style_path)
     style_roles = resolve_style_roles(style_profile=style_profile, template_id=template_id)
+    output_width, output_height = LIDOCAINEQ_REFERENCE_DEVICE_SIZES.get(template_id, (5.0, 5.0))
     return {
         "style_profile_id": style_profile.style_profile_id,
         "style_profile_ref": "human_reference_default_publication_style_profile",
@@ -351,8 +389,8 @@ def _style_context_for(template_id: str) -> dict[str, Any]:
         "stroke": dict(style_profile.stroke),
         "grid": dict(style_profile.grid),
         "layout_override": {
-            "output_width_in": 5.0,
-            "output_height_in": 5.0,
+            "output_width_in": output_width,
+            "output_height_in": output_height,
             "show_figure_title": False,
         },
         "readability_override": {},
@@ -430,6 +468,23 @@ def _generic_r_gallery_payload(record: TemplateRecord) -> dict[str, Any]:
     }
 
 
+def _apply_reference_device_sizes(payloads: dict[str, dict[str, Any]]) -> None:
+    for template_id, (width, height) in LIDOCAINEQ_REFERENCE_DEVICE_SIZES.items():
+        payload = payloads.get(template_id)
+        if not isinstance(payload, dict):
+            continue
+        render_context = payload.setdefault("render_context", {})
+        if not isinstance(render_context, dict):
+            render_context = {}
+            payload["render_context"] = render_context
+        layout_override = render_context.setdefault("layout_override", {})
+        if not isinstance(layout_override, dict):
+            layout_override = {}
+            render_context["layout_override"] = layout_override
+        layout_override.setdefault("output_width_in", width)
+        layout_override.setdefault("output_height_in", height)
+
+
 def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, Any]]:
     payloads: dict[str, dict[str, Any]] = {
         key: json.loads(json.dumps(value))
@@ -456,6 +511,7 @@ def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, 
             continue
         if record.template_id not in payloads:
             payloads[record.template_id] = _generic_r_gallery_payload(record)
+    _apply_reference_device_sizes(payloads)
     return payloads
 
 

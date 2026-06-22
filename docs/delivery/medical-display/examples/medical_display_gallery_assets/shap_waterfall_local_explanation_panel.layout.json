@@ -10,46 +10,46 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.0998,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.1058,
+      "y0": 0.9035,
+      "x1": 0.9739,
+      "y1": 0.9644
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.0998,
-      "y0": 0.0913,
-      "x1": 0.9723,
-      "y1": 0.0913
+      "x0": 0.1058,
+      "y0": 0.1747,
+      "x1": 0.9739,
+      "y1": 0.1747
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.192,
-      "x1": 0.0575,
-      "y1": 0.8894
+      "x0": 0.0261,
+      "y0": 0.2964,
+      "x1": 0.0542,
+      "y1": 0.8421
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "panel",
-      "x0": 0.0998,
-      "y0": 0.192,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.1058,
+      "y0": 0.2964,
+      "x1": 0.9739,
+      "y1": 0.8421
     }
   ],
   "guide_boxes": [
     {
       "box_id": "legend",
       "box_type": "legend",
-      "x0": 0.9723,
-      "y0": 0.192,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.9739,
+      "y0": 0.2964,
+      "x1": 0.9739,
+      "y1": 0.8421
     }
   ],
   "metrics": {
@@ -57,7 +57,7 @@
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
     "template_id": "shap_waterfall_local_explanation_panel",
-    "data_fields": ["caption", "display_id", "panels", "render_context", "template_id", "title", "x_label"],
+    "data_fields": ["caption", "display_id", "panels", "render_context", "template_id", "title", "y_label"],
     "panel_box_present": true,
     "source_renderer": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel",
     "panels": [
@@ -66,28 +66,29 @@
         "panel_label": "A",
         "title": "Case 1",
         "case_label": "Patient 1",
-        "baseline_value": 0.18,
-        "predicted_value": 0.57,
+        "baseline_value": 0,
+        "predicted_value": 0.46,
         "contributions": [
           {
-            "feature": "Tumor size",
-            "shap_value": 0.21,
-            "feature_value_text": "large"
+            "feature": "Baseline",
+            "shap_value": 0.22,
+            "contribution_type": "base"
           },
           {
-            "feature": "Age",
-            "shap_value": 0.11,
-            "feature_value_text": "70 y"
+            "feature": "CEA",
+            "shap_value": 0.09
           },
           {
-            "feature": "Albumin",
-            "shap_value": -0.07,
-            "feature_value_text": "normal"
+            "feature": "N stage",
+            "shap_value": 0.13
           },
           {
-            "feature": "Knosp grade",
-            "shap_value": 0.14,
-            "feature_value_text": "III-IV"
+            "feature": "Texture",
+            "shap_value": -0.05
+          },
+          {
+            "feature": "KRAS",
+            "shap_value": 0.07
           }
         ]
       }
@@ -251,8 +252,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 5.3,
+      "output_height_in": 3.5,
       "show_figure_title": false
     },
     "readability_override": {}

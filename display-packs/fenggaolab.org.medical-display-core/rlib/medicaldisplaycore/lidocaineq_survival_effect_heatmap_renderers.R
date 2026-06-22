@@ -60,11 +60,12 @@ plot_lidocaine_kaplan_meier <- function(display_payload) {
   }
   risk_df <- lidocaine_risk_table_dataframe(display_payload, times)
   palette_values <- lidocaine_palette(display_payload, group_levels)
+  x_right_limit <- max_time + max(0.5, max_time * 0.02)
   p_curve <- ggplot(curve_df, aes(time, value, colour = group)) +
     geom_step(linewidth = 0.75, direction = "hv") +
     geom_point(size = 1.25) +
     scale_colour_manual(values = palette_values, guide = publication_legend_guides(display_payload, group_levels)) +
-    scale_x_continuous(breaks = times, limits = c(0, max_time), expand = c(0, 0)) +
+    scale_x_continuous(breaks = times, limits = c(0, x_right_limit), expand = c(0, 0)) +
     scale_y_continuous(limits = c(max(0, min(curve_df$value, na.rm = TRUE) - 0.08), 1.01), expand = c(0, 0)) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "Kaplan-Meier curve with risk table"),
@@ -80,7 +81,7 @@ plot_lidocaine_kaplan_meier <- function(display_payload) {
       axis.text.x = element_blank(),
       axis.ticks.x = element_blank(),
       axis.title.x = element_blank(),
-      plot.margin = margin(1, 3, 0, 14)
+      plot.margin = margin(1, 2, 0, 2)
     )
   annotation <- lidocaine_non_empty(display_payload$annotation)
   if (nzchar(annotation)) {
@@ -97,69 +98,43 @@ plot_lidocaine_kaplan_meier <- function(display_payload) {
   if (is.null(risk_df) || nrow(risk_df) < 1) {
     return(p_curve + labs(x = lidocaine_non_empty(display_payload$x_label, "Time (months)")))
   }
-  risk_df$group <- factor(risk_df$group, levels = group_levels)
-  risk_y_map <- stats::setNames(
-    seq(0.27, 0.36, length.out = length(group_levels)),
-    group_levels
-  )
-  first_count_by_group <- stats::aggregate(n_risk ~ group, risk_df[risk_df$time <= min(times), , drop = FALSE], function(values) values[[1]])
-  risk_label_df <- data.frame(
-    group = factor(group_levels, levels = group_levels),
-    risk_y = unname(risk_y_map[group_levels]),
-    stringsAsFactors = FALSE
-  )
-  risk_label_df <- merge(risk_label_df, first_count_by_group, by = "group", all.x = TRUE, sort = FALSE)
-  risk_label_df$label <- ifelse(
-    is.finite(risk_label_df$n_risk),
-    sprintf("%s  %s", risk_label_df$group, risk_label_df$n_risk),
-    as.character(risk_label_df$group)
-  )
-  risk_label_df$label_x <- -max_time * 0.18
-  risk_count_df <- risk_df[risk_df$time > min(times), , drop = FALSE]
-  risk_count_df$risk_y <- unname(risk_y_map[as.character(risk_count_df$group)])
-  p_curve +
-    geom_rect(
-      aes(xmin = -max_time * 0.20, xmax = max_time, ymin = 0.22, ymax = 0.405),
-      inherit.aes = FALSE,
-      fill = NA,
-      colour = style_color(display_payload, "axis_line", "axis", "#13293D"),
-      linewidth = 0.32
-    ) +
+  risk_df$group <- factor(risk_df$group, levels = rev(group_levels))
+  risk_title <- if (isTRUE(display_payload$hide_risk_table_title)) {
+    ""
+  } else {
+    lidocaine_non_empty(display_payload$risk_table_title, "No. at risk")
+  }
+  p_risk <- ggplot(risk_df, aes(time, group)) +
     geom_text(
-      data = risk_label_df,
-      aes(x = label_x, y = risk_y, label = label, colour = group),
-      inherit.aes = FALSE,
-      hjust = 0,
-      size = 2.65,
-      fontface = "bold",
-      show.legend = FALSE
-    ) +
-    geom_text(
-      data = risk_count_df,
-      aes(x = time, y = risk_y, label = n_risk, colour = group, hjust = hjust),
-      inherit.aes = FALSE,
+      aes(label = n_risk, colour = group, hjust = hjust),
       size = 2.55,
       fontface = "bold",
       show.legend = FALSE
     ) +
+    scale_colour_manual(values = palette_values) +
     scale_x_continuous(
       breaks = times,
-      limits = c(-max_time * 0.20, max_time),
+      limits = c(0, x_right_limit),
       expand = c(0, 0)
     ) +
-    scale_y_continuous(
-      breaks = seq(0.5, 1.0, by = 0.1),
-      limits = c(0.20, 1.01),
-      expand = c(0, 0)
+    labs(
+      x = lidocaine_non_empty(display_payload$x_label, "Time (months)"),
+      y = risk_title
     ) +
-    labs(x = lidocaine_non_empty(display_payload$x_label, "Time (months)")) +
+    lidocaine_publication_theme(display_payload) +
     theme(
-      axis.text.x = element_text(colour = style_text_color(display_payload)),
-      axis.ticks.x = element_line(colour = style_text_color(display_payload), linewidth = 0.35),
-      axis.title.x = element_text(face = "bold", colour = style_text_color(display_payload), margin = margin(t = 4, unit = "pt")),
-      aspect.ratio = 1.05,
-      plot.margin = margin(1, 3, 1, 14)
+      legend.position = "none",
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.title.y = element_text(size = 8, angle = 0, vjust = 0.5, margin = margin(r = 14)),
+      axis.text.y = element_text(face = "bold", colour = style_text_color(display_payload), margin = margin(r = 8)),
+      axis.ticks.y = element_blank(),
+      plot.title = element_blank(),
+      plot.subtitle = element_blank(),
+      plot.margin = margin(0, 2, 1, 2)
     )
+  p_curve / patchwork::plot_spacer() / p_risk +
+    patchwork::plot_layout(heights = c(0.60, 0.10, 0.30))
 }
 
 plot_lidocaine_cumulative_incidence <- function(display_payload) {
@@ -167,10 +142,12 @@ plot_lidocaine_cumulative_incidence <- function(display_payload) {
   group_levels <- unique(curve_df$group)
   palette_values <- lidocaine_palette(display_payload, group_levels)
   max_time <- max(curve_df$time, na.rm = TRUE)
+  x_right_limit <- max_time + max(0.5, max_time * 0.02)
+  x_breaks <- if (max_time >= 60) seq(0, max_time, by = 10) else pretty(c(0, max_time), n = 5)
   ggplot(curve_df, aes(time, value, colour = group)) +
     geom_step(linewidth = 0.90, direction = "hv") +
     scale_colour_manual(values = palette_values, guide = publication_legend_guides(display_payload, group_levels)) +
-    scale_x_continuous(breaks = pretty(c(0, max_time), n = 5), limits = c(0, max_time), expand = c(0, 0)) +
+    scale_x_continuous(breaks = x_breaks, limits = c(0, x_right_limit), expand = c(0, 0)) +
     scale_y_continuous(limits = c(0, min(1, max(curve_df$value, na.rm = TRUE) * 1.15)), labels = function(x) paste0(round(x * 100), "%"), expand = c(0, 0)) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "Cumulative incidence curve"),
@@ -215,22 +192,109 @@ plot_lidocaine_heatmap <- function(display_payload) {
   if (!is.list(cells_payload) || length(cells_payload) < 1) {
     stop("cells must contain at least one matrix entry")
   }
+  if (!requireNamespace("ComplexHeatmap", quietly = TRUE) || !requireNamespace("circlize", quietly = TRUE)) {
+    stop("heatmap_group_comparison requires OPL-prepared R packages `ComplexHeatmap` and `circlize`")
+  }
   column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
   row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
   heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
-  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
-  ggplot(heat_df, aes(x = x, y = y, fill = value)) +
-    geom_tile(colour = "white", linewidth = 0.50) +
-    heatmap_fill_scale(display_payload, heat_df$value, name = display_payload$metric_name %||% "Z-score") +
-    labs(
-      title = lidocaine_non_empty(display_payload$title, "ComplexHeatmap annotated matrix"),
-      subtitle = lidocaine_curve_subtitle(display_payload, "Annotated matrix pattern"),
-      x = lidocaine_non_empty(display_payload$x_label),
-      y = lidocaine_non_empty(display_payload$y_label)
-    ) +
-    lidocaine_publication_theme(display_payload) +
-    theme_publication_colorbar(display_payload) +
-    theme(axis.text.x = element_text(angle = 35, hjust = 1), aspect.ratio = 1)
+  x_levels <- levels(heat_df$x)
+  y_levels <- rev(levels(heat_df$y))
+  matrix_values <- matrix(
+    NA_real_,
+    nrow = length(y_levels),
+    ncol = length(x_levels),
+    dimnames = list(y_levels, x_levels)
+  )
+  for (row_index in seq_len(nrow(heat_df))) {
+    matrix_values[as.character(heat_df$y[[row_index]]), as.character(heat_df$x[[row_index]])] <- heat_df$value[[row_index]]
+  }
+  annotation_name <- "RiskGroup"
+  column_groups <- character()
+  column_annotations <- display_payload$column_annotations %||% list()
+  if (is.list(column_annotations) && length(column_annotations) > 0) {
+    annotation <- column_annotations[[1]]
+    annotation_name <- make.names(lidocaine_non_empty(annotation$label, annotation_name))
+    values <- annotation$values %||% list()
+    if (length(values) == length(x_levels)) {
+      column_groups <- vapply(values, function(value) lidocaine_non_empty(value, ""), character(1))
+    }
+  }
+  if (length(column_groups) != length(x_levels) || any(!nzchar(column_groups))) {
+    column_groups <- vapply(strsplit(x_levels, " ", fixed = TRUE), function(parts) {
+      if (length(parts) > 1) parts[[1]] else parts[[1]]
+    }, character(1))
+  }
+  if (length(unique(column_groups)) < 2) {
+    column_groups <- ifelse(seq_along(x_levels) <= ceiling(length(x_levels) / 2), "Low", "High")
+  }
+  annotation_palette <- lidocaine_palette(display_payload, column_groups)
+  names(annotation_palette) <- unique(column_groups)
+  annotation_df <- data.frame(column_groups, row.names = x_levels, stringsAsFactors = FALSE)
+  names(annotation_df) <- annotation_name
+  annotation_colours <- list(annotation_palette)
+  names(annotation_colours) <- annotation_name
+  top_annotation <- ComplexHeatmap::HeatmapAnnotation(
+    df = annotation_df,
+    col = annotation_colours,
+    show_annotation_name = TRUE,
+    annotation_name_gp = grid::gpar(
+      col = style_text_color(display_payload),
+      fontsize = 8
+    )
+  )
+  finite_values <- matrix_values[is.finite(matrix_values)]
+  if (length(finite_values) < 1) {
+    stop("heatmap_group_comparison values must include finite entries")
+  }
+  value_limit <- max(abs(stats::quantile(finite_values, probs = c(0.02, 0.98), na.rm = TRUE)))
+  if (!is.finite(value_limit) || value_limit <= 0) {
+    value_limit <- max(abs(finite_values), na.rm = TRUE)
+  }
+  if (!is.finite(value_limit) || value_limit <= 0) {
+    value_limit <- 1
+  }
+  colour_fun <- circlize::colorRamp2(
+    c(-value_limit, 0, value_limit),
+    c(
+      style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
+      style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7F7F7"),
+      style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B")
+    )
+  )
+  heatmap_grob <- grid::grid.grabExpr(
+    ComplexHeatmap::draw(
+      ComplexHeatmap::Heatmap(
+        matrix_values,
+        name = lidocaine_non_empty(display_payload$metric_name, "Z-score"),
+        col = colour_fun,
+        top_annotation = top_annotation,
+        cluster_rows = TRUE,
+        cluster_columns = FALSE,
+        show_column_names = TRUE,
+        show_row_names = TRUE,
+        row_names_gp = grid::gpar(
+          fontsize = 8,
+          col = style_text_color(display_payload)
+        ),
+        column_names_gp = grid::gpar(
+          fontsize = 8,
+          col = style_text_color(display_payload)
+        ),
+        border = FALSE,
+        rect_gp = grid::gpar(col = NA),
+        heatmap_legend_param = list(
+          title_gp = grid::gpar(fontface = "bold", fontsize = 8, col = style_text_color(display_payload)),
+          labels_gp = grid::gpar(fontsize = 8),
+          legend_width = grid::unit(4, "mm"),
+          legend_height = grid::unit(28, "mm")
+        )
+      ),
+      heatmap_legend_side = "right",
+      annotation_legend_side = "right"
+    )
+  )
+  heatmap_grob
 }
 
 plot_lidocaine_confusion_matrix <- function(display_payload) {

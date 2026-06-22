@@ -2,7 +2,7 @@
   "display_id": "Figure32",
   "template_id": "alluvial_transition",
   "title": "Subtype transition after treatment",
-  "caption": "Alluvial state-transition grammar rendered through the OPL-prepared ggalluvial runtime profile.",
+  "caption": "ggalluvial composition without manual left-packing.",
   "source_axis_label": "Baseline subtype",
   "target_axis_label": "Post-treatment state",
   "flows": [
@@ -195,8 +195,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.3,
+      "output_height_in": 3.5,
       "show_figure_title": false
     },
     "readability_override": {}

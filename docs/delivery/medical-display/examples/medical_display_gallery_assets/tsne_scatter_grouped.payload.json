@@ -1,347 +1,5051 @@
 {
   "display_id": "Figure16",
   "template_id": "tsne_scatter_grouped",
-  "title": "t-SNE embedding by subtype",
-  "caption": "Neighborhood-preserving t-SNE projection computed from the shared high-dimensional feature matrix.",
+  "title": "t-SNE embedding scatter",
+  "caption": "Computed t-SNE view from the MAS feature-matrix workflow.",
   "x_label": "t-SNE 1",
   "y_label": "t-SNE 2",
   "embedding_input_mode": "feature_matrix",
   "source_feature_matrix_digest": "gallery-shared-synthetic-embedding-matrix-v1",
   "feature_matrix": [
     {
-      "sample_id": "S01",
-      "group": "Subtype A",
+      "sample_id": "S001",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -1.6408,
-        "stromal_signal": 0.4448,
-        "proliferation": 0.5616,
-        "hypoxia": -1.3248,
-        "metabolic_shift": 0.9833279999999999,
-        "antigen_presentation": -0.12768000000000002,
-        "cell_cycle_curvature": 0.46224,
-        "microenvironment_bridge": -2.2168
+        "immune_signal": -1.4702181647041945,
+        "stromal_signal": 1.006216174485762,
+        "proliferation": 0.6111902187710478,
+        "hypoxia": -0.35329172682574367,
+        "metabolic_shift": -1.4117706362120865,
+        "antigen_presentation": 0.09296964826425752,
+        "cell_cycle_curvature": 0.45112516471120806,
+        "microenvironment_bridge": -2.1777068952235554
       }
     },
     {
-      "sample_id": "S02",
-      "group": "Subtype A",
+      "sample_id": "S002",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -1.6196000000000002,
-        "stromal_signal": 0.22719999999999996,
-        "proliferation": -0.045599999999999974,
-        "hypoxia": -0.7152,
-        "metabolic_shift": 0.8756880000000001,
-        "antigen_presentation": -0.25248,
-        "cell_cycle_curvature": 0.2502,
-        "microenvironment_bridge": -2.1716
+        "immune_signal": -1.7748359348422196,
+        "stromal_signal": 1.078876453554462,
+        "proliferation": 0.6371178126968139,
+        "hypoxia": -0.4847619503414049,
+        "metabolic_shift": -1.881757801233329,
+        "antigen_presentation": 0.2747368327128047,
+        "cell_cycle_curvature": 0.5061302803675976,
+        "microenvironment_bridge": -2.5740458031596476
       }
     },
     {
-      "sample_id": "S03",
-      "group": "Subtype A",
+      "sample_id": "S003",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -1.3492,
-        "stromal_signal": 0.6992,
-        "proliferation": 0.39760000000000006,
-        "hypoxia": -1.3032000000000001,
-        "metabolic_shift": 0.4686479999999998,
-        "antigen_presentation": 0.1343200000000001,
-        "cell_cycle_curvature": 0.3946,
-        "microenvironment_bridge": -2.2131999999999996
+        "immune_signal": -1.6037869627553372,
+        "stromal_signal": 0.7037409992750989,
+        "proliferation": 0.5999607103894256,
+        "hypoxia": -0.5253688620647392,
+        "metabolic_shift": -1.0652369451339518,
+        "antigen_presentation": 0.3025236108617162,
+        "cell_cycle_curvature": 0.3376633949606807,
+        "microenvironment_bridge": -2.0106463941389445
       }
     },
     {
-      "sample_id": "S04",
-      "group": "Subtype A",
+      "sample_id": "S004",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -1.2724,
-        "stromal_signal": 0.47120000000000006,
-        "proliferation": -0.23519999999999996,
-        "hypoxia": -0.678,
-        "metabolic_shift": 0.34720799999999985,
-        "antigen_presentation": -0.04361999999999991,
-        "cell_cycle_curvature": 0.35712,
-        "microenvironment_bridge": -2.1003999999999996
+        "immune_signal": -1.4898702336553815,
+        "stromal_signal": 1.0735362602467287,
+        "proliferation": 0.6476870312695053,
+        "hypoxia": -0.3358197225034294,
+        "metabolic_shift": -1.5295747004426368,
+        "antigen_presentation": 0.08012063019587123,
+        "cell_cycle_curvature": 0.4960943021396819,
+        "microenvironment_bridge": -2.255759823036105
       }
     },
     {
-      "sample_id": "S05",
-      "group": "Subtype A",
+      "sample_id": "S005",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -0.9056,
-        "stromal_signal": 0.8768,
-        "proliferation": 0.8112,
-        "hypoxia": -1.1856,
-        "metabolic_shift": 0.06256799999999996,
-        "antigen_presentation": 0.35008000000000006,
-        "cell_cycle_curvature": 0.50752,
-        "microenvironment_bridge": -1.7376
+        "immune_signal": -1.9047644726464155,
+        "stromal_signal": 0.7731712531313811,
+        "proliferation": 0.6148858363741648,
+        "hypoxia": -0.6576315907741681,
+        "metabolic_shift": -1.45173121075205,
+        "antigen_presentation": 0.5000608651952909,
+        "cell_cycle_curvature": 0.3733906424837131,
+        "microenvironment_bridge": -2.4037557507703267
       }
     },
     {
-      "sample_id": "S06",
-      "group": "Subtype A",
+      "sample_id": "S006",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -0.9348,
-        "stromal_signal": 0.2424,
-        "proliferation": -0.23360000000000003,
-        "hypoxia": -0.24519999999999997,
-        "metabolic_shift": 0.17383199999999996,
-        "antigen_presentation": -0.12697999999999998,
-        "cell_cycle_curvature": 0.17896,
-        "microenvironment_bridge": -1.4508
+        "immune_signal": -1.4656537219644707,
+        "stromal_signal": 0.6750399302254178,
+        "proliferation": 0.5929907122485372,
+        "hypoxia": -0.46363350178660273,
+        "metabolic_shift": -0.9115331887276532,
+        "antigen_presentation": 0.223944724677271,
+        "cell_cycle_curvature": 0.3235802148456147,
+        "microenvironment_bridge": -1.83357896235582
       }
     },
     {
-      "sample_id": "S07",
-      "group": "Subtype A",
+      "sample_id": "S007",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -1.3424,
-        "stromal_signal": 0.0023999999999999855,
-        "proliferation": 0.1416,
-        "hypoxia": -0.3184,
-        "metabolic_shift": 0.697632,
-        "antigen_presentation": -0.29978000000000005,
-        "cell_cycle_curvature": 0.09424,
-        "microenvironment_bridge": -1.5304
+        "immune_signal": -1.8140900142335676,
+        "stromal_signal": 1.045647589868876,
+        "proliferation": 0.6299114064584754,
+        "hypoxia": -0.5174136289085477,
+        "metabolic_shift": -1.8696477249902528,
+        "antigen_presentation": 0.3177742627507334,
+        "cell_cycle_curvature": 0.4888636653580794,
+        "microenvironment_bridge": -2.584547693136774
       }
     },
     {
-      "sample_id": "S08",
-      "group": "Transition",
+      "sample_id": "S008",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -0.5464,
-        "stromal_signal": -0.3232,
-        "proliferation": -0.1872,
-        "hypoxia": 0.1536,
-        "metabolic_shift": 0.19996799999999998,
-        "antigen_presentation": -0.09312,
-        "cell_cycle_curvature": -0.027360000000000002,
-        "microenvironment_bridge": -0.35440000000000005
+        "immune_signal": -1.9309239776400033,
+        "stromal_signal": 0.4715166369203917,
+        "proliferation": 0.5465609453586454,
+        "hypoxia": -0.7816467683038488,
+        "metabolic_shift": -0.8960592834347899,
+        "antigen_presentation": 0.6394984650493248,
+        "cell_cycle_curvature": 0.2671651471349056,
+        "microenvironment_bridge": -2.142386266614764
       }
     },
     {
-      "sample_id": "S09",
-      "group": "Transition",
+      "sample_id": "S009",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -0.28280000000000005,
-        "stromal_signal": -0.6744,
-        "proliferation": 0.0864,
-        "hypoxia": 0.14840000000000003,
-        "metabolic_shift": 0.271752,
-        "antigen_presentation": 0.12982000000000002,
-        "cell_cycle_curvature": -0.015920000000000004,
-        "microenvironment_bridge": 0.4412
+        "immune_signal": -1.5360981363224402,
+        "stromal_signal": 0.8812677255573151,
+        "proliferation": 0.57213432919453,
+        "hypoxia": -0.4350593792027039,
+        "metabolic_shift": -1.2957224526851354,
+        "antigen_presentation": 0.1832486331213522,
+        "cell_cycle_curvature": 0.3872812894516847,
+        "microenvironment_bridge": -2.1330863679095797
       }
     },
     {
-      "sample_id": "S10",
-      "group": "Transition",
+      "sample_id": "S010",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -0.19240000000000002,
-        "stromal_signal": -0.41600000000000004,
-        "proliferation": -0.532,
-        "hypoxia": 0.14079999999999998,
-        "metabolic_shift": 0.1482,
-        "antigen_presentation": 0.06400000000000003,
-        "cell_cycle_curvature": 0.11147999999999998,
-        "microenvironment_bridge": 0.03960000000000008
+        "immune_signal": -2.2024179220105484,
+        "stromal_signal": 0.8536673376174034,
+        "proliferation": 0.5517534962164483,
+        "hypoxia": -0.79600331128859,
+        "metabolic_shift": -1.9310153234229634,
+        "antigen_presentation": 0.7225056730084174,
+        "cell_cycle_curvature": 0.3902265611550937,
+        "microenvironment_bridge": -2.8338321263349737
       }
     },
     {
-      "sample_id": "S11",
-      "group": "Transition",
+      "sample_id": "S011",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 0.1796,
-        "stromal_signal": -0.6976,
-        "proliferation": -0.021600000000000008,
-        "hypoxia": -0.144,
-        "metabolic_shift": 0.267432,
-        "antigen_presentation": 0.31872,
-        "cell_cycle_curvature": 0.052919999999999995,
-        "microenvironment_bridge": 0.9716
+        "immune_signal": -1.7706469417088488,
+        "stromal_signal": 0.4484534747591733,
+        "proliferation": 0.47253485729689954,
+        "hypoxia": -0.7163489730725676,
+        "metabolic_shift": -0.7713426013780293,
+        "antigen_presentation": 0.5170600588896128,
+        "cell_cycle_curvature": 0.23431476882992586,
+        "microenvironment_bridge": -1.9721348150242726
       }
     },
     {
-      "sample_id": "S12",
-      "group": "Transition",
+      "sample_id": "S012",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 0.336,
-        "stromal_signal": -0.2392,
-        "proliferation": -0.28400000000000003,
-        "hypoxia": -0.06599999999999999,
-        "metabolic_shift": 0.168648,
-        "antigen_presentation": 0.1407,
-        "cell_cycle_curvature": 0.0622,
-        "microenvironment_bridge": 0.5559999999999999
+        "immune_signal": -1.8347823537887396,
+        "stromal_signal": 1.1560976201556534,
+        "proliferation": 0.5293998705559821,
+        "hypoxia": -0.5063852716043118,
+        "metabolic_shift": -2.1181132253031225,
+        "antigen_presentation": 0.2808106097717131,
+        "cell_cycle_curvature": 0.5103754724216973,
+        "microenvironment_bridge": -2.759699467477245
       }
     },
     {
-      "sample_id": "S13",
-      "group": "Transition",
+      "sample_id": "S013",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 0.6568,
-        "stromal_signal": -0.49039999999999995,
-        "proliferation": 0.27759999999999996,
-        "hypoxia": -0.4304,
-        "metabolic_shift": 0.34051200000000004,
-        "antigen_presentation": 0.31942000000000004,
-        "cell_cycle_curvature": 0.23295999999999997,
-        "microenvironment_bridge": 1.4128
+        "immune_signal": -2.300793481121384,
+        "stromal_signal": 0.5929808379204569,
+        "proliferation": 0.43623808053424395,
+        "hypoxia": -0.9511727797652358,
+        "metabolic_shift": -1.4525195814882401,
+        "antigen_presentation": 0.9131757986304365,
+        "cell_cycle_curvature": 0.26412184060227917,
+        "microenvironment_bridge": -2.711046849167792
       }
     },
     {
-      "sample_id": "S14",
-      "group": "Subtype B",
+      "sample_id": "S014",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 0.7788,
-        "stromal_signal": 0.6808000000000001,
-        "proliferation": -0.30879999999999996,
-        "hypoxia": 0.5856,
-        "metabolic_shift": 0.13084799999999996,
-        "antigen_presentation": 0.37158,
-        "cell_cycle_curvature": 0.005559999999999982,
-        "microenvironment_bridge": 0.05479999999999996
+        "immune_signal": -1.7774262051708292,
+        "stromal_signal": 0.8331033179067925,
+        "proliferation": 0.42944015704440874,
+        "hypoxia": -0.5984488078106399,
+        "metabolic_shift": -1.4800632891354115,
+        "antigen_presentation": 0.361592166403386,
+        "cell_cycle_curvature": 0.32591663559429523,
+        "microenvironment_bridge": -2.397300603741153
       }
     },
     {
-      "sample_id": "S15",
-      "group": "Subtype B",
+      "sample_id": "S015",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 1.1284,
-        "stromal_signal": 1.0928,
-        "proliferation": 0.4776,
-        "hypoxia": 0.9408000000000002,
-        "metabolic_shift": 0.15868800000000005,
-        "antigen_presentation": 0.72472,
-        "cell_cycle_curvature": -0.2642,
-        "microenvironment_bridge": 0.2964
+        "immune_signal": -2.0476356477736717,
+        "stromal_signal": 1.0526395010598044,
+        "proliferation": 0.42814527698094584,
+        "hypoxia": -0.6671246589187454,
+        "metabolic_shift": -2.203486311984113,
+        "antigen_presentation": 0.48974864805732954,
+        "cell_cycle_curvature": 0.42997733285888695,
+        "microenvironment_bridge": -2.919898960929234
       }
     },
     {
-      "sample_id": "S16",
-      "group": "Subtype B",
+      "sample_id": "S016",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 1.3588,
-        "stromal_signal": 0.6184,
-        "proliferation": 0.6576000000000001,
-        "hypoxia": 0.39119999999999994,
-        "metabolic_shift": 0.49459200000000003,
-        "antigen_presentation": 0.39461999999999997,
-        "cell_cycle_curvature": 0.047880000000000006,
-        "microenvironment_bridge": 1.1548
+        "immune_signal": -1.9295814689086914,
+        "stromal_signal": 0.7256815091650747,
+        "proliferation": 0.35877046588655254,
+        "hypoxia": -0.7242187284050364,
+        "metabolic_shift": -1.4353494447345798,
+        "antigen_presentation": 0.5188740797918099,
+        "cell_cycle_curvature": 0.2677109511306711,
+        "microenvironment_bridge": -2.476222536867929
       }
     },
     {
-      "sample_id": "S17",
-      "group": "Subtype B",
+      "sample_id": "S017",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 1.3803999999999998,
-        "stromal_signal": 1.0072,
-        "proliferation": 0.038400000000000045,
-        "hypoxia": 1.1507999999999998,
-        "metabolic_shift": 0.5660879999999999,
-        "antigen_presentation": 0.67542,
-        "cell_cycle_curvature": -0.30960000000000004,
-        "microenvironment_bridge": 0.5283999999999999
+        "immune_signal": -1.6817267444820585,
+        "stromal_signal": 1.1466858451716981,
+        "proliferation": 0.3799680214822263,
+        "hypoxia": -0.4514654834257717,
+        "metabolic_shift": -1.9295143554557077,
+        "antigen_presentation": 0.1603701403242348,
+        "cell_cycle_curvature": 0.44593058550776343,
+        "microenvironment_bridge": -2.6395571617240807
       }
     },
     {
-      "sample_id": "S18",
-      "group": "Subtype B",
+      "sample_id": "S018",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 1.6948,
-        "stromal_signal": 0.5392000000000001,
-        "proliferation": 0.41840000000000005,
-        "hypoxia": 0.37200000000000005,
-        "metabolic_shift": 1.0014480000000001,
-        "antigen_presentation": 0.43192,
-        "cell_cycle_curvature": -0.05516,
-        "microenvironment_bridge": 1.5508000000000002
+        "immune_signal": -2.0661428998751554,
+        "stromal_signal": 1.0054827216169426,
+        "proliferation": 0.3426102503333277,
+        "hypoxia": -0.7051109333974689,
+        "metabolic_shift": -2.143618625286228,
+        "antigen_presentation": 0.517748370398752,
+        "cell_cycle_curvature": 0.37769370083115683,
+        "microenvironment_bridge": -2.922481496709629
       }
     },
     {
-      "sample_id": "S19",
-      "group": "Subtype B",
+      "sample_id": "S019",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 1.7208,
-        "stromal_signal": 0.9680000000000001,
-        "proliferation": -0.16959999999999995,
-        "hypoxia": 1.3104000000000002,
-        "metabolic_shift": 1.116,
-        "antigen_presentation": 0.68632,
-        "cell_cycle_curvature": -0.27648000000000006,
-        "microenvironment_bridge": 0.8968000000000002
+        "immune_signal": -1.5761233940449317,
+        "stromal_signal": 0.865369640042221,
+        "proliferation": 0.30052339337400824,
+        "hypoxia": -0.5013975271632228,
+        "metabolic_shift": -1.3647023506601117,
+        "antigen_presentation": 0.19811584831097295,
+        "cell_cycle_curvature": 0.2865003174731793,
+        "microenvironment_bridge": -2.260791715414503
       }
     },
     {
-      "sample_id": "S20",
-      "group": "Subtype A",
+      "sample_id": "S020",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -1.7576,
-        "stromal_signal": 0.8815999999999999,
-        "proliferation": 0.24480000000000002,
-        "hypoxia": -1.9991999999999996,
-        "metabolic_shift": 0.8539920000000001,
-        "antigen_presentation": 0.32248,
-        "cell_cycle_curvature": 0.61,
-        "microenvironment_bridge": -2.9495999999999998
+        "immune_signal": -1.7380085458192442,
+        "stromal_signal": 1.3421710956209258,
+        "proliferation": 0.3428522738252753,
+        "hypoxia": -0.42144877402765635,
+        "metabolic_shift": -2.3484035290467107,
+        "antigen_presentation": 0.11803542665084765,
+        "cell_cycle_curvature": 0.5478702947223826,
+        "microenvironment_bridge": -2.9185394666941304
       }
     },
     {
-      "sample_id": "S21",
-      "group": "Subtype A",
+      "sample_id": "S021",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": -0.9556,
-        "stromal_signal": 1.1264,
-        "proliferation": 0.37840000000000007,
-        "hypoxia": -1.2335999999999998,
-        "metabolic_shift": -0.07372800000000002,
-        "antigen_presentation": 0.6707200000000002,
-        "cell_cycle_curvature": 0.36891999999999997,
-        "microenvironment_bridge": -2.2276000000000002
+        "immune_signal": -1.886198977473037,
+        "stromal_signal": 0.8085103180740852,
+        "proliferation": 0.2683959382141504,
+        "hypoxia": -0.6873336764887521,
+        "metabolic_shift": -1.5728767604211924,
+        "antigen_presentation": 0.44293872981612836,
+        "cell_cycle_curvature": 0.26321269288689847,
+        "microenvironment_bridge": -2.549324488612607
       }
     },
     {
-      "sample_id": "S22",
-      "group": "Subtype B",
+      "sample_id": "S022",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 0.9756,
-        "stromal_signal": 1.3568,
-        "proliferation": 0.316,
-        "hypoxia": 1.1807999999999998,
-        "metabolic_shift": -0.028632000000000046,
-        "antigen_presentation": 1.0272000000000001,
-        "cell_cycle_curvature": -0.35251999999999994,
-        "microenvironment_bridge": -0.23239999999999997
+        "immune_signal": -1.3460842471541279,
+        "stromal_signal": 1.1198604185644065,
+        "proliferation": 0.293676242856861,
+        "hypoxia": -0.297439592851088,
+        "metabolic_shift": -1.49079945756402,
+        "antigen_presentation": -0.044704527874061206,
+        "cell_cycle_curvature": 0.3878844326818339,
+        "microenvironment_bridge": -2.2799137572385866
       }
     },
     {
-      "sample_id": "S23",
-      "group": "Subtype B",
+      "sample_id": "S023",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 1.802,
-        "stromal_signal": 1.3248,
-        "proliferation": 0.3912,
-        "hypoxia": 1.8272000000000002,
-        "metabolic_shift": 0.9563279999999998,
-        "antigen_presentation": 1.02208,
-        "cell_cycle_curvature": -0.5483600000000001,
-        "microenvironment_bridge": 0.802
+        "immune_signal": -1.9388190615890637,
+        "stromal_signal": 1.2044521969678725,
+        "proliferation": 0.3077628012892919,
+        "hypoxia": -0.5774991408304735,
+        "metabolic_shift": -2.386089264789906,
+        "antigen_presentation": 0.3260585810680418,
+        "cell_cycle_curvature": 0.46304480693068384,
+        "microenvironment_bridge": -3.0053112610114114
       }
     },
     {
-      "sample_id": "S24",
-      "group": "Transition",
+      "sample_id": "S024",
+      "group": "Myeloid",
       "features": {
-        "immune_signal": 0.0156,
-        "stromal_signal": -0.9568,
-        "proliferation": -0.28880000000000006,
-        "hypoxia": -0.0144,
-        "metabolic_shift": 0.34576799999999996,
-        "antigen_presentation": 0.51168,
-        "cell_cycle_curvature": 0.006039999999999999,
-        "microenvironment_bridge": 0.9676
+        "immune_signal": -1.5846926919195468,
+        "stromal_signal": 0.6574722036612337,
+        "proliferation": 0.2421633656437045,
+        "hypoxia": -0.5835805574354851,
+        "metabolic_shift": -1.0540319976109311,
+        "antigen_presentation": 0.28470297108149484,
+        "cell_cycle_curvature": 0.19775382586139087,
+        "microenvironment_bridge": -2.0745971620506354
+      }
+    },
+    {
+      "sample_id": "S025",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.4955591336256913,
+        "stromal_signal": 1.3084683078692603,
+        "proliferation": 0.3279583658787925,
+        "hypoxia": -0.30794450888643976,
+        "metabolic_shift": -1.9473022658917638,
+        "antigen_presentation": -0.03202571688070771,
+        "cell_cycle_curvature": 0.5100833549513387,
+        "microenvironment_bridge": -2.6261584792645873
+      }
+    },
+    {
+      "sample_id": "S026",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.0927713280508975,
+        "stromal_signal": 0.7730260607927688,
+        "proliferation": 0.2828170993471702,
+        "hypoxia": -0.8051186052282205,
+        "metabolic_shift": -1.6982824234687695,
+        "antigen_presentation": 0.6312638069565175,
+        "cell_cycle_curvature": 0.26147722132707807,
+        "microenvironment_bridge": -2.7307333487675827
+      }
+    },
+    {
+      "sample_id": "S027",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.593197400899045,
+        "stromal_signal": 0.8173539160073344,
+        "proliferation": 0.3011808041885797,
+        "hypoxia": -0.5261920026333882,
+        "metabolic_shift": -1.3042011437673364,
+        "antigen_presentation": 0.22898741646866816,
+        "cell_cycle_curvature": 0.2695114248287288,
+        "microenvironment_bridge": -2.2288911465127765
+      }
+    },
+    {
+      "sample_id": "S028",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.8791818339235333,
+        "stromal_signal": 1.0138852409796508,
+        "proliferation": 0.34929764816771597,
+        "hypoxia": -0.6034727890027548,
+        "metabolic_shift": -1.9382310496580635,
+        "antigen_presentation": 0.3596904341415112,
+        "cell_cycle_curvature": 0.3769865315768094,
+        "microenvironment_bridge": -2.7261884324828847
+      }
+    },
+    {
+      "sample_id": "S029",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.922492888123181,
+        "stromal_signal": 0.5903462410474467,
+        "proliferation": 0.32399560357323126,
+        "hypoxia": -0.7706125758921364,
+        "metabolic_shift": -1.1739822729343576,
+        "antigen_presentation": 0.5657550593449976,
+        "cell_cycle_curvature": 0.2158505000144334,
+        "microenvironment_bridge": -2.3400945807139903
+      }
+    },
+    {
+      "sample_id": "S030",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.6847881937487865,
+        "stromal_signal": 0.8943380813863071,
+        "proliferation": 0.3858948813076128,
+        "hypoxia": -0.5360431197475559,
+        "metabolic_shift": -1.5035727963496341,
+        "antigen_presentation": 0.26601641374883345,
+        "cell_cycle_curvature": 0.33134852862839304,
+        "microenvironment_bridge": -2.3770700080888094
+      }
+    },
+    {
+      "sample_id": "S031",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.169785095953194,
+        "stromal_signal": 0.7927535939182601,
+        "proliferation": 0.40785963974162653,
+        "hypoxia": -0.8204103134798313,
+        "metabolic_shift": -1.790865358908384,
+        "antigen_presentation": 0.7037951424225704,
+        "cell_cycle_curvature": 0.31497521360191816,
+        "microenvironment_bridge": -2.788319098833769
+      }
+    },
+    {
+      "sample_id": "S032",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.8024643554415403,
+        "stromal_signal": 0.5229425528053895,
+        "proliferation": 0.4024011992697886,
+        "hypoxia": -0.7186072718068499,
+        "metabolic_shift": -0.9434942767106896,
+        "antigen_presentation": 0.5053166103602187,
+        "cell_cycle_curvature": 0.22508317031865094,
+        "microenvironment_bridge": -2.1104869192691935
+      }
+    },
+    {
+      "sample_id": "S033",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.9079518518472616,
+        "stromal_signal": 1.028438438391002,
+        "proliferation": 0.4945870377190828,
+        "hypoxia": -0.5922425925472444,
+        "metabolic_shift": -1.9736000876982762,
+        "antigen_presentation": 0.38830353112011157,
+        "cell_cycle_curvature": 0.43633643562456315,
+        "microenvironment_bridge": -2.7185691089339112
+      }
+    },
+    {
+      "sample_id": "S034",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.1917758523239717,
+        "stromal_signal": 0.5481452140920133,
+        "proliferation": 0.46937897924601635,
+        "hypoxia": -0.9041155422894126,
+        "metabolic_shift": -1.2571351775885204,
+        "antigen_presentation": 0.8304541069684477,
+        "cell_cycle_curvature": 0.26181013487999366,
+        "microenvironment_bridge": -2.5337671027938073
+      }
+    },
+    {
+      "sample_id": "S035",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.605394921459406,
+        "stromal_signal": 0.7789130698291914,
+        "proliferation": 0.5194767143023823,
+        "hypoxia": -0.5131163701365998,
+        "metabolic_shift": -1.2073884519646576,
+        "antigen_presentation": 0.2674684097920706,
+        "cell_cycle_curvature": 0.3334633927938776,
+        "microenvironment_bridge": -2.1208245914593586
+      }
+    },
+    {
+      "sample_id": "S036",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.126176664931282,
+        "stromal_signal": 1.046229070056665,
+        "proliferation": 0.582113161862431,
+        "hypoxia": -0.6876298396206475,
+        "metabolic_shift": -2.260391758130201,
+        "antigen_presentation": 0.575694608712215,
+        "cell_cycle_curvature": 0.4844116036917938,
+        "microenvironment_bridge": -2.9410860370406535
+      }
+    },
+    {
+      "sample_id": "S037",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.848123081300181,
+        "stromal_signal": 0.494270277830538,
+        "proliferation": 0.5355551101367569,
+        "hypoxia": -0.7323718281151507,
+        "metabolic_shift": -0.8891394157122063,
+        "antigen_presentation": 0.56265479118851,
+        "cell_cycle_curvature": 0.2665758362756323,
+        "microenvironment_bridge": -2.080524516955286
+      }
+    },
+    {
+      "sample_id": "S038",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.5462104476041312,
+        "stromal_signal": 1.1982177491871187,
+        "proliferation": 0.6356198033512873,
+        "hypoxia": -0.32566171215013634,
+        "metabolic_shift": -1.7954857822611765,
+        "antigen_presentation": 0.06471645810973825,
+        "cell_cycle_curvature": 0.5583312239678434,
+        "microenvironment_bridge": -2.4515348993550132
+      }
+    },
+    {
+      "sample_id": "S039",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.1437678588800013,
+        "stromal_signal": 0.8738275642563804,
+        "proliferation": 0.6165288736253156,
+        "hypoxia": -0.7490413615238536,
+        "metabolic_shift": -1.9002307725824643,
+        "antigen_presentation": 0.6657381202218923,
+        "cell_cycle_curvature": 0.4193716109280259,
+        "microenvironment_bridge": -2.767266793959773
+      }
+    },
+    {
+      "sample_id": "S040",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.5590646845724803,
+        "stromal_signal": 0.8854519933166077,
+        "proliferation": 0.6216134887558784,
+        "hypoxia": -0.4383841141763821,
+        "metabolic_shift": -1.3151904583036476,
+        "antigen_presentation": 0.1998248305711352,
+        "cell_cycle_curvature": 0.40710059454592173,
+        "microenvironment_bridge": -2.1439544595183095
+      }
+    },
+    {
+      "sample_id": "S041",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.6990048268485833,
+        "stromal_signal": 1.209509291264765,
+        "proliferation": 0.6660819117470278,
+        "hypoxia": -0.39738702051194685,
+        "metabolic_shift": -2.011376561050309,
+        "antigen_presentation": 0.16741638623440086,
+        "cell_cycle_curvature": 0.582130834410115,
+        "microenvironment_bridge": -2.6175720418549515
+      }
+    },
+    {
+      "sample_id": "S042",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7515409156561512,
+        "stromal_signal": 0.8515293973439271,
+        "proliferation": 0.6226798935261446,
+        "hypoxia": -0.5502439165509276,
+        "metabolic_shift": -1.4487473667238664,
+        "antigen_presentation": 0.3491531032303192,
+        "cell_cycle_curvature": 0.40031195815935383,
+        "microenvironment_bridge": -2.316683730537755
+      }
+    },
+    {
+      "sample_id": "S043",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.3981499486889968,
+        "stromal_signal": 1.1387886787163295,
+        "proliferation": 0.6476501310253862,
+        "hypoxia": -0.26613502758405533,
+        "metabolic_shift": -1.516509059825408,
+        "antigen_presentation": -0.00245865123932254,
+        "cell_cycle_curvature": 0.5248688992604054,
+        "microenvironment_bridge": -2.22455088442298
+      }
+    },
+    {
+      "sample_id": "S044",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.851005874086408,
+        "stromal_signal": 1.1595401626105994,
+        "proliferation": 0.6433959632134955,
+        "hypoxia": -0.4969005915362362,
+        "metabolic_shift": -2.1266055378771673,
+        "antigen_presentation": 0.30102297627126107,
+        "cell_cycle_curvature": 0.5533180767192544,
+        "microenvironment_bridge": -2.738508946202978
+      }
+    },
+    {
+      "sample_id": "S045",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.5513615273581198,
+        "stromal_signal": 0.8082452641044477,
+        "proliferation": 0.5826085678119169,
+        "hypoxia": -0.4657658750097162,
+        "metabolic_shift": -1.1925893033339272,
+        "antigen_presentation": 0.22367413478763576,
+        "cell_cycle_curvature": 0.36438900950864594,
+        "microenvironment_bridge": -2.069453548979393
+      }
+    },
+    {
+      "sample_id": "S046",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.5688286864927123,
+        "stromal_signal": 1.309400983498493,
+        "proliferation": 0.622950094082292,
+        "hypoxia": -0.30242720429417796,
+        "metabolic_shift": -2.005284481054386,
+        "antigen_presentation": 0.033430272300356556,
+        "cell_cycle_curvature": 0.6188329779838562,
+        "microenvironment_bridge": -2.5968935994913873
+      }
+    },
+    {
+      "sample_id": "S047",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.9969833562574326,
+        "stromal_signal": 0.8509630263073931,
+        "proliferation": 0.5484491521145138,
+        "hypoxia": -0.6898617654831662,
+        "metabolic_shift": -1.7106393303007517,
+        "antigen_presentation": 0.539346933287554,
+        "cell_cycle_curvature": 0.3814771121207375,
+        "microenvironment_bridge": -2.609632972130827
+      }
+    },
+    {
+      "sample_id": "S048",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.4607955408441342,
+        "stromal_signal": 0.8959330286676472,
+        "proliferation": 0.5221460109983282,
+        "hypoxia": -0.3981528672460904,
+        "metabolic_shift": -1.253866657738762,
+        "antigen_presentation": 0.12658773394805944,
+        "cell_cycle_curvature": 0.37300165557304016,
+        "microenvironment_bridge": -2.0853880561135196
+      }
+    },
+    {
+      "sample_id": "S049",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.9956026349545046,
+        "stromal_signal": 1.2054733632565113,
+        "proliferation": 0.5356849049714899,
+        "hypoxia": -0.573226765236835,
+        "metabolic_shift": -2.4292478065491685,
+        "antigen_presentation": 0.3916762227843279,
+        "cell_cycle_curvature": 0.547001377666352,
+        "microenvironment_bridge": -2.9832011135952983
+      }
+    },
+    {
+      "sample_id": "S050",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.9480529721295734,
+        "stromal_signal": 0.522138338844531,
+        "proliferation": 0.4231287654046608,
+        "hypoxia": -0.7920175332996586,
+        "metabolic_shift": -1.0362913123530981,
+        "antigen_presentation": 0.6226934824488828,
+        "cell_cycle_curvature": 0.2347828132670288,
+        "microenvironment_bridge": -2.259698713595768
+      }
+    },
+    {
+      "sample_id": "S051",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.6070749879889783,
+        "stromal_signal": 1.0812084139031186,
+        "proliferation": 0.456352741756327,
+        "hypoxia": -0.42286951927292116,
+        "metabolic_shift": -1.7152221004080737,
+        "antigen_presentation": 0.1409692021710225,
+        "cell_cycle_curvature": 0.436676589377531,
+        "microenvironment_bridge": -2.4618815199573376
+      }
+    },
+    {
+      "sample_id": "S052",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.3400705902103214,
+        "stromal_signal": 0.8174030551575202,
+        "proliferation": 0.40153218240692207,
+        "hypoxia": -0.902284477819151,
+        "metabolic_shift": -2.0224174804654647,
+        "antigen_presentation": 0.8561058618544555,
+        "cell_cycle_curvature": 0.32721681572880124,
+        "microenvironment_bridge": -3.0009352874482143
+      }
+    },
+    {
+      "sample_id": "S053",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.8485784317001472,
+        "stromal_signal": 0.6418625892679987,
+        "proliferation": 0.34680939713632,
+        "hypoxia": -0.7114379054598152,
+        "metabolic_shift": -1.209742222767213,
+        "antigen_presentation": 0.487831721864149,
+        "cell_cycle_curvature": 0.2361466638029985,
+        "microenvironment_bridge": -2.3053384982949785
+      }
+    },
+    {
+      "sample_id": "S054",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.960900755104627,
+        "stromal_signal": 0.947514013242928,
+        "proliferation": 0.35772166940785266,
+        "hypoxia": -0.6670559263820109,
+        "metabolic_shift": -1.9019496390938935,
+        "antigen_presentation": 0.45353576772700455,
+        "cell_cycle_curvature": 0.35290332650322226,
+        "microenvironment_bridge": -2.742274493905454
+      }
+    },
+    {
+      "sample_id": "S055",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.1072316428903313,
+        "stromal_signal": 0.5737863409642441,
+        "proliferation": 0.29030427467488007,
+        "hypoxia": -0.8777854195386903,
+        "metabolic_shift": -1.2884572613388203,
+        "antigen_presentation": 0.7265362348599943,
+        "cell_cycle_curvature": 0.20353169364964782,
+        "microenvironment_bridge": -2.5354942711648363
+      }
+    },
+    {
+      "sample_id": "S056",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.6954103191670922,
+        "stromal_signal": 0.7729768893162539,
+        "proliferation": 0.2898393536338778,
+        "hypoxia": -0.5961123367210976,
+        "metabolic_shift": -1.3265331660819921,
+        "antigen_presentation": 0.3163078329457052,
+        "cell_cycle_curvature": 0.25289607971177347,
+        "microenvironment_bridge": -2.297504626926605
+      }
+    },
+    {
+      "sample_id": "S057",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.0855068089207016,
+        "stromal_signal": 0.9015065262993655,
+        "proliferation": 0.2927426365320819,
+        "hypoxia": -0.7571590223416755,
+        "metabolic_shift": -1.9582984410715263,
+        "antigen_presentation": 0.5729997961605285,
+        "cell_cycle_curvature": 0.31450422499317676,
+        "microenvironment_bridge": -2.853383324127384
+      }
+    },
+    {
+      "sample_id": "S058",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.8084323321119067,
+        "stromal_signal": 0.5168452194178368,
+        "proliferation": 0.2322762004755794,
+        "hypoxia": -0.7488774027247913,
+        "metabolic_shift": -0.9760542177410568,
+        "antigen_presentation": 0.4994410011187097,
+        "cell_cycle_curvature": 0.16402032275934053,
+        "microenvironment_bridge": -2.173810171948535
+      }
+    },
+    {
+      "sample_id": "S059",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.6336921600683199,
+        "stromal_signal": 1.0649344336044784,
+        "proliferation": 0.28967606503616206,
+        "hypoxia": -0.46682013414502066,
+        "metabolic_shift": -1.7504827374637109,
+        "antigen_presentation": 0.15433767262457332,
+        "cell_cycle_curvature": 0.3708096917419147,
+        "microenvironment_bridge": -2.5356675330989953
+      }
+    },
+    {
+      "sample_id": "S060",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.047982266149377,
+        "stromal_signal": 0.7617238599264889,
+        "proliferation": 0.2557214464686317,
+        "hypoxia": -0.7894316289176069,
+        "metabolic_shift": -1.637612777860393,
+        "antigen_presentation": 0.5945423684441873,
+        "cell_cycle_curvature": 0.24668541652518317,
+        "microenvironment_bridge": -2.6804650331447304
+      }
+    },
+    {
+      "sample_id": "S061",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.4266109377555032,
+        "stromal_signal": 0.7597660945369997,
+        "proliferation": 0.2531662031880584,
+        "hypoxia": -0.4652228207267645,
+        "metabolic_shift": -1.0793005078423699,
+        "antigen_presentation": 0.14535899711529832,
+        "cell_cycle_curvature": 0.22848438497886842,
+        "microenvironment_bridge": -2.0060716480569156
+      }
+    },
+    {
+      "sample_id": "S062",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7826752928771985,
+        "stromal_signal": 1.2565477117695207,
+        "proliferation": 0.32492937362683183,
+        "hypoxia": -0.4759256204919613,
+        "metabolic_shift": -2.2644102023220185,
+        "antigen_presentation": 0.18453740081769598,
+        "cell_cycle_curvature": 0.49188186713994264,
+        "microenvironment_bridge": -2.8841578929167815
+      }
+    },
+    {
+      "sample_id": "S063",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.8079942712515966,
+        "stromal_signal": 0.6398136542722526,
+        "proliferation": 0.26473008935257947,
+        "hypoxia": -0.7029959538611675,
+        "metabolic_shift": -1.1920590379844795,
+        "antigen_presentation": 0.4512600304057252,
+        "cell_cycle_curvature": 0.20575922763009769,
+        "microenvironment_bridge": -2.289726716573649
+      }
+    },
+    {
+      "sample_id": "S064",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.3065804648288972,
+        "stromal_signal": 1.1883608379928856,
+        "proliferation": 0.34375139454097314,
+        "hypoxia": -0.24660722336913193,
+        "metabolic_shift": -1.5248793355984842,
+        "antigen_presentation": -0.09132321351350953,
+        "cell_cycle_curvature": 0.4392662783710265,
+        "microenvironment_bridge": -2.29005398640631
+      }
+    },
+    {
+      "sample_id": "S065",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.038568882638678,
+        "stromal_signal": 1.1403558637719775,
+        "proliferation": 0.3669513632958543,
+        "hypoxia": -0.6422682596770793,
+        "metabolic_shift": -2.3827468038359014,
+        "antigen_presentation": 0.44065305996184806,
+        "cell_cycle_curvature": 0.45312201139495323,
+        "microenvironment_bridge": -3.024445075402507
+      }
+    },
+    {
+      "sample_id": "S066",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.605103792179931,
+        "stromal_signal": 0.9006991197758509,
+        "proliferation": 0.35925667480260687,
+        "hypoxia": -0.496154606603297,
+        "metabolic_shift": -1.4383496643189277,
+        "antigen_presentation": 0.2067811248958321,
+        "cell_cycle_curvature": 0.321934457855624,
+        "microenvironment_bridge": -2.307271190097257
+      }
+    },
+    {
+      "sample_id": "S067",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.6755332489054706,
+        "stromal_signal": 1.2520846695867012,
+        "proliferation": 0.42988909839542416,
+        "hypoxia": -0.40583041272295983,
+        "metabolic_shift": -2.0911514494012517,
+        "antigen_presentation": 0.116478336508265,
+        "cell_cycle_curvature": 0.5215288908714625,
+        "microenvironment_bridge": -2.7243925750735514
+      }
+    },
+    {
+      "sample_id": "S068",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.9491735522230662,
+        "stromal_signal": 0.9162977593832561,
+        "proliferation": 0.42177510043070904,
+        "hypoxia": -0.6618322539024329,
+        "metabolic_shift": -1.8153360287171612,
+        "antigen_presentation": 0.4619430390819347,
+        "cell_cycle_curvature": 0.3617324167367828,
+        "microenvironment_bridge": -2.6731538402937822
+      }
+    },
+    {
+      "sample_id": "S069",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.583502553387275,
+        "stromal_signal": 1.0096995850979673,
+        "proliferation": 0.4599377710613815,
+        "hypoxia": -0.4337629607618739,
+        "metabolic_shift": -1.571651619370092,
+        "antigen_presentation": 0.1546175351411137,
+        "cell_cycle_curvature": 0.40329851375932246,
+        "microenvironment_bridge": -2.360308916208307
+      }
+    },
+    {
+      "sample_id": "S070",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.0144758852369673,
+        "stromal_signal": 1.187679475883507,
+        "proliferation": 0.5159306867898193,
+        "hypoxia": -0.5919347991997306,
+        "metabolic_shift": -2.4223256384006335,
+        "antigen_presentation": 0.41335693778358706,
+        "cell_cycle_curvature": 0.5308124165952421,
+        "microenvironment_bridge": -2.9924056360224975
+      }
+    },
+    {
+      "sample_id": "S071",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.919239099261597,
+        "stromal_signal": 0.6953834983621554,
+        "proliferation": 0.48559270178423775,
+        "hypoxia": -0.7101464554089802,
+        "metabolic_shift": -1.3402944633565281,
+        "antigen_presentation": 0.5331930205045634,
+        "cell_cycle_curvature": 0.3025261303091573,
+        "microenvironment_bridge": -2.3862340371200204
+      }
+    },
+    {
+      "sample_id": "S072",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7170999790926134,
+        "stromal_signal": 1.1397026777555521,
+        "proliferation": 0.5649212184200878,
+        "hypoxia": -0.44499096301771945,
+        "metabolic_shift": -1.930577085683686,
+        "antigen_presentation": 0.20172865114511618,
+        "cell_cycle_curvature": 0.5092603963622416,
+        "microenvironment_bridge": -2.601855259683318
+      }
+    },
+    {
+      "sample_id": "S073",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.250096368358869,
+        "stromal_signal": 0.8571615368733542,
+        "proliferation": 0.5615769095616668,
+        "hypoxia": -0.8183474813312086,
+        "metabolic_shift": -1.9880908992699755,
+        "antigen_presentation": 0.7673631909183588,
+        "cell_cycle_curvature": 0.39664027997700824,
+        "microenvironment_bridge": -2.88549418007794
+      }
+    },
+    {
+      "sample_id": "S074",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7051511022918302,
+        "stromal_signal": 0.6471523920018161,
+        "proliferation": 0.5533477539581619,
+        "hypoxia": -0.6041107355917473,
+        "metabolic_shift": -1.060661895677789,
+        "antigen_presentation": 0.39353144704270676,
+        "cell_cycle_curvature": 0.30716980519160153,
+        "microenvironment_bridge": -2.07869239865649
+      }
+    },
+    {
+      "sample_id": "S075",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.9666459671509426,
+        "stromal_signal": 1.1461955221935798,
+        "proliferation": 0.6340661154002252,
+        "hypoxia": -0.5632404417479062,
+        "metabolic_shift": -2.25468377509722,
+        "antigen_presentation": 0.3998648783511645,
+        "cell_cycle_curvature": 0.5478064628657778,
+        "microenvironment_bridge": -2.8533404254079815
+      }
+    },
+    {
+      "sample_id": "S076",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.1231697120826047,
+        "stromal_signal": 0.4743392647741583,
+        "proliferation": 0.5688599904805623,
+        "hypoxia": -0.8780410101276837,
+        "metabolic_shift": -1.0231815867605898,
+        "antigen_presentation": 0.8067483953571006,
+        "cell_cycle_curvature": 0.2787190403762405,
+        "microenvironment_bridge": -2.345358769452906
+      }
+    },
+    {
+      "sample_id": "S077",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.4975712356119062,
+        "stromal_signal": 0.8586001967705377,
+        "proliferation": 0.6180695708189156,
+        "hypoxia": -0.4156429964722601,
+        "metabolic_shift": -1.2136477278335769,
+        "antigen_presentation": 0.17072363112811956,
+        "cell_cycle_curvature": 0.3936656979120249,
+        "microenvironment_bridge": -2.0505899018074607
+      }
+    },
+    {
+      "sample_id": "S078",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.1597614766830024,
+        "stromal_signal": 0.9320793240249439,
+        "proliferation": 0.6372756491661428,
+        "hypoxia": -0.7349933151637493,
+        "metabolic_shift": -2.0416977009666044,
+        "antigen_presentation": 0.6584432723884914,
+        "cell_cycle_curvature": 0.4519346027535206,
+        "microenvironment_bridge": -2.837736188671749
+      }
+    },
+    {
+      "sample_id": "S079",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.726154531946698,
+        "stromal_signal": 0.5814693520222887,
+        "proliferation": 0.589882693847386,
+        "hypoxia": -0.6315348402975715,
+        "metabolic_shift": -0.9526898428120443,
+        "antigen_presentation": 0.43835608562790573,
+        "cell_cycle_curvature": 0.3032549410649281,
+        "microenvironment_bridge": -2.0192607566225638
+      }
+    },
+    {
+      "sample_id": "S080",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.63727217979077,
+        "stromal_signal": 0.9467657591345015,
+        "proliferation": 0.6265525319950509,
+        "hypoxia": -0.4582165967860621,
+        "metabolic_shift": -1.49547067085893,
+        "antigen_presentation": 0.22817527030217705,
+        "cell_cycle_curvature": 0.43643335214916534,
+        "microenvironment_bridge": -2.2909102064292113
+      }
+    },
+    {
+      "sample_id": "S081",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.8870409822148608,
+        "stromal_signal": 0.6926300688141133,
+        "proliferation": 0.5871682325867928,
+        "hypoxia": -0.6792098442875919,
+        "metabolic_shift": -1.2855626170826635,
+        "antigen_presentation": 0.5164805191215288,
+        "cell_cycle_curvature": 0.3366806845959577,
+        "microenvironment_bridge": -2.3107191127196347
+      }
+    },
+    {
+      "sample_id": "S082",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.4356931732811231,
+        "stromal_signal": 0.7451083352542631,
+        "proliferation": 0.5731989263636246,
+        "hypoxia": -0.4275916457434208,
+        "metabolic_shift": -0.9964368350073205,
+        "antigen_presentation": 0.1758324607548185,
+        "cell_cycle_curvature": 0.3368674218248638,
+        "microenvironment_bridge": -1.8816634191383088
+      }
+    },
+    {
+      "sample_id": "S083",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7429153883286521,
+        "stromal_signal": 1.0693282054970576,
+        "proliferation": 0.5949323003764757,
+        "hypoxia": -0.4774559174284518,
+        "metabolic_shift": -1.8333466913886813,
+        "antigen_presentation": 0.25162475353770797,
+        "cell_cycle_curvature": 0.48522634528446185,
+        "microenvironment_bridge": -2.545161614282326
+      }
+    },
+    {
+      "sample_id": "S084",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7082120336231446,
+        "stromal_signal": 0.6254278019117737,
+        "proliferation": 0.5176003081587779,
+        "hypoxia": -0.6182099546376624,
+        "metabolic_shift": -1.0330762038528223,
+        "antigen_presentation": 0.40203816902384915,
+        "cell_cycle_curvature": 0.28872438743405016,
+        "microenvironment_bridge": -2.0726009754713646
+      }
+    },
+    {
+      "sample_id": "S085",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.3937410195364897,
+        "stromal_signal": 1.096399879382131,
+        "proliferation": 0.5444429660203058,
+        "hypoxia": -0.29315169906415817,
+        "metabolic_shift": -1.469173980584393,
+        "antigen_presentation": 0.0061478022070807214,
+        "cell_cycle_curvature": 0.46693452580753925,
+        "microenvironment_bridge": -2.2138505337274568
+      }
+    },
+    {
+      "sample_id": "S086",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.967182438431119,
+        "stromal_signal": 1.0058015517513688,
+        "proliferation": 0.5102653345944537,
+        "hypoxia": -0.6284516969481961,
+        "metabolic_shift": -1.9965338049095414,
+        "antigen_presentation": 0.44751938269846614,
+        "cell_cycle_curvature": 0.4334392808244238,
+        "microenvironment_bridge": -2.7532763029731395
+      }
+    },
+    {
+      "sample_id": "S087",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.5172733781615981,
+        "stromal_signal": 0.751006932712202,
+        "proliferation": 0.445234814373188,
+        "hypoxia": -0.48722711886787584,
+        "metabolic_shift": -1.1017649869211001,
+        "antigen_presentation": 0.21611617312817244,
+        "cell_cycle_curvature": 0.29571818020085017,
+        "microenvironment_bridge": -2.023779753474811
+      }
+    },
+    {
+      "sample_id": "S088",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.7128902382027948,
+        "stromal_signal": 1.3667319735168568,
+        "proliferation": 0.4904073689937384,
+        "hypoxia": -0.3783525716014898,
+        "metabolic_shift": -2.331342509246819,
+        "antigen_presentation": 0.10050918493429373,
+        "cell_cycle_curvature": 0.6144962432056499,
+        "microenvironment_bridge": -2.86214045088736
+      }
+    },
+    {
+      "sample_id": "S089",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -2.078392391535348,
+        "stromal_signal": 0.7831120353908414,
+        "proliferation": 0.393715084133936,
+        "hypoxia": -0.7778660379707582,
+        "metabolic_shift": -1.683009200618987,
+        "antigen_presentation": 0.6242270290013625,
+        "cell_cycle_curvature": 0.30380529840965004,
+        "microenvironment_bridge": -2.6844740927761452
+      }
+    },
+    {
+      "sample_id": "S090",
+      "group": "Myeloid",
+      "features": {
+        "immune_signal": -1.4792334967780638,
+        "stromal_signal": 1.0635275756352973,
+        "proliferation": 0.3927416901903438,
+        "hypoxia": -0.3712227463290547,
+        "metabolic_shift": -1.5488454527645426,
+        "antigen_presentation": 0.06169147368070549,
+        "cell_cycle_curvature": 0.400679566958715,
+        "microenvironment_bridge": -2.328527862059344
+      }
+    },
+    {
+      "sample_id": "S091",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.9418549419749715,
+        "stromal_signal": 0.8136169815812974,
+        "proliferation": -0.12381710622922588,
+        "hypoxia": 1.3114051720076596,
+        "metabolic_shift": 1.5655736757950975,
+        "antigen_presentation": 0.5006193497795604,
+        "cell_cycle_curvature": 0.11435550437645872,
+        "microenvironment_bridge": 1.0820729114519194
+      }
+    },
+    {
+      "sample_id": "S092",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.587105936505909,
+        "stromal_signal": 0.8849851599871512,
+        "proliferation": -0.1268940033861805,
+        "hypoxia": 1.1489832888081692,
+        "metabolic_shift": 1.4394944637740739,
+        "antigen_presentation": 0.18894541949064197,
+        "cell_cycle_curvature": 0.15080799431072275,
+        "microenvironment_bridge": 0.621983814577582
+      }
+    },
+    {
+      "sample_id": "S093",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7115381856000018,
+        "stromal_signal": 0.5190502274175943,
+        "proliferation": -0.19133692582296363,
+        "hypoxia": 1.08300454983417,
+        "metabolic_shift": 0.907059442157152,
+        "antigen_presentation": 0.4302928757290193,
+        "cell_cycle_curvature": 0.012584868663278043,
+        "microenvironment_bridge": 1.1151194155743163
+      }
+    },
+    {
+      "sample_id": "S094",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7866052178752483,
+        "stromal_signal": 0.9079520143679882,
+        "proliferation": -0.16845757664428937,
+        "hypoxia": 1.254898952905178,
+        "metabolic_shift": 1.6193830226773716,
+        "antigen_presentation": 0.33635158052445424,
+        "cell_cycle_curvature": 0.13894974822632833,
+        "microenvironment_bridge": 0.7987168752141875
+      }
+    },
+    {
+      "sample_id": "S095",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3441491703030484,
+        "stromal_signal": 0.6352811768262452,
+        "proliferation": -0.22306569405964624,
+        "hypoxia": 0.924643025830769,
+        "metabolic_shift": 0.9010749729189167,
+        "antigen_presentation": 0.13019873649413527,
+        "cell_cycle_curvature": 0.03777075186721378,
+        "microenvironment_bridge": 0.5838222132995706
+      }
+    },
+    {
+      "sample_id": "S096",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7694448270557597,
+        "stromal_signal": 0.5714707918302903,
+        "proliferation": -0.2632544568979097,
+        "hypoxia": 1.1201130419040692,
+        "metabolic_shift": 1.00056734890033,
+        "antigen_presentation": 0.46145120261756467,
+        "cell_cycle_curvature": -0.001956018586533395,
+        "microenvironment_bridge": 1.096379149096387
+      }
+    },
+    {
+      "sample_id": "S097",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.422107403562138,
+        "stromal_signal": 0.9805604836511385,
+        "proliferation": -0.24077122765607728,
+        "hypoxia": 1.0775631196941693,
+        "metabolic_shift": 1.4193268488439696,
+        "antigen_presentation": 0.045573973087427055,
+        "cell_cycle_curvature": 0.15713108578916646,
+        "microenvironment_bridge": 0.3010373085528214
+      }
+    },
+    {
+      "sample_id": "S098",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3210549825906772,
+        "stromal_signal": 0.4462788253888387,
+        "proliferation": -0.3344869501155386,
+        "hypoxia": 0.8333009636510538,
+        "metabolic_shift": 0.6167420574062084,
+        "antigen_presentation": 0.19703752312493336,
+        "cell_cycle_curvature": -0.04616961219523225,
+        "microenvironment_bridge": 0.7148204656411438
+      }
+    },
+    {
+      "sample_id": "S099",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7447409112460137,
+        "stromal_signal": 0.894327441447546,
+        "proliferation": -0.3151091756978756,
+        "hypoxia": 1.2068049363384343,
+        "metabolic_shift": 1.5313636440012357,
+        "antigen_presentation": 0.3197295619770897,
+        "cell_cycle_curvature": 0.08302286248026258,
+        "microenvironment_bridge": 0.7130841793154098
+      }
+    },
+    {
+      "sample_id": "S100",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.1175385878684658,
+        "stromal_signal": 0.900643108092361,
+        "proliferation": -0.3375253166918713,
+        "hypoxia": 0.8773049001963188,
+        "metabolic_shift": 1.0349758720170048,
+        "antigen_presentation": -0.09735932674087394,
+        "cell_cycle_curvature": 0.09842788459224988,
+        "microenvironment_bridge": 0.01853981885399239
+      }
+    },
+    {
+      "sample_id": "S101",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.594917158508458,
+        "stromal_signal": 0.5224336990841303,
+        "proliferation": -0.4147212218802634,
+        "hypoxia": 0.9901027907281311,
+        "metabolic_shift": 0.8090380698773314,
+        "antigen_presentation": 0.35750918301853596,
+        "cell_cycle_curvature": -0.06323848380489902,
+        "microenvironment_bridge": 0.9021990041097715
+      }
+    },
+    {
+      "sample_id": "S102",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5785263807612064,
+        "stromal_signal": 1.2481304000624844,
+        "proliferation": -0.35195599240312686,
+        "hypoxia": 1.2319266072490525,
+        "metabolic_shift": 1.9504230636586521,
+        "antigen_presentation": 0.056982029985494065,
+        "cell_cycle_curvature": 0.2499934103438804,
+        "microenvironment_bridge": 0.14970402544093028
+      }
+    },
+    {
+      "sample_id": "S103",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.1578731519849783,
+        "stromal_signal": 0.6927196144074809,
+        "proliferation": -0.4355848794757244,
+        "hypoxia": 0.8148483859029192,
+        "metabolic_shift": 0.809722160525123,
+        "antigen_presentation": 0.01138009769178061,
+        "cell_cycle_curvature": -0.015168289146574893,
+        "microenvironment_bridge": 0.242998177388399
+      }
+    },
+    {
+      "sample_id": "S104",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7199475770638872,
+        "stromal_signal": 0.9295618189498018,
+        "proliferation": -0.4295137760740623,
+        "hypoxia": 1.1886426025558159,
+        "metabolic_shift": 1.5472884650717964,
+        "antigen_presentation": 0.2953202815252306,
+        "cell_cycle_curvature": 0.05778884806960319,
+        "microenvironment_bridge": 0.6068954953950654
+      }
+    },
+    {
+      "sample_id": "S105",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.478195054980079,
+        "stromal_signal": 1.1350007971410438,
+        "proliferation": -0.41494171094524107,
+        "hypoxia": 1.1325202540127153,
+        "metabolic_shift": 1.6585546789659527,
+        "antigen_presentation": 0.03448993446105886,
+        "cell_cycle_curvature": 0.16928002154465688,
+        "microenvironment_bridge": 0.13575488354132872
+      }
+    },
+    {
+      "sample_id": "S106",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6118615181092073,
+        "stromal_signal": 0.7841013136308809,
+        "proliferation": -0.4658241340874747,
+        "hypoxia": 1.0783731782121946,
+        "metabolic_shift": 1.2206391331339157,
+        "antigen_presentation": 0.27155633643906807,
+        "cell_cycle_curvature": -0.007395192263628753,
+        "microenvironment_bridge": 0.6282300611616864
+      }
+    },
+    {
+      "sample_id": "S107",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.8611384711342387,
+        "stromal_signal": 1.1730299923373952,
+        "proliferation": -0.4239109117768835,
+        "hypoxia": 1.344271549799637,
+        "metabolic_shift": 2.108323641705272,
+        "antigen_presentation": 0.3165754930117703,
+        "cell_cycle_curvature": 0.17002884674995075,
+        "microenvironment_bridge": 0.5076414958949241
+      }
+    },
+    {
+      "sample_id": "S108",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4639821990273918,
+        "stromal_signal": 0.9939430812489712,
+        "proliferation": -0.43875948591409836,
+        "hypoxia": 1.0746933049469862,
+        "metabolic_shift": 1.4335969135950966,
+        "antigen_presentation": 0.08163218227965402,
+        "cell_cycle_curvature": 0.09169756073623828,
+        "microenvironment_bridge": 0.2588510693821255
+      }
+    },
+    {
+      "sample_id": "S109",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.928492733357878,
+        "stromal_signal": 0.8129113112235674,
+        "proliferation": -0.4570006949562337,
+        "hypoxia": 1.254979372062107,
+        "metabolic_shift": 1.4769223167607186,
+        "antigen_presentation": 0.5185104618965904,
+        "cell_cycle_curvature": -0.0030665278672420693,
+        "microenvironment_bridge": 0.9445057714621369
+      }
+    },
+    {
+      "sample_id": "S110",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7309510216711317,
+        "stromal_signal": 1.2487759653838308,
+        "proliferation": -0.3899748508338328,
+        "hypoxia": 1.3063090457234665,
+        "metabolic_shift": 2.113694190820721,
+        "antigen_presentation": 0.17630982475278312,
+        "cell_cycle_curvature": 0.2298250235769752,
+        "microenvironment_bridge": 0.30006264765541435
+      }
+    },
+    {
+      "sample_id": "S111",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.540550129933866,
+        "stromal_signal": 0.6771970818647467,
+        "proliferation": -0.43939677288712287,
+        "hypoxia": 1.0094275200512,
+        "metabolic_shift": 1.0166096414013,
+        "antigen_presentation": 0.2592599051584828,
+        "cell_cycle_curvature": -0.030798287387245424,
+        "microenvironment_bridge": 0.6724527483770796
+      }
+    },
+    {
+      "sample_id": "S112",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 2.036118407549105,
+        "stromal_signal": 0.956477828402538,
+        "proliferation": -0.3892867446440826,
+        "hypoxia": 1.3690154860847743,
+        "metabolic_shift": 1.850057396400791,
+        "antigen_presentation": 0.5543936212903326,
+        "cell_cycle_curvature": 0.07267987270753404,
+        "microenvironment_bridge": 0.9363217345245833
+      }
+    },
+    {
+      "sample_id": "S113",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4009355802796446,
+        "stromal_signal": 1.0172593763271307,
+        "proliferation": -0.35114295075175794,
+        "hypoxia": 1.062378466337721,
+        "metabolic_shift": 1.4280769262015816,
+        "antigen_presentation": 0.024554288913505862,
+        "cell_cycle_curvature": 0.13592069118763372,
+        "microenvironment_bridge": 0.19874174021803367
+      }
+    },
+    {
+      "sample_id": "S114",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7189351760385654,
+        "stromal_signal": 0.4565360473636972,
+        "proliferation": -0.3940454534640989,
+        "hypoxia": 1.036172403254173,
+        "metabolic_shift": 0.7507407124936796,
+        "antigen_presentation": 0.47641679740617415,
+        "cell_cycle_curvature": -0.0711290289288884,
+        "microenvironment_bridge": 1.1131014422161822
+      }
+    },
+    {
+      "sample_id": "S115",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7818667161614423,
+        "stromal_signal": 1.104922026789986,
+        "proliferation": -0.2875123701310494,
+        "hypoxia": 1.300288710574132,
+        "metabolic_shift": 1.9354437862894458,
+        "antigen_presentation": 0.2653285763929308,
+        "cell_cycle_curvature": 0.18635697432923312,
+        "microenvironment_bridge": 0.5435821595089413
+      }
+    },
+    {
+      "sample_id": "S116",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.171013363352691,
+        "stromal_signal": 0.5782437423825997,
+        "proliferation": -0.31447047154945357,
+        "hypoxia": 0.8015715856269833,
+        "metabolic_shift": 0.7158372596463,
+        "antigen_presentation": 0.056981743928660566,
+        "cell_cycle_curvature": -0.006296666418996247,
+        "microenvironment_bridge": 0.42182900969828196
+      }
+    },
+    {
+      "sample_id": "S117",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.670920391746991,
+        "stromal_signal": 0.6421026977015302,
+        "proliferation": -0.281055055554054,
+        "hypoxia": 1.0893848622209912,
+        "metabolic_shift": 1.0695525303118496,
+        "antigen_presentation": 0.35778070995136396,
+        "cell_cycle_curvature": 0.011915456827699164,
+        "microenvironment_bridge": 0.9092238839405096
+      }
+    },
+    {
+      "sample_id": "S118",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3992960153931018,
+        "stromal_signal": 0.867518786027068,
+        "proliferation": -0.22155454631834587,
+        "hypoxia": 1.0308991315052602,
+        "metabolic_shift": 1.2484951180192376,
+        "antigen_presentation": 0.07382179509059078,
+        "cell_cycle_curvature": 0.11639591633648043,
+        "microenvironment_bridge": 0.40154441212751196
+      }
+    },
+    {
+      "sample_id": "S119",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.383056506646174,
+        "stromal_signal": 0.48010046871491063,
+        "proliferation": -0.2396147118531836,
+        "hypoxia": 0.8910006058631136,
+        "metabolic_shift": 0.7095921082377806,
+        "antigen_presentation": 0.21656697871610747,
+        "cell_cycle_curvature": -0.007055960202830461,
+        "microenvironment_bridge": 0.7819319499908074
+      }
+    },
+    {
+      "sample_id": "S120",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6579844703920599,
+        "stromal_signal": 0.8247827099043927,
+        "proliferation": -0.1750020259114582,
+        "hypoxia": 1.158974677921491,
+        "metabolic_shift": 1.384861671308867,
+        "antigen_presentation": 0.2684684246951682,
+        "cell_cycle_curvature": 0.10848187628391032,
+        "microenvironment_bridge": 0.7437937993005672
+      }
+    },
+    {
+      "sample_id": "S121",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.2168019214238084,
+        "stromal_signal": 0.7654415391787766,
+        "proliferation": -0.15512792067142386,
+        "hypoxia": 0.9112686340393086,
+        "metabolic_shift": 0.9988747321527763,
+        "antigen_presentation": -0.00011256749548277378,
+        "cell_cycle_curvature": 0.10678592463933492,
+        "microenvironment_bridge": 0.33511630288576527
+      }
+    },
+    {
+      "sample_id": "S122",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6303063768911719,
+        "stromal_signal": 0.5362844445717194,
+        "proliferation": -0.16762332630041277,
+        "hypoxia": 1.0497145096888745,
+        "metabolic_shift": 0.9093296482064643,
+        "antigen_presentation": 0.35999068245130617,
+        "cell_cycle_curvature": 0.02613190739726333,
+        "microenvironment_bridge": 1.0179094291472555
+      }
+    },
+    {
+      "sample_id": "S123",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5688929126424123,
+        "stromal_signal": 1.0778125820837385,
+        "proliferation": -0.08741089979274683,
+        "hypoxia": 1.2093531695605182,
+        "metabolic_shift": 1.7285590841049951,
+        "antigen_presentation": 0.0975494424045088,
+        "cell_cycle_curvature": 0.2521533553326655,
+        "microenvironment_bridge": 0.4154954140481164
+      }
+    },
+    {
+      "sample_id": "S124",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3227260921831594,
+        "stromal_signal": 0.6262355263548646,
+        "proliferation": -0.1293531350559286,
+        "hypoxia": 0.9242615458369592,
+        "metabolic_shift": 0.9005774512202511,
+        "antigen_presentation": 0.11488842108601999,
+        "cell_cycle_curvature": 0.06869899735697796,
+        "microenvironment_bridge": 0.6048855546606662
+      }
+    },
+    {
+      "sample_id": "S125",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.9366257121632011,
+        "stromal_signal": 0.876250210345797,
+        "proliferation": -0.10040162503095264,
+        "hypoxia": 1.3329374229719284,
+        "metabolic_shift": 1.686176925263692,
+        "antigen_presentation": 0.4695864976216852,
+        "cell_cycle_curvature": 0.14577420432197566,
+        "microenvironment_bridge": 1.0196823968678326
+      }
+    },
+    {
+      "sample_id": "S126",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4304466493561312,
+        "stromal_signal": 1.1518945094627562,
+        "proliferation": -0.06280206274720646,
+        "hypoxia": 1.165137685326027,
+        "metabolic_shift": 1.7020209130789312,
+        "antigen_presentation": -0.02780411024049989,
+        "cell_cycle_curvature": 0.3051191272224064,
+        "microenvironment_bridge": 0.1972394391670356
+      }
+    },
+    {
+      "sample_id": "S127",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7086227398205347,
+        "stromal_signal": 0.5967105762859506,
+        "proliferation": -0.13760223676065114,
+        "hypoxia": 1.115217983661942,
+        "metabolic_shift": 1.0489438746474329,
+        "antigen_presentation": 0.39351218070177635,
+        "cell_cycle_curvature": 0.04963506082040023,
+        "microenvironment_bridge": 1.0508066835355243
+      }
+    },
+    {
+      "sample_id": "S128",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.9959809699486417,
+        "stromal_signal": 1.2861078382959366,
+        "proliferation": -0.06815256783405842,
+        "hypoxia": 1.5049547507061691,
+        "metabolic_shift": 2.534881741989515,
+        "antigen_presentation": 0.35990235561625394,
+        "cell_cycle_curvature": 0.3533231149187443,
+        "microenvironment_bridge": 0.6678468599120397
+      }
+    },
+    {
+      "sample_id": "S129",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3703870277029557,
+        "stromal_signal": 0.9369179884375732,
+        "proliferation": -0.11927748526469961,
+        "hypoxia": 1.0539297496267053,
+        "metabolic_shift": 1.3409681041837913,
+        "antigen_presentation": 0.021690542194787887,
+        "cell_cycle_curvature": 0.18249011475400412,
+        "microenvironment_bridge": 0.3357359296216158
+      }
+    },
+    {
+      "sample_id": "S130",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.9160495006200777,
+        "stromal_signal": 0.9153361806788606,
+        "proliferation": -0.14660294736867624,
+        "hypoxia": 1.3283329927645158,
+        "metabolic_shift": 1.7344460724586732,
+        "antigen_presentation": 0.4404477756451898,
+        "cell_cycle_curvature": 0.145469483995756,
+        "microenvironment_bridge": 0.9393871741424004
+      }
+    },
+    {
+      "sample_id": "S131",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7295950042622183,
+        "stromal_signal": 1.2002529124191939,
+        "proliferation": -0.13382759413916523,
+        "hypoxia": 1.3272982485712883,
+        "metabolic_shift": 2.0785254376826368,
+        "antigen_presentation": 0.1738506778378408,
+        "cell_cycle_curvature": 0.2933078332374232,
+        "microenvironment_bridge": 0.44447574742003415
+      }
+    },
+    {
+      "sample_id": "S132",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6273229293421922,
+        "stromal_signal": 0.8001142810083974,
+        "proliferation": -0.20710536809791172,
+        "hypoxia": 1.1299887164317086,
+        "metabolic_shift": 1.3169227885596553,
+        "antigen_presentation": 0.2575275468291551,
+        "cell_cycle_curvature": 0.0890984715476809,
+        "microenvironment_bridge": 0.724407523370737
+      }
+    },
+    {
+      "sample_id": "S133",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.9323297010034723,
+        "stromal_signal": 1.0453377912976483,
+        "proliferation": -0.2091312978585568,
+        "hypoxia": 1.3708185746801496,
+        "metabolic_shift": 1.9793624859261483,
+        "antigen_presentation": 0.40950122530895233,
+        "cell_cycle_curvature": 0.1793692201900685,
+        "microenvironment_bridge": 0.7979903202543258
+      }
+    },
+    {
+      "sample_id": "S134",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4369050436285307,
+        "stromal_signal": 1.0273067506655815,
+        "proliferation": -0.23652298789505594,
+        "hypoxia": 1.1014686482160556,
+        "metabolic_shift": 1.4991667903683021,
+        "antigen_presentation": 0.036723031840165454,
+        "cell_cycle_curvature": 0.17988523020956876,
+        "microenvironment_bridge": 0.2698193649765831
+      }
+    },
+    {
+      "sample_id": "S135",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7037288030013549,
+        "stromal_signal": 0.6433671320692353,
+        "proliferation": -0.3157361940669499,
+        "hypoxia": 1.1018565508228124,
+        "metabolic_shift": 1.079500024452478,
+        "antigen_presentation": 0.3853414429671267,
+        "cell_cycle_curvature": -0.0006743523827597714,
+        "microenvironment_bridge": 0.9305641864621921
+      }
+    },
+    {
+      "sample_id": "S136",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6662195961762412,
+        "stromal_signal": 1.1204386644056812,
+        "proliferation": -0.2884197624237868,
+        "hypoxia": 1.244778881997033,
+        "metabolic_shift": 1.8499560487917543,
+        "antigen_presentation": 0.16780612379825777,
+        "cell_cycle_curvature": 0.19863629967021013,
+        "microenvironment_bridge": 0.40172480483265227
+      }
+    },
+    {
+      "sample_id": "S137",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.2326434703316,
+        "stromal_signal": 0.6482569385259086,
+        "proliferation": -0.3700514366975439,
+        "hypoxia": 0.8488869309322573,
+        "metabolic_shift": 0.8185135440588835,
+        "antigen_presentation": 0.06720303744691886,
+        "cell_cycle_curvature": -0.007642756817355337,
+        "microenvironment_bridge": 0.3948175308656088
+      }
+    },
+    {
+      "sample_id": "S138",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7785105002107702,
+        "stromal_signal": 0.6908283488720972,
+        "proliferation": -0.3973154514241655,
+        "hypoxia": 1.1447232121011777,
+        "metabolic_shift": 1.1794676227960008,
+        "antigen_presentation": 0.4331362671419828,
+        "cell_cycle_curvature": -0.01757462842552575,
+        "microenvironment_bridge": 0.9316989920697616
+      }
+    },
+    {
+      "sample_id": "S139",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.2675566896614343,
+        "stromal_signal": 1.0094712470461438,
+        "proliferation": -0.37852323433014423,
+        "hypoxia": 0.9859348461286873,
+        "metabolic_shift": 1.288325704796068,
+        "antigen_presentation": -0.05380055998044614,
+        "cell_cycle_curvature": 0.12760106481189568,
+        "microenvironment_bridge": 0.05217643360178956
+      }
+    },
+    {
+      "sample_id": "S140",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3508888699925345,
+        "stromal_signal": 0.34603753812160304,
+        "proliferation": -0.47980115801973383,
+        "hypoxia": 0.7941514254220121,
+        "metabolic_shift": 0.4555408886149854,
+        "antigen_presentation": 0.26400421183261835,
+        "cell_cycle_curvature": -0.11427750247387121,
+        "microenvironment_bridge": 0.7978542308000058
+      }
+    },
+    {
+      "sample_id": "S141",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7362287024039986,
+        "stromal_signal": 0.9343018740109241,
+        "proliferation": -0.4296888188839913,
+        "hypoxia": 1.1987136125604245,
+        "metabolic_shift": 1.5681384335601187,
+        "antigen_presentation": 0.306484894233,
+        "cell_cycle_curvature": 0.05916324394251099,
+        "microenvironment_bridge": 0.6195206964976914
+      }
+    },
+    {
+      "sample_id": "S142",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.0520368952091452,
+        "stromal_signal": 0.7067897016233605,
+        "proliferation": -0.46263260744662105,
+        "hypoxia": 0.7601332376091897,
+        "metabolic_shift": 0.7498666853147753,
+        "antigen_presentation": -0.048254590975783884,
+        "cell_cycle_curvature": -0.017341898309043424,
+        "microenvironment_bridge": 0.10356774181932524
+      }
+    },
+    {
+      "sample_id": "S143",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5922417138929439,
+        "stromal_signal": 0.5719255877914899,
+        "proliferation": -0.49129125063327334,
+        "hypoxia": 0.9938414346214064,
+        "metabolic_shift": 0.8661751285306446,
+        "antigen_presentation": 0.34182977351102967,
+        "cell_cycle_curvature": -0.07869357707800022,
+        "microenvironment_bridge": 0.8191441585993832
+      }
+    },
+    {
+      "sample_id": "S144",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.524040842310957,
+        "stromal_signal": 0.9196040093634056,
+        "proliferation": -0.45107236420160496,
+        "hypoxia": 1.079609491077394,
+        "metabolic_shift": 1.3712210909468863,
+        "antigen_presentation": 0.15343816359136547,
+        "cell_cycle_curvature": 0.05256186159634166,
+        "microenvironment_bridge": 0.3970070674390871
+      }
+    },
+    {
+      "sample_id": "S145",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4131979904047332,
+        "stromal_signal": 0.5861325515951915,
+        "proliferation": -0.48698817494038327,
+        "hypoxia": 0.9054829019513464,
+        "metabolic_shift": 0.8049665082814306,
+        "antigen_presentation": 0.2105754353697436,
+        "cell_cycle_curvature": -0.07003326039401399,
+        "microenvironment_bridge": 0.6118968040192834
+      }
+    },
+    {
+      "sample_id": "S146",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.8486702189150528,
+        "stromal_signal": 0.82083163440895,
+        "proliferation": -0.4548617689349661,
+        "hypoxia": 1.2161464726360727,
+        "metabolic_shift": 1.4410279704353421,
+        "antigen_presentation": 0.4458270760247817,
+        "cell_cycle_curvature": 0.002750755111973563,
+        "microenvironment_bridge": 0.8505340371395581
+      }
+    },
+    {
+      "sample_id": "S147",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4683225255388253,
+        "stromal_signal": 0.9775111814601228,
+        "proliferation": -0.4193942272366987,
+        "hypoxia": 1.0743645397901556,
+        "metabolic_shift": 1.4175713455734777,
+        "antigen_presentation": 0.08971377482852105,
+        "cell_cycle_curvature": 0.09090948332096357,
+        "microenvironment_bridge": 0.2879157907537342
+      }
+    },
+    {
+      "sample_id": "S148",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.740508840988482,
+        "stromal_signal": 0.6115889812018186,
+        "proliferation": -0.4484068316290146,
+        "hypoxia": 1.0909586770736512,
+        "metabolic_shift": 1.0097792691301581,
+        "antigen_presentation": 0.4373995731075061,
+        "cell_cycle_curvature": -0.05663787655768504,
+        "microenvironment_bridge": 0.9543070741050795
+      }
+    },
+    {
+      "sample_id": "S149",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.8963836194597166,
+        "stromal_signal": 1.1676629724491114,
+        "proliferation": -0.36167176389923705,
+        "hypoxia": 1.3701262426466612,
+        "metabolic_shift": 2.1459040306585937,
+        "antigen_presentation": 0.3437512901162283,
+        "cell_cycle_curvature": 0.18773045819995765,
+        "microenvironment_bridge": 0.5745691342028224
+      }
+    },
+    {
+      "sample_id": "S150",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4512367093175729,
+        "stromal_signal": 0.8611439616112607,
+        "proliferation": -0.3693064394198723,
+        "hypoxia": 1.0341507818807056,
+        "metabolic_shift": 1.2463558166749662,
+        "antigen_presentation": 0.12030786357753898,
+        "cell_cycle_curvature": 0.060036577782207445,
+        "microenvironment_bridge": 0.4095738082386783
+      }
+    },
+    {
+      "sample_id": "S151",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 2.0328770262170344,
+        "stromal_signal": 0.8448855656448102,
+        "proliferation": -0.34931252439690574,
+        "hypoxia": 1.3361414238363472,
+        "metabolic_shift": 1.6319778575888582,
+        "antigen_presentation": 0.5910505364392195,
+        "cell_cycle_curvature": 0.043351091296505925,
+        "microenvironment_bridge": 1.0642345899310093
+      }
+    },
+    {
+      "sample_id": "S152",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6321538038956518,
+        "stromal_signal": 1.317487630065903,
+        "proliferation": -0.25936385438964527,
+        "hypoxia": 1.2967142233637106,
+        "metabolic_shift": 2.139766480631293,
+        "antigen_presentation": 0.06273482891459392,
+        "cell_cycle_curvature": 0.3217738866142802,
+        "microenvironment_bridge": 0.16977384621343392
+      }
+    },
+    {
+      "sample_id": "S153",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5616428111789191,
+        "stromal_signal": 0.6685326058487382,
+        "proliferation": -0.3061585750521678,
+        "hypoxia": 1.0372624769675505,
+        "metabolic_shift": 1.047636748297807,
+        "antigen_presentation": 0.2682211037479305,
+        "cell_cycle_curvature": 0.013088130658968591,
+        "microenvironment_bridge": 0.7538760585361034
+      }
+    },
+    {
+      "sample_id": "S154",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 2.0217516043658703,
+        "stromal_signal": 1.179237860769961,
+        "proliferation": -0.21875104678368196,
+        "hypoxia": 1.4606955805794712,
+        "metabolic_shift": 2.321106093261645,
+        "antigen_presentation": 0.4386734883038594,
+        "cell_cycle_curvature": 0.23917689902707506,
+        "microenvironment_bridge": 0.7514382627512157
+      }
+    },
+    {
+      "sample_id": "S155",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.2563661518886942,
+        "stromal_signal": 1.090589831906859,
+        "proliferation": -0.19224468319952695,
+        "hypoxia": 1.0345372524505034,
+        "metabolic_shift": 1.4157249691070075,
+        "antigen_presentation": -0.10321266922492806,
+        "cell_cycle_curvature": 0.2342107505495608,
+        "microenvironment_bridge": 0.024543642978397645
+      }
+    },
+    {
+      "sample_id": "S156",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.667578261434613,
+        "stromal_signal": 0.8104963834672427,
+        "proliferation": -0.2016096668209621,
+        "hypoxia": 1.1553203236052283,
+        "metabolic_shift": 1.3620329946164775,
+        "antigen_presentation": 0.28335002649600494,
+        "cell_cycle_curvature": 0.09360688848330158,
+        "microenvironment_bridge": 0.7592242291073827
+      }
+    },
+    {
+      "sample_id": "S157",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5881810400444676,
+        "stromal_signal": 1.1246228151851227,
+        "proliferation": -0.13737381782049013,
+        "hypoxia": 1.227625627953965,
+        "metabolic_shift": 1.8095035480437474,
+        "antigen_presentation": 0.09671039184725527,
+        "cell_cycle_curvature": 0.2575275137179586,
+        "microenvironment_bridge": 0.36892918967167837
+      }
+    },
+    {
+      "sample_id": "S158",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.31969974636736,
+        "stromal_signal": 0.7574701451421483,
+        "proliferation": -0.15623486164211417,
+        "hypoxia": 0.9623149664725478,
+        "metabolic_shift": 1.0599230594114044,
+        "antigen_presentation": 0.0631439838275406,
+        "cell_cycle_curvature": 0.10068882407101755,
+        "microenvironment_bridge": 0.4545285787808832
+      }
+    },
+    {
+      "sample_id": "S159",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7041186399398147,
+        "stromal_signal": 0.8276615675361425,
+        "proliferation": -0.1326932048718053,
+        "hypoxia": 1.1903259466109894,
+        "metabolic_shift": 1.431170945180252,
+        "antigen_presentation": 0.29940867905039203,
+        "cell_cycle_curvature": 0.12311573422116646,
+        "microenvironment_bridge": 0.8064998387545359
+      }
+    },
+    {
+      "sample_id": "S160",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3036173580711259,
+        "stromal_signal": 0.9922317566767774,
+        "proliferation": -0.0946438864471284,
+        "hypoxia": 1.040998403626953,
+        "metabolic_shift": 1.3588953599561053,
+        "antigen_presentation": -0.04245432041945146,
+        "cell_cycle_curvature": 0.21855636315708202,
+        "microenvironment_bridge": 0.21476077062343904
+      }
+    },
+    {
+      "sample_id": "S161",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4380387814220885,
+        "stromal_signal": 0.4972397263141325,
+        "proliferation": -0.14564709199661946,
+        "hypoxia": 0.9393494356793887,
+        "metabolic_shift": 0.7792327877075268,
+        "antigen_presentation": 0.23930858441020744,
+        "cell_cycle_curvature": 0.02866916986656634,
+        "microenvironment_bridge": 0.8585277799151307
+      }
+    },
+    {
+      "sample_id": "S162",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.68420689464641,
+        "stromal_signal": 0.9496964958960084,
+        "proliferation": -0.08907826951552703,
+        "hypoxia": 1.2268937845106342,
+        "metabolic_shift": 1.6274768569588327,
+        "antigen_presentation": 0.2330450687192973,
+        "cell_cycle_curvature": 0.18782922486741246,
+        "microenvironment_bridge": 0.6736559654931376
+      }
+    },
+    {
+      "sample_id": "S163",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.1957315524368988,
+        "stromal_signal": 0.6854521189816946,
+        "proliferation": -0.11664376051201784,
+        "hypoxia": 0.879343572093166,
+        "metabolic_shift": 0.9008382650900515,
+        "antigen_presentation": 0.017510235731651447,
+        "cell_cycle_curvature": 0.09398869770043278,
+        "microenvironment_bridge": 0.41014423064632904
+      }
+    },
+    {
+      "sample_id": "S164",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7812729308917103,
+        "stromal_signal": 0.5024869374362851,
+        "proliferation": -0.14993333379593896,
+        "hypoxia": 1.1201148523507969,
+        "metabolic_shift": 0.915224552619322,
+        "antigen_presentation": 0.4887768269330285,
+        "cell_cycle_curvature": 0.02254091520163006,
+        "microenvironment_bridge": 1.223371068847034
+      }
+    },
+    {
+      "sample_id": "S165",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5523936304066468,
+        "stromal_signal": 1.0352822798081738,
+        "proliferation": -0.09451553530273049,
+        "hypoxia": 1.185536086346213,
+        "metabolic_shift": 1.6469683056977573,
+        "antigen_presentation": 0.10297615072165328,
+        "cell_cycle_curvature": 0.22952692392285795,
+        "microenvironment_bridge": 0.43940396797879033
+      }
+    },
+    {
+      "sample_id": "S166",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.4172026442181662,
+        "stromal_signal": 0.4013758643340912,
+        "proliferation": -0.18469477008183374,
+        "hypoxia": 0.8908239837937634,
+        "metabolic_shift": 0.6292556924473454,
+        "antigen_presentation": 0.2658569130525733,
+        "cell_cycle_curvature": -0.002955340554188418,
+        "microenvironment_bridge": 0.9215777287024546
+      }
+    },
+    {
+      "sample_id": "S167",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 2.0506225476233486,
+        "stromal_signal": 0.8249900914188047,
+        "proliferation": -0.15959937838190136,
+        "hypoxia": 1.3668315631312684,
+        "metabolic_shift": 1.6481133689289607,
+        "antigen_presentation": 0.5976495019255408,
+        "cell_cycle_curvature": 0.10267149679776041,
+        "microenvironment_bridge": 1.1747514264177343
+      }
+    },
+    {
+      "sample_id": "S168",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.3818056752715444,
+        "stromal_signal": 0.9363549264717497,
+        "proliferation": -0.16315489232500408,
+        "hypoxia": 1.0532405139537404,
+        "metabolic_shift": 1.3404641133604425,
+        "antigen_presentation": 0.03189050376027153,
+        "cell_cycle_curvature": 0.16633736845244307,
+        "microenvironment_bridge": 0.3323902401506116
+      }
+    },
+    {
+      "sample_id": "S169",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7947878138233646,
+        "stromal_signal": 0.6194250669576685,
+        "proliferation": -0.2315005905282268,
+        "hypoxia": 1.1540010204287743,
+        "metabolic_shift": 1.1035641901014213,
+        "antigen_presentation": 0.46074816665709134,
+        "cell_cycle_curvature": 0.020631942547855248,
+        "microenvironment_bridge": 1.085548201214727
+      }
+    },
+    {
+      "sample_id": "S170",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.8508460321470435,
+        "stromal_signal": 1.01178872779023,
+        "proliferation": -0.21355447908273628,
+        "hypoxia": 1.3163677589684712,
+        "metabolic_shift": 1.8461715465697486,
+        "antigen_presentation": 0.35277541025764886,
+        "cell_cycle_curvature": 0.1653606804415647,
+        "microenvironment_bridge": 0.7430986545303491
+      }
+    },
+    {
+      "sample_id": "S171",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5590349156746433,
+        "stromal_signal": 0.7762021804644335,
+        "proliferation": -0.26904819628972765,
+        "hypoxia": 1.07715366731049,
+        "metabolic_shift": 1.2197840335221468,
+        "antigen_presentation": 0.22154628334451804,
+        "cell_cycle_curvature": 0.06074598894605074,
+        "microenvironment_bridge": 0.652370713022152
+      }
+    },
+    {
+      "sample_id": "S172",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.9630057455997199,
+        "stromal_signal": 0.8374409519114465,
+        "proliferation": -0.29616210459293624,
+        "hypoxia": 1.304943965574565,
+        "metabolic_shift": 1.5842737582647226,
+        "antigen_presentation": 0.5253857967942132,
+        "cell_cycle_curvature": 0.06143594803688586,
+        "microenvironment_bridge": 1.0160539377160327
+      }
+    },
+    {
+      "sample_id": "S173",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.6074911324040644,
+        "stromal_signal": 1.1600819387793158,
+        "proliferation": -0.2842946457659174,
+        "hypoxia": 1.2278211899405924,
+        "metabolic_shift": 1.8557059741031736,
+        "antigen_presentation": 0.10775696860519879,
+        "cell_cycle_curvature": 0.22342056396725082,
+        "microenvironment_bridge": 0.2982103527832616
+      }
+    },
+    {
+      "sample_id": "S174",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5975231531377716,
+        "stromal_signal": 0.704464186421549,
+        "proliferation": -0.3679409632095284,
+        "hypoxia": 1.0588595792373123,
+        "metabolic_shift": 1.1086435685148408,
+        "antigen_presentation": 0.28477980978065215,
+        "cell_cycle_curvature": 0.001287315500491909,
+        "microenvironment_bridge": 0.7322598070273898
+      }
+    },
+    {
+      "sample_id": "S175",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.8751670845931123,
+        "stromal_signal": 1.154510239373193,
+        "proliferation": -0.3436361377123528,
+        "hypoxia": 1.3573138421332138,
+        "metabolic_shift": 2.1039541347430073,
+        "antigen_presentation": 0.328949005299422,
+        "cell_cycle_curvature": 0.18809125524356193,
+        "microenvironment_bridge": 0.5720217069301077
+      }
+    },
+    {
+      "sample_id": "S176",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.2762511392043967,
+        "stromal_signal": 1.035360796720292,
+        "proliferation": -0.37640779536999813,
+        "hypoxia": 0.9994006410700237,
+        "metabolic_shift": 1.3295981066357017,
+        "antigen_presentation": -0.058911910675763124,
+        "cell_cycle_curvature": 0.14047762506659492,
+        "microenvironment_bridge": 0.03533949674495063
+      }
+    },
+    {
+      "sample_id": "S177",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.7144972676506693,
+        "stromal_signal": 0.7465061911459503,
+        "proliferation": -0.43599045744772164,
+        "hypoxia": 1.1240075707639752,
+        "metabolic_shift": 1.2300043613776495,
+        "antigen_presentation": 0.3629891533399791,
+        "cell_cycle_curvature": -0.01231693042901938,
+        "microenvironment_bridge": 0.7898020948282639
+      }
+    },
+    {
+      "sample_id": "S178",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.5222035368252078,
+        "stromal_signal": 1.325153365053657,
+        "proliferation": -0.38131218839352304,
+        "hypoxia": 1.223704828150722,
+        "metabolic_shift": 1.9981528014502004,
+        "antigen_presentation": -0.011579609961248183,
+        "cell_cycle_curvature": 0.2886715774536302,
+        "microenvironment_bridge": -0.0026935970604013426
+      }
+    },
+    {
+      "sample_id": "S179",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.1747866977598822,
+        "stromal_signal": 0.7041207513195026,
+        "proliferation": -0.46452003531374064,
+        "hypoxia": 0.8232170989448663,
+        "metabolic_shift": 0.8268620680129583,
+        "antigen_presentation": 0.017818974747942973,
+        "cell_cycle_curvature": -0.022118728047872876,
+        "microenvironment_bridge": 0.2386620004471377
+      }
+    },
+    {
+      "sample_id": "S180",
+      "group": "Stromal",
+      "features": {
+        "immune_signal": 1.8051895370899795,
+        "stromal_signal": 0.9494698847966343,
+        "proliferation": -0.4482163475146545,
+        "hypoxia": 1.2371132211006202,
+        "metabolic_shift": 1.6449503962739518,
+        "antigen_presentation": 0.35847270160619243,
+        "cell_cycle_curvature": 0.05667969775427087,
+        "microenvironment_bridge": 0.6715143428561343
+      }
+    },
+    {
+      "sample_id": "S181",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.4051193614346564,
+        "stromal_signal": -1.5822925383869004,
+        "proliferation": 0.707581736511968,
+        "hypoxia": -0.19297572507209976,
+        "metabolic_shift": -0.6359019197192689,
+        "antigen_presentation": 0.6750549527244369,
+        "cell_cycle_curvature": 0.8926902234442742,
+        "microenvironment_bridge": 2.3492708444760177
+      }
+    },
+    {
+      "sample_id": "S182",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.026671708267512903,
+        "stromal_signal": -1.4788433487484647,
+        "proliferation": 0.6930852069624948,
+        "hypoxia": -0.3588281877489282,
+        "metabolic_shift": -0.04135733291334309,
+        "antigen_presentation": 0.5861697556643524,
+        "cell_cycle_curvature": 0.77978000305204,
+        "microenvironment_bridge": 1.8257468935842125
+      }
+    },
+    {
+      "sample_id": "S183",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.14167746305339957,
+        "stromal_signal": -1.8078069171292854,
+        "proliferation": 0.6221095348786494,
+        "hypoxia": -0.4184206511141293,
+        "metabolic_shift": -0.27254696939788514,
+        "antigen_presentation": 0.726009872323782,
+        "cell_cycle_curvature": 1.0456675726239681,
+        "microenvironment_bridge": 2.2676202139672514
+      }
+    },
+    {
+      "sample_id": "S184",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.2224153292463367,
+        "stromal_signal": -1.3797070635535118,
+        "proliferation": 0.6433343168266706,
+        "hypoxia": -0.23077757154349351,
+        "metabolic_shift": -0.3357879276998492,
+        "antigen_presentation": 0.5643342625319222,
+        "cell_cycle_curvature": 0.6998058479927463,
+        "microenvironment_bridge": 1.9158013076789122
+      }
+    },
+    {
+      "sample_id": "S185",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.19985505520500924,
+        "stromal_signal": -1.6138048836268497,
+        "proliferation": 0.5917949406344047,
+        "hypoxia": -0.5371977627393039,
+        "metabolic_shift": 0.2739853075804456,
+        "antigen_presentation": 0.6410163001612659,
+        "cell_cycle_curvature": 0.8388155104132555,
+        "microenvironment_bridge": 1.6836263911849003
+      }
+    },
+    {
+      "sample_id": "S186",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.25820765977165644,
+        "stromal_signal": -1.6424994209872206,
+        "proliferation": 0.5591163232523105,
+        "hypoxia": -0.31179963009120426,
+        "metabolic_shift": -0.479985209406211,
+        "antigen_presentation": 0.6752655418070532,
+        "cell_cycle_curvature": 0.8830631961123283,
+        "microenvironment_bridge": 2.197797834362726
+      }
+    },
+    {
+      "sample_id": "S187",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.04688109807248031,
+        "stromal_signal": -1.204354785402801,
+        "proliferation": 0.5931643107969113,
+        "hypoxia": -0.32087382252170105,
+        "metabolic_shift": -0.0024056053265511315,
+        "antigen_presentation": 0.47452503840547766,
+        "cell_cycle_curvature": 0.5479860932030136,
+        "microenvironment_bridge": 1.4221825379789632
+      }
+    },
+    {
+      "sample_id": "S188",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.10017456723295373,
+        "stromal_signal": -1.717823435781978,
+        "proliferation": 0.5145997697978576,
+        "hypoxia": -0.5309851422930503,
+        "metabolic_shift": 0.09656187432744312,
+        "antigen_presentation": 0.6795966202660698,
+        "cell_cycle_curvature": 0.9087072427856915,
+        "microenvironment_bridge": 1.8716053806356294
+      }
+    },
+    {
+      "sample_id": "S189",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.3723147169338011,
+        "stromal_signal": -1.2587968213377545,
+        "proliferation": 0.5521888243295158,
+        "hypoxia": -0.12559981222534128,
+        "metabolic_shift": -0.5465076661633432,
+        "antigen_presentation": 0.5428997438609402,
+        "cell_cycle_curvature": 0.5915979442185038,
+        "microenvironment_bridge": 1.918051350249233
+      }
+    },
+    {
+      "sample_id": "S190",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.2095770571080904,
+        "stromal_signal": -1.2522197464434004,
+        "proliferation": 0.5504812626177055,
+        "hypoxia": -0.42823885950712204,
+        "metabolic_shift": 0.1811508175706934,
+        "antigen_presentation": 0.4964474545044073,
+        "cell_cycle_curvature": 0.5556756733652196,
+        "microenvironment_bridge": 1.2800271777284948
+      }
+    },
+    {
+      "sample_id": "S191",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.3054399388975587,
+        "stromal_signal": -1.64098233579145,
+        "proliferation": 0.49591092319116414,
+        "hypoxia": -0.29590612776671704,
+        "metabolic_shift": -0.58794679865457,
+        "antigen_presentation": 0.6833577182675463,
+        "cell_cycle_curvature": 0.8633373903910658,
+        "microenvironment_bridge": 2.223902608474321
+      }
+    },
+    {
+      "sample_id": "S192",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.3155884192050225,
+        "stromal_signal": -0.9359531824617666,
+        "proliferation": 0.5826363978178075,
+        "hypoxia": -0.04352070442316998,
+        "metabolic_shift": -0.36890174676273846,
+        "antigen_presentation": 0.4030980975809128,
+        "cell_cycle_curvature": 0.40680437584582185,
+        "microenvironment_bridge": 1.5306586394534933
+      }
+    },
+    {
+      "sample_id": "S193",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.09197742348006649,
+        "stromal_signal": -1.5206920352794344,
+        "proliferation": 0.5237298500047844,
+        "hypoxia": -0.4598434610902624,
+        "metabolic_shift": 0.06117659836092051,
+        "antigen_presentation": 0.6007142498232244,
+        "cell_cycle_curvature": 0.746874096353359,
+        "microenvironment_bridge": 1.6779577675072814
+      }
+    },
+    {
+      "sample_id": "S194",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.4686733264911347,
+        "stromal_signal": -1.3197321216308389,
+        "proliferation": 0.5547304666707012,
+        "hypoxia": -0.09503637654377001,
+        "metabolic_shift": -0.6978753215747686,
+        "antigen_presentation": 0.5886373459228068,
+        "cell_cycle_curvature": 0.6402110578946384,
+        "microenvironment_bridge": 2.0870598618102645
+      }
+    },
+    {
+      "sample_id": "S195",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.2113159361813082,
+        "stromal_signal": -1.1541217439425029,
+        "proliferation": 0.5939065261936305,
+        "hypoxia": -0.16892789140399905,
+        "metabolic_shift": -0.30306375403921837,
+        "antigen_presentation": 0.47364537440092613,
+        "cell_cycle_curvature": 0.5297011605510045,
+        "microenvironment_bridge": 1.649759069413411
+      }
+    },
+    {
+      "sample_id": "S196",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.31687821880223677,
+        "stromal_signal": -1.5458763275582093,
+        "proliferation": 0.5667939908354489,
+        "hypoxia": -0.2478507415935833,
+        "metabolic_shift": -0.5480081218720664,
+        "antigen_presentation": 0.6462782133007174,
+        "cell_cycle_curvature": 0.8082699440196518,
+        "microenvironment_bridge": 2.1632925030214065
+      }
+    },
+    {
+      "sample_id": "S197",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.528419634546167,
+        "stromal_signal": -1.195812338748136,
+        "proliferation": 0.631158628052452,
+        "hypoxia": -0.01130267314383171,
+        "metabolic_shift": -0.68676156394566,
+        "antigen_presentation": 0.5528265470534004,
+        "cell_cycle_curvature": 0.5852088215303284,
+        "microenvironment_bridge": 2.0507567875004122
+      }
+    },
+    {
+      "sample_id": "S198",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.08767164775336754,
+        "stromal_signal": -1.4088835177683239,
+        "proliferation": 0.6369822565773113,
+        "hypoxia": -0.3119374908055003,
+        "metabolic_shift": -0.15312686615979612,
+        "antigen_presentation": 0.5621470691092482,
+        "cell_cycle_curvature": 0.711176968909575,
+        "microenvironment_bridge": 1.7979143383869525
+      }
+    },
+    {
+      "sample_id": "S199",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.5070516701688941,
+        "stromal_signal": -1.6164724746158434,
+        "proliferation": 0.6371966920731906,
+        "hypoxia": -0.16137284500272228,
+        "metabolic_shift": -0.8507434328727744,
+        "antigen_presentation": 0.7139967888077797,
+        "cell_cycle_curvature": 0.9045675989974191,
+        "microenvironment_bridge": 2.4692675499401537
+      }
+    },
+    {
+      "sample_id": "S200",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.26728398146470306,
+        "stromal_signal": -1.1977271749247969,
+        "proliferation": 0.7200487840889344,
+        "hypoxia": -0.1354965478367324,
+        "metabolic_shift": -0.3256144261996688,
+        "antigen_presentation": 0.49710427332308854,
+        "cell_cycle_curvature": 0.6035653099531468,
+        "microenvironment_bridge": 1.802834265456082
+      }
+    },
+    {
+      "sample_id": "S201",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.04170327358445848,
+        "stromal_signal": -1.7756666756139325,
+        "proliferation": 0.6834386440756043,
+        "hypoxia": -0.4510135526079464,
+        "metabolic_shift": -0.06352411113548954,
+        "antigen_presentation": 0.7054791317433883,
+        "cell_cycle_curvature": 1.029239503211224,
+        "microenvironment_bridge": 2.148510345841937
+      }
+    },
+    {
+      "sample_id": "S202",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.5125796354099897,
+        "stromal_signal": -1.4914601318715819,
+        "proliferation": 0.7429946306642694,
+        "hypoxia": -0.10131824534877235,
+        "metabolic_shift": -0.7541044829335324,
+        "antigen_presentation": 0.6630832270352405,
+        "cell_cycle_curvature": 0.8374314247228127,
+        "microenvironment_bridge": 2.383989020235367
+      }
+    },
+    {
+      "sample_id": "S203",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.13439600073645652,
+        "stromal_signal": -1.4147765257575755,
+        "proliferation": 0.786909737441733,
+        "hypoxia": -0.40799169395273105,
+        "metabolic_shift": 0.22129396128142412,
+        "antigen_presentation": 0.5594129457177432,
+        "cell_cycle_curvature": 0.7540013010814487,
+        "microenvironment_bridge": 1.6191643423250468
+      }
+    },
+    {
+      "sample_id": "S204",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.1858590487746617,
+        "stromal_signal": -1.9497515041072713,
+        "proliferation": 0.7458491639659536,
+        "hypoxia": -0.42418954903082007,
+        "metabolic_shift": -0.3097719956915007,
+        "antigen_presentation": 0.785870911535482,
+        "cell_cycle_curvature": 1.2304111992528481,
+        "microenvironment_bridge": 2.5097558672307443
+      }
+    },
+    {
+      "sample_id": "S205",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.2648711395828119,
+        "stromal_signal": -1.2676409125659853,
+        "proliferation": 0.8501078840750118,
+        "hypoxia": -0.14078618007006588,
+        "metabolic_shift": -0.28187500949684835,
+        "antigen_presentation": 0.522691065202653,
+        "cell_cycle_curvature": 0.6944227198002808,
+        "microenvironment_bridge": 1.9215870644336768
+      }
+    },
+    {
+      "sample_id": "S206",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.3176505428149909,
+        "stromal_signal": -1.7550925027042565,
+        "proliferation": 0.8166551314844773,
+        "hypoxia": -0.6125987155906928,
+        "metabolic_shift": 0.6137928018806695,
+        "antigen_presentation": 0.7093154899802747,
+        "cell_cycle_curvature": 1.0300140674173017,
+        "microenvironment_bridge": 1.7871434121226766
+      }
+    },
+    {
+      "sample_id": "S207",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.22006571999734045,
+        "stromal_signal": -1.649400911293825,
+        "proliferation": 0.8393498109150241,
+        "hypoxia": -0.29267823791368186,
+        "metabolic_shift": -0.28710634513225,
+        "antigen_presentation": 0.6690115536475366,
+        "cell_cycle_curvature": 0.9825370604937753,
+        "microenvironment_bridge": 2.267824611317223
+      }
+    },
+    {
+      "sample_id": "S208",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.007978487592769423,
+        "stromal_signal": -1.3826493640947783,
+        "proliferation": 0.8840100533586387,
+        "hypoxia": -0.3168096445723308,
+        "metabolic_shift": 0.08672925986492683,
+        "antigen_presentation": 0.5459898195191799,
+        "cell_cycle_curvature": 0.7713651962922281,
+        "microenvironment_bridge": 1.7586730173792113
+      }
+    },
+    {
+      "sample_id": "S209",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.020849712301220236,
+        "stromal_signal": -1.7323077869752268,
+        "proliferation": 0.8472206014090835,
+        "hypoxia": -0.42333757971431674,
+        "metabolic_shift": 0.04873369295263568,
+        "antigen_presentation": 0.6866187350637664,
+        "cell_cycle_curvature": 1.0443511908090317,
+        "microenvironment_bridge": 2.1414899801641205
+      }
+    },
+    {
+      "sample_id": "S210",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.33788482610178855,
+        "stromal_signal": -1.356263876130467,
+        "proliferation": 0.889577100618982,
+        "hypoxia": -0.126189309900754,
+        "metabolic_shift": -0.38314446660147045,
+        "antigen_presentation": 0.5688626321312168,
+        "cell_cycle_curvature": 0.7742106353850493,
+        "microenvironment_bridge": 2.1079461075176695
+      }
+    },
+    {
+      "sample_id": "S211",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.06833551133743962,
+        "stromal_signal": -1.3929957502967267,
+        "proliferation": 0.8841642937846617,
+        "hypoxia": -0.35181670099427514,
+        "metabolic_shift": 0.16992253079704833,
+        "antigen_presentation": 0.5496722237005747,
+        "cell_cycle_curvature": 0.775418666079499,
+        "microenvironment_bridge": 1.7041372197864788
+      }
+    },
+    {
+      "sample_id": "S212",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.36946937113539485,
+        "stromal_signal": -1.6100031880643695,
+        "proliferation": 0.8439777177382175,
+        "hypoxia": -0.20070328558907913,
+        "metabolic_shift": -0.5232654805028848,
+        "antigen_presentation": 0.676312131254128,
+        "cell_cycle_curvature": 0.9605449745901435,
+        "microenvironment_bridge": 2.3902787725055346
+      }
+    },
+    {
+      "sample_id": "S213",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.31918580729293294,
+        "stromal_signal": -1.0677151313375435,
+        "proliferation": 0.894840844956063,
+        "hypoxia": -0.0393202002492081,
+        "metabolic_shift": -0.28233271870365945,
+        "antigen_presentation": 0.4507769288794939,
+        "cell_cycle_curvature": 0.5869594476944577,
+        "microenvironment_bridge": 1.788223481184627
+      }
+    },
+    {
+      "sample_id": "S214",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.06972242674853601,
+        "stromal_signal": -1.5300027980957676,
+        "proliferation": 0.8227392459712646,
+        "hypoxia": -0.33414951273777804,
+        "metabolic_shift": -0.04669964878869047,
+        "antigen_presentation": 0.6081185882100683,
+        "cell_cycle_curvature": 0.8673226493260182,
+        "microenvironment_bridge": 1.9740213265476352
+      }
+    },
+    {
+      "sample_id": "S215",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.6660212509439905,
+        "stromal_signal": -1.3013924356874509,
+        "proliferation": 0.8216467387315514,
+        "hypoxia": 0.05376530297859314,
+        "metabolic_shift": -0.8440809477165546,
+        "antigen_presentation": 0.6295674432912607,
+        "cell_cycle_curvature": 0.7302973289030821,
+        "microenvironment_bridge": 2.3809397523445446
+      }
+    },
+    {
+      "sample_id": "S216",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.12943142485748685,
+        "stromal_signal": -1.0562680949778098,
+        "proliferation": 0.8302896569313634,
+        "hypoxia": -0.14436885088697804,
+        "metabolic_shift": -0.1025730950047126,
+        "antigen_presentation": 0.42321756115646947,
+        "cell_cycle_curvature": 0.5494061530623442,
+        "microenvironment_bridge": 1.5466641937131298
+      }
+    },
+    {
+      "sample_id": "S217",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.36711593847930823,
+        "stromal_signal": -1.6488252287736105,
+        "proliferation": 0.7286031613453162,
+        "hypoxia": -0.23187094524774804,
+        "metabolic_shift": -0.584879112792948,
+        "antigen_presentation": 0.6934891739752446,
+        "cell_cycle_curvature": 0.954268684148785,
+        "microenvironment_bridge": 2.385403891292669
+      }
+    },
+    {
+      "sample_id": "S218",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.6076105407332194,
+        "stromal_signal": -1.00087648256992,
+        "proliferation": 0.7741916320564595,
+        "hypoxia": 0.11604072052443429,
+        "metabolic_shift": -0.6180838265642092,
+        "antigen_presentation": 0.49389331841243744,
+        "cell_cycle_curvature": 0.5203883310255879,
+        "microenvironment_bridge": 1.9860933010946358
+      }
+    },
+    {
+      "sample_id": "S219",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.06687991085314224,
+        "stromal_signal": -1.392504654407041,
+        "proliferation": 0.703116747247968,
+        "hypoxia": -0.37762479590264386,
+        "metabolic_shift": 0.08893530963370992,
+        "antigen_presentation": 0.5494474667873591,
+        "cell_cycle_curvature": 0.7128322382889322,
+        "microenvironment_bridge": 1.6379163705579056
+      }
+    },
+    {
+      "sample_id": "S220",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.4324127863786904,
+        "stromal_signal": -1.4543529083996796,
+        "proliferation": 0.6605300562035787,
+        "hypoxia": -0.14312552748093926,
+        "metabolic_shift": -0.6534559326861307,
+        "antigen_presentation": 0.6311323952883037,
+        "cell_cycle_curvature": 0.7747701421480295,
+        "microenvironment_bridge": 2.227713304566671
+      }
+    },
+    {
+      "sample_id": "S221",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.20646356329505983,
+        "stromal_signal": -1.20453024531655,
+        "proliferation": 0.6633647494954995,
+        "hypoxia": -0.17796141657538952,
+        "metabolic_shift": -0.27664992152463597,
+        "antigen_presentation": 0.49221684571136787,
+        "cell_cycle_curvature": 0.5852646213773054,
+        "microenvironment_bridge": 1.7229714511805054
+      }
+    },
+    {
+      "sample_id": "S222",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.0752963717047344,
+        "stromal_signal": -1.631976557024068,
+        "proliferation": 0.5859209216197917,
+        "hypoxia": -0.40008413481783023,
+        "metabolic_shift": -0.1653400467309978,
+        "antigen_presentation": 0.6506745659608193,
+        "cell_cycle_curvature": 0.8706547061556398,
+        "microenvironment_bridge": 1.9985706501646987
+      }
+    },
+    {
+      "sample_id": "S223",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.36475454063703755,
+        "stromal_signal": -1.4042430091169902,
+        "proliferation": 0.5857545647031318,
+        "hypoxia": -0.1729296887374433,
+        "metabolic_shift": -0.5695110515017758,
+        "antigen_presentation": 0.5985422964587556,
+        "cell_cycle_curvature": 0.7066272762919893,
+        "microenvironment_bridge": 2.0742665453300293
+      }
+    },
+    {
+      "sample_id": "S224",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.13136460561119273,
+        "stromal_signal": -1.428649852999452,
+        "proliferation": 0.5662793560794545,
+        "hypoxia": -0.4435927474133736,
+        "metabolic_shift": 0.12298752366080683,
+        "antigen_presentation": 0.5643359698496603,
+        "cell_cycle_curvature": 0.6885158747583694,
+        "microenvironment_bridge": 1.5549453170906327
+      }
+    },
+    {
+      "sample_id": "S225",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.14974262125824497,
+        "stromal_signal": -1.8073862795835887,
+        "proliferation": 0.5008440296169436,
+        "hypoxia": -0.4319652882058199,
+        "metabolic_shift": -0.3454694716172632,
+        "antigen_presentation": 0.7278661800157938,
+        "cell_cycle_curvature": 1.0043513731027554,
+        "microenvironment_bridge": 2.2308524595466013
+      }
+    },
+    {
+      "sample_id": "S226",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.14022145551147633,
+        "stromal_signal": -1.3139332824730034,
+        "proliferation": 0.5473807023292367,
+        "hypoxia": -0.2661122492154402,
+        "metabolic_shift": -0.256763161344127,
+        "antigen_presentation": 0.5296359998204706,
+        "cell_cycle_curvature": 0.615080899551401,
+        "microenvironment_bridge": 1.7223710576243203
+      }
+    },
+    {
+      "sample_id": "S227",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.25421381429992007,
+        "stromal_signal": -1.759790256112383,
+        "proliferation": 0.4897827285340915,
+        "hypoxia": -0.6292212011405589,
+        "metabolic_shift": 0.35474585112214707,
+        "antigen_presentation": 0.7022525157272466,
+        "cell_cycle_curvature": 0.926763540375601,
+        "microenvironment_bridge": 1.7393087537020278
+      }
+    },
+    {
+      "sample_id": "S228",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.33835666206771475,
+        "stromal_signal": -1.682925992043895,
+        "proliferation": 0.49055065621768035,
+        "hypoxia": -0.29340550628827244,
+        "metabolic_shift": -0.6581780670198895,
+        "antigen_presentation": 0.7061115727380456,
+        "cell_cycle_curvature": 0.9006255169699698,
+        "microenvironment_bridge": 2.3013922273877214
+      }
+    },
+    {
+      "sample_id": "S229",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.12262160597684976,
+        "stromal_signal": -1.3245879488998469,
+        "proliferation": 0.5404038904510248,
+        "hypoxia": -0.40825943953686333,
+        "metabolic_shift": 0.0830728655404363,
+        "antigen_presentation": 0.5224987578108832,
+        "cell_cycle_curvature": 0.6054789400665562,
+        "microenvironment_bridge": 1.4460997360555088
+      }
+    },
+    {
+      "sample_id": "S230",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.009371806565533679,
+        "stromal_signal": -1.9458870190199875,
+        "proliferation": 0.4721325485262168,
+        "hypoxia": -0.5556984844130222,
+        "metabolic_shift": -0.10196396823739506,
+        "antigen_presentation": 0.7729518305750532,
+        "cell_cycle_curvature": 1.118643353925262,
+        "microenvironment_bridge": 2.2127582236198067
+      }
+    },
+    {
+      "sample_id": "S231",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.43760834885886424,
+        "stromal_signal": -1.3161854042380687,
+        "proliferation": 0.5560440417626833,
+        "hypoxia": -0.10992386303440788,
+        "metabolic_shift": -0.6531782017012346,
+        "antigen_presentation": 0.5798009472491011,
+        "cell_cycle_curvature": 0.6363743198378679,
+        "microenvironment_bridge": 2.050182143388505
+      }
+    },
+    {
+      "sample_id": "S232",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.21334648036517462,
+        "stromal_signal": -1.5060332829448957,
+        "proliferation": 0.5565173393430045,
+        "hypoxia": -0.5136579834813564,
+        "metabolic_shift": 0.25158992512553735,
+        "antigen_presentation": 0.5983735136074793,
+        "cell_cycle_curvature": 0.7390284138181753,
+        "microenvironment_bridge": 1.5433189253385444
+      }
+    },
+    {
+      "sample_id": "S233",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.34746111821718495,
+        "stromal_signal": -1.6097906568522056,
+        "proliferation": 0.5597457972362089,
+        "hypoxia": -0.25412135807742986,
+        "metabolic_shift": -0.6190329492392409,
+        "antigen_presentation": 0.677437146310514,
+        "cell_cycle_curvature": 0.8613200819017286,
+        "microenvironment_bridge": 2.2605764624798597
+      }
+    },
+    {
+      "sample_id": "S234",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.28545307380534,
+        "stromal_signal": -1.2398495068603141,
+        "proliferation": 0.6292470683454569,
+        "hypoxia": -0.1533905998763069,
+        "metabolic_shift": -0.39646332247604216,
+        "antigen_presentation": 0.5181186712936268,
+        "cell_cycle_curvature": 0.6007597383277532,
+        "microenvironment_bridge": 1.8327767356053355
+      }
+    },
+    {
+      "sample_id": "S235",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.16597991024364395,
+        "stromal_signal": -1.5615218218936195,
+        "proliferation": 0.6190496261422652,
+        "hypoxia": -0.3243162850095319,
+        "metabolic_shift": -0.2897452584423338,
+        "antigen_presentation": 0.630303478684247,
+        "cell_cycle_curvature": 0.8291472986357962,
+        "microenvironment_bridge": 2.035547650641813
+      }
+    },
+    {
+      "sample_id": "S236",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.5789823523663862,
+        "stromal_signal": -1.3263219056566307,
+        "proliferation": 0.6725225115834819,
+        "hypoxia": -0.02209539298029853,
+        "metabolic_shift": -0.80248668783893,
+        "antigen_presentation": 0.6175161189041666,
+        "cell_cycle_curvature": 0.6918028468189864,
+        "microenvironment_bridge": 2.2572474525445867
+      }
+    },
+    {
+      "sample_id": "S237",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.16460749748097972,
+        "stromal_signal": -1.1804311527247102,
+        "proliferation": 0.724336300050077,
+        "hypoxia": -0.18285899153672702,
+        "metabolic_shift": -0.19733846362717725,
+        "antigen_presentation": 0.4770882235889023,
+        "cell_cycle_curvature": 0.5888042957617668,
+        "microenvironment_bridge": 1.6751033862846028
+      }
+    },
+    {
+      "sample_id": "S238",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.39456821634974243,
+        "stromal_signal": -1.5675846037841348,
+        "proliferation": 0.7062399467888144,
+        "hypoxia": -0.19380933820857904,
+        "metabolic_shift": -0.6144179696011031,
+        "antigen_presentation": 0.667055220116371,
+        "cell_cycle_curvature": 0.8792193002544613,
+        "microenvironment_bridge": 2.3219754295084636
+      }
+    },
+    {
+      "sample_id": "S239",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.5041312098282842,
+        "stromal_signal": -1.041566282577157,
+        "proliferation": 0.798239470388405,
+        "hypoxia": 0.05190823968138447,
+        "metabolic_shift": -0.5159617629348868,
+        "antigen_presentation": 0.4809549876197299,
+        "cell_cycle_curvature": 0.5470458838438498,
+        "microenvironment_bridge": 1.9254080995010767
+      }
+    },
+    {
+      "sample_id": "S240",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.013057345991128873,
+        "stromal_signal": -1.38470131288931,
+        "proliferation": 0.7902032808967738,
+        "hypoxia": -0.32033228804224845,
+        "metabolic_shift": 0.017292472609924392,
+        "antigen_presentation": 0.547646291746596,
+        "cell_cycle_curvature": 0.7417834577515812,
+        "microenvironment_bridge": 1.7487475774970116
+      }
+    },
+    {
+      "sample_id": "S241",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.5535574840878392,
+        "stromal_signal": -1.4413982522923832,
+        "proliferation": 0.8043136008283125,
+        "hypoxia": -0.054180857823211,
+        "metabolic_shift": -0.7654562173820642,
+        "antigen_presentation": 0.6523750346800795,
+        "cell_cycle_curvature": 0.8216662183877554,
+        "microenvironment_bridge": 2.3988855776520452
+      }
+    },
+    {
+      "sample_id": "S242",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.12039339518610861,
+        "stromal_signal": -1.0100521262115838,
+        "proliferation": 0.8832607595637355,
+        "hypoxia": -0.12592120495179285,
+        "metabolic_shift": -0.06884641553228918,
+        "antigen_presentation": 0.40359811595595146,
+        "cell_cycle_curvature": 0.5416776755574305,
+        "microenvironment_bridge": 1.5082801563404695
+      }
+    },
+    {
+      "sample_id": "S243",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.029191258930584982,
+        "stromal_signal": -1.6980329496102067,
+        "proliferation": 0.8208664576780001,
+        "hypoxia": -0.4114739971793421,
+        "metabolic_shift": 0.020573975411441136,
+        "antigen_presentation": 0.6733160159211692,
+        "cell_cycle_curvature": 1.0053683112985041,
+        "microenvironment_bridge": 2.104930873696084
+      }
+    },
+    {
+      "sample_id": "S244",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.48225733019767575,
+        "stromal_signal": -1.2212597831328382,
+        "proliferation": 0.8887221899548958,
+        "hypoxia": -0.005889150173315677,
+        "metabolic_shift": -0.5297155194674856,
+        "antigen_presentation": 0.544760548401987,
+        "cell_cycle_curvature": 0.6883090698179345,
+        "microenvironment_bridge": 2.1230408830502294
+      }
+    },
+    {
+      "sample_id": "S245",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.2759543155583365,
+        "stromal_signal": -1.3362774858498567,
+        "proliferation": 0.8924635766872414,
+        "hypoxia": -0.4404161606523853,
+        "metabolic_shift": 0.4326589993444432,
+        "antigen_presentation": 0.5376569246315753,
+        "cell_cycle_curvature": 0.7263562773835395,
+        "microenvironment_bridge": 1.4230048068286123
+      }
+    },
+    {
+      "sample_id": "S246",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.15583446361538472,
+        "stromal_signal": -1.6332841929544433,
+        "proliferation": 0.8579186360008705,
+        "hypoxia": -0.3182008831505222,
+        "metabolic_shift": -0.1707544162974258,
+        "antigen_presentation": 0.6555103471551638,
+        "cell_cycle_curvature": 0.9706144007493216,
+        "microenvironment_bridge": 2.1882911911149745
+      }
+    },
+    {
+      "sample_id": "S247",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.10830264657119083,
+        "stromal_signal": -1.3254309513205453,
+        "proliferation": 0.8953836225499103,
+        "hypoxia": -0.23525406849899924,
+        "metabolic_shift": -0.0651643010262879,
+        "antigen_presentation": 0.5284604981343256,
+        "cell_cycle_curvature": 0.7411824470842336,
+        "microenvironment_bridge": 1.829128224086492
+      }
+    },
+    {
+      "sample_id": "S248",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.1202331562832957,
+        "stromal_signal": -1.687825212307778,
+        "proliferation": 0.8489798914788772,
+        "hypoxia": -0.482142336250133,
+        "metabolic_shift": 0.2809121225223859,
+        "antigen_presentation": 0.668494051083542,
+        "cell_cycle_curvature": 0.9955714881923621,
+        "microenvironment_bridge": 1.9428045860464374
+      }
+    },
+    {
+      "sample_id": "S249",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.30821896096215123,
+        "stromal_signal": -1.6022667363334413,
+        "proliferation": 0.8449940834018619,
+        "hypoxia": -0.2300420725607587,
+        "metabolic_shift": -0.4204470798184073,
+        "antigen_presentation": 0.6625773641490329,
+        "cell_cycle_curvature": 0.9501635466101966,
+        "microenvironment_bridge": 2.3162060515375
+      }
+    },
+    {
+      "sample_id": "S250",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.04855150930198512,
+        "stromal_signal": -1.4129201902859656,
+        "proliferation": 0.8562639910069862,
+        "hypoxia": -0.3522016306063935,
+        "metabolic_shift": 0.13313963226785316,
+        "antigen_presentation": 0.5576232523622002,
+        "cell_cycle_curvature": 0.7815556437580122,
+        "microenvironment_bridge": 1.7360185823775147
+      }
+    },
+    {
+      "sample_id": "S251",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.12493444746002244,
+        "stromal_signal": -1.8756071996556012,
+        "proliferation": 0.779891322155063,
+        "hypoxia": -0.42641520288291207,
+        "metabolic_shift": -0.17009858176097364,
+        "antigen_presentation": 0.7501802687407416,
+        "cell_cycle_curvature": 1.163421583593979,
+        "microenvironment_bridge": 2.3789405380757476
+      }
+    },
+    {
+      "sample_id": "S252",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.40158486697116413,
+        "stromal_signal": -1.3857342741672445,
+        "proliferation": 0.8130804841838376,
+        "hypoxia": -0.11393540253568776,
+        "metabolic_shift": -0.5154426339603939,
+        "antigen_presentation": 0.5940119428043965,
+        "cell_cycle_curvature": 0.7732229857948694,
+        "microenvironment_bridge": 2.179324664903212
+      }
+    },
+    {
+      "sample_id": "S253",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.06807957907762917,
+        "stromal_signal": -1.6102232912844427,
+        "proliferation": 0.764617216891945,
+        "hypoxia": -0.4415154402722662,
+        "metabolic_shift": 0.14537119857302036,
+        "antigen_presentation": 0.6365283315253805,
+        "cell_cycle_curvature": 0.9039545237733677,
+        "microenvironment_bridge": 1.886900957027841
+      }
+    },
+    {
+      "sample_id": "S254",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.5226386512376878,
+        "stromal_signal": -1.7540135943897064,
+        "proliferation": 0.71331505668908,
+        "hypoxia": -0.18767714390077617,
+        "metabolic_shift": -0.9047282979807321,
+        "antigen_presentation": 0.7706449849225799,
+        "cell_cycle_curvature": 1.0550629675009706,
+        "microenvironment_bridge": 2.658121041424054
+      }
+    },
+    {
+      "sample_id": "S255",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.28465805857906523,
+        "stromal_signal": -1.1854760133399547,
+        "proliferation": 0.7539227920574637,
+        "hypoxia": -0.11733004647541548,
+        "metabolic_shift": -0.32970146236170456,
+        "antigen_presentation": 0.49436605898856534,
+        "cell_cycle_curvature": 0.6082943802571008,
+        "microenvironment_bridge": 1.8214517720917478
+      }
+    },
+    {
+      "sample_id": "S256",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.126827815925139,
+        "stromal_signal": -1.7896495010344045,
+        "proliferation": 0.6523728675454485,
+        "hypoxia": -0.41569122132885117,
+        "metabolic_shift": -0.22986128333497663,
+        "antigen_presentation": 0.7171235997770403,
+        "cell_cycle_curvature": 1.0378882382530354,
+        "microenvironment_bridge": 2.2438095915755008
+      }
+    },
+    {
+      "sample_id": "S257",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.7261280694300963,
+        "stromal_signal": -1.3444273933431172,
+        "proliferation": 0.6697002557802814,
+        "hypoxia": 0.048490414116668906,
+        "metabolic_shift": -1.0236272597271991,
+        "antigen_presentation": 0.6719393591626824,
+        "cell_cycle_curvature": 0.7125594643132446,
+        "microenvironment_bridge": 2.434553879034393
+      }
+    },
+    {
+      "sample_id": "S258",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.014892864661559882,
+        "stromal_signal": -1.221084909225721,
+        "proliferation": 0.6620764124644699,
+        "hypoxia": -0.28392391043872045,
+        "metabolic_shift": -0.04620314819822661,
+        "antigen_presentation": 0.48282795071167084,
+        "cell_cycle_curvature": 0.5856124149343772,
+        "microenvironment_bridge": 1.5322057691396678
+      }
+    },
+    {
+      "sample_id": "S259",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.3811625649922379,
+        "stromal_signal": -1.5364586868251149,
+        "proliferation": 0.5933991253755858,
+        "hypoxia": -0.20714541785564689,
+        "metabolic_shift": -0.6344188825025036,
+        "antigen_presentation": 0.654248156342353,
+        "cell_cycle_curvature": 0.8139099272003715,
+        "microenvironment_bridge": 2.232998925906289
+      }
+    },
+    {
+      "sample_id": "S260",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.3906610466273623,
+        "stromal_signal": -1.1529879564128493,
+        "proliferation": 0.6147322777371516,
+        "hypoxia": -0.07160368856333425,
+        "metabolic_shift": -0.5063566269666655,
+        "antigen_presentation": 0.5033285832508282,
+        "cell_cycle_curvature": 0.5451151934796319,
+        "microenvironment_bridge": 1.8506470498360632
+      }
+    },
+    {
+      "sample_id": "S261",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.05690819127685731,
+        "stromal_signal": -1.407186145066149,
+        "proliferation": 0.5662734705804598,
+        "hypoxia": -0.33791635362395905,
+        "metabolic_shift": -0.1410942418004464,
+        "antigen_presentation": 0.5598503272411116,
+        "cell_cycle_curvature": 0.6837680236903874,
+        "microenvironment_bridge": 1.7365285364664982
+      }
+    },
+    {
+      "sample_id": "S262",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.42761260832180864,
+        "stromal_signal": -1.3728507866349058,
+        "proliferation": 0.549719022524543,
+        "hypoxia": -0.1349185805163844,
+        "metabolic_shift": -0.664420980890201,
+        "antigen_presentation": 0.6001666600327215,
+        "cell_cycle_curvature": 0.6746159378505079,
+        "microenvironment_bridge": 2.096192929558911
+      }
+    },
+    {
+      "sample_id": "S263",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.05076777346066296,
+        "stromal_signal": -1.083392272446059,
+        "proliferation": 0.5754924094459666,
+        "hypoxia": -0.2321785484214502,
+        "metabolic_shift": -0.12360846449997277,
+        "antigen_presentation": 0.4301344007196283,
+        "cell_cycle_curvature": 0.47331176065838687,
+        "microenvironment_bridge": 1.3950669653344006
+      }
+    },
+    {
+      "sample_id": "S264",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.03355671854686541,
+        "stromal_signal": -1.5760249481032185,
+        "proliferation": 0.5088616211527517,
+        "hypoxia": -0.4147181846943733,
+        "metabolic_shift": -0.13347426457154826,
+        "antigen_presentation": 0.6262306060548123,
+        "cell_cycle_curvature": 0.7945198912556874,
+        "microenvironment_bridge": 1.8662574470460633
+      }
+    },
+    {
+      "sample_id": "S265",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.3188773209774604,
+        "stromal_signal": -1.1641270693077577,
+        "proliferation": 0.552990868009071,
+        "hypoxia": -0.12199449224095704,
+        "metabolic_shift": -0.4498568194138725,
+        "antigen_presentation": 0.4949978919642811,
+        "cell_cycle_curvature": 0.5272016866115163,
+        "microenvironment_bridge": 1.7615546274759104
+      }
+    },
+    {
+      "sample_id": "S266",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.25801143134090415,
+        "stromal_signal": -1.3198033620327771,
+        "proliferation": 0.5424828859095215,
+        "hypoxia": -0.4772280378664491,
+        "metabolic_shift": 0.25544219849124217,
+        "antigen_presentation": 0.5265335790812872,
+        "cell_cycle_curvature": 0.5954587628050857,
+        "microenvironment_bridge": 1.2951703628277038
+      }
+    },
+    {
+      "sample_id": "S267",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.21469094016197512,
+        "stromal_signal": -1.6409522223823845,
+        "proliferation": 0.5071606132667507,
+        "hypoxia": -0.34173462791109854,
+        "metabolic_shift": -0.4316045897541679,
+        "antigen_presentation": 0.6691996784182233,
+        "cell_cycle_curvature": 0.8608928610934462,
+        "microenvironment_bridge": 2.1297193325262267
+      }
+    },
+    {
+      "sample_id": "S268",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.06618681752042883,
+        "stromal_signal": -1.0880845738245126,
+        "proliferation": 0.5875788584155972,
+        "hypoxia": -0.2238824493934868,
+        "metabolic_shift": -0.13541985876124782,
+        "antigen_presentation": 0.4329293041174365,
+        "cell_cycle_curvature": 0.4809188678349104,
+        "microenvironment_bridge": 1.4211679562606996
+      }
+    },
+    {
+      "sample_id": "S269",
+      "group": "T cell",
+      "features": {
+        "immune_signal": -0.23208727798026113,
+        "stromal_signal": -1.7265888308111854,
+        "proliferation": 0.5310005592193217,
+        "hypoxia": -0.600521428583163,
+        "metabolic_shift": 0.32733564881022437,
+        "antigen_presentation": 0.6877215275687629,
+        "cell_cycle_curvature": 0.9127432220782645,
+        "microenvironment_bridge": 1.743920567385458
+      }
+    },
+    {
+      "sample_id": "S270",
+      "group": "T cell",
+      "features": {
+        "immune_signal": 0.4483205088908208,
+        "stromal_signal": -1.4892220863845769,
+        "proliferation": 0.5741664544574484,
+        "hypoxia": -0.15913781064639998,
+        "metabolic_shift": -0.7304826244254359,
+        "antigen_presentation": 0.650603836147974,
+        "cell_cycle_curvature": 0.7735325572537587,
+        "microenvironment_bridge": 2.2492781980188417
+      }
+    },
+    {
+      "sample_id": "S271",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.40471084416481123,
+        "stromal_signal": -0.6433336150694833,
+        "proliferation": -0.7679900343309721,
+        "hypoxia": -0.5931597995135227,
+        "metabolic_shift": 0.21257615044492645,
+        "antigen_presentation": 0.29286764717783487,
+        "cell_cycle_curvature": -0.1596874766888622,
+        "microenvironment_bridge": -0.10602959171433174
+      }
+    },
+    {
+      "sample_id": "S272",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7586361299953771,
+        "stromal_signal": -0.50392543608111,
+        "proliferation": -0.7658221802254135,
+        "hypoxia": -0.7317677025106611,
+        "metabolic_shift": 0.3108432951622588,
+        "antigen_presentation": 0.313709707778358,
+        "cell_cycle_curvature": -0.21324576789445684,
+        "microenvironment_bridge": -0.6343513494639857
+      }
+    },
+    {
+      "sample_id": "S273",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6071999654386543,
+        "stromal_signal": -0.8021380995272073,
+        "proliferation": -0.8165713515757981,
+        "hypoxia": -0.7590872997505114,
+        "metabolic_shift": 0.4166771185704597,
+        "antigen_presentation": 0.3930559847404192,
+        "cell_cycle_curvature": -0.11929998066605627,
+        "microenvironment_bridge": -0.17760847789625644
+      }
+    },
+    {
+      "sample_id": "S274",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.48148447313716075,
+        "stromal_signal": -0.35078716036366625,
+        "proliferation": -0.7722875309062425,
+        "hypoxia": -0.5367713912353334,
+        "metabolic_shift": 0.10930144759366894,
+        "antigen_presentation": 0.18720648659836442,
+        "cell_cycle_curvature": -0.24814526469133075,
+        "microenvironment_bridge": -0.4964093610745908
+      }
+    },
+    {
+      "sample_id": "S275",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.854380328347991,
+        "stromal_signal": -0.5708969694456661,
+        "proliferation": -0.7987038886605948,
+        "hypoxia": -0.8089905175129316,
+        "metabolic_shift": 0.39766691016400113,
+        "antigen_presentation": 0.36989484120046345,
+        "cell_cycle_curvature": -0.20707079514633459,
+        "microenvironment_bridge": -0.680358666178679
+      }
+    },
+    {
+      "sample_id": "S276",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.3470942852122555,
+        "stromal_signal": -0.5959660978160046,
+        "proliferation": -0.8049733695153063,
+        "hypoxia": -0.5527238511592574,
+        "metabolic_shift": 0.1459212490204861,
+        "antigen_presentation": 0.2661012936189681,
+        "cell_cycle_curvature": -0.18770903916950177,
+        "microenvironment_bridge": -0.10682272626156236
+      }
+    },
+    {
+      "sample_id": "S277",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.60762780889133,
+        "stromal_signal": -0.16490658818432163,
+        "proliferation": -0.7439909858470131,
+        "hypoxia": -0.5368542205209395,
+        "metabolic_shift": 0.039271998541961645,
+        "antigen_presentation": 0.1381722790476978,
+        "cell_cycle_curvature": -0.2711392340664116,
+        "microenvironment_bridge": -0.8167483182900114
+      }
+    },
+    {
+      "sample_id": "S278",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6250942769081353,
+        "stromal_signal": -0.6957339009470771,
+        "proliferation": -0.7958178289270655,
+        "hypoxia": -0.7300329724745528,
+        "metabolic_shift": 0.36806716064412,
+        "antigen_presentation": 0.35482499798970196,
+        "cell_cycle_curvature": -0.15632598962133593,
+        "microenvironment_bridge": -0.3004347976136743
+      }
+    },
+    {
+      "sample_id": "S279",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.1287279490453094,
+        "stromal_signal": -0.26314193824161536,
+        "proliferation": -0.7323539717003815,
+        "hypoxia": -0.31711308417948386,
+        "metabolic_shift": -0.009899360494957668,
+        "antigen_presentation": 0.11887468964562824,
+        "cell_cycle_curvature": -0.24622035959383345,
+        "microenvironment_bridge": -0.19088667499724649
+      }
+    },
+    {
+      "sample_id": "S280",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7007743968253469,
+        "stromal_signal": -0.2901984389719904,
+        "proliferation": -0.7096484391214419,
+        "hypoxia": -0.6221699189667609,
+        "metabolic_shift": 0.14972289239290823,
+        "antigen_presentation": 0.21272444873565038,
+        "cell_cycle_curvature": -0.241713151828216,
+        "microenvironment_bridge": -0.7740362697370615
+      }
+    },
+    {
+      "sample_id": "S281",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.19069273512936952,
+        "stromal_signal": -0.717369297513732,
+        "proliferation": -0.7417922215737415,
+        "hypoxia": -0.5018713000426046,
+        "metabolic_shift": 0.10384285605051635,
+        "antigen_presentation": 0.302752687650331,
+        "cell_cycle_curvature": -0.1151973500707551,
+        "microenvironment_bridge": 0.21294723964167522
+      }
+    },
+    {
+      "sample_id": "S282",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.19961044450856036,
+        "stromal_signal": -0.052726147068355794,
+        "proliferation": -0.6350754117582629,
+        "hypoxia": -0.26993307071184797,
+        "metabolic_shift": -0.007574044299572397,
+        "antigen_presentation": 0.03747666722642611,
+        "cell_cycle_curvature": -0.24095177822549887,
+        "microenvironment_bridge": -0.4513394888876095
+      }
+    },
+    {
+      "sample_id": "S283",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6383918959844076,
+        "stromal_signal": -0.6768630410955025,
+        "proliferation": -0.6767997887036218,
+        "hypoxia": -0.7131487555775559,
+        "metabolic_shift": 0.4068309395509311,
+        "antigen_presentation": 0.35330175671242814,
+        "cell_cycle_curvature": -0.12256328506402138,
+        "microenvironment_bridge": -0.29032386823464096
+      }
+    },
+    {
+      "sample_id": "S284",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.11798672502856376,
+        "stromal_signal": -0.5113974210223149,
+        "proliferation": -0.631729251927508,
+        "hypoxia": -0.3791234521298281,
+        "metabolic_shift": 0.058827725159106545,
+        "antigen_presentation": 0.21822015489397226,
+        "cell_cycle_curvature": -0.14922840288067038,
+        "microenvironment_bridge": 0.11747564322662152
+      }
+    },
+    {
+      "sample_id": "S285",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4206637284279968,
+        "stromal_signal": -0.37472880775465156,
+        "proliferation": -0.5818329477874562,
+        "hypoxia": -0.48476991262406016,
+        "metabolic_shift": 0.16443919772764573,
+        "antigen_presentation": 0.19002807523595883,
+        "cell_cycle_curvature": -0.1753899142388569,
+        "microenvironment_bridge": -0.3347154295391452
+      }
+    },
+    {
+      "sample_id": "S286",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.36108323713744567,
+        "stromal_signal": -0.7866901093419217,
+        "proliferation": -0.6017520207378968,
+        "hypoxia": -0.5934125725635737,
+        "metabolic_shift": 0.30449517329925624,
+        "antigen_presentation": 0.34681231985974836,
+        "cell_cycle_curvature": -0.043009084958859994,
+        "microenvironment_bridge": 0.15277489904516167
+      }
+    },
+    {
+      "sample_id": "S287",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.1917412456042184,
+        "stromal_signal": -0.4465478263675344,
+        "proliferation": -0.5338419477479378,
+        "hypoxia": -0.38172570364844677,
+        "metabolic_shift": 0.11586448013691952,
+        "antigen_presentation": 0.19538317131431665,
+        "cell_cycle_curvature": -0.13591877700307023,
+        "microenvironment_bridge": 0.00619507050767365
+      }
+    },
+    {
+      "sample_id": "S288",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6668545236064,
+        "stromal_signal": -0.6584587745075992,
+        "proliferation": -0.528189038703378,
+        "hypoxia": -0.6999876022313097,
+        "metabolic_shift": 0.4643457741758299,
+        "antigen_presentation": 0.3569835567593452,
+        "cell_cycle_curvature": -0.07858143512519945,
+        "microenvironment_bridge": -0.2851599213876691
+      }
+    },
+    {
+      "sample_id": "S289",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.27073376899646096,
+        "stromal_signal": -0.8538268614591562,
+        "proliferation": -0.5318769965243386,
+        "hypoxia": -0.5581127222468815,
+        "metabolic_shift": 0.28356574460969464,
+        "antigen_presentation": 0.3645269164532284,
+        "cell_cycle_curvature": 0.015154771054168792,
+        "microenvironment_bridge": 0.346774112762674
+      }
+    },
+    {
+      "sample_id": "S290",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5204744832883385,
+        "stromal_signal": -0.41264401373905246,
+        "proliferation": -0.45661995171970104,
+        "hypoxia": -0.5311223816318404,
+        "metabolic_shift": 0.26098067265775127,
+        "antigen_presentation": 0.22532389502943095,
+        "cell_cycle_curvature": -0.12469581085310871,
+        "microenvironment_bridge": -0.35672646823506804
+      }
+    },
+    {
+      "sample_id": "S291",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7418602026492476,
+        "stromal_signal": -0.9595387207033912,
+        "proliferation": -0.504420034533925,
+        "hypoxia": -0.8357803478481216,
+        "metabolic_shift": 0.7572157697958439,
+        "antigen_presentation": 0.500374709255382,
+        "cell_cycle_curvature": 0.058126132812028164,
+        "microenvironment_bridge": -0.04309280406224955
+      }
+    },
+    {
+      "sample_id": "S292",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.2531195861950077,
+        "stromal_signal": -0.6379399838327862,
+        "proliferation": -0.4594864253950386,
+        "hypoxia": -0.4664689756788082,
+        "metabolic_shift": 0.228220385306287,
+        "antigen_presentation": 0.27700863051281605,
+        "cell_cycle_curvature": -0.050146847091701724,
+        "microenvironment_bridge": 0.16724891374761428
+      }
+    },
+    {
+      "sample_id": "S293",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.8703905731647256,
+        "stromal_signal": -0.5202623098243271,
+        "proliferation": -0.4333920467580145,
+        "hypoxia": -0.7466043177058712,
+        "metabolic_shift": 0.4846403978794832,
+        "antigen_presentation": 0.3676668284075815,
+        "cell_cycle_curvature": -0.09555394026167524,
+        "microenvironment_bridge": -0.6148340043765101
+      }
+    },
+    {
+      "sample_id": "S294",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5115714960168289,
+        "stromal_signal": -1.0136701660994207,
+        "proliferation": -0.4951591559395201,
+        "hypoxia": -0.731862610579509,
+        "metabolic_shift": 0.5873277720050599,
+        "antigen_presentation": 0.46461421642429107,
+        "cell_cycle_curvature": 0.09956787664037783,
+        "microenvironment_bridge": 0.26642791571314745
+      }
+    },
+    {
+      "sample_id": "S295",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.38898066980793455,
+        "stromal_signal": -0.2925064783959137,
+        "proliferation": -0.41409620631703187,
+        "hypoxia": -0.41609781263378287,
+        "metabolic_shift": 0.17295111305438643,
+        "antigen_presentation": 0.15475124442237995,
+        "cell_cycle_curvature": -0.1337005888043183,
+        "microenvironment_bridge": -0.3239356790063666
+      }
+    },
+    {
+      "sample_id": "S296",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.9272458601179286,
+        "stromal_signal": -0.7463334844729151,
+        "proliferation": -0.4727502740290071,
+        "hypoxia": -0.8572940961378717,
+        "metabolic_shift": 0.7169595880950044,
+        "antigen_presentation": 0.4787188633957247,
+        "cell_cycle_curvature": -0.033975445732033746,
+        "microenvironment_bridge": -0.45491446653682155
+      }
+    },
+    {
+      "sample_id": "S297",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.3490058654697028,
+        "stromal_signal": -0.6149684536852869,
+        "proliferation": -0.4766921831256396,
+        "hypoxia": -0.5115651028997988,
+        "metabolic_shift": 0.27204888964331037,
+        "antigen_presentation": 0.27791396758907244,
+        "cell_cycle_curvature": -0.06715636246880058,
+        "microenvironment_bridge": 0.03295923245208057
+      }
+    },
+    {
+      "sample_id": "S298",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5443171983840258,
+        "stromal_signal": -0.33243438235251294,
+        "proliferation": -0.45945206667353006,
+        "hypoxia": -0.5173681242029176,
+        "metabolic_shift": 0.2206037072344767,
+        "antigen_presentation": 0.19794480341789483,
+        "cell_cycle_curvature": -0.1440925775500706,
+        "microenvironment_bridge": -0.4674009576003707
+      }
+    },
+    {
+      "sample_id": "S299",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4938601701449942,
+        "stromal_signal": -0.6774099717914285,
+        "proliferation": -0.5237223509570059,
+        "hypoxia": -0.6150769066013028,
+        "metabolic_shift": 0.3731590752324861,
+        "antigen_presentation": 0.32530265876330033,
+        "cell_cycle_curvature": -0.06489971109117715,
+        "microenvironment_bridge": -0.07625243313570026
+      }
+    },
+    {
+      "sample_id": "S300",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.1685471451797555,
+        "stromal_signal": -0.30816689693604793,
+        "proliferation": -0.508129397976527,
+        "hypoxia": -0.31980748006357673,
+        "metabolic_shift": 0.08408212971129075,
+        "antigen_presentation": 0.13889946251771373,
+        "cell_cycle_curvature": -0.15986042154008961,
+        "microenvironment_bridge": -0.10366898442501254
+      }
+    },
+    {
+      "sample_id": "S301",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5808015088403783,
+        "stromal_signal": -0.36271037771458436,
+        "proliferation": -0.5387767054209854,
+        "hypoxia": -0.5582377269828399,
+        "metabolic_shift": 0.22357017226884984,
+        "antigen_presentation": 0.21640248238960672,
+        "cell_cycle_curvature": -0.1659583228593319,
+        "microenvironment_bridge": -0.5047884254901118
+      }
+    },
+    {
+      "sample_id": "S302",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.1629211878339801,
+        "stromal_signal": -0.6072427867763562,
+        "proliferation": -0.6018495227677558,
+        "hypoxia": -0.4300785436749413,
+        "metabolic_shift": 0.11271107223328578,
+        "antigen_presentation": 0.25803498218569243,
+        "cell_cycle_curvature": -0.10806693811448875,
+        "microenvironment_bridge": 0.18001050560413545
+      }
+    },
+    {
+      "sample_id": "S303",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.24525176212619315,
+        "stromal_signal": -0.10016580976786942,
+        "proliferation": -0.5707279717720904,
+        "hypoxia": -0.3000844047413118,
+        "metabolic_shift": 0.027734510010711807,
+        "antigen_presentation": 0.05983013943670091,
+        "cell_cycle_curvature": -0.2145619508125088,
+        "microenvironment_bridge": -0.42732532171325477
+      }
+    },
+    {
+      "sample_id": "S304",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5359346007189201,
+        "stromal_signal": -0.6027435807690372,
+        "proliferation": -0.6586857414913845,
+        "hypoxia": -0.6322176346356149,
+        "metabolic_shift": 0.3075677805414044,
+        "antigen_presentation": 0.3008640125540838,
+        "cell_cycle_curvature": -0.13975844163440232,
+        "microenvironment_bridge": -0.24999746163606557
+      }
+    },
+    {
+      "sample_id": "S305",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": 0.013826033266005,
+        "stromal_signal": -0.41650965522773586,
+        "proliferation": -0.671097727311015,
+        "hypoxia": -0.28441402261487736,
+        "metabolic_shift": -0.02790269204206019,
+        "antigen_presentation": 0.18173538914674453,
+        "cell_cycle_curvature": -0.18735584442299275,
+        "microenvironment_bridge": 0.1465531801820234
+      }
+    },
+    {
+      "sample_id": "S306",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5702284845314809,
+        "stromal_signal": -0.21269362121252833,
+        "proliferation": -0.6687086069724061,
+        "hypoxia": -0.5220414183798973,
+        "metabolic_shift": 0.08729585535158847,
+        "antigen_presentation": 0.15080773138562795,
+        "cell_cycle_curvature": -0.23820518149501022,
+        "microenvironment_bridge": -0.6983272294643501
+      }
+    },
+    {
+      "sample_id": "S307",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.37642186241553005,
+        "stromal_signal": -0.8424112670018807,
+        "proliferation": -0.7712064633546611,
+        "hypoxia": -0.6449775064392074,
+        "metabolic_shift": 0.2752834095491781,
+        "antigen_presentation": 0.36898010193999237,
+        "cell_cycle_curvature": -0.07706140805915801,
+        "microenvironment_bridge": 0.13138402839119384
+      }
+    },
+    {
+      "sample_id": "S308",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.1720139089972251,
+        "stromal_signal": -0.22470176878150314,
+        "proliferation": -0.7207874891887486,
+        "hypoxia": -0.3252888890671467,
+        "metabolic_shift": -0.0018398108619294973,
+        "antigen_presentation": 0.10472850018695655,
+        "cell_cycle_curvature": -0.24957750533578466,
+        "microenvironment_bridge": -0.27364583434896206
+      }
+    },
+    {
+      "sample_id": "S309",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.871305623105111,
+        "stromal_signal": -0.6373893221355937,
+        "proliferation": -0.7813864130450638,
+        "hypoxia": -0.8373865913199215,
+        "metabolic_shift": 0.4712703837876914,
+        "antigen_presentation": 0.4031057090520451,
+        "cell_cycle_curvature": -0.17969543784839076,
+        "microenvironment_bridge": -0.6228047231583431
+      }
+    },
+    {
+      "sample_id": "S310",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.3830796179335797,
+        "stromal_signal": -0.7095434468079036,
+        "proliferation": -0.8080543812286867,
+        "hypoxia": -0.609753737793388,
+        "metabolic_shift": 0.211905665962848,
+        "antigen_presentation": 0.3160104371037234,
+        "cell_cycle_curvature": -0.14758625072682727,
+        "microenvironment_bridge": -0.02831773106061325
+      }
+    },
+    {
+      "sample_id": "S311",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6051926707745863,
+        "stromal_signal": -0.45850302995251396,
+        "proliferation": -0.7842685411473895,
+        "hypoxia": -0.6390834620924029,
+        "metabolic_shift": 0.20995181904207466,
+        "antigen_presentation": 0.2549437001837227,
+        "cell_cycle_curvature": -0.22873488319584484,
+        "microenvironment_bridge": -0.5223885444492915
+      }
+    },
+    {
+      "sample_id": "S312",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7178480725830372,
+        "stromal_signal": -0.8732994094345308,
+        "proliferation": -0.8363384703606446,
+        "hypoxia": -0.843566787568867,
+        "metabolic_shift": 0.5432108044541992,
+        "antigen_presentation": 0.4490794610561135,
+        "cell_cycle_curvature": -0.0979444434820465,
+        "microenvironment_bridge": -0.2305146127493179
+      }
+    },
+    {
+      "sample_id": "S313",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.39680760015984773,
+        "stromal_signal": -0.6224298244535714,
+        "proliferation": -0.8074991970263478,
+        "hypoxia": -0.5879110242262423,
+        "metabolic_shift": 0.18461284536176648,
+        "antigen_presentation": 0.28284427641109683,
+        "cell_cycle_curvature": -0.18071347610605126,
+        "microenvironment_bridge": -0.1339852446044989
+      }
+    },
+    {
+      "sample_id": "S314",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.851108482309823,
+        "stromal_signal": -0.6149438662055973,
+        "proliferation": -0.795282297101997,
+        "hypoxia": -0.8214086971141896,
+        "metabolic_shift": 0.4358854159240182,
+        "antigen_presentation": 0.3867088343366043,
+        "cell_cycle_curvature": -0.19158177818494343,
+        "microenvironment_bridge": -0.6295305234959068
+      }
+    },
+    {
+      "sample_id": "S315",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5217458872364948,
+        "stromal_signal": -0.9554129794153957,
+        "proliferation": -0.8274033724402852,
+        "hypoxia": -0.7668889072901806,
+        "metabolic_shift": 0.4332185033306634,
+        "antigen_presentation": 0.4366662170549748,
+        "cell_cycle_curvature": -0.046676033370999126,
+        "microenvironment_bridge": 0.07107166866323478
+      }
+    },
+    {
+      "sample_id": "S316",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4809809990300183,
+        "stromal_signal": -0.42017390886528055,
+        "proliferation": -0.7470721239627953,
+        "hypoxia": -0.5558405001419644,
+        "metabolic_shift": 0.15262811965889575,
+        "antigen_presentation": 0.2154530919037595,
+        "cell_cycle_curvature": -0.22312774955484768,
+        "microenvironment_bridge": -0.41401147538420374
+      }
+    },
+    {
+      "sample_id": "S317",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.8276990232246636,
+        "stromal_signal": -0.823840465142204,
+        "proliferation": -0.7715684378776851,
+        "hypoxia": -0.8750666021344357,
+        "metabolic_shift": 0.6113153510792809,
+        "antigen_presentation": 0.46414165722954354,
+        "cell_cycle_curvature": -0.10192746490028001,
+        "microenvironment_bridge": -0.3771388933818198
+      }
+    },
+    {
+      "sample_id": "S318",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.19433980166348766,
+        "stromal_signal": -0.7075205931777362,
+        "proliferation": -0.7395481903392611,
+        "hypoxia": -0.5001763514132356,
+        "metabolic_shift": 0.10504864474768352,
+        "antigen_presentation": 0.2989945718473529,
+        "cell_cycle_curvature": -0.1185618991034689,
+        "microenvironment_bridge": 0.19954144602961532
+      }
+    },
+    {
+      "sample_id": "S319",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6251675515644075,
+        "stromal_signal": -0.315390356900747,
+        "proliferation": -0.6613836008608042,
+        "hypoxia": -0.5838400660646177,
+        "metabolic_shift": 0.16527356984036018,
+        "antigen_presentation": 0.20481603004032717,
+        "cell_cycle_curvature": -0.21910965199427404,
+        "microenvironment_bridge": -0.6478584220268211
+      }
+    },
+    {
+      "sample_id": "S320",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.47637310458791116,
+        "stromal_signal": -0.9110598575024499,
+        "proliferation": -0.705266094190178,
+        "hypoxia": -0.7103677212699024,
+        "metabolic_shift": 0.41668169509021874,
+        "antigen_presentation": 0.41276017571054796,
+        "cell_cycle_curvature": -0.025052256542131,
+        "microenvironment_bridge": 0.1192964991057886
+      }
+    },
+    {
+      "sample_id": "S321",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.04614402803879146,
+        "stromal_signal": -0.2657751888821211,
+        "proliferation": -0.6017194419437606,
+        "hypoxia": -0.25547292650212283,
+        "metabolic_shift": 0.009821840982304254,
+        "antigen_presentation": 0.11971618324430003,
+        "cell_cycle_curvature": -0.19895057515212874,
+        "microenvironment_bridge": -0.05010127564641009
+      }
+    },
+    {
+      "sample_id": "S322",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7099866206138806,
+        "stromal_signal": -0.45121604449778946,
+        "proliferation": -0.5870122577533532,
+        "hypoxia": -0.6623866072249989,
+        "metabolic_shift": 0.31187176584163945,
+        "antigen_presentation": 0.2835875206225726,
+        "cell_cycle_curvature": -0.16420035627810203,
+        "microenvironment_bridge": -0.5702428951887574
+      }
+    },
+    {
+      "sample_id": "S323",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.17562822323217278,
+        "stromal_signal": -0.5620356838441883,
+        "proliferation": -0.5753905934623044,
+        "hypoxia": -0.41780128763997126,
+        "metabolic_shift": 0.11992693820886531,
+        "antigen_presentation": 0.24060556433970187,
+        "cell_cycle_curvature": -0.11482950334019443,
+        "microenvironment_bridge": 0.1288516407409943
+      }
+    },
+    {
+      "sample_id": "S324",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.27506572186676936,
+        "stromal_signal": -0.21006432444882528,
+        "proliferation": -0.503553256587964,
+        "hypoxia": -0.34228784230720327,
+        "metabolic_shift": 0.08636515322163395,
+        "antigen_presentation": 0.10697004630741411,
+        "cell_cycle_curvature": -0.1774776493146117,
+        "microenvironment_bridge": -0.3198660608510868
+      }
+    },
+    {
+      "sample_id": "S325",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4393528758835705,
+        "stromal_signal": -0.5592426459387234,
+        "proliferation": -0.5174608951394617,
+        "hypoxia": -0.5463575198546916,
+        "metabolic_shift": 0.28260689255641486,
+        "antigen_presentation": 0.26820025870718045,
+        "cell_cycle_curvature": -0.10252778120499055,
+        "microenvironment_bridge": -0.13830031410313914
+      }
+    },
+    {
+      "sample_id": "S326",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.07428229334305471,
+        "stromal_signal": -0.359010061256629,
+        "proliferation": -0.4735122326220059,
+        "hypoxia": -0.2822503131831247,
+        "metabolic_shift": 0.0718718291865725,
+        "antigen_presentation": 0.15688512718301237,
+        "cell_cycle_curvature": -0.1348852337579521,
+        "microenvironment_bridge": 0.06444923263299351
+      }
+    },
+    {
+      "sample_id": "S327",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5351758522569563,
+        "stromal_signal": -0.25292763907310706,
+        "proliferation": -0.4365988733130398,
+        "hypoxia": -0.48279034001942855,
+        "metabolic_shift": 0.17871926257248621,
+        "antigen_presentation": 0.1644906597090864,
+        "cell_cycle_curvature": -0.15062335300857257,
+        "microenvironment_bridge": -0.5320549754458948
+      }
+    },
+    {
+      "sample_id": "S328",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.3459561464276848,
+        "stromal_signal": -0.6817627842843762,
+        "proliferation": -0.4743529069234014,
+        "hypoxia": -0.5318179007479369,
+        "metabolic_shift": 0.29816003221736276,
+        "antigen_presentation": 0.30437451492385437,
+        "cell_cycle_curvature": -0.041587240762630484,
+        "microenvironment_bridge": 0.10690635570612222
+      }
+    },
+    {
+      "sample_id": "S329",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.26757248781763365,
+        "stromal_signal": -0.19620753579243824,
+        "proliferation": -0.4059997912018036,
+        "hypoxia": -0.3193568308040343,
+        "metabolic_shift": 0.11159884543791093,
+        "antigen_presentation": 0.10162182374495086,
+        "cell_cycle_curvature": -0.14544058768427254,
+        "microenvironment_bridge": -0.2899663121097801
+      }
+    },
+    {
+      "sample_id": "S330",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7774184255595312,
+        "stromal_signal": -0.5756015684520865,
+        "proliferation": -0.44078980158906456,
+        "hypoxia": -0.7174215911336891,
+        "metabolic_shift": 0.48950411210095185,
+        "antigen_presentation": 0.35834630761047226,
+        "cell_cycle_curvature": -0.07929190207248582,
+        "microenvironment_bridge": -0.4590344728329827
+      }
+    },
+    {
+      "sample_id": "S331",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.24164354291031695,
+        "stromal_signal": -0.6616959538077105,
+        "proliferation": -0.45558647995045176,
+        "hypoxia": -0.46778001216301807,
+        "metabolic_shift": 0.22962920019771374,
+        "antigen_presentation": 0.2855981163923751,
+        "cell_cycle_curvature": -0.039566674447684136,
+        "microenvironment_bridge": 0.20594879213045578
+      }
+    },
+    {
+      "sample_id": "S332",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6652045146478052,
+        "stromal_signal": -0.25075163214751156,
+        "proliferation": -0.4067131045999319,
+        "hypoxia": -0.5457136938802852,
+        "metabolic_shift": 0.21102523303593657,
+        "antigen_presentation": 0.19539674611152338,
+        "cell_cycle_curvature": -0.14222839003847787,
+        "microenvironment_bridge": -0.6641160511517574
+      }
+    },
+    {
+      "sample_id": "S333",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7335735816911092,
+        "stromal_signal": -0.9486829473984152,
+        "proliferation": -0.49936894950835553,
+        "hypoxia": -0.8270899835774195,
+        "metabolic_shift": 0.7433045187539566,
+        "antigen_presentation": 0.49366274372664615,
+        "cell_cycle_curvature": 0.05471183349870831,
+        "microenvironment_bridge": -0.043576397366683894
+      }
+    },
+    {
+      "sample_id": "S334",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.24681289497404701,
+        "stromal_signal": -0.4707350233799084,
+        "proliferation": -0.46102720122779156,
+        "hypoxia": -0.4078364180910604,
+        "metabolic_shift": 0.1726248645644539,
+        "antigen_presentation": 0.2094066544795636,
+        "cell_cycle_curvature": -0.10506124800763152,
+        "microenvironment_bridge": -0.0011518090660140312
+      }
+    },
+    {
+      "sample_id": "S335",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.9638754574360697,
+        "stromal_signal": -0.5736048626312571,
+        "proliferation": -0.4851921482968544,
+        "hypoxia": -0.8209093734907857,
+        "metabolic_shift": 0.5590561077411569,
+        "antigen_presentation": 0.42262742718789265,
+        "cell_cycle_curvature": -0.09999144245527262,
+        "microenvironment_bridge": -0.6796608884850625
+      }
+    },
+    {
+      "sample_id": "S336",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.48759845325554385,
+        "stromal_signal": -0.8484514106052097,
+        "proliferation": -0.5452763715827289,
+        "hypoxia": -0.6718158652861899,
+        "metabolic_shift": 0.45412515517626845,
+        "antigen_presentation": 0.39251883949179744,
+        "cell_cycle_curvature": -0.0001534351213791918,
+        "microenvironment_bridge": 0.10119156161229537
+      }
+    },
+    {
+      "sample_id": "S337",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.49172860274405544,
+        "stromal_signal": -0.5101178890133913,
+        "proliferation": -0.530343527866519,
+        "hypoxia": -0.5593508959940368,
+        "metabolic_shift": 0.278453722023476,
+        "antigen_presentation": 0.2574786524965295,
+        "cell_cycle_curvature": -0.12342840785505542,
+        "microenvironment_bridge": -0.2511562899406246
+      }
+    },
+    {
+      "sample_id": "S338",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6822581336380361,
+        "stromal_signal": -0.8360044313909315,
+        "proliferation": -0.5957629679419645,
+        "hypoxia": -0.7770230198190597,
+        "metabolic_shift": 0.5788664614298283,
+        "antigen_presentation": 0.4308904633927472,
+        "cell_cycle_curvature": -0.03044268640166567,
+        "microenvironment_bridge": -0.14150047596401044
+      }
+    },
+    {
+      "sample_id": "S339",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.22497140655860204,
+        "stromal_signal": -0.7106298431281615,
+        "proliferation": -0.6148740676220432,
+        "hypoxia": -0.4988334522290074,
+        "metabolic_shift": 0.17376748764998637,
+        "antigen_presentation": 0.3027668307703109,
+        "cell_cycle_curvature": -0.07506342452151821,
+        "microenvironment_bridge": 0.2159322325514439
+      }
+    },
+    {
+      "sample_id": "S340",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5649582101088922,
+        "stromal_signal": -0.4811001499002244,
+        "proliferation": -0.6145985175443466,
+        "hypoxia": -0.600479455912444,
+        "metabolic_shift": 0.2652466086585681,
+        "antigen_presentation": 0.2588946406988332,
+        "cell_cycle_curvature": -0.16270748798148627,
+        "microenvironment_bridge": -0.392130177170524
+      }
+    },
+    {
+      "sample_id": "S341",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.38844357576317606,
+        "stromal_signal": -0.9061821517612842,
+        "proliferation": -0.6977203248942432,
+        "hypoxia": -0.6616089013637063,
+        "metabolic_shift": 0.34058291649906774,
+        "antigen_presentation": 0.39716347658542966,
+        "cell_cycle_curvature": -0.021370030053469186,
+        "microenvironment_bridge": 0.21228319932823836
+      }
+    },
+    {
+      "sample_id": "S342",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.12288282855747629,
+        "stromal_signal": -0.38401474583541956,
+        "proliferation": -0.6670356376163135,
+        "hypoxia": -0.3445725935525742,
+        "metabolic_shift": 0.028723283800885263,
+        "antigen_presentation": 0.1672639396160635,
+        "cell_cycle_curvature": -0.1971459005538081,
+        "microenvironment_bridge": -0.034014579867148675
+      }
+    },
+    {
+      "sample_id": "S343",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6167411805208497,
+        "stromal_signal": -0.5838407017825041,
+        "proliferation": -0.7138599562099809,
+        "hypoxia": -0.676379074327825,
+        "metabolic_shift": 0.31969256068267127,
+        "antigen_presentation": 0.30971453378553365,
+        "cell_cycle_curvature": -0.1673827725499225,
+        "microenvironment_bridge": -0.3778078846793921
+      }
+    },
+    {
+      "sample_id": "S344",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.061024932598568525,
+        "stromal_signal": -0.7123424139072665,
+        "proliferation": -0.759566183226341,
+        "hypoxia": -0.4349550346002359,
+        "metabolic_shift": 0.001901822672807786,
+        "antigen_presentation": 0.29829303451673406,
+        "cell_cycle_curvature": -0.11915452774462601,
+        "microenvironment_bridge": 0.3415944510523606
+      }
+    },
+    {
+      "sample_id": "S345",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.3414559879267465,
+        "stromal_signal": -0.13893381708856173,
+        "proliferation": -0.7096617074218932,
+        "hypoxia": -0.3838359665872687,
+        "metabolic_shift": 0.00738710211830837,
+        "antigen_presentation": 0.08310946499399634,
+        "cell_cycle_curvature": -0.2597059642127058,
+        "microenvironment_bridge": -0.5427059504539609
+      }
+    },
+    {
+      "sample_id": "S346",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.5450830742666953,
+        "stromal_signal": -0.7489276078492579,
+        "proliferation": -0.7985257418384749,
+        "hypoxia": -0.7062288116250368,
+        "metabolic_shift": 0.3465930394859342,
+        "antigen_presentation": 0.3587167933119936,
+        "cell_cycle_curvature": -0.13354587161019987,
+        "microenvironment_bridge": -0.15917761769799044
+      }
+    },
+    {
+      "sample_id": "S347",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": 0.009525901270767453,
+        "stromal_signal": -0.3197092198129943,
+        "proliferation": -0.7654783053335916,
+        "hypoxia": -0.26843591136941164,
+        "metabolic_shift": -0.06000122989057617,
+        "antigen_presentation": 0.14328094237836195,
+        "cell_cycle_curvature": -0.24398026458357058,
+        "microenvironment_bridge": 0.0057003310600377555
+      }
+    },
+    {
+      "sample_id": "S348",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7409201178487443,
+        "stromal_signal": -0.22130934067733193,
+        "proliferation": -0.7547368118412838,
+        "hypoxia": -0.6269500236200614,
+        "metabolic_shift": 0.09120945885473206,
+        "antigen_presentation": 0.19485675151972998,
+        "cell_cycle_curvature": -0.2689358867509497,
+        "microenvironment_bridge": -0.9062550257477124
+      }
+    },
+    {
+      "sample_id": "S349",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4045032875007945,
+        "stromal_signal": -0.5686817214720492,
+        "proliferation": -0.8028196725247486,
+        "hypoxia": -0.5733886374562197,
+        "metabolic_shift": 0.1677719108572165,
+        "antigen_presentation": 0.2623696747351741,
+        "cell_cycle_curvature": -0.19768843465155922,
+        "microenvironment_bridge": -0.19673004701256147
+      }
+    },
+    {
+      "sample_id": "S350",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4124933382202997,
+        "stromal_signal": -0.22188798640415408,
+        "proliferation": -0.7591027414269585,
+        "hypoxia": -0.45588263189468664,
+        "metabolic_shift": 0.035941521626669616,
+        "antigen_presentation": 0.12479800564356819,
+        "cell_cycle_curvature": -0.2664765624903641,
+        "microenvironment_bridge": -0.5514004673584239
+      }
+    },
+    {
+      "sample_id": "S351",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7495263159784142,
+        "stromal_signal": -0.514747143502527,
+        "proliferation": -0.783850174541413,
+        "hypoxia": -0.7332572961892304,
+        "metabolic_shift": 0.3092372513704807,
+        "antigen_presentation": 0.3148858805054238,
+        "cell_cycle_curvature": -0.21622395956218804,
+        "microenvironment_bridge": -0.619875905334758
+      }
+    },
+    {
+      "sample_id": "S352",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.36739275909898816,
+        "stromal_signal": -0.5182442422544333,
+        "proliferation": -0.7758494190766193,
+        "hypoxia": -0.5332225398222614,
+        "metabolic_shift": 0.13732885815198187,
+        "antigen_presentation": 0.23763380314611793,
+        "cell_cycle_curvature": -0.20334891845420638,
+        "microenvironment_bridge": -0.1991818113172376
+      }
+    },
+    {
+      "sample_id": "S353",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7189947317130934,
+        "stromal_signal": -0.26306397769642687,
+        "proliferation": -0.7251833069400775,
+        "hypoxia": -0.6249843466139495,
+        "metabolic_shift": 0.12842023925636664,
+        "antigen_presentation": 0.20635228156621666,
+        "cell_cycle_curvature": -0.2519980561363072,
+        "microenvironment_bridge": -0.8278972477183899
+      }
+    },
+    {
+      "sample_id": "S354",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.6993613536029389,
+        "stromal_signal": -0.7839778014014912,
+        "proliferation": -0.7671127107363275,
+        "hypoxia": -0.793988886441633,
+        "metabolic_shift": 0.48933675708393526,
+        "antigen_presentation": 0.40990249695123465,
+        "cell_cycle_curvature": -0.11315345541899055,
+        "microenvironment_bridge": -0.2780608158738521
+      }
+    },
+    {
+      "sample_id": "S355",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.36891822248238765,
+        "stromal_signal": -0.3923769910098076,
+        "proliferation": -0.6990232703699621,
+        "hypoxia": -0.48085368215864266,
+        "metabolic_shift": 0.11443539886522297,
+        "antigen_presentation": 0.18824327639332983,
+        "cell_cycle_curvature": -0.2110452165324995,
+        "microenvironment_bridge": -0.3037634133511315
+      }
+    },
+    {
+      "sample_id": "S356",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.8965297618912392,
+        "stromal_signal": -0.5589732513528195,
+        "proliferation": -0.6868789957554401,
+        "hypoxia": -0.8105783765811421,
+        "metabolic_shift": 0.4449378767607884,
+        "antigen_presentation": 0.3836014727425685,
+        "cell_cycle_curvature": -0.1729130822835625,
+        "microenvironment_bridge": -0.6969269529170485
+      }
+    },
+    {
+      "sample_id": "S357",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.37493088341503655,
+        "stromal_signal": -0.8809594458099902,
+        "proliferation": -0.701433237835825,
+        "hypoxia": -0.6467033374633788,
+        "metabolic_shift": 0.31675179316160523,
+        "antigen_presentation": 0.38517115906740046,
+        "cell_cycle_curvature": -0.03451328506201656,
+        "microenvironment_bridge": 0.19919767070110989
+      }
+    },
+    {
+      "sample_id": "S358",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.4794388827226546,
+        "stromal_signal": -0.31887140433657407,
+        "proliferation": -0.6027059702467682,
+        "hypoxia": -0.5000555775664064,
+        "metabolic_shift": 0.148237993074654,
+        "antigen_presentation": 0.1769846057855352,
+        "cell_cycle_curvature": -0.19569059827283392,
+        "microenvironment_bridge": -0.4645080964968919
+      }
+    },
+    {
+      "sample_id": "S359",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.7426944171612535,
+        "stromal_signal": -0.9388429239883903,
+        "proliferation": -0.6439926953036857,
+        "hypoxia": -0.8499492246678662,
+        "metabolic_shift": 0.6875326338928919,
+        "antigen_presentation": 0.4881075546376469,
+        "cell_cycle_curvature": -0.0006269825047354738,
+        "microenvironment_bridge": -0.11748673647212976
+      }
+    },
+    {
+      "sample_id": "S360",
+      "group": "Tumor",
+      "features": {
+        "immune_signal": -0.03949499794056563,
+        "stromal_signal": -0.6750355792151262,
+        "proliferation": -0.5890764565681934,
+        "hypoxia": -0.38611532253911357,
+        "metabolic_shift": 0.04641278024558143,
+        "antigen_presentation": 0.28342617145265453,
+        "cell_cycle_curvature": -0.07443163608887768,
+        "microenvironment_bridge": 0.3893143312995994
       }
     }
   ],

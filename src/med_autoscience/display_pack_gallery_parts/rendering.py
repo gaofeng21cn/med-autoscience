@@ -10,9 +10,9 @@ from med_autoscience.display_pack_gallery_catalog import TemplateRecord
 from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_gallery_parts.assets import (
     RenderedAsset,
+    _gallery_preview,
     _image_size,
     _relative_ref,
-    _square_gallery_preview,
     _strip_trailing_whitespace,
     write_json,
 )
@@ -66,7 +66,7 @@ def _rendered_r_asset(
     cache_key: str,
     dependency_environment: dict[str, str] | None = None,
 ) -> RenderedAsset:
-    preview_path, preview_size = _square_gallery_preview(output_png)
+    preview_path, preview_size = _gallery_preview(output_png)
     return RenderedAsset(
         status="rendered",
         image_ref=_relative_ref(output_png),
@@ -428,7 +428,7 @@ def _render_python_template(
         cache_key=cache_key,
         required_outputs=(payload_path, output_png, output_layout),
     ):
-        preview_path, preview_size = _square_gallery_preview(output_png)
+        preview_path, preview_size = _gallery_preview(output_png)
         return RenderedAsset(
             status="rendered",
             image_ref=_relative_ref(output_png),
@@ -480,7 +480,7 @@ def _render_python_template(
         cache_key=cache_key,
         renderer="python_illustration_shell",
     )
-    preview_path, preview_size = _square_gallery_preview(output_png)
+    preview_path, preview_size = _gallery_preview(output_png)
     return RenderedAsset(
         status="rendered",
         image_ref=_relative_ref(output_png),
@@ -518,7 +518,7 @@ def _existing_python_template_asset(
             render_cache_status=cache_status,
             render_cache_key=_read_render_cache_key(cache_path),
         )
-    preview_path, preview_size = _square_gallery_preview(output_png)
+    preview_path, preview_size = _gallery_preview(output_png)
     return RenderedAsset(
         status="rendered",
         image_ref=_relative_ref(output_png),

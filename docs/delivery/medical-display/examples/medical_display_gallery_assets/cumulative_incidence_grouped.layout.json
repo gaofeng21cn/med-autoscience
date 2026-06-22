@@ -10,46 +10,46 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.1134,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.1181,
+      "y0": 0.9296,
+      "x1": 0.9712,
+      "y1": 0.9741
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.1134,
-      "y0": 0.0913,
-      "x1": 0.9723,
-      "y1": 0.1211
+      "x0": 0.1181,
+      "y0": 0.0951,
+      "x1": 0.9712,
+      "y1": 0.1262
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.1534,
-      "x1": 0.0575,
-      "y1": 0.8894
+      "x0": 0.0288,
+      "y0": 0.1598,
+      "x1": 0.0599,
+      "y1": 0.8848
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "panel",
-      "x0": 0.1134,
-      "y0": 0.1534,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.1181,
+      "y0": 0.1598,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "guide_boxes": [
     {
       "box_id": "legend",
       "box_type": "legend",
-      "x0": 0.9723,
-      "y0": 0.1534,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.9712,
+      "y0": 0.1598,
+      "x1": 0.9712,
+      "y1": 0.8848
     }
   ],
   "metrics": {
@@ -57,42 +57,74 @@
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
     "template_id": "cumulative_incidence_grouped",
-    "data_fields": ["annotation", "caption", "display_id", "groups", "render_context", "risk_table", "risk_table_title", "template_id", "title", "x_label", "y_label"],
+    "data_fields": ["caption", "display_id", "groups", "render_context", "template_id", "title", "x_label", "y_label"],
     "panel_box_present": true,
     "source_renderer": "LidocaineQ/Figure_Template::cumulative_incidence_grouped",
     "groups": [
       {
-        "label": "Low risk",
+        "label": "Low Risk",
         "times": [
           0,
-          6,
-          12,
-          18,
-          24
+          5,
+          10,
+          15,
+          20,
+          25,
+          30,
+          35,
+          40,
+          45,
+          50,
+          55,
+          60
         ],
         "values": [
           0,
           0.04,
           0.07,
-          0.09,
-          0.12
+          0.11,
+          0.15,
+          0.18,
+          0.22,
+          0.25,
+          0.29,
+          0.32,
+          0.35,
+          0.38,
+          0.41
         ]
       },
       {
-        "label": "High risk",
+        "label": "High Risk",
         "times": [
           0,
-          6,
-          12,
-          18,
-          24
+          5,
+          10,
+          15,
+          20,
+          25,
+          30,
+          35,
+          40,
+          45,
+          50,
+          55,
+          60
         ],
         "values": [
           0,
-          0.12,
-          0.23,
-          0.31,
-          0.38
+          0.08,
+          0.13,
+          0.2,
+          0.27,
+          0.33,
+          0.39,
+          0.43,
+          0.47,
+          0.52,
+          0.56,
+          0.6,
+          0.63
         ]
       }
     ]
@@ -255,8 +287,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

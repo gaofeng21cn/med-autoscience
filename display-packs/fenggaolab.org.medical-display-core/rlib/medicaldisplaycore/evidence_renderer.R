@@ -198,7 +198,7 @@ publication_legend_guides <- function(display_payload, labels = NULL) {
 publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
   typography <- style_typography(display_payload)
   horizontal <- identical(bar_orientation, "horizontal")
-  default_barwidth <- if (horizontal) 150.0 else 5.0
+  default_barwidth <- if (horizontal) 112.0 else 5.0
   default_barheight <- if (horizontal) 6.0 else 42.0
   label_size <- style_numeric(typography, "colorbar_label_size", 5.6)
   title_size <- style_numeric(typography, "colorbar_title_size", 6.0)
@@ -1167,6 +1167,10 @@ is_grid_renderable <- function(plot) {
   inherits(plot, "grob") || inherits(plot, "gTree") || inherits(plot, "gtable")
 }
 
+is_base_graphics_renderable <- function(plot) {
+  inherits(plot, "lidocaine_base_graphics_plot") && is.function(plot$draw)
+}
+
 save_grid_renderable <- function(plot, output_png, output_pdf, output_width, output_height) {
   grDevices::png(output_png, width = output_width, height = output_height, units = "in", res = 320, bg = "white")
   grid::grid.newpage()
@@ -1178,7 +1182,20 @@ save_grid_renderable <- function(plot, output_png, output_pdf, output_width, out
   grDevices::dev.off()
 }
 
+save_base_graphics_renderable <- function(plot, output_png, output_pdf, output_width, output_height) {
+  grDevices::png(output_png, width = output_width, height = output_height, units = "in", res = 320, bg = "white")
+  plot$draw()
+  grDevices::dev.off()
+  grDevices::pdf(output_pdf, width = output_width, height = output_height, bg = "white", useDingbats = FALSE)
+  plot$draw()
+  grDevices::dev.off()
+}
+
 save_rendered_plot <- function(plot, output_png, output_pdf, output_width, output_height) {
+  if (is_base_graphics_renderable(plot)) {
+    save_base_graphics_renderable(plot, output_png, output_pdf, output_width, output_height)
+    return(invisible(TRUE))
+  }
   if (is_grid_renderable(plot)) {
     save_grid_renderable(plot, output_png, output_pdf, output_width, output_height)
     return(invisible(TRUE))
@@ -1189,15 +1206,36 @@ save_rendered_plot <- function(plot, output_png, output_pdf, output_width, outpu
 }
 
 build_layout_sidecar <- function(plot, template_id, display_payload) {
-  if (is_grid_renderable(plot)) {
-    panel_box <- list(box_id = "table_panel", box_type = "table_region", x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+  if (is_base_graphics_renderable(plot)) {
+    panel_box <- list(box_id = "base_graphics_panel", box_type = "panel", x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
     metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
     return(list(
       template_id = template_id,
       device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
-      layout_boxes = list(list(box_id = "table_title", box_type = "title", x0 = 0.04, y0 = 0.91, x1 = 0.96, y1 = 0.98)),
+      layout_boxes = list(),
       panel_boxes = list(panel_box),
       guide_boxes = list(),
+      metrics = metrics,
+      render_context = render_context_from_payload(display_payload),
+      style_profile = style_profile_sidecar(display_payload)
+    ))
+  }
+  if (is_grid_renderable(plot)) {
+    grob_panel_type <- if (template_id %in% c("heatmap_group_comparison")) "heatmap_tile_region" else "table_region"
+    grob_panel_id <- if (identical(grob_panel_type, "heatmap_tile_region")) "heatmap_panel" else "table_panel"
+    guide_boxes <- if (identical(grob_panel_type, "heatmap_tile_region")) {
+      list(list(box_id = "heatmap_colorbar", box_type = "colorbar", x0 = 0.86, y0 = 0.18, x1 = 0.96, y1 = 0.86))
+    } else {
+      list()
+    }
+    panel_box <- list(box_id = grob_panel_id, box_type = grob_panel_type, x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+    metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
+    return(list(
+      template_id = template_id,
+      device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+      layout_boxes = list(list(box_id = paste0(grob_panel_id, "_title"), box_type = "title", x0 = 0.04, y0 = 0.91, x1 = 0.96, y1 = 0.98)),
+      panel_boxes = list(panel_box),
+      guide_boxes = guide_boxes,
       metrics = metrics,
       render_context = render_context_from_payload(display_payload),
       style_profile = style_profile_sidecar(display_payload)

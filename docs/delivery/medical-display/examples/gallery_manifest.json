@@ -6,11 +6,11 @@
   "asset_ref_resolution": "template artifact refs are emitted relative to this docs examples directory; medical_display_gallery_assets is copied with the PDF so Markdown and browser readers can resolve images",
   "source_manifest_schema_version": 9,
   "status": "rendered",
-  "force_render": true,
+  "force_render": false,
   "package_only": false,
   "render_cache_summary": {
-    "cache_hit": 0,
-    "cache_miss": 37,
+    "cache_hit": 1,
+    "cache_miss": 36,
     "package_only": 0,
     "cache_untracked": 0
   },
@@ -22,6 +22,9 @@
   "docs_quality_audit_path": "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md",
   "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
   "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
+  "lidocaineq_visual_parity_audit_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md",
+  "lidocaineq_visual_parity_audit_json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json",
+  "lidocaineq_visual_parity_contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
   "evidence_gallery_template_count": 34,
   "reporting_flow_gallery_template_count": 1,
   "design_gallery_template_count": 1,
@@ -576,27 +579,31 @@
         "category_label": "UMAP / t-SNE embedding",
         "mas_template_id": "umap_scatter_grouped",
         "mas_template_ids": [
-          "umap_scatter_grouped",
-          "tsne_scatter_grouped"
+          "pca_scatter_grouped",
+          "tsne_scatter_grouped",
+          "umap_scatter_grouped"
         ],
         "mapping_relation": "renamed_current_template",
-        "replacement_reason": "One LidocaineQ embedding reference covers MAS current UMAP and t-SNE computed-workflow templates; do not add a duplicate external-id alias.",
+        "replacement_reason": "One LidocaineQ embedding reference covers MAS current PCA, t-SNE, and UMAP computed-workflow templates; do not add a duplicate external-id alias.",
         "legacy_alias_status": "not_a_mas_legacy_alias",
         "do_not_restore_legacy_alias": false,
         "expected_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
         "actual_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
         "actual_source_renderers": {
-          "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
-          "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne"
+          "pca_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+          "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+          "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne"
         },
         "render_status": "rendered",
         "render_status_by_template_id": {
-          "umap_scatter_grouped": "rendered",
-          "tsne_scatter_grouped": "rendered"
+          "pca_scatter_grouped": "rendered",
+          "tsne_scatter_grouped": "rendered",
+          "umap_scatter_grouped": "rendered"
         },
         "covered_mas_template_ids": [
-          "umap_scatter_grouped",
-          "tsne_scatter_grouped"
+          "pca_scatter_grouped",
+          "tsne_scatter_grouped",
+          "umap_scatter_grouped"
         ],
         "missing_or_downgraded_mas_template_ids": [],
         "coverage_status": "covered"
@@ -2731,7 +2738,7 @@
           "mature_dependency_intent": {
             "family": "ggconsort_capable_reporting_flow",
             "preferred_package": "ggconsort",
-            "fallback_generated_renderer_allowed": true,
+            "fallback_generated_renderer_allowed": false,
             "fallback_generated_renderer_id": "python_participant_flow",
             "fallback_generated_renderer_claims_ggconsort": false,
             "package_install_during_render_allowed": false

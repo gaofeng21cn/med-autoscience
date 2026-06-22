@@ -1,114 +1,310 @@
 {
   "display_id": "Figure18",
   "template_id": "heatmap_group_comparison",
-  "title": "Group comparison heatmap",
-  "caption": "Standardized feature contrast across prespecified clinical groups.",
-  "x_label": "Group",
-  "y_label": "Feature",
-  "metric_name": "Standardized difference",
+  "title": "ComplexHeatmap annotated matrix",
+  "caption": "RiskGroup annotated matrix.",
+  "x_label": "",
+  "y_label": "",
+  "metric_name": "Z-score",
   "row_order": [
     {
-      "label": "Age"
+      "label": "Hallmark A"
     },
     {
-      "label": "Tumor size"
+      "label": "Hallmark B"
     },
     {
-      "label": "Inflammation"
+      "label": "Hallmark C"
     },
     {
-      "label": "Albumin"
+      "label": "Hallmark D"
     },
     {
-      "label": "Risk score"
+      "label": "Hallmark E"
+    },
+    {
+      "label": "Hallmark F"
+    },
+    {
+      "label": "Hallmark G"
+    },
+    {
+      "label": "Hallmark H"
     }
   ],
   "column_order": [
     {
-      "label": "Low risk"
+      "label": "S1"
     },
     {
-      "label": "Intermediate"
+      "label": "S2"
     },
     {
-      "label": "High risk"
+      "label": "S3"
+    },
+    {
+      "label": "S4"
+    },
+    {
+      "label": "S5"
+    },
+    {
+      "label": "S6"
+    }
+  ],
+  "column_annotations": [
+    {
+      "label": "RiskGroup",
+      "values": [
+        "Low",
+        "Low",
+        "Low",
+        "High",
+        "High",
+        "High"
+      ]
     }
   ],
   "cells": [
     {
-      "x": "Low risk",
-      "y": "Age",
-      "value": -0.58
+      "x": "S1",
+      "y": "Hallmark A",
+      "value": -0.96
     },
     {
-      "x": "Intermediate",
-      "y": "Age",
-      "value": -0.1
+      "x": "S2",
+      "y": "Hallmark A",
+      "value": -1.09
     },
     {
-      "x": "High risk",
-      "y": "Age",
-      "value": 0.72
+      "x": "S3",
+      "y": "Hallmark A",
+      "value": 0.2
     },
     {
-      "x": "Low risk",
-      "y": "Tumor size",
-      "value": -0.42
+      "x": "S4",
+      "y": "Hallmark A",
+      "value": -0.15
     },
     {
-      "x": "Intermediate",
-      "y": "Tumor size",
-      "value": 0.05
+      "x": "S5",
+      "y": "Hallmark A",
+      "value": 0.32
     },
     {
-      "x": "High risk",
-      "y": "Tumor size",
-      "value": 0.81
+      "x": "S6",
+      "y": "Hallmark A",
+      "value": -0.05
     },
     {
-      "x": "Low risk",
-      "y": "Inflammation",
-      "value": -0.36
+      "x": "S1",
+      "y": "Hallmark B",
+      "value": -0.29
     },
     {
-      "x": "Intermediate",
-      "y": "Inflammation",
-      "value": 0.12
+      "x": "S2",
+      "y": "Hallmark B",
+      "value": 1.27
     },
     {
-      "x": "High risk",
-      "y": "Inflammation",
-      "value": 0.66
-    },
-    {
-      "x": "Low risk",
-      "y": "Albumin",
-      "value": 0.44
-    },
-    {
-      "x": "Intermediate",
-      "y": "Albumin",
-      "value": 0.08
-    },
-    {
-      "x": "High risk",
-      "y": "Albumin",
-      "value": -0.62
-    },
-    {
-      "x": "Low risk",
-      "y": "Risk score",
+      "x": "S3",
+      "y": "Hallmark B",
       "value": -0.74
     },
     {
-      "x": "Intermediate",
-      "y": "Risk score",
-      "value": 0.02
+      "x": "S4",
+      "y": "Hallmark B",
+      "value": -0.96
     },
     {
-      "x": "High risk",
-      "y": "Risk score",
-      "value": 0.88
+      "x": "S5",
+      "y": "Hallmark B",
+      "value": -0.73
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark B",
+      "value": 0.17
+    },
+    {
+      "x": "S1",
+      "y": "Hallmark C",
+      "value": 0.26
+    },
+    {
+      "x": "S2",
+      "y": "Hallmark C",
+      "value": -0.44
+    },
+    {
+      "x": "S3",
+      "y": "Hallmark C",
+      "value": 0.96
+    },
+    {
+      "x": "S4",
+      "y": "Hallmark C",
+      "value": 0.59
+    },
+    {
+      "x": "S5",
+      "y": "Hallmark C",
+      "value": -0.66
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark C",
+      "value": 0.68
+    },
+    {
+      "x": "S1",
+      "y": "Hallmark D",
+      "value": -1.15
+    },
+    {
+      "x": "S2",
+      "y": "Hallmark D",
+      "value": -1.05
+    },
+    {
+      "x": "S3",
+      "y": "Hallmark D",
+      "value": -0.38
+    },
+    {
+      "x": "S4",
+      "y": "Hallmark D",
+      "value": -0.47
+    },
+    {
+      "x": "S5",
+      "y": "Hallmark D",
+      "value": 0.27
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark D",
+      "value": 0.31
+    },
+    {
+      "x": "S1",
+      "y": "Hallmark E",
+      "value": 0.2
+    },
+    {
+      "x": "S2",
+      "y": "Hallmark E",
+      "value": -0.25
+    },
+    {
+      "x": "S3",
+      "y": "Hallmark E",
+      "value": -0.36
+    },
+    {
+      "x": "S4",
+      "y": "Hallmark E",
+      "value": -0.36
+    },
+    {
+      "x": "S5",
+      "y": "Hallmark E",
+      "value": 0.6
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark E",
+      "value": 0.39
+    },
+    {
+      "x": "S1",
+      "y": "Hallmark F",
+      "value": 0.03
+    },
+    {
+      "x": "S2",
+      "y": "Hallmark F",
+      "value": -0.06
+    },
+    {
+      "x": "S3",
+      "y": "Hallmark F",
+      "value": -0.27
+    },
+    {
+      "x": "S4",
+      "y": "Hallmark F",
+      "value": -0.5
+    },
+    {
+      "x": "S5",
+      "y": "Hallmark F",
+      "value": -0.38
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark F",
+      "value": -1.15
+    },
+    {
+      "x": "S1",
+      "y": "Hallmark G",
+      "value": 1.03
+    },
+    {
+      "x": "S2",
+      "y": "Hallmark G",
+      "value": -0.14
+    },
+    {
+      "x": "S3",
+      "y": "Hallmark G",
+      "value": 0.74
+    },
+    {
+      "x": "S4",
+      "y": "Hallmark G",
+      "value": 0.65
+    },
+    {
+      "x": "S5",
+      "y": "Hallmark G",
+      "value": 0.17
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark G",
+      "value": 0.58
+    },
+    {
+      "x": "S1",
+      "y": "Hallmark H",
+      "value": 1.14
+    },
+    {
+      "x": "S2",
+      "y": "Hallmark H",
+      "value": -0.69
+    },
+    {
+      "x": "S3",
+      "y": "Hallmark H",
+      "value": 0.49
+    },
+    {
+      "x": "S4",
+      "y": "Hallmark H",
+      "value": 0.35
+    },
+    {
+      "x": "S5",
+      "y": "Hallmark H",
+      "value": 0.29
+    },
+    {
+      "x": "S6",
+      "y": "Hallmark H",
+      "value": 0.57
     }
   ],
   "render_context": {
@@ -269,8 +465,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.2,
+      "output_height_in": 3.7,
       "show_figure_title": false
     },
     "readability_override": {}

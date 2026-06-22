@@ -117,7 +117,7 @@ plot_lidocaine_celltype_marker_dotplot <- function(display_payload) {
       stringsAsFactors = FALSE
     )
   }))
-  dot_df$cell_type <- factor(dot_df$cell_type, levels = cell_order)
+  dot_df$cell_type <- factor(dot_df$cell_type, levels = rev(cell_order))
   dot_df$marker <- factor(dot_df$marker, levels = marker_order)
   ggplot(dot_df, aes(x = marker, y = cell_type, size = pct, colour = avg)) +
     geom_point(alpha = 0.9) +
@@ -165,7 +165,8 @@ lidocaine_volcano_dataframe <- function(display_payload) {
       feature = lidocaine_feature_label(item, sprintf("Feature %d", index)),
       effect = lidocaine_numeric(item$effect_value %||% item$x, 0),
       significance = lidocaine_numeric(item$significance_value %||% item$y, 0),
-      class = lidocaine_non_empty(item$regulation_class, "background"),
+      class = lidocaine_non_empty(item$regulation_class %||% item$status, "NS"),
+      label_text = lidocaine_non_empty(item$label_text),
       stringsAsFactors = FALSE
     )
   }))
@@ -175,20 +176,33 @@ plot_lidocaine_volcano <- function(display_payload) {
   volcano_df <- lidocaine_volcano_dataframe(display_payload)
   effect_threshold <- lidocaine_threshold(display_payload, "effect_threshold", 1)
   significance_threshold <- lidocaine_numeric(display_payload$significance_threshold, 1.3)
+  normalized_class <- tolower(volcano_df$class)
+  volcano_df$class <- ifelse(
+    normalized_class %in% c("up", "upregulated"),
+    "Up",
+    ifelse(normalized_class %in% c("down", "downregulated"), "Down", "NS")
+  )
   label_df <- volcano_df[
     nzchar(volcano_df$feature) &
-      volcano_df$class != "background" &
-      volcano_df$significance >= stats::quantile(volcano_df$significance, 0.68, na.rm = TRUE),
+      volcano_df$class != "NS" &
+      (
+        nzchar(volcano_df$label_text) |
+          volcano_df$significance >= stats::quantile(volcano_df$significance, 0.88, na.rm = TRUE)
+      ),
     ,
     drop = FALSE
   ]
+  if (nrow(label_df) > 8) {
+    label_df <- label_df[order(-label_df$significance), , drop = FALSE][seq_len(8), , drop = FALSE]
+  }
+  label_df$feature <- ifelse(nzchar(label_df$label_text), label_df$label_text, label_df$feature)
   x_range <- range(volcano_df$effect, na.rm = TRUE)
   x_span <- max(0.1, diff(x_range))
   if (nrow(label_df) > 0) {
     label_df$label_x <- label_df$effect + ifelse(label_df$effect < 0, -x_span * 0.025, x_span * 0.025)
     label_df$label_hjust <- ifelse(label_df$effect < 0, 1, 0)
   }
-  ggplot(volcano_df, aes(effect, significance, colour = class)) +
+  plot <- ggplot(volcano_df, aes(effect, significance, colour = class)) +
     geom_point(size = 1.35, alpha = 0.78) +
     geom_vline(xintercept = c(-effect_threshold, effect_threshold), linetype = "dashed", linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
     geom_hline(yintercept = significance_threshold, linetype = "dashed", linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
@@ -200,12 +214,11 @@ plot_lidocaine_volcano <- function(display_payload) {
       vjust = -0.55,
       colour = style_text_color(display_payload)
     ) +
-    facet_wrap(~panel) +
     scale_colour_manual(
       values = c(
-        upregulated = style_color(display_payload, "volcano_up", "volcano_up", "#B2182B"),
-        downregulated = style_color(display_payload, "volcano_down", "volcano_down", "#2166AC"),
-        background = style_color(display_payload, "volcano_background", "volcano_background", "#B7C4CC")
+        Down = style_color(display_payload, "volcano_down", "volcano_down", "#2166AC"),
+        NS = style_color(display_payload, "volcano_background", "volcano_background", "#CBD5E1"),
+        Up = style_color(display_payload, "volcano_up", "volcano_up", "#B2182B")
       ),
       guide = publication_legend_guides(display_payload, volcano_df$class)
     ) +
@@ -218,6 +231,10 @@ plot_lidocaine_volcano <- function(display_payload) {
     ) +
     lidocaine_publication_theme(display_payload) +
     theme(aspect.ratio = 1, plot.margin = margin(9, 22, 9, 20))
+  if (length(unique(volcano_df$panel)) > 1) {
+    plot <- plot + facet_wrap(~panel)
+  }
+  plot
 }
 
 plot_lidocaine_genomic_consequence <- function(display_payload) {
@@ -313,6 +330,20 @@ lidocaine_alteration_palette <- function(display_payload, values) {
   named_values[present]
 }
 
+lidocaine_oncoprint_alter_fun <- function(alteration_type, alteration_colours) {
+  force(alteration_type)
+  force(alteration_colours)
+  function(x, y, w, h) {
+    grid::grid.rect(
+      x,
+      y,
+      w * 0.90,
+      h * 0.76,
+      gp = grid::gpar(fill = alteration_colours[[alteration_type]], col = "white", lwd = 0.35)
+    )
+  }
+}
+
 plot_lidocaine_cnv_recurrence <- function(display_payload) {
   records <- display_payload$cnv_records %||% list()
   if (length(records) > 0) {
@@ -393,6 +424,9 @@ plot_lidocaine_cnv_recurrence <- function(display_payload) {
 }
 
 plot_lidocaine_genomic_landscape <- function(display_payload) {
+  if (!requireNamespace("maftools", quietly = TRUE)) {
+    stop("genomic_alteration_landscape_panel requires OPL-prepared dependency package `maftools`; run OPL prepare/doctor for the MAS display profile")
+  }
   genes <- if (!is.null(display_payload$gene_order)) extract_label_vector(display_payload$gene_order, "gene_order") else character()
   samples <- if (!is.null(display_payload$sample_order)) {
     vapply(display_payload$sample_order, function(item) lidocaine_non_empty(item$sample_id %||% item$label, ""), character(1))
@@ -403,31 +437,99 @@ plot_lidocaine_genomic_landscape <- function(display_payload) {
   if (length(genes) < 1 || length(samples) < 1 || length(records) < 1) {
     stop("genomic landscape payload requires gene_order, sample_order, and alteration_records")
   }
-  base <- expand.grid(sample_id = samples, gene_label = genes, stringsAsFactors = FALSE)
-  record_df <- do.call(rbind, lapply(records, function(item) {
+  variant_classification_for_state <- function(state) {
+    normalized <- tolower(trimws(as.character(state %||% "")))
+    if (grepl("trunc|nonsense", normalized)) {
+      return("Nonsense_Mutation")
+    }
+    if (grepl("frame.*ins|ampl|gain", normalized)) {
+      return("Frame_Shift_Ins")
+    }
+    if (grepl("frame.*del|loss|del", normalized)) {
+      return("Frame_Shift_Del")
+    }
+    if (grepl("splice", normalized)) {
+      return("Splice_Site")
+    }
+    "Missense_Mutation"
+  }
+  maf_df <- do.call(rbind, lapply(seq_along(records), function(record_index) {
+    item <- records[[record_index]]
+    sample_id <- lidocaine_non_empty(item$sample_id, "")
+    gene_label <- lidocaine_non_empty(item$gene_label %||% item$gene, "")
+    if (!sample_id %in% samples || !gene_label %in% genes) {
+      return(NULL)
+    }
+    state <- lidocaine_alteration_state(item)
     data.frame(
-      sample_id = lidocaine_non_empty(item$sample_id, ""),
-      gene_label = lidocaine_non_empty(item$gene_label %||% item$gene, ""),
-      state = lidocaine_alteration_state(item),
+      Hugo_Symbol = gene_label,
+      Chromosome = as.character((record_index %% 22) + 1),
+      Start_Position = 100000 + record_index,
+      End_Position = 100000 + record_index,
+      Reference_Allele = "A",
+      Tumor_Seq_Allele2 = "T",
+      Variant_Classification = variant_classification_for_state(state),
+      Variant_Type = "SNP",
+      Tumor_Sample_Barcode = sample_id,
       stringsAsFactors = FALSE
     )
   }))
-  matrix_df <- merge(base, record_df, by = c("sample_id", "gene_label"), all.x = TRUE, sort = FALSE)
-  matrix_df$state[is.na(matrix_df$state)] <- "Neutral"
-  matrix_df$sample_id <- factor(matrix_df$sample_id, levels = samples)
-  matrix_df$gene_label <- factor(matrix_df$gene_label, levels = rev(genes))
-  fill_values <- lidocaine_alteration_palette(display_payload, matrix_df$state)
-  ggplot(matrix_df, aes(sample_id, gene_label, fill = state)) +
-    geom_tile(colour = "white", linewidth = 0.42) +
-    scale_fill_manual(values = fill_values, breaks = setdiff(names(fill_values), "Neutral"), drop = FALSE, name = NULL, guide = publication_legend_guides(display_payload, setdiff(names(fill_values), "Neutral"))) +
-    labs(
-      title = lidocaine_non_empty(display_payload$title, "Genomic alteration landscape"),
-      subtitle = lidocaine_curve_subtitle(display_payload, "Oncoplot-like alteration matrix"),
-      x = lidocaine_non_empty(display_payload$x_label, "Samples"),
-      y = lidocaine_non_empty(display_payload$y_label, "Genes")
-    ) +
-    lidocaine_publication_theme(display_payload) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5), panel.grid = element_blank(), legend.box = "vertical")
+  if (!is.data.frame(maf_df) || nrow(maf_df) < 1) {
+    stop("genomic landscape payload did not contain plottable alteration records")
+  }
+  clinical_df <- data.frame(Tumor_Sample_Barcode = samples, stringsAsFactors = FALSE)
+  annotation_colours <- list()
+  sample_annotations <- display_payload$sample_annotations %||% list()
+  if (is.list(sample_annotations) && length(sample_annotations) > 0) {
+    for (annotation_index in seq_along(sample_annotations)) {
+      annotation <- sample_annotations[[annotation_index]]
+      annotation_label <- make.names(lidocaine_non_empty(annotation$label, sprintf("Annotation%d", annotation_index)))
+      values <- rep("", length(samples))
+      names(values) <- samples
+      for (value_item in annotation$values %||% list()) {
+        sample_id <- lidocaine_non_empty(value_item$sample_id, "")
+        if (sample_id %in% samples) {
+          values[[sample_id]] <- lidocaine_non_empty(value_item$value, "")
+        }
+      }
+      clinical_df[[annotation_label]] <- values
+      annotation_colours[[annotation_label]] <- lidocaine_alteration_palette(display_payload, unique(values))
+    }
+  }
+  variant_colours <- c(
+    Missense_Mutation = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+    Nonsense_Mutation = style_color(display_payload, "volcano_up", "volcano_up", "#B2182B"),
+    Frame_Shift_Del = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
+    Frame_Shift_Ins = style_color(display_payload, "series_3", "tertiary", "#D8A24A"),
+    Splice_Site = style_color(display_payload, "series_5", "violet", "#6D5BD0")
+  )
+  annotation_features <- setdiff(names(clinical_df), "Tumor_Sample_Barcode")
+  maftools_draw <- function() {
+    maf_obj <- maftools::read.maf(maf = maf_df, clinicalData = clinical_df, verbose = FALSE)
+    old_par <- graphics::par(no.readonly = TRUE)
+    on.exit(graphics::par(old_par), add = TRUE)
+    graphics::par(mar = c(1.2, 1.2, 1.2, 1.2), xpd = NA)
+    maftools::oncoplot(
+      maf = maf_obj,
+      genes = genes,
+      top = length(genes),
+      fontSize = style_numeric(style_typography(display_payload), "tick_size", 8.0) / 10,
+      showTumorSampleBarcodes = FALSE,
+      clinicalFeatures = annotation_features,
+      sortByAnnotation = length(annotation_features) > 0,
+      annotationColor = annotation_colours,
+      colors = variant_colours,
+      bgCol = "white",
+      borderCol = NA
+    )
+  }
+  structure(
+    list(
+      draw = maftools_draw,
+      source_renderer = "LidocaineQ/Figure_Template::oncoplot_mutation"
+    ),
+    class = "lidocaine_base_graphics_plot"
+  )
 }
 
 lidocaine_shap_rows <- function(display_payload) {
@@ -460,7 +562,12 @@ plot_lidocaine_shap_summary <- function(display_payload) {
   ggplot(shap_df, aes(shap, feature, colour = value)) +
     geom_vline(xintercept = 0, linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
     geom_point(position = position_jitter(height = 0.18, width = 0, seed = 7), alpha = 0.78, size = 1.15) +
-    heatmap_colour_scale(display_payload, shap_df$value, name = lidocaine_non_empty(display_payload$colorbar_label, "Feature value")) +
+    scale_colour_gradient(
+      low = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+      high = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
+      name = lidocaine_non_empty(display_payload$colorbar_label, "Feature value"),
+      guide = publication_colorbar_guide(display_payload, title = lidocaine_non_empty(display_payload$colorbar_label, "Feature value"), bar_orientation = "horizontal")
+    ) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "SHAP summary beeswarm"),
       subtitle = lidocaine_curve_subtitle(display_payload, "Global feature contribution distribution"),
@@ -497,11 +604,9 @@ plot_lidocaine_shap_dependence <- function(display_payload) {
   if (all(!nzchar(dependence_df$subgroup))) {
     dependence_df$subgroup <- ifelse(dependence_df$interaction_value >= stats::median(dependence_df$interaction_value), "High context", "Low context")
   }
-  ggplot(dependence_df, aes(feature_value, shap, colour = subgroup)) +
-    geom_hline(yintercept = 0, linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
+  plot <- ggplot(dependence_df, aes(feature_value, shap, colour = subgroup)) +
     geom_point(alpha = 0.75, size = 1.5) +
     geom_smooth(method = "loess", formula = y ~ x, se = FALSE, linewidth = 0.80) +
-    facet_wrap(~panel, nrow = 1, scales = "free_x") +
     scale_colour_manual(values = lidocaine_palette(display_payload, dependence_df$subgroup), guide = publication_legend_guides(display_payload, dependence_df$subgroup)) +
     labs(
       title = lidocaine_non_empty(display_payload$title, "SHAP dependence panel"),
@@ -511,6 +616,10 @@ plot_lidocaine_shap_dependence <- function(display_payload) {
     ) +
     lidocaine_publication_theme(display_payload) +
     theme(aspect.ratio = 1)
+  if (length(unique(dependence_df$panel)) > 1) {
+    plot <- plot + facet_wrap(~panel, nrow = 1, scales = "free_x")
+  }
+  plot
 }
 
 plot_lidocaine_shap_waterfall <- function(display_payload) {
@@ -519,27 +628,46 @@ plot_lidocaine_shap_waterfall <- function(display_payload) {
   if (length(contributions) < 1) {
     stop("SHAP waterfall payload must contain contributions")
   }
-  waterfall_df <- do.call(rbind, lapply(seq_along(contributions), function(index) {
+  contribution_df <- do.call(rbind, lapply(seq_along(contributions), function(index) {
     item <- contributions[[index]]
     data.frame(
       feature = lidocaine_non_empty(item$feature %||% item$label, sprintf("Feature %d", index)),
       contribution = lidocaine_numeric(item$shap_value %||% item$value, 0),
+      explicit_type = lidocaine_non_empty(item$contribution_type),
       stringsAsFactors = FALSE
     )
   }))
   baseline <- lidocaine_numeric(panel$baseline_value %||% display_payload$baseline_value, 0)
+  final_value <- lidocaine_numeric(panel$predicted_value %||% display_payload$predicted_value, baseline + sum(contribution_df$contribution))
+  if (!any(tolower(contribution_df$explicit_type) == "base")) {
+    contribution_df <- rbind(
+      data.frame(feature = "Baseline", contribution = baseline, explicit_type = "base", stringsAsFactors = FALSE),
+      contribution_df
+    )
+    baseline <- 0
+  }
+  waterfall_df <- rbind(
+    contribution_df,
+    data.frame(feature = "Prediction", contribution = final_value, explicit_type = "final", stringsAsFactors = FALSE)
+  )
   waterfall_df$step <- seq_len(nrow(waterfall_df))
-  waterfall_df$start <- baseline + c(0, head(cumsum(waterfall_df$contribution), -1))
-  waterfall_df$end <- baseline + cumsum(waterfall_df$contribution)
-  waterfall_df$type <- ifelse(waterfall_df$contribution >= 0, "positive", "negative")
+  waterfall_df$start <- c(0, head(cumsum(waterfall_df$contribution), -1))
+  waterfall_df$end <- cumsum(waterfall_df$contribution)
+  waterfall_df$type <- ifelse(
+    tolower(waterfall_df$explicit_type) %in% c("base", "final"),
+    tolower(waterfall_df$explicit_type),
+    ifelse(waterfall_df$contribution >= 0, "positive", "negative")
+  )
   waterfall_df$feature <- factor(waterfall_df$feature, levels = waterfall_df$feature)
   ggplot(waterfall_df, aes(x = step)) +
     geom_segment(aes(xend = step, y = start, yend = end, colour = type), linewidth = 7, lineend = "butt") +
-    geom_hline(yintercept = baseline, linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
+    geom_hline(yintercept = 0, linewidth = 0.45, colour = style_color(display_payload, "reference_line", "muted", "#64748B")) +
     scale_colour_manual(
       values = c(
+        base = style_color(display_payload, "reference_line", "muted", "#64748B"),
         positive = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
-        negative = style_color(display_payload, "model_curve", "primary", "#245A6B")
+        negative = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+        final = style_color(display_payload, "series_3", "tertiary", "#D8A24A")
       ),
       guide = publication_legend_guides(display_payload, waterfall_df$type)
     ) +
@@ -551,7 +679,7 @@ plot_lidocaine_shap_waterfall <- function(display_payload) {
       y = lidocaine_non_empty(display_payload$y_label, "Prediction contribution")
     ) +
     lidocaine_publication_theme(display_payload) +
-    theme(axis.text.x = element_text(angle = 35, hjust = 1))
+    theme(axis.text.x = element_text(angle = 35, hjust = 1), aspect.ratio = 0.66)
 }
 
 lidocaine_coefficient_path_dataframe <- function(display_payload) {
@@ -733,6 +861,52 @@ plot_lidocaine_generalizability <- function(display_payload) {
 }
 
 plot_lidocaine_model_complexity <- function(display_payload) {
+  complexity_points <- display_payload$complexity_points %||% display_payload$points %||% list()
+  if (length(complexity_points) > 0) {
+    complexity_df <- do.call(rbind, lapply(seq_along(complexity_points), function(index) {
+      item <- complexity_points[[index]]
+      features <- lidocaine_numeric(item$features %||% item$feature_count %||% item$n_features, NA)
+      rbind(
+        data.frame(
+          features = features,
+          auc = lidocaine_numeric(item$cv_auc %||% item$cross_validation_auc, NA),
+          metric = "Cross-validation",
+          stringsAsFactors = FALSE
+        ),
+        data.frame(
+          features = features,
+          auc = lidocaine_numeric(item$external_auc %||% item$validation_auc, NA),
+          metric = "External validation",
+          stringsAsFactors = FALSE
+        )
+      )
+    }))
+    if (any(!is.finite(complexity_df$features)) || any(!is.finite(complexity_df$auc))) {
+      stop("model complexity points must contain finite features, cv_auc, and external_auc values")
+    }
+    selected_feature_count <- lidocaine_numeric(display_payload$selected_feature_count, stats::median(complexity_df$features))
+    y_limits <- range(complexity_df$auc, na.rm = TRUE)
+    y_pad <- max(0.02, diff(y_limits) * 0.22)
+    return(ggplot(complexity_df, aes(features, auc, colour = metric)) +
+      geom_line(linewidth = 0.85) +
+      geom_point(size = 2.1) +
+      geom_vline(
+        xintercept = selected_feature_count,
+        linetype = "dashed",
+        colour = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
+        linewidth = 0.50
+      ) +
+      scale_colour_manual(values = lidocaine_palette(display_payload, complexity_df$metric), guide = publication_legend_guides(display_payload, complexity_df$metric)) +
+      scale_y_continuous(limits = c(max(0, y_limits[[1]] - y_pad), min(1, y_limits[[2]] + y_pad))) +
+      labs(
+        title = lidocaine_non_empty(display_payload$title, "Model complexity audit"),
+        subtitle = lidocaine_curve_subtitle(display_payload, "Performance vs feature count"),
+        x = lidocaine_non_empty(display_payload$x_label, "Number of retained features"),
+        y = lidocaine_non_empty(display_payload$y_label, "AUC")
+      ) +
+      lidocaine_publication_theme(display_payload) +
+      theme(aspect.ratio = 1))
+  }
   metric_panels <- display_payload$metric_panels %||% list()
   audit_panels <- display_payload$audit_panels %||% list()
   rows <- c(

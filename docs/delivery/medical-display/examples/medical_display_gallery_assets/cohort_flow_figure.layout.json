@@ -126,8 +126,8 @@
     "ggconsort_capable_prepared_environment_required": true,
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
-    "opl_dependency_run_context_ref": "paper/build/dependency_run_context.json",
-    "opl_dependency_run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+    "opl_dependency_run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+    "opl_dependency_run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
     "publication_runtime_receipt": true,
     "gallery_preview_dependency_context": false,
     "steps": [

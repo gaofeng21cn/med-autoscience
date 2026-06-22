@@ -131,73 +131,97 @@
       "box_id": "subgroup_row_label_1",
       "box_type": "subgroup_row_label",
       "x0": 0.46,
-      "y0": 0.625,
+      "y0": 0.656,
       "x1": 0.56,
-      "y1": 0.665
+      "y1": 0.696
     },
     {
       "box_id": "subgroup_ci_1",
       "box_type": "ci_segment",
-      "x0": 0.7916,
-      "y0": 0.64,
-      "x1": 0.8092,
-      "y1": 0.65
+      "x0": 0.7938,
+      "y0": 0.671,
+      "x1": 0.8202,
+      "y1": 0.681
     },
     {
       "box_id": "subgroup_estimate_1",
       "box_type": "estimate_marker",
-      "x0": 0.7954,
-      "y0": 0.625,
-      "x1": 0.8054,
-      "y1": 0.665
+      "x0": 0.802,
+      "y0": 0.656,
+      "x1": 0.812,
+      "y1": 0.696
     },
     {
       "box_id": "subgroup_row_label_2",
       "box_type": "subgroup_row_label",
       "x0": 0.46,
-      "y0": 0.47,
+      "y0": 0.532,
       "x1": 0.56,
-      "y1": 0.51
+      "y1": 0.572
     },
     {
       "box_id": "subgroup_ci_2",
       "box_type": "ci_segment",
       "x0": 0.785,
-      "y0": 0.485,
-      "x1": 0.8026,
-      "y1": 0.495
+      "y0": 0.547,
+      "x1": 0.8114,
+      "y1": 0.557
     },
     {
       "box_id": "subgroup_estimate_2",
       "box_type": "estimate_marker",
-      "x0": 0.7888,
-      "y0": 0.47,
-      "x1": 0.7988,
-      "y1": 0.51
+      "x0": 0.7932,
+      "y0": 0.532,
+      "x1": 0.8032,
+      "y1": 0.572
     },
     {
       "box_id": "subgroup_row_label_3",
       "box_type": "subgroup_row_label",
       "x0": 0.46,
-      "y0": 0.315,
+      "y0": 0.408,
       "x1": 0.56,
-      "y1": 0.355
+      "y1": 0.448
     },
     {
       "box_id": "subgroup_ci_3",
       "box_type": "ci_segment",
-      "x0": 0.7872,
-      "y0": 0.33,
-      "x1": 0.8114,
-      "y1": 0.34
+      "x0": 0.7894,
+      "y0": 0.423,
+      "x1": 0.8158,
+      "y1": 0.433
     },
     {
       "box_id": "subgroup_estimate_3",
       "box_type": "estimate_marker",
-      "x0": 0.7932,
-      "y0": 0.315,
-      "x1": 0.8032,
-      "y1": 0.355
+      "x0": 0.7976,
+      "y0": 0.408,
+      "x1": 0.8076,
+      "y1": 0.448
+    },
+    {
+      "box_id": "subgroup_row_label_4",
+      "box_type": "subgroup_row_label",
+      "x0": 0.46,
+      "y0": 0.284,
+      "x1": 0.56,
+      "y1": 0.324
+    },
+    {
+      "box_id": "subgroup_ci_4",
+      "box_type": "ci_segment",
+      "x0": 0.7916,
+      "y0": 0.299,
+      "x1": 0.818,
+      "y1": 0.309
+    },
+    {
+      "box_id": "subgroup_estimate_4",
+      "box_type": "estimate_marker",
+      "x0": 0.7998,
+      "y0": 0.284,
+      "x1": 0.8098,
+      "y1": 0.324
     }
   ],
   "panel_boxes": [
@@ -238,54 +262,55 @@
     "source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
     "overview_rows": [
       {
+        "cohort_id": "internal",
+        "cohort_label": "Internal",
+        "metric_value": 0.86,
+        "lower": 0.82,
+        "upper": 0.9
+      },
+      {
         "cohort_id": "external_a",
         "cohort_label": "External A",
-        "support_count": 184,
-        "event_count": 29,
         "metric_value": 0.82,
-        "comparator_metric_value": 0.79
+        "lower": 0.76,
+        "upper": 0.88
       },
       {
         "cohort_id": "external_b",
         "cohort_label": "External B",
-        "support_count": 163,
-        "event_count": 21,
-        "metric_value": 0.78,
-        "comparator_metric_value": 0.76
-      },
-      {
-        "cohort_id": "external_c",
-        "cohort_label": "External C",
-        "support_count": 141,
-        "event_count": 19,
-        "metric_value": 0.81,
-        "comparator_metric_value": 0.77
+        "metric_value": 0.79,
+        "lower": 0.71,
+        "upper": 0.86
       }
     ],
     "subgroup_rows": [
       {
+        "subgroup_id": "age_lt_65",
+        "subgroup_label": "Age <65",
+        "estimate": 0.85,
+        "lower": 0.79,
+        "upper": 0.91
+      },
+      {
         "subgroup_id": "age_ge_65",
-        "subgroup_label": "Age >=65 years",
-        "group_n": 201,
-        "estimate": 0.82,
-        "lower": 0.78,
-        "upper": 0.86
-      },
-      {
-        "subgroup_id": "female",
-        "subgroup_label": "Female",
-        "group_n": 173,
-        "estimate": 0.79,
-        "lower": 0.75,
-        "upper": 0.83
-      },
-      {
-        "subgroup_id": "stage_high",
-        "subgroup_label": "High stage",
-        "group_n": 128,
+        "subgroup_label": "Age >=65",
         "estimate": 0.81,
-        "lower": 0.76,
+        "lower": 0.75,
         "upper": 0.87
+      },
+      {
+        "subgroup_id": "stage_ii",
+        "subgroup_label": "Stage II",
+        "estimate": 0.83,
+        "lower": 0.77,
+        "upper": 0.89
+      },
+      {
+        "subgroup_id": "stage_iii",
+        "subgroup_label": "Stage III",
+        "estimate": 0.84,
+        "lower": 0.78,
+        "upper": 0.9
       }
     ]
   },
@@ -447,8 +472,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

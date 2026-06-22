@@ -1,38 +1,45 @@
 {
   "display_id": "Figure12",
   "template_id": "forest_effect_main",
-  "title": "Main-effect forest plot",
-  "caption": "Adjusted effect estimates for prespecified predictors.",
-  "x_label": "Adjusted odds ratio",
+  "title": "Forest plot",
+  "caption": "Effect estimates with 95% CI.",
+  "x_label": "Hazard ratio (log scale)",
   "reference_value": 1.0,
   "rows": [
     {
-      "label": "Age > 60 years",
-      "estimate": 1.42,
-      "lower": 1.11,
-      "upper": 1.83,
-      "p_value": "0.006"
-    },
-    {
-      "label": "Tumor size > 30 mm",
-      "estimate": 1.89,
-      "lower": 1.35,
-      "upper": 2.62,
+      "label": "Risk score high",
+      "estimate": 2.1,
+      "lower": 1.42,
+      "upper": 3.12,
       "p_value": "0.001"
     },
     {
-      "label": "Albumin < 35 g/L",
-      "estimate": 0.74,
-      "lower": 0.58,
-      "upper": 0.94,
+      "label": "cT stage III-IV",
+      "estimate": 1.65,
+      "lower": 1.1,
+      "upper": 2.49,
       "p_value": "0.018"
     },
     {
-      "label": "High-risk imaging grade",
-      "estimate": 1.68,
-      "lower": 1.19,
-      "upper": 2.36,
-      "p_value": "0.004"
+      "label": "N positive",
+      "estimate": 1.48,
+      "lower": 1.02,
+      "upper": 2.15,
+      "p_value": "0.040"
+    },
+    {
+      "label": "Age >= 65",
+      "estimate": 1.12,
+      "lower": 0.82,
+      "upper": 1.55,
+      "p_value": "0.48"
+    },
+    {
+      "label": "Left-sided",
+      "estimate": 0.82,
+      "lower": 0.6,
+      "upper": 1.14,
+      "p_value": "0.24"
     }
   ],
   "render_context": {
@@ -193,8 +200,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

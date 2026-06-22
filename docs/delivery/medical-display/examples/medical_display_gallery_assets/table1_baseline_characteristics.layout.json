@@ -8,7 +8,7 @@
   },
   "layout_boxes": [
     {
-      "box_id": "table_title",
+      "box_id": "table_panel_title",
       "box_type": "title",
       "x0": 0.04,
       "y0": 0.91,
@@ -32,10 +32,10 @@
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
     "template_id": "table1_baseline_characteristics",
-    "data_fields": ["caption", "display_id", "group_a_header", "group_b_header", "overall_header", "p_header", "render_context", "rows", "template_id", "title"],
+    "data_fields": ["caption", "display_id", "group_a_header", "group_b_header", "overall_header", "p_header", "render_context", "rows", "template_id", "title", "variable_header"],
     "panel_box_present": true,
     "source_renderer": "LidocaineQ/Figure_Template::baseline_table",
-    "rows": 8
+    "rows": 5
   },
   "render_context": {
     "style_profile_id": "student_curated_clinical_publication_v1",
@@ -161,9 +161,9 @@
     "typography": {
       "font_family": "sans",
       "base_size": 9.2,
-      "title_size": 10.4,
+      "title_size": 12.5,
       "axis_title_size": 9,
-      "tick_size": 8,
+      "tick_size": 9,
       "legend_size": 6.8,
       "panel_label_size": 9.2,
       "legend_key_width": 20,
@@ -176,7 +176,8 @@
       "colorbar_horizontal_height": 6,
       "colorbar_max_breaks": 3,
       "colorbar_label_size": 5.6,
-      "colorbar_title_size": 6
+      "colorbar_title_size": 6,
+      "subtitle_size": 9.5
     },
     "stroke": {
       "axis_linewidth": 0.35,
@@ -195,8 +196,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 5.7,
+      "output_height_in": 3.2,
       "show_figure_title": false
     },
     "readability_override": {}
@@ -251,9 +252,9 @@
     "typography": {
       "font_family": "sans",
       "base_size": 9.2,
-      "title_size": 10.4,
+      "title_size": 12.5,
       "axis_title_size": 9,
-      "tick_size": 8,
+      "tick_size": 9,
       "legend_size": 6.8,
       "panel_label_size": 9.2,
       "legend_key_width": 20,
@@ -266,7 +267,8 @@
       "colorbar_horizontal_height": 6,
       "colorbar_max_breaks": 3,
       "colorbar_label_size": 5.6,
-      "colorbar_title_size": 6
+      "colorbar_title_size": 6,
+      "subtitle_size": 9.5
     },
     "stroke": {
       "axis_linewidth": 0.35,

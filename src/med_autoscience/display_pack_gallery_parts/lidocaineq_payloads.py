@@ -6,14 +6,14 @@ from typing import Any
 
 
 def _distribution_values() -> list[dict[str, Any]]:
-    low = [-0.38, -0.24, -0.18, -0.10, -0.06, 0.02, 0.08, 0.14, 0.20, 0.27, 0.36, 0.44]
-    high = [0.18, 0.28, 0.36, 0.44, 0.52, 0.61, 0.70, 0.78, 0.86, 0.94, 1.04, 1.16]
+    responder = [-0.38, -0.24, -0.18, -0.10, -0.06, 0.02, 0.08, 0.14, 0.20, 0.27, 0.36, 0.44]
+    non_responder = [0.18, 0.28, 0.36, 0.44, 0.52, 0.61, 0.70, 0.78, 0.86, 0.94, 1.04, 1.16]
     return [
-        {"group": "Low-risk", "value": value}
-        for value in low
+        {"group": "Responder", "value": value}
+        for value in responder
     ] + [
-        {"group": "High-risk", "value": value}
-        for value in high
+        {"group": "Non-responder", "value": value}
+        for value in non_responder
     ]
 
 
@@ -32,19 +32,19 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "distribution_violin_box": {
         "display_id": "Figure29",
         "template_id": "distribution_violin_box",
-        "title": "Signature score distribution by risk group",
-        "caption": "Student-curated violin, box and jitter grammar adapted for MAS R/ggplot2 evidence rendering.",
+        "title": "Distribution comparison",
+        "caption": "Violin + box + jitter.",
         "x_label": "",
         "y_label": "Signature score",
         "annotation": "Wilcoxon P = 0.004",
-        "group_order": [{"label": "Low-risk"}, {"label": "High-risk"}],
+        "group_order": [{"label": "Responder"}, {"label": "Non-responder"}],
         "values": _distribution_values(),
     },
     "composition_stacked_bar": {
         "display_id": "Figure30",
         "template_id": "composition_stacked_bar",
-        "title": "Response-class composition across cohorts",
-        "caption": "Stacked proportions use the shared MAS clinical palette and compact bottom legend.",
+        "title": "Stacked cohort composition",
+        "caption": "Stable legend and percent scale.",
         "x_label": "",
         "y_label": "Patients",
         "group_order": [{"label": item} for item in ["Training", "Internal", "External"]],
@@ -64,8 +64,8 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "correlation_scatter": {
         "display_id": "Figure31",
         "template_id": "correlation_scatter",
-        "title": "Feature score association with outcome signal",
-        "caption": "Correlation scatter seed with model trend and statistical annotation slot.",
+        "title": "Correlation scatter",
+        "caption": "Regression line with statistic slot.",
         "x_label": "Feature score",
         "y_label": "Outcome-associated score",
         "annotation": "Spearman r = 0.53\nP < 0.001",
@@ -75,7 +75,7 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
         "display_id": "Figure32",
         "template_id": "alluvial_transition",
         "title": "Subtype transition after treatment",
-        "caption": "Alluvial state-transition grammar rendered through the OPL-prepared ggalluvial runtime profile.",
+        "caption": "ggalluvial composition without manual left-packing.",
         "source_axis_label": "Baseline subtype",
         "target_axis_label": "Post-treatment state",
         "flows": [
@@ -90,8 +90,8 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "radar_profile": {
         "display_id": "Figure33",
         "template_id": "radar_profile",
-        "title": "Immune profile radar overview",
-        "caption": "Compact profile comparison seed for few-axis clinical or immune signatures.",
+        "title": "Radar immune profile",
+        "caption": "ggradar source-project template.",
         "axes": [{"label": item} for item in ["CD8", "CD4", "M1", "M2", "TLS", "Ki67"]],
         "profiles": [
             {"label": "Responder", "values": [0.68, 0.63, 0.58, 0.25, 0.66, 0.35]},
@@ -101,34 +101,34 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "waterfall_response": {
         "display_id": "Figure34",
         "template_id": "waterfall_response",
-        "title": "Best response waterfall",
-        "caption": "Ranked individual response plot with response-class palette and optional clinical threshold lines.",
-        "x_label": "Patients ordered by response",
-        "y_label": "Change from baseline (%)",
-        "thresholds": [
-            {"label": "Partial response", "value": -30},
-            {"label": "Progression", "value": 20},
-        ],
+        "title": "Risk-score waterfall",
+        "caption": "Ranked individual predictions.",
+        "x_label": "Patients ordered by score",
+        "y_label": "Risk score",
         "bars": [
             {"sample": f"P{index:02d}", "value": value, "response": response}
             for index, (value, response) in enumerate(
                 [
-                    (-72, "Response"),
-                    (-61, "Response"),
-                    (-55, "Response"),
-                    (-48, "Response"),
-                    (-39, "Response"),
-                    (-31, "Response"),
-                    (-24, "Stable"),
-                    (-18, "Stable"),
-                    (-11, "Stable"),
-                    (-6, "Stable"),
-                    (4, "Stable"),
-                    (9, "Stable"),
-                    (16, "Stable"),
-                    (23, "Progression"),
-                    (31, "Progression"),
-                    (44, "Progression"),
+                    (-2.65, "Response"),
+                    (-2.20, "Response"),
+                    (-1.85, "Response"),
+                    (-1.52, "Response"),
+                    (-1.21, "Response"),
+                    (-0.91, "Response"),
+                    (-0.62, "Response"),
+                    (-0.41, "Response"),
+                    (-0.24, "Stable"),
+                    (-0.08, "Stable"),
+                    (0.06, "Stable"),
+                    (0.18, "Stable"),
+                    (0.31, "Stable"),
+                    (0.46, "Stable"),
+                    (0.61, "Progression"),
+                    (0.77, "Progression"),
+                    (0.96, "Progression"),
+                    (1.14, "Progression"),
+                    (1.33, "Progression"),
+                    (1.58, "Progression"),
                 ],
                 start=1,
             )
@@ -137,22 +137,28 @@ LIDOCAINEQ_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "table1_baseline_characteristics": {
         "display_id": "Table1",
         "template_id": "table1_baseline_characteristics",
-        "title": "Baseline characteristics",
-        "caption": "Aligned columns with restrained journal styling.",
-        "overall_header": "Overall\n(n=256)",
-        "group_a_header": "Low risk\n(n=128)",
-        "group_b_header": "High risk\n(n=128)",
-        "p_header": "P value",
+        "title": "Baseline characteristics table",
+        "caption": "Table shell rendered as visual reference",
+        "variable_header": "Variable",
+        "overall_header": "Overall",
+        "group_a_header": "LowRisk",
+        "group_b_header": "HighRisk",
+        "p_header": "P",
         "rows": [
-            {"variable": "Age, years", "overall": "63.4 (11.2)", "group_a": "61.8 (10.9)", "group_b": "65.0 (11.3)", "p_value": "0.021"},
-            {"variable": "Female sex", "overall": "118 (46.1)", "group_a": "61 (47.7)", "group_b": "57 (44.5)", "p_value": "0.706"},
-            {"variable": "Tumor size, mm", "overall": "32.6 (14.8)", "group_a": "27.9 (12.1)", "group_b": "37.3 (15.8)", "p_value": "<0.001"},
-            {"variable": "Stage", "row_type": "section", "overall": "", "group_a": "", "group_b": "", "p_value": "0.018"},
-            {"variable": "Stage", "level": "I-II", "overall": "142 (55.5)", "group_a": "82 (64.1)", "group_b": "60 (46.9)", "p_value": ""},
-            {"variable": "Stage", "level": "III-IV", "overall": "114 (44.5)", "group_a": "46 (35.9)", "group_b": "68 (53.1)", "p_value": ""},
-            {"variable": "Albumin, g/L", "overall": "38.1 (4.9)", "group_a": "39.4 (4.4)", "group_b": "36.8 (5.1)", "p_value": "<0.001"},
-            {"variable": "Inflammation index", "overall": "2.1 (1.4-3.6)", "group_a": "1.7 (1.1-2.6)", "group_b": "2.8 (1.8-4.5)", "p_value": "<0.001"},
+            {"variable": "Age, median (IQR)", "overall": "61 (54-68)", "group_a": "59 (52-67)", "group_b": "63 (56-70)", "p_value": "0.041"},
+            {"variable": "Male sex", "overall": "186 (58%)", "group_a": "78 (55%)", "group_b": "108 (60%)", "p_value": "0.42"},
+            {"variable": "cT3-4", "overall": "248 (77%)", "group_a": "101 (71%)", "group_b": "147 (82%)", "p_value": "0.028"},
+            {"variable": "N positive", "overall": "210 (65%)", "group_a": "84 (59%)", "group_b": "126 (70%)", "p_value": "0.037"},
+            {"variable": "pCR", "overall": "72 (22%)", "group_a": "45 (32%)", "group_b": "27 (15%)", "p_value": "<0.001"},
         ],
+        "render_context": {
+            "layout_override": {"output_width_in": 5.7, "output_height_in": 3.2},
+            "typography": {
+                "title_size": 12.5,
+                "subtitle_size": 9.5,
+                "tick_size": 9.0
+            },
+        },
     },
 }
 

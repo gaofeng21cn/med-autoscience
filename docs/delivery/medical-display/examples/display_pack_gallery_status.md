@@ -21,11 +21,11 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Current Python evidence templates | 0 |
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
-| LidocaineQ reference templates covered | 33/33 |
-| LidocaineQ replacement mappings | 15 |
-| Retired alias references not restored | 6 |
-| Render cache hit | 0 |
-| Render cache miss | 37 |
+| LidocaineQ reference coverage audit | 33/33 |
+| LidocaineQ visual parity audit | outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md |
+| LidocaineQ parity contact sheet | outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png |
+| Render cache hit | 1 |
+| Render cache miss | 36 |
 | Package-only reused assets | 0 |
 | Render cache untracked | 0 |
 
@@ -47,7 +47,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - journal palette: `lidocaineq_figure_template_palette_20260621`
 - quality overall status: `not_publication_ready`
 - publication-ready claim authorized: `false`
-- force render: `true`
+- force render: `false`
 - package only: `false`
 - blocked evidence templates after current render: `0`
 - blocked gallery visual templates after current render: `0`
@@ -58,10 +58,11 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
 - LidocaineQ 33 项参考覆盖完整: `true`
+- LidocaineQ 33 项逐图视觉审计: `outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md`
 
-## LidocaineQ 发表级参考覆盖
+## LidocaineQ 质量审计面
 
-`mapping_relation` 说明 PDF 参考 ID 与 MAS current canonical template 的关系。`renamed_current_template` 和 `retired_alias_to_current_template` 都表示 MAS 保留 current template surface，只把 LidocaineQ ID 作为 source renderer / reference id；`retired_alias_to_current_template` 明确禁止恢复旧 alias。
+LidocaineQ 33 项是学习和质量审计输入，不作为 Gallery 永久章节。Gallery 只展示 MAS current canonical templates；逐图视觉对比、差距和修复状态写入独立审计文件与 contact sheet。
 
 | Reference template | MAS current template | Mapping relation | Status |
 | --- | --- | --- | --- |
@@ -81,7 +82,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | `bar_stacked` | `composition_stacked_bar` | `retired_alias_to_current_template` | `covered` |
 | `risk_layering_monotonic_bars` | `risk_layering_monotonic_bars` | `direct_current_template` | `covered` |
 | `scatter_correlation` | `correlation_scatter` | `retired_alias_to_current_template` | `covered` |
-| `embedding_umap_tsne` | `umap_scatter_grouped`, `tsne_scatter_grouped` | `renamed_current_template` | `covered` |
+| `embedding_umap_tsne` | `pca_scatter_grouped`, `tsne_scatter_grouped`, `umap_scatter_grouped` | `renamed_current_template` | `covered` |
 | `heatmap` | `heatmap_group_comparison` | `renamed_current_template` | `covered` |
 | `confusion_matrix_heatmap_binary` | `confusion_matrix_heatmap_binary` | `direct_current_template` | `covered` |
 | `volcano_deg` | `omics_volcano_panel` | `renamed_current_template` | `covered` |

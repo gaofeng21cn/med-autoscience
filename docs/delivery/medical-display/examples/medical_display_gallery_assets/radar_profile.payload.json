@@ -1,8 +1,8 @@
 {
   "display_id": "Figure33",
   "template_id": "radar_profile",
-  "title": "Immune profile radar overview",
-  "caption": "Compact profile comparison seed for few-axis clinical or immune signatures.",
+  "title": "Radar immune profile",
+  "caption": "ggradar source-project template.",
   "axes": [
     {
       "label": "CD8"
@@ -205,8 +205,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

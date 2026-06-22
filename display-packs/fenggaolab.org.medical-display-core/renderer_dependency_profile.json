@@ -67,6 +67,26 @@
             "role": "Publication-style baseline table grob composition following LidocaineQ/Figure_Template baseline_table"
           },
           {
+            "name": "ComplexHeatmap",
+            "required": true,
+            "template_ids": [
+              "heatmap_group_comparison"
+            ],
+            "source": {
+              "type": "github",
+              "repo": "jokergoo/ComplexHeatmap"
+            },
+            "role": "Publication-style annotated heatmap grammar following LidocaineQ/Figure_Template heatmap"
+          },
+          {
+            "name": "circlize",
+            "required": true,
+            "template_ids": [
+              "heatmap_group_comparison"
+            ],
+            "role": "Diverging colour mapping for ComplexHeatmap publication heatmap"
+          },
+          {
             "name": "Rtsne",
             "required": true,
             "template_ids": [
@@ -94,6 +114,142 @@
       },
       "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
       "template_wrapper_ref": "templates/<template_id>/render.R"
+    },
+    {
+      "profile_id": "r_ggplot2_maftools_oncoplot_v1",
+      "execution_mode": "subprocess",
+      "renderer_family": "r_ggplot2",
+      "entrypoint_pattern": "Rscript render.R --request {request_json}",
+      "template_ids": [
+        "genomic_alteration_landscape_panel",
+        "fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel"
+      ],
+      "surface_role": "maftools_oncoplot_mutation_landscape_dependency_intent",
+      "runtime_binaries": [
+        {
+          "name": "Rscript",
+          "required": true,
+          "run_context_key": "binary_paths.Rscript"
+        }
+      ],
+      "language_packages": {
+        "r": [
+          {
+            "name": "jsonlite",
+            "required": true,
+            "role": "render request and layout sidecar JSON IO"
+          },
+          {
+            "name": "ggplot2",
+            "required": true,
+            "role": "shared publication style helpers loaded by the evidence renderer"
+          },
+          {
+            "name": "ggsci",
+            "required": true,
+            "role": "medical journal inspired palettes used by shared style helpers"
+          },
+          {
+            "name": "grid",
+            "required": true,
+            "role": "layout sidecar and device support for base graphics renderables"
+          },
+          {
+            "name": "maftools",
+            "required": true,
+            "source": {
+              "type": "github",
+              "repo": "PoisonAlien/maftools",
+              "upstream_package_manager": "BiocManager"
+            },
+            "role": "Mature mutation landscape oncoplot following LidocaineQ/Figure_Template oncoplot_mutation"
+          }
+        ]
+      },
+      "run_context_requirements": {
+        "binary_path_handoff_required": true,
+        "r_lib_path_required": true,
+        "session_info_required_in_receipt": true,
+        "network_access_during_render": false,
+        "package_install_during_render_allowed": false
+      },
+      "render_contract": {
+        "checked_in_renderer_family": "r_ggplot2",
+        "checked_in_execution_mode": "subprocess",
+        "checked_in_renderer_uses_maftools": true,
+        "checked_in_renderer_uses_base_graphics_device": true,
+        "checked_in_renderer_ref": "templates/genomic_alteration_landscape_panel/render.R",
+        "prepared_dependency_receipt_required_before_render": true
+      },
+      "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
+      "template_wrapper_ref": "templates/genomic_alteration_landscape_panel/render.R"
+    },
+    {
+      "profile_id": "r_ggplot2_ggradar_profile_v1",
+      "execution_mode": "subprocess",
+      "renderer_family": "r_ggplot2",
+      "entrypoint_pattern": "Rscript render.R --request {request_json}",
+      "template_ids": [
+        "radar_profile",
+        "fenggaolab.org.medical-display-core::radar_profile"
+      ],
+      "surface_role": "ggradar_radial_profile_dependency_intent",
+      "runtime_binaries": [
+        {
+          "name": "Rscript",
+          "required": true,
+          "run_context_key": "binary_paths.Rscript"
+        }
+      ],
+      "language_packages": {
+        "r": [
+          {
+            "name": "jsonlite",
+            "required": true,
+            "role": "render request and layout sidecar JSON IO"
+          },
+          {
+            "name": "ggplot2",
+            "required": true,
+            "role": "shared publication style helpers and ggradar ggplot output"
+          },
+          {
+            "name": "ggsci",
+            "required": true,
+            "role": "medical journal inspired palettes used by shared style helpers"
+          },
+          {
+            "name": "grid",
+            "required": true,
+            "role": "layout sidecar support"
+          },
+          {
+            "name": "ggradar",
+            "required": true,
+            "source": {
+              "type": "github",
+              "repo": "ricardo-bion/ggradar"
+            },
+            "role": "Mature radar grammar following LidocaineQ/Figure_Template radar"
+          }
+        ]
+      },
+      "run_context_requirements": {
+        "binary_path_handoff_required": true,
+        "r_lib_path_required": true,
+        "session_info_required_in_receipt": true,
+        "network_access_during_render": false,
+        "package_install_during_render_allowed": false
+      },
+      "render_contract": {
+        "checked_in_renderer_family": "r_ggplot2",
+        "checked_in_execution_mode": "subprocess",
+        "checked_in_renderer_uses_ggradar": true,
+        "checked_in_renderer_ref": "templates/radar_profile/render.R",
+        "prepared_dependency_receipt_required_before_render": true
+      },
+      "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
+      "template_wrapper_ref": "templates/radar_profile/render.R"
     },
     {
       "profile_id": "r_ggplot2_alluvial_transition_v1",
@@ -212,7 +368,7 @@
       "mature_dependency_intent": {
         "family": "ggconsort_capable_reporting_flow",
         "preferred_package": "ggconsort",
-        "fallback_generated_renderer_allowed": true,
+        "fallback_generated_renderer_allowed": false,
         "fallback_generated_renderer_id": "python_participant_flow",
         "fallback_generated_renderer_claims_ggconsort": false,
         "package_install_during_render_allowed": false

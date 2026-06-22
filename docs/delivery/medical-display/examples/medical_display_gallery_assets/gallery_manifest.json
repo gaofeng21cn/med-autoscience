@@ -1,11 +1,11 @@
 {
   "schema_version": 9,
   "status": "rendered",
-  "force_render": true,
+  "force_render": false,
   "package_only": false,
   "render_cache_summary": {
-    "cache_hit": 0,
-    "cache_miss": 37,
+    "cache_hit": 1,
+    "cache_miss": 36,
     "package_only": 0,
     "cache_untracked": 0
   },
@@ -55,235 +55,235 @@
       "waterfall_response"
     ],
     "run_context_fingerprints": [
-      "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8"
+      "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff"
     ],
     "templates": {
       "alluvial_transition": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_alluvial_transition_v1"
       },
       "calibration_curve_binary": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "celltype_marker_dotplot_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "cnv_recurrence_summary_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "coefficient_path_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "cohort_flow_figure": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_ggconsort_reporting_flow_v1"
       },
       "composition_stacked_bar": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "confusion_matrix_heatmap_binary": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "correlation_scatter": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "cumulative_incidence_grouped": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "decision_curve_binary": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "distribution_violin_box": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "forest_effect_main": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "generalizability_subgroup_composite_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "genomic_alteration_consequence_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "genomic_alteration_landscape_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
+        "required_profile_ids": "r_ggplot2_maftools_oncoplot_v1"
       },
       "heatmap_group_comparison": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "kaplan_meier_grouped": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "model_complexity_audit_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "omics_volcano_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "pathway_enrichment_dotplot_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "pca_scatter_grouped": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "pr_curve_binary": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "radar_profile": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
+        "required_profile_ids": "r_ggplot2_ggradar_profile_v1"
       },
       "risk_layering_monotonic_bars": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "roc_curve_binary": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "shap_dependence_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "shap_summary_beeswarm": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "shap_waterfall_local_explanation_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "table1_baseline_characteristics": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "time_dependent_roc_horizon": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "time_to_event_decision_curve": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "time_to_event_multihorizon_calibration_panel": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "tsne_scatter_grouped": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "umap_scatter_grouped": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "waterfall_response": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       }
     }
   },
-  "html_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/outputs/display-pack-gallery/medical_display_gallery.html",
-  "pdf_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/outputs/display-pack-gallery/medical_display_gallery.pdf",
-  "quality_audit_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/outputs/display-pack-gallery/display_pack_gallery_quality_audit.md",
-  "docs_pdf_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/docs/delivery/medical-display/examples/medical_display_gallery.pdf",
-  "docs_reference_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/docs/delivery/medical-display/examples/medical_display_gallery_reference.md",
-  "docs_quality_audit_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md",
-  "docs_status_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/docs/delivery/medical-display/examples/display_pack_gallery_status.md",
-  "docs_manifest_path": "/Users/gaofeng/workspace/med-autoscience/.worktrees/lidocaineq-visual-parity-fix-20260621/docs/delivery/medical-display/examples/gallery_manifest.json",
+  "html_path": "outputs/display-pack-gallery/medical_display_gallery.html",
+  "pdf_path": "outputs/display-pack-gallery/medical_display_gallery.pdf",
+  "quality_audit_path": "outputs/display-pack-gallery/display_pack_gallery_quality_audit.md",
+  "docs_pdf_path": "docs/delivery/medical-display/examples/medical_display_gallery.pdf",
+  "docs_reference_path": "docs/delivery/medical-display/examples/medical_display_gallery_reference.md",
+  "docs_quality_audit_path": "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md",
+  "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
+  "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
   "template_count": 37,
   "active_template_count": 34,
   "evidence_gallery_template_count": 34,
@@ -350,8 +350,9 @@
     "matrix_heatmap_uses_shared_palette_roles": true
   },
   "preview_device": {
-    "width_in": 5.0,
-    "height_in": 5.0
+    "policy": "template_reference_ratio",
+    "fallback_width_in": 5.0,
+    "fallback_height_in": 5.0
   },
   "nature_skills_observed_head": "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9",
   "categories": {
@@ -483,8 +484,43 @@
     "expected_journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
     "missing_style_profile": [],
     "mismatched_style_profile": [],
-    "square_preview_template_count": 34,
-    "nonsquare_previews": []
+    "native_ratio_preview_template_count": 34,
+    "native_ratio_previews": [
+      "alluvial_transition",
+      "calibration_curve_binary",
+      "celltype_marker_dotplot_panel",
+      "cnv_recurrence_summary_panel",
+      "coefficient_path_panel",
+      "composition_stacked_bar",
+      "confusion_matrix_heatmap_binary",
+      "correlation_scatter",
+      "cumulative_incidence_grouped",
+      "decision_curve_binary",
+      "distribution_violin_box",
+      "forest_effect_main",
+      "generalizability_subgroup_composite_panel",
+      "genomic_alteration_consequence_panel",
+      "genomic_alteration_landscape_panel",
+      "heatmap_group_comparison",
+      "kaplan_meier_grouped",
+      "model_complexity_audit_panel",
+      "omics_volcano_panel",
+      "pathway_enrichment_dotplot_panel",
+      "pca_scatter_grouped",
+      "pr_curve_binary",
+      "radar_profile",
+      "risk_layering_monotonic_bars",
+      "roc_curve_binary",
+      "shap_dependence_panel",
+      "shap_summary_beeswarm",
+      "shap_waterfall_local_explanation_panel",
+      "time_dependent_roc_horizon",
+      "time_to_event_decision_curve",
+      "time_to_event_multihorizon_calibration_panel",
+      "tsne_scatter_grouped",
+      "umap_scatter_grouped",
+      "waterfall_response"
+    ]
   },
   "ai_adaptation_policy": {
     "policy_id": "ai_can_redesign_with_quality_gates",
@@ -2516,27 +2552,31 @@
         "category_label": "UMAP / t-SNE embedding",
         "mas_template_id": "umap_scatter_grouped",
         "mas_template_ids": [
-          "umap_scatter_grouped",
-          "tsne_scatter_grouped"
+          "pca_scatter_grouped",
+          "tsne_scatter_grouped",
+          "umap_scatter_grouped"
         ],
         "mapping_relation": "renamed_current_template",
-        "replacement_reason": "One LidocaineQ embedding reference covers MAS current UMAP and t-SNE computed-workflow templates; do not add a duplicate external-id alias.",
+        "replacement_reason": "One LidocaineQ embedding reference covers MAS current PCA, t-SNE, and UMAP computed-workflow templates; do not add a duplicate external-id alias.",
         "legacy_alias_status": "not_a_mas_legacy_alias",
         "do_not_restore_legacy_alias": false,
         "expected_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
         "actual_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
         "actual_source_renderers": {
-          "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
-          "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne"
+          "pca_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+          "tsne_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+          "umap_scatter_grouped": "LidocaineQ/Figure_Template::embedding_umap_tsne"
         },
         "render_status": "rendered",
         "render_status_by_template_id": {
-          "umap_scatter_grouped": "rendered",
-          "tsne_scatter_grouped": "rendered"
+          "pca_scatter_grouped": "rendered",
+          "tsne_scatter_grouped": "rendered",
+          "umap_scatter_grouped": "rendered"
         },
         "covered_mas_template_ids": [
-          "umap_scatter_grouped",
-          "tsne_scatter_grouped"
+          "pca_scatter_grouped",
+          "tsne_scatter_grouped",
+          "umap_scatter_grouped"
         ],
         "missing_or_downgraded_mas_template_ids": [],
         "coverage_status": "covered"
@@ -3368,7 +3408,7 @@
         "current_template_has_medical_family_mapping",
         "current_template_has_starter_recipe_profile",
         "current_template_has_style_palette_qa_profile",
-        "default_gallery_render_has_square_preview",
+        "default_gallery_render_respects_template_reference_ratio",
         "default_gallery_render_has_vector_export_when_possible"
       ]
     },
@@ -5195,7 +5235,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -5322,7 +5362,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -5449,7 +5489,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -5577,7 +5617,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -5702,7 +5742,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -5830,7 +5870,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -5956,7 +5996,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6086,7 +6126,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6213,7 +6253,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6339,7 +6379,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6465,7 +6505,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6602,7 +6642,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6731,7 +6771,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -6874,7 +6914,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7001,7 +7041,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7144,7 +7184,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7276,7 +7316,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7407,7 +7447,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7538,7 +7578,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7666,7 +7706,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7793,7 +7833,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -7925,7 +7965,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8050,7 +8090,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8177,7 +8217,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8309,7 +8349,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8436,7 +8476,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8567,7 +8607,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8697,7 +8737,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8834,7 +8874,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -8960,7 +9000,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9087,7 +9127,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9214,7 +9254,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9341,7 +9381,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9467,7 +9507,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9640,7 +9680,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9783,7 +9823,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -9916,7 +9956,7 @@
           "medical_figure_family_mapped",
           "starter_recipe_profile_present",
           "style_palette_qa_profile_present",
-          "square_gallery_preview",
+          "reference_ratio_gallery_preview",
           "vector_export_available",
           "semantic_palette_context",
           "synthetic_payload_only",
@@ -16483,20 +16523,20 @@
       ],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_alluvial_transition_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1696,
+        1120
       ],
       "image_ref": "medical_display_gallery_assets/alluvial_transition.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1696,
+        1120
       ],
       "preview_image_ref": "medical_display_gallery_assets/alluvial_transition.png",
       "payload_ref": "medical_display_gallery_assets/alluvial_transition.payload.json",
@@ -16504,7 +16544,7 @@
       "pdf_ref": "medical_display_gallery_assets/alluvial_transition.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:78101ada91907cca634f2c2a78e9c6a7ecd03e2bd442151d0356247f719b22c6"
+      "render_cache_key": "sha256:81585254cb8899135160a6e9e03d673bdff8c114efe590d97eb130e7a0ae91cb"
     },
     {
       "template_id": "calibration_curve_binary",
@@ -16624,20 +16664,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/calibration_curve_binary.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/calibration_curve_binary.png",
       "payload_ref": "medical_display_gallery_assets/calibration_curve_binary.payload.json",
@@ -16645,7 +16685,7 @@
       "pdf_ref": "medical_display_gallery_assets/calibration_curve_binary.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:6990bb570f86ea6993497f1562abed93c2762809beb6ab4088be7e7ca74b4b6b"
+      "render_cache_key": "sha256:36c0898cbdc69e6837603d725ecdb569ac527770f7ab89ebb154f388397b2bd8"
     },
     {
       "template_id": "celltype_marker_dotplot_panel",
@@ -16763,20 +16803,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1728,
+        1184
       ],
       "image_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1728,
+        1184
       ],
       "preview_image_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
       "payload_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.payload.json",
@@ -16784,7 +16824,7 @@
       "pdf_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:60ffdc56d20db66e6dfd211d422561db4a7aef56d149480a345e14e69fdea294"
+      "render_cache_key": "sha256:7ed6a3b950f098777708bfa12e9483d8dba9dff925638bac4fce9fe3b253d48c"
     },
     {
       "template_id": "cnv_recurrence_summary_panel",
@@ -16903,20 +16943,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1696,
+        1088
       ],
       "image_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1696,
+        1088
       ],
       "preview_image_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
       "payload_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.payload.json",
@@ -16924,7 +16964,7 @@
       "pdf_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:81914f4072a9b5042e851de5438b1113042bf8dd738269e24fe91354aa8ae114"
+      "render_cache_key": "sha256:0791fd51b613d26c091ec8ba57fdba422c50428a128671c95c685aeaf05074d1"
     },
     {
       "template_id": "coefficient_path_panel",
@@ -17040,20 +17080,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/coefficient_path_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/coefficient_path_panel.png",
       "payload_ref": "medical_display_gallery_assets/coefficient_path_panel.payload.json",
@@ -17061,7 +17101,7 @@
       "pdf_ref": "medical_display_gallery_assets/coefficient_path_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:fd98bfcc5010a89a1517a2daf816ebfa63e4e81ec3d35f5c4a4101a2621f64a6"
+      "render_cache_key": "sha256:4f8aca13f1863fb4530fa28041b47a9c3556289910ac3ce2a63a2b872ff2e1cc"
     },
     {
       "template_id": "composition_stacked_bar",
@@ -17180,20 +17220,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1664,
+        1088
       ],
       "image_ref": "medical_display_gallery_assets/composition_stacked_bar.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1664,
+        1088
       ],
       "preview_image_ref": "medical_display_gallery_assets/composition_stacked_bar.png",
       "payload_ref": "medical_display_gallery_assets/composition_stacked_bar.payload.json",
@@ -17201,7 +17241,7 @@
       "pdf_ref": "medical_display_gallery_assets/composition_stacked_bar.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:0646a7911bc76f9a338d901fbd6bc47a5543ac8ee36d0a91d9f92a57fe816c0c"
+      "render_cache_key": "sha256:6a8062c88ccf2657390133371600c2793c8d65b351f82656661f129f7730e252"
     },
     {
       "template_id": "confusion_matrix_heatmap_binary",
@@ -17318,20 +17358,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
       "payload_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.payload.json",
@@ -17339,7 +17379,7 @@
       "pdf_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:174beb141d9bd4e8e5a072f26b1f5168164639bf2b9c5d4a46ee56990f4e3d36"
+      "render_cache_key": "sha256:6c6180f11719efabf9e24d6e21327350f2be377abc1a8d3fffe7727844c65450"
     },
     {
       "template_id": "correlation_scatter",
@@ -17459,20 +17499,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/correlation_scatter.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/correlation_scatter.png",
       "payload_ref": "medical_display_gallery_assets/correlation_scatter.payload.json",
@@ -17480,7 +17520,7 @@
       "pdf_ref": "medical_display_gallery_assets/correlation_scatter.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:81d0842a50c7086d1e6ad7d4e2fe16c6559599e59d71f735e7b6df2109113daf"
+      "render_cache_key": "sha256:4f7c2736bc7102356040f48dac5e8fdf5d21b19ce0fc64784e6fa079508c90bc"
     },
     {
       "template_id": "cumulative_incidence_grouped",
@@ -17600,20 +17640,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.png",
       "payload_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.payload.json",
@@ -17621,7 +17661,7 @@
       "pdf_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:0e83b2ec4214e46db5fc1c115cfa5fac324c1f3c2e8f728e064caaa008e48aca"
+      "render_cache_key": "sha256:38916572a82cbee3d29ea4ade6fde051933559f5d895355d5c4ae1a34bb7bd12"
     },
     {
       "template_id": "decision_curve_binary",
@@ -17740,20 +17780,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/decision_curve_binary.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/decision_curve_binary.png",
       "payload_ref": "medical_display_gallery_assets/decision_curve_binary.payload.json",
@@ -17761,7 +17801,7 @@
       "pdf_ref": "medical_display_gallery_assets/decision_curve_binary.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:0d87a502e974a9b60e00bd282198f1e443ac3a286128000a92c1d594d541c295"
+      "render_cache_key": "sha256:319b2f9ae527ccb409eae0b4fd4cc0bc34894d30f32d8d762bc8d9d956475907"
     },
     {
       "template_id": "distribution_violin_box",
@@ -17881,20 +17921,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/distribution_violin_box.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/distribution_violin_box.png",
       "payload_ref": "medical_display_gallery_assets/distribution_violin_box.payload.json",
@@ -17902,7 +17942,7 @@
       "pdf_ref": "medical_display_gallery_assets/distribution_violin_box.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:b45b799aa6d31d2000d1ef7af40adbd1bcbaee51d5a75a1faeebae4a78bd3b04"
+      "render_cache_key": "sha256:86ef0450ed48db8edf58a0c799b17f235d6e4652fcc56af2c2335f0f675ba7cc"
     },
     {
       "template_id": "forest_effect_main",
@@ -18036,20 +18076,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/forest_effect_main.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/forest_effect_main.png",
       "payload_ref": "medical_display_gallery_assets/forest_effect_main.payload.json",
@@ -18057,7 +18097,7 @@
       "pdf_ref": "medical_display_gallery_assets/forest_effect_main.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:28ccc87c2a01907abb16233c44eb3094256a7b18cfec55d5f372aa54913c9e6c"
+      "render_cache_key": "sha256:ad473c0d661abc3e9cad5546030619d0f57bd072d4ed76d63c9f1abc84cd5ea1"
     },
     {
       "template_id": "generalizability_subgroup_composite_panel",
@@ -18177,20 +18217,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
       "payload_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.payload.json",
@@ -18198,7 +18238,7 @@
       "pdf_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:15f05fc4b83ff3f1b3d589f577da0db00e598adf07553d96bc370858cf732349"
+      "render_cache_key": "sha256:625af7ac3d8c252d1e4e69c936a26316849ba178b70342d6ab97efff43133ede"
     },
     {
       "template_id": "genomic_alteration_consequence_panel",
@@ -18333,20 +18373,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1696,
+        1120
       ],
       "image_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1696,
+        1120
       ],
       "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
       "payload_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.payload.json",
@@ -18354,7 +18394,7 @@
       "pdf_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:513be937fef1ef9cab74c3ec8c4bd7cbe526a7e278433df3cf8e777be2732c20"
+      "render_cache_key": "sha256:1eecc2fd4833d1c2f14583781b28681b3153fe41ed99c1f806d61b5d79ebdb00"
     },
     {
       "template_id": "genomic_alteration_landscape_panel",
@@ -18472,23 +18512,92 @@
         "first_class_renderer_family": "r_ggplot2",
         "python_renderer_role": "not_retained_for_data_evidence_without_advantage_proof"
       },
-      "dependency_requirements": [],
+      "dependency_requirements": [
+        {
+          "profile_id": "r_ggplot2_maftools_oncoplot_v1",
+          "renderer_family": "r_ggplot2",
+          "execution_mode": "subprocess",
+          "surface_role": "maftools_oncoplot_mutation_landscape_dependency_intent",
+          "template_ids": [
+            "fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel",
+            "genomic_alteration_landscape_panel"
+          ],
+          "mature_dependency_intent": {},
+          "language_package_requirements": [
+            {
+              "language": "r",
+              "name": "jsonlite",
+              "required": true,
+              "role": "render request and layout sidecar JSON IO",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "ggplot2",
+              "required": true,
+              "role": "shared publication style helpers loaded by the evidence renderer",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "ggsci",
+              "required": true,
+              "role": "medical journal inspired palettes used by shared style helpers",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "grid",
+              "required": true,
+              "role": "layout sidecar and device support for base graphics renderables",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "maftools",
+              "required": true,
+              "role": "Mature mutation landscape oncoplot following LidocaineQ/Figure_Template oncoplot_mutation",
+              "template_ids": [],
+              "source": {
+                "type": "github",
+                "repo": "PoisonAlien/maftools",
+                "upstream_package_manager": "BiocManager"
+              }
+            }
+          ],
+          "run_context_requirements": {
+            "binary_path_handoff_required": true,
+            "r_lib_path_required": true,
+            "session_info_required_in_receipt": true,
+            "network_access_during_render": false,
+            "package_install_during_render_allowed": false
+          },
+          "render_contract": {
+            "checked_in_renderer_family": "r_ggplot2",
+            "checked_in_execution_mode": "subprocess",
+            "checked_in_renderer_uses_maftools": true,
+            "checked_in_renderer_uses_base_graphics_device": true,
+            "checked_in_renderer_ref": "templates/genomic_alteration_landscape_panel/render.R",
+            "prepared_dependency_receipt_required_before_render": true
+          }
+        }
+      ],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
+        "required_profile_ids": "r_ggplot2_maftools_oncoplot_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        2240,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        2240,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
       "payload_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.payload.json",
@@ -18496,7 +18605,7 @@
       "pdf_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:fd1ff383e6ab04b876d0d797753634ca41fcc5cb187953e08ed3413776ec263b"
+      "render_cache_key": "sha256:0cd3a426d700c51c89c089dba34b7f4dc741e244029e51d5dc0b8e7b46d86841"
     },
     {
       "template_id": "heatmap_group_comparison",
@@ -18633,20 +18742,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1664,
+        1184
       ],
       "image_ref": "medical_display_gallery_assets/heatmap_group_comparison.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1664,
+        1184
       ],
       "preview_image_ref": "medical_display_gallery_assets/heatmap_group_comparison.png",
       "payload_ref": "medical_display_gallery_assets/heatmap_group_comparison.payload.json",
@@ -18654,7 +18763,7 @@
       "pdf_ref": "medical_display_gallery_assets/heatmap_group_comparison.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:d1893093f15c5f2ff970b7ca57b4eed0aa34b1fc21c8bfb5ba18108a4a1bd49b"
+      "render_cache_key": "sha256:80f19f71b43970ef1cbf738e23dca6f957a2ac80c07d442d2f34ac23c9078d15"
     },
     {
       "template_id": "kaplan_meier_grouped",
@@ -18774,8 +18883,8 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
@@ -18795,7 +18904,7 @@
       "pdf_ref": "medical_display_gallery_assets/kaplan_meier_grouped.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:4ad332099c7ffa367922630eecffb449688bb25b605f877f9d16c1f9b880bcf0"
+      "render_cache_key": "sha256:9fc896de5e12f41ec551cf325e841b3b26bf29dbff6f8d34546f4f53d44bbaba"
     },
     {
       "template_id": "model_complexity_audit_panel",
@@ -18914,20 +19023,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/model_complexity_audit_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/model_complexity_audit_panel.png",
       "payload_ref": "medical_display_gallery_assets/model_complexity_audit_panel.payload.json",
@@ -18935,7 +19044,7 @@
       "pdf_ref": "medical_display_gallery_assets/model_complexity_audit_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:c96ca16cbe196ee8f1f60b04d4a6060b32e528377356aa5459a24b53c68fdff0"
+      "render_cache_key": "sha256:de240efd1631933ca7a81698c32af18206e8776f4264bd602f85fe5fe1e29e0e"
     },
     {
       "template_id": "omics_volcano_panel",
@@ -19054,20 +19163,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/omics_volcano_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/omics_volcano_panel.png",
       "payload_ref": "medical_display_gallery_assets/omics_volcano_panel.payload.json",
@@ -19075,7 +19184,7 @@
       "pdf_ref": "medical_display_gallery_assets/omics_volcano_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:4112d087a74f14fb81b2966a65302043818d1f4dc2175024ea611e0153fc33ca"
+      "render_cache_key": "sha256:223482366d5604ba3d06848679fee4ad44700b059d0873b49766b68e058e0609"
     },
     {
       "template_id": "pathway_enrichment_dotplot_panel",
@@ -19194,20 +19303,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1696,
+        1184
       ],
       "image_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1696,
+        1184
       ],
       "preview_image_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
       "payload_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.payload.json",
@@ -19215,7 +19324,7 @@
       "pdf_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:ab466df27da2960e4775fd37134c2e2dd618cdbc927c17eee19e0813b1b563d8"
+      "render_cache_key": "sha256:e6522b9961691a03b479b790c43dbfc1f42482e6a9fe694343035aca80505b20"
     },
     {
       "template_id": "pca_scatter_grouped",
@@ -19333,8 +19442,8 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
@@ -19354,7 +19463,7 @@
       "pdf_ref": "medical_display_gallery_assets/pca_scatter_grouped.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:0ed91dc1c01a49f66d2654fe4d1e03e2ac27ba85cb4f30492948f119f2dd6d15"
+      "render_cache_key": "sha256:7f7648d99e771f0231cc4a6d602da35bbcfea4b361065dda6462ed8d223fb559"
     },
     {
       "template_id": "pr_curve_binary",
@@ -19477,20 +19586,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/pr_curve_binary.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/pr_curve_binary.png",
       "payload_ref": "medical_display_gallery_assets/pr_curve_binary.payload.json",
@@ -19498,7 +19607,7 @@
       "pdf_ref": "medical_display_gallery_assets/pr_curve_binary.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:2716bd1619cd1f89b7c2282857bc6ab9834cc5e19df48a18bcdb2f1aae70aac7"
+      "render_cache_key": "sha256:f3ad2735f22a75987aa8b6ea3dd6a42aa92a9c4f446cc2e57395c05393eedee2"
     },
     {
       "template_id": "radar_profile",
@@ -19613,23 +19722,90 @@
         "first_class_renderer_family": "r_ggplot2",
         "python_renderer_role": "not_retained_for_data_evidence_without_advantage_proof"
       },
-      "dependency_requirements": [],
+      "dependency_requirements": [
+        {
+          "profile_id": "r_ggplot2_ggradar_profile_v1",
+          "renderer_family": "r_ggplot2",
+          "execution_mode": "subprocess",
+          "surface_role": "ggradar_radial_profile_dependency_intent",
+          "template_ids": [
+            "fenggaolab.org.medical-display-core::radar_profile",
+            "radar_profile"
+          ],
+          "mature_dependency_intent": {},
+          "language_package_requirements": [
+            {
+              "language": "r",
+              "name": "jsonlite",
+              "required": true,
+              "role": "render request and layout sidecar JSON IO",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "ggplot2",
+              "required": true,
+              "role": "shared publication style helpers and ggradar ggplot output",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "ggsci",
+              "required": true,
+              "role": "medical journal inspired palettes used by shared style helpers",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "grid",
+              "required": true,
+              "role": "layout sidecar support",
+              "template_ids": []
+            },
+            {
+              "language": "r",
+              "name": "ggradar",
+              "required": true,
+              "role": "Mature radar grammar following LidocaineQ/Figure_Template radar",
+              "template_ids": [],
+              "source": {
+                "type": "github",
+                "repo": "ricardo-bion/ggradar"
+              }
+            }
+          ],
+          "run_context_requirements": {
+            "binary_path_handoff_required": true,
+            "r_lib_path_required": true,
+            "session_info_required_in_receipt": true,
+            "network_access_during_render": false,
+            "package_install_during_render_allowed": false
+          },
+          "render_contract": {
+            "checked_in_renderer_family": "r_ggplot2",
+            "checked_in_execution_mode": "subprocess",
+            "checked_in_renderer_uses_ggradar": true,
+            "checked_in_renderer_ref": "templates/radar_profile/render.R",
+            "prepared_dependency_receipt_required_before_render": true
+          }
+        }
+      ],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
+        "required_profile_ids": "r_ggplot2_ggradar_profile_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/radar_profile.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/radar_profile.png",
       "payload_ref": "medical_display_gallery_assets/radar_profile.payload.json",
@@ -19637,7 +19813,7 @@
       "pdf_ref": "medical_display_gallery_assets/radar_profile.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:72f4a26506a34d5a99deca50900534bdc26cce393d3096eb8935d316d2a8b4dd"
+      "render_cache_key": "sha256:30b0d97c13af9c2e8f0235078111c9634530cff0a521a12d5b321fab21ee5b68"
     },
     {
       "template_id": "risk_layering_monotonic_bars",
@@ -19757,20 +19933,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1664,
+        1088
       ],
       "image_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1664,
+        1088
       ],
       "preview_image_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.png",
       "payload_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.payload.json",
@@ -19778,7 +19954,7 @@
       "pdf_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:b05e09c3a8d09c07869060b67e0136ff1d578c0ba6754e16fa4328dfed26f818"
+      "render_cache_key": "sha256:7fe19d6356600c311acd4ca05d118b28d2af515a5f50d07e53b9a1ed947587e5"
     },
     {
       "template_id": "roc_curve_binary",
@@ -19901,20 +20077,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/roc_curve_binary.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/roc_curve_binary.png",
       "payload_ref": "medical_display_gallery_assets/roc_curve_binary.payload.json",
@@ -19922,7 +20098,7 @@
       "pdf_ref": "medical_display_gallery_assets/roc_curve_binary.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:ed1eb30536a879eb3edfee364adc0af09a770aa4e7e8cbe377c2776ae88bcd79"
+      "render_cache_key": "sha256:d0b48356d5a06914cb4ebe7866b5c8d86ea4f638a6e53403e0ff6e243205c1e7"
     },
     {
       "template_id": "shap_dependence_panel",
@@ -20040,20 +20216,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/shap_dependence_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/shap_dependence_panel.png",
       "payload_ref": "medical_display_gallery_assets/shap_dependence_panel.payload.json",
@@ -20061,7 +20237,7 @@
       "pdf_ref": "medical_display_gallery_assets/shap_dependence_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:91d159d4ec4fb312743b12cdb86557e3a6ba9cbd5bf8ee31fecfd2f6b65c90dd"
+      "render_cache_key": "sha256:f2b611572f555e27a0d42563bdf92fbcce3ff9788623240b79beff764dc26bb5"
     },
     {
       "template_id": "shap_summary_beeswarm",
@@ -20183,20 +20359,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/shap_summary_beeswarm.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/shap_summary_beeswarm.png",
       "payload_ref": "medical_display_gallery_assets/shap_summary_beeswarm.payload.json",
@@ -20204,7 +20380,7 @@
       "pdf_ref": "medical_display_gallery_assets/shap_summary_beeswarm.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:c8b8c5cbe620aa0ef567ab41d6d4f3af284c8e1af657a62490f9bfcb2068b124"
+      "render_cache_key": "sha256:ba820433739b38f888133555c18376f6e0b16ec512fa903435a8792435694cba"
     },
     {
       "template_id": "shap_waterfall_local_explanation_panel",
@@ -20324,20 +20500,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1696,
+        1120
       ],
       "image_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1696,
+        1120
       ],
       "preview_image_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
       "payload_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.payload.json",
@@ -20345,7 +20521,7 @@
       "pdf_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:ceb80cd9a03463080564836695c34be393f5850553b46d8e47d2c5a633fca629"
+      "render_cache_key": "sha256:da62d2fbde5d53a524c48c5f8ffe73791691c9eef6b61f834233af25956f45f2"
     },
     {
       "template_id": "time_dependent_roc_horizon",
@@ -20472,20 +20648,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.png",
       "payload_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.payload.json",
@@ -20493,7 +20669,7 @@
       "pdf_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:df0dd14e4e2fb985d1b76219da94415b773ad08405cbed98ef741fd55be8f639"
+      "render_cache_key": "sha256:c494cc964b5f94e1d512b818bd6a72b2a3e71628060cc73762705d03ef844f4e"
     },
     {
       "template_id": "time_to_event_decision_curve",
@@ -20612,20 +20788,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/time_to_event_decision_curve.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/time_to_event_decision_curve.png",
       "payload_ref": "medical_display_gallery_assets/time_to_event_decision_curve.payload.json",
@@ -20633,7 +20809,7 @@
       "pdf_ref": "medical_display_gallery_assets/time_to_event_decision_curve.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:5e4c04654bc4d3583649d3c87918adb5c1a3a4519c0a6538589d451d406d6ab7"
+      "render_cache_key": "sha256:182c8c224772b870296890f1ce0def5ca61d916620f6e4de5fc4b39488848204"
     },
     {
       "template_id": "time_to_event_multihorizon_calibration_panel",
@@ -20751,20 +20927,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "image_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1536,
+        1536
       ],
       "preview_image_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
       "payload_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.payload.json",
@@ -20772,7 +20948,7 @@
       "pdf_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:694852c976349d522e7f48b52eafaa66a48d3a14ee284a08512d9a3852955ca7"
+      "render_cache_key": "sha256:3e174078edd04e7939e736812491ec403c13c5366a1cfbf4e40e5c4c9de1ea1a"
     },
     {
       "template_id": "tsne_scatter_grouped",
@@ -20890,8 +21066,8 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
@@ -20911,7 +21087,7 @@
       "pdf_ref": "medical_display_gallery_assets/tsne_scatter_grouped.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:25fda3d67fe3fffd2b475132fb80dfdc5cd58a48f1e651ef224c0650d3aa7f68"
+      "render_cache_key": "sha256:fc2f474fe4f85b6913df4f7ee41992402e50638549b71b05b7bacd72e9fc185c"
     },
     {
       "template_id": "umap_scatter_grouped",
@@ -21032,8 +21208,8 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
@@ -21053,7 +21229,7 @@
       "pdf_ref": "medical_display_gallery_assets/umap_scatter_grouped.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:3509ecdb4714cf0432c1188245ffd3328b4d1559f3b283b56f43e14c64d7250a"
+      "render_cache_key": "sha256:1f1a3e95e30169f44bc893ed524288f5aae0433f251a0f8d2beb32f478d89c75"
     },
     {
       "template_id": "waterfall_response",
@@ -21172,20 +21348,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1696,
+        1088
       ],
       "image_ref": "medical_display_gallery_assets/waterfall_response.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1696,
+        1088
       ],
       "preview_image_ref": "medical_display_gallery_assets/waterfall_response.png",
       "payload_ref": "medical_display_gallery_assets/waterfall_response.payload.json",
@@ -21193,7 +21369,7 @@
       "pdf_ref": "medical_display_gallery_assets/waterfall_response.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:a0db2c9541ec385971590ed9234c0f7ba554b560c49a1506ffce4114a3cf4b9d"
+      "render_cache_key": "sha256:50fb35dda6f6204a41b01bee70753b2fb2b47639b666203243813ef90792bcbc"
     }
   ],
   "reporting_flow_gallery_templates": [
@@ -21370,7 +21546,7 @@
           "mature_dependency_intent": {
             "family": "ggconsort_capable_reporting_flow",
             "preferred_package": "ggconsort",
-            "fallback_generated_renderer_allowed": true,
+            "fallback_generated_renderer_allowed": false,
             "fallback_generated_renderer_id": "python_participant_flow",
             "fallback_generated_renderer_claims_ggconsort": false,
             "package_install_during_render_allowed": false
@@ -21436,8 +21612,8 @@
       ],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_ggconsort_reporting_flow_v1"
       },
       "render_status": "rendered",
@@ -21457,7 +21633,7 @@
       "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:f34878eef70b8b5fd68f0d3ffbe9c244a2bd737c0bfa4b0b1c8dbb816a77a2c1"
+      "render_cache_key": "sha256:f4a1d9b72a4e35d257bdc45055496a7b9ac71795bec5dd4d5462d0e4d8f6af68"
     }
   ],
   "design_gallery_templates": [
@@ -21602,7 +21778,7 @@
       "layout_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.layout.json",
       "pdf_ref": "",
       "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
-      "render_cache_status": "miss",
+      "render_cache_status": "hit",
       "render_cache_key": "sha256:5de00aadb51aaee854c3757b4c35103ece97877f1abf001ab3844199b29e3c7e"
     }
   ],
@@ -21729,20 +21905,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1824,
+        1024
       ],
       "image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1824,
+        1024
       ],
       "preview_image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
       "payload_ref": "medical_display_gallery_assets/table1_baseline_characteristics.payload.json",
@@ -21750,7 +21926,7 @@
       "pdf_ref": "medical_display_gallery_assets/table1_baseline_characteristics.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:d66f14fc936bb5425eb77e57a5fe1185fc134cabc04ea68f53dac768edf38437"
+      "render_cache_key": "sha256:798fee7c32a5f690c6561d8a5c57e2a6be2f54011388559e81ebf984b32605ad"
     }
   ],
   "non_visual_inventory": [
@@ -21927,7 +22103,7 @@
           "mature_dependency_intent": {
             "family": "ggconsort_capable_reporting_flow",
             "preferred_package": "ggconsort",
-            "fallback_generated_renderer_allowed": true,
+            "fallback_generated_renderer_allowed": false,
             "fallback_generated_renderer_id": "python_participant_flow",
             "fallback_generated_renderer_claims_ggconsort": false,
             "package_install_during_render_allowed": false
@@ -21993,8 +22169,8 @@
       ],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_ggconsort_reporting_flow_v1"
       },
       "render_status": "rendered",
@@ -22014,7 +22190,7 @@
       "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:f34878eef70b8b5fd68f0d3ffbe9c244a2bd737c0bfa4b0b1c8dbb816a77a2c1"
+      "render_cache_key": "sha256:f4a1d9b72a4e35d257bdc45055496a7b9ac71795bec5dd4d5462d0e4d8f6af68"
     },
     {
       "template_id": "submission_graphical_abstract",
@@ -22157,7 +22333,7 @@
       "layout_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.layout.json",
       "pdf_ref": "",
       "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
-      "render_cache_status": "miss",
+      "render_cache_status": "hit",
       "render_cache_key": "sha256:5de00aadb51aaee854c3757b4c35103ece97877f1abf001ab3844199b29e3c7e"
     },
     {
@@ -22282,20 +22458,20 @@
       "dependency_requirements": [],
       "dependency_environment": {
         "status": "prepared",
-        "run_context_ref": "paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:69e77f40f1640243ca30c56c518baca4885fa0614fc765b61ea2ea462732e6b8",
+        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
+        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
         "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
       },
       "render_status": "rendered",
       "render_reason": "",
       "image_size_px": [
-        1600,
-        1600
+        1824,
+        1024
       ],
       "image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
       "preview_image_size_px": [
-        1600,
-        1600
+        1824,
+        1024
       ],
       "preview_image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
       "payload_ref": "medical_display_gallery_assets/table1_baseline_characteristics.payload.json",
@@ -22303,7 +22479,7 @@
       "pdf_ref": "medical_display_gallery_assets/table1_baseline_characteristics.pdf",
       "svg_ref": "",
       "render_cache_status": "miss",
-      "render_cache_key": "sha256:d66f14fc936bb5425eb77e57a5fe1185fc134cabc04ea68f53dac768edf38437"
+      "render_cache_key": "sha256:798fee7c32a5f690c6561d8a5c57e2a6be2f54011388559e81ebf984b32605ad"
     }
   ],
   "default_surface_excluded_inventory": [],
@@ -23354,5 +23530,21 @@
       "visual_gallery_visible": false,
       "migration_reason": "Patient-level response waterfall is a distinct oncology/trial response grammar and should be callable as its own lower-bound seed."
     }
-  ]
+  ],
+  "lidocaineq_visual_parity_audit_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md",
+  "lidocaineq_visual_parity_audit_json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json",
+  "lidocaineq_visual_parity_contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
+  "lidocaineq_visual_parity_audit": {
+    "schema_version": 1,
+    "source_project": "LidocaineQ/Figure_Template",
+    "reference_root": "/private/tmp/lidocaineq_figure_template",
+    "reference_template_count": 33,
+    "status_counts": {
+      "mas_computed_workflow_intentionally_extended": 1,
+      "reference_style_matched": 32
+    },
+    "contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
+    "markdown_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md",
+    "json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json"
+  }
 }

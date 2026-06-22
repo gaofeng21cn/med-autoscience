@@ -16,6 +16,10 @@ from med_autoscience.display_pack_agent_parts.composition_recipe_projection impo
 from med_autoscience.display_pack_agent_parts.publication_polish_policy import (
     publication_polish_policy,
 )
+from med_autoscience.display_pack_dependency_environment import (
+    dependency_requirements_for_template_ids,
+)
+from med_autoscience.display_pack_gallery_parts import paths
 from med_autoscience.display_pack_renderer_policy import (
     R_GGPLOT2_RENDERER,
     renderer_policy_completion,
@@ -88,7 +92,7 @@ def _baseline_quality_gates(record: TemplateRecord, asset: RenderedAsset) -> lis
             and record.publication_quality_profile.get("qa_gate_ids")
         )
         else "style_palette_qa_profile_missing",
-        "square_gallery_preview",
+        "reference_ratio_gallery_preview",
         "vector_export_available" if asset.pdf_ref or asset.svg_ref else "vector_export_missing",
         "semantic_palette_context",
         "synthetic_payload_only",
@@ -163,6 +167,33 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
     }
 
 
+def _checked_in_reporting_flow_renderer_family(record: TemplateRecord) -> str:
+    requirements = dependency_requirements_for_template_ids(
+        repo_root=paths.REPO_ROOT,
+        template_ids={record.template_id, record.full_template_id},
+    )
+    for requirement in requirements:
+        render_contract = requirement.get("render_contract")
+        if isinstance(render_contract, dict):
+            checked_in_family = render_contract.get("checked_in_renderer_family")
+            if isinstance(checked_in_family, str) and checked_in_family:
+                return checked_in_family
+        renderer_family = requirement.get("renderer_family")
+        if isinstance(renderer_family, str) and renderer_family:
+            return renderer_family
+    return record.renderer_family
+
+
+def _audit_reporting_flow_quality(
+    record: TemplateRecord,
+    asset: RenderedAsset,
+    baseline: RenderedAsset,
+) -> dict[str, Any]:
+    audit = audit_template_quality(record, asset, baseline)
+    audit["renderer_family"] = _checked_in_reporting_flow_renderer_family(record)
+    return audit
+
+
 def recommended_next_actions(record: TemplateRecord, blockers: list[str], warnings: list[str]) -> list[str]:
     actions = [
         "Use this template as a lower-bound starting point; AI may freely alter structure, layout, labels, scale, and composition for the paper-specific claim.",
@@ -206,7 +237,7 @@ def build_quality_audit(
         for record in visual_records
     ]
     reporting_flow_audits = [
-        audit_template_quality(
+        _audit_reporting_flow_quality(
             record,
             rendered[record.template_id],
             baseline_rendered.get(record.template_id, RenderedAsset(status="not_applicable")),
@@ -302,7 +333,7 @@ def build_quality_audit(
                 "current_template_has_medical_family_mapping",
                 "current_template_has_starter_recipe_profile",
                 "current_template_has_style_palette_qa_profile",
-                "default_gallery_render_has_square_preview",
+                "default_gallery_render_respects_template_reference_ratio",
                 "default_gallery_render_has_vector_export_when_possible",
             ],
         },

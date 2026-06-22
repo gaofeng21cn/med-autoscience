@@ -53,6 +53,10 @@ def _png_image_size(path: Path) -> tuple[int, int]:
     return (int(width), int(height))
 
 
+def _gallery_preview(path: Path) -> tuple[Path, tuple[int, int]]:
+    return (path, _image_size(path))
+
+
 def _square_gallery_preview(path: Path) -> tuple[Path, tuple[int, int]]:
     try:
         from PIL import Image

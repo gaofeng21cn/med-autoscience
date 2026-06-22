@@ -23,7 +23,21 @@ lidocaine_numeric <- function(value, fallback = 0) {
 }
 
 lidocaine_palette <- function(display_payload, labels) {
-  style_series_palette(display_payload, unique(as.character(labels)))
+  palette_values <- style_series_palette(display_payload, unique(as.character(labels)))
+  named_overrides <- c(
+    `Low Risk` = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+    `Low risk` = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+    `Low-risk` = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+    `High Risk` = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
+    `High risk` = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
+    `High-risk` = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A"),
+    `High context` = style_color(display_payload, "model_curve", "primary", "#245A6B"),
+    `Low context` = style_color(display_payload, "comparator_curve", "secondary", "#8B3A3A")
+  )
+  for (label in intersect(names(palette_values), names(named_overrides))) {
+    palette_values[[label]] <- named_overrides[[label]]
+  }
+  palette_values
 }
 
 lidocaine_publication_theme <- function(display_payload) {
@@ -345,7 +359,7 @@ plot_lidocaine_baseline_table <- function(display_payload) {
   })
   table_df <- build_baseline_table_dataframe(display_payload)
   table_for_grob <- data.frame(
-    Characteristic = table_df$display_variable,
+    Variable = table_df$display_variable,
     Overall = table_df$overall,
     GroupA = table_df$group_a,
     GroupB = table_df$group_b,
@@ -358,27 +372,25 @@ plot_lidocaine_baseline_table <- function(display_payload) {
     table_for_grob[section_rows, c("Overall", "GroupA", "GroupB")] <- ""
   }
   names(table_for_grob) <- c(
-    "Characteristic",
+    lidocaine_non_empty(display_payload$variable_header, "Variable"),
     lidocaine_non_empty(display_payload$overall_header, "Overall"),
     lidocaine_non_empty(display_payload$group_a_header, "Group A"),
     lidocaine_non_empty(display_payload$group_b_header, "Group B"),
     lidocaine_non_empty(display_payload$p_header, "P")
   )
-  row_fills <- rep(
-    c(
-      style_color(display_payload, "figure_background", "background", "#FFFFFF"),
-      style_color(display_payload, "highlight_band", "light", "#EEF4F7")
-    ),
-    length.out = nrow(table_for_grob)
-  )
-  row_fills[section_rows] <- style_color(display_payload, "highlight_band", "light", "#EEF4F7")
   table_theme <- gridExtra::ttheme_minimal(
-    base_size = style_numeric(style_typography(display_payload), "tick_size", 8.8),
-    padding = grid::unit(c(3.0, 4.0), "pt"),
+    base_size = style_numeric(style_typography(display_payload), "tick_size", 9.0),
+    padding = grid::unit(c(4.8, 5.8), "pt"),
     core = list(
       fg_params = list(col = style_text_color(display_payload), hjust = 0.5, x = 0.5),
       bg_params = list(
-        fill = row_fills,
+        fill = rep(
+          c(
+            style_color(display_payload, "figure_background", "background", "#FFFFFF"),
+            style_color(display_payload, "highlight_band", "light", "#EEF4F7")
+          ),
+          length.out = nrow(table_for_grob)
+        ),
         col = "white"
       )
     ),
@@ -388,30 +400,29 @@ plot_lidocaine_baseline_table <- function(display_payload) {
     )
   )
   table_grob <- gridExtra::tableGrob(table_for_grob, rows = NULL, theme = table_theme)
-  table_grob$widths <- grid::unit(c(0.34, 0.18, 0.18, 0.18, 0.12), "npc")
-  table_grob$heights <- grid::unit(rep(1 / length(table_grob$heights), length(table_grob$heights)), "npc")
   title_grob <- grid::textGrob(
     lidocaine_non_empty(display_payload$title, "Baseline characteristics table"),
-    x = 0.02,
+    x = 0,
     hjust = 0,
     gp = grid::gpar(
       fontface = "bold",
-      fontsize = style_numeric(style_typography(display_payload), "title_size", 12.0) * 0.84,
+      fontsize = style_numeric(style_typography(display_payload), "title_size", 12.0),
       col = style_text_color(display_payload)
     )
   )
   subtitle <- lidocaine_curve_subtitle(display_payload, "Publication Table 1 preview")
   subtitle_grob <- grid::textGrob(
     lidocaine_wrap_label(subtitle, 82),
-    x = 0.02,
+    x = 0,
     hjust = 0,
     gp = grid::gpar(
-      fontsize = style_numeric(style_typography(display_payload), "subtitle_size", 8.4) * 0.82,
+      fontsize = style_numeric(style_typography(display_payload), "subtitle_size", 8.4),
       col = style_color(display_payload, role_name = "subtitle", palette_key = "muted", fallback = "#64748B")
     )
   )
-  arranged <- gridExtra::arrangeGrob(title_grob, subtitle_grob, table_grob, heights = c(0.085, 0.055, 0.860))
-  gridExtra::arrangeGrob(arranged, padding = grid::unit(7, "pt"))
+  table_grob$widths <- table_grob$widths * 1.06
+  arranged <- gridExtra::arrangeGrob(title_grob, subtitle_grob, table_grob, heights = c(0.10, 0.08, 0.82))
+  arranged
 }
 
 build_alluvial_transition_dataframe <- function(display_payload) {
@@ -528,52 +539,60 @@ build_radar_profile_dataframe <- function(display_payload) {
 
 plot_radar_profile <- function(display_payload) {
   radar_df <- build_radar_profile_dataframe(display_payload)
-  axis_count <- length(unique(radar_df$axis))
-  close_df <- do.call(rbind, lapply(split(radar_df, radar_df$profile), function(frame) {
-    rbind(frame, frame[1, , drop = FALSE])
-  }))
-  close_df$angle <- 2 * pi * (close_df$axis_index - 1) / axis_count
-  close_df$x <- close_df$value * sin(close_df$angle)
-  close_df$y <- close_df$value * cos(close_df$angle)
-  label_df <- unique(radar_df[, c("axis", "axis_index"), drop = FALSE])
-  label_df$angle <- 2 * pi * (label_df$axis_index - 1) / axis_count
-  label_df$x <- 1.12 * sin(label_df$angle)
-  label_df$y <- 1.12 * cos(label_df$angle)
-  grid_df <- do.call(rbind, lapply(c(0.25, 0.5, 0.75, 1.0), function(radius) {
-    angles <- seq(0, 2 * pi, length.out = 121)
-    data.frame(radius = radius, x = radius * sin(angles), y = radius * cos(angles))
-  }))
-  palette_values <- lidocaine_palette(display_payload, close_df$profile)
-  ggplot() +
-    geom_path(data = grid_df, aes(x = x, y = y, group = radius), colour = style_grid_color(display_payload), linewidth = 0.22) +
-    geom_segment(
-      data = label_df,
-      aes(x = 0, y = 0, xend = 0.98 * sin(angle), yend = 0.98 * cos(angle)),
-      colour = style_grid_color(display_payload),
-      linewidth = 0.22
+  if (!requireNamespace("ggradar", quietly = TRUE)) {
+    stop("radar_profile requires OPL-prepared dependency package `ggradar`; run OPL prepare/doctor for the MAS display profile")
+  }
+  axis_labels <- unique(as.character(radar_df$axis))
+  wide_df <- reshape(
+    radar_df[, c("profile", "axis", "value")],
+    idvar = "profile",
+    timevar = "axis",
+    direction = "wide"
+  )
+  names(wide_df) <- sub("^value\\.", "", names(wide_df))
+  names(wide_df)[names(wide_df) == "profile"] <- "group"
+  wide_df <- wide_df[, c("group", axis_labels), drop = FALSE]
+  palette_values <- lidocaine_palette(display_payload, wide_df$group)
+  plot <- ggradar::ggradar(
+    wide_df,
+    centre.y = 0,
+    grid.min = 0.1,
+    grid.mid = 0.4,
+    grid.max = 0.7,
+    values.radar = c(0, 0.3, 0.6),
+    background.circle.colour = "grey95",
+    gridline.max.colour = style_color(display_payload, "series_6", "muted", "#64748B"),
+    gridline.min.colour = style_grid_color(display_payload),
+    gridline.mid.colour = style_grid_color(display_payload),
+    grid.label.size = 4,
+    grid.line.width = 0.55,
+    axis.label.offset = 1.15,
+    axis.label.size = 3.5,
+    group.line.width = 0.7,
+    group.point.size = 1.8,
+    group.colours = unname(palette_values[wide_df$group]),
+    legend.position = "bottom",
+    plot.extent.x.sf = 1.35,
+    plot.extent.y.sf = 1.15
+  )
+  plot$labels$size <- NULL
+  plot +
+    labs(
+      title = lidocaine_non_empty(display_payload$title, "Radar immune profile"),
+      subtitle = lidocaine_curve_subtitle(display_payload, "ggradar source-project template")
     ) +
-    geom_polygon(data = close_df, aes(x = x, y = y, group = profile, fill = profile), alpha = 0.13, colour = NA) +
-    geom_path(data = close_df, aes(x = x, y = y, colour = profile), linewidth = 0.68) +
-    geom_point(data = radar_df, aes(x = value * sin(2 * pi * (axis_index - 1) / axis_count), y = value * cos(2 * pi * (axis_index - 1) / axis_count), colour = profile), size = 1.5) +
-    geom_text(
-      data = label_df,
-      aes(x = x, y = y, label = axis),
-      size = style_numeric(style_typography(display_payload), "tick_size", 8.0) * 0.31,
-      colour = style_text_color(display_payload),
-      lineheight = 0.92
-    ) +
-    scale_colour_manual(values = palette_values, guide = publication_legend_guides(display_payload, close_df$profile)) +
-    scale_fill_manual(values = palette_values, guide = "none") +
-    coord_equal(xlim = c(-1.25, 1.25), ylim = c(-1.18, 1.22), expand = FALSE, clip = "off") +
-    labs(title = lidocaine_non_empty(display_payload$title), x = NULL, y = NULL) +
-    lidocaine_publication_theme(display_payload) +
     theme(
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      axis.line = element_blank(),
-      axis.title = element_blank(),
-      panel.grid = element_blank(),
-      plot.margin = margin(14, 16, 14, 16, unit = "pt")
+      panel.border = element_blank(),
+      plot.title = element_text(
+        size = style_numeric(style_typography(display_payload), "title_size", 12.5),
+        face = "bold",
+        colour = style_text_color(display_payload)
+      ),
+      plot.subtitle = element_text(
+        size = style_numeric(style_typography(display_payload), "subtitle_size", 9.5),
+        colour = style_color(display_payload, role_name = "subtitle", palette_key = "muted", fallback = "#64748B")
+      ),
+      legend.position = "bottom"
     )
 }
 

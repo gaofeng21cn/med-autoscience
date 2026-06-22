@@ -1,84 +1,78 @@
 {
   "display_id": "Figure7",
   "template_id": "cumulative_incidence_grouped",
-  "title": "Cumulative incidence by risk group",
-  "caption": "Event accumulation across prespecified risk strata.",
-  "x_label": "Months from surgery",
+  "title": "Cumulative incidence curve",
+  "caption": "Grouped time-to-event incidence.",
+  "x_label": "Time, months",
   "y_label": "Cumulative incidence",
   "groups": [
     {
-      "label": "Low risk",
+      "label": "Low Risk",
       "times": [
         0,
-        6,
-        12,
-        18,
-        24
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60
       ],
       "values": [
         0.0,
         0.04,
         0.07,
-        0.09,
-        0.12
+        0.11,
+        0.15,
+        0.18,
+        0.22,
+        0.25,
+        0.29,
+        0.32,
+        0.35,
+        0.38,
+        0.41
       ]
     },
     {
-      "label": "High risk",
+      "label": "High Risk",
       "times": [
         0,
-        6,
-        12,
-        18,
-        24
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60
       ],
       "values": [
         0.0,
-        0.12,
-        0.23,
-        0.31,
-        0.38
+        0.08,
+        0.13,
+        0.2,
+        0.27,
+        0.33,
+        0.39,
+        0.43,
+        0.47,
+        0.52,
+        0.56,
+        0.6,
+        0.63
       ]
     }
   ],
-  "risk_table_title": "Number at risk",
-  "risk_table": [
-    {
-      "label": "Low risk",
-      "times": [
-        0,
-        6,
-        12,
-        18,
-        24
-      ],
-      "at_risk": [
-        132,
-        126,
-        116,
-        102,
-        88
-      ]
-    },
-    {
-      "label": "High risk",
-      "times": [
-        0,
-        6,
-        12,
-        18,
-        24
-      ],
-      "at_risk": [
-        124,
-        110,
-        91,
-        72,
-        54
-      ]
-    }
-  ],
-  "annotation": "Gray test P = .002",
   "render_context": {
     "style_profile_id": "student_curated_clinical_publication_v1",
     "style_profile_ref": "human_reference_default_publication_style_profile",
@@ -237,8 +231,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

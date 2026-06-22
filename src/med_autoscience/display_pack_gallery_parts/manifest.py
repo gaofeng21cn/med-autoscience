@@ -102,14 +102,14 @@ def _layout_sidecar_readback(
     unexpected_renderer_metrics: list[str] = []
     missing_style_profile: list[str] = []
     mismatched_style_profile: list[str] = []
-    nonsquare_previews: list[str] = []
+    native_ratio_previews: list[str] = []
     for record in visual_records:
         asset = rendered[record.template_id]
         if asset.status != "rendered":
             continue
         rendered_template_ids.append(record.template_id)
-        if asset.preview_image_size_px[0] != asset.preview_image_size_px[1]:
-            nonsquare_previews.append(record.template_id)
+        if asset.preview_image_ref == asset.image_ref:
+            native_ratio_previews.append(record.template_id)
         sidecar = _read_layout_sidecar(asset)
         metrics = sidecar.get("metrics")
         if not isinstance(metrics, dict) or any(field not in metrics for field in required_renderer_fields):
@@ -139,8 +139,8 @@ def _layout_sidecar_readback(
         "expected_journal_palette_ref": expected_journal_palette_ref,
         "missing_style_profile": missing_style_profile,
         "mismatched_style_profile": mismatched_style_profile,
-        "square_preview_template_count": len(rendered_template_ids) - len(nonsquare_previews),
-        "nonsquare_previews": nonsquare_previews,
+        "native_ratio_preview_template_count": len(native_ratio_previews),
+        "native_ratio_previews": native_ratio_previews,
     }
 
 
@@ -313,7 +313,11 @@ def build_manifest(
             },
             "matrix_heatmap_uses_shared_palette_roles": True,
         },
-        "preview_device": {"width_in": 5.0, "height_in": 5.0},
+        "preview_device": {
+            "policy": "template_reference_ratio",
+            "fallback_width_in": 5.0,
+            "fallback_height_in": 5.0,
+        },
         "nature_skills_observed_head": paths.NATURE_SKILLS_HEAD,
         "categories": dict(Counter(record.canonical_family_category for record in visual_records)),
         "non_visual_categories": dict(Counter(record.canonical_family_category for record in non_visual_records)),

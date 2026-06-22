@@ -1,83 +1,38 @@
 {
   "display_id": "Figure22",
   "template_id": "genomic_alteration_consequence_panel",
-  "title": "Genomic alteration consequence panel",
-  "caption": "Altered driver genes are linked to transcriptomic effect direction and significance.",
-  "consequence_x_label": "Effect size",
-  "consequence_y_label": "-log10(q)",
-  "consequence_legend_title": "Regulation",
-  "effect_threshold": 0.5,
-  "significance_threshold": 1.3,
-  "consequence_panel_order": [
-    {
-      "panel_id": "rna",
-      "panel_title": "RNA consequence"
-    }
-  ],
+  "title": "Genomic alteration consequence",
+  "caption": "Functional or clinical effect summary.",
+  "consequence_x_label": "Effect estimate",
+  "reference_value": 1.0,
   "consequence_points": [
     {
-      "panel_id": "rna",
-      "gene_label": "TP53",
-      "effect_value": 0.92,
-      "significance_value": 3.05,
-      "regulation_class": "upregulated",
-      "label_text": "TP53"
+      "gene_label": "KRAS mut",
+      "estimate": 1.32,
+      "lower": 1.05,
+      "upper": 1.72,
+      "q": ".030"
     },
     {
-      "panel_id": "rna",
-      "gene_label": "ERBB2",
-      "effect_value": 1.18,
-      "significance_value": 2.72,
-      "regulation_class": "upregulated",
-      "label_text": "ERBB2"
+      "gene_label": "BRAF mut",
+      "estimate": 1.78,
+      "lower": 1.18,
+      "upper": 2.65,
+      "q": ".008"
     },
     {
-      "panel_id": "rna",
-      "gene_label": "KRAS",
-      "effect_value": 0.64,
-      "significance_value": 2.18,
-      "regulation_class": "upregulated",
-      "label_text": ""
+      "gene_label": "SMAD4 loss",
+      "estimate": 1.55,
+      "lower": 1.1,
+      "upper": 2.3,
+      "q": ".018"
     },
     {
-      "panel_id": "rna",
-      "gene_label": "SMAD4",
-      "effect_value": -0.82,
-      "significance_value": 2.46,
-      "regulation_class": "downregulated",
-      "label_text": "SMAD4"
-    },
-    {
-      "panel_id": "rna",
-      "gene_label": "APC",
-      "effect_value": -0.61,
-      "significance_value": 1.92,
-      "regulation_class": "downregulated",
-      "label_text": ""
-    },
-    {
-      "panel_id": "rna",
-      "gene_label": "PIK3CA",
-      "effect_value": 0.42,
-      "significance_value": 1.15,
-      "regulation_class": "background",
-      "label_text": ""
-    },
-    {
-      "panel_id": "rna",
-      "gene_label": "CDKN2A",
-      "effect_value": -0.74,
-      "significance_value": 2.08,
-      "regulation_class": "downregulated",
-      "label_text": "CDKN2A"
-    },
-    {
-      "panel_id": "rna",
-      "gene_label": "MYC",
-      "effect_value": 0.78,
-      "significance_value": 2.34,
-      "regulation_class": "upregulated",
-      "label_text": "MYC"
+      "gene_label": "PIK3CA mut",
+      "estimate": 0.82,
+      "lower": 0.58,
+      "upper": 1.16,
+      "q": ".24"
     }
   ],
   "render_context": {
@@ -238,8 +193,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 5.3,
+      "output_height_in": 3.5,
       "show_figure_title": false
     },
     "readability_override": {}

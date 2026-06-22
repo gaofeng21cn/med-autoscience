@@ -1,0 +1,1025 @@
+{
+  "schema_version": 1,
+  "source_project": "LidocaineQ/Figure_Template",
+  "reference_root": "/private/tmp/lidocaineq_figure_template",
+  "reference_template_count": 33,
+  "status_counts": {
+    "mas_computed_workflow_intentionally_extended": 1,
+    "reference_style_matched": 32
+  },
+  "user_visible_gallery_policy": "Reference coverage is a learning and quality audit surface; it is not rendered as a permanent Gallery appendix.",
+  "rows": [
+    {
+      "reference_template_id": "survival_km",
+      "title": "Kaplan-Meier survival with risk table",
+      "category_label": "Survival / Kaplan-Meier",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::survival_km",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/survival_km.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "kaplan_meier_grouped",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/kaplan_meier_grouped.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/kaplan_meier_grouped.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Kaplan-Meier renderer follows the reference split curve/spacer/risk-table grammar; Gallery hides the risk-table title by default to keep the table aligned with the curve panel."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should only tune censor marks, time scale, and final risk-table labels."
+    },
+    {
+      "reference_template_id": "cumulative_incidence_grouped",
+      "title": "Cumulative incidence curve",
+      "category_label": "Survival / Kaplan-Meier",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::cumulative_incidence_grouped",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/cumulative_incidence_grouped.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "cumulative_incidence_grouped",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/cumulative_incidence_grouped.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Grouped step curve follows the reference time-to-event incidence grammar with right-edge padding so terminal steps do not sit on the panel border."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should tune competing-risk labels and horizon ticks."
+    },
+    {
+      "reference_template_id": "roc_auc",
+      "title": "ROC curve with model comparison",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::roc_auc",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/roc_auc.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "roc_curve_binary",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/roc_curve_binary.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/roc_curve_binary.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "time_dependent_roc_horizon",
+      "title": "Time-dependent ROC horizon",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::time_dependent_roc_horizon",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/time_dependent_roc_horizon.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "time_dependent_roc_horizon",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/time_dependent_roc_horizon.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "calibration_curve_binary",
+      "title": "Calibration curve (binary outcome)",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::calibration_curve_binary",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/calibration_curve_binary.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "calibration_curve_binary",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/calibration_curve_binary.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/calibration_curve_binary.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "pr_curve_binary",
+      "title": "Precision-recall curve",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::pr_curve_binary",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/pr_curve_binary.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "pr_curve_binary",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/pr_curve_binary.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/pr_curve_binary.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "decision_curve_binary",
+      "title": "Decision curve (binary outcome)",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::decision_curve_binary",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/decision_curve_binary.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "decision_curve_binary",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/decision_curve_binary.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/decision_curve_binary.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "time_to_event_decision_curve",
+      "title": "Decision curve (time-to-event horizon)",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_decision_curve",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/time_to_event_decision_curve.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "time_to_event_decision_curve",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/time_to_event_decision_curve.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/time_to_event_decision_curve.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "time_to_event_multihorizon_calibration_panel",
+      "title": "Multi-horizon calibration panel",
+      "category_label": "ROC / AUC",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/time_to_event_multihorizon_calibration_panel.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "time_to_event_multihorizon_calibration_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "forest_cox",
+      "title": "Cox/effect forest plot",
+      "category_label": "Forest / Cox model",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::forest_cox",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/forest_cox.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "forest_effect_main",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/forest_effect_main.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/forest_effect_main.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "coefficient_path_panel",
+      "title": "Coefficient path panel",
+      "category_label": "Forest / Cox model",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::coefficient_path_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/coefficient_path_panel.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "coefficient_path_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/coefficient_path_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/coefficient_path_panel.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "generalizability_subgroup_composite_panel",
+      "title": "Generalizability subgroup composite",
+      "category_label": "Forest / Cox model",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/generalizability_subgroup_composite_panel.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "generalizability_subgroup_composite_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "violin_box",
+      "title": "Distribution comparison violin-box",
+      "category_label": "Violin / box comparison",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::violin_box",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/violin_box.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "distribution_violin_box",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/distribution_violin_box.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/distribution_violin_box.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "bar_stacked",
+      "title": "Stacked proportion bars",
+      "category_label": "Bar / stacked proportion",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::bar_stacked",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/bar_stacked.png",
+        "width_px": 1664,
+        "height_px": 1088
+      },
+      "mas_templates": [
+        {
+          "template_id": "composition_stacked_bar",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/composition_stacked_bar.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/composition_stacked_bar.png",
+            "width_px": 1664,
+            "height_px": 1088
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "risk_layering_monotonic_bars",
+      "title": "Monotonic risk layering bars",
+      "category_label": "Bar / stacked proportion",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/risk_layering_monotonic_bars.png",
+        "width_px": 1664,
+        "height_px": 1088
+      },
+      "mas_templates": [
+        {
+          "template_id": "risk_layering_monotonic_bars",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/risk_layering_monotonic_bars.png",
+            "width_px": 1664,
+            "height_px": 1088
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "scatter_correlation",
+      "title": "Scatter correlation panel",
+      "category_label": "Scatter / correlation",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::scatter_correlation",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/scatter_correlation.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "correlation_scatter",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/correlation_scatter.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/correlation_scatter.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "embedding_umap_tsne",
+      "title": "Embedding scatter",
+      "category_label": "UMAP / t-SNE embedding",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/embedding_umap_tsne.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "pca_scatter_grouped",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/pca_scatter_grouped.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/pca_scatter_grouped.png",
+            "width_px": 1600,
+            "height_px": 1600
+          }
+        },
+        {
+          "template_id": "tsne_scatter_grouped",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/tsne_scatter_grouped.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/tsne_scatter_grouped.png",
+            "width_px": 1600,
+            "height_px": 1600
+          }
+        },
+        {
+          "template_id": "umap_scatter_grouped",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/umap_scatter_grouped.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/umap_scatter_grouped.png",
+            "width_px": 1600,
+            "height_px": 1600
+          }
+        }
+      ],
+      "parity_status": "mas_computed_workflow_intentionally_extended",
+      "known_differences": [
+        "The LidocaineQ reference is a single embedding scatter. MAS keeps separate PCA, t-SNE, and UMAP computed-workflow templates that start from the same feature matrix and intentionally produce different layouts."
+      ],
+      "required_action": "Use as computed MAS workflows; do not force PCA/t-SNE/UMAP to share the same point geometry."
+    },
+    {
+      "reference_template_id": "heatmap",
+      "title": "ComplexHeatmap annotated matrix",
+      "category_label": "Heatmap / matrix pattern",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::heatmap",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/heatmap.png",
+        "width_px": 1664,
+        "height_px": 1184
+      },
+      "mas_templates": [
+        {
+          "template_id": "heatmap_group_comparison",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/heatmap_group_comparison.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/heatmap_group_comparison.png",
+            "width_px": 1664,
+            "height_px": 1184
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "confusion_matrix_heatmap_binary",
+      "title": "Binary confusion matrix heatmap",
+      "category_label": "Heatmap / matrix pattern",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/confusion_matrix_heatmap_binary.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "confusion_matrix_heatmap_binary",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "volcano_deg",
+      "title": "Differential-expression volcano",
+      "category_label": "Volcano / differential expression",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::volcano_deg",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/volcano_deg.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "omics_volcano_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/omics_volcano_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/omics_volcano_panel.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Renderer follows the reference thresholded volcano grammar with dense background genes, up/down colours, dashed cutoffs, and sparse top labels."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should tune differential-testing thresholds and label policy."
+    },
+    {
+      "reference_template_id": "gsea_enrichment",
+      "title": "Pathway enrichment dotplot",
+      "category_label": "GSEA / enrichment",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::gsea_enrichment",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/gsea_enrichment.png",
+        "width_px": 1696,
+        "height_px": 1184
+      },
+      "mas_templates": [
+        {
+          "template_id": "pathway_enrichment_dotplot_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
+            "width_px": 1696,
+            "height_px": 1184
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "oncoplot_mutation",
+      "title": "Mutation landscape oncoplot",
+      "category_label": "Oncoplot / mutation landscape",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::oncoplot_mutation",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/oncoplot_mutation.png",
+        "width_px": 2240,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "genomic_alteration_landscape_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
+            "width_px": 2240,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "genomic_alteration_consequence_panel",
+      "title": "Genomic alteration consequence",
+      "category_label": "Oncoplot / mutation landscape",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/genomic_alteration_consequence_panel.png",
+        "width_px": 1696,
+        "height_px": 1120
+      },
+      "mas_templates": [
+        {
+          "template_id": "genomic_alteration_consequence_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
+            "width_px": 1696,
+            "height_px": 1120
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "cnv_recurrence_summary_panel",
+      "title": "CNV recurrence summary",
+      "category_label": "Oncoplot / mutation landscape",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::cnv_recurrence_summary_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/cnv_recurrence_summary_panel.png",
+        "width_px": 1696,
+        "height_px": 1088
+      },
+      "mas_templates": [
+        {
+          "template_id": "cnv_recurrence_summary_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
+            "width_px": 1696,
+            "height_px": 1088
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "waterfall",
+      "title": "Ranked risk-score waterfall",
+      "category_label": "Waterfall / ranked risk score",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::waterfall",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/waterfall.png",
+        "width_px": 1696,
+        "height_px": 1088
+      },
+      "mas_templates": [
+        {
+          "template_id": "waterfall_response",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/waterfall_response.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/waterfall_response.png",
+            "width_px": 1696,
+            "height_px": 1088
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "shap_dependence_panel",
+      "title": "SHAP dependence panel",
+      "category_label": "Scatter / correlation",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::shap_dependence_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/shap_dependence_panel.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "shap_dependence_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/shap_dependence_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/shap_dependence_panel.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Renderer follows the reference loess dependence scatter grammar with dense points, two-context colour coding, and square panel geometry."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should tune interaction variable and axis units."
+    },
+    {
+      "reference_template_id": "shap_summary_beeswarm",
+      "title": "SHAP summary beeswarm",
+      "category_label": "Scatter / correlation",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::shap_summary_beeswarm",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/shap_summary_beeswarm.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "shap_summary_beeswarm",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/shap_summary_beeswarm.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/shap_summary_beeswarm.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Renderer follows the reference beeswarm layout with feature rows, jittered SHAP points, zero line, and horizontal feature-value colour bar."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should tune feature ordering and colour-bar label."
+    },
+    {
+      "reference_template_id": "shap_waterfall_local_explanation_panel",
+      "title": "SHAP waterfall local explanation",
+      "category_label": "Waterfall / ranked risk score",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/shap_waterfall_local_explanation_panel.png",
+        "width_px": 1696,
+        "height_px": 1120
+      },
+      "mas_templates": [
+        {
+          "template_id": "shap_waterfall_local_explanation_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
+            "width_px": 1696,
+            "height_px": 1120
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Renderer follows the reference local explanation grammar with baseline, signed contributions, final prediction bar, and angled feature labels."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should tune patient label and contribution units."
+    },
+    {
+      "reference_template_id": "model_complexity_audit_panel",
+      "title": "Model complexity audit",
+      "category_label": "Scatter / correlation",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::model_complexity_audit_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/model_complexity_audit_panel.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "model_complexity_audit_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/model_complexity_audit_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/model_complexity_audit_panel.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Renderer uses the reference performance-vs-feature-count line chart with CV and external validation curves plus selected-feature vertical marker."
+      ],
+      "required_action": "Use as MAS lower-bound start; paper-specific review should tune selected feature count and metric naming."
+    },
+    {
+      "reference_template_id": "celltype_marker_dotplot_panel",
+      "title": "Cell-type marker dotplot",
+      "category_label": "Heatmap / matrix pattern",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::celltype_marker_dotplot_panel",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/celltype_marker_dotplot_panel.png",
+        "width_px": 1728,
+        "height_px": 1184
+      },
+      "mas_templates": [
+        {
+          "template_id": "celltype_marker_dotplot_panel",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
+            "width_px": 1728,
+            "height_px": 1184
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "sankey_alluvial",
+      "title": "Subtype transition alluvial",
+      "category_label": "Sankey / alluvial flow",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::sankey_alluvial",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/sankey_alluvial.png",
+        "width_px": 1696,
+        "height_px": 1120
+      },
+      "mas_templates": [
+        {
+          "template_id": "alluvial_transition",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/alluvial_transition.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/alluvial_transition.png",
+            "width_px": 1696,
+            "height_px": 1120
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "radar",
+      "title": "Radial immune/pathology profile",
+      "category_label": "Radar / radial profile",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::radar",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/radar.png",
+        "width_px": 1536,
+        "height_px": 1536
+      },
+      "mas_templates": [
+        {
+          "template_id": "radar_profile",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/radar_profile.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/radar_profile.png",
+            "width_px": 1536,
+            "height_px": 1536
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "MAS renderer uses the LidocaineQ source renderer id, matching reference device ratio, shared palette, and the reference plot grammar for the current template mapping."
+      ],
+      "required_action": "Use as MAS lower-bound start; run paper-specific visual audit before claiming final publication-ready output."
+    },
+    {
+      "reference_template_id": "baseline_table",
+      "title": "Baseline summary table",
+      "category_label": "Baseline / summary table",
+      "expected_source_renderer": "LidocaineQ/Figure_Template::baseline_table",
+      "reference_image": {
+        "exists": true,
+        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/baseline_table.png",
+        "width_px": 1824,
+        "height_px": 1024
+      },
+      "mas_templates": [
+        {
+          "template_id": "table1_baseline_characteristics",
+          "render_status": "rendered",
+          "preview_image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
+          "image": {
+            "exists": true,
+            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/table1_baseline_characteristics.png",
+            "width_px": 1824,
+            "height_px": 1024
+          }
+        }
+      ],
+      "parity_status": "reference_style_matched",
+      "known_differences": [
+        "Table 1 preview keeps table_shell authority while following the reference gridExtra title/subtitle/table layout and palette."
+      ],
+      "required_action": "Use as Gallery preview only; table_shell remains the authoritative data/table surface."
+    }
+  ]
+}

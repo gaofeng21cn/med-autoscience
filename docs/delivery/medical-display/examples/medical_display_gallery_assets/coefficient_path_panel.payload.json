@@ -1,8 +1,8 @@
 {
   "display_id": "Figure13",
   "template_id": "coefficient_path_panel",
-  "title": "Regularized coefficient path",
-  "caption": "Coefficient trajectories are shown across the penalty path with the selected lambda marked.",
+  "title": "Coefficient path panel",
+  "caption": "Regularization path with selected lambda.",
   "x_label": "log(lambda)",
   "y_label": "Coefficient",
   "selected_log_lambda": -1.2,
@@ -2566,8 +2566,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5.0,
-      "output_height_in": 5.0,
+      "output_width_in": 4.8,
+      "output_height_in": 4.8,
       "show_figure_title": false
     },
     "readability_override": {}

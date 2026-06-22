@@ -10,46 +10,46 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.2023,
-      "y0": 0.9324,
-      "x1": 0.9723,
-      "y1": 0.9751
+      "x0": 0.3063,
+      "y0": 0.9087,
+      "x1": 0.9739,
+      "y1": 0.9663
     },
     {
       "box_id": "x_axis_title",
       "box_type": "x_axis_title",
-      "x0": 0.2023,
-      "y0": 0.1489,
-      "x1": 0.9723,
-      "y1": 0.1787
+      "x0": 0.3063,
+      "y0": 0.2012,
+      "x1": 0.9739,
+      "y1": 0.2415
     },
     {
       "box_id": "y_axis_title",
       "box_type": "y_axis_title",
-      "x0": 0.0277,
-      "y0": 0.211,
-      "x1": 0.0575,
-      "y1": 0.8894
+      "x0": 0.0261,
+      "y0": 0.2851,
+      "x1": 0.0542,
+      "y1": 0.8506
     }
   ],
   "panel_boxes": [
     {
       "box_id": "panel",
       "box_type": "panel",
-      "x0": 0.2023,
-      "y0": 0.211,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.3063,
+      "y0": 0.2851,
+      "x1": 0.9739,
+      "y1": 0.8506
     }
   ],
   "guide_boxes": [
     {
       "box_id": "legend",
       "box_type": "legend",
-      "x0": 0.9723,
-      "y0": 0.211,
-      "x1": 0.9723,
-      "y1": 0.8894
+      "x0": 0.9739,
+      "y0": 0.2851,
+      "x1": 0.9739,
+      "y1": 0.8506
     }
   ],
   "metrics": {
@@ -57,44 +57,51 @@
     "renderer_family": "r_ggplot2",
     "renderer_role": "default",
     "template_id": "pathway_enrichment_dotplot_panel",
-    "data_fields": ["caption", "display_id", "effect_scale_label", "panel_order", "pathway_order", "points", "render_context", "size_scale_label", "template_id", "title", "x_label", "y_label"],
+    "data_fields": ["caption", "display_id", "effect_scale_label", "pathway_order", "points", "render_context", "size_scale_label", "template_id", "title", "x_label", "y_label"],
     "panel_box_present": true,
     "source_renderer": "LidocaineQ/Figure_Template::gsea_enrichment",
     "points": [
       {
         "panel_id": "all",
-        "pathway_label": "IFN response",
-        "x_value": 2.45,
-        "effect_value": 1.08,
-        "size_value": 42
-      },
-      {
-        "panel_id": "all",
-        "pathway_label": "Cytotoxicity",
-        "x_value": 2.1,
-        "effect_value": 0.86,
-        "size_value": 36
-      },
-      {
-        "panel_id": "all",
-        "pathway_label": "Hypoxia",
-        "x_value": 1.55,
-        "effect_value": 0.44,
-        "size_value": 27
-      },
-      {
-        "panel_id": "all",
-        "pathway_label": "TGF-beta",
-        "x_value": -1.76,
-        "effect_value": -0.68,
-        "size_value": 31
-      },
-      {
-        "panel_id": "all",
         "pathway_label": "EMT",
-        "x_value": -2.02,
-        "effect_value": -0.82,
-        "size_value": 38
+        "x_value": 0.21,
+        "effect_value": 2.1,
+        "size_value": 3
+      },
+      {
+        "panel_id": "all",
+        "pathway_label": "G2M checkpoint",
+        "x_value": 0.18,
+        "effect_value": 1.7,
+        "size_value": 2.22
+      },
+      {
+        "panel_id": "all",
+        "pathway_label": "Angiogenesis",
+        "x_value": 0.14,
+        "effect_value": 1.35,
+        "size_value": 1.74
+      },
+      {
+        "panel_id": "all",
+        "pathway_label": "IFN-gamma",
+        "x_value": 0.12,
+        "effect_value": -1.4,
+        "size_value": 1.52
+      },
+      {
+        "panel_id": "all",
+        "pathway_label": "Oxidative phosphorylation",
+        "x_value": 0.1,
+        "effect_value": -1.65,
+        "size_value": 1.85
+      },
+      {
+        "panel_id": "all",
+        "pathway_label": "T cell activation",
+        "x_value": 0.08,
+        "effect_value": -2,
+        "size_value": 2.4
       }
     ]
   },
@@ -256,8 +263,8 @@
       "linetype": "solid"
     },
     "layout_override": {
-      "output_width_in": 5,
-      "output_height_in": 5,
+      "output_width_in": 5.3,
+      "output_height_in": 3.7,
       "show_figure_title": false
     },
     "readability_override": {}
