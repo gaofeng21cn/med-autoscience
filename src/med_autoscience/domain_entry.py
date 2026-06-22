@@ -13,6 +13,7 @@ from med_autoscience.controllers import (
     workspace_authority_migration_audit,
 )
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
+from med_autoscience.cli_parts.paper_mission_commands import build_paper_mission_readback
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -39,6 +40,26 @@ class MedAutoScienceDomainEntry:
 
     def dispatch(self, request: Mapping[str, Any]) -> dict[str, Any]:
         command = _require_command(request)
+        if command == "paper-mission":
+            _assert_required_fields(
+                command=command,
+                required_fields=("profile_ref", "study_id"),
+                request=request,
+            )
+            profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
+            profile = self._profile_loader(profile_ref)
+            payload = build_paper_mission_readback(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=str(request["study_id"]),
+                paper_mission_command=str(request.get("paper_mission_command") or "inspect"),
+                objective=_optional_text(request.get("objective")),
+                mission_id=_optional_text(request.get("mission_id")),
+                candidate=_optional_text(request.get("candidate")),
+                dry_run=bool(request.get("dry_run")),
+                source="domain-entry",
+            )
+            return _with_command(command, payload)
         spec = SERVICE_SAFE_DOMAIN_COMMANDS.get(command)
         if spec is None:
             raise ValueError(f"不支持的 domain entry command: {command}")

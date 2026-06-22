@@ -48,6 +48,7 @@ from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
 )
 from med_autoscience.cli_parts.overlay_requests import overlay_request_from_args as _build_overlay_request_from_args
+from med_autoscience.cli_parts.paper_mission_commands import handle_paper_mission_command
 from med_autoscience.cli_parts.public_root_commands import handle_public_root_command
 from med_autoscience.cli_parts.submission_delivery_commands import handle_submission_delivery_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
@@ -269,6 +270,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     if domain_handler_result is not None:
         return domain_handler_result
+
+    paper_mission_result = handle_paper_mission_command(args, load_profile=load_profile)
+    if paper_mission_result is not None:
+        return paper_mission_result
 
     stage_memory_result = handle_stage_memory_command(
         args,

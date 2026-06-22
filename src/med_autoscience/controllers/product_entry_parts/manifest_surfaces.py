@@ -486,7 +486,53 @@ def build_product_entry_manifest(
         },
     )
     validate_product_entry_manifest_contract(payload)
-    return payload
+    return _with_paper_mission_product_entry(payload, profile_ref=profile_ref)
+
+
+def _with_paper_mission_product_entry(
+    manifest: dict[str, Any],
+    *,
+    profile_ref: str | Path | None,
+) -> dict[str, Any]:
+    profile_arg = str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else "<profile>"
+    command = (
+        "uv run python -m med_autoscience.cli paper-mission inspect "
+        f"--profile {profile_arg} --study-id <study_id> --format json"
+    )
+    authority_boundary = {
+        "domain_truth_owner": "MedAutoScience",
+        "runtime_owner": "one-person-lab",
+        "writes_authority": False,
+        "writes_runtime": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+    }
+    return {
+        **manifest,
+        "medical_paper_product_entry": {
+            "surface_kind": "medical_paper_product_entry",
+            "default_action_intent": "paper_mission/start_or_resume",
+            "default_command": command,
+            "inspect_command": command,
+            "start_dry_run_command": (
+                "uv run python -m med_autoscience.cli paper-mission start "
+                f"--profile {profile_arg} --study-id <study_id> "
+                "--objective '<objective>' --dry-run --format json"
+            ),
+            "resume_dry_run_command": (
+                "uv run python -m med_autoscience.cli paper-mission resume "
+                f"--profile {profile_arg} --study-id <study_id> "
+                "--mission-id <mission_id> --dry-run --format json"
+            ),
+            "consume_candidate_dry_run_command": (
+                "uv run python -m med_autoscience.cli paper-mission consume-candidate "
+                f"--profile {profile_arg} --study-id <study_id> "
+                "--candidate <candidate_ref> --dry-run --format json"
+            ),
+            "authority_boundary": authority_boundary,
+            "contract_ref": "contracts/paper_mission_run_contract.json",
+        },
+    }
 
 
 def build_skill_catalog(

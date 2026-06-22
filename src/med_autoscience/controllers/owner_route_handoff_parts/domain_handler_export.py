@@ -15,6 +15,10 @@ from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
 from med_autoscience.display_pack_agent import display_pack_capability_discover
+from med_autoscience.cli_parts.paper_mission_commands import (
+    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+    build_paper_mission_readback,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import default_executor_dispatch_packets
@@ -160,7 +164,8 @@ def export_family_domain_handler(
         },
         "dispatch": {
             "entrypoint": "medautosci domain-handler dispatch --task <task.json> --format json",
-            "allowed_task_kinds": sorted(ALLOWED_TASK_KINDS),
+            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "allowed_task_kinds": sorted({*ALLOWED_TASK_KINDS, PAPER_MISSION_START_OR_RESUME_TASK_KIND}),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
@@ -284,6 +289,13 @@ def _pending_family_tasks(
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
+        )
+        tasks.append(
+            _paper_mission_start_or_resume_task(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+            )
         )
         current_owner_action = _export_current_owner_action(
             study=study,
@@ -409,7 +421,62 @@ def _pending_family_tasks(
         )
         if controller_task is not None:
             tasks.append(controller_task)
-    return tasks, legacy_dispatch_diagnostics
+    return _mark_legacy_default_executor_tasks(tasks), legacy_dispatch_diagnostics
+
+
+def _paper_mission_start_or_resume_task(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    study_id: str,
+) -> dict[str, Any]:
+    readback = build_paper_mission_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        paper_mission_command="start",
+        dry_run=True,
+        source="domain-handler-export",
+    )
+    return {
+        "task_id": f"paper-mission-start-or-resume::{study_id}",
+        "domain_id": "medautoscience",
+        "task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        "recommended_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        "action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        "default_paper_mission_entry": True,
+        "migration_diagnostic_only": False,
+        "source": "mas-domain-handler-export",
+        "profile": str(profile_ref),
+        "study_id": study_id,
+        "payload": {
+            "profile": str(profile_ref),
+            "study_id": study_id,
+            "paper_mission_command": "start",
+            "dry_run": True,
+            "paper_mission": readback,
+        },
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang": False,
+            "forbidden_authority_writes": readback["forbidden_authority_writes"],
+        },
+    }
+
+
+def _mark_legacy_default_executor_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    marked: list[dict[str, Any]] = []
+    for task in tasks:
+        if text(task.get("task_kind")) == "domain_owner/default-executor-dispatch":
+            task = {
+                **task,
+                "default_paper_mission_entry": False,
+                "migration_diagnostic_only": True,
+                "action_intent": text(task.get("action_intent")) or "legacy_default_executor_diagnostic",
+            }
+        marked.append(task)
+    return marked
 
 
 def _current_control_transition_request_tasks(
