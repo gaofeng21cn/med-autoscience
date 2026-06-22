@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-22：MAS 默认论文推进改向 executor-first paper mission
+
+- 决策：MAS 下一目标态从旧 `DHD / owner-route / dispatch / recovery` 多控制面链路，改为 `executor-first paper mission`。默认入口应先启动或恢复一个粗粒度 `PaperMissionRun`，以同一 mission identity 产出 manuscript、figure/table、evidence/review ledger、reviewer response、gate-clearing plan、owner decision packet、owner receipt、typed blocker 或 human gate。DHD、currentness、provider admission、storage/index、read-model hygiene 和 dispatch ledger 只作为 platform diagnostics / repair sidecar。
+- 决策：MAS 长期保留医学 authority kernel：study truth、source readiness、publication quality、artifact/package authority、memory accept/reject、owner receipt、typed blocker 和 human gate。OPL 持有 generic runtime：session、attempt、queue、resume、retry/dead-letter、provider lifecycle、StageRun/outbox/current-control 和 workbench shell。
+- 决策：迁移采用先立后破。先新增 mission contract / dry-run inspect / candidate workspace / consume path，在 DM002 / DM003 上作为 canary 产出可消费 paper-facing artifact delta 或 owner decision packet；新路径证明功能不降级后，再把旧 DHD / owner-route / default-executor dispatch / PaperRecovery recovery 链降为 diagnostic / migration input，并按 no-active-caller、replacement parity、no-forbidden-write 和 tombstone/provenance 退役。
+- 理由：2026-06-22 fresh read-only audit 显示，DM002 被 `domain_owner_action_dispatch_execution_count_zero` typed blocker、missing live session 和 OPL lifecycle readback 要求夹住；DM003 被 accepted stable blocker、paper recovery domain blocker 和 OPL transition/readback 要求夹住。系统能解释状态和禁止误写，但未稳定形成论文产物、owner decision 或可消费修稿。这是架构优先级错误，不是继续补局部 currentness guard 的问题。
+- 影响：这是目标架构与迁移决策，不执行 DHD apply、hydrate、tick、redrive 或 provider start，不写 Yang study/runtime artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL runtime state。目标态完成仍必须由 fresh mission CLI/API/readback、DM002/DM003 canary artifact delta、MAS consume path、no-forbidden-write proof、OPL runtime readback 和旧路径 no-active-caller proof 支撑。
+
 ## 2026-06-20：post-apply current-control transition 优先于 stale budget blocker
 
 - 决策：当 fresh `study progress` / DHD readback 显示同一 study 已有新的 request-only current-control transition，例如 DM002 `ai_reviewer / return_to_ai_reviewer_workflow / produce_ai_reviewer_publication_eval_record_against_current_inputs` 或 DM003 `write / request_opl_stage_attempt / medical_prose_write_repair`，旧 `anti_loop_budget_exhausted`、旧 gate closeout、旧 dispatch receipt 或旧 terminal typed blocker residue 不得再作为当前 canonical blocker。它们只能在 action、work-unit、fingerprint、route identity 与 attempt identity 同一且不冲突时消费 pending candidate；否则只能作为 audit evidence。
