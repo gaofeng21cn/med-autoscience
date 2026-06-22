@@ -667,3 +667,83 @@ def test_execute_dispatch_rejects_unrouted_consumer_dispatch_when_current_work_u
         / "default_executor_execution"
         / "latest.json"
     ).exists()
+
+
+def test_explicit_owner_request_dispatch_rejects_stale_request_when_fresh_work_unit_changed(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    stale_fingerprint = "publication-blockers::0915410f804b3697"
+    fresh_fingerprint = "publication-blockers::5d99b7c4019bd601"
+    stale_dispatch = _accepted_owner_gate_quality_repair_dispatch(
+        study_id=study_id,
+        fingerprint=stale_fingerprint,
+        work_unit_id="medical_prose_write_repair",
+    )
+    stale_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stale_dispatch["refs"] = {"dispatch_path": str(stale_dispatch_path)}
+    _write_json(stale_dispatch_path, stale_dispatch)
+    _write_owner_gate_quality_repair_request(
+        study_root,
+        study_id=study_id,
+        dispatch=stale_dispatch,
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "analysis-campaign",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "analysis_claim_evidence_repair",
+                        "work_unit_fingerprint": fresh_fingerprint,
+                        "action_fingerprint": fresh_fingerprint,
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "owner_callable_adapters": [stale_dispatch],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert execution["work_unit_fingerprint"] == fresh_fingerprint
+    assert execution["work_unit_id"] != "medical_prose_write_repair"
+    assert execution["work_unit_fingerprint"] != stale_fingerprint
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"

@@ -52,6 +52,12 @@ def route_basis_matches_current_study(
     current_study: Mapping[str, Any],
     consumed_transition_route: Mapping[str, Any],
 ) -> bool:
+    current_owner_action_values = _current_owner_action_values(current_study)
+    if current_owner_action_values:
+        return _request_route_matches_current_values(
+            request_route=request_route,
+            current_values=current_owner_action_values,
+        )
     transition = _mapping(current_study.get("domain_transition"))
     completion = _mapping(transition.get("completion_receipt_consumption"))
     next_work_unit = _mapping(transition.get("next_work_unit"))
@@ -75,6 +81,17 @@ def route_basis_matches_current_study(
     current_values = {key: value for key, value in current_values.items() if value}
     if not current_values:
         return True
+    return _request_route_matches_current_values(
+        request_route=request_route,
+        current_values=current_values,
+    )
+
+
+def _request_route_matches_current_values(
+    *,
+    request_route: Mapping[str, Any],
+    current_values: Mapping[str, str],
+) -> bool:
     request_basis = owner_route_attempt_protocol.currentness_basis(request_route)
     compared = 0
     for key, current_value in current_values.items():
@@ -85,6 +102,24 @@ def route_basis_matches_current_study(
         if request_value != current_value:
             return False
     return compared > 0
+
+
+def _current_owner_action_values(current_study: Mapping[str, Any]) -> dict[str, str]:
+    for key in ("current_work_unit", "current_executable_owner_action"):
+        payload = _mapping(current_study.get(key))
+        values = {
+            "work_unit_id": _text(payload.get("work_unit_id"))
+            or _text(_mapping(payload.get("next_work_unit")).get("unit_id")),
+            "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint"))
+            or _text(payload.get("action_fingerprint"))
+            or _text(payload.get("source_fingerprint")),
+            "source_eval_id": _text(payload.get("source_eval_id"))
+            or _text(_mapping(payload.get("currentness_basis")).get("source_eval_id")),
+        }
+        values = {name: value for name, value in values.items() if value}
+        if values:
+            return values
+    return {}
 
 
 def _mapping(value: object) -> dict[str, Any]:
