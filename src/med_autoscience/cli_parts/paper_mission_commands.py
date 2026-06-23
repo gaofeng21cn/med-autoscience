@@ -639,6 +639,12 @@ def _build_materialized_candidate_package_readback(
         readback=readback,
         foreground_owner_decision_summary=summary,
     )
+    paper_facing_candidate_delta = _paper_facing_candidate_delta(
+        readback=readback,
+        candidate_artifact_delta=candidate_artifact_delta,
+        owner_decision_packet=owner_decision_packet,
+        mission_executor_handoff=mission_executor_handoff,
+    )
     output_manifest = _write_materialized_candidate_package_outputs(
         output_root=Path(output_root),
         study_id=str(readback["study_id"]),
@@ -648,6 +654,7 @@ def _build_materialized_candidate_package_readback(
         owner_decision_packet=owner_decision_packet,
         foreground_owner_decision_summary=summary,
         mission_executor_handoff=mission_executor_handoff,
+        paper_facing_candidate_delta=paper_facing_candidate_delta,
     )
     return {
         "surface_kind": "paper_mission_candidate_package_write_readback",
@@ -681,6 +688,7 @@ def _build_materialized_candidate_package_readback(
         "owner_decision_packet": owner_decision_packet,
         "foreground_owner_decision_summary": summary,
         "mission_executor_handoff": mission_executor_handoff,
+        "paper_facing_candidate_delta": paper_facing_candidate_delta,
         "mutation_policy": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -1073,6 +1081,7 @@ def _write_materialized_candidate_package_outputs(
     owner_decision_packet: dict[str, Any],
     foreground_owner_decision_summary: dict[str, Any],
     mission_executor_handoff: dict[str, Any],
+    paper_facing_candidate_delta: dict[str, Any],
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
     _assert_safe_candidate_package_output_root(root)
@@ -1088,6 +1097,8 @@ def _write_materialized_candidate_package_outputs(
         "foreground_owner_decision_summary": study_root
         / "foreground_owner_decision_summary.json",
         "mission_executor_handoff": study_root / "mission_executor_handoff.json",
+        "paper_facing_candidate_delta": study_root
+        / "paper_facing_candidate_delta.json",
     }
     sidecar_refs = {
         "paper_mission_readback": str(outputs["paper_mission_readback"]),
@@ -1099,9 +1110,16 @@ def _write_materialized_candidate_package_outputs(
             outputs["foreground_owner_decision_summary"]
         ),
         "mission_executor_handoff": str(outputs["mission_executor_handoff"]),
+        "paper_facing_candidate_delta": str(outputs["paper_facing_candidate_delta"]),
     }
     candidate_manifest_payload = {
         **candidate_manifest,
+        "candidate_artifact_refs": _candidate_artifact_refs_with_paper_delta(
+            candidate_manifest,
+            paper_facing_candidate_delta_ref=str(
+                outputs["paper_facing_candidate_delta"]
+            ),
+        ),
         "mission_candidate_sidecar_refs": sidecar_refs,
     }
     payloads = {
@@ -1111,6 +1129,7 @@ def _write_materialized_candidate_package_outputs(
         "owner_decision_packet": owner_decision_packet,
         "foreground_owner_decision_summary": foreground_owner_decision_summary,
         "mission_executor_handoff": mission_executor_handoff,
+        "paper_facing_candidate_delta": paper_facing_candidate_delta,
     }
     package_manifest = {
         "surface_kind": "paper_mission_foreground_candidate_package_manifest",
@@ -1135,6 +1154,9 @@ def _write_materialized_candidate_package_outputs(
         ],
         "artifact_refs": sidecar_refs,
         "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
+        "paper_facing_candidate_delta_ref": str(
+            outputs["paper_facing_candidate_delta"]
+        ),
         "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
     }
     payloads["package_manifest"] = package_manifest
@@ -1165,6 +1187,116 @@ def _write_materialized_candidate_package_outputs(
             outputs["foreground_owner_decision_summary"]
         ),
         "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
+        "paper_facing_candidate_delta_ref": str(
+            outputs["paper_facing_candidate_delta"]
+        ),
+    }
+
+
+def _candidate_artifact_refs_with_paper_delta(
+    candidate_manifest: Mapping[str, Any],
+    *,
+    paper_facing_candidate_delta_ref: str,
+) -> list[str]:
+    refs = [
+        ref
+        for ref in _text_list(candidate_manifest.get("candidate_artifact_refs"))
+        if ref != paper_facing_candidate_delta_ref
+    ]
+    refs.append(paper_facing_candidate_delta_ref)
+    return refs
+
+
+def _paper_facing_candidate_delta(
+    *,
+    readback: Mapping[str, Any],
+    candidate_artifact_delta: Mapping[str, Any],
+    owner_decision_packet: Mapping[str, Any],
+    mission_executor_handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    expected_outputs = [
+        _mapping(item)
+        for item in mission_executor_handoff.get("expected_paper_facing_outputs", [])
+        if isinstance(item, Mapping)
+    ]
+    output_kinds = [_optional_text(item.get("kind")) for item in expected_outputs]
+    output_kinds = [kind for kind in output_kinds if kind]
+    handoff_status = _optional_text(mission_executor_handoff.get("status"))
+    route_back_ready = handoff_status == "ready_for_mission_executor"
+    return {
+        "surface_kind": "paper_mission_paper_facing_candidate_delta",
+        "schema_version": 1,
+        "study_id": readback.get("study_id"),
+        "mission_id": readback.get("mission_id"),
+        "delta_id": _first_text(
+            candidate_artifact_delta.get("delta_id"),
+            f"paper-facing-delta::{readback.get('study_id') or 'unknown-study'}",
+        ),
+        "status": "candidate_ready_for_mas_consume"
+        if route_back_ready
+        else "candidate_context_only",
+        "candidate_is_authority": False,
+        "authority_materialized_by_this_delta": False,
+        "counts_as_paper_progress": False,
+        "counts_as_candidate_artifact_delta": True,
+        "route_back_evidence_ref": mission_executor_handoff.get(
+            "route_back_evidence_ref"
+        ),
+        "repair_scope": mission_executor_handoff.get("repair_scope"),
+        "target_stage_id": mission_executor_handoff.get("target_stage_id"),
+        "source_candidate_artifact_delta_ref": candidate_artifact_delta.get(
+            "artifact_ref"
+        ),
+        "owner_decision_packet_id": owner_decision_packet.get("packet_id"),
+        "paper_facing_outputs": [
+            _paper_facing_candidate_output(
+                kind=kind,
+                study_id=str(readback.get("study_id") or "unknown-study"),
+                route_back_ready=route_back_ready,
+            )
+            for kind in output_kinds
+        ],
+        "consume_path": {
+            "surface": "MAS authority consume path",
+            "candidate_manifest_ref_required": True,
+            "authority_materialized_by_this_delta": False,
+            "allowed_results": [
+                "accepted_owner_decision_packet",
+                "route_back",
+                "human_gate",
+                "stable_typed_blocker",
+            ],
+        },
+        "authority_boundary": {
+            "candidate_is_authority": False,
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_update_current_package": False,
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+    }
+
+
+def _paper_facing_candidate_output(
+    *,
+    kind: str,
+    study_id: str,
+    route_back_ready: bool,
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "status": "candidate_required" if route_back_ready else "context_only",
+        "artifact_ref": f"candidate://{study_id}/paper-facing/{kind}",
+        "candidate_only": True,
+        "authority_materialized": False,
     }
 
 
@@ -2255,6 +2387,17 @@ def _mapping_list(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, list | tuple):
         return []
     return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list | tuple):
+        return []
+    items: list[str] = []
+    for item in value:
+        text = _optional_text(item)
+        if text is not None:
+            items.append(text)
+    return items
 
 
 def _first_text(*values: object) -> str | None:

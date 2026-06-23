@@ -628,8 +628,11 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert payload["output_manifest"]["mission_executor_handoff_ref"].endswith(
         "/mission_executor_handoff.json"
     )
+    assert payload["output_manifest"]["paper_facing_candidate_delta_ref"].endswith(
+        "/paper_facing_candidate_delta.json"
+    )
     written_files = [Path(path) for path in payload["output_manifest"]["written_files"]]
-    assert len(written_files) == 7
+    assert len(written_files) == 8
     assert all(path.is_file() for path in written_files)
     assert all(output_root in path.parents for path in written_files)
     package_manifest = json.loads(
@@ -647,12 +650,26 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
             encoding="utf-8"
         )
     )
+    paper_facing_delta = json.loads(
+        Path(payload["output_manifest"]["paper_facing_candidate_delta_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    candidate_manifest = json.loads(
+        Path(payload["output_manifest"]["candidate_manifest_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
     assert package_manifest["mode"] == "non_authority_candidate_package"
     assert package_manifest["candidate_is_authority"] is False
     assert package_manifest["authority_materialized_by_this_package"] is False
     assert (
         package_manifest["artifact_refs"]["mission_executor_handoff"]
         == payload["output_manifest"]["mission_executor_handoff_ref"]
+    )
+    assert (
+        package_manifest["artifact_refs"]["paper_facing_candidate_delta"]
+        == payload["output_manifest"]["paper_facing_candidate_delta_ref"]
     )
     assert (
         "Yang output outside ops/medautoscience/paper_mission_candidate_package"
@@ -679,6 +696,16 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert (
         mission_executor_handoff["authority_boundary"]["can_claim_paper_progress"]
         is False
+    )
+    assert paper_facing_delta["surface_kind"] == (
+        "paper_mission_paper_facing_candidate_delta"
+    )
+    assert paper_facing_delta["status"] == "candidate_context_only"
+    assert paper_facing_delta["counts_as_paper_progress"] is False
+    assert paper_facing_delta["authority_boundary"]["writes_authority"] is False
+    assert (
+        payload["output_manifest"]["paper_facing_candidate_delta_ref"]
+        in candidate_manifest["candidate_artifact_refs"]
     )
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
@@ -783,7 +810,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
 
     assert exit_code == 0
     output_manifest = payload["output_manifest"]
-    assert len(output_manifest["written_files"]) == 7
+    assert len(output_manifest["written_files"]) == 8
     assert output_manifest["writes_authority"] is False
     assert output_manifest["writes_runtime"] is False
     assert output_manifest["writes_yang_authority"] is False
@@ -791,6 +818,14 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         Path(output_manifest["mission_executor_handoff_ref"]).read_text(
             encoding="utf-8"
         )
+    )
+    paper_facing_delta = json.loads(
+        Path(output_manifest["paper_facing_candidate_delta_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    candidate_manifest = json.loads(
+        Path(output_manifest["candidate_manifest_ref"]).read_text(encoding="utf-8")
     )
     assert payload["mission_executor_handoff"] == handoff
     assert handoff["surface_kind"] == "paper_mission_executor_handoff"
@@ -818,6 +853,32 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert handoff["authority_boundary"]["writes_paper_body"] is False
     assert handoff["authority_boundary"]["can_claim_paper_progress"] is False
     assert "owner receipt" in handoff["forbidden_authority_writes"]
+    assert payload["paper_facing_candidate_delta"] == paper_facing_delta
+    assert paper_facing_delta["surface_kind"] == (
+        "paper_mission_paper_facing_candidate_delta"
+    )
+    assert paper_facing_delta["status"] == "candidate_ready_for_mas_consume"
+    assert paper_facing_delta["counts_as_paper_progress"] is False
+    assert paper_facing_delta["route_back_evidence_ref"] == (
+        "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
+    )
+    assert [item["kind"] for item in paper_facing_delta["paper_facing_outputs"]] == [
+        "manuscript_patch_plan",
+        "claim_evidence_ledger_delta",
+        "figure_table_caption_delta",
+        "reviewer_gate_response_draft",
+        "owner_decision_packet",
+    ]
+    assert all(
+        item["status"] == "candidate_required"
+        for item in paper_facing_delta["paper_facing_outputs"]
+    )
+    assert paper_facing_delta["authority_boundary"]["writes_paper_body"] is False
+    assert paper_facing_delta["authority_boundary"]["can_claim_paper_progress"] is False
+    assert (
+        output_manifest["paper_facing_candidate_delta_ref"]
+        in candidate_manifest["candidate_artifact_refs"]
+    )
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
