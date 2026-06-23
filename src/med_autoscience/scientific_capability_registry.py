@@ -143,6 +143,59 @@ NATURE_REVIEWER_REPAIR_TRIGGER_TERMS = (
     "repair_action",
     "repair_action_candidates",
 )
+SCHOLAR_DISPLAY_MODULE_ID = "opl.scholarskills.display"
+SCHOLAR_DISPLAY_DESCRIPTOR_REFS = (
+    "scientific-capability:display_pack_visual_capability",
+    "contracts/display-pack-contract.v2.json",
+    "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
+    "med_autoscience.display_pack_agent.display_pack_capability_discover",
+    "med_autoscience.display_pack_agent.display_pack_figure_plan",
+    "med_autoscience.display_pack_agent.display_pack_preflight",
+    "med_autoscience.display_pack_agent.display_pack_render",
+)
+SCHOLAR_DISPLAY_DEPENDENCY_PROFILE_REFS = (
+    "opl:runtime-env:prepare",
+    "opl:scholarskills.display:dependency-profile",
+    "opl:scholarskills.display:doctor",
+)
+SCHOLAR_DISPLAY_RUN_CONTEXT_REFS = (
+    "opl:run-context:prepared-runtime-env",
+    "opl:scholarskills.display:run-context",
+    "opl:scholarskills.display:render-cache",
+)
+SCHOLAR_DISPLAY_ARTIFACT_REFS = (
+    "display_pack_agent_orchestration",
+    "paper/build/display_pack_lock.json",
+    "paper/figure_render_receipt.json",
+    "paper/figure_visual_audit_receipt.json",
+    "display_pack_gallery_manifest",
+)
+SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION = {
+    "surface_kind": "mas_scholar_display_execution_receipt_expectation",
+    "schema_version": SCHEMA_VERSION,
+    "receipt_owner": "one-person-lab",
+    "receipt_role": "candidate_display_execution_receipt",
+    "required_ref_families": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "render_cache_ref",
+        "artifact_manifest_ref",
+        "visual_audit_or_gallery_preview_ref",
+    ],
+    "mas_owner_receipt_required_for_paper_truth": True,
+    "execution_receipt_can_authorize_publication_readiness": False,
+}
+SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY = {
+    "surface_kind": "mas_scholar_display_owner_consumption_boundary",
+    "schema_version": SCHEMA_VERSION,
+    "candidate_output_only": True,
+    "owner_consumption_evidence": "refs_only",
+    "counts_as_paper_truth": False,
+    "counts_as_current_package_authority": False,
+    "counts_as_owner_receipt": False,
+    "mas_owner_gate_required_for_paper_truth": True,
+}
 _CURRENT_DELTA_DECLARATION_KEYS = {
     "action_type",
     "action_id",
@@ -517,6 +570,50 @@ def _capabilities() -> list[dict[str, Any]]:
             output_refs=["display_pack_agent_orchestration"],
             role="figure_intent_compilation_template_preflight_quality_floor_and_render_next_step",
         ),
+        _capability(
+            capability_id=SCHOLAR_DISPLAY_MODULE_ID,
+            capability_family="scholarskills_display",
+            module_id=SCHOLAR_DISPLAY_MODULE_ID,
+            source_frameworks=[
+                "OPL ScholarSkills",
+                "Scholar Display",
+                "MAS Display Pack",
+            ],
+            action_triggers=[
+                "display_pack_orchestrate",
+                "display_pack_figure_plan",
+                "display_pack_preflight",
+                "display_pack_render",
+                "artifact_display_surface_materialization_required",
+            ],
+            current_delta_trigger_terms=[
+                *NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS,
+                "scholarskills",
+                "scholar display",
+                "publication display",
+                "display pack",
+                "gallery preview",
+            ],
+            current_delta_trigger_reason="current_delta_declared_scholar_display_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:opl.scholarskills.display",
+            output_refs=list(SCHOLAR_DISPLAY_ARTIFACT_REFS),
+            contract_refs=list(SCHOLAR_DISPLAY_DESCRIPTOR_REFS),
+            descriptor_refs=list(SCHOLAR_DISPLAY_DESCRIPTOR_REFS),
+            dependency_profile_refs=list(SCHOLAR_DISPLAY_DEPENDENCY_PROFILE_REFS),
+            run_context_refs=list(SCHOLAR_DISPLAY_RUN_CONTEXT_REFS),
+            artifact_refs=list(SCHOLAR_DISPLAY_ARTIFACT_REFS),
+            execution_receipt_expectation=dict(SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION),
+            owner_consumption_boundary=dict(SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY),
+            bridged_capability_refs=[
+                "scientific-capability:display_pack_visual_capability",
+                "display-pack-contract.v2",
+            ],
+            role=(
+                "scholarskills_display_descriptor_bridge_to_mas_display_pack_candidate_"
+                "artifact_refs_without_paper_truth_authority"
+            ),
+        ),
     ]
 
 
@@ -559,6 +656,7 @@ def _capability(
     *,
     capability_id: str,
     capability_family: str,
+    module_id: str | None = None,
     source_frameworks: list[str],
     action_triggers: list[str],
     invocation_kind: str,
@@ -568,6 +666,13 @@ def _capability(
     current_delta_trigger_terms: list[str] | None = None,
     current_delta_trigger_reason: str | None = None,
     contract_refs: list[str] | None = None,
+    descriptor_refs: list[str] | None = None,
+    dependency_profile_refs: list[str] | None = None,
+    run_context_refs: list[str] | None = None,
+    artifact_refs: list[str] | None = None,
+    execution_receipt_expectation: Mapping[str, Any] | None = None,
+    owner_consumption_boundary: Mapping[str, Any] | None = None,
+    bridged_capability_refs: list[str] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "capability_id": capability_id,
@@ -587,12 +692,28 @@ def _capability(
         "external_runtime_dependency": False,
         "authority_boundary": _authority_boundary(),
     }
+    if module_id:
+        payload["module_id"] = module_id
     if current_delta_trigger_terms:
         payload["current_delta_trigger_terms"] = list(current_delta_trigger_terms)
     if current_delta_trigger_reason:
         payload["current_delta_trigger_reason"] = current_delta_trigger_reason
     if contract_refs:
         payload["contract_refs"] = list(contract_refs)
+    if descriptor_refs:
+        payload["descriptor_refs"] = list(descriptor_refs)
+    if dependency_profile_refs:
+        payload["dependency_profile_refs"] = list(dependency_profile_refs)
+    if run_context_refs:
+        payload["run_context_refs"] = list(run_context_refs)
+    if artifact_refs:
+        payload["artifact_refs"] = list(artifact_refs)
+    if execution_receipt_expectation:
+        payload["execution_receipt_expectation"] = dict(execution_receipt_expectation)
+    if owner_consumption_boundary:
+        payload["owner_consumption_boundary"] = dict(owner_consumption_boundary)
+    if bridged_capability_refs:
+        payload["bridged_capability_refs"] = list(bridged_capability_refs)
     if invocation_kind == "descriptor_only_current_owner_input_refs":
         payload["descriptor_only"] = True
         payload["external_runner_invocation_allowed"] = False
@@ -619,6 +740,7 @@ def _resolution_candidate(
         "invocation_kind": capability["invocation_kind"],
         "callable_surface": capability["callable_surface"],
         "output_refs": list(capability.get("output_refs") or []),
+        "artifact_refs": list(capability.get("artifact_refs") or []),
         "role": capability["role"],
         "trigger_reason": _trigger_reason(capability, action_type=action_type, current_owner_delta=current_owner_delta),
         "refs_only": True,
@@ -630,9 +752,22 @@ def _resolution_candidate(
             capability.get("external_runner_invocation_allowed", False)
         ),
         "contract_refs": list(capability.get("contract_refs") or []),
+        "descriptor_refs": list(capability.get("descriptor_refs") or []),
+        "dependency_profile_refs": list(capability.get("dependency_profile_refs") or []),
+        "run_context_refs": list(capability.get("run_context_refs") or []),
+        "execution_receipt_expectation": dict(
+            _mapping(capability.get("execution_receipt_expectation"))
+        ),
+        "owner_consumption_boundary": dict(
+            _mapping(capability.get("owner_consumption_boundary"))
+        ),
+        "bridged_capability_refs": list(capability.get("bridged_capability_refs") or []),
         "readback": _capability_readback(capability),
         "authority_boundary": _authority_boundary(),
     }
+    module_id = _text(capability.get("module_id"))
+    if module_id:
+        candidate["module_id"] = module_id
     wildcard_policy = _mapping(capability.get("wildcard_action_trigger_policy"))
     if wildcard_policy:
         candidate["wildcard_action_trigger_policy"] = dict(wildcard_policy)
@@ -688,7 +823,7 @@ def _capability_readback(capability: Mapping[str, Any]) -> dict[str, Any]:
     descriptor_only = (
         capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
     )
-    return {
+    readback = {
         "surface_kind": "mas_scientific_capability_readback",
         "capability_id": capability["capability_id"],
         "invocation_kind": capability["invocation_kind"],
@@ -700,6 +835,29 @@ def _capability_readback(capability: Mapping[str, Any]) -> dict[str, Any]:
         "can_authorize_quality_verdict": False,
         "contract_refs": list(capability.get("contract_refs") or []),
     }
+    module_id = _text(capability.get("module_id"))
+    if module_id:
+        readback["module_id"] = module_id
+    for key in (
+        "descriptor_refs",
+        "dependency_profile_refs",
+        "run_context_refs",
+        "artifact_refs",
+    ):
+        refs = list(capability.get(key) or [])
+        if refs:
+            readback[key] = refs
+    execution_receipt_expectation = _mapping(
+        capability.get("execution_receipt_expectation")
+    )
+    if execution_receipt_expectation:
+        readback["execution_receipt_expectation"] = dict(execution_receipt_expectation)
+    owner_consumption_boundary = _mapping(capability.get("owner_consumption_boundary"))
+    if owner_consumption_boundary:
+        readback["owner_consumption_boundary"] = dict(owner_consumption_boundary)
+    if module_id:
+        readback["authority_false_flags"] = _authority_false_flags()
+    return readback
 
 
 def _current_delta_declares_terms(
@@ -933,6 +1091,15 @@ def _authority_boundary() -> dict[str, bool | str]:
         "can_authorize_publication_readiness": False,
         "can_authorize_artifact_authority": False,
         "can_close_stage": False,
+    }
+
+
+def _authority_false_flags() -> dict[str, bool]:
+    authority = _authority_boundary()
+    return {
+        key: value
+        for key, value in authority.items()
+        if key.startswith("can_") and value is False
     }
 
 

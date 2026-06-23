@@ -92,6 +92,12 @@ Gallery 是能力模块的重要验收面，但它不是机器 truth。它的职
 
 Gallery 应展示模块能稳定生成的代表性输出，并链接 descriptor / manifest / dependency profile / render receipt。它不应展示已退役模板、失败 fallback、同图型重复变体或只换输入名称的水分模板。
 
+## ScholarSkills / Scholar Display 首个纵切
+
+`ScholarSkills` 是 OPL 面向学术产出的能力品牌命名；在 MAS 内的第一个消费纵切是 `Scholar Display`，机器模块 id 固定为 `opl.scholarskills.display`。MAS 侧只把它注册为 `scientific_capability_registry` 可发现、可 resolve 的 descriptor/readback bridge，并通过既有 Display Pack surface 复用 `contracts/display-pack-contract.v2.json`、`display_pack_agent` 与 display artifact refs；不复制一套 ScholarSkills truth，也不把 Display Pack 运行逻辑搬进新的 registry。
+
+当前状态是 `first_vertical_descriptor_consumer`：MAS 可以从 current owner delta / capability family 发现 Scholar Display，读取 OPL dependency profile、prepared run-context、render cache、doctor 与 execution receipt expectation refs，并把返回值保持为 candidate artifact refs / refs-only owner-consumption evidence。这个状态不能写成 full runtime ready、paper progress、publication readiness、current package authority 或 owner receipt。候选图、gallery preview、display lock、render receipt 和 visual audit receipt 只有经过 MAS owner gate 消费后，才可能进入论文 truth。
+
 ## 与 OPL 十大品牌模块的关系
 
 外挂能力模块不是 OPL 的第十一个品牌模块。它们是 OPL 十大品牌模块共同管理和使用的 capability 实例。品牌模块定义 framework 的 bounded contexts；能力模块是被这些 bounded contexts 管理、安装、发现、调用、审计和改进的专业资产。

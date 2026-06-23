@@ -8740,9 +8740,138 @@
           "MAS Display Pack"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "display_pack_orchestrate",
+          "display_pack_figure_plan",
+          "display_pack_preflight",
+          "display_pack_render",
+          "artifact_display_surface_materialization_required"
+        ],
+        "artifact_refs": [
+          "display_pack_agent_orchestration",
+          "paper/build/display_pack_lock.json",
+          "paper/figure_render_receipt.json",
+          "paper/figure_visual_audit_receipt.json",
+          "display_pack_gallery_manifest"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "bridged_capability_refs": [
+          "scientific-capability:display_pack_visual_capability",
+          "display-pack-contract.v2"
+        ],
+        "callable_surface": "descriptor_only:opl.scholarskills.display",
+        "capability_family": "scholarskills_display",
+        "capability_id": "opl.scholarskills.display",
+        "capability_ref": "scientific-capability:opl.scholarskills.display",
+        "contract_refs": [
+          "scientific-capability:display_pack_visual_capability",
+          "contracts/display-pack-contract.v2.json",
+          "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
+          "med_autoscience.display_pack_agent.display_pack_capability_discover",
+          "med_autoscience.display_pack_agent.display_pack_figure_plan",
+          "med_autoscience.display_pack_agent.display_pack_preflight",
+          "med_autoscience.display_pack_agent.display_pack_render"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_display_need",
+        "current_delta_trigger_terms": [
+          "figure",
+          "display",
+          "plotting",
+          "stable plotting need",
+          "stable_plotting_need",
+          "scholarskills",
+          "scholar display",
+          "publication display",
+          "display pack",
+          "gallery preview"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.display:dependency-profile",
+          "opl:scholarskills.display:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "scientific-capability:display_pack_visual_capability",
+          "contracts/display-pack-contract.v2.json",
+          "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
+          "med_autoscience.display_pack_agent.display_pack_capability_discover",
+          "med_autoscience.display_pack_agent.display_pack_figure_plan",
+          "med_autoscience.display_pack_agent.display_pack_preflight",
+          "med_autoscience.display_pack_agent.display_pack_render"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_display_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "render_cache_ref",
+            "artifact_manifest_ref",
+            "visual_audit_or_gallery_preview_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholar_display_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.display",
+        "output_refs": [
+          "display_pack_agent_orchestration",
+          "paper/build/display_pack_lock.json",
+          "paper/figure_render_receipt.json",
+          "paper/figure_visual_audit_receipt.json",
+          "display_pack_gallery_manifest"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholar_display_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "scholarskills_display_descriptor_bridge_to_mas_display_pack_candidate_artifact_refs_without_paper_truth_authority",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.display:run-context",
+          "opl:scholarskills.display:render-cache"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Display",
+          "MAS Display Pack"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
-    "capability_count": 10,
+    "capability_count": 11,
     "default_policy": {
       "always_on_scan": false,
       "external_runtime_dependency": false,
