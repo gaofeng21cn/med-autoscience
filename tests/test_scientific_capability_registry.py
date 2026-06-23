@@ -897,6 +897,186 @@ def test_scientific_capability_registry_consumes_opl_shaped_receipts_for_every_s
         assert evidence["can_authorize_publication_readiness"] is False
 
 
+def test_scientific_capability_registry_consumes_file_materialized_scholarskills_package_as_refs_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    package_root = tmp_path / "opl-package"
+    package_root.mkdir()
+    receipt_path = package_root / "execution_receipt_candidate.json"
+    manifest_path = package_root / "manifest.json"
+    artifact_manifest_path = package_root / "artifacts" / "table_manifest.json"
+    artifact_manifest_path.parent.mkdir()
+    artifact_manifest_path.write_text('{"items":[]}', encoding="utf-8")
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_scholarskills_execution_receipt_candidate",
+                "module_id": "opl.scholarskills.tables",
+                "execution_receipt_ref": "opl-vault:receipts/tables/receipt.json",
+                "artifact_manifest_path": str(artifact_manifest_path),
+                "execution_receipt_refs": {
+                    "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
+                    "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
+                    "prepared_run_context_ref": "opl-vault:run-context/tables-run.json",
+                    "table_qc_ref": "opl-vault:tables/qc.json",
+                },
+                "written_files": [
+                    "opl-vault:tables/table_manifest.json",
+                    "opl-vault:tables/qc.json",
+                ],
+                "sha256": "sha256:receipt",
+                "authority_flags": {
+                    "can_write_publication_eval": False,
+                    "can_write_controller_decisions": False,
+                    "can_write_current_package": False,
+                    "can_write_paper_or_package": False,
+                    "can_write_study_truth": False,
+                    "can_write_owner_receipt": False,
+                    "can_write_typed_blocker": False,
+                    "can_write_human_gate": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_scholarskills_materialized_package_manifest",
+                "module_id": "opl.scholarskills.tables",
+                "execution_receipt_candidate_path": receipt_path.name,
+                "artifact_manifest_path": str(artifact_manifest_path),
+                "written_files": [str(artifact_manifest_path)],
+                "sha256": "sha256:manifest",
+                "authority_flags": {
+                    "can_write_publication_eval": False,
+                    "can_write_controller_decisions": False,
+                    "can_write_current_package": False,
+                    "can_write_paper_or_package": False,
+                    "can_write_study_truth": False,
+                    "can_write_owner_receipt": False,
+                    "can_write_typed_blocker": False,
+                    "can_write_human_gate": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    current_owner_delta = {
+        "action_type": "prepare_table_package",
+        "action_id": "scholar-tables-file-001",
+        "work_unit_id": "scholar-tables-file-candidate",
+        "work_unit_fingerprint": "sha256:scholar-tables-file",
+        "capability_families": ["scholarskills_tables"],
+    }
+    invocation = module.invoke_scientific_capability(
+        capability_id="opl.scholarskills.tables",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta=current_owner_delta,
+        materialized_package_manifest_path=manifest_path,
+    )
+
+    assert evidence["execution_receipt_status"] == "complete"
+    assert evidence["execution_receipt_refs"]["table_manifest_ref"] == str(
+        artifact_manifest_path
+    )
+    assert evidence["observed_execution_receipt_ref_families"] == [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "table_manifest_ref",
+        "table_qc_ref",
+    ]
+    package_consumption = evidence["materialized_package_consumption"]
+    assert package_consumption["refs_only"] is True
+    assert package_consumption["manifest_path"] == str(manifest_path.resolve())
+    assert package_consumption["execution_receipt_path"] == str(receipt_path.resolve())
+    assert package_consumption["authority_flags_false"] is True
+    assert package_consumption["forbidden_written_file_collisions"] == []
+    assert package_consumption["mas_consumer_written_files"] == []
+    assert package_consumption["counts_as_paper_truth"] is False
+    assert package_consumption["counts_as_owner_receipt"] is False
+    assert package_consumption["can_authorize_publication_readiness"] is False
+    assert package_consumption["can_write_publication_eval"] is False
+    assert package_consumption["can_write_controller_decisions"] is False
+    assert package_consumption["can_write_current_package"] is False
+    assert package_consumption["can_write_paper_or_package"] is False
+    assert package_consumption["can_write_study_truth"] is False
+    assert package_consumption["can_write_typed_blocker"] is False
+    assert package_consumption["can_write_human_gate"] is False
+    assert evidence["counts_as_progress"] is False
+    assert evidence["counts_as_paper_truth"] is False
+    assert evidence["counts_as_owner_receipt"] is False
+    assert evidence["can_authorize_publication_readiness"] is False
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_rejects_file_materialized_scholarskills_authority_flags(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    receipt_path = tmp_path / "execution_receipt_candidate.json"
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "module_id": "opl.scholarskills.tables",
+                "execution_receipt_refs": {
+                    "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
+                    "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
+                    "prepared_run_context_ref": "opl-vault:run-context/tables-run.json",
+                    "table_manifest_ref": "opl-vault:tables/table-manifest.json",
+                    "table_qc_ref": "opl-vault:tables/qc.json",
+                },
+                "authority_flags": {
+                    "can_write_owner_receipt": True,
+                    "can_write_publication_eval": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    current_owner_delta = {
+        "action_type": "prepare_table_package",
+        "action_id": "scholar-tables-bad-001",
+        "work_unit_id": "scholar-tables-bad-candidate",
+        "work_unit_fingerprint": "sha256:scholar-tables-bad",
+        "capability_families": ["scholarskills_tables"],
+    }
+    invocation = module.invoke_scientific_capability(
+        capability_id="opl.scholarskills.tables",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    try:
+        module.build_capability_owner_consumption_evidence(
+            invocation_result=invocation,
+            current_owner_delta=current_owner_delta,
+            execution_receipt_path=receipt_path,
+        )
+    except ValueError as exc:
+        assert "can_write_owner_receipt" in str(exc)
+    else:
+        raise AssertionError("truthy authority flag should fail closed")
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
 def test_scientific_capability_registry_resolves_nature_paper_mainline_refs_only_descriptors(
     tmp_path: Path,
 ) -> None:
