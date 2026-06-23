@@ -305,6 +305,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="standard_agent_pack_surface",
         exact_paths=(
             "contracts/action_catalog.json",
+            "contracts/agent_tool_arsenal.json",
             "contracts/artifact_locator_contract.json",
             "contracts/authority_kernel_inventory.json",
             "contracts/domain_descriptor.json",
@@ -317,6 +318,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/memory_descriptor.json",
             "contracts/owner_receipt_contract.json",
             "contracts/pack_compiler_input.json",
+            "contracts/paper_mission_run_contract.json",
             "contracts/private_functional_surface_policy.json",
             "contracts/progress_first_safety_envelope.json",
             "contracts/standard_agent_completion_acceptance.json",
