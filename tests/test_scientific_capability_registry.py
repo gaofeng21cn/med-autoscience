@@ -440,7 +440,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
     assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
 
 
-def test_scientific_capability_registry_consumes_complete_scholar_display_receipt_refs_as_candidate_only(
+def test_scientific_capability_registry_consumes_opl_scholar_display_receipt_candidate_as_refs_only(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
@@ -460,18 +460,30 @@ def test_scientific_capability_registry_consumes_complete_scholar_display_receip
         apply=True,
     )
 
-    evidence = module.build_capability_owner_consumption_evidence(
-        invocation_result=invocation,
-        current_owner_delta=current_owner_delta,
-        execution_receipt_ref="opl-vault:receipts/scholar-display/receipt.json",
-        execution_receipt={
+    opl_receipt_candidate = {
+        "surface_kind": "opl_scholarskills_execution_receipt_candidate",
+        "status": "receipt_candidate_unsigned",
+        "module_id": "opl.scholarskills.display",
+        "execution_receipt_ref": "opl-vault:receipts/scholar-display/receipt.json",
+        "execution_receipt_refs": {
             "input_fingerprint_ref": "opl-vault:inputs/fingerprint.sha256",
-            "dependency_prepared_receipt_ref": "opl-vault:prepare/display-env.json",
-            "run_context_ref": "opl-vault:run-context/display-run.json",
+            "dependency_profile_ref": "opl-vault:prepare/display-env.json",
+            "prepared_run_context_ref": "opl-vault:run-context/display-run.json",
             "render_cache_ref": "opl-vault:cache/display-render-cache.json",
             "artifact_manifest_ref": "opl-vault:artifacts/display-manifest.json",
             "visual_audit_or_gallery_preview_ref": "opl-vault:gallery/preview.json",
         },
+        "execution_receipt_counts_as_candidate_artifact": True,
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "can_authorize_publication_readiness": False,
+        "can_sign_owner_receipt": False,
+    }
+
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta=current_owner_delta,
+        execution_receipt=opl_receipt_candidate,
     )
 
     assert evidence["execution_receipt_ref"] == (

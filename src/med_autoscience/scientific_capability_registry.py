@@ -1167,6 +1167,11 @@ def _scholar_display_execution_receipt_refs(
     nested_refs = _mapping(raw.get("refs"))
     if nested_refs:
         raw.update({key: value for key, value in nested_refs.items() if key not in raw})
+    nested_execution_refs = _mapping(raw.get("execution_receipt_refs"))
+    if nested_execution_refs:
+        raw.update(
+            {key: value for key, value in nested_execution_refs.items() if key not in raw}
+        )
 
     result: dict[str, str] = {}
     execution_receipt_ref = (
