@@ -98,7 +98,17 @@ Gallery 应展示模块能稳定生成的代表性输出，并链接 descriptor 
 
 当前状态是 `all_module_descriptor_consumer` + `refs_only_execution_receipt_candidate_consumer` + `file_materialized_package_refs_consumer`：MAS 可以从 current owner delta 的 `capability_families`、capability id 或显式需求文本发现十个 ScholarSkills 模块，读取 OPL descriptor、dependency profile、prepared run-context、artifact refs 与 execution receipt expectation refs，并按模块自己的 required ref family 校验 OPL execution receipt candidate。十个模块都共享 `input_fingerprint_ref`、`dependency_profile_ref` 和 `prepared_run_context_ref`；Display 追加 `render_cache_ref`、`artifact_manifest_ref`、`visual_audit_or_gallery_preview_ref`；Tables 追加 `table_manifest_ref`、`table_qc_ref`；Stats 追加 `analysis_manifest_ref`、`reproducibility_check_ref`；Omics 追加 `omics_pipeline_manifest_ref`、`feature_matrix_qc_ref`；Lit 追加 `evidence_map_ref`、`citation_manifest_ref`；Write 追加 `draft_section_manifest_ref`、`source_trace_ref`；Review 追加 `reviewer_report_ref`、`route_back_ref`；Submit 追加 `package_manifest_ref`、`submission_checklist_ref`；Data 追加 `data_manifest_ref`、`lineage_readiness_ref`；Intake 追加 `source_snapshot_ref`、`adoption_contract_ref`。
 
-MAS consumer 接受 OPL candidate envelope 内的 `execution_receipt_refs` 嵌套对象，也接受少量兼容 alias，例如 `dependency_prepared_receipt_ref` 映射到 `dependency_profile_ref`。对于 OPL `materialize` 产生的文件化 package，MAS owner-consumption helper 还接受明确文件输入：`execution_receipt_path` 指向 `execution_receipt_candidate.json`，或 `materialized_package_manifest_path` 指向包含 `execution_receipt_candidate_path` / `artifact_manifest_path` / `written_files` / `sha256` / `authority_flags` 的 `manifest.json`。MAS 只读取这些 JSON，把 `artifact_manifest_path` 映射到对应模块的 manifest ref family，并把 `written_files`、`sha256`、authority false flags 和源文件路径记录为 `materialized_package_consumption` readback；MAS consumer 自身 `mas_consumer_written_files=[]`。
+MAS consumer 接受 OPL candidate envelope 内的 `execution_receipt_refs` 嵌套对象，也接受少量兼容 alias，例如 `dependency_prepared_receipt_ref` 映射到 `dependency_profile_ref`。对于 OPL `materialize` 产生的文件化 package，MAS owner-consumption helper 还接受明确文件输入：`execution_receipt_path` 指向 `execution_receipt_candidate.json`，或 `materialized_package_manifest_path` 指向包含 `execution_receipt_candidate_path` / `artifact_manifest_path` / `written_files` / `sha256` / `authority_flags` 的 `manifest.json`。MAS 只读取这些 JSON，把 `artifact_manifest_path` 映射到对应模块的 manifest ref family，并把 `written_files`、`sha256`、authority false flags 和源文件路径记录为 `materialized_package_consumption` readback；MAS consumer 自身 `mas_consumer_written_files=[]`。repo-native CLI 入口是：
+
+```bash
+medautosci scientific-capability-registry \
+  --mode owner-consumption \
+  --capability-id opl.scholarskills.<module> \
+  --current-owner-delta-json '<json>' \
+  --materialized-package-manifest-path <opl-package>/manifest.json
+```
+
+该 CLI 只调用同一 owner-consumption evidence builder，成功时输出 refs-only evidence；module id mismatch、truthy authority flag 或 forbidden `written_files` 会 fail closed 并非零退出。
 
 文件化消费路径必须 fail closed：`authority_flags` 中任何 MAS authority 写入能力为 `true`，或 `written_files` 声称写入 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper/package truth、owner receipt、typed blocker 或 human gate，均不能被包装成 owner-consumption evidence。该消费路径只输出 `execution_receipt_status`、observed / missing ref families 和 refs-only owner-consumption evidence；即使 refs 齐全，也只表示候选 artifact evidence 可被 MAS owner gate 后续审查，不能写成 full runtime ready、paper progress、publication readiness、current package authority 或 owner receipt。候选图、表、统计结果、omics 结果、文献证据图谱、文稿段落、review 报告、投稿包、数据清单和外部方法 intake contract 只有经过 MAS owner gate 消费后，才可能进入论文 truth。
 
