@@ -430,11 +430,11 @@ def _next_owner(
 ) -> str:
     decision = _mapping(transaction_readback.get("stage_terminal_decision"))
     return (
-        _text(authority_consume_readback.get("next_owner"))
+        _text(decision.get("next_owner"))
         or _text(_mapping(authority_consume_readback.get("typed_blocker_required")).get("next_owner"))
         or _text(_mapping(authority_consume_readback.get("human_gate_required")).get("next_owner"))
         or _text(_mapping(authority_consume_readback.get("route_back")).get("next_owner"))
-        or _text(decision.get("next_owner"))
+        or _text(authority_consume_readback.get("next_owner"))
         or "mas_authority_kernel"
     )
 
