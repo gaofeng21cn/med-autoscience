@@ -98,6 +98,67 @@ def test_opl_terminal_closeout_readback_requires_record_only_boundary(
     assert readback["runtime_readback_status"] == "missing"
 
 
+def test_opl_terminal_closeout_readback_ignores_prior_default_executor_closeout_for_next_stage(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_carrier(),
+        "command_kind": "start_next_stage",
+        "route_target": "publication_gate_replay",
+        "opl_route_command": {
+            "command_kind": "start_next_stage",
+            "target": "publication_gate_replay",
+        },
+    }
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "blocked_reason": "opl_runtime_lifecycle_readback_required",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_terminal_closeout_readback_accepts_current_route_target_closeout(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_carrier(),
+        "command_kind": "start_next_stage",
+        "route_target": "publication_gate_replay",
+        "opl_route_command": {
+            "command_kind": "start_next_stage",
+            "target": "publication_gate_replay",
+        },
+    }
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "blocked_reason": "domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_id"] == "publication_gate_replay"
+
+
 def _carrier() -> dict[str, str]:
     return {
         "study_id": "002-dm-china-us-mortality-attribution",

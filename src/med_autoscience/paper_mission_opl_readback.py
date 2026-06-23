@@ -130,6 +130,9 @@ def _matches_carrier(
         carrier.get("work_unit_fingerprint")
     ):
         return False
+    route_target = _carrier_route_target(carrier)
+    if route_target is not None and _text(closeout.get("stage_id")) != route_target:
+        return False
     if closeout.get("provider_completion_is_domain_completion") is True:
         return False
     if closeout.get("provider_completion_is_domain_ready") is True:
@@ -140,6 +143,17 @@ def _matches_carrier(
         return False
     boundary = _mapping(closeout.get("authority_boundary"))
     return boundary.get("record_only_surface") is True
+
+
+def _carrier_route_target(carrier: Mapping[str, Any]) -> str | None:
+    command_kind = _text(carrier.get("command_kind"))
+    route_target = _text(carrier.get("route_target"))
+    route = _mapping(carrier.get("opl_route_command"))
+    command_kind = command_kind or _text(route.get("command_kind"))
+    route_target = route_target or _text(route.get("target"))
+    if command_kind in {"start_next_stage", "resume_stage", "route_back"}:
+        return route_target
+    return None
 
 
 def _terminal_closeout_readback(
