@@ -194,7 +194,10 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     )
 
     assert export["dispatch"]["default_action_intent"] == "paper_mission/start_or_resume"
-    assert "domain_owner/default-executor-dispatch" in export["dispatch"]["allowed_task_kinds"]
+    assert "domain_owner/default-executor-dispatch" not in export["dispatch"]["allowed_task_kinds"]
+    assert "domain_owner/default-executor-dispatch" in export["dispatch"][
+        "legacy_diagnostic_task_kinds"
+    ]
     assert export["legacy_default_executor_dispatch_diagnostics"] == []
 
     default_tasks = [
@@ -237,6 +240,7 @@ def test_legacy_default_executor_dispatch_task_is_demoted_when_carried() -> None
         "action_intent": "legacy_default_executor_diagnostic",
         "default_paper_mission_entry": False,
         "migration_diagnostic_only": True,
+        "ordinary_schedulable": False,
         "active_caller_class": "diagnostic_only",
     }
     assert paper_mission_task == {

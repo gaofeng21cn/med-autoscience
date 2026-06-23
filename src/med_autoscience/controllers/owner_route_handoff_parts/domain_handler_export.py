@@ -441,6 +441,43 @@ def _paper_mission_start_or_resume_task(
         dry_run=True,
         source="domain-handler-export",
     )
+    carrier = mapping(readback.get("opl_runtime_carrier"))
+    stage_packet_refs = _paper_mission_stage_packet_refs(readback)
+    payload = {
+        "profile": str(profile_ref),
+        "study_id": study_id,
+        "paper_mission_command": "start",
+        "dry_run": True,
+        "paper_mission": readback,
+    }
+    if carrier:
+        payload.update(
+            {
+                "opl_runtime_carrier": carrier,
+                "opl_domain_progress_transition_request": carrier,
+                "dispatch_authority": "paper_mission_transaction",
+                "action_type": text(carrier.get("action_type")),
+                "work_unit_id": text(carrier.get("work_unit_id")),
+                "work_unit_fingerprint": text(
+                    carrier.get("work_unit_fingerprint")
+                ),
+                "action_fingerprint": text(carrier.get("work_unit_fingerprint")),
+                "source_fingerprint": text(carrier.get("work_unit_fingerprint")),
+                "route_identity_key": text(carrier.get("route_identity_key")),
+                "attempt_idempotency_key": text(
+                    carrier.get("attempt_idempotency_key")
+                ),
+                "next_executable_owner": "med-autoscience",
+                "provider_attempt_or_lease_required": False,
+                "provider_completion_is_domain_completion": False,
+                "stage_transition_authority_boundary": carrier.get(
+                    "authority_boundary"
+                ),
+                "stage_packet_refs": stage_packet_refs,
+            }
+        )
+        if stage_packet_refs:
+            payload["stage_packet_ref"] = stage_packet_refs[0]
     return {
         "task_id": f"paper-mission-start-or-resume::{study_id}",
         "domain_id": "medautoscience",
@@ -452,13 +489,7 @@ def _paper_mission_start_or_resume_task(
         "source": "mas-domain-handler-export",
         "profile": str(profile_ref),
         "study_id": study_id,
-        "payload": {
-            "profile": str(profile_ref),
-            "study_id": study_id,
-            "paper_mission_command": "start",
-            "dry_run": True,
-            "paper_mission": readback,
-        },
+        "payload": payload,
         "authority_boundary": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -466,6 +497,23 @@ def _paper_mission_start_or_resume_task(
             "forbidden_authority_writes": readback["forbidden_authority_writes"],
         },
     }
+
+
+def _paper_mission_stage_packet_refs(readback: Mapping[str, Any]) -> list[str]:
+    carrier = mapping(readback.get("opl_runtime_carrier"))
+    refs = [
+        text(carrier.get("stage_run_ref")),
+        text(readback.get("materialized_mission_ref")),
+        text(readback.get("candidate_manifest_ref")),
+    ]
+    transaction = mapping(readback.get("paper_mission_transaction"))
+    refs.extend(
+        [
+            text(transaction.get("stage_run_ref")),
+            text(transaction.get("transaction_id")),
+        ]
+    )
+    return [ref for ref in refs if ref]
 
 
 def _mark_legacy_default_executor_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
