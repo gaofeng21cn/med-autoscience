@@ -25,6 +25,11 @@ from med_autoscience.paper_mission_opl_carrier import (
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
 )
+from med_autoscience.paper_mission_owner_answer import (
+    terminal_owner_gate_authority_consume_readback,
+    terminal_owner_gate_owner_answer_next_decision,
+    terminal_owner_gate_owner_answer_readback,
+)
 from med_autoscience.paper_mission_terminal_owner_gate import (
     stage_terminal_next_owner_or_human_decision,
     terminal_owner_gate_authority_readback,
@@ -1618,12 +1623,28 @@ def _paper_mission_transaction_readback(
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
         terminal_owner_gate
     )
+    owner_answer_readback = terminal_owner_gate_owner_answer_readback(
+        terminal_owner_gate=terminal_owner_gate,
+        paper_mission_transaction=transaction,
+        artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
+        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+    )
+    terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
+        terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
+        owner_answer_readback=owner_answer_readback,
+    )
     readback["terminal_owner_gate_authority_readback"] = (
         terminal_gate_authority_readback or None
     )
-    readback["next_owner_or_human_decision"] = _next_owner_or_human_decision_from_transaction_readback(
+    readback["terminal_owner_gate_owner_answer_readback"] = (
+        owner_answer_readback or None
+    )
+    readback["next_owner_or_human_decision"] = (
+        terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
+        or _next_owner_or_human_decision_from_transaction_readback(
         readback=readback,
         terminal_owner_gate=terminal_owner_gate,
+        )
     )
     return readback
 
@@ -1666,6 +1687,9 @@ def _transaction_readback_output_fields(
         "terminal_owner_gate": transaction_readback.get("terminal_owner_gate"),
         "terminal_owner_gate_authority_readback": transaction_readback.get(
             "terminal_owner_gate_authority_readback"
+        ),
+        "terminal_owner_gate_owner_answer_readback": transaction_readback.get(
+            "terminal_owner_gate_owner_answer_readback"
         ),
         "next_owner_or_human_decision": transaction_readback[
             "next_owner_or_human_decision"

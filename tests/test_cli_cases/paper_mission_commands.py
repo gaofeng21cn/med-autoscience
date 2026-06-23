@@ -1282,13 +1282,15 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     }
     assert payload["next_owner_or_human_decision"] == {
         "kind": "owner_or_route",
-        "next_owner": "mas_authority_kernel",
+        "next_owner": "mission_executor",
         "human_decision_required": False,
-        "summary": "domain_gate_pending",
-        "typed_blocker_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
-            "sat-terminal.closeout.json#domain_blocker"
-        ),
+        "summary": "route_back",
+        "route_back_evidence_ref": payload[
+            "terminal_owner_gate_owner_answer_readback"
+        ]["route_back_evidence_ref"],
+        "opl_route_command_ref": payload[
+            "terminal_owner_gate_owner_answer_readback"
+        ]["opl_route_command"]["source_terminal_decision_ref"],
         "can_execute": False,
         "can_authorize_provider_admission": False,
     }
@@ -1296,13 +1298,27 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert authority_readback["surface_kind"] == (
         "mas_terminal_owner_gate_authority_readback"
     )
-    assert authority_readback["status"] == "owner_answer_required"
+    assert authority_readback["status"] == "route_back"
     assert authority_readback["next_owner"] == "mas_authority_kernel"
-    assert authority_readback["consume_result"] == {
-        "status": "owner_answer_required",
-        "outcome": "owner_answer_required",
-        "authority_materialized": False,
-    }
+    assert authority_readback["owner_answer_materialized"] is True
+    assert authority_readback["consume_result"]["status"] == "route_back"
+    assert authority_readback["consume_result"]["outcome"] == "route_back_evidence_ref"
+    assert authority_readback["consume_result"]["authority_materialized"] is True
+    assert authority_readback["route_back_evidence_ref"].startswith(
+        f"route-back:paper-mission-terminal-owner-gate:{study_id}:"
+    )
+    owner_answer = payload["terminal_owner_gate_owner_answer_readback"]
+    assert owner_answer["surface_kind"] == (
+        "mas_terminal_owner_gate_owner_answer_readback"
+    )
+    assert owner_answer["status"] == "route_back"
+    assert owner_answer["owner_answer_shape"] == "route_back_evidence_ref"
+    assert owner_answer["authority_materialized"] is True
+    assert owner_answer["can_claim_paper_progress"] is False
+    assert owner_answer["can_claim_runtime_ready"] is False
+    assert owner_answer["write_plan"]["written_files"] == []
+    assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
+    assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
     assert authority_readback["owner_answer_contract"]["accepted_shapes"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
@@ -1322,6 +1338,9 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert payload["paper_mission_transaction_readback"][
         "terminal_owner_gate_authority_readback"
     ] == authority_readback
+    assert payload["paper_mission_transaction_readback"][
+        "terminal_owner_gate_owner_answer_readback"
+    ] == owner_answer
     assert payload["paper_mission_transaction_readback"]["opl_runtime_readback_status"] == (
         "opl_runtime_terminal_readback_observed"
     )

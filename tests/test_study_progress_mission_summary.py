@@ -349,10 +349,15 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     }
     assert summary["next_owner_or_human_decision"] == {
         "kind": "owner_or_route",
-        "next_owner": "mas_authority_kernel",
+        "next_owner": "mission_executor",
         "human_decision_required": False,
-        "summary": "domain_gate_pending",
-        "typed_blocker_ref": "closeout.json#domain_blocker",
+        "summary": "route_back",
+        "route_back_evidence_ref": summary[
+            "terminal_owner_gate_owner_answer_readback"
+        ]["route_back_evidence_ref"],
+        "opl_route_command_ref": summary[
+            "terminal_owner_gate_owner_answer_readback"
+        ]["opl_route_command"]["source_terminal_decision_ref"],
         "can_execute": False,
         "can_authorize_provider_admission": False,
     }
@@ -364,13 +369,24 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert authority_readback["surface_kind"] == (
         "mas_terminal_owner_gate_authority_readback"
     )
-    assert authority_readback["status"] == "owner_answer_required"
+    assert authority_readback["status"] == "route_back"
     assert authority_readback["next_owner"] == "mas_authority_kernel"
-    assert authority_readback["consume_result"] == {
-        "status": "owner_answer_required",
-        "outcome": "owner_answer_required",
-        "authority_materialized": False,
-    }
+    assert authority_readback["owner_answer_materialized"] is True
+    assert authority_readback["consume_result"]["status"] == "route_back"
+    assert authority_readback["consume_result"]["outcome"] == "route_back_evidence_ref"
+    assert authority_readback["consume_result"]["authority_materialized"] is True
+    owner_answer = summary["terminal_owner_gate_owner_answer_readback"]
+    assert owner_answer["surface_kind"] == (
+        "mas_terminal_owner_gate_owner_answer_readback"
+    )
+    assert owner_answer["status"] == "route_back"
+    assert owner_answer["owner_answer_shape"] == "route_back_evidence_ref"
+    assert owner_answer["authority_materialized"] is True
+    assert owner_answer["can_claim_paper_progress"] is False
+    assert owner_answer["can_claim_runtime_ready"] is False
+    assert owner_answer["write_plan"]["written_files"] == []
+    assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
+    assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
     assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (
         "closeout.json#domain_blocker"
     )

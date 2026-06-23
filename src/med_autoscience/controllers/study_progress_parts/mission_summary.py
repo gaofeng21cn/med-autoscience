@@ -15,6 +15,11 @@ from med_autoscience.paper_mission_opl_carrier import (
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
 )
+from med_autoscience.paper_mission_owner_answer import (
+    terminal_owner_gate_authority_consume_readback,
+    terminal_owner_gate_owner_answer_next_decision,
+    terminal_owner_gate_owner_answer_readback,
+)
 from med_autoscience.paper_mission_terminal_owner_gate import (
     terminal_owner_gate_authority_readback,
     terminal_owner_gate_from_carrier_readback,
@@ -138,9 +143,24 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
         terminal_owner_gate
     )
+    owner_answer_readback = terminal_owner_gate_owner_answer_readback(
+        terminal_owner_gate=terminal_owner_gate,
+        paper_mission_transaction=paper_mission_run["paper_mission_transaction"],
+        artifact_delta_refs=_mapping_list(
+            paper_mission_run["paper_mission_transaction"].get("artifact_delta_refs")
+        ),
+        paper_audit_pack_refs=_mapping(
+            paper_mission_run["paper_mission_transaction"].get("paper_audit_pack_refs")
+        ),
+    )
+    terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
+        terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
+        owner_answer_readback=owner_answer_readback,
+    )
     if terminal_owner_gate:
-        next_owner_or_human_decision = terminal_owner_gate_next_decision(
-            terminal_owner_gate
+        next_owner_or_human_decision = (
+            terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
+            or terminal_owner_gate_next_decision(terminal_owner_gate)
         )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
@@ -174,6 +194,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "terminal_owner_gate_authority_readback": (
             terminal_gate_authority_readback or None
         ),
+        "terminal_owner_gate_owner_answer_readback": owner_answer_readback or None,
         "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_artifact_delta",
         "legacy_path_role": "diagnostics_migration_provenance_only",
@@ -349,9 +370,20 @@ def _materialized_mission_summary(
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
         terminal_owner_gate
     )
+    owner_answer_readback = terminal_owner_gate_owner_answer_readback(
+        terminal_owner_gate=terminal_owner_gate,
+        paper_mission_transaction=transaction,
+        artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
+        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+    )
+    terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
+        terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
+        owner_answer_readback=owner_answer_readback,
+    )
     if terminal_owner_gate:
-        next_owner_or_human_decision = terminal_owner_gate_next_decision(
-            terminal_owner_gate
+        next_owner_or_human_decision = (
+            terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
+            or terminal_owner_gate_next_decision(terminal_owner_gate)
         )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
@@ -381,6 +413,7 @@ def _materialized_mission_summary(
         "terminal_owner_gate_authority_readback": (
             terminal_gate_authority_readback or None
         ),
+        "terminal_owner_gate_owner_answer_readback": owner_answer_readback or None,
         "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_mission_run",
         "legacy_path_role": "diagnostics_migration_provenance_only",

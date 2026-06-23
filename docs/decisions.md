@@ -33,6 +33,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 OPL task `frt_4eed4fe9278da12fa57b336a` / stage attempt `sat_ef496f3ff06c1873ed121dc9` 已 terminal closeout，但 MAS `paper-mission inspect` / `study_progress` 仍停在 stale `waiting_for_opl_runtime_live_readback`。修复点不是把 provider closeout 升级成 domain answer，也不是把 domain gate 再踢给 OPL runtime，而是把 runtime terminal readback 与 MAS authority consume 决策分开，让 operator 看到“runtime 已终止，下一步是 MAS authority kernel owner answer”。
 - 影响：这是 readback/currentness 边界修复，不执行 OPL outbox / StageRun / provider attempt 写入，不写 Yang study/runtime/paper authority、publication eval、controller decisions、owner receipt、typed blocker、human gate、current package 或 paper body；不能被解释为 runtime-ready、domain-ready、paper progress、publication-ready 或 DM002/DM003 complete。
 
+## 2026-06-24：terminal domain gate 必须自动派生 owner-answer route-back packet
+
+- 决策：`terminal_owner_gate.owner=mas_authority_kernel` 且 `gate_kind=domain_gate` 时，MAS 不再把读面停在 `owner_answer_required`。`paper-mission inspect` 与 `study_progress` 必须派生 `terminal_owner_gate_owner_answer_readback`，其 owner-answer shape 固定为 `route_back_evidence_ref`，并生成同一 mission / stage identity 下的 `StageTerminalDecision(decision_kind=route_back)` 与 `OPL RouteCommand(command_kind=route_back)` readback。
+- 决策：该 route-back packet 是 MAS authority-kernel 的 owner-answer readback，不是 owner receipt、quality receipt、typed blocker authority file 或 human gate file。它固定 `written_files=[]`、`can_claim_paper_progress=false`、`can_claim_runtime_ready=false`、`can_authorize_provider_admission=false`，不得写 Yang authority、publication eval、controller decisions、current package、paper body、OPL outbox/event/StageRun、runtime queue 或 provider attempt。
+- 决策：没有 same-identity terminal owner gate 的 study 不能派生该 owner-answer packet；例如 DM003 当前仍是 `waiting_for_opl_runtime_live_readback` / `terminal_owner_gate=null`，必须保持 OPL runtime/readback owner 路径或已有 stable blocker 路径，不能因为 DM002 的 closeout 修复而误生成 MAS route-back。
+- 理由：上一轮 readback 修复把 DM002 从“MAS 看不到 OPL terminal closeout”推进到“MAS 知道需要 owner answer”，但这仍是一个死端：OPL 不能判断医学 domain gate，MAS 又没有自动 terminal owner answer packet，stage loop 仍无法 route back。route-back evidence 是最保守的合法 owner answer：它不宣称论文质量通过，也不授权 runtime/provider，只把当前 candidate 退回 mission executor 继续修。
+- 影响：这关闭了 OPL terminal closeout 与 MAS owner-answer 之间的 operator-only 缺口，让 PaperMission loop 有可消费下一跳。它仍不是 paper progress、publication-ready、domain-ready、runtime-ready、current package freshness、owner receipt、typed blocker 或 human gate。
+
 ## 2026-06-23：Progress / Workbench 默认读面切到 artifact-first mission summary
 
 - 决策：`study_progress` projection、Progress Portal 和 study workbench 的默认叙事从旧 `DHD / owner-route / dispatch / PaperRecovery` 状态链切到 artifact-first paper mission summary。默认 top-level 字段固定为 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision` 和 `platform_diagnostics`。
