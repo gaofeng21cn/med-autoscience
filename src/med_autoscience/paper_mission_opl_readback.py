@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -12,14 +15,28 @@ CLOSEOUT_RELATIVE_ROOTS = (
 )
 TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"
 WAITING_READBACK_STATUS = "waiting_for_opl_runtime_live_readback"
+PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
+DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+PATH_OPL_BIN = "opl"
+DEFAULT_OPL_READBACK_TIMEOUT_SECONDS = 8.0
+OPL_STAGE_ROUTE_TASK_KIND = "paper_mission/stage-route"
+OPL_DOMAIN_ID = "medautoscience"
 
 
 def paper_mission_opl_runtime_carrier_readback(
     *,
     carrier: Mapping[str, Any],
     study_root: Path,
+    opl_runtime_payload: Mapping[str, Any] | None = None,
+    enable_opl_live_probe: bool = True,
 ) -> dict[str, Any]:
     matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
+    if matched is None:
+        matched = _matching_opl_runtime_terminal_closeout(
+            carrier=carrier,
+            opl_runtime_payload=opl_runtime_payload,
+            enable_opl_live_probe=enable_opl_live_probe,
+        )
     if matched is None:
         return {
             "surface_kind": "paper_mission_opl_runtime_carrier_readback",
@@ -115,6 +132,248 @@ def _matching_terminal_closeout(
     return closeout, closeout_ref
 
 
+def _matching_opl_runtime_terminal_closeout(
+    *,
+    carrier: Mapping[str, Any],
+    opl_runtime_payload: Mapping[str, Any] | None,
+    enable_opl_live_probe: bool,
+) -> tuple[dict[str, Any], str] | None:
+    if not _carrier_has_opl_route_identity(carrier):
+        return None
+    if opl_runtime_payload is not None:
+        return _matching_opl_runtime_payload_closeout(
+            carrier=carrier,
+            payload=opl_runtime_payload,
+        )
+    if not enable_opl_live_probe:
+        return None
+    list_args = (
+        "family-runtime",
+        "queue",
+        "list",
+        "--domain",
+        OPL_DOMAIN_ID,
+        "--study",
+        _text(carrier.get("study_id")) or "",
+        "--task-kind",
+        OPL_STAGE_ROUTE_TASK_KIND,
+        "--json",
+    )
+    inspect_args_prefix = (
+        "family-runtime",
+        "queue",
+        "inspect",
+    )
+    for candidate in _ranked_opl_bin_candidates():
+        if not candidate.exists():
+            continue
+        list_payload = _run_opl_json(candidate, list_args)
+        for task in _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload):
+            task_id = _text(task.get("task_id"))
+            if task_id is None:
+                continue
+            inspect_payload = _run_opl_json(
+                candidate,
+                (
+                    *inspect_args_prefix,
+                    task_id,
+                    "--json",
+                ),
+            )
+            matched = _matching_opl_runtime_payload_closeout(
+                carrier=carrier,
+                payload=inspect_payload,
+            )
+            if matched is not None:
+                return matched
+    return None
+
+
+def _matching_opl_runtime_payload_closeout(
+    *,
+    carrier: Mapping[str, Any],
+    payload: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], str] | None:
+    runtime_task = _mapping(_mapping(payload).get("family_runtime_task"))
+    if runtime_task:
+        task = _mapping(runtime_task.get("task"))
+        if not _matches_opl_task(carrier=carrier, task=task):
+            return None
+        closeout = _opl_task_terminal_closeout(
+            carrier=carrier,
+            task=task,
+            stage_attempts=runtime_task.get("stage_attempts"),
+            events=runtime_task.get("events"),
+        )
+        if closeout is None:
+            return None
+        return closeout, _opl_task_closeout_ref(task)
+
+    for task in _matching_opl_tasks_from_list(carrier=carrier, payload=payload):
+        closeout = _opl_task_terminal_closeout(
+            carrier=carrier,
+            task=task,
+            stage_attempts=(),
+            events=(),
+        )
+        if closeout is not None:
+            return closeout, _opl_task_closeout_ref(task)
+    return None
+
+
+def _matching_opl_tasks_from_list(
+    *,
+    carrier: Mapping[str, Any],
+    payload: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    queue = _mapping(_mapping(payload).get("family_runtime_queue"))
+    tasks = queue.get("tasks")
+    if not isinstance(tasks, list | tuple):
+        return []
+    return [
+        dict(task)
+        for task in tasks
+        if isinstance(task, Mapping) and _matches_opl_task(carrier=carrier, task=task)
+    ]
+
+
+def _matches_opl_task(
+    *,
+    carrier: Mapping[str, Any],
+    task: Mapping[str, Any],
+) -> bool:
+    payload = _mapping(task.get("payload"))
+    if _text(task.get("domain_id")) != OPL_DOMAIN_ID:
+        return False
+    if _text(task.get("task_kind")) != OPL_STAGE_ROUTE_TASK_KIND:
+        return False
+    if _text(payload.get("study_id")) != _text(carrier.get("study_id")):
+        return False
+    if _text(payload.get("paper_mission_transaction_ref")) != _text(
+        carrier.get("paper_mission_transaction_ref")
+    ):
+        return False
+    if _text(payload.get("opl_route_command_ref")) != _text(
+        carrier.get("opl_route_command_ref")
+    ):
+        return False
+    command_kind = _carrier_command_kind(carrier)
+    if command_kind is not None and _text(payload.get("command_kind")) != command_kind:
+        return False
+    route_target = _carrier_route_target(carrier)
+    if route_target is not None and _text(payload.get("route_target")) != route_target:
+        return False
+    return True
+
+
+def _opl_task_terminal_closeout(
+    *,
+    carrier: Mapping[str, Any],
+    task: Mapping[str, Any],
+    stage_attempts: object,
+    events: object,
+) -> dict[str, Any] | None:
+    status = _text(task.get("status"))
+    if status not in {"blocked", "dead_letter", "failed", "succeeded"}:
+        return None
+    current_control = _mapping(task.get("current_control_state"))
+    closeout_status = _text(current_control.get("closeout_receipt_status"))
+    closeout_refs = _text_list(current_control.get("closeout_refs"))
+    typed_blocker_refs = _text_list(current_control.get("typed_blocker_refs"))
+    if status == "succeeded":
+        return None
+    if closeout_status != "accepted_typed_closeout" and not typed_blocker_refs:
+        return None
+    stage_attempt = _matching_opl_stage_attempt(
+        current_control=current_control,
+        stage_attempts=stage_attempts,
+    )
+    route_target = _carrier_route_target(carrier)
+    if route_target is not None:
+        attempt_stage = _text(stage_attempt.get("stage_id"))
+        control_stage = _text(_mapping(current_control.get("stage_run_currentness_identity")).get("stage_id"))
+        if (attempt_stage or control_stage) not in {None, route_target}:
+            return None
+    closeout_refs = closeout_refs or _event_closeout_refs(events)
+    typed_blocker_ref = typed_blocker_refs[0] if typed_blocker_refs else None
+    stage_attempt_id = (
+        _text(current_control.get("current_stage_attempt_id"))
+        or _text(stage_attempt.get("stage_attempt_id"))
+    )
+    return {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "status": status,
+        "study_id": _text(carrier.get("study_id")),
+        "stage_id": route_target or _text(stage_attempt.get("stage_id")),
+        "stage_attempt_id": stage_attempt_id,
+        "work_unit_id": _text(carrier.get("work_unit_id")),
+        "work_unit_fingerprint": _text(carrier.get("work_unit_fingerprint")),
+        "stage_packet_ref": _text(carrier.get("stage_terminal_decision_ref")),
+        "provider_attempt_ref": (
+            _text(stage_attempt.get("provider_attempt_ref"))
+            or (f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None)
+        ),
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "domain_completion_claimed": False,
+        "domain_ready_claimed": False,
+        "typed_blocker_ref": typed_blocker_ref,
+        "blocked_reason": _first_text(
+            task.get("last_error"),
+            task.get("dead_letter_reason"),
+            current_control.get("blocker_reason"),
+            "domain_gate_pending",
+        ),
+        "closeout_refs": closeout_refs,
+        "task_id": _text(task.get("task_id")),
+        "task_status": status,
+        "closeout_receipt_status": closeout_status,
+        "runtime_readback_source": "opl_family_runtime_queue_inspect",
+        "authority_boundary": {
+            "record_only_surface": True,
+            "provider_completion_is_domain_completion": False,
+            "artifact_mutation_authorized": False,
+            "publication_eval_latest_write_authorized": False,
+            "controller_decision_write_authorized": False,
+        },
+    }
+
+
+def _matching_opl_stage_attempt(
+    *,
+    current_control: Mapping[str, Any],
+    stage_attempts: object,
+) -> dict[str, Any]:
+    wanted = _text(current_control.get("current_stage_attempt_id"))
+    if isinstance(stage_attempts, list | tuple):
+        for item in stage_attempts:
+            candidate = _mapping(item)
+            if wanted is not None and _text(candidate.get("stage_attempt_id")) == wanted:
+                return candidate
+        for item in stage_attempts:
+            candidate = _mapping(item)
+            if candidate:
+                return candidate
+    return {}
+
+
+def _opl_task_closeout_ref(task: Mapping[str, Any]) -> str:
+    task_id = _text(task.get("task_id")) or "unknown"
+    return f"opl://family-runtime/tasks/{task_id}/terminal-closeout-readback"
+
+
+def _event_closeout_refs(events: object) -> list[str]:
+    if not isinstance(events, list | tuple):
+        return []
+    refs: list[str] = []
+    for event in events:
+        payload = _mapping(_mapping(event).get("payload"))
+        for ref in _text_list(payload.get("closeout_refs")):
+            if ref not in refs:
+                refs.append(ref)
+    return refs
+
+
 def _matches_carrier(
     *,
     closeout: Mapping[str, Any],
@@ -145,11 +404,26 @@ def _matches_carrier(
     return boundary.get("record_only_surface") is True
 
 
+def _carrier_has_opl_route_identity(carrier: Mapping[str, Any]) -> bool:
+    return (
+        _text(carrier.get("study_id")) is not None
+        and _text(carrier.get("work_unit_id")) is not None
+        and _text(carrier.get("work_unit_fingerprint")) is not None
+        and
+        _text(carrier.get("paper_mission_transaction_ref")) is not None
+        and _text(carrier.get("opl_route_command_ref")) is not None
+    )
+
+
+def _carrier_command_kind(carrier: Mapping[str, Any]) -> str | None:
+    route = _mapping(carrier.get("opl_route_command"))
+    return _text(carrier.get("command_kind")) or _text(route.get("command_kind"))
+
+
 def _carrier_route_target(carrier: Mapping[str, Any]) -> str | None:
-    command_kind = _text(carrier.get("command_kind"))
+    command_kind = _carrier_command_kind(carrier)
     route_target = _text(carrier.get("route_target"))
     route = _mapping(carrier.get("opl_route_command"))
-    command_kind = command_kind or _text(route.get("command_kind"))
     route_target = route_target or _text(route.get("target"))
     if command_kind in {"start_next_stage", "resume_stage", "route_back"}:
         return route_target
@@ -179,6 +453,10 @@ def _terminal_closeout_readback(
         "typed_blocker_ref": _text(closeout.get("typed_blocker_ref")),
         "blocked_reason": _text(closeout.get("blocked_reason")),
         "closeout_refs": _text_list(closeout.get("closeout_refs")),
+        "task_id": _text(closeout.get("task_id")),
+        "task_status": _text(closeout.get("task_status")),
+        "closeout_receipt_status": _text(closeout.get("closeout_receipt_status")),
+        "runtime_readback_source": _text(closeout.get("runtime_readback_source")),
         "authority_boundary": {
             "record_only_surface": True,
             "provider_completion_is_domain_completion": False,
@@ -193,6 +471,56 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _ranked_opl_bin_candidates() -> list[Path]:
+    configured = os.environ.get("OPL_BIN") or os.environ.get("OPL_FAMILY_RUNTIME_BIN")
+    if configured:
+        return [Path(configured).expanduser()]
+    candidates: list[Path] = []
+    path_candidate = shutil.which(PATH_OPL_BIN)
+    if path_candidate is not None:
+        candidates.append(Path(path_candidate).expanduser())
+    candidates.extend([PACKAGED_OPL_BIN, DEV_OPL_BIN])
+    ranked: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            resolved = candidate
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        ranked.append(candidate)
+    return ranked
+
+
+def _run_opl_json(opl_bin: Path, args: tuple[str, ...]) -> dict[str, Any] | None:
+    process: subprocess.Popen[str] | None = None
+    try:
+        process = subprocess.Popen(
+            [str(opl_bin), *args],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+        stdout, _ = process.communicate(timeout=DEFAULT_OPL_READBACK_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        if process is not None:
+            process.kill()
+            process.communicate()
+        return None
+    except OSError:
+        return None
+    if process.returncode != 0:
+        return None
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError:
         return None
     return dict(payload) if isinstance(payload, Mapping) else None
 
@@ -212,6 +540,14 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list | tuple):
         return []
     return [text for item in value if (text := _text(item)) is not None]
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        text = _text(value)
+        if text is not None:
+            return text
+    return None
 
 
 def _text(value: object) -> str | None:

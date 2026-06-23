@@ -276,7 +276,7 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
                 "surface_kind": "stage_attempt_closeout_packet",
                 "status": "blocked",
                 "study_id": study_id,
-                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_id": "publication_gate_replay",
                 "stage_attempt_id": "sat-terminal",
                 "action_type": "advance",
                 "work_unit_id": "gate_clearing_claim_evidence_repair",
@@ -285,8 +285,10 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
                     "gate_clearing_claim_evidence_repair::advance::accepted"
                 ),
                 "stage_packet_ref": (
-                    "opl-stage-run://paper-mission-summary/"
-                    f"{study_id}/gate_clearing_claim_evidence_repair"
+                    f"paper-mission-transaction::{study_id}::"
+                    "gate_clearing_claim_evidence_repair::"
+                    f"paper-mission::{study_id}::gate-clearing"
+                    "#stage_terminal_decision"
                 ),
                 "provider_completion_is_domain_completion": False,
                 "provider_completion_is_domain_ready": False,
@@ -330,8 +332,8 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     ] is False
     assert summary["terminal_owner_gate"] == {
         "surface_kind": "paper_mission_terminal_owner_gate",
-        "owner": "one-person-lab",
-        "gate_kind": "typed_blocker",
+        "owner": "mas_authority_kernel",
+        "gate_kind": "domain_gate",
         "blocked_reason": "domain_gate_pending",
         "typed_blocker_ref": "closeout.json#domain_blocker",
         "closeout_ref": (
@@ -347,7 +349,7 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     }
     assert summary["next_owner_or_human_decision"] == {
         "kind": "owner_or_route",
-        "next_owner": "one-person-lab",
+        "next_owner": "mas_authority_kernel",
         "human_decision_required": False,
         "summary": "domain_gate_pending",
         "typed_blocker_ref": "closeout.json#domain_blocker",
@@ -362,11 +364,11 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert authority_readback["surface_kind"] == (
         "mas_terminal_owner_gate_authority_readback"
     )
-    assert authority_readback["status"] == "typed_blocker_required"
-    assert authority_readback["next_owner"] == "one-person-lab"
+    assert authority_readback["status"] == "owner_answer_required"
+    assert authority_readback["next_owner"] == "mas_authority_kernel"
     assert authority_readback["consume_result"] == {
-        "status": "typed_blocker",
-        "outcome": "typed_blocker_required",
+        "status": "owner_answer_required",
+        "outcome": "owner_answer_required",
         "authority_materialized": False,
     }
     assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (

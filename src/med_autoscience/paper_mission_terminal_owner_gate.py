@@ -16,13 +16,20 @@ def terminal_owner_gate_from_carrier_readback(
         terminal_closeout.get("blocked_reason"),
         carrier_readback.get("domain_ready_verdict"),
     )
+    owner = _terminal_owner_gate_owner(blocked_reason)
     if not typed_blocker_ref and not closeout_ref and not blocked_reason:
         return {}
     return _compact(
         {
             "surface_kind": "paper_mission_terminal_owner_gate",
-            "owner": "one-person-lab",
-            "gate_kind": "typed_blocker" if typed_blocker_ref else "owner_gate",
+            "owner": owner,
+            "gate_kind": (
+                "domain_gate"
+                if owner == "mas_authority_kernel"
+                else "typed_blocker"
+                if typed_blocker_ref
+                else "owner_gate"
+            ),
             "blocked_reason": blocked_reason,
             "typed_blocker_ref": typed_blocker_ref,
             "closeout_ref": closeout_ref,
@@ -64,7 +71,14 @@ def terminal_owner_gate_authority_readback(
     typed_blocker_ref = _text(gate.get("typed_blocker_ref"))
     closeout_ref = _text(gate.get("closeout_ref"))
     owner = _first_text(gate.get("owner"), "one-person-lab") or "one-person-lab"
-    status = "typed_blocker_required" if typed_blocker_ref else "owner_gate_required"
+    mas_authority_owner = owner == "mas_authority_kernel"
+    status = (
+        "owner_answer_required"
+        if mas_authority_owner
+        else "typed_blocker_required"
+        if typed_blocker_ref
+        else "owner_gate_required"
+    )
     return _compact(
         {
             "surface_kind": "mas_terminal_owner_gate_authority_readback",
@@ -80,7 +94,12 @@ def terminal_owner_gate_authority_readback(
             "owner_answer_contract": _compact(
                 {
                     "required_surface": (
-                        "typed_blocker_ref"
+                        (
+                            "domain_owner_receipt_quality_gate_typed_blocker_"
+                            "human_gate_or_route_back_ref"
+                        )
+                        if mas_authority_owner
+                        else "typed_blocker_ref"
                         if typed_blocker_ref
                         else "owner_receipt_typed_blocker_human_gate_or_route_back_ref"
                     ),
@@ -98,7 +117,13 @@ def terminal_owner_gate_authority_readback(
                 }
             ),
             "consume_result": {
-                "status": "typed_blocker" if typed_blocker_ref else "route_back",
+                "status": (
+                    "owner_answer_required"
+                    if mas_authority_owner
+                    else "typed_blocker"
+                    if typed_blocker_ref
+                    else "route_back"
+                ),
                 "outcome": status,
                 "authority_materialized": False,
             },
@@ -126,6 +151,16 @@ def terminal_owner_gate_authority_readback(
             },
         }
     )
+
+
+def _terminal_owner_gate_owner(blocked_reason: str | None) -> str:
+    reason = _text(blocked_reason) or ""
+    if reason in {
+        "domain_gate_pending",
+        "paper_mission_stage_route_domain_gate_pending",
+    } or reason.endswith("_domain_gate_pending"):
+        return "mas_authority_kernel"
+    return "one-person-lab"
 
 
 def stage_terminal_next_owner_or_human_decision(
