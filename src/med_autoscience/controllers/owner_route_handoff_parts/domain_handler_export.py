@@ -64,7 +64,7 @@ from .supervisor_typed_blocker_resolution import (
     supervisor_stop_decision_resolution_shapes as _supervisor_stop_decision_resolution_shapes,
 )
 from .substrate_adapter import build_opl_substrate_adapter_projection
-from .task_kinds import ALLOWED_TASK_KINDS
+from .task_kinds import ALLOWED_TASK_KINDS, LEGACY_DIAGNOSTIC_TASK_KINDS
 from .transition_readback_consumption import (
     current_owner_action_supersedes_transition_request,
     currentness_consumes_current_control_transition_request,
@@ -166,6 +166,7 @@ def export_family_domain_handler(
             "entrypoint": "medautosci domain-handler dispatch --task <task.json> --format json",
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "allowed_task_kinds": sorted({*ALLOWED_TASK_KINDS, PAPER_MISSION_START_OR_RESUME_TASK_KIND}),
+            "legacy_diagnostic_task_kinds": sorted(LEGACY_DIAGNOSTIC_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
@@ -421,7 +422,9 @@ def _pending_family_tasks(
         )
         if controller_task is not None:
             tasks.append(controller_task)
-    return _mark_legacy_default_executor_tasks(tasks), legacy_dispatch_diagnostics
+    ordinary_tasks, legacy_task_diagnostics = _split_legacy_default_executor_tasks(tasks)
+    legacy_dispatch_diagnostics.extend(legacy_task_diagnostics)
+    return ordinary_tasks, legacy_dispatch_diagnostics
 
 
 def _paper_mission_start_or_resume_task(
@@ -469,15 +472,33 @@ def _mark_legacy_default_executor_tasks(tasks: list[dict[str, Any]]) -> list[dic
     marked: list[dict[str, Any]] = []
     for task in tasks:
         if text(task.get("task_kind")) == "domain_owner/default-executor-dispatch":
-            task = {
-                **task,
-                "default_paper_mission_entry": False,
-                "migration_diagnostic_only": True,
-                "active_caller_class": "diagnostic_only",
-                "action_intent": text(task.get("action_intent")) or "legacy_default_executor_diagnostic",
-            }
+            task = _mark_legacy_default_executor_task(task)
         marked.append(task)
     return marked
+
+
+def _split_legacy_default_executor_tasks(
+    tasks: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    ordinary_tasks: list[dict[str, Any]] = []
+    legacy_diagnostics: list[dict[str, Any]] = []
+    for task in tasks:
+        if text(task.get("task_kind")) == "domain_owner/default-executor-dispatch":
+            legacy_diagnostics.append(_mark_legacy_default_executor_task(task))
+            continue
+        ordinary_tasks.append(task)
+    return ordinary_tasks, legacy_diagnostics
+
+
+def _mark_legacy_default_executor_task(task: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        **task,
+        "default_paper_mission_entry": False,
+        "migration_diagnostic_only": True,
+        "ordinary_schedulable": False,
+        "active_caller_class": "diagnostic_only",
+        "action_intent": text(task.get("action_intent")) or "legacy_default_executor_diagnostic",
+    }
 
 
 def _current_control_transition_request_tasks(

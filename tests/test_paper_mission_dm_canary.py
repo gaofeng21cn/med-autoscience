@@ -14,6 +14,16 @@ from med_autoscience.paper_mission_run import PaperMissionRun
 
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "paper_mission_dm_canary"
+REQUIRED_PAPER_AUDIT_PACK_FAMILIES = {
+    "analysis_rationale_log",
+    "decision_trace",
+    "evidence_ledger_delta",
+    "review_ledger_delta",
+    "revision_log_delta",
+    "failed_path_ledger",
+    "artifact_lineage",
+    "reproducibility_refs",
+}
 
 
 def _load_json(name: str) -> dict:
@@ -56,6 +66,11 @@ def test_dm002_canary_import_builds_gate_clearing_objective() -> None:
     ]
     assert any("publication_eval/latest.json" in ref["uri"] for ref in mission["source_refs"])
     assert any("controller_decisions/latest.json" in ref["uri"] for ref in mission["source_refs"])
+    assert set(mission["paper_audit_pack"]) == REQUIRED_PAPER_AUDIT_PACK_FAMILIES
+    assert all(
+        family["status"] == "candidate_ref_chain" and family["refs"]
+        for family in mission["paper_audit_pack"].values()
+    )
     assert readback["authority_boundary"]["can_write_yang_workspace"] is False
 
 
@@ -67,6 +82,12 @@ def test_dm003_canary_import_builds_prose_repair_typed_blocker_readback() -> Non
     assert mission["schema_version"] == "paper-mission-run.v1"
     assert mission["consume_result"]["status"] == "not_consumed"
     assert mission["claim_permissions"]["can_claim_publication_ready"] is False
+    assert set(mission["paper_audit_pack"]) == REQUIRED_PAPER_AUDIT_PACK_FAMILIES
+    assert all(
+        {"ref_id", "ref_kind", "uri"} <= set(ref)
+        for family in mission["paper_audit_pack"].values()
+        for ref in family["refs"]
+    )
     assert readback["mission_objective"]["objective_kind"] == (
         "medical_prose_write_repair_publication_gate_replay"
     )

@@ -19,7 +19,6 @@ ALLOWED_TASK_KINDS = {
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
     "paper_autonomy/supervisor-decision": "opl_paper_autonomy_supervisor_decision_request",
-    DEFAULT_EXECUTOR_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
     "publication_aftercare/analysis-queue-progress": "domain_route_owner_handoff",
     "publication_aftercare/reviewer-refresh": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/gate-replay": "domain_route_owner_handoff",
@@ -28,4 +27,7 @@ ALLOWED_TASK_KINDS = {
     "study_progress/read": "study_progress_read",
     "status/read": "status_read",
     "notification/receipt": "notification_receipt",
+}
+LEGACY_DIAGNOSTIC_TASK_KINDS = {
+    DEFAULT_EXECUTOR_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
 }

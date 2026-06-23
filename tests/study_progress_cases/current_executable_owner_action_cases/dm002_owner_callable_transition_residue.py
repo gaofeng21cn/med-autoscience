@@ -17,6 +17,7 @@ _module_reexport(_shared)
 STUDY_ID = "002-dm-china-us-mortality-attribution"
 WORK_UNIT_ID = "medical_prose_quality_analysis_source_documentation_repair"
 FINGERPRINT = "publication-blockers::5a4f2060d6d7d97e"
+FOLLOWTHROUGH_FINGERPRINT = "publication-blockers::497d1260db522f01"
 ROUTE_KEY = "paper-policy-request:5c3aa8f5e1e537123138c620"
 SOURCE_EVAL_ID = (
     "publication-eval::002-dm-china-us-mortality-attribution::"
@@ -169,6 +170,63 @@ def test_run_mas_owner_callable_admission_is_not_blocked_by_provider_supervisor_
     assert admission["hard_gate_reasons"] == []
     assert admission["blocked_by"] == "mas_owner_callable_ready_no_provider_admission_required"
     assert admission["owner_callable_ready"] is True
+
+
+def test_gate_followthrough_supersedes_consumed_mas_owner_callable_residue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    payload = _dm002_owner_callable_payload()
+    payload["repair_progress_projection"] = {
+        "source": "mas_owner_repair_execution_evidence",
+        "paper_delta_observed": True,
+        "accepted_owner_receipt": True,
+        "gate_replay_done": True,
+        "ai_reviewer_recheck_done": True,
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FOLLOWTHROUGH_FINGERPRINT,
+        "action_fingerprint": FOLLOWTHROUGH_FINGERPRINT,
+        "source_eval_id": "publication-eval::dm002::2026-06-23T05:31:37+00:00",
+        "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+        "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+        "gate_replay_refs": [
+            "artifacts/controller/gate_clearing_batch/latest.json",
+        ],
+        "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+    }
+    payload["gate_clearing_batch_followthrough"] = {
+        "status": "executed",
+        "gate_replay_status": "blocked",
+        "source_eval_id": "publication-eval::dm002::2026-06-23T05:31:46+00:00",
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": FOLLOWTHROUGH_FINGERPRINT,
+        "latest_record_path": "artifacts/controller/gate_clearing_batch/latest.json",
+        "gate_replay_blockers": ["claim_evidence_consistency_failed"],
+        "current_publication_work_unit": {
+            "unit_id": WORK_UNIT_ID,
+            "lane": "analysis-campaign",
+        },
+        "work_unit_currentness": {
+            "current_actionability_status": "actionable",
+            "explicit_publication_work_unit_id": WORK_UNIT_ID,
+            "selected_publication_work_unit_id": WORK_UNIT_ID,
+            "current_publication_work_unit_id": WORK_UNIT_ID,
+            "explicit_work_unit_fingerprint": FOLLOWTHROUGH_FINGERPRINT,
+            "current_work_unit_fingerprint": FOLLOWTHROUGH_FINGERPRINT,
+            "lacks_specific_blocker_object": False,
+        },
+    }
+
+    action = module.build_current_executable_owner_action(payload)
+
+    assert action is not None
+    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+    assert action["work_unit_id"] == WORK_UNIT_ID
+    assert action["work_unit_fingerprint"] == FOLLOWTHROUGH_FINGERPRINT
+    assert action["target_surface"]["gate_clearing_batch_ref"] == (
+        "artifacts/controller/gate_clearing_batch/latest.json"
+    )
 
 
 def _dm002_owner_callable_payload() -> dict[str, object]:

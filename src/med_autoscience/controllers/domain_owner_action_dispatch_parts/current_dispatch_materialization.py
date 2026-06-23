@@ -28,7 +28,7 @@ def current_materialized_dispatches(
         study_ids=(study_id,),
         mode=mode,
         apply=apply,
-        dispatch_ready_for_execution=not apply,
+        dispatch_ready_for_execution=True,
     )
     requested = set(action_types)
     foreground_dispatches = [

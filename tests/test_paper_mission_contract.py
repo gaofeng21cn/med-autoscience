@@ -40,6 +40,7 @@ def _valid_payload() -> dict[str, object]:
                 "uri": "runtime://study-progress/002-dm-china-us-mortality-attribution",
             }
         ],
+        "paper_audit_pack": _valid_paper_audit_pack(),
         "authority_touchpoints": [
             {
                 "touchpoint_id": "touchpoint::pre-consume-boundary",
@@ -77,6 +78,32 @@ def _valid_payload() -> dict[str, object]:
     }
 
 
+def _valid_paper_audit_pack() -> dict[str, object]:
+    families = [
+        "analysis_rationale_log",
+        "decision_trace",
+        "evidence_ledger_delta",
+        "review_ledger_delta",
+        "revision_log_delta",
+        "failed_path_ledger",
+        "artifact_lineage",
+        "reproducibility_refs",
+    ]
+    return {
+        family: {
+            "status": "candidate_ref_chain",
+            "refs": [
+                {
+                    "ref_id": f"{family}::1",
+                    "ref_kind": "artifact_ref",
+                    "uri": f"mission://dm002/audit/{family}",
+                }
+            ],
+        }
+        for family in families
+    }
+
+
 def test_contract_declares_required_paper_mission_run_fields() -> None:
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
@@ -91,6 +118,7 @@ def test_contract_declares_required_paper_mission_run_fields() -> None:
         "mission_state",
         "artifact_delta_ledger",
         "source_refs",
+        "paper_audit_pack",
         "authority_touchpoints",
         "forbidden_write_guard",
         "consume_result",
@@ -109,6 +137,20 @@ def test_contract_declares_required_paper_mission_run_fields() -> None:
     assert set(contract["consume_result"]["allowed_statuses"]) == set(
         ALLOWED_CONSUME_RESULT_STATUSES
     )
+    assert contract["paper_audit_pack"]["required_families"] == [
+        "analysis_rationale_log",
+        "decision_trace",
+        "evidence_ledger_delta",
+        "review_ledger_delta",
+        "revision_log_delta",
+        "failed_path_ledger",
+        "artifact_lineage",
+        "reproducibility_refs",
+    ]
+    assert contract["paper_audit_pack"]["required_family_fields"] == [
+        "status",
+        "refs",
+    ]
 
 
 def test_paper_mission_run_accepts_valid_payload_and_round_trips() -> None:
@@ -130,6 +172,66 @@ def test_paper_mission_run_fails_closed_when_required_field_is_missing() -> None
     with pytest.raises(
         PaperMissionContractError,
         match="missing required field: artifact_delta_ledger",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_requires_paper_audit_pack() -> None:
+    payload = _valid_payload()
+    payload.pop("paper_audit_pack")
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="missing required field: paper_audit_pack",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_rejects_missing_audit_family() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    audit_pack.pop("failed_path_ledger")
+    payload["paper_audit_pack"] = audit_pack
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="paper_audit_pack missing required family: failed_path_ledger",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_rejects_empty_audit_family_refs() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    family = dict(audit_pack["analysis_rationale_log"])
+    family["refs"] = []
+    audit_pack["analysis_rationale_log"] = family
+    payload["paper_audit_pack"] = audit_pack
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="paper_audit_pack.analysis_rationale_log.refs must not be empty",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_rejects_audit_ref_with_empty_uri() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    family = dict(audit_pack["decision_trace"])
+    family["refs"] = [
+        {
+            "ref_id": "decision_trace::1",
+            "ref_kind": "artifact_ref",
+            "uri": "",
+        }
+    ]
+    audit_pack["decision_trace"] = family
+    payload["paper_audit_pack"] = audit_pack
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="paper_audit_pack.decision_trace.refs\\[0\\] missing required field: uri",
     ):
         PaperMissionRun.from_payload(payload)
 

@@ -14,6 +14,7 @@ REQUIRED_FIELDS = (
     "mission_state",
     "artifact_delta_ledger",
     "source_refs",
+    "paper_audit_pack",
     "authority_touchpoints",
     "forbidden_write_guard",
     "consume_result",
@@ -72,6 +73,16 @@ REQUIRED_GUARD_BLOCKED_PATHS = frozenset(
         "/Users/gaofeng/workspace/Yang/**",
     }
 )
+REQUIRED_PAPER_AUDIT_PACK_FAMILIES = (
+    "analysis_rationale_log",
+    "decision_trace",
+    "evidence_ledger_delta",
+    "review_ledger_delta",
+    "revision_log_delta",
+    "failed_path_ledger",
+    "artifact_lineage",
+    "reproducibility_refs",
+)
 
 
 class PaperMissionContractError(ValueError):
@@ -86,6 +97,7 @@ class PaperMissionRun:
     mission_state: str
     artifact_delta_ledger: tuple[dict[str, Any], ...]
     source_refs: tuple[dict[str, Any], ...]
+    paper_audit_pack: dict[str, Any]
     authority_touchpoints: tuple[dict[str, Any], ...]
     forbidden_write_guard: dict[str, Any]
     consume_result: dict[str, Any]
@@ -123,6 +135,8 @@ class PaperMissionRun:
         )
         source_refs = _required_mapping_list(normalized, "source_refs")
         _validate_mapping_items(source_refs, "source_refs", ("ref_id", "ref_kind", "uri"))
+        paper_audit_pack = _required_mapping(normalized, "paper_audit_pack")
+        _validate_paper_audit_pack(paper_audit_pack)
         authority_touchpoints = _required_mapping_list(
             normalized, "authority_touchpoints"
         )
@@ -146,6 +160,7 @@ class PaperMissionRun:
             mission_state=mission_state,
             artifact_delta_ledger=artifact_delta_ledger,
             source_refs=source_refs,
+            paper_audit_pack=paper_audit_pack,
             authority_touchpoints=authority_touchpoints,
             forbidden_write_guard=forbidden_write_guard,
             consume_result=consume_result,
@@ -171,6 +186,7 @@ class PaperMissionRun:
             ("delta_id", "artifact_ref", "delta_kind", "status"),
         )
         _validate_mapping_items(self.source_refs, "source_refs", ("ref_id", "ref_kind", "uri"))
+        _validate_paper_audit_pack(self.paper_audit_pack)
         _validate_mapping_items(
             self.authority_touchpoints,
             "authority_touchpoints",
@@ -239,6 +255,29 @@ def _validate_mapping_items(
                 raise PaperMissionContractError(
                     f"{field}[{index}] missing required field: {required_field}"
                 )
+
+
+def _validate_paper_audit_pack(audit_pack: Mapping[str, Any]) -> None:
+    for family in REQUIRED_PAPER_AUDIT_PACK_FAMILIES:
+        family_payload = audit_pack.get(family)
+        if not isinstance(family_payload, Mapping):
+            raise PaperMissionContractError(
+                f"paper_audit_pack missing required family: {family}"
+            )
+        if not _text_from_mapping(family_payload, "status"):
+            raise PaperMissionContractError(
+                f"paper_audit_pack.{family} missing required field: status"
+            )
+        refs = _required_mapping_list(family_payload, "refs")
+        if not refs:
+            raise PaperMissionContractError(
+                f"paper_audit_pack.{family}.refs must not be empty"
+            )
+        _validate_mapping_items(
+            refs,
+            f"paper_audit_pack.{family}.refs",
+            ("ref_id", "ref_kind", "uri"),
+        )
 
 
 def _validate_forbidden_write_guard(guard: Mapping[str, Any]) -> None:

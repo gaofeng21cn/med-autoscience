@@ -13,6 +13,7 @@
     "mission_state",
     "artifact_delta_ledger",
     "source_refs",
+    "paper_audit_pack",
     "authority_touchpoints",
     "forbidden_write_guard",
     "consume_result",
@@ -65,6 +66,30 @@
       "ref_kind",
       "uri"
     ]
+  },
+  "paper_audit_pack": {
+    "role": "expert-auditable paper rigor chain required before MAS authority consumption",
+    "required_families": [
+      "analysis_rationale_log",
+      "decision_trace",
+      "evidence_ledger_delta",
+      "review_ledger_delta",
+      "revision_log_delta",
+      "failed_path_ledger",
+      "artifact_lineage",
+      "reproducibility_refs"
+    ],
+    "required_family_fields": [
+      "status",
+      "refs"
+    ],
+    "required_ref_fields": [
+      "ref_id",
+      "ref_kind",
+      "uri"
+    ],
+    "fail_closed": "Every family must be present, each family status must be non-empty, refs must be a non-empty list of mappings, and every ref must include non-empty ref_id/ref_kind/uri.",
+    "non_authority_note": "The audit pack is a structured candidate evidence chain. It cannot write or replace publication_eval/latest.json, controller decisions, owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, or Yang workspace authority."
   },
   "authority_touchpoints": {
     "role": "explicit record of MAS/OPL authority surfaces inspected or intentionally not touched by the mission run",

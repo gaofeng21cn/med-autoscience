@@ -55,6 +55,16 @@ _FORBIDDEN_WRITES = (
     "redrive",
     "apply",
 )
+_PAPER_AUDIT_PACK_FAMILIES = (
+    "analysis_rationale_log",
+    "decision_trace",
+    "evidence_ledger_delta",
+    "review_ledger_delta",
+    "revision_log_delta",
+    "failed_path_ledger",
+    "artifact_lineage",
+    "reproducibility_refs",
+)
 _PAPER_MISSION_RUN_BLOCKED_PATHS = (
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
@@ -608,6 +618,16 @@ def _paper_mission_run_payload(
             }
         ],
         "source_refs": source_refs,
+        "paper_audit_pack": _paper_audit_pack(
+            study_id=study_id,
+            objective_id=objective_id,
+            objective_kind=objective_kind,
+            artifact_refs=artifact_refs,
+            source_refs=source_refs,
+            readback=readback,
+            current_blocker=current_blocker,
+            platform_diagnostics=platform_diagnostics,
+        ),
         "authority_touchpoints": _authority_touchpoints(
             study_id=study_id,
             source_refs=source_refs,
@@ -703,6 +723,17 @@ def _formal_one_shot_mission_payload(
             }
         ],
         "source_refs": source_refs,
+        "paper_audit_pack": _paper_audit_pack(
+            study_id=study_id,
+            objective_id=objective_id,
+            objective_kind=objective_kind,
+            artifact_refs=artifact_refs,
+            source_refs=source_refs,
+            readback=readback,
+            current_blocker=current_blocker,
+            platform_diagnostics=platform_diagnostics,
+            legacy_import=legacy_import,
+        ),
         "authority_touchpoints": _authority_touchpoints(
             study_id=study_id,
             source_refs=source_refs,
@@ -956,6 +987,113 @@ def _source_ref_payloads(refs: list[str]) -> list[dict[str, str]]:
             "ref_kind": "missing_readback_ref",
             "uri": "mission://source-refs/missing",
         }
+    ]
+
+
+def _paper_audit_pack(
+    *,
+    study_id: str,
+    objective_id: str,
+    objective_kind: str,
+    artifact_refs: list[str],
+    source_refs: list[dict[str, str]],
+    readback: Mapping[str, Any],
+    current_blocker: Mapping[str, Any],
+    platform_diagnostics: Mapping[str, Any],
+    legacy_import: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    legacy = _mapping(legacy_import)
+    family_refs = {
+        "analysis_rationale_log": _audit_refs(
+            family="analysis_rationale_log",
+            refs=[
+                f"mission://{study_id}/objective/{objective_id}",
+                f"mission://{study_id}/readback/{_text(readback.get('surface_kind')) or 'paper_mission_readback'}",
+            ],
+        ),
+        "decision_trace": _audit_refs(
+            family="decision_trace",
+            refs=_dedupe(
+                [
+                    f"mission://{study_id}/decision/{objective_kind}",
+                    _text(current_blocker.get("source_ref")) or "",
+                    _text(current_blocker.get("work_unit_id")) or "",
+                ]
+            ),
+        ),
+        "evidence_ledger_delta": _audit_refs(
+            family="evidence_ledger_delta",
+            refs=_dedupe(
+                _text_items(legacy.get("evidence_and_review_ledger_refs"))
+                + [item["uri"] for item in source_refs]
+            ),
+        ),
+        "review_ledger_delta": _audit_refs(
+            family="review_ledger_delta",
+            refs=_dedupe(
+                _text_items(legacy.get("legacy_owner_state_refs"))
+                + [
+                    f"mission://{study_id}/quality-audit/{objective_id}",
+                    f"mission://{study_id}/authority-boundary/no-write",
+                ]
+            ),
+        ),
+        "revision_log_delta": _audit_refs(
+            family="revision_log_delta",
+            refs=[
+                f"mission://{study_id}/revision-log/{objective_id}",
+                f"mission://{study_id}/paper-progress/no-write-import",
+            ],
+        ),
+        "failed_path_ledger": _audit_refs(
+            family="failed_path_ledger",
+            refs=_dedupe(
+                [
+                    _text(current_blocker.get("blocker_id")) or "",
+                    _text(current_blocker.get("status")) or "",
+                    f"mission://{study_id}/failed-path/legacy-default-executor-not-authority",
+                ]
+            ),
+        ),
+        "artifact_lineage": _audit_refs(
+            family="artifact_lineage",
+            refs=_dedupe(
+                artifact_refs
+                + _text_items(legacy.get("current_artifact_refs"))
+                + [f"mission://{study_id}/candidate/{objective_id}"]
+            ),
+        ),
+        "reproducibility_refs": _audit_refs(
+            family="reproducibility_refs",
+            refs=_dedupe(
+                _text_items(legacy.get("opl_current_control_refs"))
+                + [
+                    _text(platform_diagnostics.get("dhd_scanned_at")) or "",
+                    f"mission://{study_id}/runtime-diagnostics/read-only",
+                ]
+            ),
+        ),
+    }
+    return {
+        family: {
+            "status": "candidate_ref_chain",
+            "refs": refs,
+        }
+        for family, refs in family_refs.items()
+    }
+
+
+def _audit_refs(*, family: str, refs: list[str]) -> list[dict[str, str]]:
+    clean_refs = _dedupe([ref for ref in refs if ref])
+    if not clean_refs:
+        clean_refs = [f"mission://audit-pack/{family}/missing"]
+    return [
+        {
+            "ref_id": f"{family}::{index}",
+            "ref_kind": _ref_kind(ref),
+            "uri": ref,
+        }
+        for index, ref in enumerate(clean_refs, start=1)
     ]
 
 

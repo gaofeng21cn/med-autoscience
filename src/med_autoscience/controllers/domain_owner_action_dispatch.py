@@ -1300,14 +1300,14 @@ def dispatch_domain_owner_actions(
             scan_payload=study_scan_payload,
             fresh_progress=study_fresh_progress,
         )
-        if not selected_dispatches and consumer_payload is None and not apply:
+        if not selected_dispatches and consumer_payload is None:
             selected_dispatches = (
                 _current_materialized_dispatches(
                     profile=profile,
                     study_id=study_id,
                     action_types=resolved_action_types,
                     mode=mode,
-                    apply=False,
+                    apply=apply,
                     fresh_progress=study_fresh_progress,
                 )
             )
