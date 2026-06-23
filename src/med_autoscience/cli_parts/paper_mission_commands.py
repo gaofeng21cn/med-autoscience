@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Callable
 
@@ -14,6 +15,10 @@ from med_autoscience.paper_mission import (
     paper_mission_owner_decision_packet,
 )
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+from med_autoscience.paper_mission_transaction import (
+    build_paper_mission_transaction,
+    stage_terminal_decision_for_consume_result,
+)
 
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
@@ -61,6 +66,16 @@ FORBIDDEN_AUTHORITY_CLAIMS = (
     "runtime_queue_written",
     "provider_attempt_written",
     "yang_workspace_written",
+)
+PAPER_AUDIT_PACK_FAMILIES = (
+    "analysis_rationale_log",
+    "decision_trace",
+    "evidence_ledger_delta",
+    "review_ledger_delta",
+    "revision_log_delta",
+    "failed_path_ledger",
+    "artifact_lineage",
+    "reproducibility_refs",
 )
 
 
@@ -176,8 +191,37 @@ def build_paper_mission_readback(
         if paper_mission_command == "consume-candidate" and candidate is not None
         else None
     )
-    mission_candidate = _paper_mission_run_candidate(
+    transaction_readback = _paper_mission_transaction_readback(
         mission_id=selected_mission_id,
+        study_id=study_id,
+        objective=selected_objective,
+        paper_mission_command=paper_mission_command,
+        study_root=Path(profile.studies_root) / study_id,
+        mission=None,
+        candidate=candidate,
+        authority_consume_readback=authority_consume_readback,
+    )
+    candidate_mission_id = _candidate_mission_id_for_readback(
+        selected_mission_id=selected_mission_id,
+        transaction_readback=transaction_readback,
+        authority_consume_readback=authority_consume_readback,
+    )
+    if (
+        transaction_readback["source"] == "placeholder_no_write"
+        and candidate_mission_id != selected_mission_id
+    ):
+        transaction_readback = _paper_mission_transaction_readback(
+            mission_id=candidate_mission_id,
+            study_id=study_id,
+            objective=selected_objective,
+            paper_mission_command=paper_mission_command,
+            study_root=Path(profile.studies_root) / study_id,
+            mission=None,
+            candidate=candidate,
+            authority_consume_readback=authority_consume_readback,
+        )
+    mission_candidate = _paper_mission_run_candidate(
+        mission_id=candidate_mission_id,
         study_id=study_id,
         objective=selected_objective,
         paper_mission_command=paper_mission_command,
@@ -185,6 +229,7 @@ def build_paper_mission_readback(
         study_root=Path(profile.studies_root) / study_id,
         candidate_ref=candidate_ref,
         authority_consume_readback=authority_consume_readback,
+        paper_mission_transaction=transaction_readback["paper_mission_transaction"],
     )
     return {
         "surface_kind": "paper_mission_no_write_readback",
@@ -202,9 +247,10 @@ def build_paper_mission_readback(
         "study_id": study_id,
         "study_root": str(Path(profile.studies_root) / study_id),
         "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
-        "mission_id": selected_mission_id,
+        "mission_id": candidate_mission_id,
         "objective": selected_objective,
         **({"candidate_ref": candidate_ref} if candidate_ref is not None else {}),
+        **_transaction_readback_output_fields(transaction_readback),
         "mutation_policy": _mutation_policy(paper_mission_command=paper_mission_command),
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
@@ -338,6 +384,15 @@ def _build_materialized_mission_readback_if_available(
         mission=mission,
         mission_path=mission_path,
     )
+    transaction_readback = _paper_mission_transaction_readback(
+        mission_id=str(mission["mission_id"]),
+        study_id=resolved_study_id,
+        objective=str(mission["objective"]),
+        paper_mission_command=paper_mission_command,
+        study_root=resolved_study_root,
+        mission=mission,
+        authority_consume_readback=None,
+    )
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -358,12 +413,18 @@ def _build_materialized_mission_readback_if_available(
         "mission_id": mission["mission_id"],
         "objective": mission["objective"],
         "materialized_mission_ref": str(mission_path),
+        **_transaction_readback_output_fields(transaction_readback),
         **(
             {"candidate_manifest_ref": str(candidate_manifest_path)}
             if candidate_manifest_path.exists()
             else {}
         ),
         "paper_mission_run": mission,
+        "paper_mission_transaction": transaction_readback[
+            "paper_mission_transaction"
+        ],
+        "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
+        "opl_route_command": transaction_readback["opl_route_command"],
         "default_readback": default_readback,
         **(
             {"candidate_manifest": candidate_manifest}
@@ -391,10 +452,17 @@ def _build_materialized_mission_readback_if_available(
             "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": "materialized_mission_readback_no_write",
             "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
+            "opl_consumes": "paper_mission_transaction.opl_route_command",
+            "mas_terminalizes": "paper_mission_transaction.stage_terminal_decision",
         },
         "cutover_proof": {
             "default_readback_surface": "PaperMissionRun",
+            "terminalizer_surface": "PaperMissionTransaction",
             "materialized_paper_mission_run_loaded": True,
+            "stage_terminal_decision_present": bool(
+                _materialized_stage_terminal_decision(mission)
+            ),
+            "opl_route_command_present": bool(_materialized_opl_route_command(mission)),
             "legacy_blocker_controls_default_execution": False,
             "authority_materialized": False,
         },
@@ -522,6 +590,29 @@ def _consume_candidate_status(
     return "not_consumed"
 
 
+def _materialized_stage_terminal_decision(mission: dict[str, Any]) -> dict[str, Any] | None:
+    transaction = mission.get("paper_mission_transaction")
+    if isinstance(transaction, dict) and isinstance(
+        transaction.get("stage_terminal_decision"),
+        dict,
+    ):
+        return transaction["stage_terminal_decision"]
+    readback = mission.get("one_shot_migration_readback")
+    if isinstance(readback, dict) and isinstance(readback.get("stage_terminal_decision"), dict):
+        return readback["stage_terminal_decision"]
+    return None
+
+
+def _materialized_opl_route_command(mission: dict[str, Any]) -> dict[str, Any] | None:
+    transaction = mission.get("paper_mission_transaction")
+    if isinstance(transaction, dict) and isinstance(transaction.get("opl_route_command"), dict):
+        return transaction["opl_route_command"]
+    readback = mission.get("one_shot_migration_readback")
+    if isinstance(readback, dict) and isinstance(readback.get("opl_route_command"), dict):
+        return readback["opl_route_command"]
+    return None
+
+
 def _dispatch_execution_policy(readback: dict[str, Any]) -> str:
     if readback.get("surface_kind") == "paper_mission_materialized_readback":
         return "paper_mission_materialized_readback_no_write"
@@ -636,6 +727,17 @@ def _build_one_shot_migration_cli_readback(
         "owner_decision_packet": owner_decision_packet,
         "authority_consume_readback": readback["consume_candidate_readback"],
         "consume_candidate_status": readback["consume_candidate_status"],
+        **_transaction_readback_output_fields(
+            _paper_mission_transaction_readback(
+                mission_id=str(mission["mission_id"]),
+                study_id=study_id,
+                objective=str(mission["objective"]),
+                paper_mission_command="inspect",
+                study_root=Path(profile.studies_root) / study_id,
+                mission=mission,
+                authority_consume_readback=readback["consume_candidate_readback"],
+            )
+        ),
         "mutation_policy": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -847,6 +949,7 @@ def _paper_mission_run_candidate(
     study_root: Path,
     candidate_ref: str | None,
     authority_consume_readback: dict[str, Any] | None = None,
+    paper_mission_transaction: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_refs = [
         {"ref_id": "profile", "ref_kind": "profile_ref", "uri": str(profile_ref)},
@@ -869,6 +972,14 @@ def _paper_mission_run_candidate(
         if consume_result.get("status") == "not_consumed"
         else "candidate_consume_result_recorded"
     )
+    transaction = paper_mission_transaction or _placeholder_paper_mission_transaction(
+        mission_id=mission_id,
+        study_id=study_id,
+        objective=objective,
+        paper_mission_command=paper_mission_command,
+        study_root=study_root,
+        consume_result=consume_result,
+    )
     return {
         "schema_version": PAPER_MISSION_CONTRACT_VERSION,
         "mission_id": mission_id,
@@ -884,6 +995,11 @@ def _paper_mission_run_candidate(
             }
         ],
         "source_refs": source_refs,
+        "paper_audit_pack": _paper_audit_pack_for_cli_readback(
+            study_id=study_id,
+            paper_mission_command=paper_mission_command,
+            source_refs=source_refs,
+        ),
         "authority_touchpoints": [
             {
                 "touchpoint_id": "publication_eval",
@@ -924,6 +1040,401 @@ def _paper_mission_run_candidate(
             "can_claim_owner_receipt_written": False,
             "claims": ["paper_mission_no_write_plan"],
         },
+        "paper_mission_transaction": transaction,
+        "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
+        "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "transaction_state": _transaction_state(transaction),
+    }
+
+
+def _paper_mission_transaction_readback(
+    *,
+    mission_id: str,
+    study_id: str,
+    objective: str,
+    paper_mission_command: str,
+    study_root: Path,
+    mission: dict[str, Any] | None,
+    candidate: str | Path | None = None,
+    authority_consume_readback: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    transaction = _first_mapping(
+        _mapping((mission or {}).get("paper_mission_transaction")),
+        _transaction_from_materialized_legacy_mission(
+            mission=mission,
+            study_id=study_id,
+        ),
+        _candidate_manifest_transaction(candidate),
+        _mapping((authority_consume_readback or {}).get("paper_mission_transaction")),
+    )
+    source = "materialized_paper_mission_run" if transaction else "placeholder_no_write"
+    if not transaction:
+        consume_result = (
+            _mapping((authority_consume_readback or {}).get("consume_result"))
+            or _mapping((mission or {}).get("consume_result"))
+            or {"status": "not_consumed"}
+        )
+        transaction = _placeholder_paper_mission_transaction(
+            mission_id=mission_id,
+            study_id=study_id,
+            objective=objective,
+            paper_mission_command=paper_mission_command,
+            study_root=study_root,
+            consume_result=consume_result,
+        )
+    elif mission is None and candidate is not None:
+        source = "candidate_manifest"
+
+    return {
+        "surface_kind": "paper_mission_transaction_pickup_readback",
+        "schema_version": 1,
+        "contract_ref": "contracts/paper_mission_transaction_contract.json",
+        "contract_version": "paper-mission-transaction.v1",
+        "source": source,
+        "paper_mission_transaction": transaction,
+        "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
+        "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "transaction_state": _transaction_state(transaction),
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+        "validation": _validate_paper_mission_transaction_if_available(transaction),
+    }
+
+
+def _paper_audit_pack_for_cli_readback(
+    *,
+    study_id: str,
+    paper_mission_command: str,
+    source_refs: list[dict[str, str]],
+) -> dict[str, Any]:
+    refs = list(source_refs) or [
+        {
+            "ref_id": "paper_mission_cli_readback",
+            "ref_kind": "paper_mission_cli_readback",
+            "uri": f"paper-mission-cli://{study_id}/{paper_mission_command}",
+        }
+    ]
+    return {
+        family: {
+            "status": "refs_only_no_write_readback",
+            "refs": refs,
+        }
+        for family in PAPER_AUDIT_PACK_FAMILIES
+    }
+
+
+def _transaction_readback_output_fields(
+    transaction_readback: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
+        "opl_route_command": transaction_readback["opl_route_command"],
+        "transaction_state": transaction_readback["transaction_state"],
+        "paper_mission_transaction_readback": transaction_readback,
+    }
+
+
+def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, Any]:
+    if candidate is None:
+        return {}
+    path = Path(candidate).expanduser()
+    if not path.exists():
+        return {}
+    try:
+        payload = _load_json_object(path)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {}
+    return _mapping(payload.get("paper_mission_transaction"))
+
+
+def _candidate_mission_id_for_readback(
+    *,
+    selected_mission_id: str,
+    transaction_readback: dict[str, Any],
+    authority_consume_readback: dict[str, Any] | None,
+) -> str:
+    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+    if transaction_readback.get("source") != "placeholder_no_write":
+        transaction_mission_id = _optional_text(transaction.get("mission_id"))
+        if transaction_mission_id:
+            return transaction_mission_id
+    readback_mission_id = _optional_text((authority_consume_readback or {}).get("mission_id"))
+    if readback_mission_id and readback_mission_id != "unknown_mission":
+        return readback_mission_id
+    return selected_mission_id
+
+
+def _placeholder_paper_mission_transaction(
+    *,
+    mission_id: str,
+    study_id: str,
+    objective: str,
+    paper_mission_command: str,
+    study_root: Path,
+    consume_result: dict[str, Any],
+) -> dict[str, Any]:
+    stage_id = f"paper-mission-cli::{paper_mission_command}"
+    stage_run_ref = f"paper-mission-cli://{study_id}/{paper_mission_command}"
+    transaction_id = f"paper-mission-transaction::{study_id}::{paper_mission_command}::{_slug(mission_id)}"
+    next_work_unit = objective or "paper mission no-write readback"
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "not_materialized",
+        "reason": (
+            "No MAS-authored PaperMissionTransaction was materialized; CLI reports "
+            "a no-write placeholder only."
+        ),
+        "next_owner": "mission_executor",
+        "next_work_unit": next_work_unit,
+        "authority_materialized": False,
+        "consume_result_status": _optional_text(consume_result.get("status"))
+        or "not_consumed",
+    }
+    route_command = {
+        "command_kind": "resume_stage",
+        "target": next_work_unit,
+        "reason": "No materialized MAS stage terminal decision is available.",
+        "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
+        "stage_run_ref": stage_run_ref,
+        "runtime_owner": "one-person-lab",
+        "authority_materialized": False,
+    }
+    transaction = {
+        "schema_version": "paper-mission-transaction.v1",
+        "transaction_id": transaction_id,
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "stage_id": stage_id,
+        "stage_run_ref": stage_run_ref,
+        "stage_terminal_decision": terminal_decision,
+        "opl_route_command": route_command,
+        "artifact_delta_refs": [
+            {
+                "ref_id": "paper_mission_cli_no_write_plan",
+                "ref_kind": "workspace_path",
+                "uri": str(study_root / "paper"),
+            }
+        ],
+        "paper_audit_pack_refs": {
+            family: [
+                {
+                    "ref_id": f"{family}::paper-mission-cli",
+                    "ref_kind": "paper_mission_cli_readback",
+                    "uri": f"paper-mission-cli://{study_id}/{paper_mission_command}/{family}",
+                }
+            ]
+            for family in PAPER_AUDIT_PACK_FAMILIES
+        },
+        "authority_boundary": {
+            "mas_authority_owner": "MedAutoScience",
+            "runtime_owner": "one-person-lab",
+            "writes_authority_surface": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "writes_runtime_queue": False,
+            "writes_provider_attempt": False,
+            "writes_yang_authority": False,
+        },
+        "idempotency": {
+            "idempotency_key": f"{study_id}::{stage_id}::{_slug(mission_id)}",
+            "transaction_fingerprint": (
+                f"{mission_id}::{stage_id}::continue_same_stage::not_materialized"
+            ),
+        },
+        "transaction_state": "not_materialized",
+    }
+    return transaction
+
+
+def _transaction_from_materialized_legacy_mission(
+    *,
+    mission: dict[str, Any] | None,
+    study_id: str,
+) -> dict[str, Any]:
+    if not mission:
+        return {}
+    consume_result = _mapping(mission.get("consume_result"))
+    if not consume_result:
+        return {}
+    mission_id = _optional_text(mission.get("mission_id")) or "paper-mission::unknown"
+    readback = _mapping(mission.get("one_shot_migration_readback"))
+    current_mission = _mapping(readback.get("current_mission"))
+    required_output = _mapping(readback.get("required_output"))
+    stage_id = _first_text(
+        current_mission.get("objective_kind"),
+        required_output.get("objective_kind"),
+        "paper_mission_materialized_legacy_stage",
+    )
+    terminal_decision = stage_terminal_decision_for_consume_result(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        consume_result=_enriched_materialized_consume_result(
+            consume_result=consume_result,
+            readback=readback,
+        ),
+        default_next_owner=_first_text(
+            required_output.get("next_owner"),
+            readback.get("next_owner"),
+            "mas_authority_kernel",
+        )
+        or "mas_authority_kernel",
+        default_next_stage_id=_next_stage_id_for_materialized(stage_id),
+        default_next_work_unit=_first_text(
+            required_output.get("work_unit_id"),
+            current_mission.get("objective_id"),
+            stage_id,
+        )
+        or stage_id,
+        default_reason=_first_text(
+            consume_result.get("reason"),
+            readback.get("consume_candidate_status"),
+            "materialized legacy PaperMissionRun terminalized by CLI readback",
+        )
+        or "materialized legacy PaperMissionRun terminalized by CLI readback",
+    )
+    return build_paper_mission_transaction(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        stage_run_ref=f"opl-stage-run://paper-mission-materialized/{study_id}/{stage_id}/{_slug(mission_id)}",
+        terminal_decision=terminal_decision,
+        artifact_delta_refs=_artifact_delta_refs_for_transaction(mission),
+        paper_audit_pack_refs=_paper_audit_pack_refs_for_transaction(mission),
+        idempotency_basis=_first_text(
+            consume_result.get("outcome"),
+            consume_result.get("status"),
+            stage_id,
+        )
+        or stage_id,
+    )
+
+
+def _enriched_materialized_consume_result(
+    *,
+    consume_result: dict[str, Any],
+    readback: dict[str, Any],
+) -> dict[str, Any]:
+    enriched = dict(consume_result)
+    if not _optional_text(enriched.get("status")):
+        enriched["status"] = _optional_text(readback.get("consume_candidate_status")) or "not_consumed"
+    if not _optional_text(enriched.get("resume_condition")):
+        enriched["resume_condition"] = _first_text(
+            readback.get("resume_condition"),
+            _mapping(readback.get("consume_candidate_readback")).get("resume_condition"),
+        )
+    blocker = _mapping(_mapping(readback.get("mission_input")).get("legacy_blocker"))
+    typed_blocker = _mapping(blocker.get("typed_blocker"))
+    if typed_blocker:
+        enriched["blocker_id"] = _first_text(
+            typed_blocker.get("blocker_id"),
+            typed_blocker.get("blocker_type"),
+            enriched.get("blocker_id"),
+        )
+        enriched["unblock_condition"] = _first_text(
+            typed_blocker.get("required_input"),
+            enriched.get("unblock_condition"),
+            enriched.get("resume_condition"),
+        )
+    return enriched
+
+
+def _artifact_delta_refs_for_transaction(mission: dict[str, Any]) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for index, delta in enumerate(_mapping_list(mission.get("artifact_delta_ledger")), start=1):
+        uri = _optional_text(delta.get("artifact_ref"))
+        if not uri:
+            continue
+        refs.append(
+            {
+                "ref_id": _optional_text(delta.get("delta_id")) or f"artifact_delta::{index}",
+                "ref_kind": _optional_text(delta.get("delta_kind")) or "artifact_delta",
+                "uri": uri,
+            }
+        )
+    return refs or [
+        {
+            "ref_id": "artifact_delta::missing",
+            "ref_kind": "missing_artifact_delta",
+            "uri": "mission://artifact-delta/missing",
+        }
+    ]
+
+
+def _paper_audit_pack_refs_for_transaction(
+    mission: dict[str, Any],
+) -> dict[str, list[dict[str, str]]]:
+    audit_pack = _mapping(mission.get("paper_audit_pack"))
+    refs_by_family: dict[str, list[dict[str, str]]] = {}
+    for family in PAPER_AUDIT_PACK_FAMILIES:
+        family_payload = _mapping(audit_pack.get(family))
+        refs = [
+            {
+                "ref_id": _optional_text(ref.get("ref_id")) or f"{family}::{index}",
+                "ref_kind": _optional_text(ref.get("ref_kind")) or "artifact_ref",
+                "uri": _optional_text(ref.get("uri")) or f"mission://audit-pack/{family}/missing",
+            }
+            for index, ref in enumerate(_mapping_list(family_payload.get("refs")), start=1)
+        ]
+        refs_by_family[family] = refs or [
+            {
+                "ref_id": f"{family}::missing",
+                "ref_kind": "missing_audit_ref",
+                "uri": f"mission://audit-pack/{family}/missing",
+            }
+        ]
+    return refs_by_family
+
+
+def _next_stage_id_for_materialized(stage_id: str) -> str:
+    if stage_id == "gate_clearing_claim_evidence_repair":
+        return "publication_gate_replay"
+    if stage_id == "medical_prose_write_repair_publication_gate_replay":
+        return "publication_quality_recheck"
+    return f"{stage_id}::next"
+
+
+def _transaction_state(transaction: dict[str, Any]) -> str:
+    explicit = _optional_text(transaction.get("transaction_state"))
+    if explicit:
+        return explicit
+    terminal_status = _optional_text(
+        _mapping(transaction.get("stage_terminal_decision")).get("status")
+    )
+    return terminal_status or "not_materialized"
+
+
+def _validate_paper_mission_transaction_if_available(
+    transaction: dict[str, Any],
+) -> dict[str, Any]:
+    try:
+        from med_autoscience.paper_mission_transaction import PaperMissionTransaction
+    except ModuleNotFoundError:
+        return {
+            "status": "pending_contract_module_not_available",
+            "validator": (
+                "med_autoscience.paper_mission_transaction.PaperMissionTransaction"
+            ),
+        }
+    try:
+        PaperMissionTransaction.from_payload(transaction)
+    except Exception as exc:  # pragma: no cover - exact type belongs to contract lane.
+        return {
+            "status": "failed",
+            "validator": (
+                "med_autoscience.paper_mission_transaction.PaperMissionTransaction"
+            ),
+            "error": str(exc),
+        }
+    return {
+        "status": "validated",
+        "validator": "med_autoscience.paper_mission_transaction.PaperMissionTransaction",
     }
 
 
@@ -975,6 +1486,31 @@ def _validate_with_contract_if_available(payload: dict[str, Any]) -> dict[str, A
         "status": "validated",
         "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
     }
+
+
+def _first_mapping(*values: dict[str, Any]) -> dict[str, Any]:
+    for value in values:
+        if value:
+            return value
+    return {}
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        text = _optional_text(value)
+        if text is not None:
+            return text
+    return None
 
 
 def _optional_text(value: object) -> str | None:

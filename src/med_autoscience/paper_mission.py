@@ -5,6 +5,10 @@ from typing import Any
 
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 from med_autoscience.paper_mission_run import CONTRACT_VERSION, PaperMissionRun
+from med_autoscience.paper_mission_transaction import (
+    build_paper_mission_transaction,
+    stage_terminal_decision_for_consume_result,
+)
 
 
 DM002_STUDY_ID = "002-dm-china-us-mortality-attribution"
@@ -480,7 +484,6 @@ def _build_one_shot_mission(
     readback = dict(mission["one_shot_migration_readback"])
     readback["consume_candidate_status"] = consume_readback["consume_result"]["status"]
     readback["consume_candidate_readback"] = consume_readback
-    mission["one_shot_migration_readback"] = readback
     mission["consume_result"] = {
         "status": consume_readback["consume_result"]["status"],
         "outcome": consume_readback["consume_result"]["outcome"],
@@ -489,6 +492,16 @@ def _build_one_shot_mission(
     mission["mission_state"] = _mission_state_for_consume_status(
         mission["consume_result"]["status"]
     )
+    transaction = _paper_mission_transaction_payload(
+        mission=mission,
+        readback=readback,
+        consume_result=mission["consume_result"],
+    )
+    readback["stage_terminal_decision"] = transaction["stage_terminal_decision"]
+    readback["opl_route_command"] = transaction["opl_route_command"]
+    readback["paper_mission_transaction_ref"] = transaction["transaction_id"]
+    mission["one_shot_migration_readback"] = readback
+    mission["paper_mission_transaction"] = transaction
     return PaperMissionRun.from_payload(mission).to_dict()
 
 
@@ -587,6 +600,16 @@ def _build_mission(
         current_blocker=current_blocker,
         platform_diagnostics=platform_diagnostics,
     )
+    transaction = _paper_mission_transaction_payload(
+        mission=payload,
+        readback=readback,
+        consume_result=payload["consume_result"],
+    )
+    readback["stage_terminal_decision"] = transaction["stage_terminal_decision"]
+    readback["opl_route_command"] = transaction["opl_route_command"]
+    readback["paper_mission_transaction_ref"] = transaction["transaction_id"]
+    payload["canary_import_readback"] = dict(readback)
+    payload["paper_mission_transaction"] = transaction
     return PaperMissionRun.from_payload(payload).to_dict()
 
 
@@ -603,7 +626,7 @@ def _paper_mission_run_payload(
     objective_kind = _text(mission_objective.get("objective_kind")) or "paper_mission_import"
     objective = _text(mission_objective.get("summary")) or objective_id
     source_refs = _source_ref_payloads(artifact_refs)
-    return {
+    payload = {
         "schema_version": CONTRACT_VERSION,
         "mission_id": f"paper-mission::{study_id}::{objective_kind}::canary-import-readback",
         "study_id": study_id,
@@ -655,6 +678,19 @@ def _paper_mission_run_payload(
         },
         "canary_import_readback": dict(readback),
     }
+    transaction = _paper_mission_transaction_payload(
+        mission=payload,
+        readback=readback,
+        consume_result=payload["consume_result"],
+    )
+    payload["canary_import_readback"] = {
+        **dict(readback),
+        "stage_terminal_decision": transaction["stage_terminal_decision"],
+        "opl_route_command": transaction["opl_route_command"],
+        "paper_mission_transaction_ref": transaction["transaction_id"],
+    }
+    payload["paper_mission_transaction"] = transaction
+    return payload
 
 
 def _formal_one_shot_mission_payload(
@@ -708,7 +744,7 @@ def _formal_one_shot_mission_payload(
         "authority_boundary": _authority_boundary(),
         "platform_diagnostics": platform_diagnostics,
     }
-    return {
+    payload = {
         "schema_version": CONTRACT_VERSION,
         "mission_id": mission_id,
         "study_id": study_id,
@@ -777,6 +813,19 @@ def _formal_one_shot_mission_payload(
             },
         },
     }
+    transaction = _paper_mission_transaction_payload(
+        mission=payload,
+        readback=readback,
+        consume_result=payload["consume_result"],
+    )
+    payload["one_shot_migration_readback"] = {
+        **readback,
+        "stage_terminal_decision": transaction["stage_terminal_decision"],
+        "opl_route_command": transaction["opl_route_command"],
+        "paper_mission_transaction_ref": transaction["transaction_id"],
+    }
+    payload["paper_mission_transaction"] = transaction
+    return payload
 
 
 def _legacy_truth_import_pack(
@@ -1513,6 +1562,181 @@ def _mission_state_for_consume_status(status: str) -> str:
     if status == "route_back":
         return "route_back"
     return "candidate_ready_for_consumption"
+
+
+def _paper_mission_transaction_payload(
+    *,
+    mission: Mapping[str, Any],
+    readback: Mapping[str, Any],
+    consume_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_mission = _mapping(readback.get("current_mission"))
+    required_output = _mapping(readback.get("required_output"))
+    mission_objective = _mapping(readback.get("mission_objective"))
+    stage_id = _first_text((
+        current_mission.get("objective_kind"),
+        required_output.get("objective_kind"),
+        mission_objective.get("objective_kind"),
+        "paper_mission_stage",
+    ))
+    mission_id = _text(mission.get("mission_id")) or "paper-mission::unknown"
+    study_id = _text(mission.get("study_id")) or "unknown_study"
+    stage_run_ref = f"opl-stage-run://paper-mission-carrier/{study_id}/{stage_id}/{mission_id}"
+    enriched_consume_result = _transaction_consume_result(
+        consume_result=consume_result,
+        readback=readback,
+    )
+    terminal_decision = stage_terminal_decision_for_consume_result(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        consume_result=enriched_consume_result,
+        default_next_owner=_first_text((
+            required_output.get("next_owner"),
+            readback.get("next_owner"),
+            "mas_authority_kernel",
+        )),
+        default_next_stage_id=_next_stage_id_for_terminal_decision(
+            stage_id=stage_id,
+            required_output=required_output,
+        ),
+        default_next_work_unit=_first_text((
+            required_output.get("work_unit_id"),
+            current_mission.get("objective_id"),
+            stage_id,
+        )),
+        default_reason=_terminal_decision_reason(
+            consume_result=enriched_consume_result,
+            readback=readback,
+        ),
+    )
+    return build_paper_mission_transaction(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        stage_run_ref=stage_run_ref,
+        terminal_decision=terminal_decision,
+        artifact_delta_refs=_transaction_artifact_delta_refs(mission),
+        paper_audit_pack_refs=_transaction_audit_pack_refs(mission),
+        idempotency_basis=_first_text((
+            enriched_consume_result.get("outcome"),
+            enriched_consume_result.get("status"),
+            stage_id,
+        )),
+    )
+
+
+def _transaction_consume_result(
+    *,
+    consume_result: Mapping[str, Any],
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    enriched = dict(consume_result)
+    consume_readback = _mapping(readback.get("consume_candidate_readback"))
+    if not enriched.get("resume_condition"):
+        enriched["resume_condition"] = _first_text((
+            consume_readback.get("resume_condition"),
+            _mapping(consume_readback.get("route_back")).get("resume_condition"),
+            _mapping(consume_readback.get("typed_blocker_required")).get("resume_condition"),
+            _mapping(consume_readback.get("human_gate_required")).get("resume_condition"),
+        ))
+    typed_blocker = _mapping(consume_readback.get("typed_blocker_required"))
+    if typed_blocker:
+        enriched["blocker_id"] = _first_text((
+            typed_blocker.get("blocker_id"),
+            enriched.get("blocker_id"),
+        ))
+        enriched["unblock_condition"] = _first_text((
+            typed_blocker.get("resume_condition"),
+            enriched.get("unblock_condition"),
+            enriched.get("resume_condition"),
+        ))
+    human_gate = _mapping(consume_readback.get("human_gate_required"))
+    if human_gate:
+        enriched["question"] = _first_text((
+            human_gate.get("question"),
+            enriched.get("question"),
+        ))
+        enriched["required_receipt"] = _first_text((
+            human_gate.get("decision_packet_ref"),
+            enriched.get("required_receipt"),
+        ))
+    return enriched
+
+
+def _terminal_decision_reason(
+    *,
+    consume_result: Mapping[str, Any],
+    readback: Mapping[str, Any],
+) -> str:
+    return _first_text((
+        consume_result.get("reason"),
+        consume_result.get("outcome"),
+        readback.get("consume_candidate_status"),
+        "mas_stage_terminalized_from_paper_mission_candidate",
+    ))
+
+
+def _next_stage_id_for_terminal_decision(
+    *,
+    stage_id: str,
+    required_output: Mapping[str, Any],
+) -> str:
+    objective_kind = _text(required_output.get("objective_kind")) or stage_id
+    if objective_kind == "gate_clearing_claim_evidence_repair":
+        return "publication_gate_replay"
+    if objective_kind == "medical_prose_write_repair_publication_gate_replay":
+        return "publication_quality_recheck"
+    return f"{stage_id}::next"
+
+
+def _transaction_artifact_delta_refs(mission: Mapping[str, Any]) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for index, delta in enumerate(_mapping_list(mission.get("artifact_delta_ledger")), start=1):
+        uri = _text(delta.get("artifact_ref"))
+        if not uri:
+            continue
+        refs.append(
+            {
+                "ref_id": _text(delta.get("delta_id")) or f"artifact_delta::{index}",
+                "ref_kind": _text(delta.get("delta_kind")) or "artifact_delta",
+                "uri": uri,
+            }
+        )
+    if refs:
+        return refs
+    return [
+        {
+            "ref_id": "artifact_delta::missing",
+            "ref_kind": "missing_artifact_delta",
+            "uri": "mission://artifact-delta/missing",
+        }
+    ]
+
+
+def _transaction_audit_pack_refs(mission: Mapping[str, Any]) -> dict[str, list[dict[str, str]]]:
+    audit_pack = _mapping(mission.get("paper_audit_pack"))
+    refs_by_family: dict[str, list[dict[str, str]]] = {}
+    for family in _PAPER_AUDIT_PACK_FAMILIES:
+        family_payload = _mapping(audit_pack.get(family))
+        refs = [
+            {
+                "ref_id": _text(ref.get("ref_id")) or f"{family}::{index}",
+                "ref_kind": _text(ref.get("ref_kind")) or "artifact_ref",
+                "uri": _text(ref.get("uri")) or f"mission://audit-pack/{family}/missing",
+            }
+            for index, ref in enumerate(_mapping_list(family_payload.get("refs")), start=1)
+        ]
+        if not refs:
+            refs = [
+                {
+                    "ref_id": f"{family}::missing",
+                    "ref_kind": "missing_audit_ref",
+                    "uri": f"mission://audit-pack/{family}/missing",
+                }
+            ]
+        refs_by_family[family] = refs
+    return refs_by_family
 
 
 def _refs_with_kinds(refs: list[str], kinds: set[str]) -> list[str]:

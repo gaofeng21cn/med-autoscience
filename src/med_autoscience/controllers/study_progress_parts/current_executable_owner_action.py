@@ -145,6 +145,12 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         domain_transition_action=domain_transition_action,
     ):
         return domain_transition_action
+    if _gate_followthrough_supersedes_consumed_paper_recovery_successor(
+        gate_followthrough_action=gate_followthrough_action,
+        paper_recovery_action=paper_recovery_action,
+        payload=payload,
+    ):
+        return gate_followthrough_action
     if paper_recovery_successor_action_ready(paper_recovery_action):
         return paper_recovery_action
     if _gate_followthrough_supersedes_repair_progress(
@@ -410,6 +416,67 @@ def _repair_progress_consumes_paper_recovery_successor(
         or _non_empty_text(currentness.get("explicit_work_unit_fingerprint"))
     )
     if followthrough_fingerprint != paper_fingerprint:
+        return False
+    return True
+
+
+def _gate_followthrough_supersedes_consumed_paper_recovery_successor(
+    *,
+    gate_followthrough_action: Mapping[str, Any] | None,
+    paper_recovery_action: Mapping[str, Any] | None,
+    payload: Mapping[str, Any],
+) -> bool:
+    gate_action = _mapping_copy(gate_followthrough_action)
+    paper_action = _mapping_copy(paper_recovery_action)
+    if not gate_action or not paper_action:
+        return False
+    if _non_empty_text(gate_action.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    if _non_empty_text(paper_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    if not paper_recovery_successor_action_ready(paper_action):
+        return False
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    current_state = _mapping_copy(current_work_unit.get("state"))
+    if _non_empty_text(current_state.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    work_unit_id = _non_empty_text(paper_action.get("work_unit_id"))
+    if work_unit_id is None or work_unit_id != _non_empty_text(gate_action.get("work_unit_id")):
+        return False
+    if work_unit_id != _non_empty_text(current_work_unit.get("work_unit_id")):
+        return False
+    paper_fingerprint = gate_replay_identity.action_fingerprint(paper_action)
+    gate_fingerprint = gate_replay_identity.action_fingerprint(gate_action)
+    current_fingerprint = (
+        _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("action_fingerprint"))
+    )
+    if paper_fingerprint is None or gate_fingerprint is None:
+        return False
+    if current_fingerprint != paper_fingerprint:
+        return False
+    if gate_fingerprint == paper_fingerprint:
+        return False
+    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
+    if repair_progress.get("paper_delta_observed") is not True:
+        return False
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return False
+    if repair_progress.get("gate_replay_done") is not True:
+        return False
+    repair_fingerprint = (
+        _non_empty_text(repair_progress.get("work_unit_fingerprint"))
+        or _non_empty_text(repair_progress.get("action_fingerprint"))
+    )
+    if repair_fingerprint is not None and repair_fingerprint != gate_fingerprint:
+        return False
+    gate_eval = _non_empty_text(gate_action.get("source_eval_id"))
+    paper_eval = _non_empty_text(paper_action.get("source_eval_id"))
+    if gate_eval is not None and paper_eval is not None and gate_eval == paper_eval:
         return False
     return True
 

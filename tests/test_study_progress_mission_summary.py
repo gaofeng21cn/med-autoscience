@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 import json
 
+from med_autoscience.paper_mission_run import PaperMissionRun
+from med_autoscience.paper_mission_transaction import PaperMissionTransaction
 from tests.test_cli_cases.shared import write_profile
 
 
@@ -139,6 +141,27 @@ def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
     assert payload["latest_artifact_delta"]["refs"] == [
         "mission://dm003/prose-repair-owner-decision"
     ]
+    mission_run = payload["artifact_first_mission_summary"]["paper_mission_run"]
+    transaction = payload["artifact_first_mission_summary"]["paper_mission_transaction"]
+    assert PaperMissionRun.from_payload(mission_run).mission_id == mission_run["mission_id"]
+    assert PaperMissionTransaction.from_payload(transaction).mission_id == (
+        mission_run["mission_id"]
+    )
+    assert payload["stage_terminal_decision"]["decision_kind"] == "typed_blocker"
+    assert payload["opl_route_command"]["command_kind"] == "stop_with_typed_blocker"
+    assert payload["transaction_state"] == {
+        "transaction_id": transaction["transaction_id"],
+        "contract_ref": "contracts/paper_mission_transaction_contract.json",
+        "validator": "med_autoscience.paper_mission_transaction.PaperMissionTransaction",
+        "decision_kind": "typed_blocker",
+        "route_command_kind": "stop_with_typed_blocker",
+        "mas_authority_owner": "MedAutoScience",
+        "runtime_owner": "one-person-lab",
+        "projection_only": True,
+        "writes_authority_surface": False,
+        "writes_runtime_queue": False,
+        "writes_provider_attempt": False,
+    }
     assert payload["artifact_first_mission_summary"]["read_model_source"] == {
         "source_kind": "materialized_paper_mission_run",
         "materialized_mission_ref": str(mission_root / "paper_mission_run.json"),
@@ -267,6 +290,8 @@ def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
     assert payload["artifact_first_mission_summary"]["paper_mission_run"]["mission_id"] == (
         mission_payload["mission_id"]
     )
+    assert payload["stage_terminal_decision"]["decision_kind"] == "advance"
+    assert payload["opl_route_command"]["command_kind"] == "start_next_stage"
     assert payload["next_owner_or_human_decision"]["next_owner"] == "analysis-campaign"
 
 
@@ -344,6 +369,15 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert paper_mission_run["schema_version"] == "paper-mission-run.v1"
     assert paper_mission_run["mission_state"] == "running"
     assert paper_mission_run["artifact_delta_ledger"] == []
+    assert PaperMissionRun.from_payload(paper_mission_run).mission_id == (
+        paper_mission_run["mission_id"]
+    )
+    assert PaperMissionTransaction.from_payload(
+        summary["paper_mission_transaction"]
+    ).mission_id == paper_mission_run["mission_id"]
+    assert summary["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert summary["opl_route_command"]["command_kind"] == "resume_stage"
+    assert summary["transaction_state"]["route_command_kind"] == "resume_stage"
     assert paper_mission_run["consume_result"] == {"status": "not_consumed"}
     assert paper_mission_run["forbidden_write_guard"]["candidate_writes_authority"] is False
     assert {
@@ -395,5 +429,7 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert payload["artifact_first_mission_summary"]["paper_mission_run"]["mission_state"] == (
         "candidate_ready_for_consumption"
     )
+    assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
     assert payload["next_owner_or_human_decision"]["next_owner"] == "ai_reviewer"
     assert payload["platform_diagnostics"]["counts_as_paper_progress"] is False

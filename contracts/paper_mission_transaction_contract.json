@@ -1,0 +1,134 @@
+{
+  "surface_kind": "mas_paper_mission_transaction_contract",
+  "version": "paper-mission-transaction.v1",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Machine-readable contract for the MAS-owned stage terminal decision that lets OPL route a paper mission without inferring medical quality from runtime completion.",
+  "machine_boundary": "PaperMissionTransaction is the transaction boundary between an OPL StageRun and MAS paper authority. OPL may carry the transaction, retry/resume the StageRun, and consume opl_route_command, but only MAS can author stage_terminal_decision, paper audit evidence, owner decision packet, typed blocker request, or human gate request. This contract cannot write publication_eval/latest.json, controller_decisions/latest.json, owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, or Yang authority surfaces.",
+  "source_design_ref": "docs/active/mas_executor_first_rearchitecture_program.md",
+  "required_fields": [
+    "transaction_id",
+    "mission_id",
+    "study_id",
+    "stage_id",
+    "stage_run_ref",
+    "stage_terminal_decision",
+    "opl_route_command",
+    "artifact_delta_refs",
+    "paper_audit_pack_refs",
+    "authority_boundary",
+    "idempotency"
+  ],
+  "stage_terminal_decision": {
+    "owner": "MedAutoScience",
+    "role": "The authoritative MAS decision emitted at the end of a paper stage. OPL consumes this instead of guessing next stage from provider completion or read-model status.",
+    "required_fields": [
+      "decision_kind",
+      "status",
+      "reason",
+      "next_owner"
+    ],
+    "allowed_decision_kinds": [
+      "advance",
+      "continue_same_stage",
+      "route_back",
+      "typed_blocker",
+      "human_gate",
+      "mission_complete"
+    ],
+    "required_decision_refs_by_kind": {
+      "advance": [
+        "next_stage_id"
+      ],
+      "continue_same_stage": [
+        "next_work_unit"
+      ],
+      "route_back": [
+        "target_stage_id",
+        "repair_scope"
+      ],
+      "typed_blocker": [
+        "blocker_id",
+        "unblock_condition"
+      ],
+      "human_gate": [
+        "question",
+        "required_receipt"
+      ],
+      "mission_complete": [
+        "package_ref"
+      ]
+    }
+  },
+  "opl_route_command": {
+    "owner": "one-person-lab",
+    "role": "Runtime carrier command derived from the MAS terminal decision. It is not a medical quality verdict.",
+    "required_fields": [
+      "command_kind",
+      "target",
+      "reason",
+      "source_terminal_decision_ref"
+    ],
+    "allowed_command_kinds": [
+      "start_next_stage",
+      "resume_stage",
+      "route_back",
+      "wait_for_human",
+      "stop_with_typed_blocker",
+      "complete_mission"
+    ],
+    "forbidden_runtime_claims": [
+      "provider_completion_is_domain_completion",
+      "read_model_status_is_stage_terminal_decision",
+      "queue_empty_is_paper_progress",
+      "dhd_clean_is_paper_progress"
+    ]
+  },
+  "paper_audit_pack_refs": {
+    "role": "Refs that prove stage terminalization was based on paper artifacts and expert-auditable evidence families.",
+    "required_families": [
+      "analysis_rationale_log",
+      "decision_trace",
+      "evidence_ledger_delta",
+      "review_ledger_delta",
+      "revision_log_delta",
+      "failed_path_ledger",
+      "artifact_lineage",
+      "reproducibility_refs"
+    ],
+    "required_ref_fields": [
+      "ref_id",
+      "ref_kind",
+      "uri"
+    ]
+  },
+  "authority_boundary": {
+    "must_be_false": [
+      "writes_authority_surface",
+      "writes_publication_eval",
+      "writes_controller_decision",
+      "writes_owner_receipt",
+      "writes_typed_blocker",
+      "writes_human_gate",
+      "writes_current_package",
+      "writes_runtime_queue",
+      "writes_provider_attempt",
+      "writes_yang_authority"
+    ],
+    "mas_authority_owner": "MedAutoScience",
+    "runtime_owner": "one-person-lab"
+  },
+  "idempotency": {
+    "required_fields": [
+      "idempotency_key",
+      "transaction_fingerprint"
+    ],
+    "role": "OPL retries and resume may replay the carrier, but MAS terminal decision consumption must remain keyed by this identity."
+  },
+  "validator": {
+    "python_module": "med_autoscience.paper_mission_transaction",
+    "class": "PaperMissionTransaction",
+    "error_type": "PaperMissionTransactionContractError",
+    "fail_closed": true
+  }
+}

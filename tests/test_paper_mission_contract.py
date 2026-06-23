@@ -9,7 +9,9 @@ from med_autoscience.paper_mission_run import (
     ALLOWED_CONSUME_RESULT_STATUSES,
     PaperMissionContractError,
     PaperMissionRun,
+    REQUIRED_PAPER_AUDIT_PACK_FAMILIES,
 )
+from med_autoscience.paper_mission_transaction import PaperMissionTransaction
 
 
 pytestmark = [pytest.mark.contract, pytest.mark.meta]
@@ -75,6 +77,7 @@ def _valid_payload() -> dict[str, object]:
             "can_claim_current_package": False,
             "can_claim_owner_receipt_written": False,
         },
+        "paper_mission_transaction": _valid_transaction_payload(),
     }
 
 
@@ -104,6 +107,76 @@ def _valid_paper_audit_pack() -> dict[str, object]:
     }
 
 
+def _valid_transaction_payload() -> dict[str, object]:
+    audit_refs = {
+        family: [
+            {
+                "ref_id": f"{family}::1",
+                "ref_kind": "artifact_ref",
+                "uri": f"mission://dm002/audit/{family}",
+            }
+        ]
+        for family in REQUIRED_PAPER_AUDIT_PACK_FAMILIES
+    }
+    return {
+        "schema_version": "paper-mission-transaction.v1",
+        "transaction_id": (
+            "paper-mission-transaction::dm002::gate-clearing::"
+            "paper-mission::dm002::gate-clearing::20260623T010000Z"
+        ),
+        "mission_id": "paper-mission::dm002::gate-clearing::20260623T010000Z",
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "stage_id": "gate_clearing_claim_evidence_repair",
+        "stage_run_ref": "opl-stage-run://dm002/gate-clearing/20260623T010000Z",
+        "stage_terminal_decision": {
+            "decision_kind": "advance",
+            "status": "accepted",
+            "reason": "candidate accepted for the next MAS paper stage",
+            "next_owner": "analysis-campaign",
+            "next_stage_id": "publication_gate_replay",
+        },
+        "opl_route_command": {
+            "command_kind": "start_next_stage",
+            "target": "publication_gate_replay",
+            "reason": "candidate accepted for the next MAS paper stage",
+            "source_terminal_decision_ref": (
+                "paper-mission-transaction::dm002::gate-clearing::"
+                "paper-mission::dm002::gate-clearing::20260623T010000Z"
+                "#stage_terminal_decision"
+            ),
+        },
+        "artifact_delta_refs": [
+            {
+                "ref_id": "artifact_delta::1",
+                "ref_kind": "mission_candidate_artifact_delta",
+                "uri": "mission://dm002/candidates/claim-evidence-map.json",
+            }
+        ],
+        "paper_audit_pack_refs": audit_refs,
+        "authority_boundary": {
+            "mas_authority_owner": "MedAutoScience",
+            "runtime_owner": "one-person-lab",
+            "writes_authority_surface": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "writes_runtime_queue": False,
+            "writes_provider_attempt": False,
+            "writes_yang_authority": False,
+        },
+        "idempotency": {
+            "idempotency_key": "dm002::gate-clearing::20260623T010000Z",
+            "transaction_fingerprint": (
+                "paper-mission::dm002::gate-clearing::20260623T010000Z::"
+                "advance::accepted"
+            ),
+        },
+    }
+
+
 def test_contract_declares_required_paper_mission_run_fields() -> None:
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
@@ -123,6 +196,7 @@ def test_contract_declares_required_paper_mission_run_fields() -> None:
         "forbidden_write_guard",
         "consume_result",
         "claim_permissions",
+        "paper_mission_transaction",
     ]
     assert {
         "publication_ready",
@@ -151,6 +225,9 @@ def test_contract_declares_required_paper_mission_run_fields() -> None:
         "status",
         "refs",
     ]
+    assert contract["paper_mission_transaction"]["contract_ref"] == (
+        "contracts/paper_mission_transaction_contract.json"
+    )
 
 
 def test_paper_mission_run_accepts_valid_payload_and_round_trips() -> None:
@@ -162,6 +239,9 @@ def test_paper_mission_run_accepts_valid_payload_and_round_trips() -> None:
     assert run.study_id == payload["study_id"]
     assert run.mission_state == "candidate_ready_for_consumption"
     assert run.validate() is run
+    assert PaperMissionTransaction.from_payload(run.paper_mission_transaction).mission_id == (
+        payload["mission_id"]
+    )
     assert run.to_dict() == payload
 
 
@@ -183,6 +263,30 @@ def test_paper_mission_run_requires_paper_audit_pack() -> None:
     with pytest.raises(
         PaperMissionContractError,
         match="missing required field: paper_audit_pack",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_requires_stage_terminal_transaction() -> None:
+    payload = _valid_payload()
+    payload.pop("paper_mission_transaction")
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="missing required field: paper_mission_transaction",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_rejects_transaction_for_different_mission() -> None:
+    payload = _valid_payload()
+    transaction = dict(payload["paper_mission_transaction"])
+    transaction["mission_id"] = "paper-mission::other::mission"
+    payload["paper_mission_transaction"] = transaction
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="paper_mission_transaction mission_id does not match payload",
     ):
         PaperMissionRun.from_payload(payload)
 

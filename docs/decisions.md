@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-23：PaperMissionTransaction + StageTerminalDecision 成为论文主路径
+
+- 决策：MAS 顶层论文推进目标从 `PaperMissionRun` candidate/readback 升级为 `PaperMissionTransaction + StageTerminalDecision`。`PaperMissionRun` 保留为当前 no-write materialized readback、one-shot migration 和 consume-candidate 兼容 shape；长期主路径由 MAS stage 持有 transaction identity、objective、artifact delta ledger、decision constraints 和 forbidden-write guard。
+- 决策：MAS stage 必须在域内 terminalize。writer、reviewer、gate、consume-candidate、route-back、stable typed blocker、human interrupt、retry-catch 和 exit-handler 都必须归一成 `StageTerminalDecision` 后才能离开 MAS stage。非 terminal intermediate status、read-model clean、queue empty、DHD dry-run、owner-route candidate、default dispatch carrier 或 PaperRecovery state 不得作为 OPL 可消费的论文主线结果。
+- 决策：OPL 只消费 `StageTerminalDecision` 派生的 route command，并承担 session、attempt、queue、retry/dead-letter、resume、transport、provider lifecycle 和 current-control readback。OPL 不裁决 MAS medical authority、publication quality、artifact mutation、owner receipt、typed blocker、human gate 或 current package freshness；MAS 也不通过 route command 写 OPL runtime authority。
+- 决策：DHD、owner-route、default-executor dispatch、PaperRecovery 和旧 provider-admission/read-model surface 全部降为 diagnostic、migration input、provenance、ABI carrier 或 authority consume/readback evidence。它们可以帮助 terminalizer 解释旧 truth 或生成 repair lane，但不能重新成为 default product path、domain-handler mainline、paper progress、runtime-ready、publication-ready 或 DM002/DM003 complete claim。
+- 理由：`PaperMissionRun` 已解决默认入口和 no-write candidate/readback，但仍容易被误读成 OPL runtime envelope。真正的边界应是 MAS 在 stage 内给出 terminal decision，OPL 只运输 route command；否则旧 DHD/owner-route/default dispatch/PaperRecovery 会通过“下一步”或 currentness 读面复活为论文主线。
+- 影响：本轮已落地 `PaperMissionTransaction` contract / validator、`PaperMissionRun.paper_mission_transaction` 必填、CLI transaction pickup/readback 与 `study_progress` terminal decision / route command projection。该 landing 仍不写 Yang authority、publication eval、controller decisions、owner receipt、typed blocker、human gate、current package、runtime queue/provider attempt 或 paper body；不能被解释为 OPL hosted run、runtime-ready、paper progress、publication-ready 或 current package fresh。
+
 ## 2026-06-23：Progress / Workbench 默认读面切到 artifact-first mission summary
 
 - 决策：`study_progress` projection、Progress Portal 和 study workbench 的默认叙事从旧 `DHD / owner-route / dispatch / PaperRecovery` 状态链切到 artifact-first paper mission summary。默认 top-level 字段固定为 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision` 和 `platform_diagnostics`。

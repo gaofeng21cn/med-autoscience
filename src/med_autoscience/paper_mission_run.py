@@ -5,6 +5,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
+from med_autoscience.paper_mission_transaction import PaperMissionTransaction
+
 
 CONTRACT_VERSION = "paper-mission-run.v1"
 REQUIRED_FIELDS = (
@@ -19,6 +21,7 @@ REQUIRED_FIELDS = (
     "forbidden_write_guard",
     "consume_result",
     "claim_permissions",
+    "paper_mission_transaction",
 )
 ALLOWED_MISSION_STATES = frozenset(
     {
@@ -102,6 +105,7 @@ class PaperMissionRun:
     forbidden_write_guard: dict[str, Any]
     consume_result: dict[str, Any]
     claim_permissions: dict[str, Any]
+    paper_mission_transaction: dict[str, Any]
     payload: dict[str, Any]
 
     @classmethod
@@ -152,6 +156,15 @@ class PaperMissionRun:
         _validate_consume_result(consume_result)
         claim_permissions = _required_mapping(normalized, "claim_permissions")
         _validate_claim_permissions(claim_permissions)
+        paper_mission_transaction = _required_mapping(
+            normalized,
+            "paper_mission_transaction",
+        )
+        _validate_paper_mission_transaction(
+            paper_mission_transaction=paper_mission_transaction,
+            mission_id=mission_id,
+            study_id=study_id,
+        )
 
         return cls(
             mission_id=mission_id,
@@ -165,6 +178,7 @@ class PaperMissionRun:
             forbidden_write_guard=forbidden_write_guard,
             consume_result=consume_result,
             claim_permissions=claim_permissions,
+            paper_mission_transaction=paper_mission_transaction,
             payload=normalized,
         ).validate()
 
@@ -195,6 +209,11 @@ class PaperMissionRun:
         _validate_forbidden_write_guard(self.forbidden_write_guard)
         _validate_consume_result(self.consume_result)
         _validate_claim_permissions(self.claim_permissions)
+        _validate_paper_mission_transaction(
+            paper_mission_transaction=self.paper_mission_transaction,
+            mission_id=self.mission_id,
+            study_id=self.study_id,
+        )
         return self
 
     def to_dict(self) -> dict[str, Any]:
@@ -324,6 +343,28 @@ def _validate_claim_permissions(claim_permissions: Mapping[str, Any]) -> None:
             raise PaperMissionContractError(
                 f"forbidden authority claim: {sorted(forbidden)[0]}"
             )
+
+
+def _validate_paper_mission_transaction(
+    *,
+    paper_mission_transaction: Mapping[str, Any],
+    mission_id: str,
+    study_id: str,
+) -> None:
+    try:
+        transaction = PaperMissionTransaction.from_payload(paper_mission_transaction)
+    except ValueError as exc:
+        raise PaperMissionContractError(
+            f"paper_mission_transaction invalid: {exc}"
+        ) from exc
+    if transaction.mission_id != mission_id:
+        raise PaperMissionContractError(
+            "paper_mission_transaction mission_id does not match payload"
+        )
+    if transaction.study_id != study_id:
+        raise PaperMissionContractError(
+            "paper_mission_transaction study_id does not match payload"
+        )
 
 
 def _text_from_mapping(payload: Mapping[str, Any], field: str) -> str:

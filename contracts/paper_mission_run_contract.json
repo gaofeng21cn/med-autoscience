@@ -17,7 +17,8 @@
     "authority_touchpoints",
     "forbidden_write_guard",
     "consume_result",
-    "claim_permissions"
+    "claim_permissions",
+    "paper_mission_transaction"
   ],
   "identity": {
     "canonical_id_field": "mission_id",
@@ -90,6 +91,13 @@
     ],
     "fail_closed": "Every family must be present, each family status must be non-empty, refs must be a non-empty list of mappings, and every ref must include non-empty ref_id/ref_kind/uri.",
     "non_authority_note": "The audit pack is a structured candidate evidence chain. It cannot write or replace publication_eval/latest.json, controller decisions, owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, or Yang workspace authority."
+  },
+  "paper_mission_transaction": {
+    "role": "The MAS-owned stage terminal decision transaction that converts paper artifact/audit output into an OPL-consumable route command.",
+    "contract_ref": "contracts/paper_mission_transaction_contract.json",
+    "required": true,
+    "must_validate_with": "med_autoscience.paper_mission_transaction.PaperMissionTransaction",
+    "non_authority_note": "The transaction carries MAS terminal decision and OPL route command refs, but cannot write owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, publication_eval, controller decisions, or Yang authority surfaces."
   },
   "authority_touchpoints": {
     "role": "explicit record of MAS/OPL authority surfaces inspected or intentionally not touched by the mission run",

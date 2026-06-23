@@ -38,6 +38,7 @@ def _write_candidate_manifest(
     *,
     study_id: str = "001-paper",
     requested_outcome: str = "accepted_candidate",
+    paper_mission_transaction: dict | None = None,
 ) -> Path:
     candidate_path = tmp_path / "candidate.json"
     candidate = {
@@ -61,6 +62,8 @@ def _write_candidate_manifest(
         "next_owner": "mas_authority_kernel",
         "resume_condition": "MAS consumes or routes back the mission candidate",
     }
+    if paper_mission_transaction is not None:
+        candidate["paper_mission_transaction"] = paper_mission_transaction
     if requested_outcome == "typed_blocker_required":
         candidate["typed_blocker_request"] = {
             "blocker_id": "source_readiness_missing",
@@ -72,6 +75,79 @@ def _write_candidate_manifest(
         }
     candidate_path.write_text(json.dumps(candidate), encoding="utf-8")
     return candidate_path
+
+
+def _paper_mission_transaction_payload(
+    *,
+    mission_id: str,
+    study_id: str,
+) -> dict:
+    return {
+        "transaction_id": "paper-mission-transaction::pmc-001",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "stage_id": "paper-stage::gate-clearing",
+        "stage_run_ref": "opl-stage-run://pmc-001",
+        "stage_terminal_decision": {
+            "decision_kind": "route_back",
+            "status": "terminal_decision_recorded",
+            "reason": "candidate needs a claim/evidence repair pass",
+            "next_owner": "mission_executor",
+            "target_stage_id": "paper-stage::gate-clearing",
+            "repair_scope": "claim-evidence-repair",
+        },
+        "opl_route_command": {
+            "command_kind": "route_back",
+            "target": "paper-stage::gate-clearing",
+            "reason": "MAS terminal decision requested route back",
+            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+        },
+        "artifact_delta_refs": [
+            {
+                "ref_id": "artifact-delta::pmc-001",
+                "ref_kind": "candidate_artifact_delta",
+                "uri": "mission://pmc-001/artifact-delta",
+            }
+        ],
+        "paper_audit_pack_refs": {
+            family: [
+                {
+                    "ref_id": f"{family}::pmc-001",
+                    "ref_kind": family,
+                    "uri": f"mission://pmc-001/{family}",
+                }
+            ]
+            for family in (
+                "analysis_rationale_log",
+                "decision_trace",
+                "evidence_ledger_delta",
+                "review_ledger_delta",
+                "revision_log_delta",
+                "failed_path_ledger",
+                "artifact_lineage",
+                "reproducibility_refs",
+            )
+        },
+        "authority_boundary": {
+            "mas_authority_owner": "MedAutoScience",
+            "runtime_owner": "one-person-lab",
+            "writes_authority_surface": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "writes_runtime_queue": False,
+            "writes_provider_attempt": False,
+            "writes_yang_authority": False,
+        },
+        "idempotency": {
+            "idempotency_key": "pmc-001::route-back",
+            "transaction_fingerprint": "fingerprint::pmc-001::route-back",
+        },
+        "transaction_state": "terminal_decision_recorded",
+    }
 
 
 def test_paper_mission_help_exposes_default_commands(capsys) -> None:
@@ -143,6 +219,12 @@ def test_paper_mission_cli_returns_no_write_json_plan(
     assert payload["dry_run"] is expected_dry_run
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["mutation_policy"]["writes_runtime"] is False
+    assert payload["transaction_state"] == "not_materialized"
+    assert payload["stage_terminal_decision"]["authority_materialized"] is False
+    assert payload["opl_route_command"]["authority_materialized"] is False
+    assert payload["paper_mission_run_candidate"]["transaction_state"] == (
+        "not_materialized"
+    )
     assert "publication_eval/latest.json" in payload["forbidden_authority_writes"]
     _assert_forbidden_authority_untouched(tmp_path)
 
@@ -319,6 +401,10 @@ def test_paper_mission_start_reads_materialized_one_shot_mission_when_present(
             "consume_candidate_status": "route_back",
         },
     }
+    mission_payload["paper_mission_transaction"] = _paper_mission_transaction_payload(
+        mission_id=mission_payload["mission_id"],
+        study_id=study_id,
+    )
     (mission_root / "paper_mission_run.json").write_text(
         json.dumps(mission_payload),
         encoding="utf-8",
@@ -353,6 +439,13 @@ def test_paper_mission_start_reads_materialized_one_shot_mission_when_present(
         "gate_clearing_claim_evidence_repair"
     )
     assert payload["consume_candidate_status"] == "route_back"
+    assert payload["transaction_state"] == "terminal_decision_recorded"
+    assert payload["stage_terminal_decision"] == (
+        mission_payload["paper_mission_transaction"]["stage_terminal_decision"]
+    )
+    assert payload["opl_route_command"] == (
+        mission_payload["paper_mission_transaction"]["opl_route_command"]
+    )
     assert payload["dispatch_plan"]["domain_handler_dispatch_mode"] == (
         "materialized_mission_readback_no_write"
     )
@@ -477,6 +570,128 @@ def test_paper_mission_start_reads_materialized_mission_for_dm_alias(
     _assert_forbidden_authority_untouched(tmp_path, study_id=canonical_study_id)
 
 
+def test_paper_mission_materialized_legacy_run_without_transaction_terminalizes_consume_result(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "legacy"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": f"paper-mission::{study_id}::legacy::one-shot-migration",
+        "study_id": study_id,
+        "objective": "Legacy materialized mission without a transaction field.",
+        "mission_state": "consumed",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::legacy",
+                "artifact_ref": "mission://legacy/artifact-delta",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate_consumed",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": str(mission_root / "legacy_truth_import_pack.json"),
+            }
+        ],
+        "authority_touchpoints": [
+            {
+                "touchpoint_id": "publication_eval",
+                "owner": "MedAutoScience",
+                "surface": "publication_eval/latest.json",
+                "status": "not_touched",
+            }
+        ],
+        "forbidden_write_guard": {
+            "candidate_writes_authority": False,
+            "blocked_paths": [
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "current_package",
+                "runtime queue/provider attempts",
+                "/Users/gaofeng/workspace/Yang/**",
+            ],
+            "forbidden_claims": [
+                "publication_ready",
+                "current_package",
+                "owner_receipt_written",
+            ],
+        },
+        "consume_result": {"status": "accepted"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "analysis-campaign",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "consume_candidate_status": "accepted",
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_materialized_readback"
+    assert payload["paper_mission_transaction"]["transaction_id"].startswith(
+        f"paper-mission-transaction::{study_id}::gate_clearing_claim_evidence_repair"
+    )
+    assert payload["transaction_state"] == "accepted"
+    assert payload["stage_terminal_decision"]["decision_kind"] == "advance"
+    assert payload["stage_terminal_decision"]["next_stage_id"] == (
+        "publication_gate_replay"
+    )
+    assert payload["opl_route_command"]["command_kind"] == "start_next_stage"
+    assert payload["opl_route_command"]["target"] == "publication_gate_replay"
+    assert payload["paper_mission_transaction_readback"]["source"] == (
+        "materialized_paper_mission_run"
+    )
+    assert payload["paper_mission_transaction_readback"]["validation"]["status"] == (
+        "validated"
+    )
+    assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_uses_authority_consume_readback(
     tmp_path: Path,
     capsys,
@@ -517,6 +732,52 @@ def test_paper_mission_consume_candidate_uses_authority_consume_readback(
         "candidate_consumed"
     )
     assert payload["contract_validation"]["status"] == "validated"
+    assert payload["mutation_policy"]["writes_authority"] is False
+    assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
+    _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_picks_up_transaction_fields(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    mission_id = "paper-mission::001-paper::gate-clearing::manual"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id="001-paper",
+    )
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        paper_mission_transaction=transaction,
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["transaction_state"] == "terminal_decision_recorded"
+    assert payload["stage_terminal_decision"] == transaction["stage_terminal_decision"]
+    assert payload["opl_route_command"] == transaction["opl_route_command"]
+    assert payload["paper_mission_run_candidate"]["transaction_state"] == (
+        "terminal_decision_recorded"
+    )
+    assert payload["paper_mission_transaction_readback"]["writes_authority"] is False
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
     _assert_forbidden_authority_untouched(tmp_path)
