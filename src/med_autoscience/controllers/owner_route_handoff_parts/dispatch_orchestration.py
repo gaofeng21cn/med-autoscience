@@ -36,7 +36,11 @@ from ..guarded_apply_owner_delta_contract import (
 from ..real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .authority_boundary import authority_boundary_payload
 from .dispatch_receipts import write_dispatch_receipt
-from .task_kinds import ALLOWED_TASK_KINDS, FORBIDDEN_PAYLOAD_FLAGS
+from .task_kinds import (
+    ALLOWED_TASK_KINDS,
+    FORBIDDEN_PAYLOAD_FLAGS,
+    LEGACY_DIAGNOSTIC_TASK_KINDS,
+)
 
 STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
     {
@@ -626,6 +630,19 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
             reason="wrong_domain",
             detail=f"MAS domain handler cannot dispatch domain {domain_id}",
         )
+    if task_kind in LEGACY_DIAGNOSTIC_TASK_KINDS:
+        return _dispatch_error(
+            generated_at=generated_at,
+            task_id=task_id,
+            task_kind=task_kind,
+            reason="legacy_default_executor_dispatch_tombstoned",
+            detail=(
+                "domain_owner/default-executor-dispatch is diagnostic/provenance "
+                "only after the PaperMissionRun cutover; use paper_mission/start_or_resume "
+                "or MAS authority consume surfaces instead."
+            ),
+            legacy_diagnostic_task_kind=True,
+        )
     if _forbidden_write_requested(task):
         forbidden_requested_writes = _forbidden_requested_writes(task)
         return _dispatch_error(
@@ -688,6 +705,7 @@ def _dispatch_error(
     forbidden_domain_truth_write: bool = False,
     requested_writes: list[str] | None = None,
     forbidden_requested_writes: list[str] | None = None,
+    legacy_diagnostic_task_kind: bool = False,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "surface_kind": "mas_family_domain_handler_dispatch_receipt",
@@ -706,6 +724,17 @@ def _dispatch_error(
     }
     if forbidden_requested_writes is not None:
         payload["forbidden_requested_writes"] = forbidden_requested_writes
+    if legacy_diagnostic_task_kind:
+        payload.update(
+            {
+                "legacy_diagnostic_task_kind": True,
+                "default_paper_mission_entry": False,
+                "migration_diagnostic_only": True,
+                "ordinary_schedulable": False,
+                "active_caller_class": "diagnostic_only",
+                "replacement_task_kind": "paper_mission/start_or_resume",
+            }
+        )
     if task_id is not None:
         payload["task_id"] = task_id
     if task_kind is not None:

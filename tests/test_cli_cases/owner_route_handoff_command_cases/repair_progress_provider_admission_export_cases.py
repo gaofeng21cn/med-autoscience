@@ -196,6 +196,7 @@ def test_domain_handler_export_rejects_stale_provider_admission_under_ai_reviewe
     assert action["action_type"] == "return_to_ai_reviewer_workflow"
     assert action["work_unit_id"] == current_work_unit_id
     assert action["work_unit_fingerprint"] == "repair-progress-current-source"
+    assert action["recommended_task_kind"] == "domain_owner/default-executor-dispatch"
     tasks = [
         task
         for task in payload["pending_family_tasks"]
@@ -352,11 +353,11 @@ def test_domain_handler_export_prefers_fresh_repair_progress_ai_reviewer_followu
     assert action["source"] == "repair_progress_followup.current_executable_owner_action"
     assert action["action_type"] == "return_to_ai_reviewer_workflow"
     assert action["work_unit_id"] == current_work_unit_id
+    assert action["recommended_task_kind"] == "domain_owner/default-executor-dispatch"
     tasks = [
         task
         for task in payload["pending_family_tasks"]
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
     ]
-    assert [task["payload"]["action_type"] for task in tasks] == ["return_to_ai_reviewer_workflow"]
-    assert tasks[0]["payload"]["work_unit_id"] == current_work_unit_id
-    assert tasks[0]["payload"]["work_unit_fingerprint"] == current_fingerprint
+    assert tasks == []
+    assert payload["legacy_default_executor_dispatch_diagnostics"] == []

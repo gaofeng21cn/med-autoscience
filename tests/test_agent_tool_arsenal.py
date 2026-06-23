@@ -160,28 +160,19 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert display_preflight["risk_annotations"]["readOnlyHint"] is True
 
     dispatch = cards["domain_handler_dispatch"]
-    assert dispatch["effect"] == "mutating"
+    assert dispatch["effect"] == "read_only"
     assert dispatch["callability"] == "descriptor_only"
-    assert dispatch["risk_annotations"]["readOnlyHint"] is False
-    assert dispatch["risk_annotations"]["requires_opl_stage_attempt_or_lease"] is True
-    assert dispatch["non_read_only_gate"] == {
-        "surface_kind": "mas_agent_tool_non_read_only_gate",
-        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
-        "requires_current_owner_delta": True,
-        "requires_current_owner_delta_match": True,
-        "requires_human_gate": False,
-        "requires_human_gate_or_owner_delta": True,
-        "requires_owner_receipt_or_typed_blocker_proof": True,
-        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
-        "can_substitute_owner_receipt": False,
-        "can_authorize_publication_quality": False,
-        "can_authorize_submission_readiness": False,
-        "can_authorize_provider_admission": False,
-        "can_start_worker_attempt": False,
-    }
-    assert dispatch["invocation_gate"]["non_read_only_gate_policy"] == dispatch["non_read_only_gate"]["gate_policy"]
-    assert dispatch["invocation_gate"]["owner_receipt_or_typed_blocker_required"] is True
-    assert dispatch["authority_effects"]["can_return_owner_receipt"] is True
+    assert dispatch["risk_annotations"]["readOnlyHint"] is True
+    assert dispatch["risk_annotations"]["requires_opl_stage_attempt_or_lease"] is False
+    assert "non_read_only_gate" not in dispatch
+    assert "non_read_only_gate_policy" not in dispatch["invocation_gate"]
+    assert dispatch["invocation_gate"]["owner_receipt_or_typed_blocker_required"] is False
+    assert dispatch["allowed_writes"] == []
+    assert dispatch["authority_effects"]["can_return_owner_receipt"] is False
+    assert dispatch["authority_effects"]["can_return_typed_blocker"] is False
+    assert dispatch["authority_effects"]["owner_answer_surface"] == (
+        "paper_mission_authority_consume_or_terminal_owner_gate"
+    )
     assert "publication_quality" in dispatch["forbidden_authority"]
     assert "current_package" in dispatch["forbidden_authority"]
 

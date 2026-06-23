@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from collections.abc import Mapping
@@ -41,6 +42,9 @@ YANG_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang")
 PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
 )
+PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH = (
+    Path("ops") / "medautoscience" / "paper_mission_candidate_package"
+)
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
@@ -63,6 +67,18 @@ ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES = (
     "Yang study truth surfaces",
     "Yang runtime authority surfaces",
     "Yang output outside ops/medautoscience/paper_mission_one_shot_migration",
+)
+CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES = (
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "owner receipt",
+    "typed blocker",
+    "human gate",
+    "current_package",
+    "runtime queue/provider attempts",
+    "Yang study truth surfaces",
+    "Yang runtime authority surfaces",
+    "Yang output outside ops/medautoscience/paper_mission_candidate_package",
 )
 FORBIDDEN_AUTHORITY_CLAIMS = (
     "publication_ready",
@@ -101,6 +117,10 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     inspect_parser.add_argument("--study-progress-payload")
     inspect_parser.add_argument("--domain-health-diagnostic-payload")
     inspect_parser.add_argument("--output-root")
+
+    package_parser = mission_subparsers.add_parser("package-candidate")
+    _add_common_args(package_parser)
+    package_parser.add_argument("--output-root", required=True)
 
     start_parser = mission_subparsers.add_parser("start")
     _add_common_args(start_parser)
@@ -173,6 +193,14 @@ def build_paper_mission_readback(
             study_id=study_id,
             study_progress_payload=study_progress_payload,
             domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            output_root=output_root,
+            source=source,
+        )
+    if paper_mission_command == "package-candidate":
+        return _build_materialized_candidate_package_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
             output_root=output_root,
             source=source,
         )
@@ -513,6 +541,103 @@ def _latest_materialized_mission_path(
         reverse=True,
     )
     return candidates[0] if candidates else None
+
+
+def _build_materialized_candidate_package_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    output_root: str | Path | None,
+    source: str,
+) -> dict[str, Any]:
+    if output_root is None:
+        raise ValueError("--output-root is required for package-candidate")
+    readback = _build_materialized_mission_readback_if_available(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        paper_mission_command="package-candidate",
+        dry_run=False,
+        source=source,
+    )
+    if readback is None:
+        raise ValueError(
+            "package-candidate requires a materialized PaperMissionRun under "
+            "ops/medautoscience/paper_mission_one_shot_migration"
+        )
+    mission = dict(readback["paper_mission_run"])
+    candidate_manifest = (
+        dict(readback["candidate_manifest"])
+        if isinstance(readback.get("candidate_manifest"), Mapping)
+        else paper_mission_canary_candidate_manifest(mission)
+    )
+    candidate_artifact_delta = paper_mission_candidate_artifact_delta(mission)
+    owner_decision_packet = paper_mission_owner_decision_packet(mission)
+    summary = _foreground_owner_decision_summary(
+        readback=readback,
+        candidate_manifest=candidate_manifest,
+        candidate_artifact_delta=candidate_artifact_delta,
+        owner_decision_packet=owner_decision_packet,
+    )
+    output_manifest = _write_materialized_candidate_package_outputs(
+        output_root=Path(output_root),
+        study_id=str(readback["study_id"]),
+        paper_mission_readback=readback,
+        candidate_manifest=candidate_manifest,
+        candidate_artifact_delta=candidate_artifact_delta,
+        owner_decision_packet=owner_decision_packet,
+        foreground_owner_decision_summary=summary,
+    )
+    return {
+        "surface_kind": "paper_mission_candidate_package_write_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": "package-candidate",
+        "action_intent": _action_intent("package-candidate"),
+        "source": source,
+        "dry_run": False,
+        "profile": readback["profile"],
+        "requested_study_id": readback["requested_study_id"],
+        "study_id": readback["study_id"],
+        "study_root": readback["study_root"],
+        "study_root_exists": readback["study_root_exists"],
+        "mission_id": readback["mission_id"],
+        "objective": readback["objective"],
+        "materialized_mission_ref": readback["materialized_mission_ref"],
+        "stage_terminal_decision": readback["stage_terminal_decision"],
+        "opl_route_command": readback["opl_route_command"],
+        "opl_runtime_readback_status": readback["opl_runtime_readback_status"],
+        "terminal_owner_gate": readback.get("terminal_owner_gate"),
+        "terminal_owner_gate_authority_readback": readback.get(
+            "terminal_owner_gate_authority_readback"
+        ),
+        "next_owner_or_human_decision": readback["next_owner_or_human_decision"],
+        "transaction_state": readback["transaction_state"],
+        "consume_candidate_status": readback["consume_candidate_status"],
+        "candidate_manifest": candidate_manifest,
+        "mission_candidate_artifact_delta": candidate_artifact_delta,
+        "owner_decision_packet": owner_decision_packet,
+        "foreground_owner_decision_summary": summary,
+        "mutation_policy": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(
+                output_root
+            ),
+            "writes_paper_body": False,
+            "writes_candidate_workspace": True,
+            "dry_run_only": False,
+            "forbidden_authority_writes": list(
+                CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES
+            ),
+        },
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+        "output_manifest": output_manifest,
+    }
 
 
 def _materialized_mission_path_matches(
@@ -875,6 +1000,212 @@ def _write_one_shot_migration_outputs(
     }
 
 
+def _write_materialized_candidate_package_outputs(
+    *,
+    output_root: Path,
+    study_id: str,
+    paper_mission_readback: dict[str, Any],
+    candidate_manifest: dict[str, Any],
+    candidate_artifact_delta: dict[str, Any],
+    owner_decision_packet: dict[str, Any],
+    foreground_owner_decision_summary: dict[str, Any],
+) -> dict[str, Any]:
+    root = output_root.expanduser().resolve()
+    _assert_safe_candidate_output_root(root)
+    study_root = root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    outputs = {
+        "package_manifest": study_root / "package_manifest.json",
+        "paper_mission_readback": study_root / "paper_mission_readback.json",
+        "candidate_manifest": study_root / "candidate_manifest.json",
+        "mission_candidate_artifact_delta": study_root
+        / "mission_candidate_artifact_delta.json",
+        "owner_decision_packet": study_root / "owner_decision_packet.json",
+        "foreground_owner_decision_summary": study_root
+        / "foreground_owner_decision_summary.json",
+    }
+    sidecar_refs = {
+        "paper_mission_readback": str(outputs["paper_mission_readback"]),
+        "mission_candidate_artifact_delta": str(
+            outputs["mission_candidate_artifact_delta"]
+        ),
+        "owner_decision_packet": str(outputs["owner_decision_packet"]),
+        "foreground_owner_decision_summary": str(
+            outputs["foreground_owner_decision_summary"]
+        ),
+    }
+    candidate_manifest_payload = {
+        **candidate_manifest,
+        "mission_candidate_sidecar_refs": sidecar_refs,
+    }
+    payloads = {
+        "paper_mission_readback": paper_mission_readback,
+        "candidate_manifest": candidate_manifest_payload,
+        "mission_candidate_artifact_delta": candidate_artifact_delta,
+        "owner_decision_packet": owner_decision_packet,
+        "foreground_owner_decision_summary": foreground_owner_decision_summary,
+    }
+    package_manifest = {
+        "surface_kind": "paper_mission_foreground_candidate_package_manifest",
+        "schema_version": 1,
+        "mode": "non_authority_candidate_package",
+        "study_id": study_id,
+        "mission_id": paper_mission_readback.get("mission_id"),
+        "candidate_is_authority": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "authority_materialized_by_this_package": False,
+        "source_refs": foreground_owner_decision_summary["input_refs"],
+        "current_terminal_decision": foreground_owner_decision_summary[
+            "current_terminal_decision"
+        ],
+        "next_owner": foreground_owner_decision_summary["next_owner"],
+        "blocked_reason": foreground_owner_decision_summary["blocked_reason"],
+        "required_owner_action": foreground_owner_decision_summary[
+            "required_owner_action"
+        ],
+        "artifact_refs": sidecar_refs,
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+    }
+    payloads["package_manifest"] = package_manifest
+    written_files: list[str] = []
+    file_sha256: dict[str, str] = {}
+    for key, path in outputs.items():
+        text = json.dumps(payloads[key], ensure_ascii=False, indent=2) + "\n"
+        path.write_text(text, encoding="utf-8")
+        written_files.append(str(path))
+        file_sha256[str(path)] = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return {
+        "mode": "non_authority_candidate_package",
+        "output_root": str(study_root),
+        "written_files": written_files,
+        "file_sha256": file_sha256,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(root),
+        "package_manifest_ref": str(outputs["package_manifest"]),
+        "paper_mission_readback_ref": str(outputs["paper_mission_readback"]),
+        "candidate_manifest_ref": str(outputs["candidate_manifest"]),
+        "mission_candidate_artifact_delta_ref": str(
+            outputs["mission_candidate_artifact_delta"]
+        ),
+        "owner_decision_packet_ref": str(outputs["owner_decision_packet"]),
+        "foreground_owner_decision_summary_ref": str(
+            outputs["foreground_owner_decision_summary"]
+        ),
+    }
+
+
+def _foreground_owner_decision_summary(
+    *,
+    readback: Mapping[str, Any],
+    candidate_manifest: Mapping[str, Any],
+    candidate_artifact_delta: Mapping[str, Any],
+    owner_decision_packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    terminal_decision = _mapping(readback.get("stage_terminal_decision"))
+    next_decision = _mapping(readback.get("next_owner_or_human_decision"))
+    terminal_owner_gate = _mapping(readback.get("terminal_owner_gate"))
+    owner_packet_next_owner = _optional_text(owner_decision_packet.get("next_owner"))
+    candidate_next_owner = _optional_text(candidate_manifest.get("next_owner"))
+    decision_next_owner = _optional_text(terminal_decision.get("next_owner"))
+    selected_next_owner = _first_text(
+        next_decision.get("next_owner"),
+        terminal_owner_gate.get("owner"),
+        decision_next_owner,
+        owner_packet_next_owner,
+        candidate_next_owner,
+        "mas_authority_kernel",
+    )
+    blocked_reason = _first_text(
+        terminal_owner_gate.get("blocked_reason"),
+        terminal_decision.get("blocker_id"),
+        terminal_decision.get("reason"),
+        readback.get("consume_candidate_status"),
+        "owner_decision_required",
+    )
+    required_owner_action = _required_owner_action(
+        readback=readback,
+        next_owner=selected_next_owner or "mas_authority_kernel",
+        blocked_reason=blocked_reason or "owner_decision_required",
+    )
+    return {
+        "surface_kind": "paper_mission_foreground_owner_decision_summary",
+        "schema_version": 1,
+        "candidate_is_authority": False,
+        "governed_runtime_truth": False,
+        "authority_materialized_by_this_packet": False,
+        "study_id": readback.get("study_id"),
+        "mission_id": readback.get("mission_id"),
+        "objective": readback.get("objective"),
+        "input_refs": {
+            "profile_ref": _mapping(readback.get("profile")).get("profile_ref"),
+            "materialized_mission_ref": readback.get("materialized_mission_ref"),
+            "candidate_manifest_ref": readback.get("candidate_manifest_ref"),
+            "candidate_id": candidate_manifest.get("candidate_id"),
+            "artifact_delta_ref": candidate_artifact_delta.get("artifact_ref"),
+            "owner_decision_packet_id": owner_decision_packet.get("packet_id"),
+            "source_readiness_refs": candidate_manifest.get("source_readiness_refs", []),
+        },
+        "current_terminal_decision": {
+            "decision_kind": terminal_decision.get("decision_kind"),
+            "status": terminal_decision.get("status"),
+            "reason": terminal_decision.get("reason"),
+            "next_owner": decision_next_owner,
+            "next_stage_id": terminal_decision.get("next_stage_id"),
+            "blocker_id": terminal_decision.get("blocker_id"),
+            "unblock_condition": terminal_decision.get("unblock_condition"),
+        },
+        "runtime_touchpoint": {
+            "opl_runtime_readback_status": readback.get("opl_runtime_readback_status"),
+            "terminal_owner_gate": terminal_owner_gate or None,
+            "next_owner_or_human_decision": next_decision,
+        },
+        "next_owner": selected_next_owner,
+        "blocked_reason": blocked_reason,
+        "required_owner_action": required_owner_action,
+        "remaining_owner_gap": (
+            "MAS/OPL owner surface must consume, route back, materialize a governed "
+            "typed blocker or human gate, or accept an owner receipt before this "
+            "candidate can be treated as runtime truth."
+        ),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+    }
+
+
+def _required_owner_action(
+    *,
+    readback: Mapping[str, Any],
+    next_owner: str,
+    blocked_reason: str,
+) -> str:
+    consume_status = _optional_text(readback.get("consume_candidate_status"))
+    if consume_status == "accepted":
+        return (
+            f"{next_owner} must consume the accepted candidate through governed "
+            "MAS authority or route it back with a governed receipt; foreground "
+            "package alone does not authorize paper progress."
+        )
+    if consume_status == "typed_blocker":
+        return (
+            f"{next_owner} must materialize or reject the governed typed blocker "
+            f"request for `{blocked_reason}`."
+        )
+    if consume_status == "human_gate":
+        return (
+            f"{next_owner} must record the governed human-gate decision for "
+            f"`{blocked_reason}`."
+        )
+    return (
+        f"{next_owner} must decide whether to consume, route back, block, or ask a "
+        f"human question for `{blocked_reason}`."
+    )
+
+
 def _no_write_output_manifest() -> dict[str, Any]:
     return {
         "mode": "readback_only",
@@ -901,8 +1232,9 @@ def _assert_safe_candidate_output_root(path: Path) -> None:
         "runtime/queue",
         "provider_attempt",
     )
-    if _is_under_yang_workspace(normalized_path) and not _is_yang_ops_candidate_root(
-        normalized_path
+    if (
+        _is_under_yang_workspace(normalized_path)
+        and not _is_yang_ops_non_authority_candidate_root(normalized_path)
     ):
         raise ValueError(f"forbidden paper mission output root: {path}")
     for forbidden in forbidden_parts:
@@ -911,6 +1243,18 @@ def _assert_safe_candidate_output_root(path: Path) -> None:
 
 
 def _is_yang_ops_candidate_root(path: str | Path | None) -> bool:
+    return _is_yang_ops_root(path, PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH)
+
+
+def _is_yang_ops_candidate_package_root(path: str | Path | None) -> bool:
+    return _is_yang_ops_root(path, PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH)
+
+
+def _is_yang_ops_non_authority_candidate_root(path: str | Path | None) -> bool:
+    return _is_yang_ops_candidate_root(path) or _is_yang_ops_candidate_package_root(path)
+
+
+def _is_yang_ops_root(path: str | Path | None, relpath: Path) -> bool:
     if path is None:
         return False
     normalized = Path(path).expanduser().resolve()
@@ -919,11 +1263,9 @@ def _is_yang_ops_candidate_root(path: str | Path | None) -> bool:
     except ValueError:
         return False
     parts = relative.parts
-    if len(parts) < len(PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH.parts) + 2:
+    if len(parts) < len(relpath.parts) + 2:
         return False
-    return Path(*parts[1 : 1 + len(PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH.parts)]) == (
-        PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH
-    )
+    return Path(*parts[1 : 1 + len(relpath.parts)]) == relpath
 
 
 def _is_under_yang_workspace(path: Path) -> bool:
@@ -950,6 +1292,8 @@ def _action_intent(paper_mission_command: str) -> str:
         return PAPER_MISSION_START_OR_RESUME_TASK_KIND
     if paper_mission_command == "consume-candidate":
         return "paper_mission/consume_candidate"
+    if paper_mission_command == "package-candidate":
+        return "paper_mission/package_candidate"
     return "paper_mission/inspect"
 
 

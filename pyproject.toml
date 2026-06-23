@@ -67,4 +67,5 @@ markers = [
   "integration: cross-entry or cross-module integration tests that are broader than unit contracts",
   "materialization_heavy: artifact/package materialization tests that should stay out of default regression",
   "soak_or_golden: long-running soak, golden-regression, or fixture-oracle tests",
+  "write_route_legacy_default: legacy default-executor/write-route fixture tests excluded from default regression after PaperMissionRun cutover",
 ]

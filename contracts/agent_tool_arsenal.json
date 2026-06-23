@@ -2798,7 +2798,7 @@
           "task_intents": [
             "domain handler dispatch"
           ],
-          "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes."
+          "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes."
         },
         "fit_signal": {
           "capability_tags": [],
@@ -2823,12 +2823,7 @@
           "surface_kind": "mas_tool_fit_signal"
         },
         "invocation_gate": {
-          "allowed_writes": [
-            "MAS owner-route dispatch receipt refs",
-            "MAS owner receipt refs",
-            "MAS typed blocker refs",
-            "explicit OPL opt-in executor/proof refs"
-          ],
+          "allowed_writes": [],
           "fail_closed": true,
           "forbidden_authority": [
             "study_truth",
@@ -2838,20 +2833,17 @@
             "memory_accept_reject",
             "current_package"
           ],
-          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
-          "owner_receipt_or_typed_blocker_required": true,
+          "owner_receipt_or_typed_blocker_required": false,
           "preflight_checks": [
             "confirm_current_owner_delta_matches_card_applicability",
             "verify_required_refs_available",
-            "verify_opl_stage_attempt_or_lease",
             "check_allowed_writes_and_forbidden_authority"
           ],
           "required_refs": [
-            "task_ref",
-            "opl_stage_attempt_or_lease"
+            "task_ref"
           ],
           "requires_human_gate": false,
-          "requires_opl_stage_attempt_or_lease": true,
+          "requires_opl_stage_attempt_or_lease": false,
           "surface_kind": "mas_tool_invocation_gate"
         },
         "missing_refs_do_not_remove_candidate": true,
@@ -2860,12 +2852,12 @@
           "task_ref"
         ],
         "risk": {
-          "read_only": false,
+          "read_only": true,
           "requires_human_gate": false,
-          "requires_stage_attempt": true
+          "requires_stage_attempt": false
         },
         "tool_id": "domain_handler_dispatch",
-        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes."
+        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes."
       },
       {
         "action_id": "authority_operations",
@@ -15713,12 +15705,7 @@
         "quality_floor_only": false,
         "surface_kind": "mas_tool_adaptation_policy"
       },
-      "allowed_writes": [
-        "MAS owner-route dispatch receipt refs",
-        "MAS owner receipt refs",
-        "MAS typed blocker refs",
-        "explicit OPL opt-in executor/proof refs"
-      ],
+      "allowed_writes": [],
       "audit_trail_schema_ref": "contracts/agent_tool_arsenal.json#/tool_audit_trail_schema",
       "authority_boundary": {
         "authoritative_truth_refs": [
@@ -15727,9 +15714,6 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
-        "can_authorize_provider_admission": false,
-        "can_start_worker_attempt": false,
-        "can_substitute_owner_receipt": false,
         "capability_plan_can_authorize_publication_quality": false,
         "capability_plan_can_authorize_submission_readiness": false,
         "capability_plan_can_replace_owner_receipt": false,
@@ -15748,7 +15732,6 @@
         "mas_selector_authority": false,
         "mas_tool_invocation_runtime_authority": false,
         "missing_refs_trigger_mutating_invocation": false,
-        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
         "opl_capability_runtime_readback_requirement": {
           "mas_readback_consumer_only": true,
           "missing_readback_blocks_mutating_invocation": true,
@@ -15774,7 +15757,6 @@
         },
         "opl_owns_capability_invocation_runtime": true,
         "opl_owns_capability_selection_runtime": true,
-        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
         "resolve_or_plan_can_authorize_provider_admission": false,
         "resolve_or_plan_can_invoke_tool": false,
         "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -15785,14 +15767,15 @@
       "authority_effects": {
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
-        "can_return_owner_receipt": true,
-        "can_return_typed_blocker": true,
-        "can_write_domain_truth": false
+        "can_return_owner_receipt": false,
+        "can_return_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "owner_answer_surface": "paper_mission_authority_consume_or_terminal_owner_gate"
       },
       "callability": "descriptor_only",
       "card_kind": "action_catalog",
       "command": "medautosci domain-handler dispatch --task <task.json> --format json",
-      "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "default_invocation": {
         "arguments": {
           "current_owner_delta": "<current_owner_delta>"
@@ -15824,9 +15807,9 @@
         "task_intents": [
           "domain handler dispatch"
         ],
-        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes."
+        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes."
       },
-      "effect": "mutating",
+      "effect": "read_only",
       "executor_receipt_ref_policy": {
         "can_block_current_owner_action": false,
         "field": "executor_receipt_ref",
@@ -15841,10 +15824,6 @@
         "missing_refs": {
           "next_safe_action": "collect_missing_refs",
           "retryability": "retry_after_refs"
-        },
-        "missing_stage_attempt_or_lease": {
-          "next_safe_action": "request_opl_stage_attempt_or_lease",
-          "retryability": "owner_needed"
         },
         "tool_execution_error": {
           "next_safe_action": "inspect_diagnostic_refs",
@@ -15882,18 +15861,13 @@
         "current_package"
       ],
       "human_gate_ids": [],
-      "idempotency_policy": "requires_current_owner_delta_or_human_gate_fingerprint",
+      "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [
         "task_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
       "invocation_gate": {
-        "allowed_writes": [
-          "MAS owner-route dispatch receipt refs",
-          "MAS owner receipt refs",
-          "MAS typed blocker refs",
-          "explicit OPL opt-in executor/proof refs"
-        ],
+        "allowed_writes": [],
         "fail_closed": true,
         "forbidden_authority": [
           "study_truth",
@@ -15903,20 +15877,17 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
-        "owner_receipt_or_typed_blocker_required": true,
+        "owner_receipt_or_typed_blocker_required": false,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
-          "verify_opl_stage_attempt_or_lease",
           "check_allowed_writes_and_forbidden_authority"
         ],
         "required_refs": [
-          "task_ref",
-          "opl_stage_attempt_or_lease"
+          "task_ref"
         ],
         "requires_human_gate": false,
-        "requires_opl_stage_attempt_or_lease": true,
+        "requires_opl_stage_attempt_or_lease": false,
         "surface_kind": "mas_tool_invocation_gate"
       },
       "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
@@ -15937,21 +15908,6 @@
           "when": "required_refs_missing"
         }
       ],
-      "non_read_only_gate": {
-        "can_authorize_provider_admission": false,
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_start_worker_attempt": false,
-        "can_substitute_owner_receipt": false,
-        "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
-        "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
-        "requires_current_owner_delta": true,
-        "requires_current_owner_delta_match": true,
-        "requires_human_gate": false,
-        "requires_human_gate_or_owner_delta": true,
-        "requires_owner_receipt_or_typed_blocker_proof": true,
-        "surface_kind": "mas_agent_tool_non_read_only_gate"
-      },
       "operational": {
         "authority_boundary": {
           "authoritative_truth_refs": [
@@ -15960,9 +15916,6 @@
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json"
           ],
-          "can_authorize_provider_admission": false,
-          "can_start_worker_attempt": false,
-          "can_substitute_owner_receipt": false,
           "capability_plan_can_authorize_publication_quality": false,
           "capability_plan_can_authorize_submission_readiness": false,
           "capability_plan_can_replace_owner_receipt": false,
@@ -15981,7 +15934,6 @@
           "mas_selector_authority": false,
           "mas_tool_invocation_runtime_authority": false,
           "missing_refs_trigger_mutating_invocation": false,
-          "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
           "opl_capability_runtime_readback_requirement": {
             "mas_readback_consumer_only": true,
             "missing_readback_blocks_mutating_invocation": true,
@@ -16007,7 +15959,6 @@
           },
           "opl_owns_capability_invocation_runtime": true,
           "opl_owns_capability_selection_runtime": true,
-          "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": false,
           "resolve_or_plan_can_authorize_provider_admission": false,
           "resolve_or_plan_can_invoke_tool": false,
           "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -16032,10 +15983,6 @@
             "next_safe_action": "collect_missing_refs",
             "retryability": "retry_after_refs"
           },
-          "missing_stage_attempt_or_lease": {
-            "next_safe_action": "request_opl_stage_attempt_or_lease",
-            "retryability": "owner_needed"
-          },
           "tool_execution_error": {
             "next_safe_action": "inspect_diagnostic_refs",
             "retryability": "retry_safe"
@@ -16058,7 +16005,6 @@
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
-          "verify_opl_stage_attempt_or_lease",
           "check_allowed_writes_and_forbidden_authority"
         ],
         "required_refs": [
@@ -16081,7 +16027,6 @@
       "preflight_checks": [
         "confirm_current_owner_delta_matches_card_applicability",
         "verify_required_refs_available",
-        "verify_opl_stage_attempt_or_lease",
         "check_allowed_writes_and_forbidden_authority"
       ],
       "required_refs": [
@@ -16089,13 +16034,13 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": false,
-        "readOnlyHint": false,
+        "readOnlyHint": true,
         "requires_human_gate": false,
-        "requires_opl_stage_attempt_or_lease": true
+        "requires_opl_stage_attempt_or_lease": false
       },
       "success_signals": [
         "mas_tool_result_envelope_returned",
@@ -16103,7 +16048,7 @@
         "structured_payload_matches_output_schema",
         "no_forbidden_authority_claim"
       ],
-      "summary": "Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes.",
+      "summary": "Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes.",
       "supported_surfaces": [
         "ai_sdk",
         "cli",
@@ -16113,10 +16058,10 @@
         "skill"
       ],
       "surface_kind": "mas_tool_use_card",
-      "title": "Dispatch MAS domain-handler task",
+      "title": "Inspect MAS domain-handler dispatch boundary",
       "tool_id": "domain_handler_dispatch",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
-      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes."
+      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes."
     },
     {
       "action_id": "authority_operations",
@@ -18334,7 +18279,7 @@
         "surface_kind": "mas_tool_adaptation_policy"
       },
       "callability": "descriptor_only",
-      "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "discovery_hint": {
         "aliases": [
           "domain_handler_dispatch"
@@ -18358,9 +18303,9 @@
         "task_intents": [
           "domain handler dispatch"
         ],
-        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes."
+        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes."
       },
-      "effect": "mutating",
+      "effect": "read_only",
       "fit_signal": {
         "capability_tags": [],
         "fit_policy_candidates": [
@@ -18384,12 +18329,7 @@
         "surface_kind": "mas_tool_fit_signal"
       },
       "invocation_gate": {
-        "allowed_writes": [
-          "MAS owner-route dispatch receipt refs",
-          "MAS owner receipt refs",
-          "MAS typed blocker refs",
-          "explicit OPL opt-in executor/proof refs"
-        ],
+        "allowed_writes": [],
         "fail_closed": true,
         "forbidden_authority": [
           "study_truth",
@@ -18399,29 +18339,26 @@
           "memory_accept_reject",
           "current_package"
         ],
-        "non_read_only_gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
-        "owner_receipt_or_typed_blocker_required": true,
+        "owner_receipt_or_typed_blocker_required": false,
         "preflight_checks": [
           "confirm_current_owner_delta_matches_card_applicability",
           "verify_required_refs_available",
-          "verify_opl_stage_attempt_or_lease",
           "check_allowed_writes_and_forbidden_authority"
         ],
         "required_refs": [
-          "task_ref",
-          "opl_stage_attempt_or_lease"
+          "task_ref"
         ],
         "requires_human_gate": false,
-        "requires_opl_stage_attempt_or_lease": true,
+        "requires_opl_stage_attempt_or_lease": false,
         "surface_kind": "mas_tool_invocation_gate"
       },
       "next_step_hint": "resolve_descriptor_surface",
-      "read_only": false,
+      "read_only": true,
       "required_refs": [
         "task_ref"
       ],
       "tool_id": "domain_handler_dispatch",
-      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes."
+      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, or current package writes."
     },
     {
       "action_id": "authority_operations",

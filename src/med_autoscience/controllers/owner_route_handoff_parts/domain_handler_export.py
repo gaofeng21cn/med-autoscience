@@ -35,10 +35,7 @@ from ..study_domain_transition_table_parts import family_transition_spec
 from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
-from .default_executor_dispatch_tasks import (
-    default_executor_dispatch_tasks,
-    legacy_default_executor_dispatch_diagnostics,
-)
+from .default_executor_dispatch_tasks import legacy_default_executor_dispatch_diagnostics
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
@@ -55,9 +52,6 @@ from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
 from .opl_supervisor_decision_request_tasks import opl_supervisor_decision_request_task
-from .paper_recovery_default_executor_tasks import (
-    paper_recovery_default_executor_dispatch_tasks,
-)
 from .supervisor_typed_blocker_resolution import (
     current_supervisor_decision as _current_supervisor_decision,
     supervisor_stop_decision_matches_current_work_unit as _supervisor_stop_decision_matches_current_work_unit,
@@ -304,15 +298,6 @@ def _pending_family_tasks(
         )
         ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
         if ordinary_task_blocker and not current_owner_action:
-            materialized_dispatch_tasks = paper_recovery_default_executor_dispatch_tasks(
-                current_progress=current_progress,
-                profile=profile,
-                profile_ref=profile_ref,
-                study_id=study_id,
-            )
-            if materialized_dispatch_tasks:
-                tasks.extend(materialized_dispatch_tasks)
-                continue
             resolution_task = _current_typed_blocker_owner_resolution_task(
                 study=study,
                 current_progress=current_progress,
@@ -362,29 +347,6 @@ def _pending_family_tasks(
                     profile=profile,
                     profile_ref=profile_ref,
                     study_id=study_id,
-                )
-            )
-        current_control_transition_tasks = _current_control_transition_request_tasks(
-            study=current_progress or study,
-            current_progress=current_progress,
-            current_owner_action=current_owner_action,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-        )
-        if current_control_transition_tasks:
-            tasks.extend(current_control_transition_tasks)
-        else:
-            tasks.extend(
-                default_executor_dispatch_tasks(
-                    profile=profile,
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                    current_owner_action=current_owner_action,
-                    current_work_unit=current_work_unit,
-                    current_execution_envelope=current_execution_envelope,
-                    paper_recovery_state=mapping(current_progress.get("paper_recovery_state")),
-                    persist_identity=False,
                 )
             )
         if ordinary_task_blocker or legacy_route_tasks_blocked:

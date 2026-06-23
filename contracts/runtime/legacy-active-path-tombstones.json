@@ -43,7 +43,9 @@
           "task_kind": "domain_owner/default-executor-dispatch",
           "default_paper_mission_entry": false,
           "migration_diagnostic_only": true,
-          "active_caller_class": "diagnostic_only"
+          "ordinary_schedulable": false,
+          "active_caller_class": "diagnostic_only",
+          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
         }
       },
       "authority_boundary": {
@@ -231,13 +233,15 @@
         "schema_version": "paper-mission-run.v1",
         "validator": "med_autoscience.paper_mission_run.PaperMissionRun"
       },
-      "legacy_active_caller_allowed_only_when": {
-        "task_kind": "domain_owner/default-executor-dispatch",
-        "default_paper_mission_entry": false,
-        "migration_diagnostic_only": true,
-        "active_caller_class": "diagnostic_only"
-      }
-    },
+        "legacy_active_caller_allowed_only_when": {
+          "task_kind": "domain_owner/default-executor-dispatch",
+          "default_paper_mission_entry": false,
+          "migration_diagnostic_only": true,
+          "ordinary_schedulable": false,
+          "active_caller_class": "diagnostic_only",
+          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
+        }
+      },
     "proof_scope": [
       {
         "surface_id": "product_entry_manifest.medical_paper_product_entry",
@@ -261,24 +265,29 @@
         "legacy_carrier_policy": {
           "task_kind": "domain_owner/default-executor-dispatch",
           "default_paper_mission_entry": false,
-          "migration_diagnostic_only": true
+          "migration_diagnostic_only": true,
+          "ordinary_schedulable": false,
+          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
         }
       },
       {
         "surface_id": "domain_handler_export.pending_family_tasks",
         "source_ref": "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py::_paper_mission_start_or_resume_task",
         "required_default_task_kind": "paper_mission/start_or_resume",
+        "legacy_task_kind_allowed": false,
         "legacy_task_kind_allowed_only_when": {
           "task_kind": "domain_owner/default-executor-dispatch",
           "default_paper_mission_entry": false,
-          "migration_diagnostic_only": true
+          "migration_diagnostic_only": true,
+          "ordinary_schedulable": false,
+          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
         }
       },
       {
         "surface_id": "family_action_catalog",
         "source_ref": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
         "required_policy": "no legacy DHD/default-executor/PaperRecovery action is a default paper mission action",
-        "allowed_legacy_reference_class": "descriptor-only domain handler export/dispatch refs; not a paper mission default"
+        "allowed_legacy_reference_class": "descriptor-only domain handler export/dispatch refs; dispatch is read-only boundary metadata and not an owner-answer producer"
       },
       {
         "surface_id": "mcp_tool_manifest",

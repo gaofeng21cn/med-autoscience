@@ -158,7 +158,7 @@ def test_paper_mission_help_exposes_default_commands(capsys) -> None:
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    for command in ("inspect", "start", "resume", "consume-candidate"):
+    for command in ("inspect", "start", "resume", "consume-candidate", "package-candidate"):
         assert command in captured.out
 
 
@@ -417,6 +417,186 @@ def test_domain_handler_export_paper_mission_task_carries_opl_runtime_carrier_fo
         "/candidate_manifest.json"
     )
     assert task_payload["paper_mission"]["opl_runtime_carrier"] == carrier
+
+
+def test_paper_mission_package_candidate_writes_non_authority_owner_decision_package(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260623T2032Z"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": f"paper-mission::{study_id}::gate-clearing::one-shot-migration",
+        "study_id": study_id,
+        "objective": "Consume DM002 publication blockers and repair claim/evidence gaps.",
+        "mission_state": "candidate_ready_for_consumption",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm002::claim-evidence-repair",
+                "artifact_ref": "mission://dm002/claim-evidence-repair",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": str(mission_root / "legacy_truth_import_pack.json"),
+            }
+        ],
+        "authority_touchpoints": [
+            {
+                "touchpoint_id": "publication_eval",
+                "owner": "MedAutoScience",
+                "surface": "publication_eval/latest.json",
+                "status": "not_touched",
+            }
+        ],
+        "forbidden_write_guard": {
+            "candidate_writes_authority": False,
+            "blocked_paths": [
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "current_package",
+                "runtime queue/provider attempts",
+                "/Users/gaofeng/workspace/Yang/**",
+            ],
+            "forbidden_claims": [
+                "publication_ready",
+                "current_package",
+                "owner_receipt_written",
+            ],
+        },
+        "consume_result": {"status": "accepted"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "analysis-campaign",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "consume_candidate_status": "accepted",
+        },
+    }
+    mission_payload["paper_mission_transaction"] = _paper_mission_transaction_payload(
+        mission_id=mission_payload["mission_id"],
+        study_id=study_id,
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps(
+            {
+                "candidate_id": "pmc-dm002",
+                "mission_id": mission_payload["mission_id"],
+                "study_id": study_id,
+                "next_owner": "analysis-campaign",
+                "source_readiness_refs": ["source-readiness:dm002"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "20260623T2100Z"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "package-candidate",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(output_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_candidate_package_write_readback"
+    assert payload["mutation_policy"]["writes_authority"] is False
+    assert payload["mutation_policy"]["writes_runtime"] is False
+    assert payload["mutation_policy"]["writes_yang_authority"] is False
+    assert (
+        "Yang output outside ops/medautoscience/paper_mission_candidate_package"
+        in payload["mutation_policy"]["forbidden_authority_writes"]
+    )
+    assert (
+        "Yang output outside ops/medautoscience/paper_mission_one_shot_migration"
+        not in payload["mutation_policy"]["forbidden_authority_writes"]
+    )
+    assert payload["output_manifest"]["writes_authority"] is False
+    assert payload["output_manifest"]["writes_runtime"] is False
+    assert payload["output_manifest"]["writes_yang_authority"] is False
+    assert payload["output_manifest"]["package_manifest_ref"].endswith(
+        "/package_manifest.json"
+    )
+    written_files = [Path(path) for path in payload["output_manifest"]["written_files"]]
+    assert len(written_files) == 6
+    assert all(path.is_file() for path in written_files)
+    assert all(output_root in path.parents for path in written_files)
+    package_manifest = json.loads(
+        Path(payload["output_manifest"]["package_manifest_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_summary = json.loads(
+        Path(payload["output_manifest"]["foreground_owner_decision_summary_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert package_manifest["mode"] == "non_authority_candidate_package"
+    assert package_manifest["candidate_is_authority"] is False
+    assert package_manifest["authority_materialized_by_this_package"] is False
+    assert (
+        "Yang output outside ops/medautoscience/paper_mission_candidate_package"
+        in package_manifest["forbidden_authority_writes"]
+    )
+    assert (
+        "Yang output outside ops/medautoscience/paper_mission_one_shot_migration"
+        not in package_manifest["forbidden_authority_writes"]
+    )
+    assert owner_summary["candidate_is_authority"] is False
+    assert owner_summary["governed_runtime_truth"] is False
+    assert owner_summary["authority_materialized_by_this_packet"] is False
+    assert (
+        "Yang output outside ops/medautoscience/paper_mission_candidate_package"
+        in owner_summary["forbidden_authority_writes"]
+    )
+    assert "remaining_owner_gap" in owner_summary
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
 def test_domain_handler_dispatch_accepts_paper_mission_dry_run_without_authority_writes(

@@ -494,8 +494,17 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
             "can_write_domain_truth": False,
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
-            "can_return_owner_receipt": action_id == "domain_handler_dispatch",
-            "can_return_typed_blocker": action_id == "domain_handler_dispatch",
+            "can_return_owner_receipt": False,
+            "can_return_typed_blocker": False,
+            **(
+                {
+                    "owner_answer_surface": (
+                        "paper_mission_authority_consume_or_terminal_owner_gate"
+                    )
+                }
+                if action_id == "domain_handler_dispatch"
+                else {}
+            ),
         },
         "audit_trail_schema_ref": AUDIT_TRAIL_SCHEMA_REF,
     }

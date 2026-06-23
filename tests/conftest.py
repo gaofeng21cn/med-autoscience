@@ -84,6 +84,7 @@ SOAK_OR_GOLDEN_FILES = {
 }
 
 WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
+    "tests/test_cli_cases/owner_route_handoff_command.py",
     "tests/test_submission_minimal.py",
     "tests/test_submission_minimal_display_surface.py",
     "tests/test_study_delivery_sync.py",

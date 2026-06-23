@@ -64,7 +64,9 @@ def test_old_path_replacement_points_to_paper_mission_run_contract() -> None:
             "task_kind": "domain_owner/default-executor-dispatch",
             "default_paper_mission_entry": False,
             "migration_diagnostic_only": True,
+            "ordinary_schedulable": False,
             "active_caller_class": "diagnostic_only",
+            "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
         },
     }
 
@@ -138,7 +140,9 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
             "task_kind": "domain_owner/default-executor-dispatch",
             "default_paper_mission_entry": False,
             "migration_diagnostic_only": True,
+            "ordinary_schedulable": False,
             "active_caller_class": "diagnostic_only",
+            "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
         },
     }
     assert proof["physical_reference_deletion_required_for_default_retirement"] is False
@@ -170,7 +174,12 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
         "task_kind": "domain_owner/default-executor-dispatch",
         "default_paper_mission_entry": False,
         "migration_diagnostic_only": True,
+        "ordinary_schedulable": False,
+        "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
     }
+    assert scope_by_id["domain_handler_export.pending_family_tasks"][
+        "legacy_task_kind_allowed"
+    ] is False
     assert scope_by_id["plugin_skill_ordinary_path"]["required_ordinary_path"] == (
         "study -> stage -> domain owner receipt or typed blocker -> handoff"
     )
@@ -213,9 +222,43 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
         for task in export["pending_family_tasks"]
         if task.get("task_kind") == "domain_owner/default-executor-dispatch"
     ]
-    assert all(task.get("default_paper_mission_entry") is False for task in legacy_tasks)
-    assert all(task.get("migration_diagnostic_only") is True for task in legacy_tasks)
-    assert all(task.get("active_caller_class") == "diagnostic_only" for task in legacy_tasks)
+    assert legacy_tasks == []
+
+
+def test_domain_handler_dispatch_rejects_legacy_default_executor_task_kind(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.controllers.owner_route_handoff_parts import dispatch_orchestration
+
+    task_path = tmp_path / "legacy-default-executor-task.json"
+    task_path.write_text(
+        json.dumps(
+            {
+                "task_id": "legacy-dispatch-001",
+                "domain_id": "medautoscience",
+                "task_kind": "domain_owner/default-executor-dispatch",
+                "payload": {
+                    "profile": str(tmp_path / "profile.toml"),
+                    "study_id": "001-paper",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    receipt = dispatch_orchestration.dispatch_family_domain_handler_task(
+        task_path=task_path
+    )
+
+    assert receipt["accepted"] is False
+    assert receipt["reason"] == "legacy_default_executor_dispatch_tombstoned"
+    assert receipt["task_kind"] == "domain_owner/default-executor-dispatch"
+    assert receipt["legacy_diagnostic_task_kind"] is True
+    assert receipt["default_paper_mission_entry"] is False
+    assert receipt["migration_diagnostic_only"] is True
+    assert receipt["ordinary_schedulable"] is False
+    assert receipt["active_caller_class"] == "diagnostic_only"
+    assert receipt["replacement_task_kind"] == "paper_mission/start_or_resume"
 
 
 def test_legacy_default_executor_dispatch_task_is_demoted_when_carried() -> None:
@@ -337,6 +380,34 @@ def test_action_catalog_and_mcp_manifest_do_not_expose_legacy_default_paper_tool
         "authority_operations",
         "agent_tool_arsenal",
     } == set(mcp_server.TOOL_HANDLERS)
+
+
+def test_tracked_action_catalog_and_tool_arsenal_demote_domain_handler_dispatch() -> None:
+    action_catalog = json.loads(
+        (REPO_ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
+    )
+    tool_arsenal = json.loads(
+        (REPO_ROOT / "contracts/agent_tool_arsenal.json").read_text(encoding="utf-8")
+    )
+
+    actions = {item["action_id"]: item for item in action_catalog["actions"]}
+    dispatch_action = actions["domain_handler_dispatch"]
+    assert dispatch_action["effect"] == "read_only"
+    assert "does not create owner receipts" in dispatch_action["summary"]
+    assert "can only return diagnostic/fail-closed readback" in dispatch_action["summary"]
+
+    tool_cards = {item["tool_id"]: item for item in tool_arsenal["tool_cards"]}
+    dispatch_tool = tool_cards["domain_handler_dispatch"]
+    assert dispatch_tool["effect"] == "read_only"
+    assert dispatch_tool["allowed_writes"] == []
+    assert dispatch_tool["authority_effects"]["can_return_owner_receipt"] is False
+    assert dispatch_tool["authority_effects"]["can_return_typed_blocker"] is False
+    assert dispatch_tool["authority_effects"]["owner_answer_surface"] == (
+        "paper_mission_authority_consume_or_terminal_owner_gate"
+    )
+    assert dispatch_tool["invocation_gate"]["requires_opl_stage_attempt_or_lease"] is False
+    assert dispatch_tool["invocation_gate"]["owner_receipt_or_typed_blocker_required"] is False
+    assert "non_read_only_gate" not in dispatch_tool
 
 
 def test_plugin_skill_ordinary_path_does_not_use_legacy_default_paper_mainline() -> None:
