@@ -616,8 +616,28 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert "DHD" in summary["platform_diagnostics"]["folded_surfaces"]
     assert "dispatch" in summary["platform_diagnostics"]["folded_surfaces"]
     assert summary["paper_progress_counting_policy"]["platform_repair_counts_as_paper_progress"] is False
+    assert (
+        summary["paper_progress_counting_policy"][
+            "legacy_current_work_unit_counts_as_next_action_authority"
+        ]
+        is False
+    )
     assert summary["authority"]["can_start_provider_attempt"] is False
     assert summary["authority"]["can_mark_dm002_dm003_complete"] is False
+    assert summary["read_model_source"] == {
+        "source_kind": "legacy_progress_projection_fallback",
+        "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
+        "legacy_fields_folded": [
+            "next_forced_delta",
+            "current_owner_delta",
+            "current_work_unit",
+            "current_executable_owner_action",
+        ],
+        "current_objective_source": "diagnostic_fallback",
+        "next_owner_source": "diagnostic_fallback",
+        "can_select_next_runtime_action": False,
+        "can_authorize_provider_admission": False,
+    }
 
 
 def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fields() -> None:

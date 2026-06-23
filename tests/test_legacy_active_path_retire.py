@@ -203,19 +203,32 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     )
 
     assert export["dispatch"]["default_action_intent"] == "paper_mission/start_or_resume"
+    assert export["dispatch"]["default_queue_source"] == "/paper_mission_default_tasks"
+    assert export["dispatch"]["legacy_queue_source"] == "/pending_family_tasks"
+    assert export["pending_family_tasks_policy"]["default_paper_mission_queue_source"] == (
+        "/paper_mission_default_tasks"
+    )
+    assert export["pending_family_tasks_policy"]["non_default_task_policy"] == {
+        "default_paper_mission_entry": False,
+        "paper_mission_default_role": "diagnostic_or_explicit_owner_handoff",
+        "can_select_next_paper_stage": False,
+        "can_authorize_provider_admission": False,
+        "counts_as_paper_progress": False,
+    }
     assert "domain_owner/default-executor-dispatch" not in export["dispatch"]["allowed_task_kinds"]
     assert "domain_owner/default-executor-dispatch" in export["dispatch"][
         "legacy_diagnostic_task_kinds"
     ]
     assert export["legacy_default_executor_dispatch_diagnostics"] == []
 
-    default_tasks = [
+    default_tasks = export["paper_mission_default_tasks"]
+    assert [task["task_kind"] for task in default_tasks] == ["paper_mission/start_or_resume"]
+    assert all(task.get("migration_diagnostic_only") is False for task in default_tasks)
+    assert not [
         task
         for task in export["pending_family_tasks"]
         if task.get("default_paper_mission_entry") is True
     ]
-    assert [task["task_kind"] for task in default_tasks] == ["paper_mission/start_or_resume"]
-    assert all(task.get("migration_diagnostic_only") is False for task in default_tasks)
 
     legacy_tasks = [
         task
@@ -223,6 +236,16 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
         if task.get("task_kind") == "domain_owner/default-executor-dispatch"
     ]
     assert legacy_tasks == []
+    non_default_tasks = [
+        task
+        for task in export["pending_family_tasks"]
+        if task.get("default_paper_mission_entry") is not True
+    ]
+    for task in non_default_tasks:
+        assert task["paper_mission_default_role"] == "diagnostic_or_explicit_owner_handoff"
+        assert task["can_select_next_paper_stage"] is False
+        assert task["can_authorize_provider_admission"] is False
+        assert task["counts_as_paper_progress"] is False
 
 
 def test_domain_handler_dispatch_rejects_legacy_default_executor_task_kind(

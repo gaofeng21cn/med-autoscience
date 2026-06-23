@@ -196,7 +196,14 @@ def _domain_handler_contract(*, profile: WorkspaceProfile, profile_ref_text: str
     return {
         "export_command": f"medautosci domain-handler export --profile {profile_ref_text} --format json",
         "dispatch_command": "medautosci domain-handler dispatch --task <task.json> --format json",
+        "default_paper_mission_queue_source": "/paper_mission_default_tasks",
         "queue_hydration_source": "/pending_family_tasks",
+        "queue_hydration_source_role": "mixed_explicit_owner_handoff_and_migration_compatibility_queue",
+        "ordinary_paper_loop_consumer_rule": (
+            "Hydrate /paper_mission_default_tasks for the default MAS paper loop; "
+            "/pending_family_tasks remains available only for explicit owner "
+            "handoff and migration compatibility tasks."
+        ),
         "dispatch_receipt_refs": receipt_refs_for_profile(profile),
         "idempotency_contract": {
             "dedupe_key_required": True,

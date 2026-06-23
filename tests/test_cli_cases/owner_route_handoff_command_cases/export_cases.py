@@ -330,7 +330,18 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
     assert provider["truth_source_precedence"]["provider_completion_can_advance_paper_progress"] is False
     assert provider["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
+    assert provider["domain_handler_contract"]["default_paper_mission_queue_source"] == (
+        "/paper_mission_default_tasks"
+    )
     assert provider["domain_handler_contract"]["queue_hydration_source"] == "/pending_family_tasks"
+    assert provider["domain_handler_contract"]["queue_hydration_source_role"] == (
+        "mixed_explicit_owner_handoff_and_migration_compatibility_queue"
+    )
+    assert provider["domain_handler_contract"]["ordinary_paper_loop_consumer_rule"] == (
+        "Hydrate /paper_mission_default_tasks for the default MAS paper loop; "
+        "/pending_family_tasks remains available only for explicit owner "
+        "handoff and migration compatibility tasks."
+    )
     assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
         "runtime/artifacts/opl_family_domain_handler/dispatch_receipts"
     )
@@ -364,7 +375,25 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     )
     assert study_projection["autonomy_continuation"]["status"] == "retired_runtime_liveness_scheduler_signal"
     assert study_projection["autonomy_continuation"]["replacement_owner"] == "one-person-lab"
-    assert payload["pending_family_tasks"] == []
+    assert [task["task_kind"] for task in payload["paper_mission_default_tasks"]] == [
+        "paper_mission/start_or_resume"
+    ]
+    assert payload["paper_mission_default_tasks"][0]["default_paper_mission_entry"] is True
+    non_default_tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("default_paper_mission_entry") is not True
+    ]
+    assert not [
+        task
+        for task in non_default_tasks
+        if task.get("task_kind") == "domain_owner/default-executor-dispatch"
+    ]
+    for task in non_default_tasks:
+        assert task["paper_mission_default_role"] == "diagnostic_or_explicit_owner_handoff"
+        assert task["can_select_next_paper_stage"] is False
+        assert task["can_authorize_provider_admission"] is False
+        assert task["counts_as_paper_progress"] is False
 
 
 def test_domain_handler_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:

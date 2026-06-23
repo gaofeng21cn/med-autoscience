@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -40,14 +41,18 @@ def workspace_commands(
     *,
     profile: WorkspaceProfile,
     profile_ref: str | Path | None,
-) -> dict[str, str]:
+) -> dict[str, Any]:
+    supervisor_tick = (
+        f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --dry-run"
+    )
     return {
         "mainline_status": _command(profile_ref, "mainline-status"),
         "doctor": _command(profile_ref, "doctor", "--profile", _profile_arg(profile_ref)),
         "bootstrap": _command(profile_ref, "bootstrap", "--profile", _profile_arg(profile_ref)),
-        "supervisor_tick": (
-            f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --dry-run"
+        "supervisor_tick": supervisor_tick,
+        "supervisor_tick_policy": diagnostic_supervision_command_policy(
+            command=supervisor_tick,
         ),
         "service_status": _command(
             profile_ref,
@@ -63,9 +68,13 @@ def user_loop_commands(
     *,
     profile: WorkspaceProfile,
     profile_ref: str | Path | None,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
+    refresh_supervision = (
+        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
+    )
     return {
         "mainline_status": _command(profile_ref, "mainline-status"),
         "phase_status_current": _command(profile_ref, "mainline-phase", "--phase current"),
@@ -89,8 +98,27 @@ def user_loop_commands(
             profile_arg,
             "--study-id <study_id>",
         ),
-        "refresh_supervision": (
-            f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
+        "refresh_supervision": refresh_supervision,
+        "refresh_supervision_policy": diagnostic_supervision_command_policy(
+            command=refresh_supervision,
+        ),
+    }
+
+
+def diagnostic_supervision_command_policy(*, command: str) -> dict[str, object]:
+    return {
+        "command": command,
+        "surface_role": "runtime_diagnostic_refresh",
+        "dry_run": True,
+        "diagnostic_only": True,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "can_select_next_paper_stage": False,
+        "can_authorize_provider_admission": False,
+        "counts_as_paper_progress": False,
+        "default_paper_mission_entry": False,
+        "required_followthrough": (
+            "Use paper-mission inspect/start/resume or consume-candidate output "
+            "for the MAS paper loop; this command only refreshes runtime diagnostics."
         ),
     }

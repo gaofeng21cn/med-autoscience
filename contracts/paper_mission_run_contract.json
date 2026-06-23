@@ -145,6 +145,23 @@
     ],
     "authority_owner": "MedAutoScience"
   },
+  "consumption_ledger": {
+    "role": "Optional governed MAS-side consume evidence written by paper-mission consume-candidate --output-root.",
+    "allowed_root": "ops/medautoscience/paper_mission_consumption_ledger",
+    "surface_kind": "mas_paper_mission_candidate_consumption_record",
+    "additional_surface_kinds": [
+      "mas_paper_mission_stage_terminal_decision_packet",
+      "mas_paper_mission_opl_route_command_packet",
+      "mas_paper_mission_opl_route_handoff_record"
+    ],
+    "counts_as_owner_consumption_evidence": true,
+    "counts_as_stage_terminalizer_evidence": true,
+    "counts_as_opl_route_handoff_evidence": true,
+    "counts_as_paper_progress": false,
+    "counts_as_runtime_truth": false,
+    "authority_materialized": false,
+    "non_authority_note": "A consumption ledger record binds the candidate consume outcome to durable MAS-owned evidence files. It now includes the same PaperMissionTransaction stage terminal decision, OPL route command, and route handoff packet so OPL can consume a single handoff input. It is not an owner receipt, typed blocker authority file, human gate authority file, publication_eval/latest.json, controller_decisions/latest.json, current_package, OPL outbox/event/StageRun, runtime queue, provider attempt, or paper body patch."
+  },
   "claim_permissions": {
     "allowed_true_claims": [
       "can_claim_artifact_delta",

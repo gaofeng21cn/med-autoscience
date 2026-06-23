@@ -12,6 +12,36 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 
+
+def _assert_diagnostic_refresh_policy(policy: dict, command: str) -> None:
+    assert policy["command"] == command
+    assert policy["surface_role"] == "runtime_diagnostic_refresh"
+    assert policy["dry_run"] is True
+    assert policy["diagnostic_only"] is True
+    assert policy["writes_authority"] is False
+    assert policy["writes_runtime"] is False
+    assert policy["can_select_next_paper_stage"] is False
+    assert policy["can_authorize_provider_admission"] is False
+    assert policy["counts_as_paper_progress"] is False
+    assert policy["default_paper_mission_entry"] is False
+
+
+def test_workspace_cockpit_marks_dhd_commands_as_diagnostic_only(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    _assert_diagnostic_refresh_policy(
+        payload["commands"]["supervisor_tick_policy"],
+        payload["commands"]["supervisor_tick"],
+    )
+    _assert_diagnostic_refresh_policy(
+        payload["user_loop"]["refresh_supervision_policy"],
+        payload["user_loop"]["refresh_supervision"],
+    )
+
 def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 

@@ -81,27 +81,66 @@ def _paper_mission_transaction_payload(
     *,
     mission_id: str,
     study_id: str,
+    decision_kind: str = "route_back",
 ) -> dict:
-    return {
-        "transaction_id": "paper-mission-transaction::pmc-001",
-        "mission_id": mission_id,
-        "study_id": study_id,
-        "stage_id": "paper-stage::gate-clearing",
-        "stage_run_ref": "opl-stage-run://pmc-001",
-        "stage_terminal_decision": {
+    if decision_kind == "advance":
+        terminal_decision = {
+            "decision_kind": "advance",
+            "status": "accepted",
+            "reason": "candidate accepted for the next MAS paper stage",
+            "next_owner": "analysis-campaign",
+            "next_stage_id": "publication_gate_replay",
+        }
+        route_command = {
+            "command_kind": "start_next_stage",
+            "target": "publication_gate_replay",
+            "reason": "candidate accepted for the next MAS paper stage",
+            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+        }
+        transaction_state = "accepted"
+        fingerprint = "fingerprint::pmc-001::advance"
+    elif decision_kind == "typed_blocker":
+        terminal_decision = {
+            "decision_kind": "typed_blocker",
+            "status": "typed_blocker",
+            "reason": "source readiness is missing",
+            "next_owner": "mas_authority_kernel",
+            "blocker_id": "source_readiness_missing",
+            "unblock_condition": "MAS authority kernel records or rejects the typed blocker request",
+        }
+        route_command = {
+            "command_kind": "stop_with_typed_blocker",
+            "target": "source_readiness_missing",
+            "reason": "source readiness is missing",
+            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+        }
+        transaction_state = "typed_blocker"
+        fingerprint = "fingerprint::pmc-001::typed-blocker"
+    else:
+        terminal_decision = {
             "decision_kind": "route_back",
             "status": "terminal_decision_recorded",
             "reason": "candidate needs a claim/evidence repair pass",
             "next_owner": "mission_executor",
             "target_stage_id": "paper-stage::gate-clearing",
             "repair_scope": "claim-evidence-repair",
-        },
-        "opl_route_command": {
+        }
+        route_command = {
             "command_kind": "route_back",
             "target": "paper-stage::gate-clearing",
             "reason": "MAS terminal decision requested route back",
             "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
-        },
+        }
+        transaction_state = "terminal_decision_recorded"
+        fingerprint = "fingerprint::pmc-001::route-back"
+    return {
+        "transaction_id": "paper-mission-transaction::pmc-001",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "stage_id": "paper-stage::gate-clearing",
+        "stage_run_ref": "opl-stage-run://pmc-001",
+        "stage_terminal_decision": terminal_decision,
+        "opl_route_command": route_command,
         "artifact_delta_refs": [
             {
                 "ref_id": "artifact-delta::pmc-001",
@@ -144,9 +183,9 @@ def _paper_mission_transaction_payload(
         },
         "idempotency": {
             "idempotency_key": "pmc-001::route-back",
-            "transaction_fingerprint": "fingerprint::pmc-001::route-back",
+            "transaction_fingerprint": fingerprint,
         },
-        "transaction_state": "terminal_decision_recorded",
+        "transaction_state": transaction_state,
     }
 
 
@@ -273,19 +312,41 @@ def test_domain_handler_export_defaults_to_paper_mission_start_or_resume(
 
     assert exit_code == 0
     assert payload["dispatch"]["default_action_intent"] == "paper_mission/start_or_resume"
+    assert payload["dispatch"]["default_queue_source"] == "/paper_mission_default_tasks"
+    assert payload["dispatch"]["legacy_queue_source"] == "/pending_family_tasks"
     assert "paper_mission/start_or_resume" in payload["dispatch"]["allowed_task_kinds"]
-    paper_mission_tasks = [
+    assert payload["pending_family_tasks_policy"] == {
+        "default_paper_mission_queue_source": "/paper_mission_default_tasks",
+        "legacy_mixed_queue_source": "/pending_family_tasks",
+        "pending_family_tasks_role": "mixed_explicit_owner_handoff_and_migration_compatibility_queue",
+        "ordinary_consumer_rule": (
+            "OPL consumers that want the MAS paper loop must hydrate only "
+            "/paper_mission_default_tasks unless an explicit owner handoff task "
+            "was selected by a MAS StageTerminalDecision or authority receipt."
+        ),
+        "non_default_task_policy": {
+            "default_paper_mission_entry": False,
+            "paper_mission_default_role": "diagnostic_or_explicit_owner_handoff",
+            "can_select_next_paper_stage": False,
+            "can_authorize_provider_admission": False,
+            "counts_as_paper_progress": False,
+        },
+    }
+    paper_mission_tasks = payload["paper_mission_default_tasks"]
+    assert paper_mission_tasks
+    assert paper_mission_tasks[0]["default_paper_mission_entry"] is True
+    assert paper_mission_tasks[0]["payload"]["paper_mission"]["dry_run"] is True
+    assert not [
         task
         for task in payload["pending_family_tasks"]
         if task["task_kind"] == "paper_mission/start_or_resume"
     ]
-    assert paper_mission_tasks
-    assert paper_mission_tasks[0]["default_paper_mission_entry"] is True
-    assert paper_mission_tasks[0]["payload"]["paper_mission"]["dry_run"] is True
     for task in payload["pending_family_tasks"]:
-        if task["task_kind"] == "domain_owner/default-executor-dispatch":
-            assert task["migration_diagnostic_only"] is True
-            assert task["default_paper_mission_entry"] is False
+        assert task["default_paper_mission_entry"] is False
+        assert task["paper_mission_default_role"] == "diagnostic_or_explicit_owner_handoff"
+        assert task["can_select_next_paper_stage"] is False
+        assert task["can_authorize_provider_admission"] is False
+        assert task["counts_as_paper_progress"] is False
 
 
 def test_domain_handler_export_paper_mission_task_carries_opl_runtime_carrier_for_materialized_mission(
@@ -390,7 +451,7 @@ def test_domain_handler_export_paper_mission_task_carries_opl_runtime_carrier_fo
     assert exit_code == 0
     paper_mission_task = next(
         task
-        for task in payload["pending_family_tasks"]
+        for task in payload["paper_mission_default_tasks"]
         if task["task_kind"] == "paper_mission/start_or_resume"
         and task["study_id"] == study_id
     )
@@ -1309,6 +1370,150 @@ def test_paper_mission_consume_candidate_uses_authority_consume_readback(
     _assert_forbidden_authority_untouched(tmp_path)
 
 
+def test_paper_mission_consume_candidate_can_write_governed_consume_record(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    mission_id = "paper-mission::001-paper::gate-clearing::manual"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id="001-paper",
+        decision_kind="advance",
+    )
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        paper_mission_transaction=transaction,
+    )
+    output_root = tmp_path / "consumption-ledger"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["paper_mission_command"] == "consume-candidate"
+    assert payload["authority_consume_readback"]["status"] == "accepted_candidate"
+    output_manifest = payload["consume_output_manifest"]
+    assert output_manifest["mode"] == "governed_consume_record"
+    assert output_manifest["writes_authority"] is False
+    assert output_manifest["writes_runtime"] is False
+    assert output_manifest["writes_yang_authority"] is False
+    assert len(output_manifest["written_files"]) == 5
+    assert output_manifest["route_handoff_status"] == "ready_for_opl_route_command"
+    assert output_manifest["route_command_kind"] == "start_next_stage"
+    consume_record = json.loads(
+        Path(output_manifest["consume_record_ref"]).read_text(encoding="utf-8")
+    )
+    assert consume_record["surface_kind"] == (
+        "mas_paper_mission_candidate_consumption_record"
+    )
+    assert consume_record["status"] == "accepted_candidate"
+    assert consume_record["consume_result"]["status"] == "accepted"
+    assert consume_record["authority_materialized"] is False
+    assert consume_record["candidate_is_authority"] is False
+    assert consume_record["counts_as_owner_consumption_evidence"] is True
+    assert consume_record["counts_as_stage_terminalizer_evidence"] is True
+    assert consume_record["counts_as_opl_route_handoff_evidence"] is True
+    assert consume_record["counts_as_paper_progress"] is False
+    assert consume_record["authority_boundary"]["can_write_owner_receipt"] is False
+    assert consume_record["authority_boundary"]["can_write_typed_blocker"] is False
+    assert consume_record["authority_boundary"]["can_write_human_gate"] is False
+    assert "owner receipt" in consume_record["forbidden_authority_writes"]
+    assert Path(output_manifest["consume_readback_ref"]).exists()
+    terminal_packet = json.loads(
+        Path(output_manifest["stage_terminal_decision_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert terminal_packet["surface_kind"] == (
+        "mas_paper_mission_stage_terminal_decision_packet"
+    )
+    assert terminal_packet["terminal_decision_materialized"] is True
+    assert terminal_packet["stage_terminal_decision"]["decision_kind"] == "advance"
+    route_packet = json.loads(
+        Path(output_manifest["opl_route_command_ref"]).read_text(encoding="utf-8")
+    )
+    assert route_packet["surface_kind"] == "mas_paper_mission_opl_route_command_packet"
+    assert route_packet["command_kind"] == "start_next_stage"
+    assert route_packet["writes_opl_outbox"] is False
+    assert route_packet["writes_opl_stage_run"] is False
+    handoff = json.loads(
+        Path(output_manifest["opl_route_handoff_ref"]).read_text(encoding="utf-8")
+    )
+    assert handoff["surface_kind"] == "mas_paper_mission_opl_route_handoff_record"
+    assert handoff["handoff_status"] == "ready_for_opl_route_command"
+    assert handoff["can_submit_to_opl_runtime"] is True
+    assert handoff["can_claim_opl_stage_run_created"] is False
+    assert handoff["can_claim_paper_progress"] is False
+    assert payload["dispatch_plan"]["domain_handler_dispatch_mode"] == (
+        "governed_consume_record"
+    )
+    _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_typed_blocker_handoff_waits_for_authority(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        requested_outcome="typed_blocker_required",
+    )
+    output_root = tmp_path / "consumption-ledger"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    output_manifest = payload["consume_output_manifest"]
+    assert output_manifest["route_handoff_status"] == (
+        "waiting_for_typed_blocker_authority"
+    )
+    assert output_manifest["route_command_kind"] == "resume_stage"
+    handoff = json.loads(
+        Path(output_manifest["opl_route_handoff_ref"]).read_text(encoding="utf-8")
+    )
+    assert handoff["handoff_status"] == "waiting_for_typed_blocker_authority"
+    assert handoff["can_submit_to_opl_runtime"] is False
+    assert handoff["can_claim_paper_progress"] is False
+    assert handoff["authority_boundary"]["can_write_typed_blocker"] is False
+    assert "typed blocker" in handoff["forbidden_authority_writes"]
+    _assert_forbidden_authority_untouched(tmp_path)
+
+
 def test_paper_mission_consume_candidate_picks_up_transaction_fields(
     tmp_path: Path,
     capsys,
@@ -1527,6 +1732,8 @@ def test_one_shot_migration_can_write_non_authority_candidate_package_and_consum
         Path(candidate_manifest_ref).read_text(encoding="utf-8")
     )
     assert written_candidate_manifest["mission_candidate_sidecar_refs"] == {
+        "paper_mission_run": str(output_root_for_study / "paper_mission_run.json"),
+        "default_readback": str(output_root_for_study / "default_readback.json"),
         "mission_candidate_artifact_delta": str(candidate_delta_path),
         "owner_decision_packet": str(owner_decision_packet_path),
     }
@@ -1565,6 +1772,17 @@ def test_one_shot_migration_can_write_non_authority_candidate_package_and_consum
     assert exit_code == 0
     assert second["authority_consume_readback"]["status"] == "accepted_candidate"
     assert second["authority_consume_readback"]["consume_result"]["status"] == "accepted"
+    assert second["paper_mission_transaction_readback"]["source"] == "candidate_manifest"
+    assert second["transaction_state"] != "not_materialized"
+    written_mission = json.loads(
+        (output_root_for_study / "paper_mission_run.json").read_text(encoding="utf-8")
+    )
+    assert (
+        second["paper_mission_transaction_readback"]["paper_mission_transaction"][
+            "transaction_id"
+        ]
+        == written_mission["paper_mission_transaction"]["transaction_id"]
+    )
     assert second["authority_consume_readback"]["write_plan"]["written_files"] == []
     assert second["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(
@@ -1577,15 +1795,55 @@ def test_one_shot_migration_can_write_non_authority_candidate_package_and_consum
     "workspace",
     ("DM-CVD-Mortality-Risk", "NF-PitNET", "Obesity"),
 )
-def test_one_shot_migration_allows_yang_ops_candidate_output_roots(workspace: str) -> None:
+def test_paper_mission_output_guards_allow_matching_yang_ops_roots(workspace: str) -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
 
-    commands._assert_safe_candidate_output_root(
+    commands._assert_safe_one_shot_output_root(
         Path(
             f"/Users/gaofeng/workspace/Yang/{workspace}/"
             "ops/medautoscience/paper_mission_one_shot_migration/20260623"
         )
     )
+    commands._assert_safe_candidate_package_output_root(
+        Path(
+            f"/Users/gaofeng/workspace/Yang/{workspace}/"
+            "ops/medautoscience/paper_mission_candidate_package/20260623"
+        )
+    )
+    commands._assert_safe_consumption_ledger_output_root(
+        Path(
+            f"/Users/gaofeng/workspace/Yang/{workspace}/"
+            "ops/medautoscience/paper_mission_consumption_ledger/20260623"
+        )
+    )
+
+
+def test_paper_mission_output_guards_reject_wrong_non_authority_bucket() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+
+    with pytest.raises(ValueError, match="forbidden paper mission output root"):
+        commands._assert_safe_one_shot_output_root(
+            Path(
+                "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+                "ops/medautoscience/paper_mission_consumption_ledger/20260623"
+            )
+        )
+
+    with pytest.raises(ValueError, match="forbidden paper mission output root"):
+        commands._assert_safe_candidate_package_output_root(
+            Path(
+                "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+                "ops/medautoscience/paper_mission_one_shot_migration/20260623"
+            )
+        )
+
+    with pytest.raises(ValueError, match="forbidden paper mission output root"):
+        commands._assert_safe_consumption_ledger_output_root(
+            Path(
+                "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+                "ops/medautoscience/paper_mission_candidate_package/20260623"
+            )
+        )
 
 
 def test_one_shot_migration_rejects_yang_authority_and_runtime_output_roots() -> None:

@@ -16,6 +16,9 @@ from med_autoscience.paper_mission import (
     paper_mission_owner_decision_packet,
 )
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+from med_autoscience.paper_mission_consumption_ledger import (
+    write_paper_mission_consumption_ledger_outputs,
+)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
@@ -44,6 +47,9 @@ PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
 )
 PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_candidate_package"
+)
+PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH = (
+    Path("ops") / "medautoscience" / "paper_mission_consumption_ledger"
 )
 
 FORBIDDEN_AUTHORITY_WRITES = (
@@ -79,6 +85,18 @@ CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES = (
     "Yang study truth surfaces",
     "Yang runtime authority surfaces",
     "Yang output outside ops/medautoscience/paper_mission_candidate_package",
+)
+CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES = (
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "owner receipt",
+    "typed blocker",
+    "human gate",
+    "current_package",
+    "runtime queue/provider attempts",
+    "Yang study truth surfaces",
+    "Yang runtime authority surfaces",
+    "Yang output outside ops/medautoscience/paper_mission_consumption_ledger",
 )
 FORBIDDEN_AUTHORITY_CLAIMS = (
     "publication_ready",
@@ -135,7 +153,9 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     consume_parser = mission_subparsers.add_parser("consume-candidate")
     _add_common_args(consume_parser)
     consume_parser.add_argument("--candidate", required=True)
-    _add_dry_run_only(consume_parser)
+    consume_mode = consume_parser.add_mutually_exclusive_group(required=True)
+    consume_mode.add_argument("--dry-run", action="store_true")
+    consume_mode.add_argument("--output-root")
 
 
 def handle_paper_mission_command(
@@ -271,6 +291,24 @@ def build_paper_mission_readback(
         authority_consume_readback=authority_consume_readback,
         paper_mission_transaction=transaction_readback["paper_mission_transaction"],
     )
+    consume_output_manifest = (
+        _write_paper_mission_consumption_ledger_outputs(
+            output_root=Path(output_root),
+            study_id=study_id,
+            candidate_ref=str(candidate),
+            authority_consume_readback=authority_consume_readback,
+            transaction_readback=transaction_readback,
+            mission_candidate=mission_candidate,
+            source=source,
+        )
+        if (
+            paper_mission_command == "consume-candidate"
+            and output_root is not None
+            and candidate is not None
+            and authority_consume_readback is not None
+        )
+        else None
+    )
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -300,11 +338,20 @@ def build_paper_mission_readback(
             if authority_consume_readback is not None
             else {}
         ),
+        **(
+            {"consume_output_manifest": consume_output_manifest}
+            if consume_output_manifest is not None
+            else {}
+        ),
         "contract_validation": _validate_with_contract_if_available(mission_candidate),
         "dispatch_plan": {
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "domain_handler_dispatch_mode": "dry_run_no_write",
+            "domain_handler_dispatch_mode": (
+                "governed_consume_record"
+                if consume_output_manifest is not None
+                else "dry_run_no_write"
+            ),
             "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
         },
     }
@@ -949,7 +996,7 @@ def _write_one_shot_migration_outputs(
     owner_decision_packet: dict[str, Any],
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
-    _assert_safe_candidate_output_root(root)
+    _assert_safe_one_shot_output_root(root)
     study_root = root / study_id
     study_root.mkdir(parents=True, exist_ok=True)
     outputs = {
@@ -968,6 +1015,8 @@ def _write_one_shot_migration_outputs(
         "candidate_manifest": {
             **candidate_manifest,
             "mission_candidate_sidecar_refs": {
+                "paper_mission_run": str(outputs["paper_mission_run"]),
+                "default_readback": str(outputs["default_readback"]),
                 "mission_candidate_artifact_delta": str(
                     outputs["mission_candidate_artifact_delta"]
                 ),
@@ -1011,7 +1060,7 @@ def _write_materialized_candidate_package_outputs(
     foreground_owner_decision_summary: dict[str, Any],
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
-    _assert_safe_candidate_output_root(root)
+    _assert_safe_candidate_package_output_root(root)
     study_root = root / study_id
     study_root.mkdir(parents=True, exist_ok=True)
     outputs = {
@@ -1097,6 +1146,32 @@ def _write_materialized_candidate_package_outputs(
             outputs["foreground_owner_decision_summary"]
         ),
     }
+
+
+def _write_paper_mission_consumption_ledger_outputs(
+    *,
+    output_root: Path,
+    study_id: str,
+    candidate_ref: str,
+    authority_consume_readback: dict[str, Any],
+    transaction_readback: dict[str, Any],
+    mission_candidate: dict[str, Any],
+    source: str,
+) -> dict[str, Any]:
+    root = output_root.expanduser().resolve()
+    _assert_safe_consumption_ledger_output_root(root)
+    return write_paper_mission_consumption_ledger_outputs(
+        output_root=root,
+        study_id=study_id,
+        candidate_ref=candidate_ref,
+        authority_consume_readback=authority_consume_readback,
+        transaction_readback=transaction_readback,
+        mission_candidate=mission_candidate,
+        source=source,
+        writes_yang_ops_consumption_ledger=_is_yang_ops_consumption_ledger_root(root),
+        forbidden_authority_writes=CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
+    )
 
 
 def _foreground_owner_decision_summary(
@@ -1214,10 +1289,43 @@ def _no_write_output_manifest() -> dict[str, Any]:
         "writes_runtime": False,
         "writes_yang_authority": False,
         "writes_yang_ops_candidate_package": False,
+        "writes_yang_ops_consumption_ledger": False,
     }
 
 
 def _assert_safe_candidate_output_root(path: Path) -> None:
+    _assert_safe_non_authority_output_root(
+        path,
+        allowed_yang_relpath=None,
+    )
+
+
+def _assert_safe_one_shot_output_root(path: Path) -> None:
+    _assert_safe_non_authority_output_root(
+        path,
+        allowed_yang_relpath=PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH,
+    )
+
+
+def _assert_safe_candidate_package_output_root(path: Path) -> None:
+    _assert_safe_non_authority_output_root(
+        path,
+        allowed_yang_relpath=PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
+    )
+
+
+def _assert_safe_consumption_ledger_output_root(path: Path) -> None:
+    _assert_safe_non_authority_output_root(
+        path,
+        allowed_yang_relpath=PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
+    )
+
+
+def _assert_safe_non_authority_output_root(
+    path: Path,
+    *,
+    allowed_yang_relpath: Path | None,
+) -> None:
     normalized_path = path.expanduser().resolve()
     normalized = normalized_path.as_posix()
     forbidden_parts = (
@@ -1234,6 +1342,13 @@ def _assert_safe_candidate_output_root(path: Path) -> None:
     )
     if (
         _is_under_yang_workspace(normalized_path)
+        and allowed_yang_relpath is not None
+        and not _is_yang_ops_root(normalized_path, allowed_yang_relpath)
+    ):
+        raise ValueError(f"forbidden paper mission output root: {path}")
+    if (
+        _is_under_yang_workspace(normalized_path)
+        and allowed_yang_relpath is None
         and not _is_yang_ops_non_authority_candidate_root(normalized_path)
     ):
         raise ValueError(f"forbidden paper mission output root: {path}")
@@ -1251,7 +1366,15 @@ def _is_yang_ops_candidate_package_root(path: str | Path | None) -> bool:
 
 
 def _is_yang_ops_non_authority_candidate_root(path: str | Path | None) -> bool:
-    return _is_yang_ops_candidate_root(path) or _is_yang_ops_candidate_package_root(path)
+    return (
+        _is_yang_ops_candidate_root(path)
+        or _is_yang_ops_candidate_package_root(path)
+        or _is_yang_ops_consumption_ledger_root(path)
+    )
+
+
+def _is_yang_ops_consumption_ledger_root(path: str | Path | None) -> bool:
+    return _is_yang_ops_root(path, PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH)
 
 
 def _is_yang_ops_root(path: str | Path | None, relpath: Path) -> bool:
@@ -1305,7 +1428,7 @@ def _objective_for_command(*, paper_mission_command: str, objective: str | None)
         "inspect": "inspect current paper mission entry",
         "start": "start or resume next paper-facing mission objective",
         "resume": "resume current paper-facing mission objective",
-        "consume-candidate": "dry-run consume candidate paper mission output",
+        "consume-candidate": "consume candidate paper mission output",
     }
     return defaults.get(paper_mission_command, "paper mission no-write plan")
 
@@ -1583,7 +1706,36 @@ def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, A
         payload = _load_json_object(path)
     except (OSError, json.JSONDecodeError, ValueError):
         return {}
-    return _mapping(payload.get("paper_mission_transaction"))
+    inline = _mapping(payload.get("paper_mission_transaction"))
+    if inline:
+        return inline
+    sidecar_refs = _mapping(payload.get("mission_candidate_sidecar_refs"))
+    readback_ref = _optional_text(sidecar_refs.get("paper_mission_readback"))
+    if readback_ref is not None:
+        try:
+            readback = _load_json_object(Path(readback_ref).expanduser())
+        except (OSError, json.JSONDecodeError, ValueError):
+            readback = {}
+        transaction = _mapping(readback.get("paper_mission_transaction"))
+        if transaction:
+            return transaction
+    mission_ref = _optional_text(sidecar_refs.get("paper_mission_run"))
+    if mission_ref is not None:
+        try:
+            mission = _load_json_object(Path(mission_ref).expanduser())
+        except (OSError, json.JSONDecodeError, ValueError):
+            mission = {}
+        transaction = _mapping(mission.get("paper_mission_transaction"))
+        if transaction:
+            return transaction
+    default_readback_ref = _optional_text(sidecar_refs.get("default_readback"))
+    if default_readback_ref is None:
+        return {}
+    try:
+        default_readback = _load_json_object(Path(default_readback_ref).expanduser())
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {}
+    return _mapping(default_readback.get("paper_mission_transaction"))
 
 
 def _candidate_mission_id_for_readback(

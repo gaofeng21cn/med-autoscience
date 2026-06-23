@@ -96,7 +96,7 @@ def export_family_domain_handler(
         opl_production_proof=opl_production_proof,
         opl_production_proof_ref=opl_production_proof_ref,
     )
-    pending_tasks, legacy_dispatch_diagnostics = _pending_family_tasks(
+    pending_tasks, legacy_dispatch_diagnostics, paper_mission_default_tasks = _pending_family_tasks(
         studies=studies,
         profile=profile,
         profile_ref=profile_ref,
@@ -159,6 +159,8 @@ def export_family_domain_handler(
         "dispatch": {
             "entrypoint": "medautosci domain-handler dispatch --task <task.json> --format json",
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "default_queue_source": "/paper_mission_default_tasks",
+            "legacy_queue_source": "/pending_family_tasks",
             "allowed_task_kinds": sorted({*ALLOWED_TASK_KINDS, PAPER_MISSION_START_OR_RESUME_TASK_KIND}),
             "legacy_diagnostic_task_kinds": sorted(LEGACY_DIAGNOSTIC_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
@@ -236,9 +238,31 @@ def export_family_domain_handler(
                 "forbidden_authorities": authority_boundary_payload()["forbidden_authorities"],
             },
         },
+        "paper_mission_default_tasks": paper_mission_default_tasks,
+        "pending_family_tasks_policy": _pending_family_tasks_policy(),
         "pending_family_tasks": pending_tasks,
         "legacy_default_executor_dispatch_diagnostics": legacy_dispatch_diagnostics,
         "studies": studies,
+    }
+
+
+def _pending_family_tasks_policy() -> dict[str, Any]:
+    return {
+        "default_paper_mission_queue_source": "/paper_mission_default_tasks",
+        "legacy_mixed_queue_source": "/pending_family_tasks",
+        "pending_family_tasks_role": "mixed_explicit_owner_handoff_and_migration_compatibility_queue",
+        "ordinary_consumer_rule": (
+            "OPL consumers that want the MAS paper loop must hydrate only "
+            "/paper_mission_default_tasks unless an explicit owner handoff task "
+            "was selected by a MAS StageTerminalDecision or authority receipt."
+        ),
+        "non_default_task_policy": {
+            "default_paper_mission_entry": False,
+            "paper_mission_default_role": "diagnostic_or_explicit_owner_handoff",
+            "can_select_next_paper_stage": False,
+            "can_authorize_provider_admission": False,
+            "counts_as_paper_progress": False,
+        },
     }
 
 
@@ -249,8 +273,9 @@ def _pending_family_tasks(
     profile_ref: Path,
     provider_availability: Mapping[str, Any],
     opl_production_proof_ref: str | Path | None,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     tasks: list[dict[str, Any]] = []
+    paper_mission_default_tasks: list[dict[str, Any]] = []
     legacy_dispatch_diagnostics: list[dict[str, Any]] = []
     guarded_apply_targets = _guarded_apply_targets(studies)
     tasks.extend(
@@ -285,7 +310,7 @@ def _pending_family_tasks(
             profile_ref=profile_ref,
             study_id=study_id,
         )
-        tasks.append(
+        paper_mission_default_tasks.append(
             _paper_mission_start_or_resume_task(
                 profile=profile,
                 profile_ref=profile_ref,
@@ -386,7 +411,11 @@ def _pending_family_tasks(
             tasks.append(controller_task)
     ordinary_tasks, legacy_task_diagnostics = _split_legacy_default_executor_tasks(tasks)
     legacy_dispatch_diagnostics.extend(legacy_task_diagnostics)
-    return ordinary_tasks, legacy_dispatch_diagnostics
+    return (
+        _mark_non_default_paper_mission_tasks(ordinary_tasks),
+        legacy_dispatch_diagnostics,
+        paper_mission_default_tasks,
+    )
 
 
 def _paper_mission_start_or_resume_task(
@@ -498,6 +527,28 @@ def _split_legacy_default_executor_tasks(
             continue
         ordinary_tasks.append(task)
     return ordinary_tasks, legacy_diagnostics
+
+
+def _mark_non_default_paper_mission_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    marked: list[dict[str, Any]] = []
+    for task in tasks:
+        if (
+            text(task.get("task_kind")) == PAPER_MISSION_START_OR_RESUME_TASK_KIND
+            and task.get("default_paper_mission_entry") is True
+        ):
+            marked.append(task)
+            continue
+        marked.append(
+            {
+                **task,
+                "default_paper_mission_entry": False,
+                "paper_mission_default_role": "diagnostic_or_explicit_owner_handoff",
+                "can_select_next_paper_stage": False,
+                "can_authorize_provider_admission": False,
+                "counts_as_paper_progress": False,
+            }
+        )
+    return marked
 
 
 def _mark_legacy_default_executor_task(task: Mapping[str, Any]) -> dict[str, Any]:

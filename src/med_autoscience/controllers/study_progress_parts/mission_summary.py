@@ -191,6 +191,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             ],
             "diagnostics_only": list(PLATFORM_DIAGNOSTIC_TERMS),
             "platform_repair_counts_as_paper_progress": False,
+            "legacy_current_work_unit_counts_as_next_action_authority": False,
         },
         "authority": {
             "projection_only": True,
@@ -203,6 +204,20 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "can_mutate_current_package": False,
             "can_start_provider_attempt": False,
             "can_mark_dm002_dm003_complete": False,
+        },
+        "read_model_source": {
+            "source_kind": "legacy_progress_projection_fallback",
+            "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
+            "legacy_fields_folded": [
+                "next_forced_delta",
+                "current_owner_delta",
+                "current_work_unit",
+                "current_executable_owner_action",
+            ],
+            "current_objective_source": "diagnostic_fallback",
+            "next_owner_source": "diagnostic_fallback",
+            "can_select_next_runtime_action": False,
+            "can_authorize_provider_admission": False,
         },
     }
     summary["status"] = mission_state
