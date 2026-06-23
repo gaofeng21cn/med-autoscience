@@ -666,6 +666,21 @@ def build_scholarskills_materialized_package_input(
     if embedded_receipt and not receipt:
         receipt = embedded_receipt
 
+    observed_module_ids = _dedupe_texts(
+        [
+            _text(manifest.get("module_id")),
+            _text(receipt.get("module_id")),
+        ]
+    )
+    mismatched_module_ids = [
+        module_id for module_id in observed_module_ids if module_id != capability_id
+    ]
+    if mismatched_module_ids:
+        raise ValueError(
+            "OPL ScholarSkills materialized package module_id mismatch: "
+            + ", ".join(mismatched_module_ids)
+        )
+
     raw_refs = _materialized_package_refs(
         required_ref_families=required_ref_families,
         manifest=manifest,
@@ -677,6 +692,8 @@ def build_scholarskills_materialized_package_input(
         manifest.get("authority_flags"),
         receipt.get("authority_flags"),
     )
+    authority_flags.update(_top_level_authority_claims(manifest))
+    authority_flags.update(_top_level_authority_claims(receipt))
     truthy_authority_flags = [
         key for key, value in authority_flags.items() if value is True
     ]
@@ -817,6 +834,39 @@ def _forbidden_materialized_package_written_refs(values: list[str]) -> list[str]
         ):
             forbidden.append(value)
     return forbidden
+
+
+def _top_level_authority_claims(payload: Mapping[str, Any]) -> dict[str, bool]:
+    authority_keys = (
+        "counts_as_paper_truth",
+        "counts_as_owner_receipt",
+        "can_authorize_publication_readiness",
+        "can_claim_domain_ready",
+        "can_claim_quality_verdict",
+        "can_claim_artifact_authority",
+        "can_claim_production_ready",
+        "can_claim_runtime_ready",
+        "can_schedule_runtime",
+        "can_write_domain_truth",
+        "can_write_runtime_state",
+        "can_write_memory_body",
+        "can_mutate_artifact_body",
+        "can_sign_owner_receipt",
+        "can_create_typed_blocker",
+        "can_write_publication_eval",
+        "can_write_controller_decisions",
+        "can_write_current_package",
+        "can_write_paper_or_package",
+        "can_write_study_truth",
+        "can_write_owner_receipt",
+        "can_write_typed_blocker",
+        "can_write_human_gate",
+    )
+    return {
+        key: value
+        for key in authority_keys
+        if isinstance((value := payload.get(key)), bool)
+    }
 
 
 def _capability_payload(
