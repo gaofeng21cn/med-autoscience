@@ -154,7 +154,7 @@
     "surface_kind": "opl_foundry_agent_series_policy_bundle",
     "version": "foundry-agent-series-policy-bundle.v1"
   },
-  "policy_bundle_fingerprint": "sha256:5d77102e99e6e49acd88714cd94dcafe0969b8f2a5529928d753002ac3d4619d",
+  "policy_bundle_fingerprint": "sha256:503f515e8fa08b3f81ce28cac461368c609d4565de239c9f95c3f910cb758ed5",
   "release_contract_ref": "contracts/opl-framework/foundry-agent-series-policy-release.json",
   "series_contract_ref": "contracts/opl-framework/foundry-agent-series-contract.json",
   "surface_kind": "opl_foundry_agent_series_policy_release",
