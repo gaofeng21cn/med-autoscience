@@ -387,6 +387,12 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert owner_answer["write_plan"]["written_files"] == []
     assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
+    assert summary["stage_terminal_decision"] == owner_answer["stage_terminal_decision"]
+    assert summary["opl_route_command"] == owner_answer["opl_route_command"]
+    assert summary["paper_mission_transaction"] == owner_answer["paper_mission_transaction"]
+    assert summary["mission_state"] == "route_back"
+    assert summary["transaction_state"]["decision_kind"] == "route_back"
+    assert summary["transaction_state"]["route_command_kind"] == "route_back"
     assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (
         "closeout.json#domain_blocker"
     )
@@ -396,6 +402,7 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     ] is False
     assert authority_readback["write_plan"]["written_files"] == []
     assert payload["terminal_owner_gate_authority_readback"] == authority_readback
+    assert payload["terminal_owner_gate_owner_answer_readback"] == owner_answer
     assert payload["opl_runtime_readback_status"] == (
         "opl_runtime_terminal_readback_observed"
     )

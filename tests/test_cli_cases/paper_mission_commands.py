@@ -1319,6 +1319,13 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert owner_answer["write_plan"]["written_files"] == []
     assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
+    assert payload["stage_terminal_decision"] == owner_answer["stage_terminal_decision"]
+    assert payload["opl_route_command"] == owner_answer["opl_route_command"]
+    assert payload["paper_mission_transaction"] == owner_answer["paper_mission_transaction"]
+    assert payload["transaction_state"] == "route_back"
+    assert payload["paper_mission_transaction_readback"]["source"] == (
+        "terminal_owner_gate_owner_answer"
+    )
     assert authority_readback["owner_answer_contract"]["accepted_shapes"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",

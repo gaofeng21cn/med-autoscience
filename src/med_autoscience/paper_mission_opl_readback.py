@@ -81,6 +81,7 @@ def attach_opl_runtime_carrier_readback(
     *,
     readback: Mapping[str, Any],
     study_root: Path,
+    enable_opl_live_probe: bool = True,
 ) -> dict[str, Any]:
     result = dict(readback)
     carrier = _mapping(result.get("opl_runtime_carrier"))
@@ -89,6 +90,7 @@ def attach_opl_runtime_carrier_readback(
     carrier_readback = paper_mission_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=study_root,
+        enable_opl_live_probe=enable_opl_live_probe,
     )
     result["opl_runtime_carrier_readback"] = carrier_readback
     result["opl_runtime_readback_status"] = carrier_readback["carrier_status"]

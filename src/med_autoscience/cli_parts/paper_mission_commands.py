@@ -533,7 +533,10 @@ def _build_materialized_mission_readback_if_available(
             if candidate_manifest is not None
             else {}
         ),
-        "consume_candidate_status": _consume_candidate_status(mission, default_readback),
+        "consume_candidate_status": transaction_readback.get(
+            "consume_candidate_status_override"
+        )
+        or _consume_candidate_status(mission, default_readback),
         "mutation_policy": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -1617,6 +1620,7 @@ def _paper_mission_transaction_readback(
     readback = attach_opl_runtime_carrier_readback(
         readback=readback,
         study_root=study_root,
+        enable_opl_live_probe=paper_mission_command != "consume-candidate",
     )
     terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
     readback["terminal_owner_gate"] = terminal_owner_gate or None
@@ -1633,6 +1637,24 @@ def _paper_mission_transaction_readback(
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
         owner_answer_readback=owner_answer_readback,
     )
+    if owner_answer_readback:
+        owner_answer_transaction = _mapping(
+            owner_answer_readback.get("paper_mission_transaction")
+        )
+        if owner_answer_transaction:
+            readback["source"] = "terminal_owner_gate_owner_answer"
+            readback["paper_mission_transaction"] = owner_answer_transaction
+            readback["stage_terminal_decision"] = _mapping(
+                owner_answer_transaction.get("stage_terminal_decision")
+            )
+            readback["opl_route_command"] = _mapping(
+                owner_answer_transaction.get("opl_route_command")
+            )
+            readback["opl_runtime_carrier"] = paper_mission_opl_runtime_carrier(
+                owner_answer_transaction
+            )
+            readback["transaction_state"] = _transaction_state(owner_answer_transaction)
+            readback["consume_candidate_status_override"] = "route_back"
     readback["terminal_owner_gate_authority_readback"] = (
         terminal_gate_authority_readback or None
     )
@@ -1695,6 +1717,15 @@ def _transaction_readback_output_fields(
             "next_owner_or_human_decision"
         ],
         "transaction_state": transaction_readback["transaction_state"],
+        **(
+            {
+                "consume_candidate_status_override": transaction_readback[
+                    "consume_candidate_status_override"
+                ]
+            }
+            if transaction_readback.get("consume_candidate_status_override")
+            else {}
+        ),
         "paper_mission_transaction_readback": transaction_readback,
     }
 

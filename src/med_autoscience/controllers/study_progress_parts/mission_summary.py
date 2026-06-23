@@ -157,6 +157,15 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
         owner_answer_readback=owner_answer_readback,
     )
+    effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
+    if owner_answer_readback:
+        owner_answer_transaction = _mapping(
+            owner_answer_readback.get("paper_mission_transaction")
+        )
+        if owner_answer_transaction:
+            effective_transaction = owner_answer_transaction
+            transaction_state = _transaction_state(effective_transaction)
+            mission_state = "route_back"
     if terminal_owner_gate:
         next_owner_or_human_decision = (
             terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
@@ -170,19 +179,15 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "transaction_contract_ref": PAPER_MISSION_TRANSACTION_CONTRACT_REF,
         "transaction_validator": PAPER_MISSION_TRANSACTION_VALIDATOR,
         "paper_mission_run": paper_mission_run,
-        "paper_mission_transaction": paper_mission_run["paper_mission_transaction"],
-        "stage_terminal_decision": paper_mission_run["paper_mission_transaction"][
-            "stage_terminal_decision"
-        ],
-        "opl_route_command": paper_mission_run["paper_mission_transaction"][
-            "opl_route_command"
-        ],
+        "paper_mission_transaction": effective_transaction,
+        "stage_terminal_decision": _mapping(
+            effective_transaction.get("stage_terminal_decision")
+        ),
+        "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
         "opl_runtime_carrier_readback": carrier_readback,
         "opl_runtime_readback_status": carrier_readback["carrier_status"],
-        "transaction_state": _transaction_state(
-            paper_mission_run["paper_mission_transaction"]
-        ),
+        "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "current_objective": current_objective,
         "latest_artifact_delta": {
@@ -256,6 +261,9 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["terminal_owner_gate"] = summary.get("terminal_owner_gate")
     updated["terminal_owner_gate_authority_readback"] = summary.get(
         "terminal_owner_gate_authority_readback"
+    )
+    updated["terminal_owner_gate_owner_answer_readback"] = summary.get(
+        "terminal_owner_gate_owner_answer_readback"
     )
     updated["platform_diagnostics"] = summary["platform_diagnostics"]
     updated["paper_mission_transaction"] = summary["paper_mission_transaction"]
@@ -380,6 +388,20 @@ def _materialized_mission_summary(
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
         owner_answer_readback=owner_answer_readback,
     )
+    effective_transaction = transaction
+    effective_consume_candidate_status = _consume_candidate_status(
+        mission,
+        default_readback,
+    )
+    if owner_answer_readback:
+        owner_answer_transaction = _mapping(
+            owner_answer_readback.get("paper_mission_transaction")
+        )
+        if owner_answer_transaction:
+            effective_transaction = owner_answer_transaction
+            transaction_state = _transaction_state(effective_transaction)
+            mission_state = "route_back"
+            effective_consume_candidate_status = "route_back"
     if terminal_owner_gate:
         next_owner_or_human_decision = (
             terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
@@ -393,9 +415,11 @@ def _materialized_mission_summary(
         "transaction_contract_ref": PAPER_MISSION_TRANSACTION_CONTRACT_REF,
         "transaction_validator": PAPER_MISSION_TRANSACTION_VALIDATOR,
         "paper_mission_run": paper_mission_run,
-        "paper_mission_transaction": transaction,
-        "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
-        "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "paper_mission_transaction": effective_transaction,
+        "stage_terminal_decision": _mapping(
+            effective_transaction.get("stage_terminal_decision")
+        ),
+        "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
         "opl_runtime_carrier_readback": carrier_readback,
         "opl_runtime_readback_status": carrier_readback["carrier_status"],
@@ -403,10 +427,7 @@ def _materialized_mission_summary(
         "mission_state": mission_state,
         "current_objective": current_objective,
         "current_mission": current_mission or None,
-        "consume_candidate_status": _consume_candidate_status(
-            mission,
-            default_readback,
-        ),
+        "consume_candidate_status": effective_consume_candidate_status,
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "terminal_owner_gate": terminal_owner_gate or None,
