@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping
+from pathlib import Path
 from typing import Any
 
 
@@ -634,6 +636,189 @@ def scholarskills_execution_receipt_ref_aliases(
     return aliases
 
 
+def build_scholarskills_materialized_package_input(
+    *,
+    capability_id: str,
+    required_ref_families: Iterable[str],
+    execution_receipt_path: Path | str | None,
+    materialized_package_manifest_path: Path | str | None,
+) -> dict[str, Any]:
+    manifest_path = _optional_json_path(materialized_package_manifest_path)
+    receipt_path = _optional_json_path(execution_receipt_path)
+    manifest: dict[str, Any] = {}
+    if manifest_path:
+        manifest = _read_json_mapping(
+            manifest_path, label="materialized_package_manifest_path"
+        )
+        embedded_receipt_ref = _text(manifest.get("execution_receipt_candidate_path"))
+        embedded_receipt_ref = embedded_receipt_ref or _text(
+            manifest.get("execution_receipt_path")
+        )
+        if embedded_receipt_ref and receipt_path is None:
+            receipt_path = _resolve_ref_path(
+                embedded_receipt_ref, base=manifest_path.parent
+            )
+
+    receipt: dict[str, Any] = {}
+    if receipt_path:
+        receipt = _read_json_mapping(receipt_path, label="execution_receipt_path")
+    embedded_receipt = _mapping(manifest.get("execution_receipt_candidate"))
+    if embedded_receipt and not receipt:
+        receipt = embedded_receipt
+
+    raw_refs = _materialized_package_refs(
+        required_ref_families=required_ref_families,
+        manifest=manifest,
+        receipt=receipt,
+        manifest_path=manifest_path,
+        receipt_path=receipt_path,
+    )
+    authority_flags = _merge_mappings(
+        manifest.get("authority_flags"),
+        receipt.get("authority_flags"),
+    )
+    truthy_authority_flags = [
+        key for key, value in authority_flags.items() if value is True
+    ]
+    if truthy_authority_flags:
+        raise ValueError(
+            "OPL ScholarSkills materialized package authority flags must be false: "
+            + ", ".join(sorted(truthy_authority_flags))
+        )
+    written_files = _dedupe_texts(
+        [
+            *_text_list(manifest.get("written_files")),
+            *_text_list(receipt.get("written_files")),
+        ]
+    )
+    forbidden_collisions = _forbidden_materialized_package_written_refs(written_files)
+    if forbidden_collisions:
+        raise ValueError(
+            "OPL ScholarSkills materialized package reports forbidden authority writes: "
+            + ", ".join(forbidden_collisions)
+        )
+    if not (manifest or receipt or raw_refs):
+        return {}
+    return {
+        "execution_receipt": receipt,
+        "execution_receipt_refs": raw_refs,
+        "materialized_package_consumption": {
+            "surface_kind": "mas_scholarskills_materialized_package_consumption",
+            "schema_version": 1,
+            "refs_only": True,
+            "manifest_path": str(manifest_path) if manifest_path else None,
+            "execution_receipt_path": str(receipt_path) if receipt_path else None,
+            "module_id": _text(receipt.get("module_id"))
+            or _text(manifest.get("module_id"))
+            or capability_id,
+            "sha256": _text(receipt.get("sha256"))
+            or _text(manifest.get("sha256"))
+            or None,
+            "authority_flags": {
+                key: value
+                for key, value in authority_flags.items()
+                if isinstance(value, bool)
+            },
+            "authority_flags_false": not truthy_authority_flags,
+            "written_files": written_files,
+            "forbidden_written_file_collisions": forbidden_collisions,
+            "mas_consumer_written_files": [],
+            "counts_as_paper_truth": False,
+            "counts_as_owner_receipt": False,
+            "can_authorize_publication_readiness": False,
+            "can_write_publication_eval": False,
+            "can_write_controller_decisions": False,
+            "can_write_current_package": False,
+            "can_write_paper_or_package": False,
+            "can_write_study_truth": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+        },
+    }
+
+
+def _materialized_package_refs(
+    *,
+    required_ref_families: Iterable[str],
+    manifest: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+    manifest_path: Path | None,
+    receipt_path: Path | None,
+) -> dict[str, str]:
+    refs: dict[str, str] = {}
+    if receipt_path:
+        refs["execution_receipt_ref"] = str(receipt_path)
+    elif manifest_path:
+        refs["execution_receipt_ref"] = str(manifest_path)
+    execution_receipt_ref = _text(receipt.get("execution_receipt_ref"))
+    execution_receipt_ref = execution_receipt_ref or _text(
+        manifest.get("execution_receipt_ref")
+    )
+    if execution_receipt_ref:
+        refs["execution_receipt_ref"] = execution_receipt_ref
+    for payload in (manifest, receipt):
+        refs.update(_mapping(payload.get("execution_receipt_refs")))
+        refs.update(_mapping(payload.get("refs")))
+        artifact_manifest_path = _text(payload.get("artifact_manifest_path"))
+        if artifact_manifest_path and "artifact_manifest_ref" not in refs:
+            refs["artifact_manifest_ref"] = artifact_manifest_path
+            refs.setdefault(
+                _module_manifest_family(required_ref_families),
+                artifact_manifest_path,
+            )
+    return {key: value for key, value in refs.items() if _text(value)}
+
+
+def _module_manifest_family(required_ref_families: Iterable[str]) -> str:
+    for family in _text_list(list(required_ref_families)):
+        if family.endswith("_manifest_ref"):
+            return family
+    return "artifact_manifest_ref"
+
+
+def _optional_json_path(value: Path | str | None) -> Path | None:
+    text = _text(value)
+    return Path(text).expanduser().resolve() if text else None
+
+
+def _resolve_ref_path(value: str, *, base: Path) -> Path:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = base / path
+    return path.resolve()
+
+
+def _read_json_mapping(path: Path, *, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"{label} does not exist: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} is not valid JSON: {path}") from exc
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"{label} must contain a JSON object: {path}")
+    return dict(payload)
+
+
+def _forbidden_materialized_package_written_refs(values: list[str]) -> list[str]:
+    forbidden: list[str] = []
+    for value in values:
+        normalized = value.replace("\\", "/")
+        if (
+            normalized.endswith("/artifacts/publication_eval/latest.json")
+            or normalized == "artifacts/publication_eval/latest.json"
+            or normalized.endswith("/artifacts/controller_decisions/latest.json")
+            or normalized == "artifacts/controller_decisions/latest.json"
+            or "/current_package/" in normalized
+            or normalized.endswith("/current_package")
+            or "/typed_blocker" in normalized
+            or "/human_gate" in normalized
+            or "/owner_receipt" in normalized
+        ):
+            forbidden.append(value)
+    return forbidden
+
+
 def _capability_payload(
     *,
     capability_id: str,
@@ -712,6 +897,26 @@ def _dedupe_texts(values: Iterable[str]) -> list[str]:
         seen.add(text)
         result.append(text)
     return result
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _merge_mappings(*values: object) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for value in values:
+        result.update(_mapping(value))
+    return result
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, (str, Path)):
+        text = _text(value)
+        return [text] if text else []
+    if not isinstance(value, (list, tuple, set)):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _require_text(value: Any, field: str) -> str:
