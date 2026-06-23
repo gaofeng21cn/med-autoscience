@@ -15,6 +15,10 @@ from med_autoscience.paper_mission_opl_carrier import (
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
 )
+from med_autoscience.paper_mission_terminal_owner_gate import (
+    terminal_owner_gate_from_carrier_readback,
+    terminal_owner_gate_next_decision,
+)
 from med_autoscience.paper_mission_transaction import (
     PaperMissionTransaction,
     build_paper_mission_transaction,
@@ -129,6 +133,11 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         carrier=carrier,
         study_root=_materialized_study_root(progress=progress),
     )
+    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
+    if terminal_owner_gate:
+        next_owner_or_human_decision = terminal_owner_gate_next_decision(
+            terminal_owner_gate
+        )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -157,6 +166,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "artifact_delta_ledger": artifact_delta_ledger,
         },
         "next_owner_or_human_decision": next_owner_or_human_decision,
+        "terminal_owner_gate": terminal_owner_gate or None,
         "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_artifact_delta",
         "legacy_path_role": "diagnostics_migration_provenance_only",
@@ -200,6 +210,7 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["current_objective"] = summary["current_objective"]
     updated["latest_artifact_delta"] = summary["latest_artifact_delta"]
     updated["next_owner_or_human_decision"] = summary["next_owner_or_human_decision"]
+    updated["terminal_owner_gate"] = summary.get("terminal_owner_gate")
     updated["platform_diagnostics"] = summary["platform_diagnostics"]
     updated["paper_mission_transaction"] = summary["paper_mission_transaction"]
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
@@ -309,6 +320,11 @@ def _materialized_mission_summary(
         carrier=carrier,
         study_root=_materialized_study_root(progress=progress),
     )
+    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
+    if terminal_owner_gate:
+        next_owner_or_human_decision = terminal_owner_gate_next_decision(
+            terminal_owner_gate
+        )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -333,6 +349,7 @@ def _materialized_mission_summary(
         ),
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
+        "terminal_owner_gate": terminal_owner_gate or None,
         "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_mission_run",
         "legacy_path_role": "diagnostics_migration_provenance_only",

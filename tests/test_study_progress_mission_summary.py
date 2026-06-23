@@ -328,6 +328,36 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert summary["opl_runtime_carrier_readback"][
         "provider_completion_is_domain_completion"
     ] is False
+    assert summary["terminal_owner_gate"] == {
+        "surface_kind": "paper_mission_terminal_owner_gate",
+        "owner": "one-person-lab",
+        "gate_kind": "typed_blocker",
+        "blocked_reason": "domain_gate_pending",
+        "typed_blocker_ref": "closeout.json#domain_blocker",
+        "closeout_ref": (
+            "artifacts/supervision/consumer/default_executor_execution/"
+            "sat-terminal.closeout.json"
+        ),
+        "stage_attempt_id": "sat-terminal",
+        "work_unit_id": "gate_clearing_claim_evidence_repair",
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_materialized": False,
+        "legal_next_action": "route_to_owner_or_human_gate",
+    }
+    assert summary["next_owner_or_human_decision"] == {
+        "kind": "owner_or_route",
+        "next_owner": "one-person-lab",
+        "human_decision_required": False,
+        "summary": "domain_gate_pending",
+        "typed_blocker_ref": "closeout.json#domain_blocker",
+        "can_execute": False,
+        "can_authorize_provider_admission": False,
+    }
+    assert payload["terminal_owner_gate"] == summary["terminal_owner_gate"]
+    assert payload["next_owner_or_human_decision"] == (
+        summary["next_owner_or_human_decision"]
+    )
     assert payload["opl_runtime_readback_status"] == (
         "opl_runtime_terminal_readback_observed"
     )

@@ -21,6 +21,11 @@ from med_autoscience.paper_mission_opl_carrier import (
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
 )
+from med_autoscience.paper_mission_terminal_owner_gate import (
+    stage_terminal_next_owner_or_human_decision,
+    terminal_owner_gate_from_carrier_readback,
+    terminal_owner_gate_next_decision,
+)
 from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
@@ -1136,10 +1141,17 @@ def _paper_mission_transaction_readback(
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "validation": _validate_paper_mission_transaction_if_available(transaction),
     }
-    return attach_opl_runtime_carrier_readback(
+    readback = attach_opl_runtime_carrier_readback(
         readback=readback,
         study_root=study_root,
     )
+    terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
+    readback["terminal_owner_gate"] = terminal_owner_gate or None
+    readback["next_owner_or_human_decision"] = _next_owner_or_human_decision_from_transaction_readback(
+        readback=readback,
+        terminal_owner_gate=terminal_owner_gate,
+    )
+    return readback
 
 
 def _paper_audit_pack_for_cli_readback(
@@ -1177,9 +1189,34 @@ def _transaction_readback_output_fields(
         "opl_runtime_readback_status": transaction_readback[
             "opl_runtime_readback_status"
         ],
+        "terminal_owner_gate": transaction_readback.get("terminal_owner_gate"),
+        "next_owner_or_human_decision": transaction_readback[
+            "next_owner_or_human_decision"
+        ],
         "transaction_state": transaction_readback["transaction_state"],
         "paper_mission_transaction_readback": transaction_readback,
     }
+
+
+def _terminal_owner_gate_from_transaction_readback(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    return terminal_owner_gate_from_carrier_readback(
+        _mapping(readback.get("opl_runtime_carrier_readback"))
+    )
+
+
+def _next_owner_or_human_decision_from_transaction_readback(
+    *,
+    readback: Mapping[str, Any],
+    terminal_owner_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    if terminal_owner_gate:
+        return terminal_owner_gate_next_decision(terminal_owner_gate)
+    return stage_terminal_next_owner_or_human_decision(
+        stage_terminal_decision=_mapping(readback.get("stage_terminal_decision")),
+        opl_route_command=_mapping(readback.get("opl_route_command")),
+    )
 
 
 def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, Any]:
