@@ -222,6 +222,19 @@ medautosci paper-mission consume-candidate --profile <profile> --study-id <study
 
 2026-06-23 caller proof status：有界 caller/search evidence 已证明旧路径仍有 repo 内 active references。`domain-health-diagnostic` 仍作为 runtime diagnostic / authority consumer 暴露；`paper_recovery_state` / PaperRecovery 仍被 `current_work_unit`、`study_progress`、DHD report 和 provider-admission projection 消费；`domain_owner/default-executor-dispatch` 仍作为 OPL StageRun ABI、migration diagnostic、legacy fixture 和 transition carrier 出现在源码/测试/contract。`contracts/runtime/legacy-active-path-tombstones.json#/no_active_default_caller_proof` 现在显式列出 default-surface proof scope：product entry、domain-handler dispatch / pending tasks、family action catalog、MCP tool manifest 和 plugin skill ordinary path；focused tests 断言默认 paper mission replacement 为 `paper_mission/start_or_resume`，旧 carrier 如出现必须是 `default_paper_mission_entry=false` / `migration_diagnostic_only=true`。当前能声明的是“默认 product/domain-handler/MCP/skill/action-catalog surface 不再把旧链路暴露为 paper mission mainline”；不能声明所有旧 diagnostic / ABI / fixture / provenance references 已物理删除。
 
+### 2026-06-23 旧残留清理与二次污染审计
+
+本节回答“旧历史残留是否全面彻底清理干净，防止二次污染”。结论是：默认论文主线污染口已经 `done`，全物理删除仍是 `partial`。旧 MAS / MDS / DHD / owner-route / dispatch / PaperRecovery 相关残留只能作为 diagnostics、migration input、ABI carrier、fixture 或 provenance 读取；凡要重新进入默认论文推进，必须重新经过 `PaperMissionTransaction`、`StageTerminalDecision`、MAS authority consume path、no-forbidden-write guard 和 OPL route-command/readback。
+
+| Residual / pollution risk | Status | Current evidence | Remaining gap / forbidden interpretation |
+| --- | --- | --- | --- |
+| 默认产品入口回流旧链路 | `done` | product entry、domain-handler、action catalog、MCP / skill ordinary path 共享 `paper_mission/start_or_resume`；domain-handler default task 不再把旧 dispatch 作为 paper mission mainline。 | 这只证明默认入口不再走旧链路；不能声明 live OPL hosted run 或论文完成。 |
+| 旧 DHD / owner-route / dispatch / PaperRecovery 主线污染 | `done` | tombstone `dhd_owner_route_dispatch_paper_recovery_default_paper_mainline` 将旧链路降为 `diagnostics_migration_provenance_only`，并禁止 paper progress、publication-ready、runtime-ready、provider-running、DM002 complete、DM003 complete claim。 | 旧面可继续作为诊断、迁移输入或 ABI/provenance；不得再写成默认 executor mainline。 |
+| 旧 truth / blocker 导入到新 mission | `done` | one-shot migration 把 DM002/DM003 旧状态冻结为 `legacy_truth_import_pack`，旧 blocker 进入 `mission_input` / `legacy_constraints` / `decision_constraints` / `source_refs` / `non_degradation_evidence`，并显式 `legacy_blocker_is_default_execution_state=false`。 | 这是 no-write import，不是 authority materialization 或 paper body patch。 |
+| 禁止写 authority surface | `done` | `PaperMissionRun` / `PaperMissionTransaction` readback 固定 `candidate_writes_authority=false`，禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current_package、runtime queue/provider attempts 和 Yang authority。 | no-write readback 不能替代 owner receipt、typed blocker、human gate 或 current package freshness。 |
+| 旧 physical caller / ABI / fixture 全部删除 | `partial` | 有界 caller evidence 仍命中 DHD、PaperRecovery、`domain_owner/default-executor-dispatch` 的 runtime diagnostic、authority readback、OPL StageRun ABI、migration diagnostic、legacy fixture、transition carrier。 | 若要物理删除，需逐项证明 replacement parity、no-active-caller、no-forbidden-write 和 tombstone/provenance。 |
+| 真实论文产物与 authority consume 闭环 | `partial` | DM002/DM003 已有非权威 candidate artifact delta、owner decision packet、transaction terminal decision / route command readback。 | 仍缺真实 study workspace manuscript / figure / table / evidence ledger / reviewer response delta 被 MAS authority materialize 或 route-back。 |
+
 ## Completion Audit
 
 | Item | Current status | Fresh evidence | Gap / forbidden interpretation |

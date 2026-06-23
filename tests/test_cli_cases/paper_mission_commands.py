@@ -688,6 +688,8 @@ def test_paper_mission_materialized_legacy_run_without_transaction_terminalizes_
     assert payload["paper_mission_transaction_readback"]["validation"]["status"] == (
         "validated"
     )
+    assert payload["contract_validation"]["status"] == "validated"
+    assert payload["paper_mission_run"]["paper_audit_pack"]
     assert payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 

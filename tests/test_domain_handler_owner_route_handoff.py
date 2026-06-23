@@ -24,9 +24,9 @@ def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: P
     capability = export["display_pack_agent_capability"]
     assert capability["surface_kind"] == "display_pack_agent_capability"
     assert capability["status"] == "available"
-    assert capability["inventory"]["template_count"] == 19
-    assert capability["inventory"]["active_template_count"] == 19
-    assert capability["inventory"]["canonical_template_count"] == 19
+    assert capability["inventory"]["template_count"] == 37
+    assert capability["inventory"]["active_template_count"] == 37
+    assert capability["inventory"]["canonical_template_count"] == 37
     assert capability["inventory"]["legacy_alias_template_count"] == 0
     assert capability["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert capability["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
@@ -39,6 +39,62 @@ def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: P
         "display-pack-render",
     }
     assert capability["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
+def test_domain_handler_export_routes_legacy_dispatch_kind_to_diagnostic_bucket(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-paper", quest_id="001-paper")
+
+    export = module.export_family_domain_handler(
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+    )
+
+    assert export["dispatch"]["default_action_intent"] == "paper_mission/start_or_resume"
+    assert "paper_mission/start_or_resume" in export["dispatch"]["allowed_task_kinds"]
+    assert "domain_owner/default-executor-dispatch" not in export["dispatch"]["allowed_task_kinds"]
+    assert export["dispatch"]["legacy_diagnostic_task_kinds"] == [
+        "domain_owner/default-executor-dispatch"
+    ]
+    assert not [
+        task
+        for task in export["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+
+
+def test_legacy_default_executor_dispatch_tasks_split_out_of_ordinary_pending_tasks() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
+
+    ordinary, diagnostics = module._split_legacy_default_executor_tasks(
+        [
+            {
+                "task_kind": "domain_owner/default-executor-dispatch",
+                "task_id": "legacy-dispatch-001",
+            },
+            {
+                "task_kind": "paper_mission/start_or_resume",
+                "default_paper_mission_entry": True,
+                "migration_diagnostic_only": False,
+            },
+        ]
+    )
+
+    assert [task["task_kind"] for task in ordinary] == ["paper_mission/start_or_resume"]
+    assert diagnostics == [
+        {
+            "task_kind": "domain_owner/default-executor-dispatch",
+            "task_id": "legacy-dispatch-001",
+            "action_intent": "legacy_default_executor_diagnostic",
+            "default_paper_mission_entry": False,
+            "migration_diagnostic_only": True,
+            "ordinary_schedulable": False,
+            "active_caller_class": "diagnostic_only",
+        }
+    ]
 
 
 def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:

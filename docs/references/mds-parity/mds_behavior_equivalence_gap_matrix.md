@@ -54,6 +54,31 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 2026-06-23 PaperMissionTransaction foldback：MDS parity 的“论文严谨性不降级”现在按 `PaperMissionTransaction + StageTerminalDecision` 读取。旧 MDS / MAS 控制面中有价值的是 durable workflow、terminalizer、human interrupt、retry-catch、exit-handler、evidence/ref ledger 和 owner/auditor separation 这些共性；它们折叠进 MAS stage terminal decision，不恢复 MDS resident daemon、WebSocket terminal、GitOps state、default-executor dispatch、DHD 或 PaperRecovery 作为默认论文路径。`PaperMissionRun` 只证明 candidate/readback shape 与 one-shot migration 兼容；只有 MAS stage terminalized decision 或其派生 route command 才能进入 OPL runtime transport。
 
+## 2026-06-23 论文严谨性能力匹配度
+
+本表只比较旧 MAS+MDS 对“论文严谨性”的能力目的与新版 MAS / `PaperMissionTransaction` / OPL owner split 的当前匹配程度。`done` 表示 repo source / contract / projection / no-write readback 已覆盖该能力目的；`partial` 表示有非权威 candidate、refs-only 投影或 owner split，但还缺 live authority consumption、真实 study artifact delta 或 OPL hosted run。文档、测试、contract landed、read-model clean 和 one-shot package 均不能单独声明 runtime ready、publication-ready、current package fresh 或论文完成。
+
+| Capability | Old MAS+MDS rigor purpose | New MAS matching status | Current evidence / boundary |
+| --- | --- | --- | --- |
+| transaction identity / current objective | 每篇论文有可恢复 quest/run identity 和当前目标，避免多线程混读。 | `done` | `PaperMissionTransaction` / `PaperMissionRun` 绑定 study、mission、objective、terminal decision 和 route command readback。 |
+| terminalizer / route command | runner completion 归一成继续、停止、人工介入、失败或下一轮。 | `done` | MAS stage 输出 `StageTerminalDecision`，OPL 只消费派生 route command；DHD/PaperRecovery 不再是默认 paper mainline。 |
+| provenance import | 把旧 workspace、source、runtime、publication eval、controller decision 和 owner state 收进迁移输入，避免丢历史。 | `done` | one-shot migration 生成 `legacy_truth_import_pack`，旧 blocker 只作为 provenance / constraints，不再是默认执行状态。 |
+| analysis rationale / route decision ledger | 记录为什么选择当前分析、修稿或 gate-clearing 路线。 | `partial` | transaction/owner decision packet 有 rationale/ref shape；仍缺真实 study workspace 中连续 analysis rationale ledger 被 authority consume。 |
+| evidence ledger / claim-evidence map | claim 必须能追到 evidence pack/source refs，不能由覆盖率或草稿存在替代质量判断。 | `partial` | mission import 与 candidate delta 携带 evidence/review/source refs；仍缺真实 claim-evidence map delta 被写入 study workspace 并被 publication gate 消费。 |
+| review ledger / AI reviewer / auditor | 独立 reviewer/auditor 不能由 executor 自审替代。 | `partial` | AGENTS / program 固定 executor 与 reviewer/auditor 独立；仍缺当前 transaction live reviewer delta。 |
+| negative / failed-path ledger | 失败路径、否定结果、被拒方案和防重复理由要可审计。 | `partial` | MDS parity 把 negative / failed-path ledger refs 作为最低审计链；仍缺 transaction 默认包内的 live failed-path ledger materialization。 |
+| artifact lineage / current package refs | manuscript、figure、table、package 的来源、版本和 current refs 必须可追溯。 | `partial` | candidate artifact delta、source refs 和 artifact-first summary 覆盖 refs；`current_package` freshness 仍必须由 MAS authority 另证。 |
+| revision log / manuscript delta | 修稿必须有 manuscript delta、response draft、section/table/caption patch 或 revision log。 | `partial` | one-shot package 产出非权威 candidate artifact delta / owner decision packet；仍缺真实 manuscript delta / reviewer response 写入并被 consume。 |
+| owner receipt / typed blocker / human gate | 终局 owner answer 必须是 owner receipt、stable typed blocker、human gate、route-back 或 rejection。 | `partial` | consume path 支持 accepted / rejected / route-back / typed_blocker / human_gate；当前 packet 仍是 no-write readback，不能说 authority file 已写。 |
+| publication gate replay | 质量门发现问题后能 replay gate、生成 repair brief / route-back，而不是直接自封通过。 | `partial` | DM002/DM003 目标绑定 gate-clearing / publication gate replay；仍缺 live replay outcome。 |
+| forbidden-write guard | executor / migration / sidecar 不能写 study truth、publication eval、controller decisions、current package、runtime queue 或 provider attempt。 | `done` | contract/CLI readback 明确 `candidate_writes_authority=false`、`written_files=[]` 和 blocked paths。 |
+| file lifecycle / tombstone / provenance | 旧文件、wrapper、service、ABI 和 fixture 要么迁移，要么 tombstone/provenance，避免二次污染。 | `partial` | tombstone contract 和 docs policy 固定用途；旧 diagnostic / ABI / fixture refs 仍存在，不能说全部物理删除。 |
+| progress workbench artifact-first | 用户优先看到论文产物、当前目标、下一 owner / human decision，而非平台 repair 噪音。 | `done` | artifact-first mission summary 暴露 mission state / objective / latest delta / next owner，平台 diagnostics 不计 paper progress。 |
+| OPL runtime / continuous execution | 连续执行、attempt、queue、resume、provider lifecycle 由 OPL runtime 承担，不由 MAS 重建通用 daemon。 | `partial` | route command/readback 边界已明确；仍缺 OPL-hosted live attempt/session/readback。 |
+| MDS resident daemon / WebSocket / GitOps retired non-goals | 旧 resident daemon、WebSocket terminal attach、GitOps runtime state、workspace-local service 只作历史/fixture/OPL future direction。 | `done` | behavior matrix 固定 `full_mds_daemon_behavior_equivalence=false` 和 retired non-goals；这些不能作为 MAS default backlog 重开。 |
+
+当前总体匹配度：`done=6`、`partial=10`、`not_done=0`、`blocker=0`。这表示严谨性“能力边界与默认入口”已经建立；不表示真实论文已经达到 publication-ready，也不表示 OPL live runtime、owner authority materialization 或 current package freshness 已完成。
+
 ## 行为分类
 
 机器可读矩阵在 `med_autoscience.controllers.mds_capability_parity.build_mds_behavior_equivalence_matrix()`。

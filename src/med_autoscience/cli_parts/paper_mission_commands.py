@@ -361,8 +361,11 @@ def _build_materialized_mission_readback_if_available(
     )
     if mission_path is None:
         return None
-    mission = _load_json_object(mission_path)
-    validation = _validate_with_contract_if_available(mission)
+    mission = _normalize_materialized_mission_for_cli_readback(
+        mission=_load_json_object(mission_path),
+        study_id=study_id,
+        paper_mission_command=paper_mission_command,
+    )
     default_readback = (
         dict(mission["one_shot_migration_readback"])
         if isinstance(mission.get("one_shot_migration_readback"), dict)
@@ -393,6 +396,13 @@ def _build_materialized_mission_readback_if_available(
         mission=mission,
         authority_consume_readback=None,
     )
+    mission = {
+        **mission,
+        "paper_mission_transaction": transaction_readback[
+            "paper_mission_transaction"
+        ],
+    }
+    validation = _validate_with_contract_if_available(mission)
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -509,6 +519,24 @@ def _materialized_mission_path_matches(
         mission_study_id,
         requested_study_id,
     )
+
+
+def _normalize_materialized_mission_for_cli_readback(
+    *,
+    mission: Mapping[str, Any],
+    study_id: str,
+    paper_mission_command: str,
+) -> dict[str, Any]:
+    payload = dict(mission)
+    resolved_study_id = _optional_text(payload.get("study_id")) or study_id
+    source_refs = _mapping_list(payload.get("source_refs"))
+    if "paper_audit_pack" not in payload:
+        payload["paper_audit_pack"] = _paper_audit_pack_for_cli_readback(
+            study_id=resolved_study_id,
+            paper_mission_command=paper_mission_command,
+            source_refs=source_refs,
+        )
+    return payload
 
 
 def _materialized_study_id(
