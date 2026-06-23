@@ -31,6 +31,14 @@ def current_materialized_dispatches(
         dispatch_ready_for_execution=not apply,
     )
     requested = set(action_types)
+    foreground_dispatches = [
+        dict(dispatch)
+        for dispatch in payload.get("mas_foreground_owner_callable_dispatches", [])
+        if isinstance(dispatch, Mapping)
+        and (not requested or text(dispatch.get("action_type")) in requested)
+    ]
+    if foreground_dispatches:
+        return foreground_dispatches
     return [
         dict(dispatch)
         for dispatch in domain_progress_transition_requests(payload)

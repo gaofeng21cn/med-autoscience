@@ -50,12 +50,17 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             updated.get("current_blockers")
         )
         updated["next_system_action"] = summary
-    if _supervisor_decision_blocks_provider_admission(
+    if _provider_admission_suppression_should_block_owner_action(
+        next_safe_action=next_safe_action
+    ) and _supervisor_decision_blocks_provider_admission(
         supervisor_decision,
         phase=phase,
         next_safe_action=next_safe_action,
     ) or (
         next_safe_action.get("provider_admission_allowed") is False
+        and _provider_admission_suppression_should_block_owner_action(
+            next_safe_action=next_safe_action
+        )
     ):
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
     if phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES:
@@ -134,12 +139,17 @@ def _apply_paper_recovery_authority_projection(
     action_kind = _non_empty_text(next_safe_action.get("kind")) or "inspect_paper_recovery_state"
     lane_id = f"paper_recovery_{phase}"
     supervisor_decision = _mapping_copy(recovery.get("supervisor_decision"))
-    if _supervisor_decision_blocks_provider_admission(
+    if _provider_admission_suppression_should_block_owner_action(
+        next_safe_action=next_safe_action
+    ) and _supervisor_decision_blocks_provider_admission(
         supervisor_decision,
         phase=phase,
         next_safe_action=next_safe_action,
     ) or (
         next_safe_action.get("provider_admission_allowed") is False
+        and _provider_admission_suppression_should_block_owner_action(
+            next_safe_action=next_safe_action
+        )
     ):
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
     if _non_empty_text(updated.get("current_stage")) == "auto_runtime_parked":
@@ -245,6 +255,13 @@ def _suppress_active_provider_admission_projection(
         monitoring_admission["blocked_by"] = blocked_by
         monitoring["owner_action_admission"] = monitoring_admission
         payload["progress_first_monitoring_summary"] = monitoring
+
+
+def _provider_admission_suppression_should_block_owner_action(
+    *,
+    next_safe_action: Mapping[str, Any],
+) -> bool:
+    return _non_empty_text(next_safe_action.get("kind")) != "run_mas_owner_callable"
 
 
 def _has_identity_bound_handoff_provider_admission(payload: Mapping[str, Any]) -> bool:

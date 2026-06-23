@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
+import re
 from typing import Any
 
 from med_autoscience import opl_runtime_contract
@@ -43,14 +44,62 @@ def _resolve_study(
     if study_root is not None:
         resolved_study_root = Path(study_root).expanduser().resolve()
     else:
-        resolved_study_root = (profile.studies_root / str(study_id)).resolve()
+        resolved_study_root = _resolve_study_root_by_identity(
+            profile=profile,
+            study_id=str(study_id),
+        )
     study_payload = router._load_yaml_dict(resolved_study_root / "study.yaml")
     resolved_study_id = str(study_payload.get("study_id") or study_id or resolved_study_root.name).strip()
     if not resolved_study_id:
         raise ValueError(f"could not resolve study_id from {resolved_study_root / 'study.yaml'}")
-    if study_id is not None and str(study_id).strip() != resolved_study_id:
+    if study_id is not None and not _study_identity_matches(str(study_id), resolved_study_id):
         raise ValueError(f"study_id mismatch: expected {study_id}, got {resolved_study_id}")
     return resolved_study_id, resolved_study_root, study_payload
+
+
+def _resolve_study_root_by_identity(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> Path:
+    requested = study_id.strip()
+    literal_root = (profile.studies_root / requested).resolve()
+    if (literal_root / "study.yaml").exists():
+        return literal_root
+    try:
+        study_dirs = sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
+    except OSError:
+        return literal_root
+    for candidate_root in study_dirs:
+        if _study_identity_matches(candidate_root.name, requested):
+            return candidate_root.resolve()
+    for candidate_root in study_dirs:
+        payload = _load_yaml_dict(candidate_root / "study.yaml") if (candidate_root / "study.yaml").exists() else {}
+        candidate_study_id = str(payload.get("study_id") or "").strip()
+        if candidate_study_id and _study_identity_matches(candidate_study_id, requested):
+            return candidate_root.resolve()
+    return literal_root
+
+
+def _study_identity_matches(candidate: str, requested: str) -> bool:
+    candidate_text = candidate.strip()
+    requested_text = requested.strip()
+    if not candidate_text or not requested_text:
+        return False
+    if candidate_text == requested_text:
+        return True
+    if candidate_text.lower() == requested_text.lower():
+        return True
+    candidate_code = _study_numeric_code(candidate_text)
+    requested_code = _study_numeric_code(requested_text)
+    return bool(candidate_code and requested_code and candidate_code == requested_code)
+
+
+def _study_numeric_code(value: str) -> str | None:
+    match = re.match(r"^(?:dm)?0*(\d+)(?:$|[-_].*)", value.strip(), flags=re.IGNORECASE)
+    if match is None:
+        return None
+    return f"{int(match.group(1)):03d}"
 
 
 def _execution_payload(

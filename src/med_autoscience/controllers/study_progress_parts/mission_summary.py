@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+import json
+from pathlib import Path
 from typing import Any
 
 
@@ -32,10 +34,19 @@ PLATFORM_DIAGNOSTIC_TERMS = (
     "read-model",
     "read_model",
 )
+PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
+    Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
+)
 
 
 def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     progress = _mapping(payload)
+    materialized_mission = _latest_materialized_mission(progress)
+    if materialized_mission:
+        return _materialized_mission_summary(
+            progress=progress,
+            materialized_mission=materialized_mission,
+        )
     paper_delta = _mapping(
         progress.get("paper_progress_delta")
         or progress.get("deliverable_progress_delta")
@@ -174,6 +185,289 @@ def _mission_state(
     if _diagnostic_count(platform_diagnostics) > 0:
         return "planned"
     return "planned"
+
+
+def _materialized_mission_summary(
+    *,
+    progress: Mapping[str, Any],
+    materialized_mission: Mapping[str, Any],
+) -> dict[str, Any]:
+    mission = dict(materialized_mission)
+    default_readback = _mapping(mission.get("one_shot_migration_readback"))
+    mission_state = _non_empty_text(mission.get("mission_state")) or "planned"
+    current_mission = _mapping(default_readback.get("current_mission"))
+    required_output = _mapping(default_readback.get("required_output"))
+    platform_diagnostics = _materialized_platform_diagnostics(
+        progress=progress,
+        default_readback=default_readback,
+    )
+    latest_artifact_delta = _materialized_latest_artifact_delta(mission=mission)
+    next_owner = _first_text(
+        default_readback.get("next_owner"),
+        required_output.get("next_owner"),
+    )
+    next_owner_or_human_decision = _compact(
+        {
+            "kind": (
+                "human_decision"
+                if _consume_candidate_status(mission, default_readback) == "human_gate"
+                else "owner_or_route"
+            ),
+            "next_owner": next_owner,
+            "human_decision_required": _consume_candidate_status(
+                mission,
+                default_readback,
+            )
+            == "human_gate",
+            "summary": _consume_candidate_status(mission, default_readback),
+            "typed_blocker_ref": _typed_blocker_ref(default_readback),
+            "owner_receipt_ref": _owner_receipt_ref(default_readback),
+            "can_execute": False,
+            "can_authorize_provider_admission": False,
+        }
+    )
+    current_objective = _compact(
+        {
+            "mission_id": _non_empty_text(mission.get("mission_id")),
+            "objective": _first_text(
+                current_mission.get("objective_kind"),
+                mission.get("objective"),
+            ),
+            "objective_id": current_mission.get("objective_id"),
+            "objective_kind": current_mission.get("objective_kind"),
+            "work_unit_id": required_output.get("work_unit_id"),
+            "required_output": required_output or None,
+            "next_owner": next_owner,
+        }
+    )
+    paper_mission_run = {
+        **mission,
+        "mission_state": mission_state,
+    }
+    summary = {
+        "surface_kind": "artifact_first_paper_mission_summary",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_RUN_CONTRACT_REF,
+        "validator": PAPER_MISSION_RUN_VALIDATOR,
+        "paper_mission_run": paper_mission_run,
+        "mission_state": mission_state,
+        "current_objective": current_objective,
+        "current_mission": current_mission or None,
+        "consume_candidate_status": _consume_candidate_status(
+            mission,
+            default_readback,
+        ),
+        "latest_artifact_delta": latest_artifact_delta,
+        "next_owner_or_human_decision": next_owner_or_human_decision,
+        "platform_diagnostics": platform_diagnostics,
+        "default_progress_metric": "paper_mission_run",
+        "legacy_path_role": "diagnostics_migration_provenance_only",
+        "paper_progress_counting_policy": {
+            "counts_as_paper_progress": [
+                "mission_artifact_delta",
+                "owner_decision_packet",
+                "accepted_owner_receipt",
+                "route_back",
+                "human_gate",
+                "stable_typed_blocker_with_recoverable_path",
+            ],
+            "diagnostics_only": list(PLATFORM_DIAGNOSTIC_TERMS),
+            "platform_repair_counts_as_paper_progress": False,
+        },
+        "authority": {
+            "projection_only": True,
+            "writes_authority_surface": False,
+            "can_authorize_publication_ready": False,
+            "can_authorize_quality_verdict": False,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_mutate_current_package": False,
+            "can_start_provider_attempt": False,
+            "can_mark_dm002_dm003_complete": False,
+        },
+        "read_model_source": {
+            "source_kind": "materialized_paper_mission_run",
+            "materialized_mission_ref": _non_empty_text(
+                mission.get("materialized_mission_ref")
+            ),
+            "legacy_progress_projection_role": "diagnostic_drilldown",
+        },
+    }
+    summary["status"] = mission_state
+    return summary
+
+
+def _latest_materialized_mission(progress: Mapping[str, Any]) -> dict[str, Any]:
+    study_id = _study_id(progress)
+    study_root = _path_from_text(progress.get("study_root"))
+    if study_root is None:
+        study_root = _study_root_from_refs(progress=progress, study_id=study_id)
+    if study_root is None:
+        return {}
+    workspace_root = _workspace_root_from_study_root(study_root)
+    if workspace_root is None:
+        return {}
+    root = workspace_root / PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH
+    if not root.exists():
+        return {}
+    candidates = sorted(
+        (
+            path
+            for path in root.glob("*/*/paper_mission_run.json")
+            if path.is_file()
+            and _materialized_mission_path_matches(path, requested_study_id=study_id)
+        ),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for path in candidates:
+        payload = _read_json_object(path)
+        if not payload:
+            continue
+        payload["materialized_mission_ref"] = str(path)
+        return payload
+    return {}
+
+
+def _materialized_mission_path_matches(
+    path: Path,
+    *,
+    requested_study_id: str,
+) -> bool:
+    if _study_identity_matches(path.parent.name, requested_study_id):
+        return True
+    payload = _read_json_object(path)
+    return _study_identity_matches(
+        _non_empty_text(payload.get("study_id")) or "",
+        requested_study_id,
+    )
+
+
+def _materialized_latest_artifact_delta(
+    *,
+    mission: Mapping[str, Any],
+) -> dict[str, Any]:
+    ledger = [dict(item) for item in _mapping_list(mission.get("artifact_delta_ledger"))]
+    refs = [
+        ref
+        for item in ledger
+        if (ref := _non_empty_text(item.get("artifact_ref"))) is not None
+    ]
+    return {
+        "count": len(ledger),
+        "token_usage_total": 0,
+        "sources": ["materialized_paper_mission_run.artifact_delta_ledger"],
+        "refs": refs,
+        "classification": "mission_artifact_delta" if ledger else "none",
+        "counts_as_paper_progress": bool(ledger),
+        "platform_repair_excluded": True,
+        "artifact_delta_ledger": ledger,
+    }
+
+
+def _materialized_platform_diagnostics(
+    *,
+    progress: Mapping[str, Any],
+    default_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    imported = _mapping(default_readback.get("platform_diagnostics"))
+    diagnostic_refs = _diagnostic_refs(progress)
+    return {
+        "count": _delta_count(_mapping(progress.get("platform_repair_delta"))),
+        "sources": _dedupe_texts(
+            [
+                "materialized_paper_mission_run",
+                *_text_list(imported.get("sources")),
+                *_diagnostic_sources(progress),
+            ]
+        ),
+        "refs": _dedupe_texts(
+            [
+                *_text_list(imported.get("refs")),
+                *diagnostic_refs,
+            ]
+        ),
+        "classification": "diagnostics_only",
+        "folded_surfaces": list(PLATFORM_DIAGNOSTIC_TERMS),
+        "counts_as_paper_progress": False,
+        "repair_lane_required_for_platform_claims": bool(
+            _delta_count(_mapping(progress.get("platform_repair_delta")))
+            or diagnostic_refs
+        ),
+        "materialized_readback": imported or None,
+    }
+
+
+def _study_root_from_refs(
+    *,
+    progress: Mapping[str, Any],
+    study_id: str,
+) -> Path | None:
+    refs = _mapping(progress.get("refs"))
+    for value in refs.values():
+        path = _path_from_text(value)
+        if path is None:
+            continue
+        parts = path.parts
+        for index, part in enumerate(parts[:-1]):
+            if part == "studies" and index + 1 < len(parts):
+                if _study_identity_matches(parts[index + 1], study_id):
+                    return Path(*parts[: index + 2])
+    return None
+
+
+def _workspace_root_from_study_root(study_root: Path) -> Path | None:
+    parts = study_root.parts
+    for index, part in enumerate(parts[:-1]):
+        if part == "studies" and index + 1 < len(parts):
+            return Path(*parts[:index])
+    return None
+
+
+def _path_from_text(value: object) -> Path | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return Path(text).expanduser()
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _consume_candidate_status(
+    mission: Mapping[str, Any],
+    default_readback: Mapping[str, Any],
+) -> str:
+    status = _non_empty_text(default_readback.get("consume_candidate_status"))
+    if status:
+        return status
+    consume_result = _mapping(mission.get("consume_result"))
+    return _non_empty_text(consume_result.get("status")) or "not_consumed"
+
+
+def _typed_blocker_ref(default_readback: Mapping[str, Any]) -> str | None:
+    mission_input = _mapping(default_readback.get("mission_input"))
+    legacy_blocker = _mapping(mission_input.get("legacy_blocker"))
+    typed_blocker = _mapping(legacy_blocker.get("typed_blocker"))
+    return _first_text(
+        typed_blocker.get("typed_blocker_ref"),
+        typed_blocker.get("blocker_id"),
+        typed_blocker.get("blocker_type"),
+    )
+
+
+def _owner_receipt_ref(default_readback: Mapping[str, Any]) -> str | None:
+    consume_readback = _mapping(default_readback.get("consume_candidate_readback"))
+    return _first_text(
+        consume_readback.get("owner_receipt_ref"),
+        consume_readback.get("authority_receipt_ref"),
+    )
 
 
 def _current_objective(
@@ -598,6 +892,12 @@ def _text_list(value: object) -> list[str]:
     return [text for item in value if (text := _non_empty_text(item)) is not None]
 
 
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
 def _dedupe_texts(values: Iterable[object]) -> list[str]:
     result: list[str] = []
     for value in values:
@@ -623,6 +923,35 @@ def _number(value: object) -> int | None:
         except ValueError:
             return None
     return None
+
+
+def _study_identity_matches(candidate: str, requested: str) -> bool:
+    candidate_text = candidate.strip()
+    requested_text = requested.strip()
+    if not candidate_text or not requested_text:
+        return False
+    if candidate_text == requested_text:
+        return True
+    if candidate_text.lower() == requested_text.lower():
+        return True
+    candidate_code = _study_numeric_code(candidate_text)
+    requested_code = _study_numeric_code(requested_text)
+    return bool(candidate_code and requested_code and candidate_code == requested_code)
+
+
+def _study_numeric_code(value: str) -> str | None:
+    text = value.strip().lower()
+    if text.startswith("dm"):
+        text = text[2:]
+    digits = []
+    for char in text:
+        if char.isdigit():
+            digits.append(char)
+            continue
+        break
+    if not digits:
+        return None
+    return f"{int(''.join(digits)):03d}"
 
 
 def _compact(value: Mapping[str, Any]) -> dict[str, Any]:

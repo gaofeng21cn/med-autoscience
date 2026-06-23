@@ -97,6 +97,80 @@ def test_run_mas_owner_callable_refresh_clears_transition_request_candidates(
     assert refreshed["provider_admission_candidates"] == []
 
 
+def test_run_mas_owner_callable_admission_is_not_blocked_by_provider_supervisor_gate() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+    payload = _dm002_owner_callable_payload()
+    current_action = dict(payload["current_executable_owner_action"])
+    current_action.update(
+        {
+            "source_surface": "paper_recovery_state.next_safe_action.owner_callable",
+            "transition_request_pending": False,
+            "provider_admission_requires_opl_runtime_result": False,
+            "opl_transition_runtime_required": False,
+            "paper_recovery_successor": {
+                "phase": "owner_action_ready",
+                "source_next_safe_action_kind": "run_mas_owner_callable",
+                "provider_admission_allowed": False,
+                "provider_admission_requires_opl_runtime_result": False,
+                "opl_transition_runtime_required": False,
+                "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            },
+        }
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            **payload,
+            "current_executable_owner_action": current_action,
+            "paper_autonomy_supervisor_decision": {
+                "surface_kind": "paper_progress_policy_result_projection",
+                "decision": "materialize_recovery_action",
+                "identity_match": True,
+                "paper_autonomy_obligation": {
+                    "study_id": STUDY_ID,
+                    "quest_id": STUDY_ID,
+                    "stage_id": "publication_supervision",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": WORK_UNIT_ID,
+                    "work_unit_fingerprint": FINGERPRINT,
+                    "route_identity_key": ROUTE_KEY,
+                    "attempt_idempotency_key": ROUTE_KEY,
+                },
+                "next_safe_action": {
+                    "kind": "materialize_recovery_work_unit_or_receipt",
+                    "source_next_safe_action": {
+                        "kind": "run_mas_owner_callable",
+                        "provider_admission_allowed": False,
+                        "owner_callable": {
+                            "callable_surface": "quality_repair_batch.run_quality_repair_batch"
+                        },
+                    },
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "provider_admission_pending_count": 0,
+                "provider_admission_candidates": [],
+                "transition_request_pending_count": 0,
+                "transition_request_candidates": [],
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["provider_attempt_started"] is False
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["hard_gate_blocked"] is False
+    assert admission["hard_gate_reasons"] == []
+    assert admission["blocked_by"] == "mas_owner_callable_ready_no_provider_admission_required"
+    assert admission["owner_callable_ready"] is True
+
+
 def _dm002_owner_callable_payload() -> dict[str, object]:
     return {
         "study_id": STUDY_ID,

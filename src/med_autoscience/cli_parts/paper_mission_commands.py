@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable
 
@@ -19,6 +20,10 @@ PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
 PAPER_MISSION_CONTRACT_COMMIT = "a410db5c0c874187c8b1ddecee79c2e00c8fe691"
 PAPER_MISSION_START_OR_RESUME_TASK_KIND = "paper_mission/start_or_resume"
+YANG_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang")
+PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
+    Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
+)
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
@@ -144,6 +149,17 @@ def build_paper_mission_readback(
             output_root=output_root,
             source=source,
         )
+    if paper_mission_command in {"inspect", "start", "resume"}:
+        materialized = _build_materialized_mission_readback_if_available(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command=paper_mission_command,
+            dry_run=dry_run,
+            source=source,
+        )
+        if materialized is not None:
+            return materialized
     selected_objective = _objective_for_command(
         paper_mission_command=paper_mission_command,
         objective=objective,
@@ -259,10 +275,13 @@ def paper_mission_domain_handler_dispatch_receipt(
             "action_type": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "study_id": study_id,
-            "execution_policy": "paper_mission_no_write_dry_run",
+            "execution_policy": _dispatch_execution_policy(readback),
             "recommended_domain_command": (
-                f"uv run python -m med_autoscience.cli paper-mission inspect "
-                f"--profile {profile_ref} --study-id {study_id} --format json"
+                _recommended_domain_command(
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                    readback=readback,
+                )
             ),
             "result": readback,
         },
@@ -279,6 +298,249 @@ def paper_mission_domain_handler_dispatch_receipt(
             "requested_writes": [],
         },
     }
+
+
+def _build_materialized_mission_readback_if_available(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    paper_mission_command: str,
+    dry_run: bool,
+    source: str,
+) -> dict[str, Any] | None:
+    mission_path = _latest_materialized_mission_path(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+    )
+    if mission_path is None:
+        return None
+    mission = _load_json_object(mission_path)
+    validation = _validate_with_contract_if_available(mission)
+    default_readback = (
+        dict(mission["one_shot_migration_readback"])
+        if isinstance(mission.get("one_shot_migration_readback"), dict)
+        else {}
+    )
+    candidate_manifest_path = mission_path.parent / "candidate_manifest.json"
+    candidate_manifest = (
+        _load_json_object(candidate_manifest_path)
+        if candidate_manifest_path.exists()
+        else None
+    )
+    resolved_study_id = _materialized_study_id(
+        mission=mission,
+        requested_study_id=study_id,
+    )
+    resolved_study_root = _materialized_study_root(
+        profile=profile,
+        requested_study_id=study_id,
+        mission=mission,
+        mission_path=mission_path,
+    )
+    return {
+        "surface_kind": "paper_mission_materialized_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": paper_mission_command,
+        "action_intent": _action_intent(paper_mission_command),
+        "source": source,
+        "dry_run": bool(dry_run),
+        "profile": {
+            "profile_name": str(getattr(profile, "name", "")),
+            "profile_ref": str(profile_ref),
+        },
+        "requested_study_id": study_id,
+        "study_id": resolved_study_id,
+        "study_root": str(resolved_study_root),
+        "study_root_exists": resolved_study_root.exists(),
+        "mission_id": mission["mission_id"],
+        "objective": mission["objective"],
+        "materialized_mission_ref": str(mission_path),
+        **(
+            {"candidate_manifest_ref": str(candidate_manifest_path)}
+            if candidate_manifest_path.exists()
+            else {}
+        ),
+        "paper_mission_run": mission,
+        "default_readback": default_readback,
+        **(
+            {"candidate_manifest": candidate_manifest}
+            if candidate_manifest is not None
+            else {}
+        ),
+        "consume_candidate_status": _consume_candidate_status(mission, default_readback),
+        "mutation_policy": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "writes_candidate_workspace": False,
+            "dry_run_only": True,
+            "forbidden_authority_writes": list(
+                ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES
+            ),
+        },
+        "forbidden_authority_writes": list(ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+        "contract_validation": validation,
+        "dispatch_plan": {
+            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "domain_handler_dispatch_mode": "materialized_mission_readback_no_write",
+            "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
+        },
+        "cutover_proof": {
+            "default_readback_surface": "PaperMissionRun",
+            "materialized_paper_mission_run_loaded": True,
+            "legacy_blocker_controls_default_execution": False,
+            "authority_materialized": False,
+        },
+    }
+
+
+def _latest_materialized_mission_path(
+    *,
+    workspace_root: Path,
+    study_id: str,
+) -> Path | None:
+    root = (
+        workspace_root.expanduser().resolve()
+        / PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH
+    )
+    if not root.exists():
+        return None
+    candidates = sorted(
+        (
+            path
+            for path in root.glob("*/*/paper_mission_run.json")
+            if path.is_file()
+            and _materialized_mission_path_matches(path, requested_study_id=study_id)
+        ),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
+
+
+def _materialized_mission_path_matches(
+    path: Path,
+    *,
+    requested_study_id: str,
+) -> bool:
+    if _study_identity_matches(path.parent.name, requested_study_id):
+        return True
+    try:
+        mission = _load_json_object(path)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return False
+    mission_study_id = mission.get("study_id")
+    return isinstance(mission_study_id, str) and _study_identity_matches(
+        mission_study_id,
+        requested_study_id,
+    )
+
+
+def _materialized_study_id(
+    *,
+    mission: dict[str, Any],
+    requested_study_id: str,
+) -> str:
+    mission_study_id = mission.get("study_id")
+    return (
+        mission_study_id
+        if isinstance(mission_study_id, str) and mission_study_id.strip()
+        else requested_study_id
+    )
+
+
+def _materialized_study_root(
+    *,
+    profile: Any,
+    requested_study_id: str,
+    mission: dict[str, Any],
+    mission_path: Path,
+) -> Path:
+    studies_root = Path(profile.studies_root)
+    identities = [
+        _materialized_study_id(
+            mission=mission,
+            requested_study_id=requested_study_id,
+        ),
+        requested_study_id,
+        mission_path.parent.name,
+    ]
+    for identity in identities:
+        candidate = studies_root / identity
+        if candidate.exists():
+            return candidate
+    try:
+        study_dirs = sorted(path for path in studies_root.iterdir() if path.is_dir())
+    except OSError:
+        return studies_root / identities[0]
+    for study_dir in study_dirs:
+        if any(_study_identity_matches(study_dir.name, identity) for identity in identities):
+            return study_dir
+    return studies_root / identities[0]
+
+
+def _study_identity_matches(candidate: str, requested: str) -> bool:
+    candidate_text = candidate.strip()
+    requested_text = requested.strip()
+    if not candidate_text or not requested_text:
+        return False
+    if candidate_text == requested_text:
+        return True
+    if candidate_text.lower() == requested_text.lower():
+        return True
+    candidate_code = _study_numeric_code(candidate_text)
+    requested_code = _study_numeric_code(requested_text)
+    return bool(candidate_code and requested_code and candidate_code == requested_code)
+
+
+def _study_numeric_code(value: str) -> str | None:
+    match = re.match(r"^(?:dm)?0*(\d+)(?:$|[-_].*)", value.strip(), flags=re.IGNORECASE)
+    if match is None:
+        return None
+    return f"{int(match.group(1)):03d}"
+
+
+def _consume_candidate_status(
+    mission: dict[str, Any],
+    default_readback: dict[str, Any],
+) -> str:
+    status = default_readback.get("consume_candidate_status")
+    if isinstance(status, str) and status:
+        return status
+    consume_result = mission.get("consume_result")
+    if isinstance(consume_result, dict):
+        result_status = consume_result.get("status")
+        if isinstance(result_status, str) and result_status:
+            return result_status
+    return "not_consumed"
+
+
+def _dispatch_execution_policy(readback: dict[str, Any]) -> str:
+    if readback.get("surface_kind") == "paper_mission_materialized_readback":
+        return "paper_mission_materialized_readback_no_write"
+    return "paper_mission_no_write_dry_run"
+
+
+def _recommended_domain_command(
+    *,
+    profile_ref: object,
+    study_id: str,
+    readback: dict[str, Any],
+) -> str:
+    command = (
+        "uv run python -m med_autoscience.cli paper-mission inspect "
+        f"--profile {profile_ref} --study-id {study_id} --format json"
+    )
+    if readback.get("surface_kind") == "paper_mission_materialized_readback":
+        return f"{command} # reads materialized PaperMissionRun"
+    return command
 
 
 def _paper_mission_dispatch_error(
@@ -483,14 +745,11 @@ def _no_write_output_manifest() -> dict[str, Any]:
 
 
 def _assert_safe_candidate_output_root(path: Path) -> None:
-    normalized = path.as_posix()
-    allowed_yang_candidate_root = (
-        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
-        "ops/medautoscience/paper_mission_one_shot_migration/"
-    )
+    normalized_path = path.expanduser().resolve()
+    normalized = normalized_path.as_posix()
     forbidden_parts = (
-        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/",
-        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/",
+        "/studies/",
+        "/runtime/",
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "owner_receipt",
@@ -500,8 +759,8 @@ def _assert_safe_candidate_output_root(path: Path) -> None:
         "runtime/queue",
         "provider_attempt",
     )
-    if normalized.startswith("/Users/gaofeng/workspace/Yang/") and not normalized.startswith(
-        allowed_yang_candidate_root
+    if _is_under_yang_workspace(normalized_path) and not _is_yang_ops_candidate_root(
+        normalized_path
     ):
         raise ValueError(f"forbidden paper mission output root: {path}")
     for forbidden in forbidden_parts:
@@ -512,11 +771,25 @@ def _assert_safe_candidate_output_root(path: Path) -> None:
 def _is_yang_ops_candidate_root(path: str | Path | None) -> bool:
     if path is None:
         return False
-    normalized = Path(path).expanduser().resolve().as_posix()
-    return normalized.startswith(
-        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
-        "ops/medautoscience/paper_mission_one_shot_migration/"
+    normalized = Path(path).expanduser().resolve()
+    try:
+        relative = normalized.relative_to(YANG_WORKSPACE_ROOT)
+    except ValueError:
+        return False
+    parts = relative.parts
+    if len(parts) < len(PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH.parts) + 2:
+        return False
+    return Path(*parts[1 : 1 + len(PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH.parts)]) == (
+        PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH
     )
+
+
+def _is_under_yang_workspace(path: Path) -> bool:
+    try:
+        path.relative_to(YANG_WORKSPACE_ROOT)
+    except ValueError:
+        return False
+    return True
 
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:

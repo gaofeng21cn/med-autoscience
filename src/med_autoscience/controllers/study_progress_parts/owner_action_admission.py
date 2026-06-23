@@ -24,7 +24,13 @@ def build_owner_action_admission_projection(
     allowed_actions = _text_list(current_action.get("allowed_actions"))
     if owner is None and work_unit_id is None and not allowed_actions:
         return None
+    owner_callable_ready = _mas_owner_callable_ready_without_provider_admission(
+        payload=payload,
+        current_action=current_action,
+    )
     blocked_by = _hard_gate_blockers(payload)
+    if owner_callable_ready:
+        blocked_by.pop("paper_autonomy_supervisor_decision", None)
     hard_gate_reasons = _hard_gate_reasons(blocked_by)
     hard_gate_blocked = bool(hard_gate_reasons)
     provider_attempt_proof = provider_attempt_proof_for_current_action(
@@ -40,8 +46,10 @@ def build_owner_action_admission_projection(
     admission_requested = not hard_gate_blocked
     start_requested = admission_requested and (candidate_present or running_proven)
     blocked_reason = blocked_by or None
+    if owner_callable_ready and admission_requested and not start_requested:
+        blocked_reason = "mas_owner_callable_ready_no_provider_admission_required"
     if admission_requested and not start_requested:
-        blocked_reason = "provider_admission_candidate_absent"
+        blocked_reason = blocked_reason or "provider_admission_candidate_absent"
     return {
         "surface_kind": "current_executable_owner_action_admission",
         "schema_version": 1,
@@ -56,6 +64,7 @@ def build_owner_action_admission_projection(
         "hard_gate_blocked": hard_gate_blocked,
         "hard_gate_reasons": hard_gate_reasons,
         "blocked_by": blocked_reason,
+        "owner_callable_ready": owner_callable_ready,
         "next_owner": owner,
         "work_unit_id": work_unit_id,
         "allowed_actions": allowed_actions,
@@ -74,6 +83,38 @@ def build_owner_action_admission_projection(
             "can_authorize_publication_ready": False,
         },
     }
+
+
+def _mas_owner_callable_ready_without_provider_admission(
+    *,
+    payload: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    if _text(current_action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
+        return False
+    if current_action.get("provider_admission_pending") is True:
+        return False
+    if current_action.get("provider_attempt_or_lease_required") is True:
+        return False
+    if current_action.get("provider_admission_requires_opl_runtime_result") is True:
+        return False
+    if current_action.get("opl_transition_runtime_required") is True:
+        return False
+    successor = _mapping(current_action.get("paper_recovery_successor"))
+    if successor and successor.get("provider_admission_allowed") is True:
+        return False
+    recovery = _mapping(payload.get("paper_recovery_state"))
+    next_safe_action = _mapping(recovery.get("next_safe_action"))
+    if _text(next_safe_action.get("kind")) != "run_mas_owner_callable":
+        return False
+    if next_safe_action.get("provider_admission_allowed") is True:
+        return False
+    owner_callable = _mapping(next_safe_action.get("owner_callable"))
+    if _text(owner_callable.get("callable_surface")) is None:
+        return False
+    if _text(current_action.get("next_owner")) is None and _text(current_action.get("owner")) is None:
+        return False
+    return True
 
 
 def admission_authority_boundary() -> dict[str, Any]:

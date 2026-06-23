@@ -63,21 +63,30 @@ def dispatch_contract_error(
 ) -> str | None:
     if _text(dispatch.get("surface")) != "default_executor_dispatch_request":
         return "unsupported_dispatch_surface"
+    mas_foreground_owner_callable = (
+        _text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter"
+    )
     dispatch_status = _text(dispatch.get("dispatch_status"))
     if dispatch_status != "ready" and not (dispatch_status == "dry_run" and not apply):
         return "dispatch_not_ready"
     if _text(dispatch.get("executor_kind")) != "codex_cli_default":
         return "unsupported_executor_kind"
-    if _text(dispatch.get("target_runtime_owner")) not in {None, "one-person-lab"}:
+    allowed_runtime_owners = (
+        {None, "med-autoscience"}
+        if mas_foreground_owner_callable
+        else {None, "one-person-lab"}
+    )
+    if _text(dispatch.get("target_runtime_owner")) not in allowed_runtime_owners:
         return "target_runtime_owner_mismatch"
     for key in (
-        "mas_dispatch_authority",
         "mas_creates_opl_outbox",
         "mas_creates_opl_event",
         "mas_creates_opl_stage_run",
     ):
         if dispatch.get(key) is True:
             return f"{key}_forbidden"
+    if dispatch.get("mas_dispatch_authority") is True and not mas_foreground_owner_callable:
+        return "mas_dispatch_authority_forbidden"
     if dispatch.get("chat_completion_only_executor_forbidden") is not True:
         return "chat_completion_only_guard_missing"
     action_type = _text(dispatch.get("action_type"))

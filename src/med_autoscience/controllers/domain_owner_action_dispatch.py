@@ -656,6 +656,8 @@ def _dispatch_pre_execution_block(
             "blocked_reason": developer_apply_gate.block_reason(developer_mode_payload) or "developer_apply_safe_required",
             "owner_callable_surface": None,
         }
+    if _mas_foreground_owner_callable_dispatch(dispatch):
+        return None
     opl_block = opl_execution_preflight.block_if_missing_authorization(
         dispatch=dispatch,
         owner_route_basis=owner_route_basis,
@@ -666,6 +668,18 @@ def _dispatch_pre_execution_block(
     return None
 
 
+def _mas_foreground_owner_callable_dispatch(dispatch: Mapping[str, Any]) -> bool:
+    if _text(dispatch.get("adapter_kind")) != "mas_foreground_owner_callable_adapter":
+        return False
+    if _text(dispatch.get("target_runtime_owner")) != "med-autoscience":
+        return False
+    if dispatch.get("mas_dispatch_authority") is not True:
+        return False
+    if dispatch.get("provider_admission_requires_opl_runtime_result") is True:
+        return False
+    return True
+
+
 def _block_transition_request_without_opl_readback(
     *,
     dispatch: Mapping[str, Any],
@@ -674,6 +688,8 @@ def _block_transition_request_without_opl_readback(
     current_study: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     if execution.get("execution_status") == "blocked":
+        return dict(execution)
+    if _mas_foreground_owner_callable_dispatch(dispatch):
         return dict(execution)
     if not _domain_progress_transition_request_present(dispatch, execution):
         return dict(execution)
@@ -1079,30 +1095,52 @@ def _dispatch_execution_payload(
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         **execution,
     }
-    execution_payload.update(
-        {
-            "adapter_kind": "opl_authorized_owner_callable_adapter",
-            "target_runtime_owner": "one-person-lab",
-            "mas_dispatch_authority": False,
-            "mas_creates_opl_outbox": False,
-            "mas_creates_opl_event": False,
-            "mas_creates_opl_stage_run": False,
-            "provider_admission_pending": False,
-            "provider_completion_is_domain_completion": False,
-            "projection_authority": False,
-            "owner_callable_receipt_projection": True,
-            "execution_ledger_authority": False,
-            "attempt_lifecycle_authority": False,
-            "queue_authority": False,
-            "retry_or_dead_letter_authority": False,
-            "execution_requires_opl_authorization": True,
-            "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
-            "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
-            "forbidden_completion_interpretations": list(
-                OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
-            ),
-        }
-    )
+    if _mas_foreground_owner_callable_dispatch(dispatch):
+        execution_payload.update(
+            {
+                "adapter_kind": "mas_foreground_owner_callable_adapter",
+                "target_runtime_owner": "med-autoscience",
+                "mas_dispatch_authority": True,
+                "mas_creates_opl_outbox": False,
+                "mas_creates_opl_event": False,
+                "mas_creates_opl_stage_run": False,
+                "provider_admission_pending": False,
+                "provider_completion_is_domain_completion": False,
+                "projection_authority": False,
+                "owner_callable_receipt_projection": True,
+                "execution_ledger_authority": False,
+                "attempt_lifecycle_authority": False,
+                "queue_authority": False,
+                "retry_or_dead_letter_authority": False,
+                "execution_requires_opl_authorization": False,
+                "owner_callable_execution_mode": "mas_foreground",
+            }
+        )
+    else:
+        execution_payload.update(
+            {
+                "adapter_kind": "opl_authorized_owner_callable_adapter",
+                "target_runtime_owner": "one-person-lab",
+                "mas_dispatch_authority": False,
+                "mas_creates_opl_outbox": False,
+                "mas_creates_opl_event": False,
+                "mas_creates_opl_stage_run": False,
+                "provider_admission_pending": False,
+                "provider_completion_is_domain_completion": False,
+                "projection_authority": False,
+                "owner_callable_receipt_projection": True,
+                "execution_ledger_authority": False,
+                "attempt_lifecycle_authority": False,
+                "queue_authority": False,
+                "retry_or_dead_letter_authority": False,
+                "execution_requires_opl_authorization": True,
+                "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
+                "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
+                "forbidden_completion_interpretations": list(
+                    OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
+                ),
+            }
+        )
     if execution_status := _text(execution_payload.get("execution_status")):
         execution_payload["status"] = execution_status
     execution_identity = _execution_owner_identity(

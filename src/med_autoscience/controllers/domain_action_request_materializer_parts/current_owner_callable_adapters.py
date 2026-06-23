@@ -78,7 +78,17 @@ def current_owner_callable_adapters(
         )
         for action in selected_request_actions
     ]
-    transition_requests = domain_progress_transition_request_projection(dispatches)
+    foreground_dispatches = [
+        dispatch
+        for dispatch in dispatches
+        if text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter"
+    ]
+    transition_source_dispatches = [
+        dispatch for dispatch in dispatches if dispatch not in foreground_dispatches
+    ]
+    transition_requests = domain_progress_transition_request_projection(
+        transition_source_dispatches
+    )
     return with_owner_callable_adapter_projection({
         "surface": "domain_action_request_materializer.current_owner_callable_adapters",
         "schema_version": 1,
@@ -108,9 +118,11 @@ def current_owner_callable_adapters(
         "mas_dispatch_authority": False,
         "selected_action_count": len(selected_request_actions),
         "ignored_actions": ignored_actions,
-        "owner_callable_adapter_count": len(dispatches),
-        "ready_owner_callable_adapter_count": _dispatch_status_count(dispatches, "ready", text=text),
-        "blocked_owner_callable_adapter_count": _dispatch_status_count(dispatches, "blocked", text=text),
+        "owner_callable_adapter_count": len(transition_source_dispatches),
+        "ready_owner_callable_adapter_count": _dispatch_status_count(transition_source_dispatches, "ready", text=text),
+        "blocked_owner_callable_adapter_count": _dispatch_status_count(transition_source_dispatches, "blocked", text=text),
+        "mas_foreground_owner_callable_dispatch_count": len(foreground_dispatches),
+        "mas_foreground_owner_callable_dispatches": foreground_dispatches,
         "domain_progress_transition_request_count": len(transition_requests),
         "ready_domain_progress_transition_request_count": _dispatch_status_count(
             transition_requests,

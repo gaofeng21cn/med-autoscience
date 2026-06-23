@@ -511,6 +511,28 @@ def _default_executor_dispatch(
         dispatch=dispatch_shell
     )
     execution_ready_dispatch_requested = developer_mode_payload.get("dry_run_executor_dispatch") is True
+    if _mas_foreground_owner_callable_action(action):
+        return _mas_foreground_owner_callable_dispatch_payload(
+            profile=profile,
+            action=action,
+            action_type=action_type,
+            study_id=study_id,
+            dispatch_path=dispatch_path,
+            executor_policy=executor_policy,
+            next_executable_owner=next_executable_owner,
+            required_output_surface=required_output_surface,
+            owner_route=owner_route,
+            idempotency_key=idempotency_key,
+            repeat_key=repeat_key,
+            typed_closeout_contract=typed_closeout_contract,
+            owner_route_attempt_envelope=owner_route_attempt_envelope,
+            prompt_contract=prompt_contract,
+            developer_mode_payload=developer_mode_payload,
+            readiness_dispatch=readiness_dispatch,
+            evidence_gap_projection=evidence_gap_projection,
+            progress_first_closeout_admission=closeout_admission,
+            generated_at=generated_at,
+        )
     dispatch_status = (
         "ready"
         if (apply or execution_ready_dispatch_requested)
@@ -580,7 +602,105 @@ def _default_executor_dispatch(
     )
 
 
+def _mas_foreground_owner_callable_action(action: Mapping[str, Any]) -> bool:
+    target_surface = _mapping(action.get("target_surface"))
+    if _text(target_surface.get("ref_kind")) != "mas_owner_callable":
+        return False
+    if _text(target_surface.get("owner_callable_surface")) is None and _text(
+        action.get("owner_callable_surface")
+    ) is None:
+        return False
+    for key in (
+        "provider_admission_pending",
+        "transition_request_pending",
+        "provider_attempt_or_lease_required",
+        "provider_admission_requires_opl_runtime_result",
+        "opl_transition_runtime_required",
+        "opl_transition_runtime_required_for_durable_carrier",
+    ):
+        if action.get(key) is True:
+            return False
+    return True
+
+
+def _mas_foreground_owner_callable_dispatch_payload(
+    *,
+    profile: WorkspaceProfile,
+    action: Mapping[str, Any],
+    action_type: str,
+    study_id: str,
+    dispatch_path: Path,
+    executor_policy: Mapping[str, Any],
+    next_executable_owner: str,
+    required_output_surface: str,
+    owner_route: Mapping[str, Any],
+    idempotency_key: str | None,
+    repeat_key: str | None,
+    typed_closeout_contract: Mapping[str, Any],
+    owner_route_attempt_envelope: Mapping[str, Any],
+    prompt_contract: Mapping[str, Any],
+    developer_mode_payload: Mapping[str, Any],
+    readiness_dispatch: Mapping[str, Any],
+    evidence_gap_projection: Mapping[str, Any],
+    progress_first_closeout_admission: Mapping[str, Any],
+    generated_at: str,
+) -> dict[str, Any]:
+    payload = _default_executor_dispatch_payload(
+        profile=profile,
+        action=action,
+        action_type=action_type,
+        study_id=study_id,
+        dispatch_path=dispatch_path,
+        executor_policy=executor_policy,
+        next_executable_owner=next_executable_owner,
+        required_output_surface=required_output_surface,
+        owner_route=owner_route,
+        idempotency_key=idempotency_key,
+        repeat_key=repeat_key,
+        dispatch_status="ready",
+        blocked_reason=None,
+        repeat_guard={"repeat_suppressed": False, "why_not_applied": None},
+        typed_closeout_contract=typed_closeout_contract,
+        owner_route_attempt_envelope=owner_route_attempt_envelope,
+        prompt_contract=prompt_contract,
+        developer_mode_payload=developer_mode_payload,
+        readiness_dispatch=readiness_dispatch,
+        evidence_gap_projection=evidence_gap_projection,
+        progress_first_closeout_admission=progress_first_closeout_admission,
+        generated_at=generated_at,
+    )
+    prompt = dict(_mapping(payload.get("prompt_contract")))
+    prompt["owner_callable_execution_mode"] = "mas_foreground"
+    prompt["provider_admission_requires_opl_runtime_result"] = False
+    prompt["provider_attempt_or_lease_required"] = False
+    prompt["opl_transition_runtime_required"] = False
+    prompt["target_runtime_owner"] = "med-autoscience"
+    payload.update(
+        {
+            "owner_callable_execution_mode": "mas_foreground",
+            "adapter_kind": "mas_foreground_owner_callable_adapter",
+            "target_runtime_owner": "med-autoscience",
+            "target_runtime_owner_authority_required": False,
+            "mas_dispatch_authority": True,
+            "dispatch_ready_for_execution_authority": True,
+            "provider_admission_pending": False,
+            "provider_admission_requires_opl_runtime_result": False,
+            "provider_attempt_or_lease_required": False,
+            "opl_transition_runtime_required": False,
+            "opl_transition_runtime_required_for_durable_carrier": False,
+            "owner_callable_surface": _text(action.get("owner_callable_surface"))
+            or _text(_mapping(action.get("target_surface")).get("owner_callable_surface")),
+            "dispatch_authority": "paper_mission_current_mas_owner_callable",
+            "consumer_mutation_scope": "mas_foreground_owner_callable_projection_only",
+            "prompt_contract": prompt,
+        }
+    )
+    return payload
+
+
 def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    if _text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter":
+        return dict(dispatch)
     payload = dict(dispatch)
     transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
     if not transition_request:

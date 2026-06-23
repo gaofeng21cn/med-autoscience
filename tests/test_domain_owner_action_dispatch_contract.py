@@ -60,6 +60,25 @@ def test_dispatch_contract_rejects_non_opl_runtime_owner() -> None:
     )
 
 
+def test_dispatch_contract_accepts_mas_foreground_owner_callable_adapter() -> None:
+    payload = _dispatch(
+        adapter_kind="mas_foreground_owner_callable_adapter",
+        target_runtime_owner="med-autoscience",
+        mas_dispatch_authority=True,
+        provider_admission_requires_opl_runtime_result=False,
+        owner_callable_execution_mode="mas_foreground",
+    )
+
+    assert (
+        dispatch_contract_error(
+            payload,
+            apply=True,
+            supported_action_types=SUPPORTED_ACTION_TYPES,
+        )
+        is None
+    )
+
+
 def _projection(**overrides: object) -> dict[str, object]:
     payload = _dispatch(
         surface="mas_domain_progress_transition_request_projection",
@@ -610,6 +629,45 @@ def test_current_materialized_dispatches_ignore_owner_callable_adapter_list(tmp_
 
     assert len(dispatches) == 1
     assert dispatches[0]["surface"] == "mas_domain_progress_transition_request_projection"
+
+
+def test_current_materialized_dispatches_select_mas_foreground_owner_callable() -> None:
+    from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
+        current_dispatch_materialization,
+    )
+
+    profile = type("Profile", (), {})()
+    study_id = "002-dm-china-us-mortality-attribution"
+    legacy_dispatch = _dispatch(study_id=study_id)
+    transition_dispatch = _projection(study_id=study_id)
+    foreground_dispatch = _dispatch(
+        study_id=study_id,
+        surface="default_executor_dispatch_request",
+        target_runtime_owner="med-autoscience",
+        mas_dispatch_authority=True,
+        provider_admission_requires_opl_runtime_result=False,
+        dispatch_authority="paper_mission_current_mas_owner_callable",
+    )
+    foreground_dispatch["owner_callable_execution_mode"] = "mas_foreground"
+
+    def transition_request_projection_producer(**_: object) -> dict[str, object]:
+        return {
+            "owner_callable_adapters": [legacy_dispatch],
+            "domain_progress_transition_requests": [transition_dispatch],
+            "mas_foreground_owner_callable_dispatches": [foreground_dispatch],
+        }
+
+    dispatches = current_dispatch_materialization.current_materialized_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=("run_quality_repair_batch",),
+        mode="preview",
+        apply=False,
+        transition_request_projection_producer=transition_request_projection_producer,
+        text=lambda value: str(value).strip() if value else None,
+    )
+
+    assert dispatches == [foreground_dispatch]
 
 
 def test_current_materialized_dispatches_interface_names_transition_request_producer() -> None:

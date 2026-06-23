@@ -1,6 +1,273 @@
 from __future__ import annotations
 
 import importlib
+import json
+
+from tests.test_cli_cases.shared import write_profile
+
+
+def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    study_root.mkdir(parents=True)
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": (
+            f"paper-mission::{study_id}::medical_prose_write_repair_publication_gate_replay"
+        ),
+        "study_id": study_id,
+        "objective": "Prepare a no-write paper mission for medical prose repair.",
+        "mission_state": "stable_blocker",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm003::one-shot",
+                "artifact_ref": "mission://dm003/prose-repair-owner-decision",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": "mission://dm003/import-pack",
+            }
+        ],
+        "authority_touchpoints": [
+            {
+                "touchpoint_id": "typed_blocker",
+                "owner": "MedAutoScience",
+                "surface": "typed blocker",
+                "status": "not_touched",
+            }
+        ],
+        "forbidden_write_guard": {
+            "candidate_writes_authority": False,
+            "blocked_paths": [
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "current_package",
+                "runtime queue/provider attempts",
+                "/Users/gaofeng/workspace/Yang/**",
+            ],
+            "forbidden_claims": [
+                "publication_ready",
+                "current_package",
+                "owner_receipt_written",
+            ],
+        },
+        "consume_result": {"status": "typed_blocker"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "mission_id": f"paper-mission::{study_id}::medical_prose",
+                "study_id": study_id,
+                "objective_kind": "medical_prose_write_repair_publication_gate_replay",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+                "next_owner": "one-person-lab",
+                "work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "consume_candidate_status": "typed_blocker",
+            "mission_input": {
+                "legacy_blocker": {
+                    "typed_blocker": {
+                        "blocker_id": "current_owner_route_superseded_by_existing_typed_blocker"
+                    }
+                }
+            },
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+
+    payload = module.attach_artifact_first_mission_summary(
+        {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "paper_progress_delta": {
+                "count": 1,
+                "token_usage_total": 1200,
+                "sources": ["stale_progress_delta"],
+                "refs": ["studies/003/paper/draft.md"],
+            },
+            "progress_delta_classification": "deliverable_progress",
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "work_unit_id": "analysis_claim_evidence_repair",
+            },
+        }
+    )
+
+    assert payload["mission_state"] == "stable_blocker"
+    assert payload["artifact_first_mission_summary"]["consume_candidate_status"] == (
+        "typed_blocker"
+    )
+    assert payload["artifact_first_mission_summary"]["default_progress_metric"] == (
+        "paper_mission_run"
+    )
+    assert payload["artifact_first_mission_summary"]["current_objective"]["next_owner"] == (
+        "one-person-lab"
+    )
+    assert payload["next_owner_or_human_decision"]["next_owner"] == "one-person-lab"
+    assert payload["latest_artifact_delta"]["refs"] == [
+        "mission://dm003/prose-repair-owner-decision"
+    ]
+    assert payload["artifact_first_mission_summary"]["read_model_source"] == {
+        "source_kind": "materialized_paper_mission_run",
+        "materialized_mission_ref": str(mission_root / "paper_mission_run.json"),
+        "legacy_progress_projection_role": "diagnostic_drilldown",
+    }
+
+
+def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
+    tmp_path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = workspace_root / "studies" / study_id
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    mission_root.mkdir(parents=True)
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": (
+            f"paper-mission::{study_id}::gate_clearing_claim_evidence_repair"
+        ),
+        "study_id": study_id,
+        "objective": "Prepare a no-write paper mission for gate-clearing.",
+        "mission_state": "consumed",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm002::one-shot",
+                "artifact_ref": "mission://dm002/claim-evidence-owner-decision",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate_consumed",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": "mission://dm002/import-pack",
+            }
+        ],
+        "authority_touchpoints": [
+            {
+                "touchpoint_id": "publication_eval",
+                "owner": "MedAutoScience",
+                "surface": "publication_eval/latest.json",
+                "status": "not_touched",
+            }
+        ],
+        "forbidden_write_guard": {
+            "candidate_writes_authority": False,
+            "blocked_paths": [
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "current_package",
+                "runtime queue/provider attempts",
+                "/Users/gaofeng/workspace/Yang/**",
+            ],
+            "forbidden_claims": [
+                "publication_ready",
+                "current_package",
+                "owner_receipt_written",
+            ],
+        },
+        "consume_result": {"status": "accepted"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "mission_id": f"paper-mission::{study_id}::gate-clearing",
+                "study_id": study_id,
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+                "next_owner": "analysis-campaign",
+                "work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "consume_candidate_status": "accepted",
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "study",
+            "progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "DM002",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["study_id"] == study_id
+    assert payload["mission_state"] == "consumed"
+    assert payload["artifact_first_mission_summary"]["default_progress_metric"] == (
+        "paper_mission_run"
+    )
+    assert payload["artifact_first_mission_summary"]["consume_candidate_status"] == (
+        "accepted"
+    )
+    assert payload["artifact_first_mission_summary"]["paper_mission_run"]["mission_id"] == (
+        mission_payload["mission_id"]
+    )
+    assert payload["next_owner_or_human_decision"]["next_owner"] == "analysis-campaign"
 
 
 def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics() -> None:
