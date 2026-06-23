@@ -358,6 +358,26 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert payload["next_owner_or_human_decision"] == (
         summary["next_owner_or_human_decision"]
     )
+    authority_readback = summary["terminal_owner_gate_authority_readback"]
+    assert authority_readback["surface_kind"] == (
+        "mas_terminal_owner_gate_authority_readback"
+    )
+    assert authority_readback["status"] == "typed_blocker_required"
+    assert authority_readback["next_owner"] == "one-person-lab"
+    assert authority_readback["consume_result"] == {
+        "status": "typed_blocker",
+        "outcome": "typed_blocker_required",
+        "authority_materialized": False,
+    }
+    assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (
+        "closeout.json#domain_blocker"
+    )
+    assert authority_readback["authority_boundary"]["can_claim_paper_progress"] is False
+    assert authority_readback["authority_boundary"][
+        "can_authorize_provider_admission"
+    ] is False
+    assert authority_readback["write_plan"]["written_files"] == []
+    assert payload["terminal_owner_gate_authority_readback"] == authority_readback
     assert payload["opl_runtime_readback_status"] == (
         "opl_runtime_terminal_readback_observed"
     )

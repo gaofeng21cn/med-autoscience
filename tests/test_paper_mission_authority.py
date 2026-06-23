@@ -219,3 +219,50 @@ def test_missing_non_degradation_fields_route_back_to_candidate_owner() -> None:
     assert result["next_owner"] == "mission_executor"
     assert result["resume_condition"] == "supply missing mission authority refs and resubmit"
     assert result["write_plan"]["written_files"] == []
+
+
+def test_terminal_owner_gate_authority_readback_is_readback_only() -> None:
+    from med_autoscience.paper_mission_terminal_owner_gate import (
+        terminal_owner_gate_authority_readback,
+    )
+
+    result = terminal_owner_gate_authority_readback(
+        {
+            "surface_kind": "paper_mission_terminal_owner_gate",
+            "owner": "one-person-lab",
+            "gate_kind": "typed_blocker",
+            "blocked_reason": "opl_runtime_lifecycle_readback_required",
+            "typed_blocker_ref": "closeout.json#domain_blocker",
+            "closeout_ref": "closeout.json",
+            "stage_attempt_id": "sat-terminal",
+            "work_unit_id": "gate_clearing_claim_evidence_repair",
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+            "authority_materialized": False,
+        }
+    )
+
+    assert result["surface_kind"] == "mas_terminal_owner_gate_authority_readback"
+    assert result["status"] == "typed_blocker_required"
+    assert result["selected_outcome"] == "typed_blocker_required"
+    assert result["next_owner"] == "one-person-lab"
+    assert result["resume_condition"] == "opl_runtime_lifecycle_readback_required"
+    assert result["owner_answer_contract"]["required_surface"] == "typed_blocker_ref"
+    assert result["owner_answer_contract"]["typed_blocker_ref"] == (
+        "closeout.json#domain_blocker"
+    )
+    assert result["owner_answer_contract"]["accepted_shapes"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert result["consume_result"] == {
+        "status": "typed_blocker",
+        "outcome": "typed_blocker_required",
+        "authority_materialized": False,
+    }
+    assert result["write_plan"]["written_files"] == []
+    assert result["authority_boundary"]["can_claim_paper_progress"] is False
+    assert result["authority_boundary"]["can_authorize_provider_admission"] is False

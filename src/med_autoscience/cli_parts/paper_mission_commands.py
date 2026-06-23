@@ -23,6 +23,7 @@ from med_autoscience.paper_mission_opl_readback import (
 )
 from med_autoscience.paper_mission_terminal_owner_gate import (
     stage_terminal_next_owner_or_human_decision,
+    terminal_owner_gate_authority_readback,
     terminal_owner_gate_from_carrier_readback,
     terminal_owner_gate_next_decision,
 )
@@ -1147,6 +1148,12 @@ def _paper_mission_transaction_readback(
     )
     terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
     readback["terminal_owner_gate"] = terminal_owner_gate or None
+    terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
+        terminal_owner_gate
+    )
+    readback["terminal_owner_gate_authority_readback"] = (
+        terminal_gate_authority_readback or None
+    )
     readback["next_owner_or_human_decision"] = _next_owner_or_human_decision_from_transaction_readback(
         readback=readback,
         terminal_owner_gate=terminal_owner_gate,
@@ -1190,6 +1197,9 @@ def _transaction_readback_output_fields(
             "opl_runtime_readback_status"
         ],
         "terminal_owner_gate": transaction_readback.get("terminal_owner_gate"),
+        "terminal_owner_gate_authority_readback": transaction_readback.get(
+            "terminal_owner_gate_authority_readback"
+        ),
         "next_owner_or_human_decision": transaction_readback[
             "next_owner_or_human_decision"
         ],

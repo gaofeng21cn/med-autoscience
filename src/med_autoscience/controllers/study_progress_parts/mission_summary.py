@@ -16,6 +16,7 @@ from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
 )
 from med_autoscience.paper_mission_terminal_owner_gate import (
+    terminal_owner_gate_authority_readback,
     terminal_owner_gate_from_carrier_readback,
     terminal_owner_gate_next_decision,
 )
@@ -134,6 +135,9 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         study_root=_materialized_study_root(progress=progress),
     )
     terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
+    terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
+        terminal_owner_gate
+    )
     if terminal_owner_gate:
         next_owner_or_human_decision = terminal_owner_gate_next_decision(
             terminal_owner_gate
@@ -167,6 +171,9 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         },
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "terminal_owner_gate": terminal_owner_gate or None,
+        "terminal_owner_gate_authority_readback": (
+            terminal_gate_authority_readback or None
+        ),
         "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_artifact_delta",
         "legacy_path_role": "diagnostics_migration_provenance_only",
@@ -211,6 +218,9 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["latest_artifact_delta"] = summary["latest_artifact_delta"]
     updated["next_owner_or_human_decision"] = summary["next_owner_or_human_decision"]
     updated["terminal_owner_gate"] = summary.get("terminal_owner_gate")
+    updated["terminal_owner_gate_authority_readback"] = summary.get(
+        "terminal_owner_gate_authority_readback"
+    )
     updated["platform_diagnostics"] = summary["platform_diagnostics"]
     updated["paper_mission_transaction"] = summary["paper_mission_transaction"]
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
@@ -321,6 +331,9 @@ def _materialized_mission_summary(
         study_root=_materialized_study_root(progress=progress),
     )
     terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
+    terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
+        terminal_owner_gate
+    )
     if terminal_owner_gate:
         next_owner_or_human_decision = terminal_owner_gate_next_decision(
             terminal_owner_gate
@@ -350,6 +363,9 @@ def _materialized_mission_summary(
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "terminal_owner_gate": terminal_owner_gate or None,
+        "terminal_owner_gate_authority_readback": (
+            terminal_gate_authority_readback or None
+        ),
         "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_mission_run",
         "legacy_path_role": "diagnostics_migration_provenance_only",

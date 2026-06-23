@@ -1047,6 +1047,36 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
         "can_execute": False,
         "can_authorize_provider_admission": False,
     }
+    authority_readback = payload["terminal_owner_gate_authority_readback"]
+    assert authority_readback["surface_kind"] == (
+        "mas_terminal_owner_gate_authority_readback"
+    )
+    assert authority_readback["status"] == "typed_blocker_required"
+    assert authority_readback["next_owner"] == "one-person-lab"
+    assert authority_readback["consume_result"] == {
+        "status": "typed_blocker",
+        "outcome": "typed_blocker_required",
+        "authority_materialized": False,
+    }
+    assert authority_readback["owner_answer_contract"]["accepted_shapes"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat-terminal.closeout.json#domain_blocker"
+    )
+    assert authority_readback["authority_boundary"]["can_claim_paper_progress"] is False
+    assert authority_readback["authority_boundary"][
+        "can_authorize_provider_admission"
+    ] is False
+    assert authority_readback["write_plan"]["written_files"] == []
+    assert payload["paper_mission_transaction_readback"][
+        "terminal_owner_gate_authority_readback"
+    ] == authority_readback
     assert payload["paper_mission_transaction_readback"]["opl_runtime_readback_status"] == (
         "opl_runtime_terminal_readback_observed"
     )

@@ -55,6 +55,79 @@ def terminal_owner_gate_next_decision(
     )
 
 
+def terminal_owner_gate_authority_readback(
+    terminal_owner_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    gate = _mapping(terminal_owner_gate)
+    if not gate:
+        return {}
+    typed_blocker_ref = _text(gate.get("typed_blocker_ref"))
+    closeout_ref = _text(gate.get("closeout_ref"))
+    owner = _first_text(gate.get("owner"), "one-person-lab") or "one-person-lab"
+    status = "typed_blocker_required" if typed_blocker_ref else "owner_gate_required"
+    return _compact(
+        {
+            "surface_kind": "mas_terminal_owner_gate_authority_readback",
+            "schema_version": 1,
+            "status": status,
+            "selected_outcome": status,
+            "next_owner": owner,
+            "resume_condition": _first_text(
+                gate.get("blocked_reason"),
+                "MAS authority or the named runtime owner must consume the terminal owner gate",
+            ),
+            "terminal_owner_gate": gate,
+            "owner_answer_contract": _compact(
+                {
+                    "required_surface": (
+                        "typed_blocker_ref"
+                        if typed_blocker_ref
+                        else "owner_receipt_typed_blocker_human_gate_or_route_back_ref"
+                    ),
+                    "typed_blocker_ref": typed_blocker_ref,
+                    "closeout_ref": closeout_ref,
+                    "stage_attempt_id": gate.get("stage_attempt_id"),
+                    "work_unit_id": gate.get("work_unit_id"),
+                    "accepted_shapes": [
+                        "domain_owner_receipt_ref",
+                        "quality_gate_receipt_ref",
+                        "typed_blocker_ref",
+                        "human_gate_ref",
+                        "route_back_evidence_ref",
+                    ],
+                }
+            ),
+            "consume_result": {
+                "status": "typed_blocker" if typed_blocker_ref else "route_back",
+                "outcome": status,
+                "authority_materialized": False,
+            },
+            "write_plan": {
+                "mode": "readback_only",
+                "written_files": [],
+                "can_write_owner_receipts": False,
+                "can_write_typed_blockers": False,
+                "can_write_human_gate_authority_records": False,
+                "can_write_current_package": False,
+                "can_write_runtime_queues_or_provider_attempts": False,
+            },
+            "authority_boundary": {
+                "mas_authority_owner": "MedAutoScience",
+                "runtime_owner": "one-person-lab",
+                "authority_materialized": False,
+                "can_claim_paper_progress": False,
+                "can_claim_runtime_ready": False,
+                "can_authorize_provider_admission": False,
+                "can_write_owner_receipt": False,
+                "can_write_typed_blocker": False,
+                "can_write_human_gate": False,
+                "can_write_current_package": False,
+                "can_write_runtime_queue_or_provider_attempt": False,
+            },
+        }
+    )
+
+
 def stage_terminal_next_owner_or_human_decision(
     *,
     stage_terminal_decision: Mapping[str, Any],
@@ -129,6 +202,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "stage_terminal_next_owner_or_human_decision",
+    "terminal_owner_gate_authority_readback",
     "terminal_owner_gate_from_carrier_readback",
     "terminal_owner_gate_next_decision",
 ]
