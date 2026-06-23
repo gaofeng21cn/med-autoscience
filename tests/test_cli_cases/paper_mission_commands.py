@@ -564,6 +564,7 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     mission_payload["paper_mission_transaction"] = _paper_mission_transaction_payload(
         mission_id=mission_payload["mission_id"],
         study_id=study_id,
+        decision_kind="advance",
     )
     (mission_root / "paper_mission_run.json").write_text(
         json.dumps(mission_payload),
@@ -624,8 +625,11 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert payload["output_manifest"]["package_manifest_ref"].endswith(
         "/package_manifest.json"
     )
+    assert payload["output_manifest"]["mission_executor_handoff_ref"].endswith(
+        "/mission_executor_handoff.json"
+    )
     written_files = [Path(path) for path in payload["output_manifest"]["written_files"]]
-    assert len(written_files) == 6
+    assert len(written_files) == 7
     assert all(path.is_file() for path in written_files)
     assert all(output_root in path.parents for path in written_files)
     package_manifest = json.loads(
@@ -638,9 +642,18 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
             encoding="utf-8"
         )
     )
+    mission_executor_handoff = json.loads(
+        Path(payload["output_manifest"]["mission_executor_handoff_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
     assert package_manifest["mode"] == "non_authority_candidate_package"
     assert package_manifest["candidate_is_authority"] is False
     assert package_manifest["authority_materialized_by_this_package"] is False
+    assert (
+        package_manifest["artifact_refs"]["mission_executor_handoff"]
+        == payload["output_manifest"]["mission_executor_handoff_ref"]
+    )
     assert (
         "Yang output outside ops/medautoscience/paper_mission_candidate_package"
         in package_manifest["forbidden_authority_writes"]
@@ -657,6 +670,154 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         in owner_summary["forbidden_authority_writes"]
     )
     assert "remaining_owner_gap" in owner_summary
+    assert mission_executor_handoff["surface_kind"] == "paper_mission_executor_handoff"
+    assert mission_executor_handoff["status"] == "not_routed_to_mission_executor"
+    assert mission_executor_handoff["next_owner"] == "analysis-campaign"
+    assert mission_executor_handoff["authority_boundary"]["writes_authority"] is False
+    assert mission_executor_handoff["authority_boundary"]["writes_runtime"] is False
+    assert mission_executor_handoff["authority_boundary"]["writes_yang_authority"] is False
+    assert (
+        mission_executor_handoff["authority_boundary"]["can_claim_paper_progress"]
+        is False
+    )
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_package_candidate_materializes_route_back_executor_handoff(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260624T0115Z"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::gate-clearing::route-back"
+    route_back_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+    )
+    route_back_transaction["stage_terminal_decision"][
+        "route_back_evidence_ref"
+    ] = "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Repair DM002 claim/evidence gaps after terminal owner gate.",
+        "mission_state": "route_back",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm002::route-back-repair",
+                "artifact_ref": "mission://dm002/route-back-repair",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [],
+        "consume_result": {"status": "route_back"},
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "mission_executor",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "stage_terminal_decision": route_back_transaction[
+                "stage_terminal_decision"
+            ],
+            "opl_route_command": route_back_transaction["opl_route_command"],
+            "consume_candidate_status": "route_back",
+        },
+        "paper_mission_transaction": route_back_transaction,
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps(
+            {
+                "candidate_id": "pmc-dm002-route-back",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "next_owner": "mission_executor",
+                "source_readiness_refs": ["source-readiness:dm002"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "20260624T0116Z"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "package-candidate",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(output_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    output_manifest = payload["output_manifest"]
+    assert len(output_manifest["written_files"]) == 7
+    assert output_manifest["writes_authority"] is False
+    assert output_manifest["writes_runtime"] is False
+    assert output_manifest["writes_yang_authority"] is False
+    handoff = json.loads(
+        Path(output_manifest["mission_executor_handoff_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert payload["mission_executor_handoff"] == handoff
+    assert handoff["surface_kind"] == "paper_mission_executor_handoff"
+    assert handoff["status"] == "ready_for_mission_executor"
+    assert handoff["next_owner"] == "mission_executor"
+    assert handoff["route_back_evidence_ref"] == (
+        "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
+    )
+    assert handoff["repair_scope"] == "claim-evidence-repair"
+    assert handoff["target_stage_id"] == "paper-stage::gate-clearing"
+    assert handoff["current_terminal_decision"]["decision_kind"] == "route_back"
+    assert handoff["current_terminal_decision"]["route_command"] == "route_back"
+    assert [
+        item["kind"] for item in handoff["expected_paper_facing_outputs"]
+    ] == [
+        "manuscript_patch_plan",
+        "claim_evidence_ledger_delta",
+        "figure_table_caption_delta",
+        "reviewer_gate_response_draft",
+        "owner_decision_packet",
+    ]
+    assert handoff["authority_boundary"]["writes_authority"] is False
+    assert handoff["authority_boundary"]["writes_runtime"] is False
+    assert handoff["authority_boundary"]["writes_yang_authority"] is False
+    assert handoff["authority_boundary"]["writes_paper_body"] is False
+    assert handoff["authority_boundary"]["can_claim_paper_progress"] is False
+    assert "owner receipt" in handoff["forbidden_authority_writes"]
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 

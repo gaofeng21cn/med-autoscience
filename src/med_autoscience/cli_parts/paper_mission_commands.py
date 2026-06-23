@@ -635,6 +635,10 @@ def _build_materialized_candidate_package_readback(
         candidate_artifact_delta=candidate_artifact_delta,
         owner_decision_packet=owner_decision_packet,
     )
+    mission_executor_handoff = _mission_executor_handoff(
+        readback=readback,
+        foreground_owner_decision_summary=summary,
+    )
     output_manifest = _write_materialized_candidate_package_outputs(
         output_root=Path(output_root),
         study_id=str(readback["study_id"]),
@@ -643,6 +647,7 @@ def _build_materialized_candidate_package_readback(
         candidate_artifact_delta=candidate_artifact_delta,
         owner_decision_packet=owner_decision_packet,
         foreground_owner_decision_summary=summary,
+        mission_executor_handoff=mission_executor_handoff,
     )
     return {
         "surface_kind": "paper_mission_candidate_package_write_readback",
@@ -675,6 +680,7 @@ def _build_materialized_candidate_package_readback(
         "mission_candidate_artifact_delta": candidate_artifact_delta,
         "owner_decision_packet": owner_decision_packet,
         "foreground_owner_decision_summary": summary,
+        "mission_executor_handoff": mission_executor_handoff,
         "mutation_policy": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -1066,6 +1072,7 @@ def _write_materialized_candidate_package_outputs(
     candidate_artifact_delta: dict[str, Any],
     owner_decision_packet: dict[str, Any],
     foreground_owner_decision_summary: dict[str, Any],
+    mission_executor_handoff: dict[str, Any],
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
     _assert_safe_candidate_package_output_root(root)
@@ -1080,6 +1087,7 @@ def _write_materialized_candidate_package_outputs(
         "owner_decision_packet": study_root / "owner_decision_packet.json",
         "foreground_owner_decision_summary": study_root
         / "foreground_owner_decision_summary.json",
+        "mission_executor_handoff": study_root / "mission_executor_handoff.json",
     }
     sidecar_refs = {
         "paper_mission_readback": str(outputs["paper_mission_readback"]),
@@ -1090,6 +1098,7 @@ def _write_materialized_candidate_package_outputs(
         "foreground_owner_decision_summary": str(
             outputs["foreground_owner_decision_summary"]
         ),
+        "mission_executor_handoff": str(outputs["mission_executor_handoff"]),
     }
     candidate_manifest_payload = {
         **candidate_manifest,
@@ -1101,6 +1110,7 @@ def _write_materialized_candidate_package_outputs(
         "mission_candidate_artifact_delta": candidate_artifact_delta,
         "owner_decision_packet": owner_decision_packet,
         "foreground_owner_decision_summary": foreground_owner_decision_summary,
+        "mission_executor_handoff": mission_executor_handoff,
     }
     package_manifest = {
         "surface_kind": "paper_mission_foreground_candidate_package_manifest",
@@ -1124,6 +1134,7 @@ def _write_materialized_candidate_package_outputs(
             "required_owner_action"
         ],
         "artifact_refs": sidecar_refs,
+        "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
         "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
     }
     payloads["package_manifest"] = package_manifest
@@ -1153,6 +1164,103 @@ def _write_materialized_candidate_package_outputs(
         "foreground_owner_decision_summary_ref": str(
             outputs["foreground_owner_decision_summary"]
         ),
+        "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
+    }
+
+
+def _mission_executor_handoff(
+    *,
+    readback: Mapping[str, Any],
+    foreground_owner_decision_summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    terminal_decision = _mapping(readback.get("stage_terminal_decision"))
+    route_command = _mapping(readback.get("opl_route_command"))
+    next_decision = _mapping(readback.get("next_owner_or_human_decision"))
+    next_owner = _first_text(
+        next_decision.get("next_owner"),
+        foreground_owner_decision_summary.get("next_owner"),
+        terminal_decision.get("next_owner"),
+    )
+    decision_kind = _optional_text(terminal_decision.get("decision_kind"))
+    is_route_back = decision_kind == "route_back" or next_owner == "mission_executor"
+    handoff_status = (
+        "ready_for_mission_executor"
+        if is_route_back
+        else "not_routed_to_mission_executor"
+    )
+    return {
+        "surface_kind": "paper_mission_executor_handoff",
+        "schema_version": 1,
+        "status": handoff_status,
+        "study_id": readback.get("study_id"),
+        "mission_id": readback.get("mission_id"),
+        "next_owner": next_owner,
+        "handoff_reason": _first_text(
+            terminal_decision.get("reason"),
+            foreground_owner_decision_summary.get("blocked_reason"),
+            readback.get("consume_candidate_status"),
+        ),
+        "route_back_evidence_ref": terminal_decision.get("route_back_evidence_ref"),
+        "repair_scope": terminal_decision.get("repair_scope"),
+        "target_stage_id": terminal_decision.get("target_stage_id")
+        or terminal_decision.get("next_stage_id"),
+        "current_terminal_decision": {
+            "decision_kind": decision_kind,
+            "status": terminal_decision.get("status"),
+            "route_command": route_command.get("command_kind"),
+            "source_terminal_decision_ref": route_command.get(
+                "source_terminal_decision_ref"
+            ),
+        },
+        "input_refs": foreground_owner_decision_summary.get("input_refs", {}),
+        "runtime_touchpoint": foreground_owner_decision_summary.get(
+            "runtime_touchpoint", {}
+        ),
+        "expected_paper_facing_outputs": [
+            {
+                "kind": "manuscript_patch_plan",
+                "required": True,
+                "authority_note": "candidate plan only until MAS consumes it",
+            },
+            {
+                "kind": "claim_evidence_ledger_delta",
+                "required": True,
+                "authority_note": "candidate delta only until MAS consumes it",
+            },
+            {
+                "kind": "figure_table_caption_delta",
+                "required": True,
+                "authority_note": "candidate delta only until MAS consumes it",
+            },
+            {
+                "kind": "reviewer_gate_response_draft",
+                "required": True,
+                "authority_note": "candidate response only until MAS consumes it",
+            },
+            {
+                "kind": "owner_decision_packet",
+                "required": True,
+                "authority_note": "submit through MAS authority consume path",
+            },
+        ],
+        "resume_path": (
+            "Mission executor should use this handoff to produce a paper-facing "
+            "candidate artifact delta and owner decision packet; MAS remains the "
+            "authority that accepts, rejects, routes back, blocks, or asks a human."
+        ),
+        "authority_boundary": {
+            "candidate_is_authority": False,
+            "authority_materialized_by_this_handoff": False,
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_authorize_provider_admission": False,
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
     }
 
 
