@@ -154,6 +154,27 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
         "history provenance",
         "legacy fixture",
     }
+    rigor_policy = proof["legacy_reference_rigor_policy"]
+    assert rigor_policy["status"] == "active_claim_boundary"
+    assert rigor_policy["required_for_each_allowed_reference_class"] == [
+        "reference_class",
+        "allowed_use",
+        "required_evidence",
+        "forbidden_claims",
+        "can_select_next_paper_stage",
+        "counts_as_paper_progress",
+        "can_claim_runtime_ready",
+    ]
+    assert set(rigor_policy["paper_progress_claim_requires"]) == {
+        "PaperMissionRun_or_PaperMissionTransaction_artifact_delta",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
+        "same_currentness_identity_binding",
+    }
+    assert set(rigor_policy["runtime_readiness_claim_requires"]) == {
+        "OPL_StageRun_or_provider_attempt_readback",
+        "same_route_attempt_identity",
+        "no_forbidden_write_boundary",
+    }
 
     scope_by_id = {item["surface_id"]: item for item in proof["proof_scope"]}
     assert set(scope_by_id) == {
@@ -183,6 +204,59 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
     assert scope_by_id["plugin_skill_ordinary_path"]["required_ordinary_path"] == (
         "study -> stage -> domain owner receipt or typed blocker -> handoff"
     )
+
+
+def test_allowed_legacy_reference_classes_are_claim_limited() -> None:
+    contract = json.loads(
+        (REPO_ROOT / "contracts/runtime/legacy-active-path-tombstones.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    proof = contract["no_active_default_caller_proof"]
+    policy = proof["legacy_reference_rigor_policy"]
+
+    claim_boundaries = {
+        item["reference_class"]: item
+        for item in policy["allowed_reference_claim_boundaries"]
+    }
+    assert set(claim_boundaries) == set(proof["allowed_legacy_reference_classes"])
+
+    for reference_class, boundary in claim_boundaries.items():
+        assert boundary["allowed_use"]
+        assert boundary["required_evidence"], reference_class
+        assert boundary["can_select_next_paper_stage"] is False, reference_class
+        assert boundary["counts_as_paper_progress"] is False, reference_class
+        assert boundary["can_claim_runtime_ready"] is False, reference_class
+        assert "paper_progress" in boundary["forbidden_claims"], reference_class
+
+    assert set(claim_boundaries["runtime diagnostic"]["required_evidence"]) == {
+        "fresh_diagnostic_readback",
+        "same_identity_boundary_or_explicit_stale_marker",
+    }
+    assert set(claim_boundaries["authority consume/readback"]["required_evidence"]) == {
+        "consume_readback_payload",
+        "written_files_empty_or_authority_surface_receipt_ref",
+        "authority_materialized_flag",
+    }
+    assert set(claim_boundaries["OPL StageRun ABI carrier"]["required_evidence"]) == {
+        "route_command_ref",
+        "stage_terminal_decision_ref",
+        "required_postcondition",
+        "no_forbidden_write_boundary",
+    }
+    assert set(claim_boundaries["migration diagnostic"]["required_evidence"]) == {
+        "legacy_truth_import_pack",
+        "replacement_paper_mission_run_ref",
+        "legacy_blocker_is_default_execution_state_false",
+    }
+    assert set(claim_boundaries["history provenance"]["required_evidence"]) == {
+        "tombstone_ref",
+        "history_or_provenance_ref",
+    }
+    assert set(claim_boundaries["legacy fixture"]["required_evidence"]) == {
+        "fixture_scope",
+        "replacement_parity_or_fail_closed_assertion",
+    }
 
 
 def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(

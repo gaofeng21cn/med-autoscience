@@ -310,6 +310,145 @@
       "history provenance",
       "legacy fixture"
     ],
+    "legacy_reference_rigor_policy": {
+      "status": "active_claim_boundary",
+      "policy_owner": "contracts/runtime/legacy-active-path-tombstones.json",
+      "scope": "DHD, owner-route, default-executor dispatch, PaperRecovery, and domain-handler legacy references after PaperMissionRun cutover",
+      "required_for_each_allowed_reference_class": [
+        "reference_class",
+        "allowed_use",
+        "required_evidence",
+        "forbidden_claims",
+        "can_select_next_paper_stage",
+        "counts_as_paper_progress",
+        "can_claim_runtime_ready"
+      ],
+      "allowed_reference_claim_boundaries": [
+        {
+          "reference_class": "runtime diagnostic",
+          "allowed_use": "observe runtime-control, currentness, or fail-closed symptoms as platform diagnostics",
+          "required_evidence": [
+            "fresh_diagnostic_readback",
+            "same_identity_boundary_or_explicit_stale_marker"
+          ],
+          "forbidden_claims": [
+            "paper_progress",
+            "runtime_ready",
+            "provider_running",
+            "DM002_complete",
+            "DM003_complete"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        },
+        {
+          "reference_class": "authority consume/readback",
+          "allowed_use": "represent no-write MAS authority consume/readback shapes before an authority surface materializes them",
+          "required_evidence": [
+            "consume_readback_payload",
+            "written_files_empty_or_authority_surface_receipt_ref",
+            "authority_materialized_flag"
+          ],
+          "forbidden_claims": [
+            "owner_receipt_written",
+            "typed_blocker_written",
+            "paper_progress",
+            "publication_ready",
+            "current_package"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        },
+        {
+          "reference_class": "OPL StageRun ABI carrier",
+          "allowed_use": "carry MAS terminal decision route metadata to OPL without becoming an OPL outbox, event, StageRun, provider attempt, or owner-answer authority",
+          "required_evidence": [
+            "route_command_ref",
+            "stage_terminal_decision_ref",
+            "required_postcondition",
+            "no_forbidden_write_boundary"
+          ],
+          "forbidden_claims": [
+            "runtime_ready",
+            "provider_running",
+            "owner_receipt_written",
+            "typed_blocker_written",
+            "paper_progress"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        },
+        {
+          "reference_class": "migration diagnostic",
+          "allowed_use": "freeze old-system truth as mission input, decision constraints, or non-degradation evidence",
+          "required_evidence": [
+            "legacy_truth_import_pack",
+            "replacement_paper_mission_run_ref",
+            "legacy_blocker_is_default_execution_state_false"
+          ],
+          "forbidden_claims": [
+            "paper_progress",
+            "publication_ready",
+            "submission_ready",
+            "runtime_ready",
+            "current_package"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        },
+        {
+          "reference_class": "history provenance",
+          "allowed_use": "explain prior runtime or recovery behavior after default path retirement",
+          "required_evidence": [
+            "tombstone_ref",
+            "history_or_provenance_ref"
+          ],
+          "forbidden_claims": [
+            "product_default_mainline",
+            "domain_handler_default_mainline",
+            "paper_progress",
+            "runtime_ready",
+            "DM002_complete",
+            "DM003_complete"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        },
+        {
+          "reference_class": "legacy fixture",
+          "allowed_use": "exercise regression tests that prove demotion, fail-closed dispatch, or replacement parity",
+          "required_evidence": [
+            "fixture_scope",
+            "replacement_parity_or_fail_closed_assertion"
+          ],
+          "forbidden_claims": [
+            "product_default_mainline",
+            "domain_handler_default_mainline",
+            "paper_progress",
+            "runtime_ready",
+            "publication_ready"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        }
+      ],
+      "paper_progress_claim_requires": [
+        "PaperMissionRun_or_PaperMissionTransaction_artifact_delta",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
+        "same_currentness_identity_binding"
+      ],
+      "runtime_readiness_claim_requires": [
+        "OPL_StageRun_or_provider_attempt_readback",
+        "same_route_attempt_identity",
+        "no_forbidden_write_boundary"
+      ]
+    },
     "physical_reference_deletion_required_for_default_retirement": false
   },
   "authority_boundary": {
