@@ -632,7 +632,7 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         "/paper_facing_candidate_delta.json"
     )
     written_files = [Path(path) for path in payload["output_manifest"]["written_files"]]
-    assert len(written_files) == 8
+    assert len(written_files) == 13
     assert all(path.is_file() for path in written_files)
     assert all(output_root in path.parents for path in written_files)
     package_manifest = json.loads(
@@ -703,6 +703,20 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert paper_facing_delta["status"] == "candidate_context_only"
     assert paper_facing_delta["counts_as_paper_progress"] is False
     assert paper_facing_delta["authority_boundary"]["writes_authority"] is False
+    assert set(payload["output_manifest"]["paper_facing_artifact_refs"]) == {
+        "manuscript_patch_plan",
+        "claim_evidence_ledger_delta",
+        "figure_table_caption_delta",
+        "reviewer_gate_response_draft",
+        "owner_decision_packet",
+    }
+    assert set(paper_facing_delta["paper_facing_artifact_refs"]) == set(
+        payload["output_manifest"]["paper_facing_artifact_refs"]
+    )
+    assert all(
+        Path(path).exists()
+        for path in payload["output_manifest"]["paper_facing_artifact_refs"].values()
+    )
     assert (
         payload["output_manifest"]["paper_facing_candidate_delta_ref"]
         in candidate_manifest["candidate_artifact_refs"]
@@ -810,7 +824,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
 
     assert exit_code == 0
     output_manifest = payload["output_manifest"]
-    assert len(output_manifest["written_files"]) == 8
+    assert len(output_manifest["written_files"]) == 13
     assert output_manifest["writes_authority"] is False
     assert output_manifest["writes_runtime"] is False
     assert output_manifest["writes_yang_authority"] is False
@@ -875,6 +889,43 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     )
     assert paper_facing_delta["authority_boundary"]["writes_paper_body"] is False
     assert paper_facing_delta["authority_boundary"]["can_claim_paper_progress"] is False
+    assert set(output_manifest["paper_facing_artifact_refs"]) == {
+        "manuscript_patch_plan",
+        "claim_evidence_ledger_delta",
+        "figure_table_caption_delta",
+        "reviewer_gate_response_draft",
+        "owner_decision_packet",
+    }
+    assert paper_facing_delta["paper_facing_artifact_refs"] == output_manifest[
+        "paper_facing_artifact_refs"
+    ]
+    manuscript_patch_plan = json.loads(
+        Path(output_manifest["paper_facing_artifact_refs"]["manuscript_patch_plan"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    claim_evidence_delta = json.loads(
+        Path(output_manifest["paper_facing_artifact_refs"]["claim_evidence_ledger_delta"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert manuscript_patch_plan["surface_kind"] == (
+        "paper_mission_manuscript_patch_plan"
+    )
+    assert manuscript_patch_plan["candidate_content"]["patch_targets"] == [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+    ]
+    assert manuscript_patch_plan["authority_boundary"]["writes_paper_body"] is False
+    assert manuscript_patch_plan["counts_as_paper_progress"] is False
+    assert claim_evidence_delta["surface_kind"] == (
+        "paper_mission_claim_evidence_ledger_delta"
+    )
+    assert claim_evidence_delta["candidate_content"]["delta_targets"] == [
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+    ]
+    assert claim_evidence_delta["authority_boundary"]["writes_authority"] is False
     assert (
         output_manifest["paper_facing_candidate_delta_ref"]
         in candidate_manifest["candidate_artifact_refs"]

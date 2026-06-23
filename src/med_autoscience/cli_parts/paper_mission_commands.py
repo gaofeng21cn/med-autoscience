@@ -1100,6 +1100,12 @@ def _write_materialized_candidate_package_outputs(
         "paper_facing_candidate_delta": study_root
         / "paper_facing_candidate_delta.json",
     }
+    paper_facing_artifact_outputs = {
+        kind: study_root / "paper_facing_candidate_artifacts" / f"{kind}.json"
+        for kind in _paper_facing_output_kinds(paper_facing_candidate_delta)
+    }
+    for path in paper_facing_artifact_outputs.values():
+        path.parent.mkdir(parents=True, exist_ok=True)
     sidecar_refs = {
         "paper_mission_readback": str(outputs["paper_mission_readback"]),
         "mission_candidate_artifact_delta": str(
@@ -1112,6 +1118,27 @@ def _write_materialized_candidate_package_outputs(
         "mission_executor_handoff": str(outputs["mission_executor_handoff"]),
         "paper_facing_candidate_delta": str(outputs["paper_facing_candidate_delta"]),
     }
+    paper_facing_artifact_refs = {
+        kind: str(path) for kind, path in paper_facing_artifact_outputs.items()
+    }
+    paper_facing_candidate_delta_payload = {
+        **paper_facing_candidate_delta,
+        "paper_facing_artifact_refs": paper_facing_artifact_refs,
+        "paper_facing_outputs": [
+            {
+                **_mapping(item),
+                **(
+                    {"artifact_ref": paper_facing_artifact_refs[_mapping(item)["kind"]]}
+                    if _mapping(item).get("kind") in paper_facing_artifact_refs
+                    else {}
+                ),
+            }
+            for item in paper_facing_candidate_delta.get("paper_facing_outputs", [])
+            if isinstance(item, Mapping)
+        ],
+    }
+    paper_facing_candidate_delta.clear()
+    paper_facing_candidate_delta.update(paper_facing_candidate_delta_payload)
     candidate_manifest_payload = {
         **candidate_manifest,
         "candidate_artifact_refs": _candidate_artifact_refs_with_paper_delta(
@@ -1129,8 +1156,19 @@ def _write_materialized_candidate_package_outputs(
         "owner_decision_packet": owner_decision_packet,
         "foreground_owner_decision_summary": foreground_owner_decision_summary,
         "mission_executor_handoff": mission_executor_handoff,
-        "paper_facing_candidate_delta": paper_facing_candidate_delta,
+        "paper_facing_candidate_delta": paper_facing_candidate_delta_payload,
     }
+    payloads.update(
+        {
+            f"paper_facing_artifact::{kind}": _paper_facing_candidate_artifact_payload(
+                kind=kind,
+                path=path,
+                paper_facing_candidate_delta=paper_facing_candidate_delta_payload,
+                mission_executor_handoff=mission_executor_handoff,
+            )
+            for kind, path in paper_facing_artifact_outputs.items()
+        }
+    )
     package_manifest = {
         "surface_kind": "paper_mission_foreground_candidate_package_manifest",
         "schema_version": 1,
@@ -1157,12 +1195,20 @@ def _write_materialized_candidate_package_outputs(
         "paper_facing_candidate_delta_ref": str(
             outputs["paper_facing_candidate_delta"]
         ),
+        "paper_facing_artifact_refs": paper_facing_artifact_refs,
         "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
     }
     payloads["package_manifest"] = package_manifest
     written_files: list[str] = []
     file_sha256: dict[str, str] = {}
-    for key, path in outputs.items():
+    all_outputs = {
+        **outputs,
+        **{
+            f"paper_facing_artifact::{kind}": path
+            for kind, path in paper_facing_artifact_outputs.items()
+        },
+    }
+    for key, path in all_outputs.items():
         text = json.dumps(payloads[key], ensure_ascii=False, indent=2) + "\n"
         path.write_text(text, encoding="utf-8")
         written_files.append(str(path))
@@ -1190,6 +1236,141 @@ def _write_materialized_candidate_package_outputs(
         "paper_facing_candidate_delta_ref": str(
             outputs["paper_facing_candidate_delta"]
         ),
+        "paper_facing_artifact_refs": paper_facing_artifact_refs,
+    }
+
+
+def _paper_facing_output_kinds(
+    paper_facing_candidate_delta: Mapping[str, Any],
+) -> list[str]:
+    kinds: list[str] = []
+    for item in paper_facing_candidate_delta.get("paper_facing_outputs", []):
+        if not isinstance(item, Mapping):
+            continue
+        kind = _optional_text(item.get("kind"))
+        if kind is not None and kind not in kinds:
+            kinds.append(kind)
+    return kinds
+
+
+def _paper_facing_candidate_artifact_payload(
+    *,
+    kind: str,
+    path: Path,
+    paper_facing_candidate_delta: Mapping[str, Any],
+    mission_executor_handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": f"paper_mission_{kind}",
+        "schema_version": 1,
+        "artifact_kind": kind,
+        "artifact_ref": str(path),
+        "study_id": paper_facing_candidate_delta.get("study_id"),
+        "mission_id": paper_facing_candidate_delta.get("mission_id"),
+        "status": "candidate",
+        "candidate_is_authority": False,
+        "authority_materialized": False,
+        "counts_as_paper_progress": False,
+        "route_back_evidence_ref": paper_facing_candidate_delta.get(
+            "route_back_evidence_ref"
+        ),
+        "repair_scope": paper_facing_candidate_delta.get("repair_scope"),
+        "target_stage_id": paper_facing_candidate_delta.get("target_stage_id"),
+        "candidate_content": _paper_facing_candidate_content(
+            kind=kind,
+            paper_facing_candidate_delta=paper_facing_candidate_delta,
+            mission_executor_handoff=mission_executor_handoff,
+        ),
+        "authority_boundary": {
+            "candidate_is_authority": False,
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_update_current_package": False,
+            "can_claim_paper_progress": False,
+        },
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+    }
+
+
+def _paper_facing_candidate_content(
+    *,
+    kind: str,
+    paper_facing_candidate_delta: Mapping[str, Any],
+    mission_executor_handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    base = {
+        "route_back_evidence_ref": paper_facing_candidate_delta.get(
+            "route_back_evidence_ref"
+        ),
+        "repair_scope": paper_facing_candidate_delta.get("repair_scope"),
+        "handoff_reason": mission_executor_handoff.get("handoff_reason"),
+    }
+    if kind == "manuscript_patch_plan":
+        return {
+            **base,
+            "patch_targets": [
+                "paper/draft.md",
+                "paper/build/review_manuscript.md",
+            ],
+            "required_patch_sections": [
+                "Methods/results wording tied to current evidence",
+                "Claim-specific interpretation and limitations",
+                "Display/table references consistent with evidence refs",
+            ],
+        }
+    if kind == "claim_evidence_ledger_delta":
+        return {
+            **base,
+            "delta_targets": [
+                "paper/claim_evidence_map.json",
+                "paper/evidence_ledger.json",
+            ],
+            "required_delta": (
+                "Add or update claim-level evidence rows needed to clear the "
+                "route-back scope without writing authority surfaces."
+            ),
+        }
+    if kind == "figure_table_caption_delta":
+        return {
+            **base,
+            "delta_targets": [
+                "paper/display_refs.json",
+                "paper/table_refs.json",
+                "paper/figure_caption_plan.json",
+            ],
+            "required_delta": (
+                "Bind figure/table/caption candidates to claim and evidence refs."
+            ),
+        }
+    if kind == "reviewer_gate_response_draft":
+        return {
+            **base,
+            "delta_targets": [
+                "paper/review/reviewer_response_draft.json",
+                "paper/review/gate_response_draft.json",
+            ],
+            "required_delta": (
+                "Draft reviewer/gate response entries for MAS authority review."
+            ),
+        }
+    if kind == "owner_decision_packet":
+        return {
+            **base,
+            "delta_targets": ["owner_decision_packet.json"],
+            "required_delta": (
+                "Submit the candidate bundle through MAS authority consume path."
+            ),
+        }
+    return {
+        **base,
+        "delta_targets": [],
+        "required_delta": "Candidate paper-facing artifact content pending.",
     }
 
 
