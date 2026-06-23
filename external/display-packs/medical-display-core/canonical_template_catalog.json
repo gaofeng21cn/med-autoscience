@@ -1,0 +1,699 @@
+{
+  "schema_version": 1,
+  "catalog_id": "fenggaolab.org.medical-display-core.canonical_template_catalog.v2",
+  "pack_id": "fenggaolab.org.medical-display-core",
+  "owner": "MedAutoScience",
+  "purpose": "Define the compact current medical-display template surface by medical figure intent and visual grammar. Data-evidence figures are R/ggplot2 first; duplicate input-schema variants are aliases or retired presets, not current templates.",
+  "machine_boundary": "This catalog controls Display Pack default recommendation, registry and gallery visibility. It is not source truth, statistical truth, artifact authority, visual-audit replacement, or publication-readiness authority.",
+  "default_surface_policy": {
+    "agent_recommendations_use_canonical_templates_by_default": true,
+    "gallery_shows_current_r_ggplot2_evidence_templates": true,
+    "evidence_figures_default_to_r_ggplot2": true,
+    "python_evidence_figures_not_retained_without_advantage_proof": true,
+    "python_illustration_shells_may_be_default_visible": true,
+    "data_evidence_figures_require_programmatic_renderer": true,
+    "design_and_flow_shells_may_use_svg_or_imagegen_assisted_composition": true,
+    "template_analysis_responsibility_required": true,
+    "raw_analysis_inputs_must_match_computed_workflow_templates": true,
+    "validated_summary_templates_fail_closed_on_raw_analysis_requests": true,
+    "migrated_aliases_are_not_default_visible": true,
+    "explicit_alias_requests_may_be_migrated_to_canonical_template": true,
+    "medical_figure_family_mapping_required": true,
+    "starter_recipe_profile_required": true,
+    "style_palette_qa_profile_required": true
+  },
+  "analysis_responsibility_policy": {
+    "computed_in_template": "The template accepts raw analysis input for a bounded workflow and records renderer-side analysis provenance.",
+    "validated_summary_required": "The template renders locked statistics, curves, matrices, scores, calls, or explanation values from an upstream analysis pipeline.",
+    "illustration_shell": "The template is a design or flow shell and cannot carry statistical evidence authority.",
+    "table_shell": "The template renders reviewed table values and cannot infer analysis results from raw study data."
+  },
+  "external_learning_refs": {
+    "nature_final_submission": "https://www.nature.com/nature/for-authors/final-submission",
+    "nature_formatting_guide": "https://www.nature.com/nature/for-authors/formatting-guide",
+    "ggplot2_theme_system": "https://ggplot2.tidyverse.org/reference/theme.html",
+    "colorspace_palettes": "https://colorspace.r-forge.r-project.org/",
+    "viridis_palette": "https://sjmgarnier.github.io/viridis/",
+    "complexheatmap_oncoprint": "https://jokergoo.github.io/ComplexHeatmap-reference/book/oncoprint.html",
+    "survminer_km_reference": "https://rpkgs.datanovia.com/survminer/reference/ggsurvplot.html",
+    "landed_patterns": [
+      "intent-first template families",
+      "single semantic article palette",
+      "vector-first export discipline",
+      "square gallery preview device",
+      "alias migration without default-surface duplication",
+      "medical figure family catalog mapping before template scoring",
+      "starter recipe profile emitted to MAS agents",
+      "deterministic layout sidecar QC before gallery admission"
+    ],
+    "plos_figure_guidelines": "https://journals.plos.org/plosmedicine/s/figures",
+    "okabe_ito_palette": "https://jfly.uni-koeln.de/color/",
+    "lidocaineq_figure_template": {
+      "url": "https://github.com/LidocaineQ/Figure_Template",
+      "commit_sha": "22160e6783dbefdbc926db51aae60f22132437ef",
+      "observed_date": "2026-06-21",
+      "local_reference_path": "/tmp/Figure_Template_lidocaineq",
+      "adopted_patterns": [
+        "student curated low-saturation clinical palette",
+        "violin plus box plus jitter distribution comparison",
+        "stacked composition bars with compact bottom legends",
+        "correlation scatter with regression trend and statistic slot",
+        "alluvial state-transition grammar",
+        "radar profile grammar",
+        "ranked response waterfall grammar"
+      ],
+      "non_adopted_as_new_templates": [
+        "ROC/KM/calibration/decision/heatmap/forest/volcano/SHAP duplicates map to existing canonical families",
+        "Python evidence implementations are not retained without documented advantage over R/ggplot2"
+      ]
+    }
+  },
+  "families": [
+    {
+      "family_id": "roc_curve_binary",
+      "category": "Prediction Performance",
+      "title": "ROC Curve",
+      "figure_archetype": "binary_discrimination_roc_curve",
+      "canonical_template_id": "roc_curve_binary",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Binary ROC is a distinct prediction-performance claim and remains a current R/ggplot2 template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "discrimination_curve"
+      ]
+    },
+    {
+      "family_id": "pr_curve_binary",
+      "category": "Prediction Performance",
+      "title": "Precision-Recall Curve",
+      "figure_archetype": "binary_precision_recall_curve",
+      "canonical_template_id": "pr_curve_binary",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Precision-recall curves answer an imbalanced-class performance claim and remain separate from ROC.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "discrimination_curve"
+      ]
+    },
+    {
+      "family_id": "calibration_curve_binary",
+      "category": "Prediction Performance",
+      "title": "Calibration Curve",
+      "figure_archetype": "observed_vs_predicted_calibration_curve",
+      "canonical_template_id": "calibration_curve_binary",
+      "default_visible": true,
+      "aliases": [
+        "binary_calibration_decision_curve_panel"
+      ],
+      "migration_reason": "The old combined calibration plus decision panel is a composition preset; current templates keep calibration and utility as separate editable seeds.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "calibration_panel"
+      ]
+    },
+    {
+      "family_id": "decision_curve_binary",
+      "category": "Clinical Utility",
+      "title": "Decision Curve",
+      "figure_archetype": "binary_decision_curve_net_benefit",
+      "canonical_template_id": "decision_curve_binary",
+      "default_visible": true,
+      "aliases": [
+        "clinical_impact_curve_binary"
+      ],
+      "migration_reason": "Clinical impact is a decision-curve presentation mode, not a separate default evidence template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "decision_curve_analysis"
+      ]
+    },
+    {
+      "family_id": "kaplan_meier_grouped",
+      "category": "Time-to-Event",
+      "title": "Kaplan-Meier Curve",
+      "figure_archetype": "grouped_survival_step_curve",
+      "canonical_template_id": "kaplan_meier_grouped",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Kaplan-Meier survival curves carry a distinct time-to-event claim.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "kaplan_meier_with_risk_table"
+      ]
+    },
+    {
+      "family_id": "cumulative_incidence_grouped",
+      "category": "Time-to-Event",
+      "title": "Cumulative Incidence Curve",
+      "figure_archetype": "grouped_cumulative_incidence_step_curve",
+      "canonical_template_id": "cumulative_incidence_grouped",
+      "default_visible": true,
+      "aliases": [
+        "time_to_event_stratified_cumulative_incidence_panel"
+      ],
+      "migration_reason": "Stratified cumulative-incidence variants are modes of the same cumulative-incidence grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "cumulative_incidence_competing_risk"
+      ]
+    },
+    {
+      "family_id": "time_dependent_roc_horizon",
+      "category": "Time-to-Event",
+      "title": "Time-Dependent ROC",
+      "figure_archetype": "time_horizon_discrimination_curve",
+      "canonical_template_id": "time_dependent_roc_horizon",
+      "default_visible": true,
+      "aliases": [
+        "time_dependent_roc_comparison_panel",
+        "time_to_event_discrimination_calibration_panel",
+        "time_to_event_landmark_performance_panel"
+      ],
+      "migration_reason": "Multi-horizon and landmark discrimination panels are presets of the time-dependent discrimination recipe; calibration is kept as its own current template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "discrimination_curve"
+      ]
+    },
+    {
+      "family_id": "time_to_event_multihorizon_calibration_panel",
+      "category": "Time-to-Event",
+      "title": "Survival Calibration",
+      "figure_archetype": "multi_horizon_time_to_event_calibration_panel",
+      "canonical_template_id": "time_to_event_multihorizon_calibration_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Survival calibration is a distinct model-validation claim and remains separate from discrimination curves.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "calibration_panel"
+      ]
+    },
+    {
+      "family_id": "time_to_event_decision_curve",
+      "category": "Clinical Utility",
+      "title": "Survival Decision Curve",
+      "figure_archetype": "time_to_event_decision_curve_net_benefit",
+      "canonical_template_id": "time_to_event_decision_curve",
+      "default_visible": true,
+      "aliases": [
+        "time_to_event_threshold_governance_panel"
+      ],
+      "migration_reason": "Threshold governance is a decision-curve mode; the current template exposes the clinical utility grammar directly.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "decision_curve_analysis"
+      ]
+    },
+    {
+      "family_id": "risk_layering_monotonic_bars",
+      "category": "Time-to-Event",
+      "title": "Risk Layering Bars",
+      "figure_archetype": "monotonic_risk_group_bar_summary",
+      "canonical_template_id": "risk_layering_monotonic_bars",
+      "default_visible": true,
+      "aliases": [
+        "time_to_event_risk_group_summary"
+      ],
+      "migration_reason": "Risk-group summary tables and bars are one risk-layering display intent.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "risk_stratification"
+      ]
+    },
+    {
+      "family_id": "forest_effect_main",
+      "category": "Effect Estimate",
+      "title": "Forest Plot",
+      "figure_archetype": "effect_estimate_interval_forest_plot",
+      "canonical_template_id": "forest_effect_main",
+      "default_visible": true,
+      "aliases": [
+        "subgroup_forest",
+        "multivariable_forest",
+        "compact_effect_estimate_panel",
+        "broader_heterogeneity_summary_panel",
+        "interaction_effect_summary_panel"
+      ],
+      "migration_reason": "Subgroup, multivariable, compact, heterogeneity and interaction variants share the same effect-estimate grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "effect_forest",
+        "meta_forest"
+      ]
+    },
+    {
+      "family_id": "coefficient_path_panel",
+      "category": "Effect Estimate",
+      "title": "Coefficient Path",
+      "figure_archetype": "regularization_or_model_step_coefficient_path",
+      "canonical_template_id": "coefficient_path_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Coefficient paths represent a distinct ordered-model-step analysis recipe.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "coefficient_path"
+      ]
+    },
+    {
+      "family_id": "generalizability_subgroup_composite_panel",
+      "category": "Generalizability",
+      "title": "Generalizability Panel",
+      "figure_archetype": "external_validation_transportability_or_subgroup_generalizability_panel",
+      "canonical_template_id": "generalizability_subgroup_composite_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Generalizability and transportability panels carry a distinct external-validity claim.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "external_validation_performance"
+      ]
+    },
+    {
+      "family_id": "pca_scatter_grouped",
+      "category": "Data Geometry",
+      "title": "PCA Scatter",
+      "figure_archetype": "principal_component_analysis_grouped_scatter",
+      "canonical_template_id": "pca_scatter_grouped",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "PCA is a fixed classic analysis recipe and remains separate from nonlinear embeddings.",
+      "analysis_responsibility": "computed_in_template",
+      "analysis_input_state": "raw_feature_matrix",
+      "medical_family_ids": [
+        "dimension_reduction_scatter"
+      ]
+    },
+    {
+      "family_id": "tsne_scatter_grouped",
+      "category": "Data Geometry",
+      "title": "t-SNE Scatter",
+      "figure_archetype": "tsne_grouped_embedding_scatter",
+      "canonical_template_id": "tsne_scatter_grouped",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "t-SNE is a fixed classic analysis recipe and remains separate from PCA and UMAP.",
+      "analysis_responsibility": "computed_in_template",
+      "analysis_input_state": "raw_feature_matrix",
+      "medical_family_ids": [
+        "dimension_reduction_scatter"
+      ]
+    },
+    {
+      "family_id": "umap_scatter_grouped",
+      "category": "Data Geometry",
+      "title": "UMAP Scatter",
+      "figure_archetype": "umap_grouped_embedding_scatter",
+      "canonical_template_id": "umap_scatter_grouped",
+      "default_visible": true,
+      "aliases": [
+        "phate_scatter_grouped",
+        "diffusion_map_scatter_grouped"
+      ],
+      "migration_reason": "PHATE and diffusion-map templates are retired as separate current templates; UMAP carries the nonlinear embedding scatter lower-bound seed.",
+      "analysis_responsibility": "computed_in_template",
+      "analysis_input_state": "raw_feature_matrix",
+      "medical_family_ids": [
+        "dimension_reduction_scatter"
+      ]
+    },
+    {
+      "family_id": "heatmap_group_comparison",
+      "category": "Matrix Pattern",
+      "title": "Matrix Heatmap",
+      "figure_archetype": "group_comparison_correlation_signature_or_performance_heatmap",
+      "canonical_template_id": "heatmap_group_comparison",
+      "default_visible": true,
+      "aliases": [
+        "clustered_heatmap",
+        "correlation_heatmap",
+        "gsva_ssgsea_heatmap",
+        "performance_heatmap",
+        "celltype_signature_heatmap"
+      ],
+      "migration_reason": "Generic heatmap variants differ mainly by input source and annotation; they now share one current matrix heatmap template with a unified palette.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "annotated_heatmap",
+        "correlation_matrix"
+      ]
+    },
+    {
+      "family_id": "confusion_matrix_heatmap_binary",
+      "category": "Matrix Pattern",
+      "title": "Confusion Matrix",
+      "figure_archetype": "binary_confusion_matrix_heatmap",
+      "canonical_template_id": "confusion_matrix_heatmap_binary",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Confusion matrices use heatmap marks but have fixed classification semantics and normalization constraints.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "confusion_matrix"
+      ]
+    },
+    {
+      "family_id": "genomic_alteration_landscape_panel",
+      "category": "Genomic and Omics",
+      "title": "Genomic Alteration Landscape",
+      "figure_archetype": "oncoplot_like_genomic_alteration_landscape",
+      "canonical_template_id": "genomic_alteration_landscape_panel",
+      "default_visible": true,
+      "aliases": [
+        "oncoplot_mutation_landscape_panel",
+        "genomic_program_governance_summary_panel"
+      ],
+      "migration_reason": "Oncoplot and genomic governance variants are retired as separate defaults and map to the genomic landscape seed.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "oncoplot_landscape"
+      ]
+    },
+    {
+      "family_id": "cnv_recurrence_summary_panel",
+      "category": "Genomic and Omics",
+      "title": "CNV Recurrence Summary",
+      "figure_archetype": "copy_number_recurrence_summary_panel",
+      "canonical_template_id": "cnv_recurrence_summary_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "CNV recurrence has a distinct genome-position and recurrence-frequency grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "cnv_or_circos_summary"
+      ]
+    },
+    {
+      "family_id": "genomic_alteration_consequence_panel",
+      "category": "Genomic and Omics",
+      "title": "Genomic Consequence Summary",
+      "figure_archetype": "alteration_consequence_or_multiomic_consequence_panel",
+      "canonical_template_id": "genomic_alteration_consequence_panel",
+      "default_visible": true,
+      "aliases": [
+        "genomic_alteration_multiomic_consequence_panel",
+        "genomic_alteration_pathway_integrated_composite_panel"
+      ],
+      "migration_reason": "Multiomic and pathway-integrated consequence panels are composition presets of the consequence summary intent.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "genomic_consequence_summary",
+        "oncoplot_landscape"
+      ]
+    },
+    {
+      "family_id": "pathway_enrichment_dotplot_panel",
+      "category": "Genomic and Omics",
+      "title": "Pathway Enrichment Dotplot",
+      "figure_archetype": "pathway_enrichment_dotplot",
+      "canonical_template_id": "pathway_enrichment_dotplot_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Pathway enrichment dotplots are a common fixed analysis recipe.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "enrichment_dotplot"
+      ]
+    },
+    {
+      "family_id": "celltype_marker_dotplot_panel",
+      "category": "Genomic and Omics",
+      "title": "Cell-Type Marker Dotplot",
+      "figure_archetype": "celltype_marker_expression_dotplot",
+      "canonical_template_id": "celltype_marker_dotplot_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Marker dotplots share dot marks with enrichment plots but carry cell-type marker-expression semantics.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "marker_dotplot"
+      ]
+    },
+    {
+      "family_id": "omics_volcano_panel",
+      "category": "Genomic and Omics",
+      "title": "Volcano Plot",
+      "figure_archetype": "omics_effect_significance_volcano",
+      "canonical_template_id": "omics_volcano_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Volcano plots have distinct threshold, label and effect-significance grammar.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "volcano_or_ma_plot"
+      ]
+    },
+    {
+      "family_id": "shap_summary_beeswarm",
+      "category": "Model Explanation",
+      "title": "SHAP Summary",
+      "figure_archetype": "global_shap_beeswarm_or_importance_summary",
+      "canonical_template_id": "shap_summary_beeswarm",
+      "default_visible": true,
+      "aliases": [
+        "shap_bar_importance",
+        "shap_multicohort_importance_panel"
+      ],
+      "migration_reason": "SHAP bar and multicohort importance are modes of the global explanation summary seed.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "shap_summary"
+      ]
+    },
+    {
+      "family_id": "shap_dependence_panel",
+      "category": "Model Explanation",
+      "title": "SHAP Dependence",
+      "figure_archetype": "feature_response_or_dependence_explanation_panel",
+      "canonical_template_id": "shap_dependence_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Dependence plots answer a feature-response explanation claim and remain separate from global ranking.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "pdp_ice_ale"
+      ]
+    },
+    {
+      "family_id": "shap_waterfall_local_explanation_panel",
+      "category": "Model Explanation",
+      "title": "Local SHAP Waterfall",
+      "figure_archetype": "local_case_explanation_waterfall",
+      "canonical_template_id": "shap_waterfall_local_explanation_panel",
+      "default_visible": true,
+      "aliases": [
+        "shap_force_like_summary_panel"
+      ],
+      "migration_reason": "Force-like local explanation is a local-explanation mode, not a global SHAP template.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "shap_local_explanation"
+      ]
+    },
+    {
+      "family_id": "model_complexity_audit_panel",
+      "category": "Model Audit",
+      "title": "Model Complexity Audit",
+      "figure_archetype": "complexity_or_diagnostic_audit_panel",
+      "canonical_template_id": "model_complexity_audit_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Model audit templates carry diagnostic semantics rather than primary result-display semantics.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "model_complexity_audit"
+      ]
+    },
+    {
+      "family_id": "cohort_flow_figure",
+      "category": "Publication Shells and Tables",
+      "title": "Cohort Flow",
+      "figure_archetype": "consort_strobe_participant_flow",
+      "canonical_template_id": "cohort_flow_figure",
+      "default_visible": true,
+      "aliases": [
+        "workflow_fact_sheet_panel",
+        "design_evidence_composite_shell"
+      ],
+      "migration_reason": "Cohort-flow variants are unified into one structured reporting-flow template driven by participant accounting and exclusion counts.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_reporting_flow_payload",
+      "medical_family_ids": [
+        "strobe_cohort_flow",
+        "consort_trial_flow",
+        "prisma_review_flow",
+        "stard_diagnostic_flow",
+        "eligibility_waterfall"
+      ]
+    },
+    {
+      "family_id": "submission_graphical_abstract",
+      "category": "Publication Shells and Tables",
+      "title": "Submission Graphical Abstract",
+      "figure_archetype": "submission_graphical_abstract_shell",
+      "canonical_template_id": "submission_graphical_abstract",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Submission graphical abstracts remain an expressive composition shell, not a statistical evidence template.",
+      "analysis_responsibility": "illustration_shell",
+      "analysis_input_state": "not_statistical_evidence",
+      "medical_family_ids": [
+        "graphical_abstract",
+        "causal_dag"
+      ]
+    },
+    {
+      "family_id": "distribution_violin_box",
+      "category": "Population and Baseline",
+      "title": "Distribution Violin-Box Plot",
+      "figure_archetype": "grouped_violin_box_jitter_distribution_comparison",
+      "canonical_template_id": "distribution_violin_box",
+      "default_visible": true,
+      "aliases": [
+        "violin_box",
+        "raincloud_distribution_comparison"
+      ],
+      "migration_reason": "Student-curated distribution template fills a distinct common medical-paper distribution comparison intent; it is not a heatmap/ROC/KM duplicate.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "distribution_comparison"
+      ]
+    },
+    {
+      "family_id": "composition_stacked_bar",
+      "category": "Population and Baseline",
+      "title": "Composition Stacked Bar",
+      "figure_archetype": "grouped_categorical_composition_stacked_bar",
+      "canonical_template_id": "composition_stacked_bar",
+      "default_visible": true,
+      "aliases": [
+        "bar_stacked"
+      ],
+      "migration_reason": "Student-curated stacked composition bars provide a distinct population/composition grammar and avoid overloading generic bar charts.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "composition_profile"
+      ]
+    },
+    {
+      "family_id": "correlation_scatter",
+      "category": "Effect Estimate",
+      "title": "Correlation Scatter",
+      "figure_archetype": "association_scatter_with_regression_and_statistic_slot",
+      "canonical_template_id": "correlation_scatter",
+      "default_visible": true,
+      "aliases": [
+        "scatter_correlation"
+      ],
+      "migration_reason": "Pairwise association scatter is visually and semantically distinct from correlation heatmaps and effect forest plots.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "correlation_scatter"
+      ]
+    },
+    {
+      "family_id": "alluvial_transition",
+      "category": "Longitudinal and Patient Trajectory",
+      "title": "Alluvial Transition",
+      "figure_archetype": "categorical_state_transition_alluvial",
+      "canonical_template_id": "alluvial_transition",
+      "default_visible": true,
+      "aliases": [
+        "sankey_alluvial"
+      ],
+      "migration_reason": "Alluvial state transitions are a common patient/pathway composition grammar and should not be represented as generic stacked bars.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "alluvial_transition"
+      ]
+    },
+    {
+      "family_id": "radar_profile",
+      "category": "Population and Baseline",
+      "title": "Radar Profile",
+      "figure_archetype": "multiaxis_group_profile_radar_chart",
+      "canonical_template_id": "radar_profile",
+      "default_visible": true,
+      "aliases": [
+        "radar"
+      ],
+      "migration_reason": "Radar profile is retained as a compact profile overview seed when axes are few and comparable; AI may replace it when bars or dotplots are clearer.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "profile_radar"
+      ]
+    },
+    {
+      "family_id": "waterfall_response",
+      "category": "Clinical Trial Response and Safety",
+      "title": "Waterfall Response",
+      "figure_archetype": "ranked_patient_response_waterfall",
+      "canonical_template_id": "waterfall_response",
+      "default_visible": true,
+      "aliases": [
+        "waterfall"
+      ],
+      "migration_reason": "Patient-level response waterfall is a distinct oncology/trial response grammar and should be callable as its own lower-bound seed.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "waterfall_response"
+      ]
+    },
+    {
+      "family_id": "table1_baseline_characteristics",
+      "category": "Publication Shells and Tables",
+      "title": "Table 1 Baseline Characteristics",
+      "figure_archetype": "baseline_characteristics_table_shell",
+      "canonical_template_id": "table1_baseline_characteristics",
+      "default_visible": true,
+      "aliases": [
+        "performance_summary_table_generic",
+        "grouped_risk_event_summary_table",
+        "table2_phenotype_gap_summary",
+        "table2_time_to_event_performance_summary",
+        "table3_clinical_interpretation_summary",
+        "table3_transition_site_support_summary"
+      ],
+      "migration_reason": "Table numbering and downstream table summaries are paper-local surfaces; the default pack exposes one table-shell seed.",
+      "analysis_responsibility": "table_shell",
+      "analysis_input_state": "validated_table_values",
+      "medical_family_ids": [
+        "table_one_baseline"
+      ]
+    }
+  ]
+}

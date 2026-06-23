@@ -20,13 +20,13 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "display-packs/fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
 version = "0.2.0"
 """.strip()
         + "\n",
         encoding="utf-8",
     )
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     template_root = pack_root / "templates" / "roc_curve_binary"
     template_root.mkdir(parents=True)
     (pack_root / "display_pack.toml").write_text(

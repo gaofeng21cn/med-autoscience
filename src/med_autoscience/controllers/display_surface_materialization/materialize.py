@@ -4,6 +4,10 @@ import subprocess
 import sys
 
 from med_autoscience.display_pack_e2e_runtime import _run_subprocess_renderer
+from med_autoscience.display_pack_dependency_environment import (
+    dependency_environment_finding,
+    dependency_environment_status,
+)
 
 from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
 from .contract_backed_registry import resolve_contract_backed_figure_registry_fields, resolve_contract_backed_layout_sidecar_path
@@ -199,6 +203,77 @@ def _render_evidence_figure_by_template_runtime(
         output_pdf_path=output_pdf_path,
         layout_sidecar_path=layout_sidecar_path,
     )
+
+
+def _render_illustration_shell_by_template_runtime(
+    *,
+    template_id: str,
+    shell_payload: dict[str, Any],
+    render_context: dict[str, Any],
+    payload_path: Path,
+    paper_root: Path,
+    figure_id: str,
+    output_png_path: Path,
+    output_pdf_path: Path | None,
+    output_svg_path: Path,
+    output_layout_path: Path,
+    dependency_environment: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    runtime = display_pack_runtime.resolve_display_template_runtime(
+        repo_root=_REPO_ROOT,
+        template_id=template_id,
+        paper_root=paper_root,
+    )
+    template_manifest = runtime.template_manifest
+    if template_manifest.execution_mode == "subprocess":
+        if output_pdf_path is None:
+            raise ValueError(f"subprocess illustration shell `{template_id}` requires a PDF export path")
+        display_payload = dict(shell_payload)
+        display_payload["render_context"] = render_context
+        result = _run_subprocess_renderer(
+            runtime_template_root=runtime.template_path.parent,
+            pack_root=runtime.pack_root,
+            template_manifest=template_manifest,
+            paper_root=paper_root,
+            figure_id=figure_id,
+            full_template_id=template_manifest.full_template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=output_layout_path,
+            dependency_environment=dependency_environment,
+        )
+        if "svg" in template_manifest.required_exports and not output_svg_path.exists():
+            raise ValueError(f"subprocess illustration shell `{template_id}` did not write requested svg export")
+        return result
+    if template_manifest.execution_mode != "python_plugin":
+        raise ValueError(
+            f"illustration shell `{template_id}` uses unsupported execution mode `{template_manifest.execution_mode}`"
+        )
+    _prepare_python_illustration_output_paths(
+        output_png_path=output_png_path,
+        output_svg_path=output_svg_path,
+        layout_sidecar_path=output_layout_path,
+    )
+    if output_pdf_path is not None:
+        output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    render_callable = display_pack_runtime.load_python_plugin_callable(
+        repo_root=_REPO_ROOT,
+        template_id=template_id,
+        paper_root=paper_root,
+    )
+    render_kwargs = {
+        "template_id": template_id,
+        "shell_payload": shell_payload,
+        "payload_path": payload_path,
+        "render_context": render_context,
+        "output_svg_path": output_svg_path,
+        "output_png_path": output_png_path,
+        "output_layout_path": output_layout_path,
+    }
+    if output_pdf_path is not None:
+        render_kwargs["output_pdf_path"] = output_pdf_path
+    return dict(render_callable(**render_kwargs) or {})
 
 
 def _materialize_contract_backed_figure(
@@ -535,32 +610,36 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 else None
             )
             output_layout_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.layout.json"
-            _prepare_python_illustration_output_paths(
-                output_png_path=output_png_path,
-                output_svg_path=output_svg_path,
-                layout_sidecar_path=output_layout_path,
-            )
-            if output_pdf_path is not None:
-                output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-            render_callable = display_pack_runtime.load_python_plugin_callable(
+            dependency_environment = dependency_environment_status(
                 repo_root=_REPO_ROOT,
-                template_id=spec.shell_id,
                 paper_root=resolved_paper_root,
+                records=[
+                    display_pack_runtime.resolve_display_template_runtime(
+                        repo_root=_REPO_ROOT,
+                        template_id=spec.shell_id,
+                        paper_root=resolved_paper_root,
+                    )
+                ],
             )
-            render_kwargs = {
-                "template_id": spec.shell_id,
-                "shell_payload": shell_payload,
-                "payload_path": payload_path,
-                "render_context": render_context,
-                "output_svg_path": output_svg_path,
-                "output_png_path": output_png_path,
-                "output_layout_path": output_layout_path,
-            }
-            if output_pdf_path is not None:
-                render_kwargs["output_pdf_path"] = output_pdf_path
-            render_result = dict(
-                render_callable(**render_kwargs)
-                or {}
+            dependency_finding = dependency_environment_finding(dependency_environment)
+            if dependency_finding is not None:
+                raise ValueError(
+                    f"display shell `{figure_id}` dependency environment is not prepared; "
+                    f"route: {dependency_finding['route_hint']}; "
+                    f"reason: {dependency_environment.get('blocker_reason') or dependency_environment.get('status')}"
+                )
+            render_result = _render_illustration_shell_by_template_runtime(
+                template_id=spec.shell_id,
+                shell_payload=shell_payload,
+                render_context=render_context,
+                payload_path=payload_path,
+                paper_root=resolved_paper_root,
+                figure_id=figure_id,
+                output_png_path=output_png_path,
+                output_pdf_path=output_pdf_path,
+                output_svg_path=output_svg_path,
+                output_layout_path=output_layout_path,
+                dependency_environment=dependency_environment,
             )
             layout_sidecar = _load_layout_sidecar_or_raise(path=output_layout_path, template_id=spec.shell_id)
             layout_sidecar["render_context"] = render_context
@@ -571,10 +650,12 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             qc_result["layout_sidecar_path"] = _paper_relative_path(output_layout_path, paper_root=resolved_paper_root)
             export_paths = [
-                _paper_relative_path(output_svg_path, paper_root=resolved_paper_root),
                 _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
             ]
-            written_output_paths = [str(output_svg_path), str(output_png_path), str(output_layout_path)]
+            written_output_paths = [str(output_png_path), str(output_layout_path)]
+            if output_svg_path.exists():
+                export_paths.insert(0, _paper_relative_path(output_svg_path, paper_root=resolved_paper_root))
+                written_output_paths.append(str(output_svg_path))
             if output_pdf_path is not None:
                 export_paths.append(_paper_relative_path(output_pdf_path, paper_root=resolved_paper_root))
                 written_output_paths.append(str(output_pdf_path))

@@ -5,12 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 from med_autoscience.display_pack_loader import LoadedDisplayTemplate
 
 
-DEPENDENCY_REQUIREMENT_PROFILE_REF = (
-    "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
-)
+DEPENDENCY_REQUIREMENT_PROFILE_BASENAME = "renderer_dependency_profile.json"
 DEPENDENCY_LOCK_REF = "paper/build/dependency_environment_lock.json"
 DEPENDENCY_RECEIPT_REF = "paper/build/dependency_environment_receipt.json"
 DEPENDENCY_RUN_CONTEXT_REF = "paper/build/dependency_run_context.json"
@@ -54,8 +53,20 @@ def _mapping(value: object) -> dict[str, Any]:
 
 
 def load_renderer_dependency_profile(*, repo_root: Path) -> dict[str, Any]:
-    payload = _read_json_object(repo_root / DEPENDENCY_REQUIREMENT_PROFILE_REF)
+    payload = _read_json_object(_renderer_dependency_profile_path(repo_root))
     return payload or {}
+
+
+def renderer_dependency_profile_ref(*, repo_root: Path) -> str:
+    path = _renderer_dependency_profile_path(repo_root)
+    try:
+        return path.relative_to(Path(repo_root).expanduser().resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _renderer_dependency_profile_path(repo_root: Path) -> Path:
+    return core_medical_display_pack_root(repo_root) / DEPENDENCY_REQUIREMENT_PROFILE_BASENAME
 
 
 def _profile_template_ids(profile_entry: Mapping[str, Any]) -> set[str]:
@@ -272,7 +283,8 @@ def dependency_environment_status(
     paper_root: Path | None,
     records: list[LoadedDisplayTemplate],
 ) -> dict[str, Any]:
-    requirement_path = repo_root / DEPENDENCY_REQUIREMENT_PROFILE_REF
+    requirement_path = _renderer_dependency_profile_path(repo_root)
+    requirement_profile_ref = renderer_dependency_profile_ref(repo_root=repo_root)
     dependency_requirements = dependency_requirements_for_records(repo_root=repo_root, records=records)
     required = bool(dependency_requirements)
     base: dict[str, Any] = {
@@ -280,7 +292,7 @@ def dependency_environment_status(
         "required": required,
         "owner": "OPL Framework",
         "consumer": "MedAutoScience display pack",
-        "requirement_profile_ref": DEPENDENCY_REQUIREMENT_PROFILE_REF,
+        "requirement_profile_ref": requirement_profile_ref,
         "requirement_profile_status": "present" if requirement_path.is_file() else "missing",
         "dependency_requirements": dependency_requirements,
         "lock_ref": DEPENDENCY_LOCK_REF,

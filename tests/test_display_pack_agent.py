@@ -59,7 +59,7 @@ def _write_prepared_dependency_environment(paper_root: Path) -> None:
                 "lock_id": "test-display-env-lock",
                 "lock_sha256": "sha256:test-display-env-lock",
                 "source_requirement_refs": [
-                    "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
+                    "external/display-packs/medical-display-core/renderer_dependency_profile.json"
                 ],
             },
             ensure_ascii=False,
@@ -515,7 +515,7 @@ def test_display_pack_orchestrate_compiles_current_owner_delta_into_render_next_
     assert payload["preflight"]["status"] == "ready"
     assert payload["preflight"]["dependency_environment"]["status"] == "prepared"
     assert payload["preflight"]["dependency_environment"]["requirement_profile_ref"] == (
-        "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
+        "external/display-packs/medical-display-core/renderer_dependency_profile.json"
     )
     assert payload["preflight"]["dependency_environment"]["lock_ref"] == (
         "paper/build/dependency_environment_lock.json"
@@ -588,7 +588,7 @@ def test_display_pack_preflight_blocks_missing_dependency_environment_by_default
     assert payload["status"] == "blocked"
     assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
     assert payload["dependency_environment"]["requirement_profile_ref"] == (
-        "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json"
+        "external/display-packs/medical-display-core/renderer_dependency_profile.json"
     )
     assert payload["dependency_environment"]["lock_ref"] == "paper/build/dependency_environment_lock.json"
     assert payload["dependency_environment"]["receipt_ref"] == "paper/build/dependency_environment_receipt.json"

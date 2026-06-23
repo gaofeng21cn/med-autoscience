@@ -119,8 +119,12 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 qc_profile_ref=spec.shell_qc_profile,
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,
-                execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=_ILLUSTRATION_SHELL_ENTRYPOINT,
+                execution_mode=_R_EVIDENCE_EXECUTION_MODE
+                if spec.renderer_family == "r_ggplot2"
+                else _DEFAULT_EXECUTION_MODE,
+                entrypoint=_R_EVIDENCE_ENTRYPOINT
+                if spec.renderer_family == "r_ggplot2"
+                else _ILLUSTRATION_SHELL_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
                 exemplar_refs=_PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID.get(short_id, ()),
             )

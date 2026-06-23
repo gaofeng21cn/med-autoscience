@@ -165,6 +165,7 @@ def _template_summary(
     record: LoadedDisplayTemplate,
     catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
     request: Mapping[str, Any] | None = None,
+    repo_root: Path | None = None,
 ) -> dict[str, Any]:
     manifest = record.template_manifest
     template_root = record.template_path.parent
@@ -208,7 +209,7 @@ def _template_summary(
         "migration_reason": canonical.migration_reason,
         "renderer_policy": renderer_policy_payload(_renderer_policy_projection(record, canonical)),
         "dependency_requirements": dependency_requirements_for_records(
-            repo_root=record.pack_root.parent.parent,
+            repo_root=repo_root or record.pack_root,
             records=[record],
         ),
         "has_render_r": (template_root / "render.R").is_file(),
@@ -290,7 +291,7 @@ def display_pack_capability_discover(
     if include_templates:
         catalogs = _catalogs_by_pack_root(records)
         payload["templates"] = [
-            _template_summary(record, catalogs)
+            _template_summary(record, catalogs, repo_root=normalized_repo_root)
             for record in records
             if _canonical_entry(record, catalogs).default_visible
         ]
@@ -401,7 +402,7 @@ def display_pack_figure_plan(
         if canonical.default_visible:
             score += 30
             reasons.append("canonical_default_visible")
-        entry = _template_summary(record, catalogs, request=request)
+        entry = _template_summary(record, catalogs, request=request, repo_root=normalized_repo_root)
         entry["recommendation_score"] = score
         entry["recommendation_reasons"] = reasons
         entry.update(template_fit_entry(record, request))
@@ -542,7 +543,7 @@ def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...
         template_id = record.template_manifest.template_id
         full_template_id = record.template_manifest.full_template_id
         for item in dependency_requirements_for_records(
-            repo_root=record.pack_root.parent.parent,
+            repo_root=record.pack_root,
             records=[record],
         ):
             item_map = _mapping(item)
@@ -682,7 +683,7 @@ def display_pack_preflight(
     for record in selected_records:
         manifest = record.template_manifest
         template_root = record.template_path.parent
-        entry = _template_summary(record, catalogs, request=compiled_request)
+        entry = _template_summary(record, catalogs, request=compiled_request, repo_root=normalized_repo_root)
         entry.update(template_fit_entry(record, compiled_request))
         template_entries.append(entry)
         analysis_blocker = analysis_blocker_for_template_summary(entry, compiled_request)
@@ -961,7 +962,7 @@ def display_pack_render(
             or record.template_manifest.full_template_id == template_id
         ]
         if selected_records:
-            entry = _template_summary(selected_records[0], catalogs, request=request)
+            entry = _template_summary(selected_records[0], catalogs, request=request, repo_root=normalized_repo_root)
             analysis_blocker = analysis_blocker_for_template_summary(entry, request)
             if analysis_blocker is not None:
                 return {

@@ -163,9 +163,9 @@ def test_sync_display_pack_surface_canonicalizes_source_truth(tmp_path: Path) ->
     figure_semantics = load_json(paper_root / "figure_semantics_manifest.json")
     cohort_flow_contract = figure_semantics["figures"][0]["renderer_contract"]
     assert cohort_flow_contract["template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
-    assert cohort_flow_contract["renderer_family"] == "python"
+    assert cohort_flow_contract["renderer_family"] == "r_ggplot2"
     assert cohort_flow_contract["layout_qc_profile"] == "publication_illustration_flow"
-    assert cohort_flow_contract["required_exports"] == ["png", "svg", "pdf"]
+    assert cohort_flow_contract["required_exports"] == ["png", "pdf"]
     risk_layering_contract = figure_semantics["figures"][1]["renderer_contract"]
     assert risk_layering_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
     assert risk_layering_contract["renderer_family"] == "r_ggplot2"
@@ -218,7 +218,7 @@ def test_sync_display_pack_surface_updates_keyed_figure_semantics_manifest(tmp_p
     cohort_flow_contract = figure_semantics["figures"]["F1"]["renderer_contract"]
     assert cohort_flow_contract["template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
     assert cohort_flow_contract["layout_qc_profile"] == "publication_illustration_flow"
-    assert cohort_flow_contract["renderer"] == "python"
+    assert cohort_flow_contract["renderer"] == "r_ggplot2"
     risk_layering_contract = figure_semantics["figures"]["F2"]["renderer_contract"]
     assert risk_layering_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
     assert risk_layering_contract["layout_qc_profile"] == "publication_risk_layering_bars"

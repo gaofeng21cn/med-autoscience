@@ -5,10 +5,11 @@ import tomllib
 from pathlib import Path
 
 from med_autoscience import display_registry
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CORE_PACK_ROOT = REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core"
+CORE_PACK_ROOT = core_medical_display_pack_root(REPO_ROOT)
 TEMPLATE_ROOT = CORE_PACK_ROOT / "templates"
 PACK_SOURCE_ROOT = CORE_PACK_ROOT / "src" / "fenggaolab_org_medical_display_core"
 

@@ -16,8 +16,8 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     result = module.materialize_display_surface(paper_root=paper_root)
 
     assert result["status"] == "materialized"
-    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
     assert (paper_root / "figures" / "generated" / "F1_cohort_flow.png").exists()
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.pdf").exists()
     assert (paper_root / "tables" / "generated" / "T1_baseline_characteristics.md").exists()
     assert (paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv").exists()
 
@@ -25,7 +25,7 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert figure_catalog["figures"][0]["figure_id"] == "F1"
     assert figure_catalog["figures"][0]["template_id"] == full_id("cohort_flow_figure")
     assert figure_catalog["figures"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
-    assert figure_catalog["figures"][0]["renderer_family"] == "python"
+    assert figure_catalog["figures"][0]["renderer_family"] == "r_ggplot2"
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
@@ -39,7 +39,7 @@ def test_materialize_display_surface_preserves_table_claim_bindings_from_claim_e
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
-    restrict_display_registry_to_display_ids(paper_root, "Table1", "Table2")
+    restrict_display_registry_to_display_ids(paper_root, "Table1")
     dump_json(
         paper_root / "claim_evidence_map.json",
         {
@@ -51,11 +51,11 @@ def test_materialize_display_surface_preserves_table_claim_bindings_from_claim_e
                 },
                 {
                     "claim_id": "C2",
-                    "display_refs": ["T2"],
+                    "display_refs": ["T1"],
                 },
                 {
                     "claim_id": "C3",
-                    "table_bindings": ["T2"],
+                    "table_bindings": ["T1"],
                 },
             ],
         },
@@ -65,8 +65,7 @@ def test_materialize_display_surface_preserves_table_claim_bindings_from_claim_e
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     tables_by_id = {entry["table_id"]: entry for entry in table_catalog["tables"]}
-    assert tables_by_id["T1"]["claim_ids"] == ["C1"]
-    assert tables_by_id["T2"]["claim_ids"] == ["C2", "C3"]
+    assert tables_by_id["T1"]["claim_ids"] == ["C1", "C2", "C3"]
 
 def test_materialize_display_surface_preserves_optional_table1_p_values(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
@@ -180,51 +179,40 @@ def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figur
         },
     )
 
-    original_loader = module.display_pack_runtime.load_python_plugin_callable
     render_calls: list[str] = []
 
-    def fake_shell_renderer(
+    def fake_subprocess_renderer(
         *,
-        template_id: str,
-        shell_payload: dict[str, object],
-        payload_path: Path | None = None,
-        render_context: dict[str, object],
-        output_svg_path: Path,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
+        display_payload: dict[str, object],
         output_png_path: Path,
-        output_layout_path: Path,
-        output_pdf_path: Path | None = None,
-    ) -> None:
-        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
-        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+        dependency_environment: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
         output_png_path.write_text("PNG", encoding="utf-8")
-        if output_pdf_path is not None:
-            output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-            output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
-        output_layout_path.write_text(
-            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+        output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(full_template_id), ensure_ascii=False),
             encoding="utf-8",
         )
-        render_calls.append(template_id)
+        render_calls.append(full_template_id)
+        return {"status": "rendered", "figure_id": figure_id}
 
-    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
-        if template_id == full_id("cohort_flow_figure"):
-            return fake_shell_renderer
-        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
-
-    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
-    monkeypatch.setattr(
-        module,
-        "_render_cohort_flow_figure",
-        lambda **_: (_ for _ in ()).throw(AssertionError("host cohort-flow renderer should not be used")),
-        raising=False,
-    )
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
 
     result = module.materialize_display_surface(paper_root=paper_root)
 
     assert result["status"] == "materialized"
     assert result["figures_materialized"] == ["S1"]
     assert render_calls == [full_id("cohort_flow_figure")]
-    assert (paper_root / "figures" / "generated" / "S1_cohort_flow.svg").exists()
     assert (paper_root / "figures" / "generated" / "S1_cohort_flow.png").exists()
     assert (paper_root / "figures" / "generated" / "S1_cohort_flow.pdf").exists()
 
@@ -234,7 +222,6 @@ def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figur
     assert figure_catalog["figures"][0]["template_id"] == full_id("cohort_flow_figure")
     assert figure_catalog["figures"][0]["input_schema_id"] == "cohort_flow_shell_inputs_v1"
     assert figure_catalog["figures"][0]["export_paths"] == [
-        "paper/figures/generated/S1_cohort_flow.svg",
         "paper/figures/generated/S1_cohort_flow.png",
         "paper/figures/generated/S1_cohort_flow.pdf",
     ]
@@ -242,50 +229,40 @@ def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figur
 def test_materialize_display_surface_uses_pack_runtime_for_cohort_flow_shell(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)
-    original_loader = module.display_pack_runtime.load_python_plugin_callable
     render_calls: list[str] = []
 
-    def fake_shell_renderer(
+    def fake_subprocess_renderer(
         *,
-        template_id: str,
-        shell_payload: dict[str, object],
-        payload_path: Path | None = None,
-        render_context: dict[str, object],
-        output_svg_path: Path,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
+        display_payload: dict[str, object],
         output_png_path: Path,
-        output_layout_path: Path,
-        output_pdf_path: Path | None = None,
-    ) -> None:
-        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
-        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+        dependency_environment: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
         output_png_path.write_text("PNG", encoding="utf-8")
-        if output_pdf_path is not None:
-            output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-            output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
-        output_layout_path.write_text(
-            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+        output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(full_template_id), ensure_ascii=False),
             encoding="utf-8",
         )
-        render_calls.append(template_id)
+        render_calls.append(full_template_id)
+        return {"status": "rendered", "figure_id": figure_id}
 
-    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
-        if template_id == full_id("cohort_flow_figure"):
-            return fake_shell_renderer
-        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
-
-    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
-    monkeypatch.setattr(
-        module,
-        "_render_cohort_flow_figure",
-        lambda **_: (_ for _ in ()).throw(AssertionError("host cohort-flow renderer should not be used")),
-        raising=False,
-    )
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
 
     result = module.materialize_display_surface(paper_root=paper_root)
 
     assert result["status"] == "materialized"
     assert render_calls == [full_id("cohort_flow_figure")]
-    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.png").exists()
     assert (paper_root / "figures" / "generated" / "F1_cohort_flow.pdf").exists()
 
 def test_materialize_display_surface_uses_pack_runtime_for_r_evidence_template(tmp_path: Path, monkeypatch) -> None:
@@ -441,14 +418,14 @@ enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "paper-display-packs/fenggaolab.org.medical-display-core"
+path = "paper-external/display-packs/medical-display-core"
 version = "0.2.0"
 """.strip()
         + "\n",
         encoding="utf-8",
     )
 
-    pack_root = paper_root / "paper-display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = paper_root / "paper-external" / "display-packs" / "medical-display-core"
     (pack_root / "templates" / "table1_baseline_characteristics").mkdir(parents=True)
     (pack_root / "src" / "paper_override_display_core").mkdir(parents=True)
     (pack_root / "display_pack.toml").write_text(
@@ -518,11 +495,12 @@ version = "0.2.0"
     assert entry["declared_in"] == "paper"
     assert entry["requested_version"] == "0.2.0"
     assert entry["version"] == "0.2.0"
-    assert entry["source_path"] == "paper-display-packs/fenggaolab.org.medical-display-core"
+    assert entry["source_path"] == "paper-external/display-packs/medical-display-core"
 
 def test_materialize_display_surface_uses_catalog_ids_for_semantic_shell_display_ids(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
+    _write_prepared_dependency_environment(paper_root)
     dump_json(
         paper_root / "display_registry.json",
         {
@@ -604,7 +582,8 @@ def test_materialize_display_surface_uses_catalog_ids_for_semantic_shell_display
 
     assert result["figures_materialized"] == ["F1"]
     assert result["tables_materialized"] == ["T1"]
-    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.png").exists()
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.pdf").exists()
     assert (paper_root / "tables" / "generated" / "T1_baseline_characteristics.md").exists()
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
@@ -614,6 +593,7 @@ def test_materialize_display_surface_uses_catalog_ids_for_semantic_shell_display
 def test_materialize_display_surface_defaults_study_setup_shells_to_supplementary(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
+    _write_prepared_dependency_environment(paper_root)
     write_default_publication_display_contracts(paper_root)
     dump_json(
         paper_root / "display_registry.json",
@@ -670,6 +650,7 @@ def test_materialize_display_surface_defaults_study_setup_shells_to_supplementar
 def test_materialize_display_surface_honors_registry_paper_role_for_study_setup_shells(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
+    _write_prepared_dependency_environment(paper_root)
     write_default_publication_display_contracts(paper_root)
     dump_json(
         paper_root / "display_registry.json",

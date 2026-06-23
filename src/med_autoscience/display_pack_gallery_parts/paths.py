@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
-PACK_ROOT = REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core"
+PACK_ROOT = core_medical_display_pack_root(REPO_ROOT)
 PACK_SRC_ROOT = PACK_ROOT / "src"
 TEMPLATE_ROOT = PACK_ROOT / "templates"
 EXAMPLES_ROOT = REPO_ROOT / "docs" / "delivery" / "medical-display" / "examples"

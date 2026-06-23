@@ -75,6 +75,7 @@ _TABLE_SHELL_ORDER = tuple(
 )
 _SEMANTIC_REGISTRY_ID_ALIASES = {
     _full_id("local_architecture_overview_figure"): _full_id("risk_layering_monotonic_bars"),
+    _full_id("binary_calibration_decision_curve_panel"): _full_id("calibration_curve_binary"),
 }
 
 

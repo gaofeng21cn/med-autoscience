@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_project": "LidocaineQ/Figure_Template",
-  "reference_root": "/private/tmp/lidocaineq_figure_template",
+  "reference_root": "/tmp/lidocaineq_figure_template",
   "reference_template_count": 33,
   "status_counts": {
     "mas_computed_workflow_intentionally_extended": 1,
@@ -16,7 +16,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::survival_km",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/survival_km.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/survival_km.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -27,7 +27,7 @@
           "preview_image_ref": "medical_display_gallery_assets/kaplan_meier_grouped.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/kaplan_meier_grouped.png",
+            "path": "medical_display_gallery_assets/kaplan_meier_grouped.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -46,7 +46,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::cumulative_incidence_grouped",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/cumulative_incidence_grouped.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/cumulative_incidence_grouped.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -57,7 +57,7 @@
           "preview_image_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/cumulative_incidence_grouped.png",
+            "path": "medical_display_gallery_assets/cumulative_incidence_grouped.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -76,7 +76,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::roc_auc",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/roc_auc.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/roc_auc.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -87,7 +87,7 @@
           "preview_image_ref": "medical_display_gallery_assets/roc_curve_binary.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/roc_curve_binary.png",
+            "path": "medical_display_gallery_assets/roc_curve_binary.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -106,7 +106,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::time_dependent_roc_horizon",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/time_dependent_roc_horizon.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/time_dependent_roc_horizon.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -117,7 +117,7 @@
           "preview_image_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/time_dependent_roc_horizon.png",
+            "path": "medical_display_gallery_assets/time_dependent_roc_horizon.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -136,7 +136,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::calibration_curve_binary",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/calibration_curve_binary.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/calibration_curve_binary.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -147,7 +147,7 @@
           "preview_image_ref": "medical_display_gallery_assets/calibration_curve_binary.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/calibration_curve_binary.png",
+            "path": "medical_display_gallery_assets/calibration_curve_binary.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -166,7 +166,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::pr_curve_binary",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/pr_curve_binary.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/pr_curve_binary.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -177,7 +177,7 @@
           "preview_image_ref": "medical_display_gallery_assets/pr_curve_binary.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/pr_curve_binary.png",
+            "path": "medical_display_gallery_assets/pr_curve_binary.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -196,7 +196,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::decision_curve_binary",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/decision_curve_binary.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/decision_curve_binary.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -207,7 +207,7 @@
           "preview_image_ref": "medical_display_gallery_assets/decision_curve_binary.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/decision_curve_binary.png",
+            "path": "medical_display_gallery_assets/decision_curve_binary.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -226,7 +226,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_decision_curve",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/time_to_event_decision_curve.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/time_to_event_decision_curve.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -237,7 +237,7 @@
           "preview_image_ref": "medical_display_gallery_assets/time_to_event_decision_curve.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/time_to_event_decision_curve.png",
+            "path": "medical_display_gallery_assets/time_to_event_decision_curve.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -256,7 +256,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/time_to_event_multihorizon_calibration_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/time_to_event_multihorizon_calibration_panel.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -267,7 +267,7 @@
           "preview_image_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
+            "path": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -286,7 +286,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::forest_cox",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/forest_cox.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/forest_cox.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -297,7 +297,7 @@
           "preview_image_ref": "medical_display_gallery_assets/forest_effect_main.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/forest_effect_main.png",
+            "path": "medical_display_gallery_assets/forest_effect_main.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -316,7 +316,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::coefficient_path_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/coefficient_path_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/coefficient_path_panel.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -327,7 +327,7 @@
           "preview_image_ref": "medical_display_gallery_assets/coefficient_path_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/coefficient_path_panel.png",
+            "path": "medical_display_gallery_assets/coefficient_path_panel.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -346,7 +346,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/generalizability_subgroup_composite_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/generalizability_subgroup_composite_panel.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -357,7 +357,7 @@
           "preview_image_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
+            "path": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -376,7 +376,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::violin_box",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/violin_box.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/violin_box.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -387,7 +387,7 @@
           "preview_image_ref": "medical_display_gallery_assets/distribution_violin_box.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/distribution_violin_box.png",
+            "path": "medical_display_gallery_assets/distribution_violin_box.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -406,7 +406,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::bar_stacked",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/bar_stacked.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/bar_stacked.png",
         "width_px": 1664,
         "height_px": 1088
       },
@@ -417,7 +417,7 @@
           "preview_image_ref": "medical_display_gallery_assets/composition_stacked_bar.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/composition_stacked_bar.png",
+            "path": "medical_display_gallery_assets/composition_stacked_bar.png",
             "width_px": 1664,
             "height_px": 1088
           }
@@ -436,7 +436,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/risk_layering_monotonic_bars.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/risk_layering_monotonic_bars.png",
         "width_px": 1664,
         "height_px": 1088
       },
@@ -447,7 +447,7 @@
           "preview_image_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/risk_layering_monotonic_bars.png",
+            "path": "medical_display_gallery_assets/risk_layering_monotonic_bars.png",
             "width_px": 1664,
             "height_px": 1088
           }
@@ -466,7 +466,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::scatter_correlation",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/scatter_correlation.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/scatter_correlation.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -477,7 +477,7 @@
           "preview_image_ref": "medical_display_gallery_assets/correlation_scatter.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/correlation_scatter.png",
+            "path": "medical_display_gallery_assets/correlation_scatter.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -496,7 +496,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/embedding_umap_tsne.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/embedding_umap_tsne.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -507,7 +507,7 @@
           "preview_image_ref": "medical_display_gallery_assets/pca_scatter_grouped.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/pca_scatter_grouped.png",
+            "path": "medical_display_gallery_assets/pca_scatter_grouped.png",
             "width_px": 1600,
             "height_px": 1600
           }
@@ -518,7 +518,7 @@
           "preview_image_ref": "medical_display_gallery_assets/tsne_scatter_grouped.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/tsne_scatter_grouped.png",
+            "path": "medical_display_gallery_assets/tsne_scatter_grouped.png",
             "width_px": 1600,
             "height_px": 1600
           }
@@ -529,7 +529,7 @@
           "preview_image_ref": "medical_display_gallery_assets/umap_scatter_grouped.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/umap_scatter_grouped.png",
+            "path": "medical_display_gallery_assets/umap_scatter_grouped.png",
             "width_px": 1600,
             "height_px": 1600
           }
@@ -548,7 +548,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::heatmap",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/heatmap.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/heatmap.png",
         "width_px": 1664,
         "height_px": 1184
       },
@@ -559,7 +559,7 @@
           "preview_image_ref": "medical_display_gallery_assets/heatmap_group_comparison.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/heatmap_group_comparison.png",
+            "path": "medical_display_gallery_assets/heatmap_group_comparison.png",
             "width_px": 1664,
             "height_px": 1184
           }
@@ -578,7 +578,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/confusion_matrix_heatmap_binary.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/confusion_matrix_heatmap_binary.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -589,7 +589,7 @@
           "preview_image_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
+            "path": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -608,7 +608,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::volcano_deg",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/volcano_deg.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/volcano_deg.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -619,7 +619,7 @@
           "preview_image_ref": "medical_display_gallery_assets/omics_volcano_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/omics_volcano_panel.png",
+            "path": "medical_display_gallery_assets/omics_volcano_panel.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -638,7 +638,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::gsea_enrichment",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/gsea_enrichment.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/gsea_enrichment.png",
         "width_px": 1696,
         "height_px": 1184
       },
@@ -649,7 +649,7 @@
           "preview_image_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
+            "path": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.png",
             "width_px": 1696,
             "height_px": 1184
           }
@@ -668,7 +668,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::oncoplot_mutation",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/oncoplot_mutation.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/oncoplot_mutation.png",
         "width_px": 2240,
         "height_px": 1536
       },
@@ -679,7 +679,7 @@
           "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
+            "path": "medical_display_gallery_assets/genomic_alteration_landscape_panel.png",
             "width_px": 2240,
             "height_px": 1536
           }
@@ -698,7 +698,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/genomic_alteration_consequence_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/genomic_alteration_consequence_panel.png",
         "width_px": 1696,
         "height_px": 1120
       },
@@ -709,7 +709,7 @@
           "preview_image_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
+            "path": "medical_display_gallery_assets/genomic_alteration_consequence_panel.png",
             "width_px": 1696,
             "height_px": 1120
           }
@@ -728,7 +728,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::cnv_recurrence_summary_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/cnv_recurrence_summary_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/cnv_recurrence_summary_panel.png",
         "width_px": 1696,
         "height_px": 1088
       },
@@ -739,7 +739,7 @@
           "preview_image_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
+            "path": "medical_display_gallery_assets/cnv_recurrence_summary_panel.png",
             "width_px": 1696,
             "height_px": 1088
           }
@@ -758,7 +758,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::waterfall",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/waterfall.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/waterfall.png",
         "width_px": 1696,
         "height_px": 1088
       },
@@ -769,7 +769,7 @@
           "preview_image_ref": "medical_display_gallery_assets/waterfall_response.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/waterfall_response.png",
+            "path": "medical_display_gallery_assets/waterfall_response.png",
             "width_px": 1696,
             "height_px": 1088
           }
@@ -788,7 +788,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::shap_dependence_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/shap_dependence_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/shap_dependence_panel.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -799,7 +799,7 @@
           "preview_image_ref": "medical_display_gallery_assets/shap_dependence_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/shap_dependence_panel.png",
+            "path": "medical_display_gallery_assets/shap_dependence_panel.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -818,7 +818,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::shap_summary_beeswarm",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/shap_summary_beeswarm.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/shap_summary_beeswarm.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -829,7 +829,7 @@
           "preview_image_ref": "medical_display_gallery_assets/shap_summary_beeswarm.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/shap_summary_beeswarm.png",
+            "path": "medical_display_gallery_assets/shap_summary_beeswarm.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -848,7 +848,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/shap_waterfall_local_explanation_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/shap_waterfall_local_explanation_panel.png",
         "width_px": 1696,
         "height_px": 1120
       },
@@ -859,7 +859,7 @@
           "preview_image_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
+            "path": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.png",
             "width_px": 1696,
             "height_px": 1120
           }
@@ -878,7 +878,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::model_complexity_audit_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/model_complexity_audit_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/model_complexity_audit_panel.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -889,7 +889,7 @@
           "preview_image_ref": "medical_display_gallery_assets/model_complexity_audit_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/model_complexity_audit_panel.png",
+            "path": "medical_display_gallery_assets/model_complexity_audit_panel.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -908,7 +908,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::celltype_marker_dotplot_panel",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/celltype_marker_dotplot_panel.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/celltype_marker_dotplot_panel.png",
         "width_px": 1728,
         "height_px": 1184
       },
@@ -919,7 +919,7 @@
           "preview_image_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
+            "path": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
             "width_px": 1728,
             "height_px": 1184
           }
@@ -938,7 +938,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::sankey_alluvial",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/sankey_alluvial.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/sankey_alluvial.png",
         "width_px": 1696,
         "height_px": 1120
       },
@@ -949,7 +949,7 @@
           "preview_image_ref": "medical_display_gallery_assets/alluvial_transition.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/alluvial_transition.png",
+            "path": "medical_display_gallery_assets/alluvial_transition.png",
             "width_px": 1696,
             "height_px": 1120
           }
@@ -968,7 +968,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::radar",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/radar.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/radar.png",
         "width_px": 1536,
         "height_px": 1536
       },
@@ -979,7 +979,7 @@
           "preview_image_ref": "medical_display_gallery_assets/radar_profile.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/radar_profile.png",
+            "path": "medical_display_gallery_assets/radar_profile.png",
             "width_px": 1536,
             "height_px": 1536
           }
@@ -998,7 +998,7 @@
       "expected_source_renderer": "LidocaineQ/Figure_Template::baseline_table",
       "reference_image": {
         "exists": true,
-        "path": "/private/tmp/lidocaineq_figure_template/figures/reference/baseline_table.png",
+        "path": "/tmp/lidocaineq_figure_template/figures/reference/baseline_table.png",
         "width_px": 1824,
         "height_px": 1024
       },
@@ -1009,7 +1009,7 @@
           "preview_image_ref": "medical_display_gallery_assets/table1_baseline_characteristics.png",
           "image": {
             "exists": true,
-            "path": "outputs/display-pack-gallery/medical_display_gallery_assets/table1_baseline_characteristics.png",
+            "path": "medical_display_gallery_assets/table1_baseline_characteristics.png",
             "width_px": 1824,
             "height_px": 1024
           }

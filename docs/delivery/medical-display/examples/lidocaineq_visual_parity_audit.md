@@ -3,7 +3,7 @@
 本文件是 MAS 绘图模板质量审计面，不作为 Gallery 永久章节。审计目的，是把学生手工确认过的发表级参考图与 MAS 当前模板输出逐一对应，发现图型语法、排版、配色和信息密度偏差。
 
 - 参考项目：`LidocaineQ/Figure_Template`
-- 参考根目录：`/private/tmp/lidocaineq_figure_template`
+- 参考根目录：`/tmp/lidocaineq_figure_template`
 - 参考模板数：`33`
 - 状态计数：`{"mas_computed_workflow_intentionally_extended": 1, "reference_style_matched": 32}`
 - Contact sheet：`outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png`

@@ -5,10 +5,11 @@ from collections.abc import Mapping
 from med_autoscience import display_registry, display_schema_contract
 from med_autoscience.display_pack_canonical_catalog import load_canonical_template_catalog
 from med_autoscience.display_pack_loader import default_display_pack_repo_root
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 
 
 _CORE_PACK_ID = "fenggaolab.org.medical-display-core"
-_CORE_PACK_ROOT = default_display_pack_repo_root() / "display-packs" / _CORE_PACK_ID
+_CORE_PACK_ROOT = core_medical_display_pack_root(default_display_pack_repo_root())
 
 
 def _full_id(short_id: str) -> str:

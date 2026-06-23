@@ -13,6 +13,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     table_preview_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts import paths
+from med_autoscience.display_pack_gallery_parts.asset_reuse import seed_package_only_assets_from_docs_mirror
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset, _clean_assets, _strip_trailing_whitespace, write_json
 from med_autoscience.display_pack_gallery_parts.html import _render_html
 from med_autoscience.display_pack_gallery_parts.manifest import build_manifest
@@ -167,6 +168,48 @@ def _render_cache_summary(rendered: dict[str, RenderedAsset]) -> dict[str, int]:
     }
 
 
+def _prepare_asset_root(*, force_render: bool, package_only: bool) -> dict[str, object]:
+    if force_render:
+        _clean_assets()
+        return {"status": "cleaned_for_force_render", "copied_file_count": 0}
+    paths.ASSET_ROOT.mkdir(parents=True, exist_ok=True)
+    if package_only:
+        return seed_package_only_assets_from_docs_mirror()
+    return {"status": "reuse_output_asset_root", "copied_file_count": 0}
+
+
+def _package_only_required_assets(records: list) -> list[Path]:
+    required: list[Path] = []
+    visible_records = gallery_visual_records(records)
+    for record in visible_records:
+        suffix = ".design" if record.kind == "illustration_shell" and record.renderer_family == "python" else ""
+        required.extend(
+            [
+                paths.ASSET_ROOT / f"{record.template_id}{suffix}.payload.json",
+                paths.ASSET_ROOT / f"{record.template_id}{suffix}.png",
+                paths.ASSET_ROOT / f"{record.template_id}{suffix}.layout.json",
+            ]
+        )
+        if record.renderer_family == "r_ggplot2":
+            required.append(paths.ASSET_ROOT / f"{record.template_id}.pdf")
+        if record.kind == "illustration_shell" and record.renderer_family == "python":
+            required.append(paths.ASSET_ROOT / f"{record.template_id}.design.svg")
+    return required
+
+
+def _assert_package_only_assets_ready(records: list) -> None:
+    missing = [path for path in _package_only_required_assets(records) if not path.is_file()]
+    if missing:
+        preview = ", ".join(str(path) for path in missing[:12])
+        remaining = len(missing) - min(len(missing), 12)
+        suffix = f"; and {remaining} more" if remaining else ""
+        raise RuntimeError(
+            "package-only gallery build requires existing rendered gallery assets. "
+            f"Missing {len(missing)} required files: {preview}{suffix}. "
+            "Run the normal gallery build after OPL dependency prepare, or restore the docs gallery asset mirror."
+        )
+
+
 def _publish_template_catalog() -> None:
     paths.DOCS_TEMPLATE_CATALOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     paths.DOCS_TEMPLATE_CATALOG_PATH.write_text(
@@ -186,10 +229,12 @@ def main(argv: list[str] | None = None) -> int:
         raise RuntimeError("Rscript is required to rebuild the gallery")
 
     records = read_template_records(paths.PACK_ROOT, paths.TEMPLATE_ROOT)
-    if args.force_render:
-        _clean_assets()
-    else:
-        paths.ASSET_ROOT.mkdir(parents=True, exist_ok=True)
+    asset_reuse = _prepare_asset_root(
+        force_render=bool(args.force_render),
+        package_only=bool(args.package_only),
+    )
+    if args.package_only:
+        _assert_package_only_assets_ready(records)
     rendered, baseline_rendered = _render_records(
         records,
         force_render=args.force_render,
@@ -213,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest["lidocaineq_visual_parity_audit_path"] = str(paths.LIDOCAINEQ_PARITY_AUDIT_PATH)
     manifest["lidocaineq_visual_parity_audit_json_path"] = str(paths.LIDOCAINEQ_PARITY_AUDIT_JSON_PATH)
     manifest["lidocaineq_visual_parity_contact_sheet_path"] = str(paths.LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH)
+    manifest["asset_reuse"] = asset_reuse
     parity_audit = write_lidocaineq_visual_parity_audit(manifest)
     manifest["lidocaineq_visual_parity_audit"] = {
         "schema_version": parity_audit["schema_version"],
@@ -264,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:
                 "quality_overall_status": manifest["quality_audit"]["overall_status"],
                 "publication_ready_claim_authorized": manifest["quality_audit"]["publication_ready_claim_authorized"],
                 "render_cache_summary": manifest["render_cache_summary"],
+                "asset_reuse": manifest["asset_reuse"],
                 "force_render": manifest["force_render"],
                 "package_only": manifest["package_only"],
                 "html_path": str(paths.HTML_PATH),

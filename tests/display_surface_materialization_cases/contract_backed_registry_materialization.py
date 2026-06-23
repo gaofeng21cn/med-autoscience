@@ -3,62 +3,7 @@ from .shared import *
 
 def _contract_backed_test_layout_sidecar(figure_id: str) -> dict[str, object]:
     if figure_id == "F3":
-        return {
-            "template_id": "binary_calibration_decision_curve_panel",
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {
-                    "box_id": "calibration_x_axis_title",
-                    "box_type": "subplot_x_axis_title",
-                    "x0": 0.18,
-                    "y0": 0.88,
-                    "x1": 0.35,
-                    "y1": 0.93,
-                },
-                {
-                    "box_id": "calibration_y_axis_title",
-                    "box_type": "subplot_y_axis_title",
-                    "x0": 0.02,
-                    "y0": 0.35,
-                    "x1": 0.06,
-                    "y1": 0.62,
-                },
-            ],
-            "panel_boxes": [
-                {
-                    "box_id": "calibration_panel",
-                    "box_type": "calibration_panel",
-                    "x0": 0.10,
-                    "y0": 0.20,
-                    "x1": 0.45,
-                    "y1": 0.82,
-                },
-                {
-                    "box_id": "decision_panel",
-                    "box_type": "decision_panel",
-                    "x0": 0.55,
-                    "y0": 0.20,
-                    "x1": 0.90,
-                    "y1": 0.82,
-                },
-            ],
-            "guide_boxes": [
-                {
-                    "box_id": "decision_focus_window",
-                    "box_type": "focus_window",
-                    "x0": 0.62,
-                    "y0": 0.32,
-                    "x1": 0.80,
-                    "y1": 0.64,
-                },
-            ],
-            "metrics": {
-                "calibration_axis_window": {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0},
-                "calibration_series": [{"label": "Model", "x": [0.1, 0.8], "y": [0.12, 0.78]}],
-                "decision_series": [{"label": "Model", "x": [0.0, 0.5], "y": [0.10, 0.18]}],
-                "decision_focus_window": {"xmin": 0.05, "xmax": 0.50},
-            },
-        }
+        return _minimal_layout_sidecar_for_template(full_id("calibration_curve_binary"))
     return {
         "template_id": "risk_layering_monotonic_bars",
         "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -329,6 +274,7 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
         output_png_path: Path,
         output_pdf_path: Path,
         layout_sidecar_path: Path,
+        dependency_environment: dict[str, object] | None = None,
     ) -> dict[str, object]:
         template_id = full_template_id
         render_calls.append(template_id)
@@ -370,9 +316,9 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
             "layout_sidecar_path": "paper/figures/generated/F1_local_architecture_overview.layout.json",
         },
         "F3": {
-            "template_id": full_id("binary_calibration_decision_curve_panel"),
-            "input_schema_id": "binary_calibration_decision_curve_panel_inputs_v1",
-            "qc_profile": "publication_binary_calibration_decision_curve",
+            "template_id": full_id("calibration_curve_binary"),
+            "input_schema_id": "binary_prediction_curve_inputs_v1",
+            "qc_profile": "publication_evidence_curve",
             "layout_sidecar_path": "paper/figures/generated/F3_non_gtr_extension_summary.layout.json",
         },
     }

@@ -66,7 +66,7 @@ def required_profile_entries_for_record(record: TemplateRecord) -> list[dict[str
             and _text(entry.get("entrypoint_pattern")) == record.entrypoint
         ):
             generic_entries.append(entry)
-    return _dedupe_profile_entries(scoped_entries or generic_entries)
+    return _dedupe_profile_entries([*scoped_entries, *generic_entries])
 
 
 def required_profile_ids_for_record(record: TemplateRecord) -> list[str]:

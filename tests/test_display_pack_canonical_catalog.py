@@ -32,10 +32,11 @@ from med_autoscience.display_pack_gallery_parts.status_writer import build_galle
 from med_autoscience.display_pack_gallery_parts.html import _render_html
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PACK_ROOT = REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core"
+PACK_ROOT = core_medical_display_pack_root(REPO_ROOT)
 TEMPLATE_ROOT = PACK_ROOT / "templates"
 
 

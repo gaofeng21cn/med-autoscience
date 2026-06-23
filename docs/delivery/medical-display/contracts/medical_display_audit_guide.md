@@ -22,9 +22,9 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 
 ## Source Of Truth
 
-- `display-packs/fenggaolab.org.medical-display-core/templates/*/template.toml`
-- `display-packs/fenggaolab.org.medical-display-core/canonical_template_catalog.json`
-- `display-packs/fenggaolab.org.medical-display-core/renderer_migration_ledger.json`
+- `external/display-packs/medical-display-core/templates/*/template.toml`
+- `external/display-packs/medical-display-core/canonical_template_catalog.json`
+- `external/display-packs/medical-display-core/renderer_migration_ledger.json`
 - `src/med_autoscience/display_registry.py`
 - `src/med_autoscience/display_schema_contract.py`
 - `src/med_autoscience/controllers/display_surface_materialization/`
@@ -32,6 +32,16 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 - generated Gallery manifest under `outputs/display-pack-gallery/medical_display_gallery_assets/gallery_manifest.json`
 
 The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) and `medical_display_gallery.pdf`; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
+
+## Code, Assets, And Dependency Boundary
+
+Medical display maintenance uses three separate surfaces:
+
+- `external/display-packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
+- `outputs/display-pack-gallery/` and `docs/delivery/medical-display/examples/medical_display_gallery_assets/` are generated gallery artifacts. They may be rebuilt from renderers or repackaged from cached assets with `--package-only`.
+- OPL Runtime Environment Substrate owns dependency preparation. MAS consumes dependency run-context refs and fails closed when a required prepared receipt, profile, binary, or managed R library is missing.
+
+`--package-only` is valid for document packaging, title/index changes, and PDF regeneration from existing assets. It is not evidence that renderer source, dependency environment, or real paper payloads were freshly rendered. Fresh rendering evidence requires render cache readback, layout sidecars, dependency run-context readback, and artifact inspection.
 
 ## Renderer Policy
 

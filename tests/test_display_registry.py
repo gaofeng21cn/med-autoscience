@@ -7,11 +7,12 @@ from pathlib import Path
 import pytest
 
 from med_autoscience import display_registry
+from med_autoscience.display_pack_paths import core_medical_display_template_root
 
 
 CORE_PACK_ID = "fenggaolab.org.medical-display-core"
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE_ROOT = REPO_ROOT / "display-packs" / CORE_PACK_ID / "templates"
+TEMPLATE_ROOT = core_medical_display_template_root(REPO_ROOT)
 
 
 def _full_id(short_id: str) -> str:
@@ -117,6 +118,14 @@ def test_local_architecture_overview_figure_alias_resolves_to_risk_layering_temp
     assert spec.template_id == _full_id("risk_layering_monotonic_bars")
     assert spec.input_schema_id == "risk_layering_monotonic_inputs_v1"
     assert display_registry.is_evidence_figure_template("local_architecture_overview_figure")
+
+
+def test_binary_calibration_decision_curve_panel_alias_resolves_to_canonical_calibration_template() -> None:
+    spec = display_registry.get_evidence_figure_spec("binary_calibration_decision_curve_panel")
+
+    assert spec.template_id == _full_id("calibration_curve_binary")
+    assert spec.input_schema_id == "binary_prediction_curve_inputs_v1"
+    assert display_registry.is_evidence_figure_template("binary_calibration_decision_curve_panel")
 
 
 @pytest.mark.parametrize(

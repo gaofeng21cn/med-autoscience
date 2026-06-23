@@ -20,7 +20,7 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "display-packs/fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
 version = "0.3.0"
 """.strip()
         + "\n",
@@ -29,7 +29,7 @@ version = "0.3.0"
 
 
 def _write_renderable_pack(repo_root: Path) -> None:
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     template_root = pack_root / "templates" / "roc_curve_binary"
     template_root.mkdir(parents=True)
     (pack_root / "display_pack.toml").write_text(
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
 
 def _write_subprocess_renderable_template(repo_root: Path) -> None:
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     template_root = pack_root / "templates" / "roc_curve_binary_ggplot2"
     template_root.mkdir(parents=True)
     (template_root / "template.toml").write_text(
@@ -914,7 +914,7 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
     assert figure["figure_kind"] == "illustration_shell"
     assert figure["renderer_family"] == "r_ggplot2"
     assert figure["execution_mode"] == "subprocess"
-    assert figure["required_exports"] == ["png", "svg", "pdf"]
+    assert figure["required_exports"] == ["png", "pdf"]
     assert figure["dependency_environment"] == dependency_environment
     assert render_result["execution_mode"] == "subprocess"
     assert render_result["renderer_family"] == "r_ggplot2"

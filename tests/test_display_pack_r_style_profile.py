@@ -10,8 +10,8 @@ def test_core_r_helper_consumes_publication_style_profile_tokens() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     r_script = """
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R")
 payload <- list(
   title = "Probe",
   x_label = "x",
@@ -118,7 +118,7 @@ def test_lidocaineq_source_renderers_cover_existing_same_type_templates() -> Non
     repo_root = Path(__file__).resolve().parents[1]
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
 payload <- list(
   title = "Probe",
   x_label = "x",

@@ -201,7 +201,7 @@
         "canonical_template_catalog"
       ],
       "consumable_surfaces": [
-        "display-packs/fenggaolab.org.medical-display-core/canonical_template_catalog.json",
+        "external/display-packs/medical-display-core/canonical_template_catalog.json",
         "src/med_autoscience.display_pack_canonical_catalog.load_canonical_template_catalog",
         "src/med_autoscience.display_pack_agent.display_pack_figure_plan",
         "docs/delivery/medical-display/examples/ggplot2_template_reference_assets/gallery_manifest.json"
@@ -228,8 +228,8 @@
       ],
       "consumable_surfaces": [
         "src/med_autoscience.publication_display_contract._DEFAULT_STYLE_PROFILE_PAYLOAD",
-        "display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R",
-        "display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R"
+        "external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R",
+        "external/display-packs/medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R"
       ],
       "gap_status": [
         "visual_audit_still_required_for_real_paper_figures",

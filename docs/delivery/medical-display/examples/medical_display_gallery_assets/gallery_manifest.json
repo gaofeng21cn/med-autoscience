@@ -2,277 +2,202 @@
   "schema_version": 9,
   "status": "rendered",
   "force_render": false,
-  "package_only": false,
+  "package_only": true,
   "render_cache_summary": {
-    "cache_hit": 1,
-    "cache_miss": 36,
-    "package_only": 0,
+    "cache_hit": 0,
+    "cache_miss": 0,
+    "package_only": 37,
     "cache_untracked": 0
   },
   "dependency_environment_readback": {
     "schema_version": 1,
     "tracked_template_count": 36,
     "status_counts": {
-      "prepared": 36
+      "gallery_preview": 36
     },
-    "prepared_template_count": 36,
-    "prepared_template_ids": [
-      "alluvial_transition",
-      "calibration_curve_binary",
-      "celltype_marker_dotplot_panel",
-      "cnv_recurrence_summary_panel",
-      "coefficient_path_panel",
-      "cohort_flow_figure",
-      "composition_stacked_bar",
-      "confusion_matrix_heatmap_binary",
-      "correlation_scatter",
-      "cumulative_incidence_grouped",
-      "decision_curve_binary",
-      "distribution_violin_box",
-      "forest_effect_main",
-      "generalizability_subgroup_composite_panel",
-      "genomic_alteration_consequence_panel",
-      "genomic_alteration_landscape_panel",
-      "heatmap_group_comparison",
-      "kaplan_meier_grouped",
-      "model_complexity_audit_panel",
-      "omics_volcano_panel",
-      "pathway_enrichment_dotplot_panel",
-      "pca_scatter_grouped",
-      "pr_curve_binary",
-      "radar_profile",
-      "risk_layering_monotonic_bars",
-      "roc_curve_binary",
-      "shap_dependence_panel",
-      "shap_summary_beeswarm",
-      "shap_waterfall_local_explanation_panel",
-      "table1_baseline_characteristics",
-      "time_dependent_roc_horizon",
-      "time_to_event_decision_curve",
-      "time_to_event_multihorizon_calibration_panel",
-      "tsne_scatter_grouped",
-      "umap_scatter_grouped",
-      "waterfall_response"
-    ],
-    "run_context_fingerprints": [
-      "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff"
-    ],
+    "prepared_template_count": 0,
+    "prepared_template_ids": [],
+    "run_context_fingerprints": [],
     "templates": {
       "alluvial_transition": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_alluvial_transition_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "calibration_curve_binary": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "celltype_marker_dotplot_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "cnv_recurrence_summary_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "coefficient_path_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "cohort_flow_figure": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_ggconsort_reporting_flow_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "composition_stacked_bar": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "confusion_matrix_heatmap_binary": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "correlation_scatter": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "cumulative_incidence_grouped": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "decision_curve_binary": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "distribution_violin_box": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "forest_effect_main": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "generalizability_subgroup_composite_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "genomic_alteration_consequence_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "genomic_alteration_landscape_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_maftools_oncoplot_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "heatmap_group_comparison": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "kaplan_meier_grouped": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "model_complexity_audit_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "omics_volcano_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "pathway_enrichment_dotplot_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "pca_scatter_grouped": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "pr_curve_binary": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "radar_profile": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_ggradar_profile_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "risk_layering_monotonic_bars": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "roc_curve_binary": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "shap_dependence_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "shap_summary_beeswarm": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "shap_waterfall_local_explanation_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "table1_baseline_characteristics": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "time_dependent_roc_horizon": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "time_to_event_decision_curve": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "time_to_event_multihorizon_calibration_panel": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "tsne_scatter_grouped": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "umap_scatter_grouped": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "waterfall_response": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       }
     }
   },
@@ -376,7 +301,7 @@
   "figure_family_policy": {
     "policy_version": 2,
     "current_metadata_source": "medical_figure_family_catalog",
-    "core_catalog_ref": "contracts/medical-figure-family-catalog/",
+    "core_catalog_ref": "contracts/medical-figure-family-catalog",
     "gallery_template_metadata_source": "display_pack_canonical_template_catalog",
     "core_catalog_dependency": "loaded_via_medical_figure_family_catalog_loader",
     "default_gallery_surface": "canonical_current_r_ggplot2_evidence_templates",
@@ -635,42 +560,42 @@
       "source_refs": [
         {
           "ref_id": "nature_skills_nature_figure",
-          "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+          "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
           "lesson": "Start from a figure contract: core conclusion, evidence chain, panel hierarchy, backend-exclusive render/export, and final visual QA."
         },
         {
           "ref_id": "nature_final_submission_artwork",
-          "url": "https://www.nature.com/nature/for-authors/final-submission",
+          "url": "https:/www.nature.com/nature/for-authors/final-submission",
           "lesson": "Check final-size lettering, line weight, reduced-size readability, vector line art, RGB color, and production-quality export before paper use."
         },
         {
           "ref_id": "ggplot2_theme_and_guides",
-          "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+          "url": "https:/ggplot2.tidyverse.org/reference/theme.html",
           "lesson": "Keep article-level visual grammar in one theme and guide system rather than per-template styling drift."
         },
         {
           "ref_id": "colorspace_hcl_palettes",
-          "url": "https://colorspace.r-forge.r-project.org/",
+          "url": "https:/colorspace.r-forge.r-project.org",
           "lesson": "Select qualitative, sequential, and diverging palettes by data semantics and accessibility, not by plot-local taste."
         },
         {
           "ref_id": "viridis_perceptual_palette",
-          "url": "https://sjmgarnier.github.io/viridis/",
+          "url": "https:/sjmgarnier.github.io/viridis",
           "lesson": "Use perceptually uniform sequential scales for unsigned continuous evidence encodings."
         },
         {
           "ref_id": "complexheatmap_fixed_color_mapping",
-          "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+          "url": "https:/jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
           "lesson": "Use fixed value-to-color mappings for comparable matrix heatmaps instead of per-figure color drift."
         },
         {
           "ref_id": "patchwork_cowplot_multipanel",
-          "url": "https://patchwork.data-imaginist.com/",
+          "url": "https:/patchwork.data-imaginist.com",
           "lesson": "Treat multipanel figures as claim-led storyboards with shared legends and explicit hierarchy."
         },
         {
           "ref_id": "survminer_km_practice",
-          "url": "https://rpkgs.datanovia.com/survminer/",
+          "url": "https:/rpkgs.datanovia.com/survminer",
           "lesson": "Survival figures need risk table, censor marks, event definition, and time scale reviewed together."
         }
       ],
@@ -1766,9 +1691,9 @@
             "panel_role": "key_quantitative_validation",
             "panel_kind": "supporting",
             "evidence_primitive_family_id": "graphical_abstract",
-            "template_id": "",
-            "canonical_family_title": "",
-            "canonical_family_category": "",
+            "template_id": ".",
+            "canonical_family_title": ".",
+            "canonical_family_category": ".",
             "uses_gallery_proxy": false,
             "visual_status": "storyboard_placeholder"
           },
@@ -1776,9 +1701,9 @@
             "panel_role": "cohort_or_source_context",
             "panel_kind": "supporting",
             "evidence_primitive_family_id": "consort_trial_flow",
-            "template_id": "",
-            "canonical_family_title": "",
-            "canonical_family_category": "",
+            "template_id": ".",
+            "canonical_family_title": ".",
+            "canonical_family_category": ".",
             "uses_gallery_proxy": false,
             "visual_status": "storyboard_placeholder"
           },
@@ -1786,9 +1711,9 @@
             "panel_role": "effect_or_performance_support",
             "panel_kind": "supporting",
             "evidence_primitive_family_id": "study_timeline",
-            "template_id": "",
-            "canonical_family_title": "",
-            "canonical_family_category": "",
+            "template_id": ".",
+            "canonical_family_title": ".",
+            "canonical_family_category": ".",
             "uses_gallery_proxy": false,
             "visual_status": "storyboard_placeholder"
           }
@@ -3020,42 +2945,42 @@
     "source_refs": [
       {
         "ref_id": "nature_skills_nature_figure",
-        "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+        "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
         "lesson": "Start from a figure contract: core conclusion, evidence chain, panel hierarchy, backend-exclusive render/export, and final visual QA."
       },
       {
         "ref_id": "nature_final_submission_artwork",
-        "url": "https://www.nature.com/nature/for-authors/final-submission",
+        "url": "https:/www.nature.com/nature/for-authors/final-submission",
         "lesson": "Check final-size lettering, line weight, reduced-size readability, vector line art, RGB color, and production-quality export before paper use."
       },
       {
         "ref_id": "ggplot2_theme_and_guides",
-        "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+        "url": "https:/ggplot2.tidyverse.org/reference/theme.html",
         "lesson": "Keep article-level visual grammar in one theme and guide system rather than per-template styling drift."
       },
       {
         "ref_id": "colorspace_hcl_palettes",
-        "url": "https://colorspace.r-forge.r-project.org/",
+        "url": "https:/colorspace.r-forge.r-project.org",
         "lesson": "Select qualitative, sequential, and diverging palettes by data semantics and accessibility, not by plot-local taste."
       },
       {
         "ref_id": "viridis_perceptual_palette",
-        "url": "https://sjmgarnier.github.io/viridis/",
+        "url": "https:/sjmgarnier.github.io/viridis",
         "lesson": "Use perceptually uniform sequential scales for unsigned continuous evidence encodings."
       },
       {
         "ref_id": "complexheatmap_fixed_color_mapping",
-        "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+        "url": "https:/jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
         "lesson": "Use fixed value-to-color mappings for comparable matrix heatmaps instead of per-figure color drift."
       },
       {
         "ref_id": "patchwork_cowplot_multipanel",
-        "url": "https://patchwork.data-imaginist.com/",
+        "url": "https:/patchwork.data-imaginist.com",
         "lesson": "Treat multipanel figures as claim-led storyboards with shared legends and explicit hierarchy."
       },
       {
         "ref_id": "survminer_km_practice",
-        "url": "https://rpkgs.datanovia.com/survminer/",
+        "url": "https:/rpkgs.datanovia.com/survminer",
         "lesson": "Survival figures need risk table, censor marks, event definition, and time scale reviewed together."
       }
     ],
@@ -3490,42 +3415,42 @@
         "source_refs": [
           {
             "ref_id": "nature_skills_nature_figure",
-            "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+            "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
             "lesson": "Start from a figure contract: core conclusion, evidence chain, panel hierarchy, backend-exclusive render/export, and final visual QA."
           },
           {
             "ref_id": "nature_final_submission_artwork",
-            "url": "https://www.nature.com/nature/for-authors/final-submission",
+            "url": "https:/www.nature.com/nature/for-authors/final-submission",
             "lesson": "Check final-size lettering, line weight, reduced-size readability, vector line art, RGB color, and production-quality export before paper use."
           },
           {
             "ref_id": "ggplot2_theme_and_guides",
-            "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+            "url": "https:/ggplot2.tidyverse.org/reference/theme.html",
             "lesson": "Keep article-level visual grammar in one theme and guide system rather than per-template styling drift."
           },
           {
             "ref_id": "colorspace_hcl_palettes",
-            "url": "https://colorspace.r-forge.r-project.org/",
+            "url": "https:/colorspace.r-forge.r-project.org",
             "lesson": "Select qualitative, sequential, and diverging palettes by data semantics and accessibility, not by plot-local taste."
           },
           {
             "ref_id": "viridis_perceptual_palette",
-            "url": "https://sjmgarnier.github.io/viridis/",
+            "url": "https:/sjmgarnier.github.io/viridis",
             "lesson": "Use perceptually uniform sequential scales for unsigned continuous evidence encodings."
           },
           {
             "ref_id": "complexheatmap_fixed_color_mapping",
-            "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+            "url": "https:/jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
             "lesson": "Use fixed value-to-color mappings for comparable matrix heatmaps instead of per-figure color drift."
           },
           {
             "ref_id": "patchwork_cowplot_multipanel",
-            "url": "https://patchwork.data-imaginist.com/",
+            "url": "https:/patchwork.data-imaginist.com",
             "lesson": "Treat multipanel figures as claim-led storyboards with shared legends and explicit hierarchy."
           },
           {
             "ref_id": "survminer_km_practice",
-            "url": "https://rpkgs.datanovia.com/survminer/",
+            "url": "https:/rpkgs.datanovia.com/survminer",
             "lesson": "Survival figures need risk table, censor marks, event definition, and time scale reviewed together."
           }
         ],
@@ -4621,9 +4546,9 @@
               "panel_role": "key_quantitative_validation",
               "panel_kind": "supporting",
               "evidence_primitive_family_id": "graphical_abstract",
-              "template_id": "",
-              "canonical_family_title": "",
-              "canonical_family_category": "",
+              "template_id": ".",
+              "canonical_family_title": ".",
+              "canonical_family_category": ".",
               "uses_gallery_proxy": false,
               "visual_status": "storyboard_placeholder"
             },
@@ -4631,9 +4556,9 @@
               "panel_role": "cohort_or_source_context",
               "panel_kind": "supporting",
               "evidence_primitive_family_id": "consort_trial_flow",
-              "template_id": "",
-              "canonical_family_title": "",
-              "canonical_family_category": "",
+              "template_id": ".",
+              "canonical_family_title": ".",
+              "canonical_family_category": ".",
               "uses_gallery_proxy": false,
               "visual_status": "storyboard_placeholder"
             },
@@ -4641,9 +4566,9 @@
               "panel_role": "effect_or_performance_support",
               "panel_kind": "supporting",
               "evidence_primitive_family_id": "study_timeline",
-              "template_id": "",
-              "canonical_family_title": "",
-              "canonical_family_category": "",
+              "template_id": ".",
+              "canonical_family_title": ".",
+              "canonical_family_category": ".",
               "uses_gallery_proxy": false,
               "visual_status": "storyboard_placeholder"
             }
@@ -4958,42 +4883,42 @@
       "source_refs": [
         {
           "ref_id": "nature_skills_nature_figure",
-          "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+          "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
           "lesson": "Start from a figure contract: core conclusion, evidence chain, panel hierarchy, backend-exclusive render/export, and final visual QA."
         },
         {
           "ref_id": "nature_final_submission_artwork",
-          "url": "https://www.nature.com/nature/for-authors/final-submission",
+          "url": "https:/www.nature.com/nature/for-authors/final-submission",
           "lesson": "Check final-size lettering, line weight, reduced-size readability, vector line art, RGB color, and production-quality export before paper use."
         },
         {
           "ref_id": "ggplot2_theme_and_guides",
-          "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+          "url": "https:/ggplot2.tidyverse.org/reference/theme.html",
           "lesson": "Keep article-level visual grammar in one theme and guide system rather than per-template styling drift."
         },
         {
           "ref_id": "colorspace_hcl_palettes",
-          "url": "https://colorspace.r-forge.r-project.org/",
+          "url": "https:/colorspace.r-forge.r-project.org",
           "lesson": "Select qualitative, sequential, and diverging palettes by data semantics and accessibility, not by plot-local taste."
         },
         {
           "ref_id": "viridis_perceptual_palette",
-          "url": "https://sjmgarnier.github.io/viridis/",
+          "url": "https:/sjmgarnier.github.io/viridis",
           "lesson": "Use perceptually uniform sequential scales for unsigned continuous evidence encodings."
         },
         {
           "ref_id": "complexheatmap_fixed_color_mapping",
-          "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+          "url": "https:/jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
           "lesson": "Use fixed value-to-color mappings for comparable matrix heatmaps instead of per-figure color drift."
         },
         {
           "ref_id": "patchwork_cowplot_multipanel",
-          "url": "https://patchwork.data-imaginist.com/",
+          "url": "https:/patchwork.data-imaginist.com",
           "lesson": "Treat multipanel figures as claim-led storyboards with shared legends and explicit hierarchy."
         },
         {
           "ref_id": "survminer_km_practice",
-          "url": "https://rpkgs.datanovia.com/survminer/",
+          "url": "https:/rpkgs.datanovia.com/survminer",
           "lesson": "Survival figures need risk table, censor marks, event definition, and time scale reviewed together."
         }
       ],
@@ -5096,37 +5021,37 @@
     "external_quality_references": [
       {
         "ref_id": "nature_final_submission_artwork",
-        "url": "https://www.nature.com/nature/for-authors/final-submission",
+        "url": "https:/www.nature.com/nature/for-authors/final-submission",
         "lesson": "Use consistent figure lettering, readable reduced-size labels, vector line art when possible, RGB color, and production-quality figure files."
       },
       {
         "ref_id": "ggplot2_theme_system",
-        "url": "https://ggplot2.tidyverse.org/reference/theme.html",
+        "url": "https:/ggplot2.tidyverse.org/reference/theme.html",
         "lesson": "Use a single theme system for titles, labels, fonts, backgrounds, gridlines, and legends so all evidence figures share one article-level visual grammar."
       },
       {
         "ref_id": "ggsci_npg_palette",
-        "url": "https://nanx.me/ggsci/reference/scale_npg.html",
+        "url": "https:/nanx.me/ggsci/reference/scale_npg.html",
         "lesson": "Nature Publishing Group inspired discrete palettes are mature ggplot2-compatible references for publication-style categorical roles."
       },
       {
         "ref_id": "colorspace_hcl_palettes",
-        "url": "https://colorspace.r-forge.r-project.org/",
+        "url": "https:/colorspace.r-forge.r-project.org",
         "lesson": "HCL-based qualitative, sequential and diverging palettes are a stable basis for article-level semantic color roles."
       },
       {
         "ref_id": "viridis_perceptual_palette",
-        "url": "https://sjmgarnier.github.io/viridis/",
+        "url": "https:/sjmgarnier.github.io/viridis",
         "lesson": "Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings."
       },
       {
         "ref_id": "complexheatmap_color_mapping",
-        "url": "https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+        "url": "https:/jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
         "lesson": "Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability."
       },
       {
         "ref_id": "nature_skills_figure_contract",
-        "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+        "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
         "lesson": "Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract."
       }
     ],
@@ -16522,13 +16447,12 @@
         }
       ],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_alluvial_transition_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1696,
         1120
@@ -16542,8 +16466,8 @@
       "payload_ref": "medical_display_gallery_assets/alluvial_transition.payload.json",
       "layout_ref": "medical_display_gallery_assets/alluvial_transition.layout.json",
       "pdf_ref": "medical_display_gallery_assets/alluvial_transition.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:81585254cb8899135160a6e9e03d673bdff8c114efe590d97eb130e7a0ae91cb"
     },
     {
@@ -16663,13 +16587,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -16683,8 +16606,8 @@
       "payload_ref": "medical_display_gallery_assets/calibration_curve_binary.payload.json",
       "layout_ref": "medical_display_gallery_assets/calibration_curve_binary.layout.json",
       "pdf_ref": "medical_display_gallery_assets/calibration_curve_binary.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:36c0898cbdc69e6837603d725ecdb569ac527770f7ab89ebb154f388397b2bd8"
     },
     {
@@ -16802,13 +16725,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1728,
         1184
@@ -16822,8 +16744,8 @@
       "payload_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:7ed6a3b950f098777708bfa12e9483d8dba9dff925638bac4fce9fe3b253d48c"
     },
     {
@@ -16942,13 +16864,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1696,
         1088
@@ -16962,8 +16883,8 @@
       "payload_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/cnv_recurrence_summary_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:0791fd51b613d26c091ec8ba57fdba422c50428a128671c95c685aeaf05074d1"
     },
     {
@@ -17079,13 +17000,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -17099,8 +17019,8 @@
       "payload_ref": "medical_display_gallery_assets/coefficient_path_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/coefficient_path_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/coefficient_path_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:4f8aca13f1863fb4530fa28041b47a9c3556289910ac3ce2a63a2b872ff2e1cc"
     },
     {
@@ -17219,13 +17139,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1664,
         1088
@@ -17239,8 +17158,8 @@
       "payload_ref": "medical_display_gallery_assets/composition_stacked_bar.payload.json",
       "layout_ref": "medical_display_gallery_assets/composition_stacked_bar.layout.json",
       "pdf_ref": "medical_display_gallery_assets/composition_stacked_bar.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:6a8062c88ccf2657390133371600c2793c8d65b351f82656661f129f7730e252"
     },
     {
@@ -17357,13 +17276,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -17377,8 +17295,8 @@
       "payload_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.payload.json",
       "layout_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.layout.json",
       "pdf_ref": "medical_display_gallery_assets/confusion_matrix_heatmap_binary.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:6c6180f11719efabf9e24d6e21327350f2be377abc1a8d3fffe7727844c65450"
     },
     {
@@ -17498,13 +17416,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -17518,8 +17435,8 @@
       "payload_ref": "medical_display_gallery_assets/correlation_scatter.payload.json",
       "layout_ref": "medical_display_gallery_assets/correlation_scatter.layout.json",
       "pdf_ref": "medical_display_gallery_assets/correlation_scatter.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:4f7c2736bc7102356040f48dac5e8fdf5d21b19ce0fc64784e6fa079508c90bc"
     },
     {
@@ -17639,13 +17556,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -17659,8 +17575,8 @@
       "payload_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.payload.json",
       "layout_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.layout.json",
       "pdf_ref": "medical_display_gallery_assets/cumulative_incidence_grouped.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:38916572a82cbee3d29ea4ade6fde051933559f5d895355d5c4ae1a34bb7bd12"
     },
     {
@@ -17779,13 +17695,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -17799,8 +17714,8 @@
       "payload_ref": "medical_display_gallery_assets/decision_curve_binary.payload.json",
       "layout_ref": "medical_display_gallery_assets/decision_curve_binary.layout.json",
       "pdf_ref": "medical_display_gallery_assets/decision_curve_binary.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:319b2f9ae527ccb409eae0b4fd4cc0bc34894d30f32d8d762bc8d9d956475907"
     },
     {
@@ -17920,13 +17835,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -17940,8 +17854,8 @@
       "payload_ref": "medical_display_gallery_assets/distribution_violin_box.payload.json",
       "layout_ref": "medical_display_gallery_assets/distribution_violin_box.layout.json",
       "pdf_ref": "medical_display_gallery_assets/distribution_violin_box.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:86ef0450ed48db8edf58a0c799b17f235d6e4652fcc56af2c2335f0f675ba7cc"
     },
     {
@@ -18075,13 +17989,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -18095,8 +18008,8 @@
       "payload_ref": "medical_display_gallery_assets/forest_effect_main.payload.json",
       "layout_ref": "medical_display_gallery_assets/forest_effect_main.layout.json",
       "pdf_ref": "medical_display_gallery_assets/forest_effect_main.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:ad473c0d661abc3e9cad5546030619d0f57bd072d4ed76d63c9f1abc84cd5ea1"
     },
     {
@@ -18216,13 +18129,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -18236,8 +18148,8 @@
       "payload_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/generalizability_subgroup_composite_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:625af7ac3d8c252d1e4e69c936a26316849ba178b70342d6ab97efff43133ede"
     },
     {
@@ -18372,13 +18284,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1696,
         1120
@@ -18392,8 +18303,8 @@
       "payload_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/genomic_alteration_consequence_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:1eecc2fd4833d1c2f14583781b28681b3153fe41ed99c1f806d61b5d79ebdb00"
     },
     {
@@ -18583,13 +18494,12 @@
         }
       ],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_maftools_oncoplot_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         2240,
         1536
@@ -18603,8 +18513,8 @@
       "payload_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/genomic_alteration_landscape_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:0cd3a426d700c51c89c089dba34b7f4dc741e244029e51d5dc0b8e7b46d86841"
     },
     {
@@ -18741,13 +18651,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1664,
         1184
@@ -18761,8 +18670,8 @@
       "payload_ref": "medical_display_gallery_assets/heatmap_group_comparison.payload.json",
       "layout_ref": "medical_display_gallery_assets/heatmap_group_comparison.layout.json",
       "pdf_ref": "medical_display_gallery_assets/heatmap_group_comparison.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:80f19f71b43970ef1cbf738e23dca6f957a2ac80c07d442d2f34ac23c9078d15"
     },
     {
@@ -18882,13 +18791,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -18902,8 +18810,8 @@
       "payload_ref": "medical_display_gallery_assets/kaplan_meier_grouped.payload.json",
       "layout_ref": "medical_display_gallery_assets/kaplan_meier_grouped.layout.json",
       "pdf_ref": "medical_display_gallery_assets/kaplan_meier_grouped.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:9fc896de5e12f41ec551cf325e841b3b26bf29dbff6f8d34546f4f53d44bbaba"
     },
     {
@@ -19022,13 +18930,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -19042,8 +18949,8 @@
       "payload_ref": "medical_display_gallery_assets/model_complexity_audit_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/model_complexity_audit_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/model_complexity_audit_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:de240efd1631933ca7a81698c32af18206e8776f4264bd602f85fe5fe1e29e0e"
     },
     {
@@ -19162,13 +19069,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -19182,8 +19088,8 @@
       "payload_ref": "medical_display_gallery_assets/omics_volcano_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/omics_volcano_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/omics_volcano_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:223482366d5604ba3d06848679fee4ad44700b059d0873b49766b68e058e0609"
     },
     {
@@ -19302,13 +19208,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1696,
         1184
@@ -19322,8 +19227,8 @@
       "payload_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/pathway_enrichment_dotplot_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:e6522b9961691a03b479b790c43dbfc1f42482e6a9fe694343035aca80505b20"
     },
     {
@@ -19441,13 +19346,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1600,
         1600
@@ -19461,8 +19365,8 @@
       "payload_ref": "medical_display_gallery_assets/pca_scatter_grouped.payload.json",
       "layout_ref": "medical_display_gallery_assets/pca_scatter_grouped.layout.json",
       "pdf_ref": "medical_display_gallery_assets/pca_scatter_grouped.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:7f7648d99e771f0231cc4a6d602da35bbcfea4b361065dda6462ed8d223fb559"
     },
     {
@@ -19585,13 +19489,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -19605,8 +19508,8 @@
       "payload_ref": "medical_display_gallery_assets/pr_curve_binary.payload.json",
       "layout_ref": "medical_display_gallery_assets/pr_curve_binary.layout.json",
       "pdf_ref": "medical_display_gallery_assets/pr_curve_binary.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:f3ad2735f22a75987aa8b6ea3dd6a42aa92a9c4f446cc2e57395c05393eedee2"
     },
     {
@@ -19791,13 +19694,12 @@
         }
       ],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_ggradar_profile_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -19811,8 +19713,8 @@
       "payload_ref": "medical_display_gallery_assets/radar_profile.payload.json",
       "layout_ref": "medical_display_gallery_assets/radar_profile.layout.json",
       "pdf_ref": "medical_display_gallery_assets/radar_profile.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:30b0d97c13af9c2e8f0235078111c9634530cff0a521a12d5b321fab21ee5b68"
     },
     {
@@ -19932,13 +19834,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1664,
         1088
@@ -19952,8 +19853,8 @@
       "payload_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.payload.json",
       "layout_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.layout.json",
       "pdf_ref": "medical_display_gallery_assets/risk_layering_monotonic_bars.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:7fe19d6356600c311acd4ca05d118b28d2af515a5f50d07e53b9a1ed947587e5"
     },
     {
@@ -20076,13 +19977,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -20096,8 +19996,8 @@
       "payload_ref": "medical_display_gallery_assets/roc_curve_binary.payload.json",
       "layout_ref": "medical_display_gallery_assets/roc_curve_binary.layout.json",
       "pdf_ref": "medical_display_gallery_assets/roc_curve_binary.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:d0b48356d5a06914cb4ebe7866b5c8d86ea4f638a6e53403e0ff6e243205c1e7"
     },
     {
@@ -20215,13 +20115,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -20235,8 +20134,8 @@
       "payload_ref": "medical_display_gallery_assets/shap_dependence_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/shap_dependence_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/shap_dependence_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:f2b611572f555e27a0d42563bdf92fbcce3ff9788623240b79beff764dc26bb5"
     },
     {
@@ -20358,13 +20257,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -20378,8 +20276,8 @@
       "payload_ref": "medical_display_gallery_assets/shap_summary_beeswarm.payload.json",
       "layout_ref": "medical_display_gallery_assets/shap_summary_beeswarm.layout.json",
       "pdf_ref": "medical_display_gallery_assets/shap_summary_beeswarm.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:ba820433739b38f888133555c18376f6e0b16ec512fa903435a8792435694cba"
     },
     {
@@ -20499,13 +20397,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1696,
         1120
@@ -20519,8 +20416,8 @@
       "payload_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/shap_waterfall_local_explanation_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:da62d2fbde5d53a524c48c5f8ffe73791691c9eef6b61f834233af25956f45f2"
     },
     {
@@ -20647,13 +20544,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -20667,8 +20563,8 @@
       "payload_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.payload.json",
       "layout_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.layout.json",
       "pdf_ref": "medical_display_gallery_assets/time_dependent_roc_horizon.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:c494cc964b5f94e1d512b818bd6a72b2a3e71628060cc73762705d03ef844f4e"
     },
     {
@@ -20787,13 +20683,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -20807,8 +20702,8 @@
       "payload_ref": "medical_display_gallery_assets/time_to_event_decision_curve.payload.json",
       "layout_ref": "medical_display_gallery_assets/time_to_event_decision_curve.layout.json",
       "pdf_ref": "medical_display_gallery_assets/time_to_event_decision_curve.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:182c8c224772b870296890f1ce0def5ca61d916620f6e4de5fc4b39488848204"
     },
     {
@@ -20926,13 +20821,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1536,
         1536
@@ -20946,8 +20840,8 @@
       "payload_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.payload.json",
       "layout_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.layout.json",
       "pdf_ref": "medical_display_gallery_assets/time_to_event_multihorizon_calibration_panel.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:3e174078edd04e7939e736812491ec403c13c5366a1cfbf4e40e5c4c9de1ea1a"
     },
     {
@@ -21065,13 +20959,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1600,
         1600
@@ -21085,8 +20978,8 @@
       "payload_ref": "medical_display_gallery_assets/tsne_scatter_grouped.payload.json",
       "layout_ref": "medical_display_gallery_assets/tsne_scatter_grouped.layout.json",
       "pdf_ref": "medical_display_gallery_assets/tsne_scatter_grouped.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:fc2f474fe4f85b6913df4f7ee41992402e50638549b71b05b7bacd72e9fc185c"
     },
     {
@@ -21207,13 +21100,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1600,
         1600
@@ -21227,8 +21119,8 @@
       "payload_ref": "medical_display_gallery_assets/umap_scatter_grouped.payload.json",
       "layout_ref": "medical_display_gallery_assets/umap_scatter_grouped.layout.json",
       "pdf_ref": "medical_display_gallery_assets/umap_scatter_grouped.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:1f1a3e95e30169f44bc893ed524288f5aae0433f251a0f8d2beb32f478d89c75"
     },
     {
@@ -21347,13 +21239,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1696,
         1088
@@ -21367,8 +21258,8 @@
       "payload_ref": "medical_display_gallery_assets/waterfall_response.payload.json",
       "layout_ref": "medical_display_gallery_assets/waterfall_response.layout.json",
       "pdf_ref": "medical_display_gallery_assets/waterfall_response.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:50fb35dda6f6204a41b01bee70753b2fb2b47639b666203243813ef90792bcbc"
     }
   ],
@@ -21611,13 +21502,12 @@
         }
       ],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_ggconsort_reporting_flow_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1600,
         1600
@@ -21631,8 +21521,8 @@
       "payload_ref": "medical_display_gallery_assets/cohort_flow_figure.payload.json",
       "layout_ref": "medical_display_gallery_assets/cohort_flow_figure.layout.json",
       "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:f4a1d9b72a4e35d257bdc45055496a7b9ac71795bec5dd4d5462d0e4d8f6af68"
     }
   ],
@@ -21763,7 +21653,7 @@
       "dependency_requirements": [],
       "dependency_environment": {},
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1800,
         1800
@@ -21776,9 +21666,9 @@
       "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "payload_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.payload.json",
       "layout_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.layout.json",
-      "pdf_ref": "",
+      "pdf_ref": ".",
       "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
-      "render_cache_status": "hit",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:5de00aadb51aaee854c3757b4c35103ece97877f1abf001ab3844199b29e3c7e"
     }
   ],
@@ -21904,13 +21794,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1824,
         1024
@@ -21924,8 +21813,8 @@
       "payload_ref": "medical_display_gallery_assets/table1_baseline_characteristics.payload.json",
       "layout_ref": "medical_display_gallery_assets/table1_baseline_characteristics.layout.json",
       "pdf_ref": "medical_display_gallery_assets/table1_baseline_characteristics.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:798fee7c32a5f690c6561d8a5c57e2a6be2f54011388559e81ebf984b32605ad"
     }
   ],
@@ -22168,13 +22057,12 @@
         }
       ],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_ggconsort_reporting_flow_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1600,
         1600
@@ -22188,8 +22076,8 @@
       "payload_ref": "medical_display_gallery_assets/cohort_flow_figure.payload.json",
       "layout_ref": "medical_display_gallery_assets/cohort_flow_figure.layout.json",
       "pdf_ref": "medical_display_gallery_assets/cohort_flow_figure.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:f4a1d9b72a4e35d257bdc45055496a7b9ac71795bec5dd4d5462d0e4d8f6af68"
     },
     {
@@ -22318,7 +22206,7 @@
       "dependency_requirements": [],
       "dependency_environment": {},
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1800,
         1800
@@ -22331,9 +22219,9 @@
       "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "payload_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.payload.json",
       "layout_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.layout.json",
-      "pdf_ref": "",
+      "pdf_ref": ".",
       "svg_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.svg",
-      "render_cache_status": "hit",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:5de00aadb51aaee854c3757b4c35103ece97877f1abf001ab3844199b29e3c7e"
     },
     {
@@ -22457,13 +22345,12 @@
       },
       "dependency_requirements": [],
       "dependency_environment": {
-        "status": "prepared",
-        "run_context_ref": "/tmp/opl-mas-display-gallery-parity-v4/paper/build/dependency_run_context.json",
-        "run_context_fingerprint": "sha256:c044d5f9098477bec55566af37e05f4d52cee1399a83f9d617398a61c98f7cff",
-        "required_profile_ids": "r_ggplot2_evidence_subprocess_v1"
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "render_status": "rendered",
-      "render_reason": "",
+      "render_reason": ".",
       "image_size_px": [
         1824,
         1024
@@ -22477,8 +22364,8 @@
       "payload_ref": "medical_display_gallery_assets/table1_baseline_characteristics.payload.json",
       "layout_ref": "medical_display_gallery_assets/table1_baseline_characteristics.layout.json",
       "pdf_ref": "medical_display_gallery_assets/table1_baseline_characteristics.pdf",
-      "svg_ref": "",
-      "render_cache_status": "miss",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
       "render_cache_key": "sha256:798fee7c32a5f690c6561d8a5c57e2a6be2f54011388559e81ebf984b32605ad"
     }
   ],
@@ -23534,10 +23421,24 @@
   "lidocaineq_visual_parity_audit_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md",
   "lidocaineq_visual_parity_audit_json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json",
   "lidocaineq_visual_parity_contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
+  "asset_reuse": {
+    "status": "seeded_from_docs_mirror",
+    "source_asset_root": "docs/delivery/medical-display/examples/medical_display_gallery_assets",
+    "target_asset_root": "outputs/display-pack-gallery/medical_display_gallery_assets",
+    "copied_file_count": 186,
+    "missing_source_count": 0,
+    "skipped_existing_count": 0,
+    "extension_counts": {
+      ".json": 112,
+      ".pdf": 36,
+      ".png": 37,
+      ".svg": 1
+    }
+  },
   "lidocaineq_visual_parity_audit": {
     "schema_version": 1,
     "source_project": "LidocaineQ/Figure_Template",
-    "reference_root": "/private/tmp/lidocaineq_figure_template",
+    "reference_root": "/tmp/lidocaineq_figure_template",
     "reference_template_count": 33,
     "status_counts": {
       "mas_computed_workflow_intentionally_extended": 1,

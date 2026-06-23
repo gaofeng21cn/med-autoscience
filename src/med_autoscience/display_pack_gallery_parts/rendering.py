@@ -352,7 +352,7 @@ def _render_r_gallery_preview(
     argv, env = _prepare_r_subprocess(
         [
             "Rscript",
-            str(paths.REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core" / "rlib" / "medicaldisplaycore" / "evidence_renderer.R"),
+            str(paths.PACK_ROOT / "rlib" / "medicaldisplaycore" / "evidence_renderer.R"),
             "--request",
             str(request_path),
         ]

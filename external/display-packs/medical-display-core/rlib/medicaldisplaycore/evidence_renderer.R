@@ -1,0 +1,1406 @@
+suppressPackageStartupMessages({
+  library(jsonlite)
+  library(ggplot2)
+  library(ggsci)
+  library(grid)
+})
+
+`%||%` <- function(left, right) {
+  if (is.null(left)) right else left
+}
+
+source_renderer_helper <- function(file_name) {
+  frame_files <- vapply(sys.frames(), function(frame) {
+    value <- frame$ofile %||% ""
+    trimws(as.character(value))
+  }, character(1))
+  for (source_path in rev(frame_files[nzchar(frame_files)])) {
+    helper_path <- file.path(dirname(normalizePath(source_path, mustWork = FALSE)), file_name)
+    if (file.exists(helper_path)) {
+      source(helper_path)
+      return(invisible(TRUE))
+    }
+  }
+  fallback_paths <- c(
+    file.path("..", "..", "rlib", "medicaldisplaycore", file_name),
+    file_name
+  )
+  for (helper_path in fallback_paths) {
+    if (file.exists(helper_path)) {
+      source(helper_path)
+      return(invisible(TRUE))
+    }
+  }
+  stop(sprintf("renderer helper `%s` was not found", file_name))
+}
+
+source_renderer_helper("embedding_workflow.R")
+source_renderer_helper("lidocaineq_publication_renderers.R")
+source_renderer_helper("lidocaineq_curve_renderers.R")
+source_renderer_helper("lidocaineq_survival_effect_heatmap_renderers.R")
+source_renderer_helper("lidocaineq_ml_omics_renderers.R")
+
+normalize_template_id <- function(value) {
+  template_id <- trimws(as.character(value %||% ""))
+  if (!nzchar(template_id)) {
+    stop("template_id must be non-empty")
+  }
+  parts <- strsplit(template_id, "::", fixed = TRUE)[[1]]
+  parts[[length(parts)]]
+}
+
+read_render_request <- function(request_path) {
+  request_json <- if (file.exists(request_path)) {
+    paste(readLines(request_path, warn = FALSE), collapse = "\n")
+  } else {
+    request_path
+  }
+  request <- fromJSON(request_json, simplifyVector = FALSE)
+  if (is.null(request$display_payload)) {
+    stop("render request must contain display_payload")
+  }
+  request
+}
+
+payload_from_request <- function(request) {
+  display_payload <- request$display_payload
+  data_payload <- display_payload$data_payload
+  if (!is.null(data_payload) && is.list(data_payload)) {
+    merged_payload <- display_payload
+    for (field_name in names(data_payload)) {
+      merged_payload[[field_name]] <- data_payload[[field_name]]
+    }
+    return(merged_payload)
+  }
+  display_payload
+}
+
+as_numeric_vector <- function(values, field_name) {
+  if (!is.list(values) || length(values) < 2) {
+    stop(sprintf("%s must contain at least two numeric values", field_name))
+  }
+  numeric_values <- vapply(values, function(item) {
+    if (!is.numeric(item)) {
+      stop(sprintf("%s must contain only numeric values", field_name))
+    }
+    as.numeric(item)
+  }, numeric(1))
+  numeric_values
+}
+
+render_context_from_payload <- function(display_payload) {
+  display_payload$render_context %||% list()
+}
+
+style_palette <- function(display_payload) {
+  render_context_from_payload(display_payload)$palette %||% list()
+}
+
+style_semantic_roles <- function(display_payload) {
+  render_context_from_payload(display_payload)$semantic_roles %||% list()
+}
+
+style_roles <- function(display_payload) {
+  render_context_from_payload(display_payload)$style_roles %||% list()
+}
+
+style_typography <- function(display_payload) {
+  render_context_from_payload(display_payload)$typography %||% list()
+}
+
+style_stroke <- function(display_payload) {
+  render_context_from_payload(display_payload)$stroke %||% list()
+}
+
+style_grid <- function(display_payload) {
+  render_context_from_payload(display_payload)$grid %||% list()
+}
+
+style_numeric <- function(mapping, key, fallback) {
+  value <- mapping[[key]]
+  if (is.null(value)) {
+    return(as.numeric(fallback))
+  }
+  numeric_value <- suppressWarnings(as.numeric(value))
+  if (!is.finite(numeric_value)) as.numeric(fallback) else numeric_value
+}
+
+style_bool <- function(mapping, key, fallback) {
+  value <- mapping[[key]]
+  if (is.null(value)) {
+    return(isTRUE(fallback))
+  }
+  if (is.logical(value)) {
+    return(isTRUE(value))
+  }
+  normalized <- tolower(trimws(as.character(value)))
+  if (normalized %in% c("true", "1", "yes", "on")) {
+    return(TRUE)
+  }
+  if (normalized %in% c("false", "0", "no", "off")) {
+    return(FALSE)
+  }
+  isTRUE(fallback)
+}
+
+style_color <- function(display_payload, role_name = NULL, palette_key = NULL, fallback = "#13293D") {
+  roles <- style_roles(display_payload)
+  semantic_roles <- style_semantic_roles(display_payload)
+  palette <- style_palette(display_payload)
+  candidates <- list()
+  if (!is.null(role_name)) {
+    candidates <- c(candidates, list(roles[[role_name]], semantic_roles[[role_name]]))
+  }
+  if (!is.null(palette_key)) {
+    candidates <- c(candidates, list(palette_key))
+  }
+  for (candidate in candidates) {
+    value <- trimws(as.character(candidate %||% ""))
+    if (!nzchar(value)) {
+      next
+    }
+    if (startsWith(value, "#")) {
+      return(value)
+    }
+    palette_value <- trimws(as.character(palette[[value]] %||% ""))
+    if (nzchar(palette_value)) {
+      return(palette_value)
+    }
+  }
+  fallback
+}
+
+style_text_color <- function(display_payload) {
+  style_color(display_payload, role_name = "text", palette_key = "text", fallback = "#13293D")
+}
+
+style_grid_color <- function(display_payload) {
+  grid_spec <- style_grid(display_payload)
+  palette_key <- grid_spec$color %||% "grid"
+  style_color(display_payload, role_name = "grid_line", palette_key = palette_key, fallback = "#E6EDF2")
+}
+
+publication_legend_guides <- function(display_payload, labels = NULL) {
+  label_count <- length(unique(as.character(labels %||% character())))
+  row_count <- if (label_count > 6) 3 else if (label_count > 3) 2 else 1
+  guide_legend(
+    nrow = row_count,
+    byrow = TRUE,
+    override.aes = list(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.0) * 0.42),
+    label.position = "right",
+    label.hjust = 0,
+    keywidth = unit(13, "pt"),
+    keyheight = unit(6, "pt")
+  )
+}
+
+publication_colorbar_guide <- function(display_payload, title = NULL, bar_orientation = "vertical") {
+  typography <- style_typography(display_payload)
+  horizontal <- identical(bar_orientation, "horizontal")
+  default_barwidth <- if (horizontal) 112.0 else 5.0
+  default_barheight <- if (horizontal) 6.0 else 42.0
+  label_size <- style_numeric(typography, "colorbar_label_size", 5.6)
+  title_size <- style_numeric(typography, "colorbar_title_size", 6.0)
+  guide_colourbar(
+    title = title,
+    title.position = "top",
+    title.hjust = 0.5,
+    label.position = if (horizontal) "bottom" else "right",
+    label.hjust = if (horizontal) 0.5 else 0,
+    label.theme = element_text(
+      size = label_size,
+      margin = if (horizontal) margin(t = 4, unit = "pt") else margin(l = 2, unit = "pt")
+    ),
+    title.theme = element_text(
+      size = title_size,
+      margin = if (horizontal) margin(b = 3.5, unit = "pt") else margin(b = 1, unit = "pt")
+    ),
+    barwidth = unit(
+      style_numeric(
+        typography,
+        if (horizontal) "colorbar_horizontal_width" else "colorbar_width",
+        default_barwidth
+      ),
+      "pt"
+    ),
+    barheight = unit(
+      style_numeric(
+        typography,
+        if (horizontal) "colorbar_horizontal_height" else "colorbar_height",
+        default_barheight
+      ),
+      "pt"
+    ),
+    ticks = TRUE,
+    draw.llim = FALSE,
+    draw.ulim = FALSE,
+    frame.colour = NA,
+    nbin = 120
+  )
+}
+
+continuous_scale_breaks <- function(values, max_breaks = 3) {
+  finite_values <- values[is.finite(values)]
+  if (length(finite_values) < 1) {
+    return(waiver())
+  }
+  range_values <- range(finite_values, na.rm = TRUE)
+  if (identical(range_values[[1]], range_values[[2]])) {
+    return(range_values[[1]])
+  }
+  max_breaks <- max(2, min(3, round(as.numeric(max_breaks))))
+  breaks <- pretty(range_values, n = max_breaks)
+  breaks <- breaks[breaks >= range_values[[1]] & breaks <= range_values[[2]]]
+  if (length(breaks) > max_breaks) {
+    breaks <- breaks[round(seq(1, length(breaks), length.out = max_breaks))]
+  }
+  if (length(breaks) < 2) {
+    breaks <- range_values
+  }
+  unique(breaks)
+}
+
+heatmap_scale_components <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+  finite_values <- values[is.finite(values)]
+  if (length(finite_values) < 1) {
+    finite_values <- c(0, 1)
+  }
+  value_range <- range(finite_values, na.rm = TRUE)
+  crosses_zero <- value_range[[1]] < 0 && value_range[[2]] > 0
+  if (is.null(midpoint)) {
+    midpoint <- if (crosses_zero) 0 else mean(value_range)
+  }
+  colorbar_max_breaks <- max(2, min(3, round(style_numeric(style_typography(display_payload), "colorbar_max_breaks", 3))))
+  breaks <- if (is.null(limits)) {
+    continuous_scale_breaks(finite_values, max_breaks = colorbar_max_breaks)
+  } else {
+    continuous_scale_breaks(limits, max_breaks = colorbar_max_breaks)
+  }
+  guide <- publication_colorbar_guide(display_payload, title = name, bar_orientation = "horizontal")
+  list(
+    finite_values = finite_values,
+    crosses_zero = crosses_zero,
+    midpoint = midpoint,
+    breaks = breaks,
+    guide = guide
+  )
+}
+
+heatmap_fill_scale <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+  components <- heatmap_scale_components(display_payload, values, name = name, limits = limits, midpoint = midpoint)
+  if (components$crosses_zero) {
+    return(scale_fill_gradient2(
+      low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
+      mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7F7F7"),
+      high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
+      midpoint = components$midpoint,
+      limits = limits,
+      breaks = components$breaks,
+      name = name,
+      guide = components$guide
+    ))
+  }
+  scale_fill_gradientn(
+    colours = c(
+      style_color(display_payload, "heatmap_seq_low", "heatmap_seq_low", "#F4F8FA"),
+      style_color(display_payload, "heatmap_seq_mid", "heatmap_seq_mid", "#9DD2D3"),
+      style_color(display_payload, "heatmap_seq_high", "heatmap_seq_high", "#0B4F6C")
+    ),
+    limits = limits,
+    breaks = components$breaks,
+    name = name,
+    guide = components$guide
+  )
+}
+
+heatmap_colour_scale <- function(display_payload, values, name = NULL, limits = NULL, midpoint = NULL) {
+  components <- heatmap_scale_components(display_payload, values, name = name, limits = limits, midpoint = midpoint)
+  if (components$crosses_zero) {
+    return(scale_color_gradient2(
+      low = style_color(display_payload, "heatmap_low", "heatmap_low", "#2166AC"),
+      mid = style_color(display_payload, "heatmap_mid", "heatmap_mid", "#F7F7F7"),
+      high = style_color(display_payload, "heatmap_high", "heatmap_high", "#B2182B"),
+      midpoint = components$midpoint,
+      limits = limits,
+      breaks = components$breaks,
+      name = name,
+      guide = components$guide
+    ))
+  }
+  scale_color_gradientn(
+    colours = c(
+      style_color(display_payload, "heatmap_seq_low", "heatmap_seq_low", "#F4F8FA"),
+      style_color(display_payload, "heatmap_seq_mid", "heatmap_seq_mid", "#9DD2D3"),
+      style_color(display_payload, "heatmap_seq_high", "heatmap_seq_high", "#0B4F6C")
+    ),
+    limits = limits,
+    breaks = components$breaks,
+    name = name,
+    guide = components$guide
+  )
+}
+
+heatmap_text_colours <- function(display_payload, values) {
+  finite_values <- values[is.finite(values)]
+  if (length(finite_values) < 1) {
+    return(rep(style_text_color(display_payload), length(values)))
+  }
+  value_range <- range(finite_values, na.rm = TRUE)
+  if (identical(value_range[[1]], value_range[[2]])) {
+    intensity <- rep(0, length(values))
+  } else if (value_range[[1]] < 0 && value_range[[2]] > 0) {
+    max_abs <- max(abs(value_range))
+    intensity <- abs(values) / max_abs
+  } else {
+    intensity <- (values - value_range[[1]]) / (value_range[[2]] - value_range[[1]])
+  }
+  ifelse(is.finite(intensity) & intensity >= 0.72, "#FFFFFF", style_text_color(display_payload))
+}
+
+theme_publication_colorbar <- function(display_payload) {
+  typography <- style_typography(display_payload)
+  text_color <- style_text_color(display_payload)
+  legend_size <- style_numeric(typography, "legend_size", 7.2)
+  colorbar_text_size <- min(legend_size, style_numeric(typography, "colorbar_label_size", 6.0))
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.justification = "center",
+    legend.title = element_text(size = colorbar_text_size, colour = text_color, margin = margin(b = 2.5, unit = "pt")),
+    legend.text = element_text(size = colorbar_text_size, colour = text_color, margin = margin(t = 4, unit = "pt")),
+    legend.margin = margin(4, 8, 8, 8, unit = "pt"),
+    legend.spacing.x = unit(8, "pt"),
+    legend.spacing.y = unit(3, "pt"),
+    legend.box.spacing = unit(9, "pt")
+  )
+}
+
+style_series_palette <- function(display_payload, labels) {
+  labels <- as.character(labels)
+  if (length(labels) < 1) {
+    return(character())
+  }
+  role_order <- c(
+    "model_curve",
+    "comparator_curve",
+    "series_3",
+    "series_4",
+    "series_5",
+    "series_6",
+    "reference_line",
+    "highlight_band"
+  )
+  palette <- style_palette(display_payload)
+  fallback_values <- c(
+    style_color(display_payload, "model_curve", "primary", "#0B4F6C"),
+    style_color(display_payload, "comparator_curve", "secondary", "#2A9D8F"),
+    style_color(display_payload, "series_3", "tertiary", "#B84A3A"),
+    style_color(display_payload, "series_4", "quaternary", "#D99A2B"),
+    style_color(display_payload, "series_5", "violet", "#6F63B6"),
+    style_color(display_payload, "series_6", "neutral_mid", "#767676"),
+    style_color(display_payload, "reference_line", "neutral", "#4D4D4D"),
+    style_color(display_payload, "highlight_band", "light", "#F2F5F7")
+  )
+  values <- vapply(seq_along(labels), function(index) {
+    role_name <- role_order[[((index - 1) %% length(role_order)) + 1]]
+    if (index <= length(role_order)) {
+      style_color(display_payload, role_name = role_name, fallback = fallback_values[[index]])
+    } else {
+      palette_values <- unlist(palette, use.names = FALSE)
+      if (length(palette_values) > 0) {
+        palette_values[[((index - 1) %% length(palette_values)) + 1]]
+      } else {
+        fallback_values[[((index - 1) %% length(fallback_values)) + 1]]
+      }
+    }
+  }, character(1))
+  stats::setNames(values, labels)
+}
+
+theme_publication <- function(display_payload = list()) {
+  render_context <- render_context_from_payload(display_payload)
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", TRUE)
+  typography <- style_typography(display_payload)
+  stroke <- style_stroke(display_payload)
+  grid_spec <- style_grid(display_payload)
+  font_family <- trimws(as.character(typography$font_family %||% "sans"))
+  base_size <- style_numeric(typography, "base_size", 11.0)
+  title_size <- style_numeric(typography, "title_size", 12.5)
+  axis_title_size <- style_numeric(typography, "axis_title_size", 11.0)
+  tick_size <- style_numeric(typography, "tick_size", 10.0)
+  legend_size <- style_numeric(typography, "legend_size", tick_size)
+  legend_key_width <- style_numeric(typography, "legend_key_width", 18.0)
+  legend_key_height <- style_numeric(typography, "legend_key_height", 7.0)
+  legend_key_spacing_x <- style_numeric(typography, "legend_key_spacing_x", 5.0)
+  legend_key_spacing_y <- style_numeric(typography, "legend_key_spacing_y", 3.0)
+  text_color <- style_text_color(display_payload)
+  grid_linewidth <- style_numeric(stroke, "grid_linewidth", 0.25)
+  axis_linewidth <- style_numeric(stroke, "axis_linewidth", 0.35)
+  grid_color <- style_grid_color(display_payload)
+  axis_color <- style_color(display_payload, role_name = "axis_line", palette_key = "axis", fallback = text_color)
+  major_axis <- tolower(trimws(as.character(grid_spec$major_axis %||% "both")))
+  minor_axis <- tolower(trimws(as.character(grid_spec$minor_axis %||% "none")))
+  major_grid <- if (style_bool(grid_spec, "major", TRUE)) {
+    element_line(colour = grid_color, linewidth = grid_linewidth, linetype = trimws(as.character(grid_spec$linetype %||% "solid")))
+  } else {
+    element_blank()
+  }
+  minor_grid <- if (style_bool(grid_spec, "minor", FALSE)) {
+    element_line(colour = grid_color, linewidth = grid_linewidth * 0.6, linetype = trimws(as.character(grid_spec$minor_linetype %||% grid_spec$linetype %||% "solid")))
+  } else {
+    element_blank()
+  }
+  theme_classic(base_size = base_size, base_family = font_family) +
+    theme(
+      text = element_text(family = font_family, colour = text_color),
+      plot.title = if (show_figure_title) element_text(face = "bold", colour = text_color, size = title_size, hjust = 0, margin = margin(b = 5)) else element_blank(),
+      plot.subtitle = element_text(colour = text_color, size = base_size, margin = margin(b = 4)),
+      axis.title = element_text(face = "plain", colour = text_color, size = axis_title_size),
+      axis.text = element_text(colour = text_color, size = tick_size),
+      axis.line = element_line(colour = axis_color, linewidth = axis_linewidth),
+      axis.ticks = element_line(colour = axis_color, linewidth = axis_linewidth),
+      axis.ticks.length = unit(1.6, "pt"),
+      legend.text = element_text(size = legend_size, colour = text_color, margin = margin(r = 4, unit = "pt")),
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.justification = "center",
+      legend.title = element_blank(),
+      legend.background = element_blank(),
+      legend.box.background = element_blank(),
+      legend.key = element_blank(),
+      legend.key.height = unit(legend_key_height, "pt"),
+      legend.key.width = unit(legend_key_width, "pt"),
+      legend.spacing.x = unit(legend_key_spacing_x, "pt"),
+      legend.spacing.y = unit(legend_key_spacing_y, "pt"),
+      legend.box.spacing = unit(5, "pt"),
+      panel.background = element_rect(fill = style_color(display_payload, role_name = "figure_background", palette_key = "background", fallback = "#FFFFFF"), colour = NA),
+      panel.border = element_blank(),
+      panel.grid.major.x = if (major_axis %in% c("x", "both", "all")) major_grid else element_blank(),
+      panel.grid.major.y = if (major_axis %in% c("y", "both", "all")) major_grid else element_blank(),
+      panel.grid.minor.x = if (minor_axis %in% c("x", "both", "all")) minor_grid else element_blank(),
+      panel.grid.minor.y = if (minor_axis %in% c("y", "both", "all")) minor_grid else element_blank(),
+      strip.background = element_blank(),
+      strip.text = element_text(face = "bold", colour = text_color, size = style_numeric(typography, "panel_label_size", axis_title_size)),
+      plot.background = element_rect(fill = style_color(display_payload, role_name = "figure_background", palette_key = "background", fallback = "#FFFFFF"), colour = NA),
+      plot.margin = margin(7, 8, 7, 8)
+    )
+}
+
+build_curve_dataframe <- function(series_payload) {
+  frames <- lapply(seq_along(series_payload), function(index) {
+    item <- series_payload[[index]]
+    x <- as_numeric_vector(item$x, sprintf("series[%d].x", index))
+    y <- as_numeric_vector(item$y, sprintf("series[%d].y", index))
+    if (length(x) != length(y)) {
+      stop(sprintf("series[%d].x and series[%d].y must have the same length", index, index))
+    }
+    data.frame(
+      label = rep(trimws(as.character(item$label %||% "")), length(x)),
+      x = x,
+      y = y,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, frames)
+}
+
+build_reference_dataframe <- function(reference_line) {
+  if (is.null(reference_line)) {
+    return(NULL)
+  }
+  x <- as_numeric_vector(reference_line$x, "reference_line.x")
+  y <- as_numeric_vector(reference_line$y, "reference_line.y")
+  if (length(x) != length(y)) {
+    stop("reference_line.x and reference_line.y must have the same length")
+  }
+  data.frame(x = x, y = y)
+}
+
+build_point_dataframe <- function(points_payload, x_field = "x", y_field = "y") {
+  frames <- lapply(seq_along(points_payload), function(index) {
+    item <- points_payload[[index]]
+    data.frame(
+      x = as.numeric(item[[x_field]]),
+      y = as.numeric(item[[y_field]]),
+      group = trimws(as.character(item$group %||% "")),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, frames)
+}
+
+extract_label_vector <- function(items_payload, field_name) {
+  if (!is.list(items_payload) || length(items_payload) < 1) {
+    stop(sprintf("%s must contain at least one labeled item", field_name))
+  }
+  labels <- vapply(seq_along(items_payload), function(index) {
+    item <- items_payload[[index]]
+    label <- trimws(as.character(item$label %||% ""))
+    if (!nzchar(label)) {
+      stop(sprintf("%s[%d].label must be non-empty", field_name, index))
+    }
+    label
+  }, character(1))
+  labels
+}
+
+build_heatmap_dataframe <- function(cells_payload, column_order = NULL, row_order = NULL) {
+  frames <- lapply(seq_along(cells_payload), function(index) {
+    item <- cells_payload[[index]]
+    data.frame(
+      x = trimws(as.character(item$x %||% "")),
+      y = trimws(as.character(item$y %||% "")),
+      value = as.numeric(item$value),
+      stringsAsFactors = FALSE
+    )
+  })
+  heat_df <- do.call(rbind, frames)
+  x_levels <- if (is.null(column_order)) unique(heat_df$x) else column_order
+  y_levels <- if (is.null(row_order)) rev(unique(heat_df$y)) else rev(row_order)
+  heat_df$x <- factor(heat_df$x, levels = x_levels)
+  heat_df$y <- factor(heat_df$y, levels = y_levels)
+  heat_df
+}
+
+build_forest_dataframe <- function(rows_payload) {
+  frames <- lapply(seq_along(rows_payload), function(index) {
+    item <- rows_payload[[index]]
+    data.frame(
+      label = trimws(as.character(item$label %||% "")),
+      estimate = as.numeric(item$estimate),
+      lower = as.numeric(item$lower),
+      upper = as.numeric(item$upper),
+      stringsAsFactors = FALSE
+    )
+  })
+  forest_df <- do.call(rbind, frames)
+  forest_df$label <- factor(forest_df$label, levels = rev(forest_df$label))
+  forest_df
+}
+
+plot_binary_curve <- function(display_payload) {
+  series_payload <- display_payload$series
+  if (!is.list(series_payload) || length(series_payload) < 1) {
+    stop("series must contain at least one curve")
+  }
+  curve_df <- build_curve_dataframe(series_payload)
+  reference_df <- build_reference_dataframe(display_payload$reference_line)
+  focus_window <- display_payload$decision_focus_window %||% display_payload$axis_window %||% list()
+  xlim <- c(
+    as.numeric(focus_window$xmin %||% 0),
+    as.numeric(focus_window$xmax %||% 1)
+  )
+  ylim <- c(
+    as.numeric(focus_window$ymin %||% min(curve_df$y, 0, na.rm = TRUE)),
+    as.numeric(focus_window$ymax %||% max(curve_df$y, 1, na.rm = TRUE))
+  )
+  plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
+    geom_line(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42) +
+    coord_cartesian(xlim = xlim, ylim = ylim) +
+    scale_color_manual(
+      values = style_series_palette(display_payload, unique(curve_df$label)),
+      guide = publication_legend_guides(display_payload, curve_df$label)
+    ) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication(display_payload)
+  if (!is.null(reference_df)) {
+    plot <- plot + geom_line(
+      data = reference_df,
+      aes(x = x, y = y),
+      inherit.aes = FALSE,
+      colour = style_color(display_payload, "reference_line", "neutral", "#6B7280"),
+      linewidth = style_numeric(style_stroke(display_payload), "reference_linewidth", 1.0) * 0.6,
+      linetype = "dashed"
+    )
+  }
+  plot
+}
+
+plot_kaplan_meier <- function(display_payload) {
+  groups_payload <- display_payload$groups
+  if (!is.list(groups_payload) || length(groups_payload) < 1) {
+    stop("groups must contain at least one survival series")
+  }
+  censor_frames <- list()
+  frames <- lapply(seq_along(groups_payload), function(index) {
+    item <- groups_payload[[index]]
+    x <- as_numeric_vector(item$times, sprintf("groups[%d].times", index))
+    y <- as_numeric_vector(item$values, sprintf("groups[%d].values", index))
+    if (length(x) != length(y)) {
+      stop(sprintf("groups[%d].times and groups[%d].values must have the same length", index, index))
+    }
+    label <- trimws(as.character(item$label %||% ""))
+    censor_times <- item$censor_times %||% list()
+    if (is.list(censor_times) && length(censor_times) > 0) {
+      censor_x <- vapply(censor_times, as.numeric, numeric(1))
+      censor_y <- vapply(censor_x, function(value) {
+        eligible <- which(x <= value)
+        if (length(eligible) < 1) y[[1]] else y[[max(eligible)]]
+      }, numeric(1))
+      censor_frames[[length(censor_frames) + 1]] <<- data.frame(
+        label = rep(label, length(censor_x)),
+        x = censor_x,
+        y = censor_y,
+        stringsAsFactors = FALSE
+      )
+    }
+    data.frame(
+      label = rep(label, length(x)),
+      x = x,
+      y = y,
+      stringsAsFactors = FALSE
+    )
+  })
+  curve_df <- do.call(rbind, frames)
+  censor_df <- if (length(censor_frames) > 0) do.call(rbind, censor_frames) else NULL
+  risk_table <- display_payload$risk_table %||% list()
+  risk_rows <- if (is.list(risk_table) && length(risk_table) > 0) risk_table else list()
+  risk_df <- if (length(risk_rows) > 0) {
+    do.call(rbind, lapply(seq_along(risk_rows), function(index) {
+      row <- risk_rows[[index]]
+      data.frame(
+        label = trimws(as.character(row$label %||% row$group_label %||% sprintf("Group %d", index))),
+        time = vapply(row$times %||% list(), as.numeric, numeric(1)),
+        at_risk = vapply(row$at_risk %||% row$counts %||% list(), as.integer, integer(1)),
+        row_index = index,
+        stringsAsFactors = FALSE
+      )
+    }))
+  } else {
+    NULL
+  }
+  y_lower <- if (is.null(risk_df)) 0 else -0.19
+  palette_values <- style_series_palette(display_payload, unique(curve_df$label))
+  plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
+    geom_step(linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42, direction = "hv") +
+    coord_cartesian(xlim = c(0, max(curve_df$x)), ylim = c(y_lower, 1), clip = "off") +
+    scale_color_manual(
+      values = palette_values,
+      guide = publication_legend_guides(display_payload, curve_df$label)
+    ) +
+    scale_y_continuous(breaks = c(0, 0.25, 0.50, 0.75, 1.00)) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication(display_payload)
+  if (!is.null(censor_df)) {
+    plot <- plot + geom_point(
+      data = censor_df,
+      aes(x = x, y = y, colour = label),
+      inherit.aes = FALSE,
+      shape = 124,
+      stroke = 0.9,
+      size = style_numeric(style_stroke(display_payload), "marker_size", 3.4) * 0.86,
+      show.legend = FALSE
+    )
+  }
+  if (!is.null(risk_df)) {
+    row_count <- length(unique(risk_df$row_index))
+    risk_df$risk_y <- -0.055 - (risk_df$row_index - 1) * 0.055
+    risk_label_df <- unique(risk_df[, c("label", "row_index", "risk_y"), drop = FALSE])
+    risk_title <- trimws(as.character(display_payload$risk_table_title %||% "At risk"))
+    max_time <- max(curve_df$x, na.rm = TRUE)
+    risk_label_x <- -max_time * 0.055
+    plot <- plot +
+      annotate(
+        "text",
+        x = risk_label_x,
+        y = -0.025,
+        label = risk_title,
+        hjust = 1,
+        size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.30,
+        colour = style_text_color(display_payload)
+      ) +
+      geom_text(
+        data = risk_label_df,
+        aes(x = risk_label_x, y = risk_y, label = label, colour = label),
+        inherit.aes = FALSE,
+        hjust = 1,
+        size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.28,
+        show.legend = FALSE
+      ) +
+      geom_text(
+        data = risk_df,
+        aes(x = time, y = risk_y, label = at_risk),
+        inherit.aes = FALSE,
+        size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.28,
+        colour = style_text_color(display_payload)
+      ) +
+      theme(plot.margin = margin(10, 12, 22 + row_count * 5, 42))
+  }
+  annotation <- trimws(as.character(display_payload$annotation %||% ""))
+  if (nzchar(annotation)) {
+    annotation_y <- if (grepl("cumulative", tolower(trimws(as.character(display_payload$y_label %||% ""))))) {
+      max(curve_df$y, na.rm = TRUE) * 0.52
+    } else {
+      0.08
+    }
+    plot <- plot + annotate(
+      "text",
+      x = max(curve_df$x) * 0.98,
+      y = annotation_y,
+      label = annotation,
+      hjust = 1,
+      vjust = 0,
+      size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.33,
+      colour = style_text_color(display_payload)
+    )
+  }
+  plot
+}
+
+plot_embedding_scatter <- function(display_payload) {
+  points_payload <- display_payload$points
+  if (!is.list(points_payload) || length(points_payload) < 1) {
+    stop("points must contain at least one observation")
+  }
+  point_df <- build_point_dataframe(points_payload)
+  plot <- ggplot(point_df, aes(x = x, y = y, colour = group)) +
+    geom_point(size = style_numeric(style_stroke(display_payload), "marker_size", 4.5) * 0.62, alpha = 0.9) +
+    scale_color_manual(
+      values = style_series_palette(display_payload, unique(point_df$group)),
+      guide = publication_legend_guides(display_payload, point_df$group)
+    ) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication(display_payload)
+  plot
+}
+
+plot_heatmap <- function(display_payload) {
+  cells_payload <- display_payload$cells
+  if (!is.list(cells_payload) || length(cells_payload) < 1) {
+    stop("cells must contain at least one matrix entry")
+  }
+  column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
+  row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
+  heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
+  plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
+    geom_tile(colour = "white", linewidth = 0.5) +
+    geom_text(aes(label = sprintf("%.2f", value), colour = text_colour), size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.31, show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(display_payload, heat_df$value) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication(display_payload) +
+    theme_publication_colorbar(display_payload) +
+    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+  plot
+}
+
+plot_performance_heatmap <- function(display_payload) {
+  cells_payload <- display_payload$cells
+  if (!is.list(cells_payload) || length(cells_payload) < 1) {
+    stop("cells must contain at least one matrix entry")
+  }
+  metric_name <- trimws(as.character(display_payload$metric_name %||% ""))
+  if (!nzchar(metric_name)) {
+    stop("metric_name must be non-empty")
+  }
+  column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
+  row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
+  heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
+  plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
+    geom_tile(colour = "white", linewidth = 0.5) +
+    geom_text(aes(label = sprintf("%.2f", value), colour = text_colour), size = style_numeric(style_typography(display_payload), "tick_size", 10.0) * 0.31, show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(display_payload, heat_df$value, name = metric_name, limits = c(0, 1)) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication(display_payload) +
+    theme_publication_colorbar(display_payload) +
+    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+  plot
+}
+
+plot_confusion_matrix_heatmap <- function(display_payload) {
+  cells_payload <- display_payload$cells
+  if (!is.list(cells_payload) || length(cells_payload) < 1) {
+    stop("cells must contain at least one matrix entry")
+  }
+  metric_name <- trimws(as.character(display_payload$metric_name %||% ""))
+  if (!nzchar(metric_name)) {
+    stop("metric_name must be non-empty")
+  }
+  normalization <- trimws(as.character(display_payload$normalization %||% ""))
+  if (!normalization %in% c("row_fraction", "column_fraction", "overall_fraction")) {
+    stop("normalization must be one of row_fraction, column_fraction, or overall_fraction")
+  }
+  column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
+  row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
+  heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  heat_df$text_colour <- heatmap_text_colours(display_payload, heat_df$value)
+  plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
+    geom_tile(colour = "white", linewidth = 0.7) +
+    geom_text(aes(label = sprintf("%.0f%%", value * 100), colour = text_colour), size = style_numeric(style_typography(display_payload), "axis_title_size", 11.0) * 0.38, fontface = "bold", show.legend = FALSE) +
+    scale_colour_identity() +
+    heatmap_fill_scale(display_payload, heat_df$value, name = metric_name, limits = c(0, 1)) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication(display_payload) +
+    theme_publication_colorbar(display_payload) +
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 0.5),
+      axis.text.y = element_text(face = "bold"),
+      axis.text = element_text(face = "bold"),
+      panel.grid.major = element_blank()
+    )
+  plot
+}
+
+plot_forest <- function(display_payload) {
+  rows_payload <- display_payload$rows
+  if (!is.list(rows_payload) || length(rows_payload) < 1) {
+    stop("rows must contain at least one effect estimate")
+  }
+  forest_df <- build_forest_dataframe(rows_payload)
+  reference_value <- as.numeric(display_payload$reference_value %||% 1.0)
+  plot <- ggplot(forest_df, aes(y = label, x = estimate)) +
+    geom_vline(xintercept = reference_value, colour = style_color(display_payload, "reference_line", "neutral", "#6B7280"), linewidth = style_numeric(style_stroke(display_payload), "reference_linewidth", 1.0) * 0.6, linetype = "dashed") +
+    geom_segment(aes(x = lower, xend = upper, y = label, yend = label), linewidth = style_numeric(style_stroke(display_payload), "primary_linewidth", 2.2) * 0.42, colour = style_color(display_payload, "model_curve", "primary", "#1F4E79")) +
+    geom_point(size = style_numeric(style_stroke(display_payload), "marker_size", 4.5) * 0.62, colour = style_color(display_payload, "model_curve", "primary", "#1F4E79")) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = ""
+    ) +
+    theme_publication(display_payload)
+  plot
+}
+
+box_record <- function(box_id, box_type, x0, y0, x1, y1) {
+  list(
+    box_id = box_id,
+    box_type = box_type,
+    x0 = as.numeric(x0),
+    y0 = as.numeric(y0),
+    x1 = as.numeric(x1),
+    y1 = as.numeric(y1)
+  )
+}
+
+layout_box_from_indices <- function(widths, heights, left, right, top, bottom, box_id, box_type) {
+  x0 <- if (left <= 1) 0 else sum(widths[seq_len(left - 1)])
+  x1 <- sum(widths[seq_len(right)])
+  y1 <- 1 - if (top <= 1) 0 else sum(heights[seq_len(top - 1)])
+  y0 <- 1 - sum(heights[seq_len(bottom)])
+  box_record(box_id, box_type, x0, y0, x1, y1)
+}
+
+resolved_layout_unit_sizes <- function(units, total_inches, axis) {
+  unit_types <- as.character(grid::unitType(units))
+  sizes <- numeric(length(units))
+  null_weights <- numeric(length(units))
+  for (index in seq_along(units)) {
+    if (identical(unit_types[[index]], "null")) {
+      null_weights[[index]] <- max(0, as.numeric(units[index]))
+      next
+    }
+    converted <- suppressWarnings(if (identical(axis, "width")) {
+      grid::convertWidth(units[index], "in", valueOnly = TRUE)
+    } else {
+      grid::convertHeight(units[index], "in", valueOnly = TRUE)
+    })
+    if (is.finite(converted)) {
+      sizes[[index]] <- max(0, as.numeric(converted))
+    }
+  }
+  null_total <- sum(null_weights)
+  if (null_total > 0) {
+    remaining <- max(as.numeric(total_inches) - sum(sizes), 0)
+    sizes[null_weights > 0] <- remaining * null_weights[null_weights > 0] / null_total
+  }
+  if (!is.finite(total_inches) || total_inches <= 0) {
+    return(sizes)
+  }
+  sizes / as.numeric(total_inches)
+}
+
+find_layout_box <- function(gt, widths, heights, prefixes, box_id, box_type) {
+  layout_names <- gt$layout$name
+  layout_index <- integer(0)
+  for (prefix in prefixes) {
+    matches <- which(startsWith(layout_names, prefix))
+    if (length(matches) > 0) {
+      layout_index <- matches
+      break
+    }
+  }
+  if (length(layout_index) < 1) {
+    return(NULL)
+  }
+  row <- gt$layout[layout_index[1], , drop = FALSE]
+  layout_box_from_indices(widths, heights, row$l[[1]], row$r[[1]], row$t[[1]], row$b[[1]], box_id, box_type)
+}
+
+map_value_to_panel_x <- function(value, panel_box, x_min, x_max) {
+  if (!is.finite(x_min) || !is.finite(x_max) || identical(x_min, x_max)) {
+    return((panel_box$x0 + panel_box$x1) / 2)
+  }
+  span <- panel_box$x1 - panel_box$x0
+  panel_box$x0 + ((value - x_min) / (x_max - x_min)) * span
+}
+
+map_row_to_panel_y <- function(row_index, row_count, panel_box) {
+  row_height <- (panel_box$y1 - panel_box$y0) / max(row_count, 1)
+  panel_box$y1 - ((row_index - 0.5) * row_height)
+}
+
+build_forest_layout <- function(display_payload, panel_box, axis_left_box) {
+  rows <- display_payload$rows
+  if (!is.list(rows) || length(rows) < 1) {
+    return(list(layout_boxes = list(), guide_boxes = list(), metrics = list(rows = list())))
+  }
+  reference_value <- as.numeric(display_payload$reference_value %||% 1.0)
+  lower_values <- vapply(rows, function(item) as.numeric(item$lower), numeric(1))
+  estimate_values <- vapply(rows, function(item) as.numeric(item$estimate), numeric(1))
+  upper_values <- vapply(rows, function(item) as.numeric(item$upper), numeric(1))
+  x_min <- min(c(lower_values, estimate_values, upper_values, reference_value), na.rm = TRUE)
+  x_max <- max(c(lower_values, estimate_values, upper_values, reference_value), na.rm = TRUE)
+  if (identical(x_min, x_max)) {
+    x_min <- x_min - 0.5
+    x_max <- x_max + 0.5
+  }
+  row_count <- length(rows)
+  label_box <- axis_left_box %||% box_record("axis_left", "axis_left", 0.02, panel_box$y0, max(0.03, panel_box$x0 - 0.04), panel_box$y1)
+  row_height <- (panel_box$y1 - panel_box$y0) / max(row_count, 1) * 0.55
+  layout_boxes <- list()
+  metric_rows <- list()
+  for (index in seq_along(rows)) {
+    row <- rows[[index]]
+    row_center <- map_row_to_panel_y(index, row_count, panel_box)
+    lower_x <- map_value_to_panel_x(as.numeric(row$lower), panel_box, x_min, x_max)
+    estimate_x <- map_value_to_panel_x(as.numeric(row$estimate), panel_box, x_min, x_max)
+    upper_x <- map_value_to_panel_x(as.numeric(row$upper), panel_box, x_min, x_max)
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("row_label_%d", index),
+      "row_label",
+      label_box$x0,
+      row_center - row_height / 2,
+      label_box$x1,
+      row_center + row_height / 2
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("estimate_marker_%d", index),
+      "estimate_marker",
+      estimate_x - 0.01,
+      row_center - row_height / 4,
+      estimate_x + 0.01,
+      row_center + row_height / 4
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("ci_segment_%d", index),
+      "ci_segment",
+      lower_x,
+      row_center,
+      upper_x,
+      row_center
+    )
+    metric_rows[[length(metric_rows) + 1]] <- list(
+      row_id = trimws(as.character(row$label %||% sprintf("row_%d", index))),
+      label = trimws(as.character(row$label %||% "")),
+      lower = as.numeric(row$lower),
+      estimate = as.numeric(row$estimate),
+      upper = as.numeric(row$upper)
+    )
+  }
+  reference_x <- map_value_to_panel_x(reference_value, panel_box, x_min, x_max)
+  guide_boxes <- list(
+    box_record("reference_line", "reference_line", reference_x, panel_box$y0, reference_x, panel_box$y1)
+  )
+  list(layout_boxes = layout_boxes, guide_boxes = guide_boxes, metrics = list(rows = metric_rows))
+}
+
+build_embedding_metrics <- function(display_payload, panel_box) {
+  points <- display_payload$points
+  if (is.null(panel_box) || !is.list(points) || length(points) < 1) {
+    return(list(points = list()))
+  }
+  x_values <- vapply(points, function(item) as.numeric(item$x), numeric(1))
+  y_values <- vapply(points, function(item) as.numeric(item$y), numeric(1))
+  x_min <- min(x_values)
+  x_max <- max(x_values)
+  y_min <- min(y_values)
+  y_max <- max(y_values)
+  if (identical(x_min, x_max)) {
+    x_min <- x_min - 0.5
+    x_max <- x_max + 0.5
+  }
+  if (identical(y_min, y_max)) {
+    y_min <- y_min - 0.5
+    y_max <- y_max + 0.5
+  }
+  point_metrics <- lapply(points, function(item) {
+    list(
+      x = map_value_to_panel_x(as.numeric(item$x), panel_box, x_min, x_max),
+      y = panel_box$y0 + ((as.numeric(item$y) - y_min) / (y_max - y_min)) * (panel_box$y1 - panel_box$y0),
+      group = trimws(as.character(item$group %||% ""))
+    )
+  })
+  list(points = point_metrics)
+}
+
+build_metrics <- function(template_id, display_payload, panel_box) {
+  lidocaineq_metrics <- if (exists("build_lidocaineq_metrics", mode = "function")) {
+    build_lidocaineq_metrics(template_id, display_payload, panel_box)
+  } else {
+    NULL
+  }
+  if (!is.null(lidocaineq_metrics)) {
+    return(lidocaineq_metrics)
+  }
+  switch(
+    template_id,
+    roc_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    time_dependent_roc_horizon = list(
+      series = display_payload$series,
+      reference_line = display_payload$reference_line,
+      title = trimws(as.character(display_payload$title %||% "")),
+      caption = trimws(as.character(display_payload$caption %||% "")),
+      time_horizon_months = if (!is.null(display_payload$time_horizon_months)) as.integer(display_payload$time_horizon_months) else NULL
+    ),
+    kaplan_meier_grouped = list(
+      groups = display_payload$groups,
+      annotation = trimws(as.character(display_payload$annotation %||% ""))
+    ),
+    cumulative_incidence_grouped = list(
+      groups = display_payload$groups,
+      annotation = trimws(as.character(display_payload$annotation %||% ""))
+    ),
+    umap_scatter_grouped = build_dimensionality_reduction_metrics(template_id, display_payload, panel_box),
+    pca_scatter_grouped = build_dimensionality_reduction_metrics(template_id, display_payload, panel_box),
+    tsne_scatter_grouped = build_dimensionality_reduction_metrics(template_id, display_payload, panel_box),
+    heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
+    confusion_matrix_heatmap_binary = list(
+      matrix_cells = display_payload$cells,
+      metric_name = trimws(as.character(display_payload$metric_name %||% "")),
+      normalization = trimws(as.character(display_payload$normalization %||% ""))
+    ),
+    forest_effect_main = list(rows = display_payload$rows),
+    if (exists("build_candidate_metrics", mode = "function")) {
+      build_candidate_metrics(template_id, display_payload, panel_box)
+    } else {
+      list()
+    }
+  )
+}
+
+default_renderer_metrics <- function(template_id, display_payload, panel_box) {
+  list(
+    renderer = "r_ggplot2_evidence_subprocess_v1",
+    renderer_family = "r_ggplot2",
+    renderer_role = "default",
+    template_id = template_id,
+    data_fields = sort(names(display_payload)),
+    panel_box_present = !is.null(panel_box)
+  )
+}
+
+ensure_renderer_metrics <- function(template_id, display_payload, panel_box, metrics) {
+  if (is.null(metrics) || !is.list(metrics)) {
+    metrics <- list()
+  }
+  renderer_metrics <- default_renderer_metrics(template_id, display_payload, panel_box)
+  missing_fields <- setdiff(names(renderer_metrics), names(metrics))
+  c(renderer_metrics[missing_fields], metrics)
+}
+
+style_profile_sidecar <- function(display_payload) {
+  render_context <- render_context_from_payload(display_payload)
+  palette <- render_context$palette %||% list()
+  list(
+    style_profile_id = render_context$style_profile_id %||% "",
+    style_profile_ref = render_context$style_profile_ref %||% "",
+    style_profile_sha256 = render_context$style_profile_sha256 %||% "",
+    journal_palette_ref = render_context$journal_palette_ref %||% "",
+    palette_keys = names(palette),
+    semantic_roles = render_context$semantic_roles %||% list(),
+    typography = render_context$typography %||% list(),
+    stroke = render_context$stroke %||% list(),
+    grid = render_context$grid %||% list()
+  )
+}
+
+render_device_dimension <- function(display_payload, field_name, env_name, fallback) {
+  render_context <- render_context_from_payload(display_payload)
+  layout_override <- render_context$layout_override %||% list()
+  value <- layout_override[[field_name]]
+  if (is.null(value)) {
+    value <- Sys.getenv(env_name, unset = "")
+  }
+  if (is.null(value) || !nzchar(trimws(as.character(value)))) {
+    return(as.numeric(fallback))
+  }
+  numeric_value <- suppressWarnings(as.numeric(value))
+  if (!is.finite(numeric_value) || numeric_value <= 0) {
+    return(as.numeric(fallback))
+  }
+  numeric_value
+}
+
+is_grid_renderable <- function(plot) {
+  inherits(plot, "grob") || inherits(plot, "gTree") || inherits(plot, "gtable")
+}
+
+is_base_graphics_renderable <- function(plot) {
+  inherits(plot, "lidocaine_base_graphics_plot") && is.function(plot$draw)
+}
+
+save_grid_renderable <- function(plot, output_png, output_pdf, output_width, output_height) {
+  grDevices::png(output_png, width = output_width, height = output_height, units = "in", res = 320, bg = "white")
+  grid::grid.newpage()
+  grid::grid.draw(plot)
+  grDevices::dev.off()
+  grDevices::pdf(output_pdf, width = output_width, height = output_height, bg = "white")
+  grid::grid.newpage()
+  grid::grid.draw(plot)
+  grDevices::dev.off()
+}
+
+save_base_graphics_renderable <- function(plot, output_png, output_pdf, output_width, output_height) {
+  grDevices::png(output_png, width = output_width, height = output_height, units = "in", res = 320, bg = "white")
+  plot$draw()
+  grDevices::dev.off()
+  grDevices::pdf(output_pdf, width = output_width, height = output_height, bg = "white", useDingbats = FALSE)
+  plot$draw()
+  grDevices::dev.off()
+}
+
+save_rendered_plot <- function(plot, output_png, output_pdf, output_width, output_height) {
+  if (is_base_graphics_renderable(plot)) {
+    save_base_graphics_renderable(plot, output_png, output_pdf, output_width, output_height)
+    return(invisible(TRUE))
+  }
+  if (is_grid_renderable(plot)) {
+    save_grid_renderable(plot, output_png, output_pdf, output_width, output_height)
+    return(invisible(TRUE))
+  }
+  ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
+  ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
+  invisible(TRUE)
+}
+
+build_layout_sidecar <- function(plot, template_id, display_payload) {
+  if (is_base_graphics_renderable(plot)) {
+    panel_box <- list(box_id = "base_graphics_panel", box_type = "panel", x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+    metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
+    return(list(
+      template_id = template_id,
+      device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+      layout_boxes = list(),
+      panel_boxes = list(panel_box),
+      guide_boxes = list(),
+      metrics = metrics,
+      render_context = render_context_from_payload(display_payload),
+      style_profile = style_profile_sidecar(display_payload)
+    ))
+  }
+  if (is_grid_renderable(plot)) {
+    grob_panel_type <- if (template_id %in% c("heatmap_group_comparison")) "heatmap_tile_region" else "table_region"
+    grob_panel_id <- if (identical(grob_panel_type, "heatmap_tile_region")) "heatmap_panel" else "table_panel"
+    guide_boxes <- if (identical(grob_panel_type, "heatmap_tile_region")) {
+      list(list(box_id = "heatmap_colorbar", box_type = "colorbar", x0 = 0.86, y0 = 0.18, x1 = 0.96, y1 = 0.86))
+    } else {
+      list()
+    }
+    panel_box <- list(box_id = grob_panel_id, box_type = grob_panel_type, x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+    metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
+    return(list(
+      template_id = template_id,
+      device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+      layout_boxes = list(list(box_id = paste0(grob_panel_id, "_title"), box_type = "title", x0 = 0.04, y0 = 0.91, x1 = 0.96, y1 = 0.98)),
+      panel_boxes = list(panel_box),
+      guide_boxes = guide_boxes,
+      metrics = metrics,
+      render_context = render_context_from_payload(display_payload),
+      style_profile = style_profile_sidecar(display_payload)
+    ))
+  }
+  tmp_pdf <- tempfile(fileext = ".pdf")
+  output_width <- render_device_dimension(display_payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
+  output_height <- render_device_dimension(display_payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
+  grDevices::pdf(tmp_pdf, width = output_width, height = output_height)
+  on.exit({
+    grDevices::dev.off()
+    unlink(tmp_pdf)
+  }, add = TRUE)
+  gt <- ggplotGrob(plot)
+  grid::grid.newpage()
+  grid::grid.draw(gt)
+  grid::grid.force()
+  widths <- resolved_layout_unit_sizes(gt$widths, output_width, "width")
+  heights <- resolved_layout_unit_sizes(gt$heights, output_height, "height")
+  title_box <- find_layout_box(gt, widths, heights, c("title"), "title", "title")
+  x_axis_title_box <- find_layout_box(gt, widths, heights, c("xlab-b"), "x_axis_title", "x_axis_title")
+  y_axis_title_box <- find_layout_box(gt, widths, heights, c("ylab-l"), "y_axis_title", "y_axis_title")
+  panel_box <- find_layout_box(
+    gt,
+    widths,
+    heights,
+    c("panel"),
+    "panel",
+    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "heatmap_tile_region" else "panel"
+  )
+  guide_box <- find_layout_box(
+    gt,
+    widths,
+    heights,
+    c("guide-box"),
+    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend",
+    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend"
+  )
+  axis_left_box <- find_layout_box(gt, widths, heights, c("axis-l"), "axis_left", "axis_left")
+  layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
+  guide_boxes <- Filter(Negate(is.null), list(guide_box))
+  metrics <- build_metrics(template_id, display_payload, panel_box)
+  if (template_id %in% c("forest_effect_main", "subgroup_forest", "multivariable_forest") && !is.null(panel_box)) {
+    forest_layout <- build_forest_layout(display_payload, panel_box, axis_left_box)
+    layout_boxes <- c(layout_boxes, forest_layout$layout_boxes)
+    guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
+    metrics <- c(metrics[setdiff(names(metrics), names(forest_layout$metrics))], forest_layout$metrics)
+  }
+  if (exists("build_candidate_layout_override", mode = "function")) {
+    candidate_override <- build_candidate_layout_override(template_id, display_payload, panel_box, guide_box)
+    if (!is.null(candidate_override)) {
+      layout_boxes <- candidate_override$layout_boxes %||% layout_boxes
+      panel_boxes <- candidate_override$panel_boxes %||% Filter(Negate(is.null), list(panel_box))
+      guide_boxes <- candidate_override$guide_boxes %||% guide_boxes
+      candidate_only <- identical(Sys.getenv("MAS_DISPLAY_RENDERER_CANDIDATE_ONLY", unset = ""), "1")
+      metrics <- if (!candidate_only && !is.null(metrics$source_renderer)) metrics else candidate_override$metrics %||% metrics
+      metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, metrics)
+      return(list(
+        template_id = template_id,
+        device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+        layout_boxes = layout_boxes,
+        panel_boxes = panel_boxes,
+        guide_boxes = guide_boxes,
+        metrics = metrics,
+        render_context = render_context_from_payload(display_payload),
+        style_profile = style_profile_sidecar(display_payload)
+      ))
+    }
+  }
+  metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, metrics)
+  list(
+    template_id = template_id,
+    device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+    layout_boxes = layout_boxes,
+    panel_boxes = Filter(Negate(is.null), list(panel_box)),
+    guide_boxes = guide_boxes,
+    metrics = metrics,
+    render_context = render_context_from_payload(display_payload),
+    style_profile = style_profile_sidecar(display_payload)
+  )
+}
+
+build_evidence_plot <- function(template_id, payload) {
+  lidocaineq_plot <- if (exists("build_lidocaineq_evidence_plot", mode = "function")) {
+    build_lidocaineq_evidence_plot(template_id, payload)
+  } else {
+    NULL
+  }
+  if (!is.null(lidocaineq_plot)) {
+    return(lidocaineq_plot)
+  }
+  switch(
+    template_id,
+    roc_curve_binary = plot_binary_curve(payload),
+    pr_curve_binary = plot_binary_curve(payload),
+    calibration_curve_binary = plot_binary_curve(payload),
+    decision_curve_binary = plot_binary_curve(payload),
+    time_dependent_roc_horizon = plot_binary_curve(payload),
+    kaplan_meier_grouped = plot_kaplan_meier(payload),
+    cumulative_incidence_grouped = plot_kaplan_meier(payload),
+    umap_scatter_grouped = plot_dimensionality_reduction_embedding(template_id, payload),
+    pca_scatter_grouped = plot_dimensionality_reduction_embedding(template_id, payload),
+    tsne_scatter_grouped = plot_dimensionality_reduction_embedding(template_id, payload),
+    heatmap_group_comparison = plot_heatmap(payload),
+    confusion_matrix_heatmap_binary = plot_confusion_matrix_heatmap(payload),
+    forest_effect_main = plot_forest(payload),
+    if (exists("build_candidate_evidence_plot", mode = "function")) {
+      build_candidate_evidence_plot(template_id, payload)
+    } else {
+      stop(sprintf("unsupported evidence template `%s`", template_id))
+    }
+  )
+}
+
+render_evidence_request <- function(request_path, expected_template_id = NULL) {
+  request <- read_render_request(request_path)
+  template_id <- normalize_template_id(request$short_template_id %||% request$template_id)
+  if (!is.null(expected_template_id)) {
+    expected <- normalize_template_id(expected_template_id)
+    if (!identical(template_id, expected)) {
+      stop(sprintf("render request template `%s` does not match expected template `%s`", template_id, expected))
+    }
+  }
+  payload <- payload_from_request(request)
+  output_png <- trimws(as.character(request$output_png_path %||% ""))
+  output_pdf <- trimws(as.character(request$output_pdf_path %||% ""))
+  output_layout <- trimws(as.character(request$layout_sidecar_path %||% ""))
+  if (!nzchar(output_png) || !nzchar(output_pdf) || !nzchar(output_layout)) {
+    stop("render request must contain output_png_path, output_pdf_path, and layout_sidecar_path")
+  }
+  dir.create(dirname(output_png), recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(output_pdf), recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(output_layout), recursive = TRUE, showWarnings = FALSE)
+  plot <- build_evidence_plot(template_id, payload)
+  layout_sidecar <- build_layout_sidecar(plot, template_id, payload)
+  write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
+  output_width <- render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
+  output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
+  save_rendered_plot(plot, output_png, output_pdf, output_width, output_height)
+  invisible(list(template_id = template_id, output_png_path = output_png, output_pdf_path = output_pdf, layout_sidecar_path = output_layout))
+}
+
+render_legacy_payload <- function(template_id, payload_path, output_png, output_pdf, output_layout) {
+  payload <- fromJSON(payload_path, simplifyVector = FALSE)
+  request <- list(
+    short_template_id = template_id,
+    display_payload = payload,
+    output_png_path = output_png,
+    output_pdf_path = output_pdf,
+    layout_sidecar_path = output_layout
+  )
+  request_path <- tempfile(fileext = ".render_request.json")
+  write_json(request, request_path, auto_unbox = TRUE, pretty = TRUE, null = "null")
+  on.exit(unlink(request_path), add = TRUE)
+  render_evidence_request(request_path, expected_template_id = template_id)
+}
+
+if (!identical(Sys.getenv("MAS_DISPLAY_RENDERER_SOURCE_ONLY", unset = ""), "1")) {
+  args <- commandArgs(trailingOnly = TRUE)
+  if (length(args) == 0) {
+    invisible(NULL)
+  } else if (length(args) == 2 && args[[1]] %in% c("--request", "--file")) {
+    render_evidence_request(args[[2]])
+  } else if (length(args) == 5) {
+    render_legacy_payload(args[[1]], args[[2]], args[[3]], args[[4]], args[[5]])
+  } else {
+    stop("expected args: --request <request_json> or <template_id> <payload_json> <output_png> <output_pdf> <output_layout>")
+  }
+}

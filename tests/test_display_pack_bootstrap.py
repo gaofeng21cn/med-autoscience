@@ -11,6 +11,7 @@ from med_autoscience.display_pack_bootstrap import (
     CORE_PACK_ID,
     export_core_pack_template_manifests,
 )
+from med_autoscience.display_pack_paths import core_medical_display_pack_python_src_root
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -117,7 +118,7 @@ def _load_entrypoint(entrypoint: str) -> object:
 
 @contextmanager
 def _core_pack_src_on_sys_path():
-    src_root = REPO_ROOT / "display-packs" / CORE_PACK_ID / "src"
+    src_root = core_medical_display_pack_python_src_root(REPO_ROOT)
     src_root_str = str(src_root)
     already_present = src_root_str in sys.path
     if not already_present:
@@ -135,7 +136,7 @@ def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None
     representative_entrypoints = {
         "roc_curve_binary": "Rscript render.R --request {request_json}",
         "time_to_event_multihorizon_calibration_panel": "Rscript render.R --request {request_json}",
-        "cohort_flow_figure": "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell",
+        "cohort_flow_figure": "Rscript render.R --request {request_json}",
         "table1_baseline_characteristics": "fenggaolab_org_medical_display_core.table_shells:render_table_shell",
     }
 
@@ -175,7 +176,7 @@ def test_exported_manifests_move_all_figure_execution_into_pack_local_modules(tm
     ):
         short_id = _short_id(spec.template_id if hasattr(spec, "template_id") else spec.shell_id)
         payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
-        if payload["kind"] == "evidence_figure" and payload["renderer_family"] == "r_ggplot2":
+        if payload["renderer_family"] == "r_ggplot2":
             assert payload["execution_mode"] == "subprocess"
             assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
         else:
@@ -191,15 +192,20 @@ def test_exported_r_ggplot2_templates_are_first_class_subprocess_assets(tmp_path
         for spec in display_registry.list_evidence_figure_specs()
         if spec.renderer_family == "r_ggplot2"
     }
+    r_reporting_flow_ids = {
+        _short_id(spec.shell_id)
+        for spec in display_registry.list_illustration_shell_specs()
+        if spec.renderer_family == "r_ggplot2"
+    }
 
-    assert len(r_template_ids) == 28
+    assert len(r_template_ids) == 34
+    assert r_reporting_flow_ids == {"cohort_flow_figure"}
     assert "time_to_event_risk_group_summary" not in r_template_ids
     assert "time_to_event_landmark_performance_panel" not in r_template_ids
     assert "time_to_event_multihorizon_calibration_panel" in r_template_ids
     assert "time_to_event_decision_curve" in r_template_ids
-    for short_id in sorted(r_template_ids):
+    for short_id in sorted(r_template_ids | r_reporting_flow_ids):
         payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
-        assert payload["kind"] == "evidence_figure"
         assert payload["renderer_family"] == "r_ggplot2"
         assert payload["execution_mode"] == "subprocess"
         assert payload["entrypoint"] == "Rscript render.R --request {request_json}"

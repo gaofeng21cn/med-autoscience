@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 import subprocess
 
+from med_autoscience import display_registry
 from med_autoscience.display_pack_lock import build_display_pack_lock_payload
 
 
@@ -27,7 +28,7 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "display-packs/fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
 version = "0.1.0"
 """.strip()
         + "\n",
@@ -172,7 +173,7 @@ def test_build_display_pack_lock_payload_captures_template_asset_inventory(tmp_p
     repo_root.mkdir()
     _write_local_pack_config(repo_root)
 
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(pack_root, version="0.1.0")
     _write_template_manifest(pack_root / "templates" / "roc_curve_binary")
 
@@ -218,7 +219,7 @@ def test_build_display_pack_lock_payload_locks_publication_style_profile(tmp_pat
     repo_root.mkdir()
     _write_local_pack_config(repo_root)
 
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(pack_root, version="0.1.0")
     _write_template_manifest(pack_root / "templates" / "roc_curve_binary")
     _write_publication_style_profile(paper_root)
@@ -296,8 +297,13 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
         and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     ]
 
-    assert len(template_entries) == 31
-    assert len(r_ggplot2_default_templates) == 28
+    expected_template_count = (
+        len(display_registry.list_evidence_figure_specs())
+        + len(display_registry.list_illustration_shell_specs())
+        + len(display_registry.list_table_shell_specs())
+    )
+    assert len(template_entries) == expected_template_count
+    assert len(r_ggplot2_default_templates) == len(display_registry.list_evidence_figure_specs()) + 1
     assert len(r_ggplot2_default_templates_with_candidate) == 15
     assert "time_to_event_risk_group_summary" not in template_entries
     assert "time_to_event_discrimination_calibration_panel" not in template_entries
@@ -324,6 +330,13 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
     assert template_entries["risk_layering_monotonic_bars"]["candidate_render_script_path"].endswith(
         "templates/risk_layering_monotonic_bars/render_candidate.R"
     )
+    assert template_entries["cohort_flow_figure"]["kind"] == "illustration_shell"
+    assert template_entries["cohort_flow_figure"]["renderer_family"] == "r_ggplot2"
+    assert template_entries["cohort_flow_figure"]["execution_mode"] == "subprocess"
+    assert template_entries["cohort_flow_figure"]["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert display_registry.get_illustration_shell_spec("cohort_flow_figure").required_exports == ("png", "pdf")
+    assert template_entries["submission_graphical_abstract"]["kind"] == "illustration_shell"
+    assert template_entries["submission_graphical_abstract"]["renderer_family"] == "python"
     assert template_entries["omics_volcano_panel"]["render_script_path"].endswith(
         "templates/omics_volcano_panel/render.R"
     )

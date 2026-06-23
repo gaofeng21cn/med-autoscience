@@ -139,7 +139,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/figure_polish_lifecycle_contract.json",
             "contracts/medical_figure_spec_contract.json",
             "contracts/publication_figure_quality_contract.json",
-            "display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json",
+            "external/display-packs/medical-display-core/renderer_dependency_profile.json",
             "src/med_autoscience/display_pack_v2_contract.py",
             "src/med_autoscience/figure_polish_lifecycle_contract.py",
             "src/med_autoscience/medical_figure_spec_contract.py",

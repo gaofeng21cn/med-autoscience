@@ -14,6 +14,7 @@ from med_autoscience.display_pack_loader import (
     load_enabled_local_display_packs,
     resolve_display_pack_selection,
 )
+from med_autoscience.display_pack_paths import CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -30,13 +31,13 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "display-packs/fenggaolab.org.medical-display-core"
+path = "{CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH}"
 version = "{version}"
 
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-extra"
-path = "display-packs/fenggaolab.org.medical-display-extra"
+path = "external/display-packs/medical-display-extra"
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -57,7 +58,7 @@ enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "paper-display-packs/fenggaolab.org.medical-display-core"
+path = "paper-external/display-packs/medical-display-core"
 version = "{version}"
 """.strip()
         + "\n",
@@ -128,7 +129,7 @@ def test_load_enabled_local_display_packs_reads_repo_config(tmp_path: Path) -> N
     _write_display_pack_config(repo_root)
 
     _write_pack_manifest(
-        repo_root / "display-packs" / "fenggaolab.org.medical-display-core",
+        repo_root / "external" / "display-packs" / "medical-display-core",
         pack_id="fenggaolab.org.medical-display-core",
     )
 
@@ -144,7 +145,7 @@ def test_load_enabled_local_display_packs_reads_packaged_default_config(
 ) -> None:
     packaged_root = tmp_path / "packaged_default"
     shutil.copytree(REPO_ROOT / "config", packaged_root / "config")
-    shutil.copytree(REPO_ROOT / "display-packs", packaged_root / "display-packs")
+    shutil.copytree(REPO_ROOT / "external" / "display-packs", packaged_root / "external" / "display-packs")
     monkeypatch.setattr(display_pack_loader, "_PACKAGED_DISPLAY_PACK_REPO_ROOT", packaged_root)
 
     install_root = tmp_path / "installed"
@@ -154,8 +155,7 @@ def test_load_enabled_local_display_packs_reads_packaged_default_config(
     template_records = load_enabled_local_display_pack_template_records(install_root)
     r_renderer_source = (
         packaged_root
-        / "display-packs"
-        / CORE_PACK_ID
+        / CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH
         / "src"
         / "fenggaolab_org_medical_display_core"
         / "evidence_figures"
@@ -241,7 +241,7 @@ def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
 
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(
         pack_root,
         pack_id="fenggaolab.org.medical-display-core",
@@ -261,7 +261,7 @@ def test_load_enabled_local_display_pack_template_records_preserves_pack_root(tm
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
 
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(
         pack_root,
         pack_id="fenggaolab.org.medical-display-core",
@@ -282,7 +282,7 @@ def test_load_enabled_local_display_packs_fails_on_pack_id_mismatch(tmp_path: Pa
     _write_display_pack_config(repo_root)
 
     _write_pack_manifest(
-        repo_root / "display-packs" / "fenggaolab.org.medical-display-core",
+        repo_root / "external" / "display-packs" / "medical-display-core",
         pack_id="fenggaolab.org.other-pack",
     )
 
@@ -296,7 +296,7 @@ def test_load_enabled_local_display_packs_rejects_requested_version_mismatch(tmp
     _write_display_pack_config(repo_root, version="0.2.0")
 
     _write_pack_manifest(
-        repo_root / "display-packs" / "fenggaolab.org.medical-display-core",
+        repo_root / "external" / "display-packs" / "medical-display-core",
         pack_id="fenggaolab.org.medical-display-core",
         version="0.1.0",
     )
@@ -309,7 +309,7 @@ def test_paper_display_pack_config_overrides_repo_source_and_version(tmp_path: P
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     _write_display_pack_config(repo_root, version="0.1.0")
-    repo_pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    repo_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(
         repo_pack_root,
         pack_id="fenggaolab.org.medical-display-core",
@@ -324,7 +324,7 @@ def test_paper_display_pack_config_overrides_repo_source_and_version(tmp_path: P
     paper_root = tmp_path / "paper"
     paper_root.mkdir()
     _write_paper_display_pack_config(paper_root, version="0.2.0")
-    paper_pack_root = paper_root / "paper-display-packs" / "fenggaolab.org.medical-display-core"
+    paper_pack_root = paper_root / "paper-external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(
         paper_pack_root,
         pack_id="fenggaolab.org.medical-display-core",

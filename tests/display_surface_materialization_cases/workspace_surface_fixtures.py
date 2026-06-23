@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from med_autoscience import display_registry
 
 from . import registry_id_helpers as _registry_id_helpers
@@ -18,6 +20,68 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared_base)
 _module_reexport(_registry_id_helpers)
+
+
+def _write_prepared_dependency_environment(paper_root: Path) -> None:
+    build_root = paper_root / "build"
+    build_root.mkdir(parents=True, exist_ok=True)
+    (build_root / "dependency_environment_lock.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "lock_id": "test-display-env-lock",
+                "lock_sha256": "sha256:test-display-env-lock",
+                "source_requirement_refs": [
+                    "external/display-packs/medical-display-core/renderer_dependency_profile.json"
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (build_root / "dependency_run_context.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "run_context_id": "test-display-env-run-context",
+                "execution_fingerprint": "sha256:test-display-env-run-context",
+                "argv_prefix": [],
+                "env_vars": {"MAS_TEST_DEPENDENCY_ENV": "prepared"},
+                "binary_paths": {},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (build_root / "dependency_environment_receipt.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "prepared",
+                "failure_class": "",
+                "lock_ref": "paper/build/dependency_environment_lock.json",
+                "lock_sha256": "sha256:test-display-env-lock",
+                "environment_ref": "test-prepared-display-env",
+                "cache_key": "test-display-env-cache",
+                "target_platform": "test-platform",
+                "binary_checks": [{"name": "Rscript", "status": "present"}],
+                "package_checks": [
+                    {"name": "ggplot2", "status": "present"},
+                    {"name": "ggconsort", "status": "present"},
+                ],
+                "system_requirement_checks": [],
+                "run_context_ref": "paper/build/dependency_run_context.json",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def build_display_surface_workspace(
@@ -140,4 +204,5 @@ def build_display_surface_workspace(
     dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
     write_default_publication_display_contracts(paper_root)
+    _write_prepared_dependency_environment(paper_root)
     return paper_root

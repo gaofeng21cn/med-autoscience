@@ -13,7 +13,7 @@ RESOURCE_PROJECTION_PATH = Path("src/med_autoscience/resources/display_pack_repo
 STAGE_ROUTE_CONTRACT_SOURCE_PATH = Path("agent/stages/stage_route_contract.yaml")
 STAGE_ROUTE_CONTRACT_RESOURCE_PATH = Path("src/med_autoscience/resources/stage_route_contract.yaml")
 DISPLAY_PACK_CONFIG_PATH = Path("config/display_packs.toml")
-DISPLAY_PACKS_ROOT = Path("display-packs")
+DISPLAY_PACKS_ROOT = Path("external/display-packs")
 IGNORED_DIR_NAMES = frozenset((".git", ".hg", ".svn", "__pycache__"))
 IGNORED_FILE_SUFFIXES = frozenset((".pyc", ".pyo"))
 
@@ -48,7 +48,7 @@ def _project_display_pack_repo(source_root: Path, target_root: Path) -> None:
     if target_root.exists():
         rmtree(target_root)
     _copy_file(config_path, target_root / "config" / "display_packs.toml")
-    _copy_tree(packs_root, target_root / "display-packs")
+    _copy_tree(packs_root, target_root / DISPLAY_PACKS_ROOT)
 
 
 def _project_stage_route_contract(source_root: Path, target_path: Path) -> None:

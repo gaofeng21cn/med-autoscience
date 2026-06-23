@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import Any
@@ -41,7 +42,7 @@ def _export_pdf() -> None:
 
 def _copy_docs_gallery() -> None:
     paths.DOCS_PDF_PATH.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(paths.PDF_PATH, paths.DOCS_PDF_PATH)
+    copy_pdf_if_content_changed(paths.PDF_PATH, paths.DOCS_PDF_PATH)
     shutil.copy2(paths.REFERENCE_PATH, paths.DOCS_REFERENCE_PATH)
     shutil.copy2(paths.QUALITY_AUDIT_PATH, paths.DOCS_QUALITY_AUDIT_PATH)
     shutil.copy2(paths.LIDOCAINEQ_PARITY_AUDIT_PATH, paths.DOCS_LIDOCAINEQ_PARITY_AUDIT_PATH)
@@ -58,6 +59,24 @@ def _copy_docs_gallery() -> None:
 
 def _repo_relative_path(value: str) -> str:
     return paths.repo_relative_path(value)
+
+
+_PDF_VOLATILE_METADATA_RE = re.compile(
+    rb"/(?:CreationDate|ModDate) \(D:[0-9+\-']+\)"
+)
+
+
+def _normalized_pdf_bytes(path: Path) -> bytes:
+    return _PDF_VOLATILE_METADATA_RE.sub(
+        b"/VolatileDate (D:00000000000000+00'00')",
+        path.read_bytes(),
+    )
+
+
+def copy_pdf_if_content_changed(source: Path, target: Path) -> None:
+    if target.is_file() and _normalized_pdf_bytes(source) == _normalized_pdf_bytes(target):
+        return
+    shutil.copy2(source, target)
 
 
 def _docs_safe_payload(value: Any) -> Any:
@@ -106,6 +125,7 @@ def _docs_manifest_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "status": payload.get("status"),
         "force_render": payload.get("force_render"),
         "package_only": payload.get("package_only"),
+        "asset_reuse": _docs_safe_payload(payload.get("asset_reuse", {})),
         "render_cache_summary": payload.get("render_cache_summary"),
         **path_fields,
         "evidence_gallery_template_count": payload.get("evidence_gallery_template_count"),

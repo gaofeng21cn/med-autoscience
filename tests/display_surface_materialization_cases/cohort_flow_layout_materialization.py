@@ -4,6 +4,7 @@ from .shared import *
 def test_materialize_display_surface_renders_cohort_flow_with_exclusions_and_design_panels(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
+    _write_prepared_dependency_environment(paper_root)
     dump_json(
         paper_root / "display_registry.json",
         {
@@ -146,12 +147,14 @@ def test_materialize_display_surface_renders_exclusion_aware_cohort_flow_shell(t
     result = module.materialize_display_surface(paper_root=paper_root)
 
     assert result["figures_materialized"] == ["F1"]
-    svg_text = (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").read_text(encoding="utf-8")
-    assert "Cohort derivation, exclusions, and study design" not in svg_text
-    assert "Repeat or" in svg_text
-    assert "salvage" in svg_text
-    assert "Endpoint inventory" in svg_text
-    assert "Validation framework" in svg_text
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.png").exists()
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.pdf").exists()
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F1_cohort_flow.layout.json").read_text(encoding="utf-8")
+    )
+    assert layout_sidecar["metrics"]["exclusions"]
+    assert layout_sidecar["metrics"]["steps"]
+    assert layout_sidecar["metrics"]["design_panels"]
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     qc_result = figure_catalog["figures"][0]["qc_result"]
     assert qc_result["status"] == "pass"

@@ -18,7 +18,7 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "display-packs/fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
 version = "0.1.0"
 """.strip()
         + "\n",
@@ -35,7 +35,7 @@ enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "paper-display-packs/fenggaolab.org.medical-display-core"
+path = "paper-external/display-packs/medical-display-core"
 version = "0.2.0"
 """.strip()
         + "\n",
@@ -191,7 +191,7 @@ def test_resolve_display_template_runtime_keeps_pack_root_and_manifest(tmp_path:
     _write_display_pack_config(repo_root)
     pack_root = _write_demo_pack(
         repo_root,
-        pack_dir="display-packs/fenggaolab.org.medical-display-core",
+        pack_dir="external/display-packs/medical-display-core",
         module_name="demo_display_core_repo",
         version="0.1.0",
         return_prefix="repo",
@@ -223,25 +223,20 @@ def test_resolve_display_template_runtime_migrates_aliases_on_default_surface() 
     assert migration_runtime.template_manifest.template_id == "time_dependent_roc_horizon"
 
 
-def test_checked_in_cohort_flow_runtime_loads_pack_local_python_plugin() -> None:
+def test_checked_in_cohort_flow_runtime_uses_pack_local_ggconsort_subprocess() -> None:
     repo_root = Path(__file__).resolve().parents[1]
 
     runtime = resolve_display_template_runtime(
         repo_root=repo_root,
         template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
     )
-    target = load_python_plugin_callable(
-        repo_root=repo_root,
-        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
-    )
 
     assert runtime.template_manifest.kind == "illustration_shell"
-    assert runtime.template_manifest.renderer_family == "python"
-    assert runtime.template_manifest.execution_mode == "python_plugin"
-    assert runtime.template_manifest.entrypoint == (
-        "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
-    )
-    assert callable(target)
+    assert runtime.template_manifest.renderer_family == "r_ggplot2"
+    assert runtime.template_manifest.execution_mode == "subprocess"
+    assert runtime.template_manifest.required_exports == ("png", "pdf")
+    assert runtime.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
+    assert (runtime.template_path.parent / "render.R").is_file()
 
 
 def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> None:
@@ -250,7 +245,7 @@ def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> N
     _write_display_pack_config(repo_root)
     _write_demo_pack(
         repo_root,
-        pack_dir="display-packs/fenggaolab.org.medical-display-core",
+        pack_dir="external/display-packs/medical-display-core",
         module_name="demo_display_core_repo",
         version="0.1.0",
         return_prefix="repo",
@@ -280,7 +275,7 @@ def test_paper_root_override_changes_runtime_resolution(tmp_path: Path) -> None:
     _write_display_pack_config(repo_root)
     repo_pack_root = _write_demo_pack(
         repo_root,
-        pack_dir="display-packs/fenggaolab.org.medical-display-core",
+        pack_dir="external/display-packs/medical-display-core",
         module_name="demo_display_core_repo",
         version="0.1.0",
         return_prefix="repo",
@@ -291,7 +286,7 @@ def test_paper_root_override_changes_runtime_resolution(tmp_path: Path) -> None:
     _write_paper_display_pack_config(paper_root)
     paper_pack_root = _write_demo_pack(
         paper_root,
-        pack_dir="paper-display-packs/fenggaolab.org.medical-display-core",
+        pack_dir="paper-external/display-packs/medical-display-core",
         module_name="demo_display_core_paper",
         version="0.2.0",
         return_prefix="paper",

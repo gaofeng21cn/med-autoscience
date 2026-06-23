@@ -6,9 +6,10 @@ import sys
 
 from med_autoscience.display_layout_qc import run_display_layout_qc
 from med_autoscience.display_pack_gallery_parts.payloads import _style_context_for
+from med_autoscience.display_pack_paths import core_medical_display_pack_python_src_root
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PACK_SRC = REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core" / "src"
+PACK_SRC = core_medical_display_pack_python_src_root(REPO_ROOT)
 sys.path.insert(0, str(PACK_SRC))
 
 from fenggaolab_org_medical_display_core.illustration_shells import render_illustration_shell
@@ -198,62 +199,3 @@ def test_submission_graphical_abstract_square_storyline_uses_square_canvas(tmp_p
     )
     assert qc_result["status"] == "pass"
     assert qc_result["issues"] == []
-
-
-def test_cohort_flow_participant_renderer_marks_generated_fallback_not_ggconsort(tmp_path: Path) -> None:
-    payload = {
-        "schema_version": 1,
-        "shell_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
-        "display_id": "cohort_flow_figure",
-        "title": "Participant flow",
-        "layout_mode": "participant_flow",
-        "steps": [
-            {
-                "step_id": "screened",
-                "label": "Screened",
-                "n": 120,
-                "details": ["registry query locked before exclusions"],
-                "exclusion_ids": ["no-baseline"],
-            },
-            {
-                "step_id": "included",
-                "label": "Included",
-                "n": 96,
-                "details": ["analysis cohort"],
-            },
-        ],
-        "exclusions": [
-            {
-                "exclusion_id": "no-baseline",
-                "from_step_id": "screened",
-                "label": "Missing baseline data",
-                "n": 24,
-            }
-        ],
-        "endpoint_inventory": [],
-        "design_panels": [],
-        "comparison_summary": {},
-    }
-
-    layout_path = tmp_path / "cohort-flow.layout.json"
-    render_illustration_shell(
-        template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
-        shell_payload=payload,
-        render_context=_style_context_for("cohort_flow_figure"),
-        output_svg_path=tmp_path / "cohort-flow.svg",
-        output_png_path=tmp_path / "cohort-flow.png",
-        output_layout_path=layout_path,
-        output_pdf_path=tmp_path / "cohort-flow.pdf",
-        payload_path=tmp_path / "cohort-flow.payload.json",
-    )
-
-    sidecar = json.loads(layout_path.read_text(encoding="utf-8"))
-    metrics = sidecar["metrics"]
-
-    assert metrics["layout_mode"] == "participant_flow"
-    assert metrics["reporting_flow_kind"] == "consort_strobe_participant_flow"
-    assert metrics["dependency_profile_ref"] == "r_ggplot2_ggconsort_reporting_flow_v1"
-    assert metrics["mature_dependency_intent"] == "ggconsort_capable_reporting_flow"
-    assert metrics["generated_fallback_renderer"] == "python_participant_flow"
-    assert metrics["uses_ggconsort"] is False
-    assert metrics["ggconsort_capable_prepared_environment_required"] is True

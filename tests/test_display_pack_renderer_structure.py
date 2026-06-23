@@ -13,18 +13,17 @@ import tomllib
 from med_autoscience.display_pack_gallery_parts.lidocaineq_coverage import (
     LIDOCAINEQ_COVERAGE_ITEMS,
 )
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CORE_PACK_ROOT = core_medical_display_pack_root(REPO_ROOT)
 CORE_PACK_MODULE_ROOT = (
-    REPO_ROOT
-    / "display-packs"
-    / "fenggaolab.org.medical-display-core"
+    CORE_PACK_ROOT
     / "src"
     / "fenggaolab_org_medical_display_core"
 )
 CORE_PACK_SRC_ROOT = CORE_PACK_MODULE_ROOT.parent
-CORE_PACK_ROOT = REPO_ROOT / "display-packs" / "fenggaolab.org.medical-display-core"
 
 
 def _candidate_request(
@@ -113,14 +112,14 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
     assert len(r_templates) == 34
 
 
-def test_cohort_flow_materialization_manifest_uses_pack_local_python_plugin() -> None:
+def test_cohort_flow_materialization_manifest_uses_pack_local_ggconsort_subprocess() -> None:
     manifest_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "template.toml"
     payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert payload["kind"] == "illustration_shell"
-    assert payload["renderer_family"] == "python"
-    assert payload["execution_mode"] == "python_plugin"
-    assert payload["entrypoint"] == "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
+    assert payload["renderer_family"] == "r_ggplot2"
+    assert payload["execution_mode"] == "subprocess"
+    assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
 
 
 def test_cohort_flow_checked_in_ggconsort_renderer_asset_does_not_install_packages() -> None:
@@ -488,6 +487,7 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
                     "selected_requirement_profile_ids": [
                         "r_ggplot2_evidence_subprocess_v1",
                         "r_ggplot2_alluvial_transition_v1",
+                        "r_ggplot2_ggconsort_reporting_flow_v1",
                     ],
                     "binary_paths": {"Rscript": "/opt/opl/bin/Rscript"},
                     "env_vars": {
@@ -563,6 +563,32 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
         medical_family_ids=(),
         publication_quality_profile={},
     )
+    cohort_flow_record = TemplateRecord(
+        template_id="cohort_flow_figure",
+        full_template_id="fenggaolab.org.medical-display-core::cohort_flow_figure",
+        display_name="Cohort Flow Figure",
+        kind="illustration_shell",
+        audit_family="Publication Shells and Tables",
+        renderer_family="r_ggplot2",
+        execution_mode="subprocess",
+        entrypoint="Rscript render.R --request {request_json}",
+        paper_proven=False,
+        required_exports=("png", "pdf"),
+        template_dir=CORE_PACK_ROOT / "templates" / "cohort_flow_figure",
+        canonical_family_id="",
+        canonical_family_title="",
+        canonical_family_category="",
+        canonical_template_id="cohort_flow_figure",
+        figure_archetype="",
+        migration_status="canonical",
+        default_visible=True,
+        migrated_alias_template_ids=(),
+        migration_reason="",
+        analysis_responsibility="",
+        analysis_input_state="",
+        medical_family_ids=(),
+        publication_quality_profile={},
+    )
     calls: list[dict[str, object]] = []
     png_bytes = (
         b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
@@ -594,38 +620,41 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
 
     rendering._render_r_template(record, {}, force_render=True)
     rendering._render_r_gallery_preview(preview_record, {}, force_render=True)
+    rendering._render_r_template(cohort_flow_record, {}, force_render=True)
 
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert {call["request"]["short_template_id"] for call in calls} == {
         "alluvial_transition",
         "table1_baseline_characteristics",
+        "cohort_flow_figure",
     }
     for call in calls:
+        expected_profile_ids = {
+            "r_ggplot2_evidence_subprocess_v1",
+            "r_ggplot2_alluvial_transition_v1",
+        } if call["request"]["short_template_id"] == "alluvial_transition" else (
+            {
+                "r_ggplot2_evidence_subprocess_v1",
+                "r_ggplot2_ggconsort_reporting_flow_v1",
+            } if call["request"]["short_template_id"] == "cohort_flow_figure" else {
+                "r_ggplot2_evidence_subprocess_v1",
+            }
+        )
         assert call["argv"][0] == "/opt/opl/bin/Rscript"
         assert call["env"]["R_LIBS_USER"] == str(tmp_path / "opl-managed-r-lib")
         assert call["env"]["OPL_RUNTIME_ENVIRONMENT_STATUS"] == "prepared"
-        assert call["request"]["dependency_environment"] == {
-            "status": "prepared",
-            "run_context_ref": str(run_context_path),
-            "run_context_fingerprint": "sha256:test-opl-run-context",
-            "required_profile_ids": (
-                "r_ggplot2_alluvial_transition_v1"
-                if call["request"]["short_template_id"] == "alluvial_transition"
-                else "r_ggplot2_evidence_subprocess_v1"
-            ),
-        }
-        assert call["request"]["dependency_cache_context"] == {
-            "status": "prepared",
-            "run_context_ref": str(run_context_path),
-            "run_context_fingerprint": "sha256:test-opl-run-context",
-            "required_profile_ids": (
-                "r_ggplot2_alluvial_transition_v1"
-                if call["request"]["short_template_id"] == "alluvial_transition"
-                else "r_ggplot2_evidence_subprocess_v1"
-            ),
-            "rscript_path": "/opt/opl/bin/Rscript",
-            "r_libs_user": str(tmp_path / "opl-managed-r-lib"),
-        }
+        dependency_environment = call["request"]["dependency_environment"]
+        assert dependency_environment["status"] == "prepared"
+        assert dependency_environment["run_context_ref"] == str(run_context_path)
+        assert dependency_environment["run_context_fingerprint"] == "sha256:test-opl-run-context"
+        assert set(dependency_environment["required_profile_ids"].split(",")) == expected_profile_ids
+        dependency_cache_context = call["request"]["dependency_cache_context"]
+        assert dependency_cache_context["status"] == "prepared"
+        assert dependency_cache_context["run_context_ref"] == str(run_context_path)
+        assert dependency_cache_context["run_context_fingerprint"] == "sha256:test-opl-run-context"
+        assert set(dependency_cache_context["required_profile_ids"].split(",")) == expected_profile_ids
+        assert dependency_cache_context["rscript_path"] == "/opt/opl/bin/Rscript"
+        assert dependency_cache_context["r_libs_user"] == str(tmp_path / "opl-managed-r-lib")
 
 
 def test_gallery_builder_packages_cached_assets_by_default(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -773,6 +802,52 @@ def test_gallery_builder_package_only_skips_renderer_preflight(monkeypatch, tmp_
     assert calls["render_records"] == [(False, True)]
 
 
+def test_gallery_builder_package_only_fails_closed_without_assets(monkeypatch, tmp_path: Path) -> None:
+    from med_autoscience.display_pack_gallery_catalog import TemplateRecord
+    from med_autoscience.display_pack_gallery_parts import cli as gallery_cli
+
+    record = TemplateRecord(
+        template_id="roc_curve_binary",
+        full_template_id="fenggaolab.org.medical-display-core::roc_curve_binary",
+        display_name="ROC Curve",
+        kind="evidence_figure",
+        audit_family="Prediction Performance",
+        renderer_family="r_ggplot2",
+        execution_mode="subprocess",
+        entrypoint="Rscript render.R --request {request_json}",
+        paper_proven=False,
+        required_exports=("png", "pdf"),
+        template_dir=CORE_PACK_ROOT / "templates" / "roc_curve_binary",
+        canonical_family_id="roc_curve_binary",
+        canonical_family_title="ROC Curve",
+        canonical_family_category="Prediction Performance",
+        canonical_template_id="roc_curve_binary",
+        figure_archetype="curve",
+        migration_status="canonical",
+        default_visible=True,
+        migrated_alias_template_ids=(),
+        migration_reason="",
+        analysis_responsibility="validated_summary_required",
+        analysis_input_state="validated_summary",
+        medical_family_ids=("prediction_model_performance",),
+        publication_quality_profile={},
+    )
+
+    monkeypatch.setattr(gallery_cli.shutil, "which", lambda _: None)
+    monkeypatch.setattr(gallery_cli, "read_template_records", lambda *_: [record])
+    monkeypatch.setattr(gallery_cli, "seed_package_only_assets_from_docs_mirror", lambda: {"status": "source_missing"})
+
+    try:
+        gallery_cli.main(["--output-root", str(tmp_path / "package-only"), "--package-only"])
+    except RuntimeError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("package-only gallery build should fail when required assets are absent")
+
+    assert "package-only gallery build requires existing rendered gallery assets" in message
+    assert "roc_curve_binary.png" in message
+
+
 def test_embedding_templates_use_feature_matrix_workflow_schema() -> None:
     expected = {
         "pca_scatter_grouped": "dimensionality_reduction_inputs_v1",
@@ -788,7 +863,7 @@ def test_embedding_templates_use_feature_matrix_workflow_schema() -> None:
 def test_r_embedding_renderer_computes_pca_from_feature_matrix_without_reusing_points() -> None:
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
 payload <- list(
   title = "PCA probe",
   x_label = "PC1",
@@ -839,7 +914,7 @@ stopifnot(identical(metrics$analysis_provenance$feature_count, 3L))
 def test_r_embedding_renderer_requires_real_tsne_and_umap_backends() -> None:
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
 payload <- list(
   title = "Embedding probe",
   x_label = "x",
@@ -886,7 +961,7 @@ def test_publication_embedding_gallery_payload_drives_distinct_reduction_workflo
         payload_path.write_text(json.dumps(payloads), encoding="utf-8")
         r_script = """
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
 med_autoscience_payloads <- jsonlite::fromJSON("__PAYLOAD_PATH__", simplifyVector = FALSE)
 pca_payload <- med_autoscience_payloads$pca_scatter_grouped
 tsne_payload <- med_autoscience_payloads$tsne_scatter_grouped
@@ -936,7 +1011,7 @@ def test_embedding_layout_sidecar_preserves_nonzero_panel_and_point_positions() 
         payload_path.write_text(json.dumps(payload), encoding="utf-8")
         r_script = """
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("display-packs/fenggaolab.org.medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
 payload <- jsonlite::fromJSON("__PAYLOAD_PATH__", simplifyVector = FALSE)
 plot <- build_evidence_plot("pca_scatter_grouped", payload)
 sidecar <- build_layout_sidecar(plot, "pca_scatter_grouped", payload)
