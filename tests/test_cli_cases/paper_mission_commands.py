@@ -222,6 +222,13 @@ def test_paper_mission_cli_returns_no_write_json_plan(
     assert payload["transaction_state"] == "not_materialized"
     assert payload["stage_terminal_decision"]["authority_materialized"] is False
     assert payload["opl_route_command"]["authority_materialized"] is False
+    assert payload["opl_runtime_carrier"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
+    assert payload["opl_runtime_carrier"]["provider_admission_pending"] is False
+    assert payload["opl_runtime_carrier"][
+        "provider_admission_requires_opl_runtime_result"
+    ] is True
     assert payload["paper_mission_run_candidate"]["transaction_state"] == (
         "not_materialized"
     )
@@ -446,6 +453,13 @@ def test_paper_mission_start_reads_materialized_one_shot_mission_when_present(
     assert payload["opl_route_command"] == (
         mission_payload["paper_mission_transaction"]["opl_route_command"]
     )
+    assert payload["opl_runtime_carrier"]["paper_mission_transaction_ref"] == (
+        mission_payload["paper_mission_transaction"]["transaction_id"]
+    )
+    assert payload["opl_runtime_carrier"]["opl_route_command"] == payload[
+        "opl_route_command"
+    ]
+    assert payload["opl_runtime_carrier"]["can_write_opl_stage_run"] is False
     assert payload["dispatch_plan"]["domain_handler_dispatch_mode"] == (
         "materialized_mission_readback_no_write"
     )
@@ -682,6 +696,13 @@ def test_paper_mission_materialized_legacy_run_without_transaction_terminalizes_
     )
     assert payload["opl_route_command"]["command_kind"] == "start_next_stage"
     assert payload["opl_route_command"]["target"] == "publication_gate_replay"
+    assert payload["opl_runtime_carrier"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
+    assert payload["opl_runtime_carrier"]["carrier_status"] == (
+        "waiting_for_opl_runtime_live_readback"
+    )
+    assert payload["opl_runtime_carrier"]["can_claim_provider_running"] is False
     assert payload["paper_mission_transaction_readback"]["source"] == (
         "materialized_paper_mission_run"
     )

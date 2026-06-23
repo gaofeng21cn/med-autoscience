@@ -9,6 +9,9 @@ from med_autoscience.paper_mission_run import (
     PaperMissionRun,
     REQUIRED_PAPER_AUDIT_PACK_FAMILIES,
 )
+from med_autoscience.paper_mission_opl_carrier import (
+    paper_mission_opl_runtime_carrier,
+)
 from med_autoscience.paper_mission_transaction import (
     PaperMissionTransaction,
     build_paper_mission_transaction,
@@ -131,6 +134,9 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "opl_route_command": paper_mission_run["paper_mission_transaction"][
             "opl_route_command"
         ],
+        "opl_runtime_carrier": paper_mission_opl_runtime_carrier(
+            paper_mission_run["paper_mission_transaction"]
+        ),
         "transaction_state": _transaction_state(
             paper_mission_run["paper_mission_transaction"]
         ),
@@ -188,6 +194,7 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["paper_mission_transaction"] = summary["paper_mission_transaction"]
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
     updated["opl_route_command"] = summary["opl_route_command"]
+    updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
     updated["transaction_state"] = summary["transaction_state"]
     return updated
 
@@ -296,6 +303,7 @@ def _materialized_mission_summary(
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
         "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "opl_runtime_carrier": paper_mission_opl_runtime_carrier(transaction),
         "transaction_state": transaction_state,
         "mission_state": mission_state,
         "current_objective": current_objective,

@@ -15,6 +15,9 @@ from med_autoscience.paper_mission import (
     paper_mission_owner_decision_packet,
 )
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+from med_autoscience.paper_mission_opl_carrier import (
+    paper_mission_opl_runtime_carrier,
+)
 from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
@@ -1122,6 +1125,7 @@ def _paper_mission_transaction_readback(
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
         "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "opl_runtime_carrier": paper_mission_opl_runtime_carrier(transaction),
         "transaction_state": _transaction_state(transaction),
         "writes_authority": False,
         "writes_runtime": False,
@@ -1159,6 +1163,7 @@ def _transaction_readback_output_fields(
     return {
         "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
         "opl_route_command": transaction_readback["opl_route_command"],
+        "opl_runtime_carrier": transaction_readback["opl_runtime_carrier"],
         "transaction_state": transaction_readback["transaction_state"],
         "paper_mission_transaction_readback": transaction_readback,
     }

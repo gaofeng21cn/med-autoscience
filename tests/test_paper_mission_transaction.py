@@ -11,6 +11,7 @@ from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
 )
+from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
 
 
 pytestmark = [pytest.mark.contract, pytest.mark.meta]
@@ -104,6 +105,18 @@ def test_contract_declares_terminalizer_boundary() -> None:
     assert "read_model_status_is_stage_terminal_decision" in contract[
         "opl_route_command"
     ]["forbidden_runtime_claims"]
+    assert contract["opl_runtime_carrier"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
+    assert contract["opl_runtime_carrier"]["target_runtime_kind"] == (
+        "DomainProgressTransitionRuntime"
+    )
+    assert contract["opl_runtime_carrier"]["request_only_flags"][
+        "provider_admission_requires_opl_runtime_result"
+    ] is True
+    assert "stage_run_identity" in contract["opl_runtime_carrier"][
+        "forbidden_runtime_fields"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -124,9 +137,12 @@ def test_transaction_maps_terminal_decision_to_opl_route_command(
     transaction = PaperMissionTransaction.from_payload(
         _valid_transaction(decision_kind)
     )
+    carrier = paper_mission_opl_runtime_carrier(transaction.to_dict())
 
     assert transaction.stage_terminal_decision["decision_kind"] == decision_kind
     assert transaction.opl_route_command["command_kind"] == expected_command
+    assert carrier["opl_route_command"]["command_kind"] == expected_command
+    assert carrier["provider_admission_requires_opl_runtime_result"] is True
     assert transaction.authority_boundary["writes_runtime_queue"] is False
     assert transaction.authority_boundary["writes_provider_attempt"] is False
 

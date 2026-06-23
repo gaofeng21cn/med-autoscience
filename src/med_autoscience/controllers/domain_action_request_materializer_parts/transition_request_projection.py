@@ -33,6 +33,7 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
     request = _mapping(dispatch.get("opl_domain_progress_transition_request")) or _mapping(
         _mapping(dispatch.get("prompt_contract")).get("opl_domain_progress_transition_request")
     )
+    paper_mission_carrier = _mapping(dispatch.get("opl_runtime_carrier"))
     source_action = _mapping(dispatch.get("source_action"))
     owner_route = _mapping(dispatch.get("owner_route"))
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
@@ -44,6 +45,22 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
         "legacy_owner_callable_adapter_readback": False,
         "legacy_owner_callable_adapter_missing_opl_request": not bool(request),
         "opl_domain_progress_transition_request": request or None,
+        "paper_mission_transaction_ref": _text(
+            paper_mission_carrier.get("paper_mission_transaction_ref")
+        ),
+        "stage_terminal_decision_ref": _text(
+            paper_mission_carrier.get("stage_terminal_decision_ref")
+        ),
+        "opl_route_command_ref": _text(
+            paper_mission_carrier.get("opl_route_command_ref")
+        ),
+        "paper_mission_opl_route_command": _mapping(
+            paper_mission_carrier.get("opl_route_command")
+        )
+        or None,
+        "paper_mission_opl_runtime_carrier_ref": _paper_mission_opl_carrier_ref(
+            paper_mission_carrier
+        ),
         "domain_intent_ref": _domain_intent_ref(dispatch),
         "authority_boundary": _mapping(dispatch.get("authority_boundary")) or None,
         "stage_transition_authority_boundary_ref": _stage_transition_authority_boundary_ref(dispatch)
@@ -137,6 +154,8 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
 
 def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
     refs = _mapping(payload.get("refs"))
+    carrier = _mapping(payload.get("opl_runtime_carrier"))
+    aggregate_identity = _mapping(carrier.get("aggregate_identity"))
     source_action = _mapping(payload.get("source_action"))
     prompt_contract = _mapping(payload.get("prompt_contract"))
     request = _mapping(payload.get("opl_domain_progress_transition_request")) or _mapping(
@@ -156,6 +175,8 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
         for key, value in {
             "study_id": _first_text(
                 payload,
+                carrier,
+                aggregate_identity,
                 request,
                 prompt_contract,
                 source_action,
@@ -177,6 +198,7 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
             ),
             "route_identity_key": _first_text(
                 payload,
+                carrier,
                 request,
                 prompt_contract,
                 refs,
@@ -187,6 +209,7 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
             ),
             "attempt_idempotency_key": _first_text(
                 payload,
+                carrier,
                 request,
                 prompt_contract,
                 refs,
@@ -197,6 +220,8 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
             ),
             "work_unit_id": (
                 _text(payload.get("work_unit_id"))
+                or _text(carrier.get("work_unit_id"))
+                or _text(aggregate_identity.get("work_unit_id"))
                 or _text(payload.get("next_work_unit"))
                 or _text(source_action.get("work_unit_id"))
                 or _text(request.get("work_unit_id"))
@@ -206,6 +231,8 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
             ),
             "work_unit_fingerprint": (
                 _text(payload.get("work_unit_fingerprint"))
+                or _text(carrier.get("work_unit_fingerprint"))
+                or _text(aggregate_identity.get("work_unit_fingerprint"))
                 or _text(payload.get("action_fingerprint"))
                 or _text(source_action.get("work_unit_fingerprint"))
                 or _text(request.get("work_unit_fingerprint"))
@@ -215,6 +242,7 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
                 or _text(currentness_basis.get("work_unit_fingerprint"))
             ),
             "action_fingerprint": _text(payload.get("action_fingerprint"))
+            or _text(carrier.get("work_unit_fingerprint"))
             or _text(payload.get("work_unit_fingerprint")),
             "next_executable_owner": _text(payload.get("next_executable_owner"))
             or _text(request.get("next_owner"))
@@ -228,6 +256,9 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
             "stage_packet_ref": _text(payload.get("stage_packet_ref")) or _text(refs.get("stage_packet_ref")),
             "stage_packet_refs": payload.get("stage_packet_refs") or refs.get("stage_packet_refs"),
             "currentness_basis": currentness_basis or None,
+            "request_idempotency_key": _text(carrier.get("request_idempotency_key"))
+            or _text(request.get("request_idempotency_key"))
+            or _text(payload.get("request_idempotency_key")),
         }.items()
         if value is not None
     }
@@ -537,6 +568,45 @@ def _progress_first_closeout_admission_ref(admission: Mapping[str, Any]) -> dict
         "source_ref": _text(admission.get("source_ref")),
         "route_identity_key": _text(admission.get("route_identity_key")),
         "attempt_idempotency_key": _text(admission.get("attempt_idempotency_key")),
+    }
+    return {key: value for key, value in ref.items() if value is not None}
+
+
+def _paper_mission_opl_carrier_ref(
+    carrier: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not carrier:
+        return None
+    aggregate_identity = _mapping(carrier.get("aggregate_identity"))
+    ref = {
+        "diagnostic_ref_only": False,
+        "payload_body_omitted": True,
+        "surface_kind": _text(carrier.get("surface_kind")),
+        "source_kind": _text(carrier.get("source_kind")),
+        "target_runtime_owner": _text(carrier.get("target_runtime_owner")),
+        "target_runtime_kind": _text(carrier.get("target_runtime_kind")),
+        "runtime_contract_ref": _text(carrier.get("runtime_contract_ref")),
+        "paper_mission_transaction_ref": _text(
+            carrier.get("paper_mission_transaction_ref")
+        ),
+        "stage_terminal_decision_ref": _text(carrier.get("stage_terminal_decision_ref")),
+        "opl_route_command_ref": _text(carrier.get("opl_route_command_ref")),
+        "study_id": _text(carrier.get("study_id")),
+        "work_unit_id": _text(carrier.get("work_unit_id"))
+        or _text(aggregate_identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(carrier.get("work_unit_fingerprint"))
+        or _text(aggregate_identity.get("work_unit_fingerprint")),
+        "route_identity_key": _text(carrier.get("route_identity_key")),
+        "attempt_idempotency_key": _text(carrier.get("attempt_idempotency_key")),
+        "request_idempotency_key": _text(carrier.get("request_idempotency_key")),
+        "dispatch_status": _text(carrier.get("dispatch_status")),
+        "carrier_status": _text(carrier.get("carrier_status")),
+        "provider_admission_requires_opl_runtime_result": carrier.get(
+            "provider_admission_requires_opl_runtime_result"
+        ),
+        "provider_completion_is_domain_completion": carrier.get(
+            "provider_completion_is_domain_completion"
+        ),
     }
     return {key: value for key, value in ref.items() if value is not None}
 

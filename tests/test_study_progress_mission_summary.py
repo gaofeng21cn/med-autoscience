@@ -149,6 +149,16 @@ def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "typed_blocker"
     assert payload["opl_route_command"]["command_kind"] == "stop_with_typed_blocker"
+    assert payload["opl_runtime_carrier"]["surface_kind"] == (
+        "mas_domain_progress_transition_request"
+    )
+    assert payload["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
+        "stop_with_typed_blocker"
+    )
+    assert payload["opl_runtime_carrier"][
+        "provider_admission_requires_opl_runtime_result"
+    ] is True
+    assert payload["opl_runtime_carrier"]["can_write_opl_stage_run"] is False
     assert payload["transaction_state"] == {
         "transaction_id": transaction["transaction_id"],
         "contract_ref": "contracts/paper_mission_transaction_contract.json",
@@ -292,6 +302,9 @@ def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "advance"
     assert payload["opl_route_command"]["command_kind"] == "start_next_stage"
+    assert payload["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
+        "start_next_stage"
+    )
     assert payload["next_owner_or_human_decision"]["next_owner"] == "analysis-campaign"
 
 
@@ -377,6 +390,9 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     ).mission_id == paper_mission_run["mission_id"]
     assert summary["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert summary["opl_route_command"]["command_kind"] == "resume_stage"
+    assert summary["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
+        "resume_stage"
+    )
     assert summary["transaction_state"]["route_command_kind"] == "resume_stage"
     assert paper_mission_run["consume_result"] == {"status": "not_consumed"}
     assert paper_mission_run["forbidden_write_guard"]["candidate_writes_authority"] is False
@@ -431,5 +447,8 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["opl_runtime_carrier"]["carrier_status"] == (
+        "waiting_for_opl_runtime_live_readback"
+    )
     assert payload["next_owner_or_human_decision"]["next_owner"] == "ai_reviewer"
     assert payload["platform_diagnostics"]["counts_as_paper_progress"] is False
