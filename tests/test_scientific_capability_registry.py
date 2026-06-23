@@ -120,6 +120,22 @@ def _write_tables_materialized_package(
         "module_id": "opl.scholarskills.tables",
         "execution_receipt_ref": "opl-vault:receipts/tables/receipt.json",
         "artifact_manifest_path": str(artifact_manifest_path),
+        "candidate_artifacts": [
+            {
+                "kind": "table_manifest",
+                "ref": "opl-vault:tables/table_manifest.json",
+                "sha256": "sha256:table-manifest",
+                "readiness_notes": ["candidate table package ready for MAS owner review"],
+                "missing_inputs": [],
+            }
+        ],
+        "candidate_artifact_bodies": {
+            "table_summary": {
+                "body": {"rows": 2, "columns": ["metric", "value"]},
+                "readiness_notes": ["body carried only as candidate artifact evidence"],
+                "missing_inputs": ["owner_acceptance_ref"],
+            }
+        },
         "execution_receipt_refs": {
             "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
             "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
@@ -980,6 +996,26 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
                 "module_id": "opl.scholarskills.tables",
                 "execution_receipt_ref": "opl-vault:receipts/tables/receipt.json",
                 "artifact_manifest_path": str(artifact_manifest_path),
+                "candidate_artifacts": [
+                    {
+                        "kind": "table_manifest",
+                        "ref": "opl-vault:tables/table_manifest.json",
+                        "sha256": "sha256:table-manifest",
+                        "readiness_notes": [
+                            "candidate table package ready for MAS owner review"
+                        ],
+                        "missing_inputs": [],
+                    }
+                ],
+                "candidate_artifact_bodies": {
+                    "table_summary": {
+                        "body": {"rows": 2, "columns": ["metric", "value"]},
+                        "readiness_notes": [
+                            "body carried only as candidate artifact evidence"
+                        ],
+                        "missing_inputs": ["owner_acceptance_ref"],
+                    }
+                },
                 "execution_receipt_refs": {
                     "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
                     "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
@@ -1064,6 +1100,47 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
     assert package_consumption["manifest_path"] == str(manifest_path.resolve())
     assert package_consumption["execution_receipt_path"] == str(receipt_path.resolve())
     assert package_consumption["authority_flags_false"] is True
+    assert package_consumption["candidate_artifact_count"] == 4
+    candidate_artifacts = package_consumption["candidate_artifacts"]
+    ref_artifact = next(
+        artifact
+        for artifact in candidate_artifacts
+        if artifact["kind"] == "table_manifest"
+        and artifact["ref"] == "opl-vault:tables/table_manifest.json"
+    )
+    assert ref_artifact == {
+        "kind": "table_manifest",
+        "ref": "opl-vault:tables/table_manifest.json",
+        "sha256": "sha256:table-manifest",
+        "authority": False,
+        "authority_flags": {},
+        "authority_flags_false": True,
+        "readiness_notes": ["candidate table package ready for MAS owner review"],
+        "missing_inputs": [],
+        "body_included": False,
+        "body_carried_to_owner_request": False,
+        "written_files": [],
+        "forbidden_written_file_collisions": [],
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "can_authorize_publication_readiness": False,
+    }
+    body_artifact = next(
+        artifact for artifact in candidate_artifacts if artifact["kind"] == "table_summary"
+    )
+    assert body_artifact["kind"] == "table_summary"
+    assert body_artifact["ref"] is None
+    assert body_artifact["sha256"].startswith("sha256:")
+    assert body_artifact["authority"] is False
+    assert body_artifact["body_included"] is True
+    assert body_artifact["body_carried_to_owner_request"] is False
+    assert body_artifact["readiness_notes"] == [
+        "body carried only as candidate artifact evidence"
+    ]
+    assert body_artifact["missing_inputs"] == ["owner_acceptance_ref"]
+    assert package_consumption["candidate_artifact_missing_inputs"] == [
+        "owner_acceptance_ref"
+    ]
     assert package_consumption["forbidden_written_file_collisions"] == []
     assert package_consumption["mas_consumer_written_files"] == []
     assert package_consumption["counts_as_paper_truth"] is False
@@ -1091,6 +1168,40 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
         manifest_path.resolve()
     )
     assert owner_gate_request["materialized_package_sha256"] == "sha256:receipt"
+    assert owner_gate_request["candidate_artifact_count"] == 4
+    assert owner_gate_request["candidate_artifact_missing_inputs"] == [
+        "owner_acceptance_ref"
+    ]
+    owner_ref_artifact = next(
+        artifact
+        for artifact in owner_gate_request["candidate_artifacts"]
+        if artifact["kind"] == "table_manifest"
+        and artifact["ref"] == "opl-vault:tables/table_manifest.json"
+    )
+    assert owner_ref_artifact == {
+        "kind": "table_manifest",
+        "ref": "opl-vault:tables/table_manifest.json",
+        "sha256": "sha256:table-manifest",
+        "authority": False,
+        "authority_flags_false": True,
+        "readiness_notes": ["candidate table package ready for MAS owner review"],
+        "missing_inputs": [],
+        "body_included": False,
+        "body_carried_to_owner_request": False,
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "can_authorize_publication_readiness": False,
+    }
+    owner_body_artifact = next(
+        artifact
+        for artifact in owner_gate_request["candidate_artifacts"]
+        if artifact["kind"] == "table_summary"
+    )
+    assert owner_body_artifact["kind"] == "table_summary"
+    assert owner_body_artifact["sha256"] == body_artifact["sha256"]
+    assert owner_body_artifact["body_included"] is True
+    assert owner_body_artifact["body_carried_to_owner_request"] is False
+    assert owner_body_artifact["missing_inputs"] == ["owner_acceptance_ref"]
     assert owner_gate_request["required_owner_response_shapes"] == [
         "owner_receipt_ref",
         "typed_blocker_ref",
@@ -1107,6 +1218,12 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
     assert owner_gate_handoff["handoff_status"] == "ready_for_owner_gate_review"
     assert owner_gate_handoff["next_owner"] == "MAS owner gate"
     assert owner_gate_handoff["source_request_ref"] == "inline:owner_gate_request"
+    assert owner_gate_handoff["candidate_artifact_missing_inputs"] == [
+        "owner_acceptance_ref"
+    ]
+    assert owner_gate_handoff["candidate_artifacts"] == owner_gate_request[
+        "candidate_artifacts"
+    ]
     assert owner_gate_handoff["mas_consumer_written_files"] == []
     assert evidence["required_owner_response_shapes"] == [
         {
@@ -1186,6 +1303,10 @@ def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_
         package["receipt_path"].resolve()
     )
     assert package_consumption["authority_flags_false"] is True
+    assert package_consumption["candidate_artifact_count"] == 4
+    assert package_consumption["candidate_artifact_missing_inputs"] == [
+        "owner_acceptance_ref"
+    ]
     assert package_consumption["forbidden_written_file_collisions"] == []
     assert package_consumption["mas_consumer_written_files"] == []
     assert package_consumption["counts_as_paper_truth"] is False
@@ -1206,9 +1327,23 @@ def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_
         "ready_for_owner_gate_review"
     )
     assert evidence["owner_gate_request"]["non_authoritative_request"] is True
+    assert evidence["owner_gate_request"]["candidate_artifact_count"] == 4
+    cli_ref_artifact = next(
+        artifact
+        for artifact in evidence["owner_gate_request"]["candidate_artifacts"]
+        if artifact["kind"] == "table_manifest"
+        and artifact["ref"] == "opl-vault:tables/table_manifest.json"
+    )
+    assert cli_ref_artifact["authority"] is False
+    assert evidence["owner_gate_request"]["candidate_artifact_missing_inputs"] == [
+        "owner_acceptance_ref"
+    ]
     assert evidence["owner_gate_handoff"]["handoff_status"] == (
         "ready_for_owner_gate_review"
     )
+    assert evidence["owner_gate_handoff"]["candidate_artifact_missing_inputs"] == [
+        "owner_acceptance_ref"
+    ]
     assert evidence["owner_gate_handoff"]["mas_consumer_written_files"] == []
     assert evidence["required_owner_response_shapes"][0]["shape"] == (
         "owner_receipt_ref"
@@ -1328,6 +1463,48 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_forbidd
         assert "artifacts/publication_eval/latest.json" in str(exc)
     else:
         raise AssertionError("forbidden written_file should fail closed")
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_cli_rejects_materialized_package_candidate_artifact_authority_claim(
+    tmp_path: Path,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "studies" / "001-risk"
+    package = _write_tables_materialized_package(
+        tmp_path / "opl-package",
+        receipt_overrides={
+            "candidate_artifact_bodies": {
+                "table_summary": {
+                    "body": {"rows": 2},
+                    "counts_as_paper_truth": True,
+                }
+            }
+        },
+    )
+
+    try:
+        cli.main(
+            [
+                "scientific-capability-registry",
+                "--mode",
+                "owner-consumption",
+                "--capability-id",
+                "opl.scholarskills.tables",
+                "--study-root",
+                str(study_root),
+                "--materialized-package-manifest-path",
+                str(package["manifest_path"]),
+            ]
+        )
+    except SystemExit as exc:
+        assert "candidate artifact authority flags" in str(exc)
+        assert "counts_as_paper_truth" in str(exc)
+    else:
+        raise AssertionError("candidate artifact authority claim should fail closed")
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
     assert not (study_root / "paper").exists()

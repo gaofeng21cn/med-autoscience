@@ -11,9 +11,12 @@ from med_autoscience.scholarskills_capability_modules import (
     SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES as _SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES,
     SCHOLAR_DISPLAY_MODULE_ID,
     SCHOLARSKILLS_CAPABILITY_IDS,
-    build_scholarskills_materialized_package_input,
     build_scholarskills_capabilities,
     scholarskills_execution_receipt_ref_aliases,
+)
+from med_autoscience.scholarskills_package_consumption import (
+    build_candidate_artifact_owner_request_items,
+    build_scholarskills_materialized_package_input,
 )
 
 
@@ -1270,6 +1273,7 @@ def _scholarskills_owner_gate_request(
     package: Mapping[str, Any],
     current_owner_delta: Mapping[str, Any],
 ) -> dict[str, Any]:
+    candidate_artifacts = _candidate_artifact_owner_request_items(package)
     return {
         "surface_kind": SCHOLARSKILLS_OWNER_GATE_REQUEST_SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -1294,6 +1298,11 @@ def _scholarskills_owner_gate_request(
         or None,
         "materialized_package_sha256": _text(package.get("sha256")) or None,
         "materialized_package_written_files": _text_list(package.get("written_files")),
+        "candidate_artifacts": candidate_artifacts,
+        "candidate_artifact_count": len(candidate_artifacts),
+        "candidate_artifact_missing_inputs": _text_list(
+            package.get("candidate_artifact_missing_inputs")
+        ),
         "required_owner_response_shapes": [
             _text(shape["shape"]) for shape in _REQUIRED_OWNER_RESPONSE_SHAPES
         ],
@@ -1326,6 +1335,10 @@ def _scholarskills_owner_gate_handoff(
         "next_owner": "MAS owner gate",
         "capability_id": _text(request.get("capability_id")),
         "module_id": _text(request.get("module_id")),
+        "candidate_artifacts": _candidate_artifact_owner_request_items(request),
+        "candidate_artifact_missing_inputs": _text_list(
+            request.get("candidate_artifact_missing_inputs")
+        ),
         "required_owner_response_shapes": [
             dict(shape) for shape in _REQUIRED_OWNER_RESPONSE_SHAPES
         ],
@@ -1338,6 +1351,12 @@ def _scholarskills_owner_gate_handoff(
         "counts_as_paper_truth": False,
         "counts_as_owner_receipt": False,
     }
+
+
+def _candidate_artifact_owner_request_items(
+    payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return build_candidate_artifact_owner_request_items(payload)
 
 
 def _scholarskills_execution_receipt_ref_aliases(
