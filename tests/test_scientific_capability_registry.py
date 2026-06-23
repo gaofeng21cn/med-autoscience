@@ -93,6 +93,68 @@ SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE = {
 }
 
 
+def _write_tables_materialized_package(
+    package_root: Path,
+    *,
+    manifest_overrides: dict[str, object] | None = None,
+    receipt_overrides: dict[str, object] | None = None,
+) -> dict[str, Path]:
+    package_root.mkdir(parents=True)
+    receipt_path = package_root / "execution_receipt_candidate.json"
+    manifest_path = package_root / "manifest.json"
+    artifact_manifest_path = package_root / "artifacts" / "table_manifest.json"
+    artifact_manifest_path.parent.mkdir()
+    artifact_manifest_path.write_text('{"items":[]}', encoding="utf-8")
+    authority_flags = {
+        "can_write_publication_eval": False,
+        "can_write_controller_decisions": False,
+        "can_write_current_package": False,
+        "can_write_paper_or_package": False,
+        "can_write_study_truth": False,
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
+        "can_write_human_gate": False,
+    }
+    receipt = {
+        "surface_kind": "opl_scholarskills_execution_receipt_candidate",
+        "module_id": "opl.scholarskills.tables",
+        "execution_receipt_ref": "opl-vault:receipts/tables/receipt.json",
+        "artifact_manifest_path": str(artifact_manifest_path),
+        "execution_receipt_refs": {
+            "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
+            "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
+            "prepared_run_context_ref": "opl-vault:run-context/tables-run.json",
+            "table_qc_ref": "opl-vault:tables/qc.json",
+        },
+        "written_files": [
+            "opl-vault:tables/table_manifest.json",
+            "opl-vault:tables/qc.json",
+        ],
+        "sha256": "sha256:receipt",
+        "authority_flags": dict(authority_flags),
+    }
+    if receipt_overrides:
+        receipt.update(receipt_overrides)
+    manifest = {
+        "surface_kind": "opl_scholarskills_materialized_package_manifest",
+        "module_id": "opl.scholarskills.tables",
+        "execution_receipt_candidate_path": receipt_path.name,
+        "artifact_manifest_path": str(artifact_manifest_path),
+        "written_files": [str(artifact_manifest_path)],
+        "sha256": "sha256:manifest",
+        "authority_flags": dict(authority_flags),
+    }
+    if manifest_overrides:
+        manifest.update(manifest_overrides)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return {
+        "artifact_manifest_path": artifact_manifest_path,
+        "manifest_path": manifest_path,
+        "receipt_path": receipt_path,
+    }
+
+
 def _structured_payload(result: dict[str, object]) -> dict[str, object]:
     structured = result["structuredContent"]
     assert isinstance(structured, dict)
@@ -1016,6 +1078,193 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
     assert evidence["counts_as_paper_truth"] is False
     assert evidence["counts_as_owner_receipt"] is False
     assert evidence["can_authorize_publication_readiness"] is False
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_package_as_refs_only(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "studies" / "001-risk"
+    package = _write_tables_materialized_package(tmp_path / "opl-package")
+
+    exit_code = cli.main(
+        [
+            "scientific-capability-registry",
+            "--mode",
+            "owner-consumption",
+            "--capability-id",
+            "opl.scholarskills.tables",
+            "--study-root",
+            str(study_root),
+            "--current-owner-delta-json",
+            json.dumps(
+                {
+                    "action_type": "prepare_table_package",
+                    "work_unit_id": "scholar-tables-cli-candidate",
+                    "work_unit_fingerprint": "sha256:scholar-tables-cli",
+                    "capability_families": ["scholarskills_tables"],
+                }
+            ),
+            "--materialized-package-manifest-path",
+            str(package["manifest_path"]),
+        ]
+    )
+
+    assert exit_code == 0
+    evidence = json.loads(capsys.readouterr().out)
+    assert evidence["surface_kind"] == (
+        "mas_scientific_capability_owner_consumption_evidence"
+    )
+    assert evidence["refs_only"] is True
+    assert evidence["capability_id"] == "opl.scholarskills.tables"
+    assert evidence["execution_receipt_status"] == "complete"
+    assert evidence["missing_execution_receipt_ref_families"] == []
+    assert evidence["execution_receipt_refs"]["table_manifest_ref"] == str(
+        package["artifact_manifest_path"]
+    )
+    package_consumption = evidence["materialized_package_consumption"]
+    assert package_consumption["refs_only"] is True
+    assert package_consumption["manifest_path"] == str(package["manifest_path"].resolve())
+    assert package_consumption["execution_receipt_path"] == str(
+        package["receipt_path"].resolve()
+    )
+    assert package_consumption["authority_flags_false"] is True
+    assert package_consumption["forbidden_written_file_collisions"] == []
+    assert package_consumption["mas_consumer_written_files"] == []
+    assert package_consumption["counts_as_paper_truth"] is False
+    assert package_consumption["counts_as_owner_receipt"] is False
+    assert package_consumption["can_authorize_publication_readiness"] is False
+    assert package_consumption["can_write_publication_eval"] is False
+    assert package_consumption["can_write_controller_decisions"] is False
+    assert package_consumption["can_write_current_package"] is False
+    assert package_consumption["can_write_paper_or_package"] is False
+    assert package_consumption["can_write_study_truth"] is False
+    assert package_consumption["can_write_typed_blocker"] is False
+    assert package_consumption["can_write_human_gate"] is False
+    assert evidence["counts_as_progress"] is False
+    assert evidence["counts_as_paper_truth"] is False
+    assert evidence["counts_as_owner_receipt"] is False
+    assert evidence["can_authorize_publication_readiness"] is False
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_cli_rejects_materialized_package_module_mismatch(
+    tmp_path: Path,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "studies" / "001-risk"
+    package = _write_tables_materialized_package(
+        tmp_path / "opl-package",
+        manifest_overrides={"module_id": "opl.scholarskills.review"},
+    )
+
+    try:
+        cli.main(
+            [
+                "scientific-capability-registry",
+                "--mode",
+                "owner-consumption",
+                "--capability-id",
+                "opl.scholarskills.tables",
+                "--study-root",
+                str(study_root),
+                "--materialized-package-manifest-path",
+                str(package["manifest_path"]),
+            ]
+        )
+    except SystemExit as exc:
+        assert "module_id mismatch" in str(exc)
+        assert "opl.scholarskills.review" in str(exc)
+    else:
+        raise AssertionError("mismatched module_id should fail closed")
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_cli_rejects_materialized_package_authority_flag(
+    tmp_path: Path,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "studies" / "001-risk"
+    package = _write_tables_materialized_package(
+        tmp_path / "opl-package",
+        receipt_overrides={
+            "authority_flags": {
+                "can_write_owner_receipt": True,
+                "can_write_publication_eval": False,
+            }
+        },
+    )
+
+    try:
+        cli.main(
+            [
+                "scientific-capability-registry",
+                "--mode",
+                "owner-consumption",
+                "--capability-id",
+                "opl.scholarskills.tables",
+                "--study-root",
+                str(study_root),
+                "--materialized-package-manifest-path",
+                str(package["manifest_path"]),
+            ]
+        )
+    except SystemExit as exc:
+        assert "authority flags must be false" in str(exc)
+        assert "can_write_owner_receipt" in str(exc)
+    else:
+        raise AssertionError("truthy authority flag should fail closed")
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_cli_rejects_materialized_package_forbidden_written_file(
+    tmp_path: Path,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "studies" / "001-risk"
+    package = _write_tables_materialized_package(
+        tmp_path / "opl-package",
+        manifest_overrides={
+            "written_files": [
+                "artifacts/publication_eval/latest.json",
+                "artifacts/tables/table_manifest.json",
+            ]
+        },
+    )
+
+    try:
+        cli.main(
+            [
+                "scientific-capability-registry",
+                "--mode",
+                "owner-consumption",
+                "--capability-id",
+                "opl.scholarskills.tables",
+                "--study-root",
+                str(study_root),
+                "--materialized-package-manifest-path",
+                str(package["manifest_path"]),
+            ]
+        )
+    except SystemExit as exc:
+        assert "forbidden authority writes" in str(exc)
+        assert "artifacts/publication_eval/latest.json" in str(exc)
+    else:
+        raise AssertionError("forbidden written_file should fail closed")
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
     assert not (study_root / "paper").exists()

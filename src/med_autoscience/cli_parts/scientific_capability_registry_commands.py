@@ -11,11 +11,17 @@ def register_scientific_capability_registry_parser(
     subparsers: argparse._SubParsersAction,
 ) -> None:
     parser = subparsers.add_parser("scientific-capability-registry")
-    parser.add_argument("--mode", choices=("index", "resolve", "invoke"), required=True)
+    parser.add_argument(
+        "--mode",
+        choices=("index", "resolve", "invoke", "owner-consumption"),
+        required=True,
+    )
     parser.add_argument("--capability-id")
     parser.add_argument("--study-root")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--format", choices=("json",), default="json")
+    parser.add_argument("--materialized-package-manifest-path")
+    parser.add_argument("--execution-receipt-path")
     current_delta = parser.add_mutually_exclusive_group()
     current_delta.add_argument("--current-owner-delta-json")
     current_delta.add_argument("--current-owner-delta-file")
@@ -46,7 +52,7 @@ def handle_scientific_capability_registry_command(args: argparse.Namespace) -> i
         result = registry.resolve_scientific_capabilities(
             current_owner_delta=current_owner_delta,
         )
-    else:
+    elif args.mode == "invoke":
         if not args.capability_id:
             raise SystemExit("--capability-id is required when --mode invoke")
         result = registry.invoke_scientific_capability(
@@ -56,6 +62,39 @@ def handle_scientific_capability_registry_command(args: argparse.Namespace) -> i
             apply=bool(args.apply),
             payload=payload,
         )
+    else:
+        if not args.capability_id:
+            raise SystemExit("--capability-id is required when --mode owner-consumption")
+        if not args.materialized_package_manifest_path:
+            raise SystemExit(
+                "--materialized-package-manifest-path is required when --mode owner-consumption"
+            )
+        invocation = registry.invoke_scientific_capability(
+            capability_id=args.capability_id,
+            current_owner_delta=current_owner_delta,
+            study_root=Path(args.study_root) if args.study_root else None,
+            apply=bool(args.apply),
+            payload=payload,
+        )
+        try:
+            result = registry.build_capability_owner_consumption_evidence(
+                invocation_result=invocation,
+                current_owner_delta=current_owner_delta,
+                materialized_package_manifest_path=Path(
+                    args.materialized_package_manifest_path
+                ),
+                execution_receipt_path=(
+                    Path(args.execution_receipt_path)
+                    if args.execution_receipt_path
+                    else None
+                ),
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        if "materialized_package_consumption" not in result:
+            raise SystemExit(
+                "--mode owner-consumption requires a ScholarSkills materialized package capability"
+            )
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
