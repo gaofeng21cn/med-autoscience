@@ -8781,6 +8781,9 @@
         "capability_id": "opl.scholarskills.display",
         "capability_ref": "scientific-capability:opl.scholarskills.display",
         "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.display",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "scientific-capability:display_pack_visual_capability",
           "contracts/display-pack-contract.v2.json",
           "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
@@ -8809,6 +8812,9 @@
         ],
         "descriptor_only": true,
         "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.display",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "scientific-capability:display_pack_visual_capability",
           "contracts/display-pack-contract.v2.json",
           "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
@@ -8820,6 +8826,7 @@
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.display",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_display_execution_receipt",
           "required_ref_families": [
@@ -8869,9 +8876,988 @@
           "MAS Display Pack"
         ],
         "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "table_reporting_materialization_required",
+          "prepare_table_package",
+          "reporting_guideline_check"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.tables:table_manifest",
+          "opl:scholarskills.tables:table_qc"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.tables",
+        "capability_family": "scholarskills_tables",
+        "capability_id": "opl.scholarskills.tables",
+        "capability_ref": "scientific-capability:opl.scholarskills.tables",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.tables",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_tables_need",
+        "current_delta_trigger_terms": [
+          "tables",
+          "table 1",
+          "model performance table",
+          "supplementary table",
+          "reporting guideline",
+          "journal table style",
+          "table_manifest_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.tables:dependency-profile",
+          "opl:scholarskills.tables:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.tables",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.tables",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "table_manifest_ref",
+            "table_qc_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.tables",
+        "output_refs": [
+          "opl:scholarskills.tables:table_manifest",
+          "opl:scholarskills.tables:table_qc"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.tables",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "table_one_model_performance_supplement_and_reporting_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.tables:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Tables",
+          "Tables / Reporting"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "clinical_analysis_required",
+          "run_biostatistics_analysis",
+          "analysis_campaign_closeout"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.stats:analysis_manifest",
+          "opl:scholarskills.stats:reproducibility_check"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.stats",
+        "capability_family": "scholarskills_stats",
+        "capability_id": "opl.scholarskills.stats",
+        "capability_ref": "scientific-capability:opl.scholarskills.stats",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.stats",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_stats_need",
+        "current_delta_trigger_terms": [
+          "stats",
+          "biostatistics",
+          "clinical analysis",
+          "survival analysis",
+          "regression",
+          "calibration",
+          "roc",
+          "dca",
+          "subgroup",
+          "sensitivity analysis",
+          "analysis_manifest_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.stats:dependency-profile",
+          "opl:scholarskills.stats:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.stats",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.stats",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "analysis_manifest_ref",
+            "reproducibility_check_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.stats",
+        "output_refs": [
+          "opl:scholarskills.stats:analysis_manifest",
+          "opl:scholarskills.stats:reproducibility_check"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.stats",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "clinical_analysis_result_manifest_and_reproducibility_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.stats:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Stats",
+          "Biostatistics / Clinical Analysis"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "omics_bioinformatics_analysis_required",
+          "run_omics_workflow",
+          "result_to_figure_gate"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.omics:omics_pipeline_manifest",
+          "opl:scholarskills.omics:feature_matrix_qc"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.omics",
+        "capability_family": "scholarskills_omics",
+        "capability_id": "opl.scholarskills.omics",
+        "capability_ref": "scientific-capability:opl.scholarskills.omics",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.omics",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_omics_need",
+        "current_delta_trigger_terms": [
+          "omics",
+          "bioinformatics",
+          "single-cell",
+          "single cell",
+          "bulk rna",
+          "cnv",
+          "mutation",
+          "pathway",
+          "enrichment",
+          "dimensionality reduction",
+          "marker",
+          "landscape",
+          "omics_workflow_manifest_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.omics:dependency-profile",
+          "opl:scholarskills.omics:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.omics",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.omics",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "omics_pipeline_manifest_ref",
+            "feature_matrix_qc_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.omics",
+        "output_refs": [
+          "opl:scholarskills.omics:omics_pipeline_manifest",
+          "opl:scholarskills.omics:feature_matrix_qc"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.omics",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "omics_workflow_analysis_manifest_and_result_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.omics:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Omics",
+          "Omics / Bioinformatics"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "literature_evidence_map_required",
+          "claim_citation_support_required",
+          "related_work_briefing"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.lit:evidence_map",
+          "opl:scholarskills.lit:citation_manifest"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.lit",
+        "capability_family": "scholarskills_lit",
+        "capability_id": "opl.scholarskills.lit",
+        "capability_ref": "scientific-capability:opl.scholarskills.lit",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.lit",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_lit_need",
+        "current_delta_trigger_terms": [
+          "lit",
+          "literature",
+          "search",
+          "screening",
+          "citation library",
+          "evidence summary",
+          "claim support map",
+          "related-work",
+          "related work",
+          "literature_evidence_map_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.lit:dependency-profile",
+          "opl:scholarskills.lit:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.lit",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.lit",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "evidence_map_ref",
+            "citation_manifest_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.lit",
+        "output_refs": [
+          "opl:scholarskills.lit:evidence_map",
+          "opl:scholarskills.lit:citation_manifest"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.lit",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "literature_search_screening_citation_and_claim_support_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.lit:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Literature",
+          "Literature Management"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "draft_manuscript_section",
+          "rewrite_manuscript_section",
+          "response_to_reviewer_draft"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.write:draft_section_manifest",
+          "opl:scholarskills.write:source_trace"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.write",
+        "capability_family": "scholarskills_write",
+        "capability_id": "opl.scholarskills.write",
+        "capability_ref": "scientific-capability:opl.scholarskills.write",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.write",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_write_need",
+        "current_delta_trigger_terms": [
+          "write",
+          "manuscript writing",
+          "structured writing",
+          "section rewrite",
+          "journal voice",
+          "response-to-reviewer",
+          "response to reviewer",
+          "claim tightening",
+          "draft_section_manifest_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.write:dependency-profile",
+          "opl:scholarskills.write:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.write",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.write",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "draft_section_manifest_ref",
+            "source_trace_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.write",
+        "output_refs": [
+          "opl:scholarskills.write:draft_section_manifest",
+          "opl:scholarskills.write:source_trace"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.write",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "manuscript_section_rewrite_voice_and_claim_tightening_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.write:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Write",
+          "Manuscript Writing"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "return_to_ai_reviewer_workflow",
+          "run_quality_repair_batch",
+          "publishability_audit_required"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.review:reviewer_report",
+          "opl:scholarskills.review:route_back"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.review",
+        "capability_family": "scholarskills_review",
+        "capability_id": "opl.scholarskills.review",
+        "capability_ref": "scientific-capability:opl.scholarskills.review",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.review",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_review_need",
+        "current_delta_trigger_terms": [
+          "review",
+          "quality review",
+          "ai reviewer",
+          "independent review",
+          "publishability audit",
+          "claim/evidence/display consistency",
+          "claim evidence display consistency",
+          "revision routing",
+          "review_report_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.review:dependency-profile",
+          "opl:scholarskills.review:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.review",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.review",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "reviewer_report_ref",
+            "route_back_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.review",
+        "output_refs": [
+          "opl:scholarskills.review:reviewer_report",
+          "opl:scholarskills.review:route_back"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.review",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "independent_publishability_consistency_and_revision_route_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.review:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Review",
+          "Quality Review / AI Reviewer"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "submission_package_required",
+          "prepare_submission_package",
+          "submission_readiness_packaging"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.submit:package_manifest",
+          "opl:scholarskills.submit:submission_checklist"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.submit",
+        "capability_family": "scholarskills_submit",
+        "capability_id": "opl.scholarskills.submit",
+        "capability_ref": "scientific-capability:opl.scholarskills.submit",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.submit",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_submit_need",
+        "current_delta_trigger_terms": [
+          "submit",
+          "submission",
+          "submission packaging",
+          "journal format",
+          "cover letter",
+          "highlight",
+          "graphical abstract",
+          "supplement",
+          "export package",
+          "submission_package_manifest_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.submit:dependency-profile",
+          "opl:scholarskills.submit:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.submit",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.submit",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "package_manifest_ref",
+            "submission_checklist_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.submit",
+        "output_refs": [
+          "opl:scholarskills.submit:package_manifest",
+          "opl:scholarskills.submit:submission_checklist"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.submit",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "journal_format_cover_letter_supplement_and_export_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.submit:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Submit",
+          "Submission Packaging"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "source_readiness_required",
+          "data_lineage_required",
+          "data_manifest_release"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.data:data_manifest",
+          "opl:scholarskills.data:lineage_readiness"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.data",
+        "capability_family": "scholarskills_data",
+        "capability_id": "opl.scholarskills.data",
+        "capability_ref": "scientific-capability:opl.scholarskills.data",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.data",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_data_need",
+        "current_delta_trigger_terms": [
+          "data",
+          "data management",
+          "data asset release",
+          "manifest",
+          "schema",
+          "lineage",
+          "de-identification",
+          "deidentification",
+          "source readiness",
+          "data_lineage_manifest_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.data:dependency-profile",
+          "opl:scholarskills.data:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.data",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.data",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "data_manifest_ref",
+            "lineage_readiness_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.data",
+        "output_refs": [
+          "opl:scholarskills.data:data_manifest",
+          "opl:scholarskills.data:lineage_readiness"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.data",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "data_manifest_schema_lineage_and_source_readiness_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.data:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Data",
+          "Data Management"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "external_method_skill_intake",
+          "capability_adoption_contract_required",
+          "external_learning_adoption"
+        ],
+        "artifact_refs": [
+          "opl:scholarskills.intake:source_snapshot",
+          "opl:scholarskills.intake:adoption_contract"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:opl.scholarskills.intake",
+        "capability_family": "scholarskills_intake",
+        "capability_id": "opl.scholarskills.intake",
+        "capability_ref": "scientific-capability:opl.scholarskills.intake",
+        "contract_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.intake",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_scholar_intake_need",
+        "current_delta_trigger_terms": [
+          "intake",
+          "external method",
+          "open-source project",
+          "paper method",
+          "codebase",
+          "manual template",
+          "adoption contract",
+          "default capability",
+          "intake_adoption_contract_ref"
+        ],
+        "dependency_profile_refs": [
+          "opl:runtime-env:prepare",
+          "opl:scholarskills.intake:dependency-profile",
+          "opl:scholarskills.intake:doctor"
+        ],
+        "descriptor_only": true,
+        "descriptor_refs": [
+          "contracts/opl-framework/scholar-skills-capability-modules.json",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.intake",
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+        ],
+        "execution_receipt_expectation": {
+          "execution_receipt_can_authorize_publication_readiness": false,
+          "mas_owner_receipt_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.intake",
+          "receipt_owner": "one-person-lab",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "source_snapshot_ref",
+            "adoption_contract_ref"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
+        },
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "module_id": "opl.scholarskills.intake",
+        "output_refs": [
+          "opl:scholarskills.intake:source_snapshot",
+          "opl:scholarskills.intake:adoption_contract"
+        ],
+        "owner_consumption_boundary": {
+          "candidate_output_only": true,
+          "counts_as_current_package_authority": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "mas_owner_gate_required_for_paper_truth": true,
+          "module_id": "opl.scholarskills.intake",
+          "owner_consumption_evidence": "refs_only",
+          "schema_version": 1,
+          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
+        },
+        "refs_only": true,
+        "role": "external_method_skill_adoption_contract_and_descriptor_refs_only_candidate",
+        "run_context_refs": [
+          "opl:run-context:prepared-runtime-env",
+          "opl:scholarskills.intake:run-context"
+        ],
+        "source_frameworks": [
+          "OPL ScholarSkills",
+          "Scholar Intake",
+          "External Method Skill Intake"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
-    "capability_count": 11,
+    "capability_count": 20,
     "default_policy": {
       "always_on_scan": false,
       "external_runtime_dependency": false,
@@ -8937,6 +9923,416 @@
           "complete",
           "missing_required_refs"
         ]
+      },
+      "scholarskills_execution_receipts": {
+        "opl.scholarskills.data": {
+          "accepted_ref_aliases": {
+            "data_manifest_ref": [
+              "data_manifest_ref"
+            ],
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "lineage_readiness_ref": [
+              "lineage_readiness_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.data",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "data_manifest_ref",
+            "lineage_readiness_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.display": {
+          "accepted_ref_aliases": {
+            "artifact_manifest_ref": [
+              "artifact_manifest_ref",
+              "display_artifact_manifest_ref"
+            ],
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "render_cache_ref": [
+              "render_cache_ref",
+              "display_render_cache_ref"
+            ],
+            "visual_audit_or_gallery_preview_ref": [
+              "visual_audit_or_gallery_preview_ref",
+              "visual_audit_ref",
+              "gallery_preview_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.display",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "render_cache_ref",
+            "artifact_manifest_ref",
+            "visual_audit_or_gallery_preview_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.intake": {
+          "accepted_ref_aliases": {
+            "adoption_contract_ref": [
+              "adoption_contract_ref"
+            ],
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "source_snapshot_ref": [
+              "source_snapshot_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.intake",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "source_snapshot_ref",
+            "adoption_contract_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.lit": {
+          "accepted_ref_aliases": {
+            "citation_manifest_ref": [
+              "citation_manifest_ref"
+            ],
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "evidence_map_ref": [
+              "evidence_map_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.lit",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "evidence_map_ref",
+            "citation_manifest_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.omics": {
+          "accepted_ref_aliases": {
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "feature_matrix_qc_ref": [
+              "feature_matrix_qc_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "omics_pipeline_manifest_ref": [
+              "omics_pipeline_manifest_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.omics",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "omics_pipeline_manifest_ref",
+            "feature_matrix_qc_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.review": {
+          "accepted_ref_aliases": {
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "reviewer_report_ref": [
+              "reviewer_report_ref"
+            ],
+            "route_back_ref": [
+              "route_back_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.review",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "reviewer_report_ref",
+            "route_back_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.stats": {
+          "accepted_ref_aliases": {
+            "analysis_manifest_ref": [
+              "analysis_manifest_ref"
+            ],
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "reproducibility_check_ref": [
+              "reproducibility_check_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.stats",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "analysis_manifest_ref",
+            "reproducibility_check_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.submit": {
+          "accepted_ref_aliases": {
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "package_manifest_ref": [
+              "package_manifest_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "submission_checklist_ref": [
+              "submission_checklist_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.submit",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "package_manifest_ref",
+            "submission_checklist_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.tables": {
+          "accepted_ref_aliases": {
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "table_manifest_ref": [
+              "table_manifest_ref"
+            ],
+            "table_qc_ref": [
+              "table_qc_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.tables",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "table_manifest_ref",
+            "table_qc_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        },
+        "opl.scholarskills.write": {
+          "accepted_ref_aliases": {
+            "dependency_profile_ref": [
+              "dependency_profile_ref",
+              "dependency_prepared_receipt_ref",
+              "dependency_receipt_ref"
+            ],
+            "draft_section_manifest_ref": [
+              "draft_section_manifest_ref"
+            ],
+            "input_fingerprint_ref": [
+              "input_fingerprint_ref",
+              "source_input_fingerprint_ref"
+            ],
+            "prepared_run_context_ref": [
+              "prepared_run_context_ref",
+              "run_context_ref",
+              "prepared_runtime_env_ref"
+            ],
+            "source_trace_ref": [
+              "source_trace_ref"
+            ]
+          },
+          "can_authorize_publication_readiness": false,
+          "counts_as_owner_receipt": false,
+          "counts_as_paper_truth": false,
+          "module_id": "opl.scholarskills.write",
+          "receipt_role": "candidate_scholarskills_execution_receipt",
+          "required_ref_families": [
+            "input_fingerprint_ref",
+            "dependency_profile_ref",
+            "prepared_run_context_ref",
+            "draft_section_manifest_ref",
+            "source_trace_ref"
+          ],
+          "status_values": [
+            "complete",
+            "missing_required_refs"
+          ]
+        }
       },
       "standard_agent_feedback_loop_tail": {
         "false_completion_blockers": [

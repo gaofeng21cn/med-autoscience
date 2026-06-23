@@ -6,6 +6,14 @@ from typing import Any
 
 from med_autoscience import external_learning_adoption_closure
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
+from med_autoscience.scholarskills_capability_modules import (
+    SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION,
+    SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES as _SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES,
+    SCHOLAR_DISPLAY_MODULE_ID,
+    SCHOLARSKILLS_CAPABILITY_IDS,
+    build_scholarskills_capabilities,
+    scholarskills_execution_receipt_ref_aliases,
+)
 
 
 SURFACE_KIND = "mas_scientific_capability_registry"
@@ -143,93 +151,13 @@ NATURE_REVIEWER_REPAIR_TRIGGER_TERMS = (
     "repair_action",
     "repair_action_candidates",
 )
-SCHOLAR_DISPLAY_MODULE_ID = "opl.scholarskills.display"
-SCHOLAR_DISPLAY_DESCRIPTOR_REFS = (
-    "scientific-capability:display_pack_visual_capability",
-    "contracts/display-pack-contract.v2.json",
-    "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
-    "med_autoscience.display_pack_agent.display_pack_capability_discover",
-    "med_autoscience.display_pack_agent.display_pack_figure_plan",
-    "med_autoscience.display_pack_agent.display_pack_preflight",
-    "med_autoscience.display_pack_agent.display_pack_render",
-)
-SCHOLAR_DISPLAY_DEPENDENCY_PROFILE_REFS = (
-    "opl:runtime-env:prepare",
-    "opl:scholarskills.display:dependency-profile",
-    "opl:scholarskills.display:doctor",
-)
-SCHOLAR_DISPLAY_RUN_CONTEXT_REFS = (
-    "opl:run-context:prepared-runtime-env",
-    "opl:scholarskills.display:run-context",
-    "opl:scholarskills.display:render-cache",
-)
-SCHOLAR_DISPLAY_ARTIFACT_REFS = (
-    "display_pack_agent_orchestration",
-    "paper/build/display_pack_lock.json",
-    "paper/figure_render_receipt.json",
-    "paper/figure_visual_audit_receipt.json",
-    "display_pack_gallery_manifest",
-)
-SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION = {
-    "surface_kind": "mas_scholar_display_execution_receipt_expectation",
-    "schema_version": SCHEMA_VERSION,
-    "receipt_owner": "one-person-lab",
-    "receipt_role": "candidate_display_execution_receipt",
-    "required_ref_families": [
-        "input_fingerprint_ref",
-        "dependency_profile_ref",
-        "prepared_run_context_ref",
-        "render_cache_ref",
-        "artifact_manifest_ref",
-        "visual_audit_or_gallery_preview_ref",
-    ],
-    "mas_owner_receipt_required_for_paper_truth": True,
-    "execution_receipt_can_authorize_publication_readiness": False,
-}
-SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY = {
-    "surface_kind": "mas_scholar_display_owner_consumption_boundary",
-    "schema_version": SCHEMA_VERSION,
-    "candidate_output_only": True,
-    "owner_consumption_evidence": "refs_only",
-    "counts_as_paper_truth": False,
-    "counts_as_current_package_authority": False,
-    "counts_as_owner_receipt": False,
-    "mas_owner_gate_required_for_paper_truth": True,
-}
-_SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES = {
-    "input_fingerprint_ref": (
-        "input_fingerprint_ref",
-        "source_input_fingerprint_ref",
-    ),
-    "dependency_profile_ref": (
-        "dependency_profile_ref",
-        "dependency_prepared_receipt_ref",
-        "dependency_receipt_ref",
-    ),
-    "prepared_run_context_ref": (
-        "prepared_run_context_ref",
-        "run_context_ref",
-        "prepared_runtime_env_ref",
-    ),
-    "render_cache_ref": (
-        "render_cache_ref",
-        "display_render_cache_ref",
-    ),
-    "artifact_manifest_ref": (
-        "artifact_manifest_ref",
-        "display_artifact_manifest_ref",
-    ),
-    "visual_audit_or_gallery_preview_ref": (
-        "visual_audit_or_gallery_preview_ref",
-        "visual_audit_ref",
-        "gallery_preview_ref",
-    ),
-}
 _CURRENT_DELTA_DECLARATION_KEYS = {
     "action_type",
     "action_id",
     "artifact_kind",
     "artifact_need",
+    "capability_id",
+    "capability_ids",
     "capability_families",
     "capability_family",
     "declared_need",
@@ -305,6 +233,34 @@ def build_scientific_capability_registry() -> dict[str, Any]:
                 "counts_as_paper_truth": False,
                 "counts_as_owner_receipt": False,
                 "can_authorize_publication_readiness": False,
+            },
+            "scholarskills_execution_receipts": {
+                module_id: {
+                    "module_id": module_id,
+                    "receipt_role": "candidate_scholarskills_execution_receipt",
+                    "required_ref_families": list(
+                        _mapping(
+                            _capability_by_id(module_id).get(
+                                "execution_receipt_expectation"
+                            )
+                        ).get("required_ref_families")
+                        or []
+                    ),
+                    "accepted_ref_aliases": {
+                        family: list(aliases)
+                        for family, aliases in _scholarskills_execution_receipt_ref_aliases(
+                            module_id
+                        ).items()
+                    },
+                    "status_values": [
+                        "complete",
+                        "missing_required_refs",
+                    ],
+                    "counts_as_paper_truth": False,
+                    "counts_as_owner_receipt": False,
+                    "can_authorize_publication_readiness": False,
+                }
+                for module_id in SCHOLARSKILLS_CAPABILITY_IDS
             },
         },
         "authority_boundary": _authority_boundary(),
@@ -464,9 +420,11 @@ def build_capability_owner_consumption_evidence(
         },
         "authority_boundary": _authority_boundary(),
     }
-    if _text(invocation.get("capability_id")) == SCHOLAR_DISPLAY_MODULE_ID:
+    capability_id = _text(invocation.get("capability_id"))
+    if capability_id in SCHOLARSKILLS_CAPABILITY_IDS:
         evidence.update(
-            _scholar_display_execution_receipt_evidence(
+            _scholarskills_execution_receipt_evidence(
+                capability_id=capability_id,
                 execution_receipt=execution_receipt,
                 execution_receipt_refs=execution_receipt_refs,
                 explicit_refs={
@@ -655,50 +613,7 @@ def _capabilities() -> list[dict[str, Any]]:
             output_refs=["display_pack_agent_orchestration"],
             role="figure_intent_compilation_template_preflight_quality_floor_and_render_next_step",
         ),
-        _capability(
-            capability_id=SCHOLAR_DISPLAY_MODULE_ID,
-            capability_family="scholarskills_display",
-            module_id=SCHOLAR_DISPLAY_MODULE_ID,
-            source_frameworks=[
-                "OPL ScholarSkills",
-                "Scholar Display",
-                "MAS Display Pack",
-            ],
-            action_triggers=[
-                "display_pack_orchestrate",
-                "display_pack_figure_plan",
-                "display_pack_preflight",
-                "display_pack_render",
-                "artifact_display_surface_materialization_required",
-            ],
-            current_delta_trigger_terms=[
-                *NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS,
-                "scholarskills",
-                "scholar display",
-                "publication display",
-                "display pack",
-                "gallery preview",
-            ],
-            current_delta_trigger_reason="current_delta_declared_scholar_display_need",
-            invocation_kind="descriptor_only_current_owner_input_refs",
-            callable_surface="descriptor_only:opl.scholarskills.display",
-            output_refs=list(SCHOLAR_DISPLAY_ARTIFACT_REFS),
-            contract_refs=list(SCHOLAR_DISPLAY_DESCRIPTOR_REFS),
-            descriptor_refs=list(SCHOLAR_DISPLAY_DESCRIPTOR_REFS),
-            dependency_profile_refs=list(SCHOLAR_DISPLAY_DEPENDENCY_PROFILE_REFS),
-            run_context_refs=list(SCHOLAR_DISPLAY_RUN_CONTEXT_REFS),
-            artifact_refs=list(SCHOLAR_DISPLAY_ARTIFACT_REFS),
-            execution_receipt_expectation=dict(SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION),
-            owner_consumption_boundary=dict(SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY),
-            bridged_capability_refs=[
-                "scientific-capability:display_pack_visual_capability",
-                "display-pack-contract.v2",
-            ],
-            role=(
-                "scholarskills_display_descriptor_bridge_to_mas_display_pack_candidate_"
-                "artifact_refs_without_paper_truth_authority"
-            ),
-        ),
+        *_scholarskills_capabilities(),
     ]
 
 
@@ -735,6 +650,15 @@ def _standard_agent_feedback_loop_tail(
         "opl_hosted_runtime_consumption_required": True,
         "counts_as_opl_family_completion": False,
     }
+
+
+def _scholarskills_capabilities() -> list[dict[str, Any]]:
+    return build_scholarskills_capabilities(
+        schema_version=SCHEMA_VERSION,
+        default_trigger=DEFAULT_CURRENT_DELTA_TRIGGER,
+        authority_boundary=_authority_boundary(),
+        display_trigger_terms=NATURE_FIGURE_CURRENT_DELTA_TRIGGER_TERMS,
+    )
 
 
 def _capability(
@@ -1148,6 +1072,98 @@ def _scholar_display_execution_receipt_evidence(
         "counts_as_owner_receipt": False,
         "can_authorize_publication_readiness": False,
     }
+
+
+def _scholarskills_execution_receipt_evidence(
+    *,
+    capability_id: str,
+    execution_receipt: Mapping[str, Any] | str | None,
+    execution_receipt_refs: Mapping[str, Any] | None,
+    explicit_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    capability = _capability_by_id(capability_id)
+    expectation = _mapping(capability.get("execution_receipt_expectation"))
+    required = _text_list(expectation.get("required_ref_families"))
+    refs = _scholarskills_execution_receipt_refs(
+        capability_id=capability_id,
+        execution_receipt=execution_receipt,
+        execution_receipt_refs=execution_receipt_refs,
+        explicit_refs=explicit_refs,
+    )
+    observed = [family for family in required if _text(refs.get(family))]
+    missing = [family for family in required if family not in observed]
+    execution_receipt_ref = _text(refs.get("execution_receipt_ref")) or None
+    status = "complete" if not missing else "missing_required_refs"
+    return {
+        "execution_receipt_ref": execution_receipt_ref,
+        "execution_receipt_refs": {
+            family: _text(refs.get(family))
+            for family in required
+            if _text(refs.get(family))
+        },
+        "execution_receipt_status": status,
+        "missing_execution_receipt_ref_families": missing,
+        "observed_execution_receipt_ref_families": observed,
+        "execution_receipt_expectation": dict(expectation),
+        "execution_receipt_counts_as_candidate_artifact": status == "complete",
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "can_authorize_publication_readiness": False,
+    }
+
+
+def _scholarskills_execution_receipt_refs(
+    *,
+    capability_id: str,
+    execution_receipt: Mapping[str, Any] | str | None,
+    execution_receipt_refs: Mapping[str, Any] | None,
+    explicit_refs: Mapping[str, Any],
+) -> dict[str, str]:
+    raw: dict[str, Any] = {}
+    if isinstance(execution_receipt, str):
+        raw["execution_receipt_ref"] = execution_receipt
+    else:
+        raw.update(_mapping(execution_receipt))
+    raw.update(_mapping(execution_receipt_refs))
+    raw.update({key: value for key, value in explicit_refs.items() if _text(value)})
+
+    nested_refs = _mapping(raw.get("refs"))
+    if nested_refs:
+        raw.update({key: value for key, value in nested_refs.items() if key not in raw})
+    nested_execution_refs = _mapping(raw.get("execution_receipt_refs"))
+    if nested_execution_refs:
+        raw.update(
+            {key: value for key, value in nested_execution_refs.items() if key not in raw}
+        )
+
+    result: dict[str, str] = {}
+    execution_receipt_ref = (
+        _text(raw.get("execution_receipt_ref"))
+        or _text(raw.get("receipt_ref"))
+        or _text(raw.get("receipt_uri"))
+    )
+    if execution_receipt_ref:
+        result["execution_receipt_ref"] = execution_receipt_ref
+    for family, aliases in _scholarskills_execution_receipt_ref_aliases(
+        capability_id
+    ).items():
+        for alias in aliases:
+            ref = _text(raw.get(alias))
+            if ref:
+                result[family] = ref
+                break
+    return result
+
+
+def _scholarskills_execution_receipt_ref_aliases(
+    capability_id: str,
+) -> dict[str, tuple[str, ...]]:
+    capability = _capability_by_id(capability_id)
+    expectation = _mapping(capability.get("execution_receipt_expectation"))
+    return scholarskills_execution_receipt_ref_aliases(
+        capability_id=capability_id,
+        required_ref_families=_text_list(expectation.get("required_ref_families")),
+    )
 
 
 def _scholar_display_execution_receipt_refs(

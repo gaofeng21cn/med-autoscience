@@ -5,6 +5,94 @@ import json
 from pathlib import Path
 
 
+SCHOLARSKILLS_MODULE_IDS = [
+    "opl.scholarskills.display",
+    "opl.scholarskills.tables",
+    "opl.scholarskills.stats",
+    "opl.scholarskills.omics",
+    "opl.scholarskills.lit",
+    "opl.scholarskills.write",
+    "opl.scholarskills.review",
+    "opl.scholarskills.submit",
+    "opl.scholarskills.data",
+    "opl.scholarskills.intake",
+]
+
+SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE = {
+    "opl.scholarskills.display": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "render_cache_ref",
+        "artifact_manifest_ref",
+        "visual_audit_or_gallery_preview_ref",
+    ],
+    "opl.scholarskills.tables": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "table_manifest_ref",
+        "table_qc_ref",
+    ],
+    "opl.scholarskills.stats": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "analysis_manifest_ref",
+        "reproducibility_check_ref",
+    ],
+    "opl.scholarskills.omics": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "omics_pipeline_manifest_ref",
+        "feature_matrix_qc_ref",
+    ],
+    "opl.scholarskills.lit": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "evidence_map_ref",
+        "citation_manifest_ref",
+    ],
+    "opl.scholarskills.write": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "draft_section_manifest_ref",
+        "source_trace_ref",
+    ],
+    "opl.scholarskills.review": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "reviewer_report_ref",
+        "route_back_ref",
+    ],
+    "opl.scholarskills.submit": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "package_manifest_ref",
+        "submission_checklist_ref",
+    ],
+    "opl.scholarskills.data": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "data_manifest_ref",
+        "lineage_readiness_ref",
+    ],
+    "opl.scholarskills.intake": [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "source_snapshot_ref",
+        "adoption_contract_ref",
+    ],
+}
+
+
 def _structured_payload(result: dict[str, object]) -> dict[str, object]:
     structured = result["structuredContent"]
     assert isinstance(structured, dict)
@@ -256,6 +344,83 @@ def test_scientific_capability_registry_does_not_treat_generic_manifest_as_natur
     assert "nature_figure_display_contract_refs" not in selected_ids
 
 
+def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholarskills_modules(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+
+    registry = module.build_scientific_capability_registry()
+    capabilities = {
+        item["capability_id"]: item
+        for item in registry["capabilities"]
+    }
+
+    assert set(SCHOLARSKILLS_MODULE_IDS) <= set(capabilities)
+    for module_id in SCHOLARSKILLS_MODULE_IDS:
+        capability = capabilities[module_id]
+        module_name = module_id.removeprefix("opl.scholarskills.")
+
+        assert capability["module_id"] == module_id
+        assert capability["capability_family"] == f"scholarskills_{module_name}"
+        assert capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+        assert capability["descriptor_only"] is True
+        assert capability["refs_only"] is True
+        assert capability["external_runner_invocation_allowed"] is False
+        assert "contracts/opl-framework/scholar-skills-capability-modules.json" in capability[
+            "descriptor_refs"
+        ]
+        assert "opl:runtime-env:prepare" in capability["dependency_profile_refs"]
+        assert "opl:run-context:prepared-runtime-env" in capability["run_context_refs"]
+        assert capability["artifact_refs"]
+        assert capability["execution_receipt_expectation"]["module_id"] == module_id
+        assert capability["execution_receipt_expectation"][
+            "execution_receipt_can_authorize_publication_readiness"
+        ] is False
+        assert capability["owner_consumption_boundary"]["candidate_output_only"] is True
+        assert capability["owner_consumption_boundary"]["counts_as_paper_truth"] is False
+        assert capability["authority_boundary"]["can_write_publication_eval"] is False
+        assert capability["authority_boundary"]["can_write_owner_receipt"] is False
+
+        current_owner_delta = {
+            "action_type": f"prepare_{module_name}_candidate",
+            "action_id": f"{module_name}-001",
+            "work_unit_id": f"{module_name}-candidate",
+            "work_unit_fingerprint": f"sha256:{module_name}",
+            "capability_families": [capability["capability_family"]],
+        }
+        resolution = module.resolve_scientific_capabilities(
+            current_owner_delta=current_owner_delta,
+        )
+        selected = {
+            item["capability_id"]: item
+            for item in resolution["selected_capabilities"]
+        }
+        assert module_id in selected
+        assert selected[module_id]["trigger_reason"] == (
+            "current_delta_requested_capability_family"
+        )
+
+        invocation = module.invoke_scientific_capability(
+            capability_id=module_id,
+            study_root=study_root,
+            current_owner_delta=current_owner_delta,
+            apply=True,
+        )
+        assert invocation["status"] == "descriptor_only"
+        assert invocation["request_only"] is False
+        assert invocation["descriptor_only"] is True
+        assert invocation["external_runner_invocation_allowed"] is False
+        assert invocation["opl_capability_runtime_required"] is False
+        assert invocation["result"]["readback"]["module_id"] == module_id
+        assert invocation["result"]["readback"]["execution_receipt_expectation"][
+            "module_id"
+        ] == module_id
+        assert invocation["result"]["readback"]["owner_consumption_boundary"][
+            "counts_as_owner_receipt"
+        ] is False
+
+
 def test_scientific_capability_registry_indexes_and_resolves_scholar_display_descriptor(
     tmp_path: Path,
 ) -> None:
@@ -313,6 +478,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
     assert capability["execution_receipt_expectation"] == {
         "surface_kind": "mas_scholar_display_execution_receipt_expectation",
         "schema_version": 1,
+        "module_id": "opl.scholarskills.display",
         "receipt_owner": "one-person-lab",
         "receipt_role": "candidate_display_execution_receipt",
         "required_ref_families": [
@@ -590,6 +756,145 @@ def test_scientific_capability_registry_scholar_display_missing_receipt_refs_and
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_consumes_non_display_scholarskills_receipts_as_refs_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_owner_delta = {
+        "action_type": "prepare_table_package",
+        "action_id": "scholar-tables-001",
+        "work_unit_id": "scholar-tables-candidate",
+        "work_unit_fingerprint": "sha256:scholar-tables",
+        "capability_families": ["scholarskills_tables"],
+    }
+    invocation = module.invoke_scientific_capability(
+        capability_id="opl.scholarskills.tables",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    complete_receipt = {
+        "surface_kind": "opl_scholarskills_execution_receipt_candidate",
+        "status": "receipt_candidate_unsigned",
+        "module_id": "opl.scholarskills.tables",
+        "execution_receipt_ref": "opl-vault:receipts/scholar-tables/receipt.json",
+        "execution_receipt_refs": {
+            "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
+            "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
+            "prepared_run_context_ref": "opl-vault:run-context/tables-run.json",
+            "table_manifest_ref": "opl-vault:tables/table-manifest.json",
+            "table_qc_ref": "opl-vault:tables/qc.json",
+        },
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "can_authorize_publication_readiness": False,
+    }
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta=current_owner_delta,
+        execution_receipt=complete_receipt,
+    )
+
+    assert evidence["capability_id"] == "opl.scholarskills.tables"
+    assert evidence["execution_receipt_status"] == "complete"
+    assert evidence["missing_execution_receipt_ref_families"] == []
+    assert evidence["observed_execution_receipt_ref_families"] == [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "table_manifest_ref",
+        "table_qc_ref",
+    ]
+    assert evidence["execution_receipt_counts_as_candidate_artifact"] is True
+    assert evidence["counts_as_progress"] is False
+    assert evidence["counts_as_paper_truth"] is False
+    assert evidence["counts_as_owner_receipt"] is False
+    assert evidence["can_authorize_publication_readiness"] is False
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+    missing_evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta=current_owner_delta,
+        execution_receipt_refs={
+            "dependency_prepared_receipt_ref": "opl-vault:prepare/tables-env.json",
+            "table_manifest_ref": "opl-vault:tables/table-manifest.json",
+        },
+    )
+
+    assert missing_evidence["execution_receipt_status"] == "missing_required_refs"
+    assert missing_evidence["observed_execution_receipt_ref_families"] == [
+        "dependency_profile_ref",
+        "table_manifest_ref",
+    ]
+    assert missing_evidence["missing_execution_receipt_ref_families"] == [
+        "input_fingerprint_ref",
+        "prepared_run_context_ref",
+        "table_qc_ref",
+    ]
+    assert missing_evidence["execution_receipt_counts_as_candidate_artifact"] is False
+    assert missing_evidence["counts_as_owner_receipt"] is False
+
+
+def test_scientific_capability_registry_consumes_opl_shaped_receipts_for_every_scholarskills_module(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+
+    for module_id, expected_ref_keys in SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE.items():
+        module_name = module_id.removeprefix("opl.scholarskills.")
+        current_owner_delta = {
+            "action_type": f"prepare_{module_name}_candidate",
+            "action_id": f"{module_name}-receipt-001",
+            "work_unit_id": f"{module_name}-receipt-candidate",
+            "work_unit_fingerprint": f"sha256:{module_name}-receipt",
+            "capability_families": [f"scholarskills_{module_name}"],
+        }
+        invocation = module.invoke_scientific_capability(
+            capability_id=module_id,
+            study_root=study_root / module_name,
+            current_owner_delta=current_owner_delta,
+            apply=True,
+        )
+        complete_receipt = {
+            "surface_kind": "opl_scholarskills_execution_receipt_candidate",
+            "status": "receipt_candidate_unsigned",
+            "module_id": module_id,
+            "execution_receipt_ref": f"opl-vault:receipts/{module_name}/receipt.json",
+            "execution_receipt_refs": {
+                ref_key: f"opl-vault:{module_name}/{ref_key}.json"
+                for ref_key in expected_ref_keys
+            },
+            "counts_as_paper_truth": False,
+            "counts_as_owner_receipt": False,
+            "can_authorize_publication_readiness": False,
+        }
+        evidence = module.build_capability_owner_consumption_evidence(
+            invocation_result=invocation,
+            current_owner_delta=current_owner_delta,
+            execution_receipt=complete_receipt,
+        )
+
+        assert invocation["result"]["readback"]["execution_receipt_expectation"][
+            "required_ref_families"
+        ] == expected_ref_keys
+        assert evidence["capability_id"] == module_id
+        assert evidence["execution_receipt_status"] == "complete"
+        assert evidence["missing_execution_receipt_ref_families"] == []
+        assert evidence["observed_execution_receipt_ref_families"] == expected_ref_keys
+        assert list(evidence["execution_receipt_refs"]) == expected_ref_keys
+        assert evidence["execution_receipt_counts_as_candidate_artifact"] is True
+        assert evidence["counts_as_progress"] is False
+        assert evidence["counts_as_paper_truth"] is False
+        assert evidence["counts_as_owner_receipt"] is False
+        assert evidence["can_authorize_publication_readiness"] is False
 
 
 def test_scientific_capability_registry_resolves_nature_paper_mainline_refs_only_descriptors(
