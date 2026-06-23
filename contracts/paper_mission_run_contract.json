@@ -84,12 +84,43 @@
       "status",
       "refs"
     ],
+    "allowed_statuses": [
+      "candidate_ref_chain",
+      "projection_ref_chain",
+      "refs_only_no_write_readback",
+      "evidence_gap",
+      "typed_blocker_required",
+      "not_applicable_with_reason"
+    ],
+    "candidate_statuses": [
+      "candidate_ref_chain"
+    ],
+    "gap_statuses": [
+      "evidence_gap",
+      "typed_blocker_required",
+      "not_applicable_with_reason"
+    ],
+    "gap_status_required_fields": [
+      "gap_class",
+      "gap_reason"
+    ],
+    "candidate_status_forbidden_ref_kinds": [
+      "missing_audit_ref",
+      "missing_artifact_delta",
+      "missing_source_ref",
+      "placeholder_ref"
+    ],
+    "candidate_status_forbidden_uri_markers": [
+      "/missing",
+      "/no-artifact-delta-yet",
+      "/no-current-diagnostic-ref"
+    ],
     "required_ref_fields": [
       "ref_id",
       "ref_kind",
       "uri"
     ],
-    "fail_closed": "Every family must be present, each family status must be non-empty, refs must be a non-empty list of mappings, and every ref must include non-empty ref_id/ref_kind/uri.",
+    "fail_closed": "Every family must be present, each family status must be allowed, refs must be a non-empty list of mappings, and every ref must include non-empty ref_id/ref_kind/uri. Candidate audit status cannot use missing/placeholder refs. Gap statuses must carry gap_class and gap_reason so missing rigor evidence stays machine-visible instead of being promoted to candidate evidence.",
     "non_authority_note": "The audit pack is a structured candidate evidence chain. It cannot write or replace publication_eval/latest.json, controller decisions, owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, or Yang workspace authority."
   },
   "paper_mission_transaction": {

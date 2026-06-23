@@ -7,6 +7,7 @@ import pytest
 
 from med_autoscience.paper_mission_run import (
     ALLOWED_CONSUME_RESULT_STATUSES,
+    ALLOWED_PAPER_AUDIT_PACK_STATUSES,
     PaperMissionContractError,
     PaperMissionRun,
     REQUIRED_PAPER_AUDIT_PACK_FAMILIES,
@@ -225,6 +226,19 @@ def test_contract_declares_required_paper_mission_run_fields() -> None:
         "status",
         "refs",
     ]
+    assert set(contract["paper_audit_pack"]["allowed_statuses"]) == (
+        ALLOWED_PAPER_AUDIT_PACK_STATUSES
+    )
+    assert contract["paper_audit_pack"]["gap_status_required_fields"] == [
+        "gap_class",
+        "gap_reason",
+    ]
+    assert "missing_audit_ref" in contract["paper_audit_pack"][
+        "candidate_status_forbidden_ref_kinds"
+    ]
+    assert "/missing" in contract["paper_audit_pack"][
+        "candidate_status_forbidden_uri_markers"
+    ]
     assert contract["paper_mission_transaction"]["contract_ref"] == (
         "contracts/paper_mission_transaction_contract.json"
     )
@@ -336,6 +350,90 @@ def test_paper_mission_run_rejects_audit_ref_with_empty_uri() -> None:
     with pytest.raises(
         PaperMissionContractError,
         match="paper_audit_pack.decision_trace.refs\\[0\\] missing required field: uri",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_rejects_unknown_audit_family_status() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    family = dict(audit_pack["analysis_rationale_log"])
+    family["status"] = "ready_for_publication"
+    audit_pack["analysis_rationale_log"] = family
+    payload["paper_audit_pack"] = audit_pack
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match="paper_audit_pack.analysis_rationale_log unsupported status",
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_rejects_candidate_audit_status_with_placeholder_ref() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    family = dict(audit_pack["artifact_lineage"])
+    family["refs"] = [
+        {
+            "ref_id": "artifact_lineage::missing",
+            "ref_kind": "missing_audit_ref",
+            "uri": "mission://audit-pack/artifact_lineage/missing",
+        }
+    ]
+    audit_pack["artifact_lineage"] = family
+    payload["paper_audit_pack"] = audit_pack
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match=(
+            "paper_audit_pack.artifact_lineage.refs\\[0\\] "
+            "candidate status cannot use placeholder ref"
+        ),
+    ):
+        PaperMissionRun.from_payload(payload)
+
+
+def test_paper_mission_run_allows_explicit_audit_gap_with_reason() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    family = dict(audit_pack["failed_path_ledger"])
+    family.update(
+        {
+            "status": "evidence_gap",
+            "gap_class": "evidence_tail",
+            "gap_reason": "failed path ledger is pending reviewer owner output",
+            "refs": [
+                {
+                    "ref_id": "failed_path_ledger::missing",
+                    "ref_kind": "missing_audit_ref",
+                    "uri": "mission://audit-pack/failed_path_ledger/missing",
+                }
+            ],
+        }
+    )
+    audit_pack["failed_path_ledger"] = family
+    payload["paper_audit_pack"] = audit_pack
+
+    run = PaperMissionRun.from_payload(payload)
+
+    assert run.paper_audit_pack["failed_path_ledger"]["status"] == "evidence_gap"
+
+
+def test_paper_mission_run_rejects_audit_gap_without_reason() -> None:
+    payload = _valid_payload()
+    audit_pack = dict(payload["paper_audit_pack"])
+    family = dict(audit_pack["review_ledger_delta"])
+    family.update({"status": "typed_blocker_required", "gap_class": "authority_gate"})
+    family.pop("gap_reason", None)
+    audit_pack["review_ledger_delta"] = family
+    payload["paper_audit_pack"] = audit_pack
+
+    with pytest.raises(
+        PaperMissionContractError,
+        match=(
+            "paper_audit_pack.review_ledger_delta gap status missing required "
+            "field: gap_reason"
+        ),
     ):
         PaperMissionRun.from_payload(payload)
 

@@ -86,6 +86,33 @@ REQUIRED_PAPER_AUDIT_PACK_FAMILIES = (
     "artifact_lineage",
     "reproducibility_refs",
 )
+ALLOWED_PAPER_AUDIT_PACK_STATUSES = frozenset(
+    {
+        "candidate_ref_chain",
+        "projection_ref_chain",
+        "refs_only_no_write_readback",
+        "evidence_gap",
+        "typed_blocker_required",
+        "not_applicable_with_reason",
+    }
+)
+CANDIDATE_PAPER_AUDIT_PACK_STATUSES = frozenset({"candidate_ref_chain"})
+GAP_PAPER_AUDIT_PACK_STATUSES = frozenset(
+    {"evidence_gap", "typed_blocker_required", "not_applicable_with_reason"}
+)
+PLACEHOLDER_AUDIT_REF_KINDS = frozenset(
+    {
+        "missing_audit_ref",
+        "missing_artifact_delta",
+        "missing_source_ref",
+        "placeholder_ref",
+    }
+)
+PLACEHOLDER_AUDIT_URI_MARKERS = (
+    "/missing",
+    "/no-artifact-delta-yet",
+    "/no-current-diagnostic-ref",
+)
 
 
 class PaperMissionContractError(ValueError):
@@ -283,9 +310,14 @@ def _validate_paper_audit_pack(audit_pack: Mapping[str, Any]) -> None:
             raise PaperMissionContractError(
                 f"paper_audit_pack missing required family: {family}"
             )
-        if not _text_from_mapping(family_payload, "status"):
+        status = _text_from_mapping(family_payload, "status")
+        if not status:
             raise PaperMissionContractError(
                 f"paper_audit_pack.{family} missing required field: status"
+            )
+        if status not in ALLOWED_PAPER_AUDIT_PACK_STATUSES:
+            raise PaperMissionContractError(
+                f"paper_audit_pack.{family} unsupported status: {status}"
             )
         refs = _required_mapping_list(family_payload, "refs")
         if not refs:
@@ -297,6 +329,42 @@ def _validate_paper_audit_pack(audit_pack: Mapping[str, Any]) -> None:
             f"paper_audit_pack.{family}.refs",
             ("ref_id", "ref_kind", "uri"),
         )
+        if status in CANDIDATE_PAPER_AUDIT_PACK_STATUSES:
+            _reject_placeholder_audit_refs(family=family, refs=refs)
+        if status in GAP_PAPER_AUDIT_PACK_STATUSES:
+            _validate_audit_gap_family(family=family, family_payload=family_payload)
+
+
+def _reject_placeholder_audit_refs(
+    *,
+    family: str,
+    refs: tuple[dict[str, Any], ...],
+) -> None:
+    for index, ref in enumerate(refs):
+        ref_id = _text_from_mapping(ref, "ref_id")
+        ref_kind = _text_from_mapping(ref, "ref_kind")
+        uri = _text_from_mapping(ref, "uri")
+        if (
+            ref_kind in PLACEHOLDER_AUDIT_REF_KINDS
+            or ref_id.endswith("::missing")
+            or any(marker in uri for marker in PLACEHOLDER_AUDIT_URI_MARKERS)
+        ):
+            raise PaperMissionContractError(
+                "paper_audit_pack."
+                f"{family}.refs[{index}] candidate status cannot use placeholder ref"
+            )
+
+
+def _validate_audit_gap_family(
+    *,
+    family: str,
+    family_payload: Mapping[str, Any],
+) -> None:
+    for field in ("gap_class", "gap_reason"):
+        if not _text_from_mapping(family_payload, field):
+            raise PaperMissionContractError(
+                f"paper_audit_pack.{family} gap status missing required field: {field}"
+            )
 
 
 def _validate_forbidden_write_guard(guard: Mapping[str, Any]) -> None:
