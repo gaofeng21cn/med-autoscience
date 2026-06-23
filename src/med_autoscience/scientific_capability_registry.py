@@ -196,6 +196,35 @@ SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY = {
     "counts_as_owner_receipt": False,
     "mas_owner_gate_required_for_paper_truth": True,
 }
+_SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES = {
+    "input_fingerprint_ref": (
+        "input_fingerprint_ref",
+        "source_input_fingerprint_ref",
+    ),
+    "dependency_profile_ref": (
+        "dependency_profile_ref",
+        "dependency_prepared_receipt_ref",
+        "dependency_receipt_ref",
+    ),
+    "prepared_run_context_ref": (
+        "prepared_run_context_ref",
+        "run_context_ref",
+        "prepared_runtime_env_ref",
+    ),
+    "render_cache_ref": (
+        "render_cache_ref",
+        "display_render_cache_ref",
+    ),
+    "artifact_manifest_ref": (
+        "artifact_manifest_ref",
+        "display_artifact_manifest_ref",
+    ),
+    "visual_audit_or_gallery_preview_ref": (
+        "visual_audit_or_gallery_preview_ref",
+        "visual_audit_ref",
+        "gallery_preview_ref",
+    ),
+}
 _CURRENT_DELTA_DECLARATION_KEYS = {
     "action_type",
     "action_id",
@@ -246,6 +275,9 @@ def build_scientific_capability_registry() -> dict[str, Any]:
         "owner_consumption_evidence_schema": {
             "surface_kind": OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND,
             "schema_version": SCHEMA_VERSION,
+            "counts_as_paper_truth": False,
+            "counts_as_owner_receipt": False,
+            "can_authorize_publication_readiness": False,
             "standard_agent_feedback_loop_tail": {
                 "required_keys": list(_STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS),
                 "false_completion_blockers": list(
@@ -253,6 +285,26 @@ def build_scientific_capability_registry() -> dict[str, Any]:
                 ),
                 "mas_repo_can_close_opl_family_tail": False,
                 "opl_hosted_runtime_consumption_required": True,
+            },
+            "scholar_display_execution_receipt": {
+                "module_id": SCHOLAR_DISPLAY_MODULE_ID,
+                "receipt_role": "candidate_display_execution_receipt",
+                "required_ref_families": list(
+                    SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION[
+                        "required_ref_families"
+                    ]
+                ),
+                "accepted_ref_aliases": {
+                    family: list(aliases)
+                    for family, aliases in _SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES.items()
+                },
+                "status_values": [
+                    "complete",
+                    "missing_required_refs",
+                ],
+                "counts_as_paper_truth": False,
+                "counts_as_owner_receipt": False,
+                "can_authorize_publication_readiness": False,
             },
         },
         "authority_boundary": _authority_boundary(),
@@ -355,11 +407,22 @@ def build_capability_owner_consumption_evidence(
     invocation_result: Mapping[str, Any],
     current_owner_delta: Mapping[str, Any] | None = None,
     owner_response_refs: Mapping[str, Any] | None = None,
+    execution_receipt: Mapping[str, Any] | str | None = None,
+    execution_receipt_refs: Mapping[str, Any] | None = None,
+    execution_receipt_ref: str | None = None,
+    input_fingerprint_ref: str | None = None,
+    dependency_profile_ref: str | None = None,
+    dependency_prepared_receipt_ref: str | None = None,
+    prepared_run_context_ref: str | None = None,
+    run_context_ref: str | None = None,
+    render_cache_ref: str | None = None,
+    artifact_manifest_ref: str | None = None,
+    visual_audit_or_gallery_preview_ref: str | None = None,
 ) -> dict[str, Any]:
     invocation = _mapping(invocation_result)
     owner_refs = _owner_response_refs(owner_response_refs)
     observed_owner_refs = [ref for ref in owner_refs.values() if ref is not None]
-    return {
+    evidence = {
         "surface_kind": OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
         "status": "recorded",
@@ -380,8 +443,11 @@ def build_capability_owner_consumption_evidence(
         "reviewer_receipt_ref": owner_refs["reviewer_receipt_ref"],
         "route_back_evidence_ref": owner_refs["route_back_evidence_ref"],
         "counts_as_progress": False,
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
         "consumption_evidence_only": True,
         "can_authorize_owner_action": False,
+        "can_authorize_publication_readiness": False,
         "mainline_waits_for_owner_consumption": False,
         "fail_open": True,
         "missing_owner_response_refs_blocks": False,
@@ -398,6 +464,25 @@ def build_capability_owner_consumption_evidence(
         },
         "authority_boundary": _authority_boundary(),
     }
+    if _text(invocation.get("capability_id")) == SCHOLAR_DISPLAY_MODULE_ID:
+        evidence.update(
+            _scholar_display_execution_receipt_evidence(
+                execution_receipt=execution_receipt,
+                execution_receipt_refs=execution_receipt_refs,
+                explicit_refs={
+                    "execution_receipt_ref": execution_receipt_ref,
+                    "input_fingerprint_ref": input_fingerprint_ref,
+                    "dependency_profile_ref": dependency_profile_ref,
+                    "dependency_prepared_receipt_ref": dependency_prepared_receipt_ref,
+                    "prepared_run_context_ref": prepared_run_context_ref,
+                    "run_context_ref": run_context_ref,
+                    "render_cache_ref": render_cache_ref,
+                    "artifact_manifest_ref": artifact_manifest_ref,
+                    "visual_audit_or_gallery_preview_ref": visual_audit_or_gallery_preview_ref,
+                },
+            )
+        )
+    return evidence
 
 
 def _capabilities() -> list[dict[str, Any]]:
@@ -1017,6 +1102,87 @@ def _owner_response_refs(value: Mapping[str, Any] | None) -> dict[str, str | Non
         key: (_text(refs.get(key)) or None)
         for key in _OWNER_RESPONSE_REF_KEYS
     }
+
+
+def _scholar_display_execution_receipt_evidence(
+    *,
+    execution_receipt: Mapping[str, Any] | str | None,
+    execution_receipt_refs: Mapping[str, Any] | None,
+    explicit_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    refs = _scholar_display_execution_receipt_refs(
+        execution_receipt=execution_receipt,
+        execution_receipt_refs=execution_receipt_refs,
+        explicit_refs=explicit_refs,
+    )
+    required = _text_list(
+        SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION.get("required_ref_families")
+    )
+    observed = [
+        family
+        for family in required
+        if _text(refs.get(family))
+    ]
+    missing = [
+        family
+        for family in required
+        if family not in observed
+    ]
+    execution_receipt_ref = _text(refs.get("execution_receipt_ref")) or None
+    status = "complete" if not missing else "missing_required_refs"
+    return {
+        "execution_receipt_ref": execution_receipt_ref,
+        "execution_receipt_refs": {
+            family: _text(refs.get(family))
+            for family in required
+            if _text(refs.get(family))
+        },
+        "execution_receipt_status": status,
+        "missing_execution_receipt_ref_families": missing,
+        "observed_execution_receipt_ref_families": observed,
+        "execution_receipt_expectation": dict(
+            SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION
+        ),
+        "execution_receipt_counts_as_candidate_artifact": status == "complete",
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "can_authorize_publication_readiness": False,
+    }
+
+
+def _scholar_display_execution_receipt_refs(
+    *,
+    execution_receipt: Mapping[str, Any] | str | None,
+    execution_receipt_refs: Mapping[str, Any] | None,
+    explicit_refs: Mapping[str, Any],
+) -> dict[str, str]:
+    raw: dict[str, Any] = {}
+    if isinstance(execution_receipt, str):
+        raw["execution_receipt_ref"] = execution_receipt
+    else:
+        raw.update(_mapping(execution_receipt))
+    raw.update(_mapping(execution_receipt_refs))
+    raw.update({key: value for key, value in explicit_refs.items() if _text(value)})
+
+    nested_refs = _mapping(raw.get("refs"))
+    if nested_refs:
+        raw.update({key: value for key, value in nested_refs.items() if key not in raw})
+
+    result: dict[str, str] = {}
+    execution_receipt_ref = (
+        _text(raw.get("execution_receipt_ref"))
+        or _text(raw.get("receipt_ref"))
+        or _text(raw.get("receipt_uri"))
+    )
+    if execution_receipt_ref:
+        result["execution_receipt_ref"] = execution_receipt_ref
+    for family, aliases in _SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES.items():
+        for alias in aliases:
+            ref = _text(raw.get(alias))
+            if ref:
+                result[family] = ref
+                break
+    return result
 
 
 def _no_forbidden_write_proof(invocation: Mapping[str, Any]) -> dict[str, Any]:

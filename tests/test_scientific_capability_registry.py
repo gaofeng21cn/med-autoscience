@@ -424,7 +424,160 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
     assert evidence["owner_receipt_ref"] is None
     assert evidence["typed_blocker_ref"] is None
     assert evidence["can_authorize_owner_action"] is False
+    assert evidence["can_authorize_publication_readiness"] is False
+    assert evidence["counts_as_paper_truth"] is False
+    assert evidence["counts_as_owner_receipt"] is False
+    assert evidence["execution_receipt_status"] == "missing_required_refs"
+    assert evidence["observed_execution_receipt_ref_families"] == []
+    assert evidence["missing_execution_receipt_ref_families"] == [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "render_cache_ref",
+        "artifact_manifest_ref",
+        "visual_audit_or_gallery_preview_ref",
+    ]
     assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
+
+
+def test_scientific_capability_registry_consumes_complete_scholar_display_receipt_refs_as_candidate_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_owner_delta = {
+        "action_type": "prepare_manuscript_visual_package",
+        "action_id": "scholar-display-001",
+        "owner": "display",
+        "work_unit_id": "scholar-display-candidate",
+        "work_unit_fingerprint": "sha256:scholar-display",
+        "capability_families": ["scholarskills_display"],
+    }
+    invocation = module.invoke_scientific_capability(
+        capability_id="opl.scholarskills.display",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta=current_owner_delta,
+        execution_receipt_ref="opl-vault:receipts/scholar-display/receipt.json",
+        execution_receipt={
+            "input_fingerprint_ref": "opl-vault:inputs/fingerprint.sha256",
+            "dependency_prepared_receipt_ref": "opl-vault:prepare/display-env.json",
+            "run_context_ref": "opl-vault:run-context/display-run.json",
+            "render_cache_ref": "opl-vault:cache/display-render-cache.json",
+            "artifact_manifest_ref": "opl-vault:artifacts/display-manifest.json",
+            "visual_audit_or_gallery_preview_ref": "opl-vault:gallery/preview.json",
+        },
+    )
+
+    assert evidence["execution_receipt_ref"] == (
+        "opl-vault:receipts/scholar-display/receipt.json"
+    )
+    assert evidence["execution_receipt_status"] == "complete"
+    assert evidence["observed_execution_receipt_ref_families"] == [
+        "input_fingerprint_ref",
+        "dependency_profile_ref",
+        "prepared_run_context_ref",
+        "render_cache_ref",
+        "artifact_manifest_ref",
+        "visual_audit_or_gallery_preview_ref",
+    ]
+    assert evidence["missing_execution_receipt_ref_families"] == []
+    assert evidence["execution_receipt_refs"] == {
+        "input_fingerprint_ref": "opl-vault:inputs/fingerprint.sha256",
+        "dependency_profile_ref": "opl-vault:prepare/display-env.json",
+        "prepared_run_context_ref": "opl-vault:run-context/display-run.json",
+        "render_cache_ref": "opl-vault:cache/display-render-cache.json",
+        "artifact_manifest_ref": "opl-vault:artifacts/display-manifest.json",
+        "visual_audit_or_gallery_preview_ref": "opl-vault:gallery/preview.json",
+    }
+    assert evidence["execution_receipt_counts_as_candidate_artifact"] is True
+    assert evidence["counts_as_progress"] is False
+    assert evidence["counts_as_paper_truth"] is False
+    assert evidence["counts_as_owner_receipt"] is False
+    assert evidence["can_authorize_owner_action"] is False
+    assert evidence["can_authorize_publication_readiness"] is False
+    assert evidence["authority_boundary"]["can_write_publication_eval"] is False
+    assert evidence["authority_boundary"]["can_write_controller_decisions"] is False
+    assert evidence["authority_boundary"]["can_write_owner_receipt"] is False
+    assert evidence["authority_boundary"]["can_write_typed_blocker"] is False
+    assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
+
+
+def test_scientific_capability_registry_scholar_display_missing_receipt_refs_and_owner_refs_stay_non_authorizing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_owner_delta = {
+        "action_type": "prepare_manuscript_visual_package",
+        "action_id": "scholar-display-002",
+        "owner": "display",
+        "work_unit_id": "scholar-display-candidate",
+        "work_unit_fingerprint": "sha256:scholar-display-missing",
+        "capability_families": ["scholarskills_display"],
+    }
+    invocation = module.invoke_scientific_capability(
+        capability_id="opl.scholarskills.display",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta=current_owner_delta,
+        dependency_prepared_receipt_ref="opl-vault:prepare/display-env.json",
+        artifact_manifest_ref="opl-vault:artifacts/display-manifest.json",
+        owner_response_refs={
+            "owner_receipt_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+            "typed_blocker_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        },
+    )
+
+    assert evidence["owner_consumption_status"] == "owner_response_refs_observed"
+    assert evidence["owner_receipt_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json"
+    )
+    assert evidence["typed_blocker_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    assert evidence["execution_receipt_status"] == "missing_required_refs"
+    assert evidence["observed_execution_receipt_ref_families"] == [
+        "dependency_profile_ref",
+        "artifact_manifest_ref",
+    ]
+    assert evidence["missing_execution_receipt_ref_families"] == [
+        "input_fingerprint_ref",
+        "prepared_run_context_ref",
+        "render_cache_ref",
+        "visual_audit_or_gallery_preview_ref",
+    ]
+    assert evidence["execution_receipt_counts_as_candidate_artifact"] is False
+    assert evidence["counts_as_progress"] is False
+    assert evidence["counts_as_paper_truth"] is False
+    assert evidence["counts_as_owner_receipt"] is False
+    assert evidence["can_authorize_owner_action"] is False
+    assert evidence["can_authorize_publication_readiness"] is False
+    tail = evidence["standard_agent_feedback_loop_tail"]
+    assert tail["owner_answer_or_typed_blocker_observed"] is True
+    assert tail["counts_as_opl_family_completion"] is False
+    assert evidence["authority_boundary"]["can_write_owner_receipt"] is False
+    assert evidence["authority_boundary"]["can_write_typed_blocker"] is False
+    assert evidence["authority_boundary"]["can_authorize_publication_readiness"] is False
+    assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "package").exists()
 
 
 def test_scientific_capability_registry_resolves_nature_paper_mainline_refs_only_descriptors(

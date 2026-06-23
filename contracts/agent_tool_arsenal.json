@@ -8886,7 +8886,58 @@
     "ordinary_planning_root": "current_owner_delta",
     "owner": "MedAutoScience",
     "owner_consumption_evidence_schema": {
+      "can_authorize_publication_readiness": false,
+      "counts_as_owner_receipt": false,
+      "counts_as_paper_truth": false,
       "schema_version": 1,
+      "scholar_display_execution_receipt": {
+        "accepted_ref_aliases": {
+          "artifact_manifest_ref": [
+            "artifact_manifest_ref",
+            "display_artifact_manifest_ref"
+          ],
+          "dependency_profile_ref": [
+            "dependency_profile_ref",
+            "dependency_prepared_receipt_ref",
+            "dependency_receipt_ref"
+          ],
+          "input_fingerprint_ref": [
+            "input_fingerprint_ref",
+            "source_input_fingerprint_ref"
+          ],
+          "prepared_run_context_ref": [
+            "prepared_run_context_ref",
+            "run_context_ref",
+            "prepared_runtime_env_ref"
+          ],
+          "render_cache_ref": [
+            "render_cache_ref",
+            "display_render_cache_ref"
+          ],
+          "visual_audit_or_gallery_preview_ref": [
+            "visual_audit_or_gallery_preview_ref",
+            "visual_audit_ref",
+            "gallery_preview_ref"
+          ]
+        },
+        "can_authorize_publication_readiness": false,
+        "counts_as_owner_receipt": false,
+        "counts_as_paper_truth": false,
+        "module_id": "opl.scholarskills.display",
+        "receipt_role": "candidate_display_execution_receipt",
+        "required_ref_families": [
+          "input_fingerprint_ref",
+          "dependency_profile_ref",
+          "prepared_run_context_ref",
+          "render_cache_ref",
+          "artifact_manifest_ref",
+          "visual_audit_or_gallery_preview_ref"
+        ],
+        "status_values": [
+          "complete",
+          "missing_required_refs"
+        ]
+      },
       "standard_agent_feedback_loop_tail": {
         "false_completion_blockers": [
           "MAS_contract_landed_without_OPL_family_consumption",
