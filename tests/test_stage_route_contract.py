@@ -55,9 +55,37 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
         "knowledge_packet",
         "portfolio_input",
         "quality_gate",
+        "stage_completion_policy",
         "closeout",
         "memory_writeback",
         "opl_projection",
+    }
+    standard_completion = pack["standard_stage_completion_policy"]
+    assert standard_completion["surface_kind"] == "domain_stage_completion_policy"
+    assert standard_completion["completion_judgment_owner"] == "domain_stage"
+    assert standard_completion["closeout_packet_required"] is True
+    assert standard_completion["provider_completion_is_domain_completion"] is False
+    assert standard_completion["opl_content_judgment_allowed"] is False
+    assert standard_completion["next_stage_transition_owner"] == "opl_runtime"
+    assert set(standard_completion["required_closeout_outcomes"]) >= {
+        "completed_and_continue",
+        "completed_and_wait_owner",
+        "route_back",
+        "blocked",
+        "rejected",
+    }
+    assert set(standard_completion["accepted_closeout_ref_fields"]) >= {
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref",
+    }
+    assert standard_completion["authority_boundary"] == {
+        "opl_can_decide_domain_completion": False,
+        "provider_completion_counts_as_stage_complete": False,
+        "file_presence_counts_as_stage_complete": False,
+        "suite_pass_counts_as_stage_complete": False,
+        "conformance_pass_counts_as_stage_complete": False,
     }
     assert pack["advisory_signal_policy"]["forbidden_authority_uses"]
     assert "ranking" in pack["advisory_signal_policy"]["advisory_only"]
@@ -141,6 +169,12 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
     }
     for stage_id, stage_payload in main_stages.items():
         assert required_fields <= set(stage_payload), stage_id
+        stage_completion = stage_payload["stage_completion_policy"]
+        assert stage_completion["surface_kind"] == "domain_stage_completion_policy"
+        assert stage_completion["stage_id"] == stage_id
+        assert stage_completion["policy_ref"] == f"stage-completion-policy:mas/{stage_id}"
+        assert stage_completion["provider_completion_is_domain_completion"] is False
+        assert stage_completion["authority_boundary"]["opl_can_decide_domain_completion"] is False
         assert stage_payload["portfolio_input"]["advisory_signals"]
         assert stage_payload["quality_gate"]["independence"]["fail_closed_if_missing_or_same_invocation"] is True
         assert stage_payload["opl_projection"]["forbidden"]

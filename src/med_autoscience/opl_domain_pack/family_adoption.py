@@ -43,6 +43,7 @@ from .family_stage_artifact_index_projection import (
 )
 from .family_stage_pack import FAMILY_STAGE_PACK
 from .progress_first_policies import PROGRESS_DELTA_POLICY, TYPED_BLOCKER_LINEAGE_POLICY
+from .stage_completion_policy import STAGE_COMPLETION_POLICY
 from .stage_throughput_contracts import (
     human_gate_progress_evidence_contract,
     minimum_forward_delta_contract,
@@ -534,6 +535,12 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
             "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness.",
         ],
+        "stage_completion_policy": {
+            **STAGE_COMPLETION_POLICY,
+            "policy_ref": f"stage-completion-policy:mas/{stage['stage_id']}",
+            "stage_id": stage["stage_id"],
+            "target_domain_id": "med-autoscience",
+        },
         "user_stage_log_contract": USER_STAGE_LOG_CONTRACT,
         "progress_delta_policy": PROGRESS_DELTA_POLICY,
         "typed_blocker_lineage_policy": TYPED_BLOCKER_LINEAGE_POLICY,

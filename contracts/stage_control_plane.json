@@ -782,6 +782,40 @@
             "role": "stage_source_ref_projection"
           }
         ],
+        "stage_completion_policy": {
+          "accepted_closeout_ref_fields": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref"
+          ],
+          "authority_boundary": {
+            "conformance_pass_counts_as_stage_complete": false,
+            "file_presence_counts_as_stage_complete": false,
+            "opl_can_decide_domain_completion": false,
+            "provider_completion_counts_as_stage_complete": false,
+            "suite_pass_counts_as_stage_complete": false
+          },
+          "closeout_packet_required": true,
+          "completion_judgment_owner": "domain_stage",
+          "next_stage_transition_owner": "opl_runtime",
+          "opl_content_judgment_allowed": false,
+          "owner": "one-person-lab",
+          "policy_ref": "stage-completion-policy:mas/direction_and_route_selection",
+          "provider_completion_is_domain_completion": false,
+          "required_closeout_outcomes": [
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected"
+          ],
+          "stage_id": "direction_and_route_selection",
+          "standard_agent_requirement": "domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet",
+          "surface_kind": "domain_stage_completion_policy",
+          "target_domain_id": "med-autoscience",
+          "version": "domain-stage-completion-policy.v1"
+        },
         "trigger_refs": [
           {
             "ref": "opl://family-stage-queue/med-autoscience/direction_and_route_selection",
@@ -1615,6 +1649,40 @@
             "role": "stage_source_ref_projection"
           }
         ],
+        "stage_completion_policy": {
+          "accepted_closeout_ref_fields": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref"
+          ],
+          "authority_boundary": {
+            "conformance_pass_counts_as_stage_complete": false,
+            "file_presence_counts_as_stage_complete": false,
+            "opl_can_decide_domain_completion": false,
+            "provider_completion_counts_as_stage_complete": false,
+            "suite_pass_counts_as_stage_complete": false
+          },
+          "closeout_packet_required": true,
+          "completion_judgment_owner": "domain_stage",
+          "next_stage_transition_owner": "opl_runtime",
+          "opl_content_judgment_allowed": false,
+          "owner": "one-person-lab",
+          "policy_ref": "stage-completion-policy:mas/baseline_and_evidence_setup",
+          "provider_completion_is_domain_completion": false,
+          "required_closeout_outcomes": [
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected"
+          ],
+          "stage_id": "baseline_and_evidence_setup",
+          "standard_agent_requirement": "domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet",
+          "surface_kind": "domain_stage_completion_policy",
+          "target_domain_id": "med-autoscience",
+          "version": "domain-stage-completion-policy.v1"
+        },
         "trigger_refs": [
           {
             "ref": "opl://family-stage-queue/med-autoscience/baseline_and_evidence_setup",
@@ -2464,6 +2532,40 @@
             "role": "stage_source_ref_projection"
           }
         ],
+        "stage_completion_policy": {
+          "accepted_closeout_ref_fields": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref"
+          ],
+          "authority_boundary": {
+            "conformance_pass_counts_as_stage_complete": false,
+            "file_presence_counts_as_stage_complete": false,
+            "opl_can_decide_domain_completion": false,
+            "provider_completion_counts_as_stage_complete": false,
+            "suite_pass_counts_as_stage_complete": false
+          },
+          "closeout_packet_required": true,
+          "completion_judgment_owner": "domain_stage",
+          "next_stage_transition_owner": "opl_runtime",
+          "opl_content_judgment_allowed": false,
+          "owner": "one-person-lab",
+          "policy_ref": "stage-completion-policy:mas/bounded_analysis_campaign",
+          "provider_completion_is_domain_completion": false,
+          "required_closeout_outcomes": [
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected"
+          ],
+          "stage_id": "bounded_analysis_campaign",
+          "standard_agent_requirement": "domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet",
+          "surface_kind": "domain_stage_completion_policy",
+          "target_domain_id": "med-autoscience",
+          "version": "domain-stage-completion-policy.v1"
+        },
         "trigger_refs": [
           {
             "ref": "opl://family-stage-queue/med-autoscience/bounded_analysis_campaign",
@@ -3341,6 +3443,40 @@
             "role": "stage_source_ref_projection"
           }
         ],
+        "stage_completion_policy": {
+          "accepted_closeout_ref_fields": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref"
+          ],
+          "authority_boundary": {
+            "conformance_pass_counts_as_stage_complete": false,
+            "file_presence_counts_as_stage_complete": false,
+            "opl_can_decide_domain_completion": false,
+            "provider_completion_counts_as_stage_complete": false,
+            "suite_pass_counts_as_stage_complete": false
+          },
+          "closeout_packet_required": true,
+          "completion_judgment_owner": "domain_stage",
+          "next_stage_transition_owner": "opl_runtime",
+          "opl_content_judgment_allowed": false,
+          "owner": "one-person-lab",
+          "policy_ref": "stage-completion-policy:mas/manuscript_authoring",
+          "provider_completion_is_domain_completion": false,
+          "required_closeout_outcomes": [
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected"
+          ],
+          "stage_id": "manuscript_authoring",
+          "standard_agent_requirement": "domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet",
+          "surface_kind": "domain_stage_completion_policy",
+          "target_domain_id": "med-autoscience",
+          "version": "domain-stage-completion-policy.v1"
+        },
         "trigger_refs": [
           {
             "ref": "opl://family-stage-queue/med-autoscience/manuscript_authoring",
@@ -4246,6 +4382,40 @@
             "role": "stage_source_ref_projection"
           }
         ],
+        "stage_completion_policy": {
+          "accepted_closeout_ref_fields": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref"
+          ],
+          "authority_boundary": {
+            "conformance_pass_counts_as_stage_complete": false,
+            "file_presence_counts_as_stage_complete": false,
+            "opl_can_decide_domain_completion": false,
+            "provider_completion_counts_as_stage_complete": false,
+            "suite_pass_counts_as_stage_complete": false
+          },
+          "closeout_packet_required": true,
+          "completion_judgment_owner": "domain_stage",
+          "next_stage_transition_owner": "opl_runtime",
+          "opl_content_judgment_allowed": false,
+          "owner": "one-person-lab",
+          "policy_ref": "stage-completion-policy:mas/review_and_quality_gate",
+          "provider_completion_is_domain_completion": false,
+          "required_closeout_outcomes": [
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected"
+          ],
+          "stage_id": "review_and_quality_gate",
+          "standard_agent_requirement": "domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet",
+          "surface_kind": "domain_stage_completion_policy",
+          "target_domain_id": "med-autoscience",
+          "version": "domain-stage-completion-policy.v1"
+        },
         "trigger_refs": [
           {
             "ref": "opl://family-stage-queue/med-autoscience/review_and_quality_gate",
@@ -5155,6 +5325,40 @@
             "role": "stage_source_ref_projection"
           }
         ],
+        "stage_completion_policy": {
+          "accepted_closeout_ref_fields": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref"
+          ],
+          "authority_boundary": {
+            "conformance_pass_counts_as_stage_complete": false,
+            "file_presence_counts_as_stage_complete": false,
+            "opl_can_decide_domain_completion": false,
+            "provider_completion_counts_as_stage_complete": false,
+            "suite_pass_counts_as_stage_complete": false
+          },
+          "closeout_packet_required": true,
+          "completion_judgment_owner": "domain_stage",
+          "next_stage_transition_owner": "opl_runtime",
+          "opl_content_judgment_allowed": false,
+          "owner": "one-person-lab",
+          "policy_ref": "stage-completion-policy:mas/finalize_and_publication_handoff",
+          "provider_completion_is_domain_completion": false,
+          "required_closeout_outcomes": [
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected"
+          ],
+          "stage_id": "finalize_and_publication_handoff",
+          "standard_agent_requirement": "domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet",
+          "surface_kind": "domain_stage_completion_policy",
+          "target_domain_id": "med-autoscience",
+          "version": "domain-stage-completion-policy.v1"
+        },
         "trigger_refs": [
           {
             "ref": "opl://family-stage-queue/med-autoscience/finalize_and_publication_handoff",

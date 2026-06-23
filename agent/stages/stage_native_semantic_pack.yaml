@@ -11,9 +11,37 @@ stage_native_semantic_pack:
     - knowledge_packet
     - portfolio_input
     - quality_gate
+    - stage_completion_policy
     - closeout
     - memory_writeback
     - opl_projection
+  standard_stage_completion_policy: &standard_stage_completion_policy
+    surface_kind: domain_stage_completion_policy
+    version: domain-stage-completion-policy.v1
+    owner: one-person-lab
+    standard_agent_requirement: domain_stage_owns_completion_judgment_and_emits_standard_closeout_packet
+    completion_judgment_owner: domain_stage
+    closeout_packet_required: true
+    provider_completion_is_domain_completion: false
+    opl_content_judgment_allowed: false
+    next_stage_transition_owner: opl_runtime
+    required_closeout_outcomes:
+      - completed_and_continue
+      - completed_and_wait_owner
+      - route_back
+      - blocked
+      - rejected
+    accepted_closeout_ref_fields:
+      - owner_receipt_ref
+      - typed_blocker_ref
+      - human_gate_ref
+      - route_back_ref
+    authority_boundary:
+      opl_can_decide_domain_completion: false
+      provider_completion_counts_as_stage_complete: false
+      file_presence_counts_as_stage_complete: false
+      suite_pass_counts_as_stage_complete: false
+      conformance_pass_counts_as_stage_complete: false
   global_authority_boundary:
     mas_authority:
       - study_truth
@@ -374,6 +402,11 @@ stage_native_semantic_pack:
           - novelty_and_prior_art_boundary
           - source_readiness_floor
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/scout
+        stage_id: scout
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -439,6 +472,11 @@ stage_native_semantic_pack:
           - testability
           - stop_rule
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/idea
+        stage_id: idea
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -506,6 +544,11 @@ stage_native_semantic_pack:
           - comparator_validity
           - failed_comparator_lessons
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/baseline
+        stage_id: baseline
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -573,6 +616,11 @@ stage_native_semantic_pack:
           - deviation_refs
           - reproducible_lineage
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/experiment
+        stage_id: experiment
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -642,6 +690,11 @@ stage_native_semantic_pack:
           - route_impact
           - failed_path_preservation
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/analysis-campaign
+        stage_id: analysis-campaign
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -712,6 +765,11 @@ stage_native_semantic_pack:
           - reader_risk
           - display_to_claim_consistency
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/write
+        stage_id: write
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -781,6 +839,11 @@ stage_native_semantic_pack:
           - currentness
           - route_back_or_blocker_mapping
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/review
+        stage_id: review
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - independent_reviewer_record
@@ -850,6 +913,11 @@ stage_native_semantic_pack:
           - source_and_package_currentness
           - human_gate_status
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/finalize
+        stage_id: finalize
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - publication_handoff_receipt
@@ -918,6 +986,11 @@ stage_native_semantic_pack:
           - no_platform_repair_as_progress
           - no_advisory_signal_as_authority
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/decision
+        stage_id: decision
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - controller_decision_receipt
@@ -987,6 +1060,11 @@ stage_native_semantic_pack:
           - package_constraints_do_not_authorize_submission
           - human_gate_boundary
         independence: *fail_closed_reviewer_independence
+      stage_completion_policy:
+        <<: *standard_stage_completion_policy
+        policy_ref: stage-completion-policy:mas/journal-resolution
+        stage_id: journal-resolution
+        target_domain_id: med-autoscience
       closeout:
         valid_outcomes:
           - owner_receipt

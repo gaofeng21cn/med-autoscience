@@ -5,7 +5,7 @@ SHARED_POLICY_RELEASE = {
         "contracts/opl-framework/foundry-agent-series-policy-release.json"
     ),
     "policy_bundle_fingerprint": (
-        "sha256:5d77102e99e6e49acd88714cd94dcafe0969b8f2a5529928d753002ac3d4619d"
+        "sha256:503f515e8fa08b3f81ce28cac461368c609d4565de239c9f95c3f910cb758ed5"
     ),
     "fingerprint_algorithm": "sha256:stable-json",
     "domain_contract_policy_release_pin_required": True,
@@ -44,6 +44,7 @@ SERIES_DESIGN_PROFILE = {
     "stage_pack_sections": [
         "prompts",
         "stages",
+        "stage_completion_policy",
         "skills",
         "tools",
         "knowledge",
@@ -118,6 +119,7 @@ DOMAIN_SPECIFIC_PROFILE = {
         "memory_artifact_receipt_contracts",
     ],
     "progress_currentness_closeout_packets": [
+        "stage_completion_policy",
         "user_stage_log_contract",
         "progress_delta_policy",
         "typed_blocker_lineage_policy",

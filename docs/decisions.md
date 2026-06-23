@@ -2587,6 +2587,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - OPL/MAS 边界：OPL 以后应提供通用 state-machine runner、幂等 tick、attempt/retry/dead-letter、human gate transport、dispatch receipt 与 matrix runner；MAS 继续持有 domain transition spec、AI reviewer / publication gate / claim-evidence-display / artifact authority 的解释和 oracle fixtures。OPL 可以执行 MAS 声明的 transition spec，但不能把 mechanical projection 或 provider completion 写成医学质量结论。
 - 影响：新增状态转换必须先落 matrix case，再改实现。`study-state-matrix` 对单 study projection error 采用 fail-closed 行并继续投影其他 study，避免一个旧配置字段让整个 workspace transition surface 失明；旧配置本身仍是错误，不被兼容为有效配置。
 
+## 2026-06-23：标准 stage completion policy 成为 MAS/OPL 自动推进合同
+
+- 决策：每个 MAS Foundry stage 必须在 `stage_contract.stage_completion_policy` 声明 OPL standard `domain_stage_completion_policy`。stage 内完成判断由 `domain_stage` 负责，必须输出标准 closeout packet；OPL 只验证 packet shape、记录 runtime attempt / StageRun、执行下一 stage transition 和投影 next owner delta。
+- 决策：`provider_completion_is_domain_completion=false`、`opl_content_judgment_allowed=false`、`provider_completion_counts_as_stage_complete=false`、`file_presence_counts_as_stage_complete=false`、`suite_pass_counts_as_stage_complete=false`、`conformance_pass_counts_as_stage_complete=false` 是硬边界。合法 closeout refs 只能是 MAS/domain-owned owner receipt、stable typed blocker、human gate 或 route-back。
+- 理由：MAS+MDS 时代的 resident loop 能在同一系统内把 stage 产物继续消费为下一步；MAS+OPL 拆分后，如果没有标准 stage completion packet，OPL 只能看到 provider completion / tests / refs，不能安全判断 domain stage 是否完成，MAS 又会落回 DHD / owner-route / dispatch / PaperRecovery 等旧诊断面，造成“有产出但无人推动下一 stage”的卡死。
+- 外部模式对齐：Temporal 把 workflow execution / event history 作为 durable runtime 事实；Argo DAG 用 task dependencies 决定可运行任务；BPMN/Camunda 用 gateway / sequence flow 表达路由。三者共同点都是 runtime 可恢复地推进依赖和 token，但 domain/business completion 必须由明确的任务结果或 gateway 条件给出，而不是由 worker completion、文件存在或测试绿自动推断。参考：`https://docs.temporal.io/workflow-execution`、`https://docs.temporal.io/encyclopedia/event-history/`、`https://argo-workflows.readthedocs.io/en/latest/walk-through/dag/`、`https://camunda.com/en/bpmn/reference/`。
+- 影响：MAS stage 产出必须在 stage 内被 terminalize 为 completed / wait-owner / route-back / blocked / rejected 之一；OPL 可以自动消费该 packet 推进 runtime transition，但不得判断医学质量、publication readiness、artifact authority 或 current package freshness。缺 `stage_completion_policy` 是 standard-agent conformance blocker，不是论文 blocker；修复该 blocker只证明标准 pack 合规，不证明 DM002/DM003 paper progress。
+
 ## 2026-05-14：Domain transition table 集中管理，OPL 提供通用状态机执行底座
 
 - 决策：MAS 的论文控制面状态转换必须收口成 MAS-owned domain transition table / transition matrix，而不是继续分散在 `publication_work_units`、`study_outer_loop`、`owner_priority`、`controller_authorization` 等局部判断点里各自解释下一步。transition table 的输入至少包括 `publication_supervisor_state`、publication gate report、`publication_eval/latest.json` 推荐动作、task intake、controller decision authorization 与 runtime liveness；输出必须固定 `decision_type`、`route_target`、`next_work_unit`、`controller_action`、owner、idempotency/fingerprint 和 fail-closed blocker。

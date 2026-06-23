@@ -115,7 +115,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
             "contracts/opl-framework/foundry-agent-series-policy-release.json"
         ),
         "policy_bundle_fingerprint": (
-            "sha256:5d77102e99e6e49acd88714cd94dcafe0969b8f2a5529928d753002ac3d4619d"
+            "sha256:503f515e8fa08b3f81ce28cac461368c609d4565de239c9f95c3f910cb758ed5"
         ),
         "fingerprint_algorithm": "sha256:stable-json",
         "domain_contract_policy_release_pin_required": True,
@@ -169,6 +169,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert series_profile["stage_pack_sections"] == [
         "prompts",
         "stages",
+        "stage_completion_policy",
         "skills",
         "tools",
         "knowledge",
@@ -586,6 +587,33 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         }
         assert user_stage_log["authority_boundary"]["opl_can_infer_domain_semantics"] is False
         assert user_stage_log["authority_boundary"]["mas_retains_publication_quality_authority"] is True
+        stage_completion_policy = stage["stage_contract"]["stage_completion_policy"]
+        assert stage_completion_policy["surface_kind"] == "domain_stage_completion_policy"
+        assert stage_completion_policy["completion_judgment_owner"] == "domain_stage"
+        assert stage_completion_policy["closeout_packet_required"] is True
+        assert stage_completion_policy["provider_completion_is_domain_completion"] is False
+        assert stage_completion_policy["opl_content_judgment_allowed"] is False
+        assert stage_completion_policy["next_stage_transition_owner"] == "opl_runtime"
+        assert set(stage_completion_policy["required_closeout_outcomes"]) >= {
+            "completed_and_continue",
+            "completed_and_wait_owner",
+            "route_back",
+            "blocked",
+            "rejected",
+        }
+        assert set(stage_completion_policy["accepted_closeout_ref_fields"]) >= {
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_ref",
+        }
+        assert stage_completion_policy["authority_boundary"] == {
+            "opl_can_decide_domain_completion": False,
+            "provider_completion_counts_as_stage_complete": False,
+            "file_presence_counts_as_stage_complete": False,
+            "suite_pass_counts_as_stage_complete": False,
+            "conformance_pass_counts_as_stage_complete": False,
+        }
         progress_delta_policy = stage["stage_contract"]["progress_delta_policy"]
         assert progress_delta_policy["surface_kind"] == "opl_stage_progress_delta_policy"
         assert set(progress_delta_policy["required_fields"]) >= {
