@@ -18,6 +18,9 @@ from med_autoscience.paper_mission_authority import consume_paper_mission_candid
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
+from med_autoscience.paper_mission_opl_readback import (
+    attach_opl_runtime_carrier_readback,
+)
 from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
@@ -1116,7 +1119,7 @@ def _paper_mission_transaction_readback(
     elif mission is None and candidate is not None:
         source = "candidate_manifest"
 
-    return {
+    readback = {
         "surface_kind": "paper_mission_transaction_pickup_readback",
         "schema_version": 1,
         "contract_ref": "contracts/paper_mission_transaction_contract.json",
@@ -1133,6 +1136,10 @@ def _paper_mission_transaction_readback(
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "validation": _validate_paper_mission_transaction_if_available(transaction),
     }
+    return attach_opl_runtime_carrier_readback(
+        readback=readback,
+        study_root=study_root,
+    )
 
 
 def _paper_audit_pack_for_cli_readback(
@@ -1164,6 +1171,12 @@ def _transaction_readback_output_fields(
         "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
         "opl_route_command": transaction_readback["opl_route_command"],
         "opl_runtime_carrier": transaction_readback["opl_runtime_carrier"],
+        "opl_runtime_carrier_readback": transaction_readback[
+            "opl_runtime_carrier_readback"
+        ],
+        "opl_runtime_readback_status": transaction_readback[
+            "opl_runtime_readback_status"
+        ],
         "transaction_state": transaction_readback["transaction_state"],
         "paper_mission_transaction_readback": transaction_readback,
     }

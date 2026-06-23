@@ -12,6 +12,9 @@ from med_autoscience.paper_mission_run import (
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
+from med_autoscience.paper_mission_opl_readback import (
+    paper_mission_opl_runtime_carrier_readback,
+)
 from med_autoscience.paper_mission_transaction import (
     PaperMissionTransaction,
     build_paper_mission_transaction,
@@ -119,6 +122,13 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         platform_diagnostics=platform_diagnostics,
         next_owner_or_human_decision=next_owner_or_human_decision,
     )
+    carrier = paper_mission_opl_runtime_carrier(
+        paper_mission_run["paper_mission_transaction"]
+    )
+    carrier_readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=_materialized_study_root(progress=progress),
+    )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -134,9 +144,9 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "opl_route_command": paper_mission_run["paper_mission_transaction"][
             "opl_route_command"
         ],
-        "opl_runtime_carrier": paper_mission_opl_runtime_carrier(
-            paper_mission_run["paper_mission_transaction"]
-        ),
+        "opl_runtime_carrier": carrier,
+        "opl_runtime_carrier_readback": carrier_readback,
+        "opl_runtime_readback_status": carrier_readback["carrier_status"],
         "transaction_state": _transaction_state(
             paper_mission_run["paper_mission_transaction"]
         ),
@@ -195,6 +205,8 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
     updated["opl_route_command"] = summary["opl_route_command"]
     updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
+    updated["opl_runtime_carrier_readback"] = summary["opl_runtime_carrier_readback"]
+    updated["opl_runtime_readback_status"] = summary["opl_runtime_readback_status"]
     updated["transaction_state"] = summary["transaction_state"]
     return updated
 
@@ -292,6 +304,11 @@ def _materialized_mission_summary(
     )
     transaction = _mapping(paper_mission_run.get("paper_mission_transaction"))
     transaction_state = _transaction_state(transaction)
+    carrier = paper_mission_opl_runtime_carrier(transaction)
+    carrier_readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=_materialized_study_root(progress=progress),
+    )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -303,7 +320,9 @@ def _materialized_mission_summary(
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
         "opl_route_command": _mapping(transaction.get("opl_route_command")),
-        "opl_runtime_carrier": paper_mission_opl_runtime_carrier(transaction),
+        "opl_runtime_carrier": carrier,
+        "opl_runtime_carrier_readback": carrier_readback,
+        "opl_runtime_readback_status": carrier_readback["carrier_status"],
         "transaction_state": transaction_state,
         "mission_state": mission_state,
         "current_objective": current_objective,
@@ -383,6 +402,17 @@ def _latest_materialized_mission(progress: Mapping[str, Any]) -> dict[str, Any]:
         payload["materialized_mission_ref"] = str(path)
         return payload
     return {}
+
+
+def _materialized_study_root(*, progress: Mapping[str, Any]) -> Path:
+    study_id = _study_id(progress)
+    study_root = _path_from_text(progress.get("study_root"))
+    if study_root is not None:
+        return study_root
+    ref_study_root = _study_root_from_refs(progress=progress, study_id=study_id)
+    if ref_study_root is not None:
+        return ref_study_root
+    return Path("studies") / study_id
 
 
 def _materialized_mission_path_matches(
@@ -845,7 +875,7 @@ def _paper_mission_transaction_payload(
             and transaction.study_id == _non_empty_text(mission.get("study_id"))
         ):
             return transaction.to_dict()
-    stage_id = _stage_id(
+    stage_id = _materialized_transaction_stage_id(mission) or _stage_id(
         progress=progress,
         mission_state=mission_state,
         current_objective=current_objective,
@@ -1031,6 +1061,19 @@ def _stage_id(
         mission_state,
     ) or "paper_mission_projection_stage"
     return _slug(raw).replace("-", "_")
+
+
+def _materialized_transaction_stage_id(mission: Mapping[str, Any]) -> str | None:
+    readback = _mapping(mission.get("one_shot_migration_readback"))
+    if not readback:
+        return None
+    current_mission = _mapping(readback.get("current_mission"))
+    required_output = _mapping(readback.get("required_output"))
+    return _first_text(
+        current_mission.get("objective_kind"),
+        required_output.get("objective_kind"),
+        current_mission.get("objective_id"),
+    )
 
 
 def _next_stage_id(*, stage_id: str) -> str:

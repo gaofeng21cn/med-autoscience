@@ -846,6 +846,182 @@ def test_paper_mission_materialized_legacy_run_without_transaction_terminalizes_
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_closeout(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    transaction = _paper_mission_transaction_payload(
+        mission_id=f"paper-mission::{study_id}::gate-clearing::one-shot-migration",
+        study_id=study_id,
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": transaction["mission_id"],
+        "study_id": study_id,
+        "objective": "Accepted paper mission waiting for OPL closeout readback.",
+        "mission_state": "consumed",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm002::one-shot",
+                "artifact_ref": "mission://dm002/owner-decision",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate_consumed",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": "mission://dm002/import-pack",
+            }
+        ],
+        "authority_touchpoints": [
+            {
+                "touchpoint_id": "publication_eval",
+                "owner": "MedAutoScience",
+                "surface": "publication_eval/latest.json",
+                "status": "not_touched",
+            }
+        ],
+        "forbidden_write_guard": {
+            "candidate_writes_authority": False,
+            "blocked_paths": [
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "current_package",
+                "runtime queue/provider attempts",
+                "/Users/gaofeng/workspace/Yang/**",
+            ],
+            "forbidden_claims": [
+                "publication_ready",
+                "current_package",
+                "owner_receipt_written",
+            ],
+        },
+        "consume_result": {"status": "accepted"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "paper_mission_transaction": transaction,
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "analysis-campaign",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "consume_candidate_status": "accepted",
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    closeout_root = (
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+    )
+    closeout_root.mkdir(parents=True)
+    closeout_ref = closeout_root / "sat-terminal.closeout.json"
+    closeout_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "blocked",
+                "study_id": study_id,
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_attempt_id": "sat-terminal",
+                "action_type": "route_back",
+                "work_unit_id": "paper-stage::gate-clearing",
+                "work_unit_fingerprint": "fingerprint::pmc-001::route-back",
+                "stage_packet_ref": "opl-stage-run://pmc-001",
+                "provider_attempt_ref": "temporal://attempt/sat-terminal",
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "typed_blocker_ref": (
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-terminal.closeout.json#domain_blocker"
+                ),
+                "blocked_reason": "domain_gate_pending",
+                "closeout_refs": [
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-terminal.closeout.json",
+                    "typed-blocker:domain_gate_pending",
+                ],
+                "authority_boundary": {
+                    "record_only_surface": True,
+                    "provider_completion_is_domain_completion": False,
+                    "artifact_mutation_authorized": False,
+                    "publication_eval_latest_write_authorized": False,
+                    "controller_decision_write_authorized": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_materialized_readback"
+    assert payload["opl_runtime_carrier"]["carrier_status"] == (
+        "waiting_for_opl_runtime_live_readback"
+    )
+    assert payload["opl_runtime_readback_status"] == (
+        "opl_runtime_terminal_readback_observed"
+    )
+    carrier_readback = payload["opl_runtime_carrier_readback"]
+    assert carrier_readback["runtime_readback_status"] == "terminal_closeout_observed"
+    assert carrier_readback["domain_ready_verdict"] == "domain_gate_pending"
+    assert carrier_readback["can_claim_paper_progress"] is False
+    assert carrier_readback["provider_completion_is_domain_completion"] is False
+    assert carrier_readback["provider_completion_is_domain_ready"] is False
+    assert carrier_readback["authority_materialized"] is False
+    assert carrier_readback["terminal_closeout"]["stage_attempt_id"] == "sat-terminal"
+    assert carrier_readback["terminal_closeout"]["closeout_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/"
+        "sat-terminal.closeout.json"
+    )
+    assert payload["paper_mission_transaction_readback"]["opl_runtime_readback_status"] == (
+        "opl_runtime_terminal_readback_observed"
+    )
+    assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_uses_authority_consume_readback(
     tmp_path: Path,
     capsys,

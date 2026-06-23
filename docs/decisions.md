@@ -15,6 +15,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：`PaperMissionRun` 已解决默认入口和 no-write candidate/readback，但仍容易被误读成 OPL runtime envelope。真正的边界应是 MAS 在 stage 内给出 terminal decision，OPL 只运输 route command；否则旧 DHD/owner-route/default dispatch/PaperRecovery 会通过“下一步”或 currentness 读面复活为论文主线。
 - 影响：本轮已落地 `PaperMissionTransaction` contract / validator、`PaperMissionRun.paper_mission_transaction` 必填、CLI transaction pickup/readback、`study_progress` terminal decision / route command projection，以及 `paper_mission_opl_runtime_carrier` 到 `mas_domain_progress_transition_request` 的 request-only bridge。该 landing 仍不写 Yang authority、publication eval、controller decisions、owner receipt、typed blocker、human gate、current package、runtime queue/provider attempt、OPL outbox/event/StageRun 或 paper body；不能被解释为 OPL hosted run、runtime-ready、paper progress、publication-ready 或 current package fresh。
 
+## 2026-06-23：OPL terminal closeout 只能作为 MAS readback overlay
+
+- 决策：`opl_runtime_carrier` 继续保持 request-only ABI，只表达 MAS `PaperMissionTransaction` 派生给 OPL 的 route request。OPL terminal closeout、provider attempt、StageRun 或 runtime readback 不得写回 carrier 本体，必须进入独立 `opl_runtime_carrier_readback` / `opl_runtime_readback_status`。
+- 决策：MAS 只消费 same study / work unit / fingerprint 且 `authority_boundary.record_only_surface=true` 的 terminal closeout readback。任何 provider/domain completion claim、provider/domain ready claim 或非 record-only closeout 都必须 fail closed，不能投影为 terminal observed。
+- 决策：terminal closeout observed 的 MAS 读面固定为 `domain_ready_verdict=domain_gate_pending`、`provider_completion_is_domain_completion=false`、`provider_completion_is_domain_ready=false`、`can_claim_paper_progress=false`、`authority_materialized=false`。它只能说明 OPL runtime closeout 已被观察到，不说明 MAS domain completion、owner receipt、typed blocker 文件、human gate、publication verdict、current package 或 paper artifact delta 已产生。
+- 理由：DM002 暴露出 OPL attempt 已 terminal closeout，但 MAS `paper-mission inspect` / `study_progress` 仍停在 stale `waiting_for_opl_runtime_live_readback`。修复点不是把 provider closeout 升级成 domain answer，而是把 runtime terminal readback 与 MAS authority consume 决策分开，让 operator 看到“runtime 已终止，下一步是 MAS domain gate / authority consume”。
+- 影响：这是 readback/currentness 边界修复，不执行 OPL outbox / StageRun / provider attempt 写入，不写 Yang study/runtime/paper authority、publication eval、controller decisions、owner receipt、typed blocker、human gate、current package 或 paper body；不能被解释为 runtime-ready、domain-ready、paper progress、publication-ready 或 DM002/DM003 complete。
+
 ## 2026-06-23：Progress / Workbench 默认读面切到 artifact-first mission summary
 
 - 决策：`study_progress` projection、Progress Portal 和 study workbench 的默认叙事从旧 `DHD / owner-route / dispatch / PaperRecovery` 状态链切到 artifact-first paper mission summary。默认 top-level 字段固定为 `mission_state`、`current_objective`、`latest_artifact_delta`、`next_owner_or_human_decision` 和 `platform_diagnostics`。
