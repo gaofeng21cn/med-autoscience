@@ -126,7 +126,8 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert (
         'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) '
         '-m "not meta and not display_heavy and not submission_heavy '
-        'and not materialization_heavy and not family and not soak_or_golden"'
+        'and not materialization_heavy and not family and not soak_or_golden '
+        'and not write_route_legacy_default"'
     ) in makefile
     assert "test-ci-preflight:" in makefile
     assert 'scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
