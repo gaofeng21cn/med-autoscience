@@ -23,6 +23,8 @@ INVOCATION_SURFACE_KIND = "mas_scientific_capability_invocation"
 OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND = (
     "mas_scientific_capability_owner_consumption_evidence"
 )
+SCHOLARSKILLS_OWNER_GATE_REQUEST_SURFACE_KIND = "mas_scholarskills_owner_gate_request"
+SCHOLARSKILLS_OWNER_GATE_HANDOFF_SURFACE_KIND = "mas_scholarskills_owner_gate_handoff"
 SCHEMA_VERSION = 1
 DEFAULT_CURRENT_DELTA_TRIGGER = "current_delta_declares_or_implies_affordance_need"
 _OWNER_RESPONSE_REF_KEYS = (
@@ -30,6 +32,28 @@ _OWNER_RESPONSE_REF_KEYS = (
     "typed_blocker_ref",
     "reviewer_receipt_ref",
     "route_back_evidence_ref",
+)
+_REQUIRED_OWNER_RESPONSE_SHAPES = (
+    {
+        "shape": "owner_receipt_ref",
+        "required_for": "accept_candidate_into_mas_paper_truth",
+        "may_be_written_by_this_request": False,
+    },
+    {
+        "shape": "typed_blocker_ref",
+        "required_for": "block_candidate_with_stable_owner_reason",
+        "may_be_written_by_this_request": False,
+    },
+    {
+        "shape": "route_back_evidence_ref",
+        "required_for": "return_candidate_to_capability_or_executor",
+        "may_be_written_by_this_request": False,
+    },
+    {
+        "shape": "reviewer_receipt_ref",
+        "required_for": "attach_non_authoritative_reviewer_readback",
+        "may_be_written_by_this_request": False,
+    },
 )
 _FORBIDDEN_WRITE_CHECK_REFS = (
     "artifacts/publication_eval/latest.json",
@@ -465,6 +489,12 @@ def build_capability_owner_consumption_evidence(
             evidence["materialized_package_consumption"] = materialized_package[
                 "materialized_package_consumption"
             ]
+        owner_gate_readback = _scholarskills_owner_gate_readback(
+            evidence=evidence,
+            current_owner_delta=_mapping(current_owner_delta),
+        )
+        if owner_gate_readback:
+            evidence.update(owner_gate_readback)
     return evidence
 
 
@@ -1193,6 +1223,121 @@ def _scholarskills_materialized_package_input(
         execution_receipt_path=execution_receipt_path,
         materialized_package_manifest_path=materialized_package_manifest_path,
     )
+
+
+def _scholarskills_owner_gate_readback(
+    *,
+    evidence: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+) -> dict[str, Any]:
+    package = _mapping(evidence.get("materialized_package_consumption"))
+    if not _scholarskills_owner_gate_requestable(evidence=evidence, package=package):
+        return {}
+    request = _scholarskills_owner_gate_request(
+        evidence=evidence,
+        package=package,
+        current_owner_delta=current_owner_delta,
+    )
+    return {
+        "owner_gate_request": request,
+        "owner_gate_handoff": _scholarskills_owner_gate_handoff(
+            request=request,
+            package=package,
+        ),
+        "required_owner_response_shapes": [
+            dict(shape) for shape in _REQUIRED_OWNER_RESPONSE_SHAPES
+        ],
+    }
+
+
+def _scholarskills_owner_gate_requestable(
+    *,
+    evidence: Mapping[str, Any],
+    package: Mapping[str, Any],
+) -> bool:
+    return (
+        bool(package)
+        and _text(evidence.get("execution_receipt_status")) == "complete"
+        and package.get("authority_flags_false") is True
+        and not _text_list(package.get("forbidden_written_file_collisions"))
+        and not _text_list(package.get("mas_consumer_written_files"))
+    )
+
+
+def _scholarskills_owner_gate_request(
+    *,
+    evidence: Mapping[str, Any],
+    package: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": SCHOLARSKILLS_OWNER_GATE_REQUEST_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "request_status": "ready_for_owner_gate_review",
+        "request_role": "non_authoritative_scholarskills_candidate_review_request",
+        "non_authoritative_request": True,
+        "refs_only": True,
+        "capability_id": _text(evidence.get("capability_id")),
+        "capability_family": _text(evidence.get("capability_family")),
+        "module_id": _text(package.get("module_id")) or _text(evidence.get("capability_id")),
+        "current_owner_delta_identity": _current_owner_summary(current_owner_delta),
+        "execution_receipt_ref": _text(evidence.get("execution_receipt_ref")) or None,
+        "execution_receipt_status": _text(evidence.get("execution_receipt_status")),
+        "execution_receipt_refs": dict(_mapping(evidence.get("execution_receipt_refs"))),
+        "observed_execution_receipt_ref_families": _text_list(
+            evidence.get("observed_execution_receipt_ref_families")
+        ),
+        "materialized_package_manifest_path": _text(package.get("manifest_path")) or None,
+        "materialized_package_execution_receipt_path": _text(
+            package.get("execution_receipt_path")
+        )
+        or None,
+        "materialized_package_sha256": _text(package.get("sha256")) or None,
+        "materialized_package_written_files": _text_list(package.get("written_files")),
+        "required_owner_response_shapes": [
+            _text(shape["shape"]) for shape in _REQUIRED_OWNER_RESPONSE_SHAPES
+        ],
+        "counts_as_progress": False,
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+        "counts_as_current_package_authority": False,
+        "can_authorize_owner_action": False,
+        "can_authorize_publication_readiness": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decisions": False,
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
+        "can_write_human_gate": False,
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def _scholarskills_owner_gate_handoff(
+    *,
+    request: Mapping[str, Any],
+    package: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": SCHOLARSKILLS_OWNER_GATE_HANDOFF_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "handoff_status": "ready_for_owner_gate_review",
+        "handoff_role": "mas_owner_gate_review_handoff",
+        "source_request_ref": "inline:owner_gate_request",
+        "next_owner": "MAS owner gate",
+        "capability_id": _text(request.get("capability_id")),
+        "module_id": _text(request.get("module_id")),
+        "required_owner_response_shapes": [
+            dict(shape) for shape in _REQUIRED_OWNER_RESPONSE_SHAPES
+        ],
+        "forbidden_authority_writes_absent": (
+            package.get("authority_flags_false") is True
+            and not _text_list(package.get("forbidden_written_file_collisions"))
+        ),
+        "mas_consumer_written_files": [],
+        "counts_as_progress": False,
+        "counts_as_paper_truth": False,
+        "counts_as_owner_receipt": False,
+    }
 
 
 def _scholarskills_execution_receipt_ref_aliases(

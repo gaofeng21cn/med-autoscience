@@ -876,6 +876,8 @@ def test_scientific_capability_registry_consumes_non_display_scholarskills_recei
     assert evidence["counts_as_paper_truth"] is False
     assert evidence["counts_as_owner_receipt"] is False
     assert evidence["can_authorize_publication_readiness"] is False
+    assert "owner_gate_request" not in evidence
+    assert "owner_gate_handoff" not in evidence
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
     assert not (study_root / "paper").exists()
@@ -1078,6 +1080,56 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
     assert evidence["counts_as_paper_truth"] is False
     assert evidence["counts_as_owner_receipt"] is False
     assert evidence["can_authorize_publication_readiness"] is False
+    owner_gate_request = evidence["owner_gate_request"]
+    assert owner_gate_request["surface_kind"] == "mas_scholarskills_owner_gate_request"
+    assert owner_gate_request["request_status"] == "ready_for_owner_gate_review"
+    assert owner_gate_request["non_authoritative_request"] is True
+    assert owner_gate_request["capability_id"] == "opl.scholarskills.tables"
+    assert owner_gate_request["module_id"] == "opl.scholarskills.tables"
+    assert owner_gate_request["execution_receipt_status"] == "complete"
+    assert owner_gate_request["materialized_package_manifest_path"] == str(
+        manifest_path.resolve()
+    )
+    assert owner_gate_request["materialized_package_sha256"] == "sha256:receipt"
+    assert owner_gate_request["required_owner_response_shapes"] == [
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "route_back_evidence_ref",
+        "reviewer_receipt_ref",
+    ]
+    assert owner_gate_request["counts_as_progress"] is False
+    assert owner_gate_request["counts_as_paper_truth"] is False
+    assert owner_gate_request["counts_as_owner_receipt"] is False
+    assert owner_gate_request["can_authorize_publication_readiness"] is False
+    assert owner_gate_request["can_write_owner_receipt"] is False
+    owner_gate_handoff = evidence["owner_gate_handoff"]
+    assert owner_gate_handoff["surface_kind"] == "mas_scholarskills_owner_gate_handoff"
+    assert owner_gate_handoff["handoff_status"] == "ready_for_owner_gate_review"
+    assert owner_gate_handoff["next_owner"] == "MAS owner gate"
+    assert owner_gate_handoff["source_request_ref"] == "inline:owner_gate_request"
+    assert owner_gate_handoff["mas_consumer_written_files"] == []
+    assert evidence["required_owner_response_shapes"] == [
+        {
+            "shape": "owner_receipt_ref",
+            "required_for": "accept_candidate_into_mas_paper_truth",
+            "may_be_written_by_this_request": False,
+        },
+        {
+            "shape": "typed_blocker_ref",
+            "required_for": "block_candidate_with_stable_owner_reason",
+            "may_be_written_by_this_request": False,
+        },
+        {
+            "shape": "route_back_evidence_ref",
+            "required_for": "return_candidate_to_capability_or_executor",
+            "may_be_written_by_this_request": False,
+        },
+        {
+            "shape": "reviewer_receipt_ref",
+            "required_for": "attach_non_authoritative_reviewer_readback",
+            "may_be_written_by_this_request": False,
+        },
+    ]
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
     assert not (study_root / "paper").exists()
@@ -1150,6 +1202,17 @@ def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_
     assert evidence["counts_as_paper_truth"] is False
     assert evidence["counts_as_owner_receipt"] is False
     assert evidence["can_authorize_publication_readiness"] is False
+    assert evidence["owner_gate_request"]["request_status"] == (
+        "ready_for_owner_gate_review"
+    )
+    assert evidence["owner_gate_request"]["non_authoritative_request"] is True
+    assert evidence["owner_gate_handoff"]["handoff_status"] == (
+        "ready_for_owner_gate_review"
+    )
+    assert evidence["owner_gate_handoff"]["mas_consumer_written_files"] == []
+    assert evidence["required_owner_response_shapes"][0]["shape"] == (
+        "owner_receipt_ref"
+    )
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
     assert not (study_root / "paper").exists()
