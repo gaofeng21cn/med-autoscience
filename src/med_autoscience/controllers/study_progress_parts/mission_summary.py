@@ -420,6 +420,23 @@ def _materialized_mission_summary(
             _non_empty_text(consumption_ledger_readback.get("consume_candidate_status"))
             or effective_consume_candidate_status
         )
+        next_owner_or_human_decision = _next_owner_decision_for_consumption_ledger(
+            readback=consumption_ledger_readback,
+            fallback=next_owner_or_human_decision,
+        )
+        ledger_next_owner = _non_empty_text(
+            next_owner_or_human_decision.get("next_owner")
+        )
+        if ledger_next_owner:
+            current_objective = {
+                **current_objective,
+                "next_owner": ledger_next_owner,
+            }
+            paper_mission_run = {
+                **paper_mission_run,
+                "current_objective": current_objective,
+                "next_owner_or_human_decision": next_owner_or_human_decision,
+            }
     if owner_answer_readback and not consumption_ledger_readback:
         owner_answer_transaction = _mapping(
             owner_answer_readback.get("paper_mission_transaction")
@@ -597,6 +614,51 @@ def _consume_result_for_consumption_ledger(
         "outcome": status or selected_outcome or result_status,
         "authority_materialized": False,
     }
+
+
+def _next_owner_decision_for_consumption_ledger(
+    *,
+    readback: Mapping[str, Any],
+    fallback: Mapping[str, Any],
+) -> dict[str, Any]:
+    decision = _mapping(readback.get("stage_terminal_decision"))
+    handoff = _mapping(readback.get("opl_route_handoff"))
+    route = _mapping(readback.get("opl_route_command"))
+    next_owner = _first_text(
+        decision.get("next_owner"),
+        handoff.get("next_owner"),
+        readback.get("next_owner"),
+        fallback.get("next_owner"),
+    )
+    status = _first_text(
+        readback.get("consume_candidate_status"),
+        readback.get("selected_outcome"),
+        decision.get("decision_kind"),
+        fallback.get("summary"),
+    )
+    return _compact(
+        {
+            "kind": (
+                "human_decision"
+                if _non_empty_text(decision.get("decision_kind")) == "human_gate"
+                else "owner_or_route"
+            ),
+            "next_owner": next_owner,
+            "human_decision_required": (
+                _non_empty_text(decision.get("decision_kind")) == "human_gate"
+            ),
+            "summary": status,
+            "route_command": _non_empty_text(route.get("command_kind")),
+            "route_target": _first_text(
+                route.get("target"),
+                route.get("route_target"),
+                handoff.get("route_target"),
+            ),
+            "opl_route_handoff_ref": _non_empty_text(handoff.get("source_ref")),
+            "can_execute": False,
+            "can_authorize_provider_admission": False,
+        }
+    )
 
 
 def _materialized_study_root(*, progress: Mapping[str, Any]) -> Path:

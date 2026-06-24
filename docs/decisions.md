@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-24：PaperMission drive 是默认一键推进编排面
+
+- 决策：`paper-mission drive` 是 MAS 侧默认一键推进编排入口。它必须从当前 materialized `PaperMissionRun` 出发，自动执行 foreground `package-candidate`、MAS `consume-candidate`、governed consumption ledger 写入，并返回同一 `PaperMissionTransaction` 的 `StageTerminalDecision`、`OPL RouteCommand` 与 `opl_route_handoff`。
+- 决策：`drive` 不创建新的 truth surface。默认写入仍使用既有 `paper_mission_candidate_package/<run_id>` 与 `paper_mission_consumption_ledger/<run_id>`；`drive` 输出只是编排 readback。`consume_readback.json` 必须规范化携带 transaction、terminal decision、route command、route handoff status 和 next owner，供 `inspect`、`study_progress` 和后续 OPL handoff 消费。
+- 决策：当 governed consumption ledger 存在时，`paper-mission inspect` 与 `study_progress` 的顶层 `next_owner_or_human_decision` 和 `current_objective.next_owner` 必须以 `StageTerminalDecision.next_owner` / `opl_route_handoff.next_owner` 为准，不得继续沿用旧 `required_output.next_owner`、candidate manifest `next_owner` 或 legacy read-model owner。
+- 决策：`drive` 默认不写 OPL runtime。显式 `--submit-opl-runtime` 只能通过 OPL-owned public CLI `opl family-runtime enqueue --domain medautoscience --task-kind paper_mission/stage-route` 提交 MAS 已 terminalize 的 `opl_route_handoff`；MAS 不手写 OPL DB、outbox、event、StageRun 或 provider attempt。该 submit readback 只能声明 OPL queue request accepted / idempotent noop / failed，不能声明 StageRun 已创建、provider running、runtime-ready 或 paper progress。
+- 理由：分步 `inspect -> package-candidate -> consume-candidate` 虽然已经能产生候选包和 route handoff，但仍要求 operator 手动 terminalize 一轮，体验上没有恢复 MDS 时代“一个 loop 继续推进论文”。`drive` 把 MAS stage 内 terminal decision 与 OPL route handoff 变成单一可调用 transaction loop，同时保留 MAS authority / OPL runtime 边界。
+- 影响：该决策不授权写 Yang authority、canonical paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipts、typed blockers、human gates、current package、OPL runtime queue/provider attempts 或 OPL StageRun/outbox/event。`drive` 的成功只能证明 MAS candidate/consume/handoff loop 可执行，不能声明 submission-ready、publication-ready、runtime-ready、owner receipt 或 paper authority accepted。
+
 ## 2026-06-24：capability 模块闭环只能声明 repo 能力面落地，live/runtime/authority 另账
 
 - 决策：`scientific_capability_registry`、Agent Tool Arsenal hosted consumption、ScholarSkills 十模块 descriptor consumer、refs-only execution receipt candidate consumer、file-materialized package refs consumer、candidate artifact owner-gate request / handoff readback 和 no-authority fail-closed 边界，允许声明为 `repo capability surface landed`。该声明只覆盖能力发现、descriptor/readback bridge、CLI / MCP / product-entry ABI、文件化 package manifest 消费、candidate artifact refs 归一化和 MAS owner-gate-request readback。

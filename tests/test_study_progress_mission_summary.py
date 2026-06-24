@@ -546,6 +546,19 @@ def test_materialized_mission_summary_prefers_latest_governed_consumption_ledger
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["next_owner_or_human_decision"]["next_owner"] == (
+        "mission_executor"
+    )
+    assert payload["next_owner_or_human_decision"]["route_command"] == (
+        "resume_stage"
+    )
+    assert payload["current_objective"]["next_owner"] == "mission_executor"
+    assert payload["artifact_first_mission_summary"]["current_objective"][
+        "next_owner"
+    ] == "mission_executor"
+    assert payload["artifact_first_mission_summary"][
+        "next_owner_or_human_decision"
+    ]["next_owner"] == "mission_executor"
     assert payload["paper_mission_transaction"]["stage_id"] == (
         "submission_milestone_candidate"
     )

@@ -55,6 +55,15 @@ def write_paper_mission_consumption_ledger_outputs(
         forbidden_authority_writes=forbidden_authority_writes,
         forbidden_authority_claims=forbidden_authority_claims,
     )
+    normalized_consume_readback = paper_mission_consumption_ledger_readback(
+        study_id=study_id,
+        candidate_ref=candidate_ref,
+        authority_consume_readback=authority_consume_readback,
+        transaction_readback=transaction_readback,
+        route_handoff=route_handoff,
+        forbidden_authority_writes=forbidden_authority_writes,
+        forbidden_authority_claims=forbidden_authority_claims,
+    )
     outputs = {
         "consume_record": study_root / "consume_record.json",
         "consume_readback": study_root / "consume_readback.json",
@@ -64,7 +73,7 @@ def write_paper_mission_consumption_ledger_outputs(
     }
     payloads = {
         "consume_record": consume_record,
-        "consume_readback": dict(authority_consume_readback),
+        "consume_readback": normalized_consume_readback,
         "stage_terminal_decision": terminal_decision_packet,
         "opl_route_command": route_command_packet,
         "opl_route_handoff": route_handoff,
@@ -93,6 +102,80 @@ def write_paper_mission_consumption_ledger_outputs(
         "route_handoff_status": route_handoff["handoff_status"],
         "route_command_kind": route_handoff["route_command_kind"],
         "next_owner": route_handoff["next_owner"],
+        "forbidden_authority_writes": list(forbidden_authority_writes),
+    }
+
+
+def paper_mission_consumption_ledger_readback(
+    *,
+    study_id: str,
+    candidate_ref: str,
+    authority_consume_readback: Mapping[str, Any],
+    transaction_readback: Mapping[str, Any],
+    route_handoff: Mapping[str, Any],
+    forbidden_authority_writes: tuple[str, ...],
+    forbidden_authority_claims: tuple[str, ...],
+) -> dict[str, Any]:
+    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+    decision = _mapping(transaction_readback.get("stage_terminal_decision"))
+    route = _mapping(transaction_readback.get("opl_route_command"))
+    selected_outcome = _text(authority_consume_readback.get("selected_outcome"))
+    status = _text(authority_consume_readback.get("status"))
+    next_owner = _next_owner(authority_consume_readback, transaction_readback)
+    handoff_status = _text(route_handoff.get("handoff_status")) or _route_handoff_status(
+        selected_outcome=selected_outcome,
+        status=status,
+        transaction_readback=transaction_readback,
+    )
+    return {
+        **dict(authority_consume_readback),
+        "surface_kind": "mas_paper_mission_candidate_consume_readback",
+        "schema_version": 1,
+        "study_id": study_id,
+        "candidate_ref": candidate_ref,
+        "consume_candidate_status": _consume_candidate_status_from_terminal(
+            status=status,
+            selected_outcome=selected_outcome,
+            stage_terminal_decision=decision,
+        ),
+        "selected_outcome": selected_outcome,
+        "consume_result": _mapping(authority_consume_readback.get("consume_result")),
+        "next_owner": next_owner,
+        "route_handoff_status": handoff_status,
+        "paper_mission_transaction": transaction,
+        "paper_mission_transaction_ref": _transaction_id(transaction_readback),
+        "stage_terminal_decision": decision,
+        "stage_terminal_decision_ref": _stage_terminal_decision_ref(
+            transaction_readback
+        ),
+        "opl_route_command": route,
+        "opl_route_command_ref": _opl_route_command_ref(transaction_readback),
+        "opl_runtime_carrier": _mapping(transaction_readback.get("opl_runtime_carrier")),
+        "transaction_state": _text(transaction_readback.get("transaction_state")),
+        "authority_materialized": False,
+        "candidate_is_authority": False,
+        "counts_as_owner_consumption_evidence": True,
+        "counts_as_stage_terminalizer_evidence": _transaction_materialized(
+            transaction_readback
+        ),
+        "counts_as_opl_route_handoff_evidence": _transaction_materialized(
+            transaction_readback
+        ),
+        "counts_as_paper_progress": False,
+        "counts_as_runtime_truth": False,
+        "can_submit_to_opl_runtime": bool(
+            _transaction_materialized(transaction_readback)
+            and handoff_status == "ready_for_opl_route_command"
+        ),
+        "can_claim_opl_runtime_enqueued": False,
+        "can_claim_opl_stage_run_created": False,
+        "can_claim_provider_running": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_boundary": _no_authority_boundary(
+            surface_role="paper_mission_consumption_ledger_readback"
+        ),
+        "forbidden_authority_claims": list(forbidden_authority_claims),
         "forbidden_authority_writes": list(forbidden_authority_writes),
     }
 
@@ -358,6 +441,34 @@ def _route_handoff_status(
     return "waiting_for_owner_resolution"
 
 
+def _consume_candidate_status_from_terminal(
+    *,
+    status: str | None,
+    selected_outcome: str | None,
+    stage_terminal_decision: Mapping[str, Any],
+) -> str:
+    decision_kind = _text(stage_terminal_decision.get("decision_kind"))
+    if decision_kind == "route_back":
+        return "route_back"
+    if decision_kind == "typed_blocker":
+        return "typed_blocker"
+    if decision_kind == "human_gate":
+        return "human_gate"
+    if decision_kind == "continue_same_stage":
+        return selected_outcome or status or "accepted"
+    if decision_kind == "advance":
+        return selected_outcome or status or "accepted"
+    if decision_kind == "mission_complete":
+        return "mission_complete"
+    if selected_outcome == "typed_blocker_required" or status == "typed_blocker_required":
+        return "typed_blocker"
+    if selected_outcome == "human_gate_required" or status == "human_gate_required":
+        return "human_gate"
+    if selected_outcome == "rejected_candidate" or status == "rejected_candidate":
+        return "rejected"
+    return selected_outcome or status or "not_consumed"
+
+
 def _consumption_required_followthrough(
     *,
     status: str | None,
@@ -499,6 +610,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "opl_route_command_packet",
     "opl_route_handoff_record",
+    "paper_mission_consumption_ledger_readback",
     "paper_mission_consumption_record",
     "stage_terminal_decision_packet",
     "write_paper_mission_consumption_ledger_outputs",
