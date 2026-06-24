@@ -51,6 +51,10 @@ from .export_study_projection import (
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
+from .paper_mission_consumption_route_handoff import (
+    latest_paper_mission_consumption_route_handoff,
+    paper_mission_handoff_stage_packet_refs,
+)
 from .opl_supervisor_decision_request_tasks import opl_supervisor_decision_request_task
 from .supervisor_typed_blocker_resolution import (
     current_supervisor_decision as _current_supervisor_decision,
@@ -432,8 +436,19 @@ def _paper_mission_start_or_resume_task(
         dry_run=True,
         source="domain-handler-export",
     )
+    route_handoff = latest_paper_mission_consumption_route_handoff(
+        workspace_root=profile.workspace_root,
+        study_id=study_id,
+    )
     carrier = mapping(readback.get("opl_runtime_carrier"))
+    if route_handoff:
+        carrier = mapping(route_handoff.get("opl_runtime_carrier")) or carrier
     stage_packet_refs = _paper_mission_stage_packet_refs(readback)
+    if route_handoff:
+        stage_packet_refs = paper_mission_handoff_stage_packet_refs(
+            route_handoff,
+            fallback_refs=stage_packet_refs,
+        )
     payload = {
         "profile": str(profile_ref),
         "study_id": study_id,
@@ -469,7 +484,32 @@ def _paper_mission_start_or_resume_task(
         )
         if stage_packet_refs:
             payload["stage_packet_ref"] = stage_packet_refs[0]
-    return {
+    if route_handoff:
+        payload.update(
+            {
+                "opl_route_handoff": route_handoff,
+                "opl_route_handoff_record": route_handoff,
+                "paper_mission_default_handoff_source": (
+                    "paper_mission_consumption_ledger"
+                ),
+                "paper_mission_default_handoff_ref": text(
+                    route_handoff.get("source_ref")
+                ),
+                "opl_route_command": mapping(route_handoff.get("opl_route_command")),
+                "route_command_kind": text(route_handoff.get("route_command_kind")),
+                "route_target": text(route_handoff.get("route_target")),
+                "paper_mission_transaction_ref": text(
+                    route_handoff.get("paper_mission_transaction_ref")
+                ),
+                "opl_route_command_ref": text(
+                    route_handoff.get("opl_route_command_ref")
+                ),
+                "candidate_ref": text(route_handoff.get("candidate_ref")),
+                "mission_id": text(route_handoff.get("mission_id")),
+                "next_executable_owner": "one-person-lab",
+            }
+        )
+    task = {
         "task_id": f"paper-mission-start-or-resume::{study_id}",
         "domain_id": "medautoscience",
         "task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
@@ -488,6 +528,30 @@ def _paper_mission_start_or_resume_task(
             "forbidden_authority_writes": readback["forbidden_authority_writes"],
         },
     }
+    if route_handoff:
+        task.update(
+            {
+                "opl_route_handoff": route_handoff,
+                "opl_route_handoff_record": route_handoff,
+                "paper_mission_default_handoff_source": (
+                    "paper_mission_consumption_ledger"
+                ),
+                "paper_mission_default_handoff_ref": text(
+                    route_handoff.get("source_ref")
+                ),
+                "route_command_kind": text(route_handoff.get("route_command_kind")),
+                "route_target": text(route_handoff.get("route_target")),
+                "paper_mission_transaction_ref": text(
+                    route_handoff.get("paper_mission_transaction_ref")
+                ),
+                "opl_route_command_ref": text(
+                    route_handoff.get("opl_route_command_ref")
+                ),
+                "candidate_ref": text(route_handoff.get("candidate_ref")),
+                "mission_id": text(route_handoff.get("mission_id")),
+            }
+        )
+    return task
 
 
 def _paper_mission_stage_packet_refs(readback: Mapping[str, Any]) -> list[str]:

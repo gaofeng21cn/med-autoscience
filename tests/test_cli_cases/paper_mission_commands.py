@@ -480,6 +480,200 @@ def test_domain_handler_export_paper_mission_task_carries_opl_runtime_carrier_fo
     assert task_payload["paper_mission"]["opl_runtime_carrier"] == carrier
 
 
+def test_domain_handler_export_prefers_latest_governed_consumption_handoff_for_opl_route(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260623T2032Z"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    old_mission_id = f"paper-mission::{study_id}::gate-clearing::one-shot-migration"
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": old_mission_id,
+                "study_id": study_id,
+                "objective": "Older materialized mission readback.",
+                "mission_state": "candidate_ready_for_consumption",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": {
+                    "candidate_writes_authority": False,
+                    "blocked_paths": ["publication_eval/latest.json"],
+                    "forbidden_claims": ["publication_ready"],
+                },
+                "consume_result": {"status": "accepted"},
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "one_shot_migration_readback": {
+                    "required_output": {
+                        "next_owner": "analysis-campaign",
+                        "kind": "owner_decision_packet_or_consumable_artifact_delta",
+                    },
+                    "consume_candidate_status": "accepted",
+                },
+                "paper_mission_transaction": _paper_mission_transaction_payload(
+                    mission_id=old_mission_id,
+                    study_id=study_id,
+                    decision_kind="advance",
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps({"candidate_id": "pmc-old", "study_id": study_id}),
+        encoding="utf-8",
+    )
+    handoff_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "20260624Tnew"
+        / study_id
+    )
+    handoff_root.mkdir(parents=True)
+    new_transaction_ref = "paper-mission-transaction::dm002::route-back::new"
+    handoff = {
+        "surface_kind": "mas_paper_mission_opl_route_handoff_record",
+        "schema_version": 1,
+        "source": "paper-mission-consumption-ledger",
+        "study_id": study_id,
+        "mission_id": f"paper-mission::{study_id}::route-back::new",
+        "candidate_ref": str(handoff_root / "package_manifest.json"),
+        "candidate_id": "pmc-new",
+        "status": "accepted_candidate",
+        "selected_outcome": "accepted_candidate",
+        "handoff_status": "ready_for_opl_route_command",
+        "next_owner": "mission_executor",
+        "paper_mission_transaction_ref": new_transaction_ref,
+        "transaction_state": "route_back",
+        "stage_terminal_decision_ref": (
+            f"{new_transaction_ref}#stage_terminal_decision"
+        ),
+        "stage_terminal_decision": {
+            "decision_kind": "route_back",
+            "status": "terminal_decision_recorded",
+            "next_owner": "mission_executor",
+            "target_stage_id": "paper-stage::gate-clearing",
+            "repair_scope": "claim-evidence-repair",
+        },
+        "opl_route_command_ref": f"{new_transaction_ref}#opl_route_command",
+        "opl_route_command": {
+            "command_kind": "route_back",
+            "target": "paper-stage::gate-clearing",
+            "reason": "MAS terminal decision requested route back",
+        },
+        "opl_runtime_carrier": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "action_type": "paper_mission/stage-route",
+            "work_unit_id": "paper-stage::gate-clearing",
+            "work_unit_fingerprint": "fingerprint::dm002::new-route-back",
+            "route_identity_key": "route::dm002::new",
+            "attempt_idempotency_key": "attempt::dm002::new",
+            "stage_run_ref": "opl-stage-run://dm002/new-route-back",
+            "authority_boundary": {
+                "mas_can_create_opl_outbox_record": False,
+                "mas_can_create_opl_event": False,
+                "mas_can_create_opl_stage_run": False,
+                "mas_can_authorize_provider_admission": False,
+            },
+        },
+        "route_command_kind": "route_back",
+        "route_target": "paper-stage::gate-clearing",
+        "transaction_materialized": True,
+        "can_submit_to_opl_runtime": True,
+        "can_claim_opl_runtime_enqueued": False,
+        "can_claim_opl_stage_run_created": False,
+        "can_claim_provider_running": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_boundary": {
+            "writes_authority_surface": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_write_current_package": False,
+            "can_write_paper_body": False,
+            "can_write_runtime_queue": False,
+            "can_write_opl_outbox": False,
+            "can_write_opl_event": False,
+            "can_write_opl_stage_run": False,
+            "can_write_provider_attempt": False,
+        },
+        "forbidden_authority_claims": ["paper_progress", "runtime_ready"],
+        "forbidden_authority_writes": ["owner receipt", "OPL runtime queue"],
+    }
+    (handoff_root / "opl_route_handoff.json").write_text(
+        json.dumps(handoff),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        ["domain-handler", "export", "--profile", str(profile_path), "--format", "json"]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    paper_mission_task = next(
+        task
+        for task in payload["paper_mission_default_tasks"]
+        if task["task_kind"] == "paper_mission/start_or_resume"
+        and task["study_id"] == study_id
+    )
+    task_handoff = paper_mission_task["opl_route_handoff"]
+    task_payload = paper_mission_task["payload"]
+    assert task_handoff == task_payload["opl_route_handoff"]
+    assert paper_mission_task["opl_route_handoff_record"] == task_handoff
+    assert task_handoff["paper_mission_transaction_ref"] == new_transaction_ref
+    assert task_handoff["source_ref"].endswith(
+        "/paper_mission_consumption_ledger/20260624Tnew/"
+        f"{study_id}/opl_route_handoff.json"
+    )
+    assert task_handoff["source_surface_kind"] == (
+        "mas_paper_mission_opl_route_handoff_record"
+    )
+    assert paper_mission_task["paper_mission_default_handoff_source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert task_payload["paper_mission_default_handoff_source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert task_payload["paper_mission_default_handoff_ref"] == task_handoff[
+        "source_ref"
+    ]
+    assert task_payload["route_command_kind"] == "route_back"
+    assert task_payload["route_target"] == "paper-stage::gate-clearing"
+    assert task_payload["paper_mission"]["candidate_manifest_ref"].endswith(
+        "/paper_mission_one_shot_migration/20260623T2032Z/"
+        f"{study_id}/candidate_manifest.json"
+    )
+    assert task_payload["stage_packet_ref"] == "opl-stage-run://dm002/new-route-back"
+    assert task_payload["provider_completion_is_domain_completion"] is False
+    assert task_handoff["can_claim_paper_progress"] is False
+    assert task_handoff["can_claim_runtime_ready"] is False
+
+
 def test_paper_mission_package_candidate_writes_non_authority_owner_decision_package(
     tmp_path: Path,
     capsys,
