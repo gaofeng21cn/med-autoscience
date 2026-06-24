@@ -14,6 +14,9 @@ from med_autoscience.overlay.constants import (
 )
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
+from med_autoscience.scholarskills_local_install import (
+    build_scholarskills_local_install_readback_for_profile,
+)
 from med_autoscience.opl_runtime_contract import (
     EXTERNAL_MDS_ALLOWED_USES,
     OPL_HOSTED_STAGE_RUNTIME_ID,
@@ -446,6 +449,7 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "hermes_home_root": str(profile.hermes_home_root),
         "opl_runtime_ref": profile.opl_runtime_ref,
         "opl_runtime_contract": opl_runtime_default_operation_contract(profile.opl_runtime_ref),
+        "scholarskills_local_install": build_scholarskills_local_install_readback_for_profile(profile),
         "publication": {
             "default_publication_profile": profile.default_publication_profile,
             "default_citation_style": profile.default_citation_style,

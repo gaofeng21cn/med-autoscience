@@ -351,6 +351,77 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
 
 
+def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "DM-CVD-Mortality-Risk"
+    profile_path = tmp_path / "dm-cvd.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "dm-cvd"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
+                f'managed_runtime_home = "{workspace_root / "runtime"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    install_readback = importlib.import_module("med_autoscience.scholarskills_local_install")
+    profile = profiles.load_profile(profile_path)
+    contract = profiles.profile_to_dict(profile)
+    quest_root = profile.runtime_root / "quest-001"
+
+    profile_readback = contract["scholarskills_local_install"]
+    assert profile_readback["workspace"]["target_skill_path"] == str(
+        workspace_root / ".codex" / "skills" / "opl-scholarskills"
+    )
+    assert profile_readback["workspace"]["sync_command"]["argv"] == [
+        "opl",
+        "connect",
+        "sync-skills",
+        "--domain",
+        "scholarskills",
+        "--scope",
+        "workspace",
+        "--target-workspace",
+        str(workspace_root),
+        "--json",
+    ]
+    assert profile_readback["quest"]["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
+    assert profile_readback["quest"]["target_skill_path_template"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills")
+    )
+    assert profile_readback["authority_boundary"]["writes_yang_authority"] is False
+    assert profile_readback["authority_boundary"]["writes_runtime_authority"] is False
+
+    quest_readback = install_readback.build_scholarskills_local_install_readback_for_profile(
+        profile,
+        quest_root=quest_root,
+    )
+    assert quest_readback["quest"]["target_quest_root"] == str(quest_root)
+    assert quest_readback["quest"]["target_skill_path"] == str(
+        quest_root / ".codex" / "skills" / "opl-scholarskills"
+    )
+    assert quest_readback["quest"]["sync_command"]["argv"] == [
+        "opl",
+        "connect",
+        "sync-skills",
+        "--domain",
+        "scholarskills",
+        "--scope",
+        "quest",
+        "--target-quest",
+        str(quest_root),
+        "--json",
+    ]
+
+
 def test_render_profile_labels_backend_paths_as_diagnostics(tmp_path: Path) -> None:
     profile_path = tmp_path / "nfpitnet.local.toml"
     write_full_profile(profile_path)

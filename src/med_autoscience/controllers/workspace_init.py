@@ -44,6 +44,9 @@ from med_autoscience.controllers.workspace_init_parts.profile_config import (
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
+from med_autoscience.scholarskills_local_install import (
+    build_scholarskills_local_install_readback,
+)
 from med_autoscience.workspace_paths import (
     DATA_ASSET_LAYER_IDS,
     DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS,
@@ -836,12 +839,19 @@ def init_workspace(
         "workspace_git": workspace_git,
         "profile_path": str(profile_path),
         "publication_strategy_memory_seed": publication_strategy_memory_seed,
+        "scholarskills_local_install": build_scholarskills_local_install_readback(
+            workspace_root=workspace_root,
+            runtime_quests_root=layout.quests_root,
+            apply=False,
+        ),
         "data_assets_layout": build_data_assets_v2_layout_metadata(workspace_root=workspace_root),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",
             f"review {profile_path}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'show-profile'}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'bootstrap'}",
+            "run opl connect sync-skills --domain scholarskills --scope workspace "
+            f"--target-workspace {workspace_root} --json",
             "open OPL App/workbench for hosted MAS progress drilldown",
         ],
     }

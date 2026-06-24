@@ -6,6 +6,9 @@ from typing import Any
 
 from med_autoscience import external_learning_adoption_closure
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
+from med_autoscience.scholarskills_local_install import (
+    build_scholarskills_local_install_template,
+)
 from med_autoscience.scholarskills_capability_modules import (
     SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION,
     SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES as _SCHOLAR_DISPLAY_EXECUTION_RECEIPT_REF_ALIASES,
@@ -228,6 +231,7 @@ def build_scientific_capability_registry() -> dict[str, Any]:
         },
         "capability_count": len(capabilities),
         "capabilities": capabilities,
+        "scholarskills_local_install": build_scholarskills_local_install_template(),
         "owner_consumption_evidence_schema": {
             "surface_kind": OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND,
             "schema_version": SCHEMA_VERSION,

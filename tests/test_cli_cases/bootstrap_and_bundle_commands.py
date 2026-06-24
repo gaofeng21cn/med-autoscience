@@ -112,6 +112,28 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert '"workspace_python_environment"' in captured.out
     assert '"manager": "opl"' in captured.out
     assert '"trigger_now": false' in captured.out
+    payload = json.loads(captured.out)
+    workspace_install = payload["scholarskills_local_install"]["workspace"]
+    quest_install = payload["scholarskills_local_install"]["quest"]
+    assert workspace_install["target_skill_path"] == str(
+        workspace_root / ".codex" / "skills" / "opl-scholarskills"
+    )
+    assert workspace_install["sync_command"]["argv"] == [
+        "opl",
+        "connect",
+        "sync-skills",
+        "--domain",
+        "scholarskills",
+        "--scope",
+        "workspace",
+        "--target-workspace",
+        str(workspace_root),
+        "--json",
+    ]
+    assert quest_install["target_skill_path_template"] == str(
+        workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills"
+    )
+    assert payload["scholarskills_local_install"]["authority_boundary"]["writes_yang_authority"] is False
     assert not install_service.exists()
 def test_ensure_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")

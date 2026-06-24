@@ -8981,6 +8981,7 @@
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.display",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install",
           "scientific-capability:display_pack_visual_capability",
           "contracts/display-pack-contract.v2.json",
           "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
@@ -9012,6 +9013,7 @@
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.display",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install",
           "scientific-capability:display_pack_visual_capability",
           "contracts/display-pack-contract.v2.json",
           "med_autoscience.display_pack_v2_contract.load_display_pack_v2_contract",
@@ -9041,6 +9043,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.display",
         "output_refs": [
@@ -9068,10 +9123,12 @@
           "opl:scholarskills.display:render-cache"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Display",
           "MAS Display Pack"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9113,7 +9170,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.tables",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_tables_need",
         "current_delta_trigger_terms": [
@@ -9134,7 +9192,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.tables",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9156,6 +9215,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.tables",
         "output_refs": [
@@ -9170,6 +9282,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.tables",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9180,10 +9293,12 @@
           "opl:scholarskills.tables:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Tables",
           "Tables / Reporting"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9225,7 +9340,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.stats",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_stats_need",
         "current_delta_trigger_terms": [
@@ -9250,7 +9366,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.stats",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9272,6 +9389,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.stats",
         "output_refs": [
@@ -9286,6 +9456,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.stats",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9296,10 +9467,12 @@
           "opl:scholarskills.stats:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Stats",
           "Biostatistics / Clinical Analysis"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9341,7 +9514,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.omics",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_omics_need",
         "current_delta_trigger_terms": [
@@ -9368,7 +9542,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.omics",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9390,6 +9565,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.omics",
         "output_refs": [
@@ -9404,6 +9632,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.omics",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9414,10 +9643,12 @@
           "opl:scholarskills.omics:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Omics",
           "Omics / Bioinformatics"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9459,7 +9690,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.lit",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_lit_need",
         "current_delta_trigger_terms": [
@@ -9483,7 +9715,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.lit",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9505,6 +9738,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.lit",
         "output_refs": [
@@ -9519,6 +9805,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.lit",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9529,10 +9816,12 @@
           "opl:scholarskills.lit:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Literature",
           "Literature Management"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9574,7 +9863,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.write",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_write_need",
         "current_delta_trigger_terms": [
@@ -9597,7 +9887,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.write",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9619,6 +9910,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.write",
         "output_refs": [
@@ -9633,6 +9977,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.write",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9643,10 +9988,12 @@
           "opl:scholarskills.write:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Write",
           "Manuscript Writing"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9688,7 +10035,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.review",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_review_need",
         "current_delta_trigger_terms": [
@@ -9711,7 +10059,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.review",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9733,6 +10082,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.review",
         "output_refs": [
@@ -9747,6 +10149,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.review",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9757,10 +10160,12 @@
           "opl:scholarskills.review:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Review",
           "Quality Review / AI Reviewer"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9802,7 +10207,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.submit",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_submit_need",
         "current_delta_trigger_terms": [
@@ -9826,7 +10232,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.submit",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9848,6 +10255,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.submit",
         "output_refs": [
@@ -9862,6 +10322,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.submit",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9872,10 +10333,12 @@
           "opl:scholarskills.submit:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Submit",
           "Submission Packaging"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9917,7 +10380,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.data",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_data_need",
         "current_delta_trigger_terms": [
@@ -9941,7 +10405,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.data",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -9963,6 +10428,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.data",
         "output_refs": [
@@ -9977,6 +10495,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.data",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -9987,10 +10506,12 @@
           "opl:scholarskills.data:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Data",
           "Data Management"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -10032,7 +10553,8 @@
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.intake",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "current_delta_trigger_reason": "current_delta_declared_scholar_intake_need",
         "current_delta_trigger_terms": [
@@ -10055,7 +10577,8 @@
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
           "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.intake",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
+          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
+          "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
@@ -10077,6 +10600,59 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "local_install": {
+          "install_owner": "one-person-lab",
+          "install_scopes": [
+            "workspace",
+            "quest"
+          ],
+          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_plugin_is_execution_source": false,
+          "owner_gated_refs_consumption": true,
+          "quest": {
+            "scope": "quest",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "quest",
+                "--target-quest",
+                "<quest_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+          },
+          "source_repo_ref": "external:opl-scholarskills",
+          "workspace": {
+            "scope": "workspace",
+            "sync_command_template": {
+              "argv": [
+                "opl",
+                "connect",
+                "sync-skills",
+                "--domain",
+                "scholarskills",
+                "--scope",
+                "workspace",
+                "--target-workspace",
+                "<workspace_root>",
+                "--json"
+              ],
+              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "effect": "install_codex_skill_to_local_workspace_or_quest",
+              "writes_authority": false
+            },
+            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+          }
+        },
         "mainline_waits_for_capability": false,
         "module_id": "opl.scholarskills.intake",
         "output_refs": [
@@ -10091,6 +10667,7 @@
           "mas_owner_gate_required_for_paper_truth": true,
           "module_id": "opl.scholarskills.intake",
           "owner_consumption_evidence": "refs_only",
+          "owner_gated_refs_consumption": true,
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
@@ -10101,10 +10678,12 @@
           "opl:scholarskills.intake:run-context"
         ],
         "source_frameworks": [
+          "external:opl-scholarskills",
           "OPL ScholarSkills",
           "Scholar Intake",
           "External Method Skill Intake"
         ],
+        "source_repo_ref": "external:opl-scholarskills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
@@ -10604,6 +11183,77 @@
     },
     "resolver_owner": "one-person-lab",
     "schema_version": 1,
+    "scholarskills_local_install": {
+      "authority_boundary": {
+        "owner_gated_refs_consumption": true,
+        "writes_controller_decisions": false,
+        "writes_human_gate": false,
+        "writes_mas_program_repo_plugin": false,
+        "writes_owner_receipt": false,
+        "writes_provider_attempt": false,
+        "writes_publication_eval": false,
+        "writes_runtime_authority": false,
+        "writes_runtime_queue": false,
+        "writes_study_truth": false,
+        "writes_typed_blocker": false,
+        "writes_yang_authority": false
+      },
+      "domain": "scholarskills",
+      "install_owner": "one-person-lab",
+      "mas_program_repo_mirror": {
+        "default_execution_source": false,
+        "paper_execution_available": false,
+        "path": "plugins/opl-scholarskills",
+        "role": "dev_review_only_or_retired"
+      },
+      "mas_program_repo_plugin_is_execution_source": false,
+      "quest": {
+        "scope": "quest",
+        "sync_command_template": {
+          "argv": [
+            "opl",
+            "connect",
+            "sync-skills",
+            "--domain",
+            "scholarskills",
+            "--scope",
+            "quest",
+            "--target-quest",
+            "<quest_root>",
+            "--json"
+          ],
+          "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+          "effect": "install_codex_skill_to_local_workspace_or_quest",
+          "writes_authority": false
+        },
+        "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+      },
+      "schema_version": 1,
+      "skill_id": "opl-scholarskills",
+      "source_repo_ref": "external:opl-scholarskills",
+      "surface_kind": "mas_scholarskills_local_install_template",
+      "workspace": {
+        "scope": "workspace",
+        "sync_command_template": {
+          "argv": [
+            "opl",
+            "connect",
+            "sync-skills",
+            "--domain",
+            "scholarskills",
+            "--scope",
+            "workspace",
+            "--target-workspace",
+            "<workspace_root>",
+            "--json"
+          ],
+          "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+          "effect": "install_codex_skill_to_local_workspace_or_quest",
+          "writes_authority": false
+        },
+        "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+      }
+    },
     "surface_kind": "mas_scientific_capability_registry"
   },
   "surface_kind": "mas_agent_tool_arsenal_index",

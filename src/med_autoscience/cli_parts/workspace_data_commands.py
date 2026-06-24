@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.scholarskills_local_install import (
+    build_scholarskills_local_install_readback_for_profile,
+)
+
 
 def handle_workspace_data_command(
     args: argparse.Namespace,
@@ -237,6 +241,7 @@ def handle_workspace_data_command(
             "overlay_status": overlay_status,
             "data_assets": data_assets_refresh,
             "supervision_bootstrap": supervision_bootstrap,
+            "scholarskills_local_install": build_scholarskills_local_install_readback_for_profile(profile),
         }
         _print_json(result)
         return 0

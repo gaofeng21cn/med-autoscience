@@ -6,6 +6,12 @@ from typing import Any
 from med_autoscience.scholarskills_package_consumption import (
     build_scholarskills_materialized_package_input,
 )
+from med_autoscience.scholarskills_local_install import (
+    SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF,
+    SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH,
+    SCHOLARSKILLS_SOURCE_REPO_REF,
+    build_scholarskills_local_install_template,
+)
 
 
 SCHOLAR_DISPLAY_MODULE_ID = "opl.scholarskills.display"
@@ -537,6 +543,7 @@ def build_scholarskills_capabilities(
                 "contracts/opl-framework/scholar-skills-capability-modules.json",
                 f"contracts/opl-framework/scholar-skills-capability-modules.json#modules.{module_id}",
                 SCHOLARSKILLS_OPERATING_MODEL_REF,
+                SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF,
                 *list(metadata.get("descriptor_refs") or []),
             ]
         )
@@ -582,6 +589,7 @@ def build_scholarskills_capabilities(
             "counts_as_current_package_authority": False,
             "counts_as_owner_receipt": False,
             "mas_owner_gate_required_for_paper_truth": True,
+            "owner_gated_refs_consumption": True,
         }
         if module_id == SCHOLAR_DISPLAY_MODULE_ID:
             owner_consumption_boundary = dict(SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY)
@@ -594,7 +602,12 @@ def build_scholarskills_capabilities(
                     f"{module_id}.capability_family",
                 ),
                 module_id=module_id,
-                source_frameworks=list(metadata.get("source_frameworks") or []),
+                source_frameworks=_dedupe_texts(
+                    [
+                        SCHOLARSKILLS_SOURCE_REPO_REF,
+                        *list(metadata.get("source_frameworks") or []),
+                    ]
+                ),
                 action_triggers=list(metadata.get("action_triggers") or []),
                 current_delta_trigger_terms=list(
                     metadata.get("current_delta_trigger_terms") or []
@@ -665,6 +678,7 @@ def _capability_payload(
     payload: dict[str, Any] = {
         "capability_id": capability_id,
         "capability_family": capability_family,
+        "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "source_frameworks": source_frameworks,
         "trigger": default_trigger,
         "action_triggers": action_triggers,
@@ -680,6 +694,16 @@ def _capability_payload(
         "external_runtime_dependency": False,
         "authority_boundary": dict(authority_boundary),
         "module_id": module_id,
+        "local_install": {
+            "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
+            "install_owner": "one-person-lab",
+            "install_scopes": ["workspace", "quest"],
+            "workspace": build_scholarskills_local_install_template()["workspace"],
+            "quest": build_scholarskills_local_install_template()["quest"],
+            "mas_program_repo_mirror_path": SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH,
+            "mas_program_repo_plugin_is_execution_source": False,
+            "owner_gated_refs_consumption": True,
+        },
     }
     if current_delta_trigger_terms:
         payload["current_delta_trigger_terms"] = list(current_delta_trigger_terms)
