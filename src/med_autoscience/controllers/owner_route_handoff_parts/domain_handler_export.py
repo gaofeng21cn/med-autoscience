@@ -441,12 +441,17 @@ def _paper_mission_start_or_resume_task(
         study_id=study_id,
     )
     carrier = mapping(readback.get("opl_runtime_carrier"))
-    if route_handoff:
-        carrier = mapping(route_handoff.get("opl_runtime_carrier")) or carrier
+    default_route_handoff = _paper_mission_default_route_handoff(
+        route_handoff=route_handoff,
+        readback=readback,
+        current_carrier=carrier,
+    )
+    if default_route_handoff:
+        carrier = mapping(default_route_handoff.get("opl_runtime_carrier")) or carrier
     stage_packet_refs = _paper_mission_stage_packet_refs(readback)
-    if route_handoff:
+    if default_route_handoff:
         stage_packet_refs = paper_mission_handoff_stage_packet_refs(
-            route_handoff,
+            default_route_handoff,
             fallback_refs=stage_packet_refs,
         )
     payload = {
@@ -477,6 +482,9 @@ def _paper_mission_start_or_resume_task(
                 "attempt_idempotency_key": text(
                     carrier.get("attempt_idempotency_key")
                 ),
+                "request_idempotency_key": text(
+                    carrier.get("request_idempotency_key")
+                ),
                 "next_executable_owner": "med-autoscience",
                 "provider_attempt_or_lease_required": False,
                 "provider_completion_is_domain_completion": False,
@@ -488,14 +496,20 @@ def _paper_mission_start_or_resume_task(
         )
         if stage_packet_refs:
             payload["stage_packet_ref"] = stage_packet_refs[0]
-    if route_handoff:
-        enriched_route_handoff = {
-            **route_handoff,
-            "workspace_root": str(profile.workspace_root),
-            "domain_workspace_root": str(profile.workspace_root),
-            "repo_root": str(profile.workspace_root),
-            "profile_ref": str(profile_ref),
-        }
+    if route_handoff and default_route_handoff is None:
+        payload["paper_mission_consumption_ledger_diagnostic"] = (
+            _ignored_paper_mission_handoff_diagnostic(
+                route_handoff=route_handoff,
+                readback=readback,
+                current_carrier=carrier,
+            )
+        )
+    if default_route_handoff:
+        enriched_route_handoff = _enriched_paper_mission_route_handoff(
+            route_handoff=default_route_handoff,
+            workspace_root=profile.workspace_root,
+            profile_ref=profile_ref,
+        )
         payload.update(
             {
                 "opl_route_handoff": enriched_route_handoff,
@@ -504,7 +518,7 @@ def _paper_mission_start_or_resume_task(
                     "paper_mission_consumption_ledger"
                 ),
                 "paper_mission_default_handoff_ref": text(
-                    route_handoff.get("source_ref")
+                    default_route_handoff.get("source_ref")
                 ),
                 "opl_route_command": mapping(enriched_route_handoff.get("opl_route_command")),
                 "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
@@ -518,6 +532,15 @@ def _paper_mission_start_or_resume_task(
                 "candidate_ref": text(enriched_route_handoff.get("candidate_ref")),
                 "source_ref": text(enriched_route_handoff.get("source_ref")),
                 "mission_id": text(enriched_route_handoff.get("mission_id")),
+                "route_identity_key": text(
+                    enriched_route_handoff.get("route_identity_key")
+                ),
+                "attempt_idempotency_key": text(
+                    enriched_route_handoff.get("attempt_idempotency_key")
+                ),
+                "request_idempotency_key": text(
+                    enriched_route_handoff.get("request_idempotency_key")
+                ),
                 "next_executable_owner": "one-person-lab",
             }
         )
@@ -540,7 +563,7 @@ def _paper_mission_start_or_resume_task(
             "forbidden_authority_writes": readback["forbidden_authority_writes"],
         },
     }
-    if route_handoff:
+    if default_route_handoff:
         task.update(
             {
                 "opl_route_handoff": enriched_route_handoff,
@@ -549,7 +572,7 @@ def _paper_mission_start_or_resume_task(
                     "paper_mission_consumption_ledger"
                 ),
                 "paper_mission_default_handoff_ref": text(
-                    route_handoff.get("source_ref")
+                    default_route_handoff.get("source_ref")
                 ),
                 "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
                 "route_target": text(enriched_route_handoff.get("route_target")),
@@ -562,6 +585,15 @@ def _paper_mission_start_or_resume_task(
                 "candidate_ref": text(enriched_route_handoff.get("candidate_ref")),
                 "source_ref": text(enriched_route_handoff.get("source_ref")),
                 "mission_id": text(enriched_route_handoff.get("mission_id")),
+                "route_identity_key": text(
+                    enriched_route_handoff.get("route_identity_key")
+                ),
+                "attempt_idempotency_key": text(
+                    enriched_route_handoff.get("attempt_idempotency_key")
+                ),
+                "request_idempotency_key": text(
+                    enriched_route_handoff.get("request_idempotency_key")
+                ),
                 "workspace_root": str(profile.workspace_root),
                 "domain_workspace_root": str(profile.workspace_root),
                 "repo_root": str(profile.workspace_root),
@@ -569,6 +601,117 @@ def _paper_mission_start_or_resume_task(
             }
         )
     return task
+
+
+def _paper_mission_default_route_handoff(
+    *,
+    route_handoff: Mapping[str, Any] | None,
+    readback: Mapping[str, Any],
+    current_carrier: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not route_handoff:
+        return None
+    handoff_carrier = mapping(route_handoff.get("opl_runtime_carrier"))
+    if not _carrier_has_opl_intake_identity(current_carrier):
+        return None
+    if not _carrier_has_opl_intake_identity(handoff_carrier):
+        return None
+    current_transaction_ref = (
+        text(current_carrier.get("paper_mission_transaction_ref"))
+        or text(mapping(readback.get("paper_mission_transaction")).get("transaction_id"))
+    )
+    if (
+        text(route_handoff.get("paper_mission_transaction_ref"))
+        != current_transaction_ref
+    ):
+        return None
+    current_route_ref = text(current_carrier.get("opl_route_command_ref")) or (
+        f"{current_transaction_ref}#opl_route_command"
+        if current_transaction_ref
+        else None
+    )
+    if text(route_handoff.get("opl_route_command_ref")) != current_route_ref:
+        return None
+    for field in (
+        "paper_mission_transaction_ref",
+        "opl_route_command_ref",
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "request_idempotency_key",
+    ):
+        current_value = text(current_carrier.get(field))
+        if current_value and text(handoff_carrier.get(field)) != current_value:
+            return None
+    return dict(route_handoff)
+
+
+def _carrier_has_opl_intake_identity(carrier: Mapping[str, Any]) -> bool:
+    return all(
+        text(carrier.get(field))
+        for field in (
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "request_idempotency_key",
+            "paper_mission_transaction_ref",
+            "opl_route_command_ref",
+        )
+    )
+
+
+def _enriched_paper_mission_route_handoff(
+    *,
+    route_handoff: Mapping[str, Any],
+    workspace_root: Path,
+    profile_ref: Path,
+) -> dict[str, Any]:
+    carrier = mapping(route_handoff.get("opl_runtime_carrier"))
+    return {
+        **dict(route_handoff),
+        "workspace_root": str(workspace_root),
+        "domain_workspace_root": str(workspace_root),
+        "repo_root": str(workspace_root),
+        "profile_ref": str(profile_ref),
+        "route_identity_key": text(carrier.get("route_identity_key")),
+        "attempt_idempotency_key": text(carrier.get("attempt_idempotency_key")),
+        "request_idempotency_key": text(carrier.get("request_idempotency_key")),
+        "idempotency_key": text(carrier.get("idempotency_key")),
+        "action_type": text(carrier.get("action_type")),
+        "work_unit_id": text(carrier.get("work_unit_id")),
+        "work_unit_fingerprint": text(carrier.get("work_unit_fingerprint")),
+        "opl_domain_progress_transition_request": carrier,
+    }
+
+
+def _ignored_paper_mission_handoff_diagnostic(
+    *,
+    route_handoff: Mapping[str, Any],
+    readback: Mapping[str, Any],
+    current_carrier: Mapping[str, Any],
+) -> dict[str, Any]:
+    handoff_carrier = mapping(route_handoff.get("opl_runtime_carrier"))
+    return {
+        "surface_kind": "paper_mission_consumption_ledger_diagnostic",
+        "status": "ignored_for_default_paper_mission_task",
+        "reason": "handoff_identity_does_not_match_current_paper_mission_readback",
+        "source_ref": text(route_handoff.get("source_ref")),
+        "paper_mission_transaction_ref": text(
+            route_handoff.get("paper_mission_transaction_ref")
+        ),
+        "current_paper_mission_transaction_ref": (
+            text(current_carrier.get("paper_mission_transaction_ref"))
+            or text(
+                mapping(readback.get("paper_mission_transaction")).get(
+                    "transaction_id"
+                )
+            )
+        ),
+        "opl_route_command_ref": text(route_handoff.get("opl_route_command_ref")),
+        "current_opl_route_command_ref": text(
+            current_carrier.get("opl_route_command_ref")
+        ),
+        "route_identity_key": text(handoff_carrier.get("route_identity_key")),
+        "current_route_identity_key": text(current_carrier.get("route_identity_key")),
+    }
 
 
 def _paper_mission_stage_packet_refs(readback: Mapping[str, Any]) -> list[str]:
