@@ -731,6 +731,109 @@ def test_materialized_mission_summary_keeps_governed_consumption_current_when_te
     ] == "paper_mission_consumption_ledger"
 
 
+def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_run(
+    tmp_path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    mission_id = f"paper-mission::{study_id}::fallback-ledger-current"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=transaction,
+    )
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_consumption_ledger"
+                / "sat-current"
+            ),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    capsys.readouterr()
+
+    progress_exit_code = cli.main(
+        [
+            "study",
+            "progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert progress_exit_code == 0
+    assert payload["mission_state"] == "consumed"
+    assert payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert payload["stage_terminal_decision"]["decision_kind"] == (
+        "continue_same_stage"
+    )
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["next_owner_or_human_decision"]["next_owner"] == "mission_executor"
+    assert payload["current_objective"]["next_owner"] == "mission_executor"
+    assert payload["paper_mission_run"]["mission_state"] == "consumed"
+    assert payload["paper_mission_run"]["consume_result"]["status"] == "accepted"
+    assert payload["artifact_first_mission_summary"]["read_model_source"] == {
+        "source_kind": "paper_mission_consumption_ledger",
+        "consumption_ledger_ref": str(
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_consumption_ledger"
+            / "sat-current"
+            / study_id
+            / "consume_record.json"
+        ),
+        "consumption_ledger_role": "current_paper_mission_transaction",
+        "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
+        "legacy_fields_folded": [
+            "next_forced_delta",
+            "current_owner_delta",
+            "current_work_unit",
+            "current_executable_owner_action",
+        ],
+        "current_objective_source": "diagnostic_fallback",
+        "next_owner_source": "diagnostic_fallback",
+        "can_select_next_runtime_action": False,
+        "fallback_transaction_is_runnable": False,
+        "can_authorize_provider_admission": False,
+    }
+
+
 def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
     tmp_path,
     capsys,

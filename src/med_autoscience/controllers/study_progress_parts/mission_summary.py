@@ -135,6 +135,45 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         platform_diagnostics=platform_diagnostics,
         next_owner_or_human_decision=next_owner_or_human_decision,
     )
+    effective_consume_candidate_status = _non_empty_text(
+        _mapping(paper_mission_run.get("consume_result")).get("status")
+    ) or "not_consumed"
+    consumption_ledger_readback = _latest_consumption_ledger_readback(
+        progress=progress,
+        study_id=_study_id(progress),
+    )
+    if consumption_ledger_readback:
+        effective_consume_candidate_status = (
+            _non_empty_text(consumption_ledger_readback.get("consume_candidate_status"))
+            or effective_consume_candidate_status
+        )
+        mission_state = _mission_state_for_consumption_ledger(
+            consumption_ledger_readback
+        )
+        next_owner_or_human_decision = _next_owner_decision_for_consumption_ledger(
+            readback=consumption_ledger_readback,
+            fallback=next_owner_or_human_decision,
+        )
+        ledger_next_owner = _non_empty_text(
+            next_owner_or_human_decision.get("next_owner")
+        )
+        if ledger_next_owner:
+            current_objective = {
+                **current_objective,
+                "next_owner": ledger_next_owner,
+            }
+        paper_mission_run = {
+            **paper_mission_run,
+            "mission_state": mission_state,
+            "consume_result": _consume_result_for_consumption_ledger(
+                consumption_ledger_readback
+            ),
+            "paper_mission_transaction": consumption_ledger_readback[
+                "paper_mission_transaction"
+            ],
+            "current_objective": current_objective,
+            "next_owner_or_human_decision": next_owner_or_human_decision,
+        }
     carrier = paper_mission_opl_runtime_carrier(
         paper_mission_run["paper_mission_transaction"]
     )
@@ -192,6 +231,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "opl_runtime_readback_status": carrier_readback["carrier_status"],
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
+        "consume_candidate_status": effective_consume_candidate_status,
         "current_objective": current_objective,
         "latest_artifact_delta": {
             **latest_artifact_delta,
@@ -235,7 +275,21 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "can_mark_dm002_dm003_complete": False,
         },
         "read_model_source": {
-            "source_kind": "legacy_progress_projection_fallback",
+            "source_kind": (
+                "paper_mission_consumption_ledger"
+                if consumption_ledger_readback
+                else "legacy_progress_projection_fallback"
+            ),
+            **(
+                {
+                    "consumption_ledger_ref": _non_empty_text(
+                        consumption_ledger_readback.get("source_ref")
+                    ),
+                    "consumption_ledger_role": "current_paper_mission_transaction",
+                }
+                if consumption_ledger_readback
+                else {}
+            ),
             "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
             "legacy_fields_folded": [
                 "next_forced_delta",
