@@ -19,6 +19,24 @@ DM_CANARY_FIXTURE_ROOT = (
 )
 
 
+def _paper_mission_forbidden_write_guard() -> dict:
+    return {
+        "candidate_writes_authority": False,
+        "blocked_paths": [
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "current_package",
+            "runtime queue/provider attempts",
+            "/Users/gaofeng/workspace/Yang/**",
+        ],
+        "forbidden_claims": [
+            "publication_ready",
+            "current_package",
+            "owner_receipt_written",
+        ],
+    }
+
+
 def _write_profile_with_study(tmp_path: Path, *, study_id: str = "001-paper") -> Path:
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -509,11 +527,7 @@ def test_domain_handler_export_prefers_latest_governed_consumption_handoff_for_o
                 "artifact_delta_ledger": [],
                 "source_refs": [],
                 "authority_touchpoints": [],
-                "forbidden_write_guard": {
-                    "candidate_writes_authority": False,
-                    "blocked_paths": ["publication_eval/latest.json"],
-                    "forbidden_claims": ["publication_ready"],
-                },
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
                 "consume_result": {"status": "accepted"},
                 "claim_permissions": {
                     "can_claim_artifact_delta": True,
@@ -2402,6 +2416,157 @@ def test_paper_mission_consume_candidate_auto_discovers_latest_package_manifest(
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transaction(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = (
+        f"paper-mission::{study_id}::"
+        "medical_prose_write_repair_publication_gate_replay::one-shot-migration"
+    )
+    one_shot_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="typed_blocker",
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Older one-shot typed blocker mission.",
+                "mission_state": "stable_blocker",
+                "artifact_delta_ledger": [
+                    {
+                        "delta_id": "delta::dm003::one-shot",
+                        "artifact_ref": "mission://dm003/prose-repair-owner-decision",
+                        "delta_kind": "formal_paper_mission_owner_decision_packet",
+                        "status": "candidate",
+                    }
+                ],
+                "source_refs": [
+                    {
+                        "ref_id": "legacy_truth_import_pack",
+                        "ref_kind": "legacy_truth_import_pack",
+                        "uri": "mission://dm003/import-pack",
+                    }
+                ],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {"status": "typed_blocker"},
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": one_shot_transaction,
+                "one_shot_migration_readback": {
+                    "required_output": {
+                        "next_owner": "one-person-lab",
+                        "work_unit_id": "analysis_claim_evidence_repair",
+                    },
+                    "consume_candidate_status": "typed_blocker",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=one_shot_transaction,
+    )
+    consume_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "sat-current"
+    )
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(consume_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_materialized_readback"
+    assert payload["paper_mission_current_transaction_source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert payload["paper_mission_run"]["mission_state"] == "consumed"
+    assert payload["paper_mission_run"]["consume_result"]["status"] == "accepted"
+    assert payload["paper_mission_run"]["consume_result"]["outcome"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert payload["transaction_state"] == "accepted_submission_milestone_candidate"
+    assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["paper_mission_transaction_readback"]["source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert payload["paper_mission_transaction"]["stage_id"] == (
+        "submission_milestone_candidate"
+    )
+    assert payload["paper_mission_run"]["mission_state"] == "consumed"
+    assert payload["paper_mission_run"]["paper_mission_transaction"] == (
+        payload["paper_mission_transaction"]
+    )
+    assert payload["paper_mission_consumption_ledger_readback"]["source_ref"].endswith(
+        f"/paper_mission_consumption_ledger/sat-current/{study_id}/consume_record.json"
+    )
+    assert payload["mutation_policy"]["writes_authority"] is False
+    assert payload["mutation_policy"]["writes_runtime"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_can_write_governed_consume_record(
     tmp_path: Path,
     capsys,
@@ -2951,3 +3116,96 @@ def test_one_shot_migration_rejects_yang_authority_and_runtime_output_roots() ->
                 "runtime/quests/obesity_multicenter_phenotype_atlas/provider_attempt"
             )
         )
+
+
+def _write_submission_milestone_package(
+    *,
+    workspace_root: Path,
+    study_id: str,
+    mission_id: str,
+    base_transaction: dict,
+) -> Path:
+    package_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "sat-current"
+        / study_id
+    )
+    package_root.mkdir(parents=True)
+    candidate_manifest = {
+        "candidate_id": f"paper-mission-candidate::{study_id}::submission",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "requested_outcome": "accepted_candidate",
+        "candidate_manifest_ref": str(package_root / "candidate_manifest.json"),
+        "candidate_artifact_refs": [
+            str(package_root / "paper_facing_candidate_delta.json"),
+        ],
+        "source_readiness_refs": [f"source-readiness:{study_id}"],
+        "quality_auditor_requirement": {
+            "independent_auditor_required": True,
+            "owner": "MedAutoScience",
+        },
+        "artifact_authority_boundary": {
+            "artifact_authority_owner": "MedAutoScience",
+            "candidate_is_authority": False,
+            "can_update_current_package": False,
+            "can_write_paper_body": False,
+        },
+        "next_owner": "one-person-lab",
+        "resume_condition": "MAS consumes or routes the milestone package",
+        "paper_mission_transaction": base_transaction,
+    }
+    (package_root / "candidate_manifest.json").write_text(
+        json.dumps(candidate_manifest),
+        encoding="utf-8",
+    )
+    (package_root / "owner_blocker_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_owner_blocker_packet",
+                "status": "owner_blocker_candidate_ready",
+                "blocker_kind": "missing_opl_runtime_readback",
+                "study_id": study_id,
+                "mission_id": mission_id,
+                "next_owner": "one-person-lab",
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_manifest = {
+        "surface_kind": "paper_mission_foreground_candidate_package_manifest",
+        "schema_version": 1,
+        "mode": "non_authority_candidate_package",
+        "milestone_kind": "submission_milestone_candidate",
+        "study_id": study_id,
+        "mission_id": mission_id,
+        "counts_as_paper_progress": True,
+        "candidate_is_authority": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "can_claim_current_package": False,
+        "can_claim_owner_receipt_written": False,
+        "artifact_refs": {
+            "candidate_manifest": str(package_root / "candidate_manifest.json"),
+            "paper_facing_candidate_delta": str(
+                package_root / "paper_facing_candidate_delta.json"
+            ),
+        },
+        "paper_facing_candidate_delta_ref": str(
+            package_root / "paper_facing_candidate_delta.json"
+        ),
+        "owner_consumption_request_ref": str(
+            package_root / "owner_consumption_request.json"
+        ),
+        "owner_blocker_packet_ref": str(package_root / "owner_blocker_packet.json"),
+    }
+    package_manifest_path = package_root / "package_manifest.json"
+    package_manifest_path.write_text(json.dumps(package_manifest), encoding="utf-8")
+    return package_manifest_path

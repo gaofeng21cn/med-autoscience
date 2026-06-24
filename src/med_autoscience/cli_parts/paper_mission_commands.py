@@ -22,6 +22,9 @@ from med_autoscience.paper_mission_candidate_package import (
     paper_mission_owner_consumption_request,
     paper_mission_submission_milestone_checklist,
 )
+from med_autoscience.paper_mission_consumption_readback import (
+    latest_paper_mission_consumption_transaction_readback,
+)
 from med_autoscience.paper_mission_consumption_ledger import (
     write_paper_mission_consumption_ledger_outputs,
 )
@@ -566,6 +569,10 @@ def _build_materialized_mission_readback_if_available(
         mission=mission,
         mission_path=mission_path,
     )
+    consumption_ledger_readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=resolved_study_id,
+    )
     transaction_readback = _paper_mission_transaction_readback(
         mission_id=str(mission["mission_id"]),
         study_id=resolved_study_id,
@@ -573,13 +580,35 @@ def _build_materialized_mission_readback_if_available(
         paper_mission_command=paper_mission_command,
         study_root=resolved_study_root,
         mission=mission,
+        transaction_override=_mapping(
+            (consumption_ledger_readback or {}).get("paper_mission_transaction")
+        ),
+        transaction_source_override=(
+            "paper_mission_consumption_ledger"
+            if consumption_ledger_readback is not None
+            else None
+        ),
         authority_consume_readback=None,
     )
     mission = {
         **mission,
+        "mission_state": _mission_state_for_materialized_readback(
+            mission=mission,
+            transaction_readback=transaction_readback,
+            consumption_ledger_readback=consumption_ledger_readback,
+        ),
         "paper_mission_transaction": transaction_readback[
             "paper_mission_transaction"
         ],
+        **(
+            {
+                "consume_result": _consume_result_for_consumption_ledger_readback(
+                    consumption_ledger_readback
+                )
+            }
+            if consumption_ledger_readback is not None
+            else {}
+        ),
     }
     validation = _validate_with_contract_if_available(mission)
     return {
@@ -620,9 +649,22 @@ def _build_materialized_mission_readback_if_available(
             if candidate_manifest is not None
             else {}
         ),
+        **(
+            {
+                "paper_mission_consumption_ledger_readback": (
+                    consumption_ledger_readback
+                ),
+                "paper_mission_current_transaction_source": (
+                    "paper_mission_consumption_ledger"
+                ),
+            }
+            if consumption_ledger_readback is not None
+            else {}
+        ),
         "consume_candidate_status": transaction_readback.get(
             "consume_candidate_status_override"
         )
+        or _optional_text((consumption_ledger_readback or {}).get("consume_candidate_status"))
         or _consume_candidate_status(mission, default_readback),
         "mutation_policy": {
             "writes_authority": False,
@@ -2211,8 +2253,11 @@ def _paper_mission_transaction_readback(
     mission: dict[str, Any] | None,
     candidate: str | Path | None = None,
     authority_consume_readback: dict[str, Any] | None = None,
+    transaction_override: dict[str, Any] | None = None,
+    transaction_source_override: str | None = None,
 ) -> dict[str, Any]:
     transaction = _first_mapping(
+        _mapping(transaction_override),
         _mapping((mission or {}).get("paper_mission_transaction")),
         _transaction_from_materialized_legacy_mission(
             mission=mission,
@@ -2221,7 +2266,13 @@ def _paper_mission_transaction_readback(
         _candidate_manifest_transaction(candidate),
         _mapping((authority_consume_readback or {}).get("paper_mission_transaction")),
     )
-    source = "materialized_paper_mission_run" if transaction else "placeholder_no_write"
+    source = (
+        transaction_source_override
+        if transaction_override
+        else "materialized_paper_mission_run"
+        if transaction
+        else "placeholder_no_write"
+    )
     if not transaction:
         consume_result = (
             _mapping((authority_consume_readback or {}).get("consume_result"))
@@ -2308,6 +2359,48 @@ def _paper_mission_transaction_readback(
         )
     )
     return readback
+
+
+def _mission_state_for_materialized_readback(
+    *,
+    mission: Mapping[str, Any],
+    transaction_readback: Mapping[str, Any],
+    consumption_ledger_readback: Mapping[str, Any] | None,
+) -> str:
+    if transaction_readback.get("consume_candidate_status_override") == "route_back":
+        return "route_back"
+    if consumption_ledger_readback is None:
+        return _optional_text(mission.get("mission_state")) or "planned"
+    status = _optional_text(consumption_ledger_readback.get("consume_candidate_status"))
+    if status in {"typed_blocker", "human_gate"}:
+        return "stable_blocker" if status == "typed_blocker" else "waiting_human_decision"
+    if status in {"route_back", "rejected"}:
+        return "route_back"
+    return "consumed"
+
+
+def _consume_result_for_consumption_ledger_readback(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    status = _optional_text(readback.get("consume_candidate_status"))
+    selected_outcome = _optional_text(readback.get("selected_outcome"))
+    if status == "route_back":
+        result_status = "route_back"
+    elif status == "human_gate":
+        result_status = "human_gate"
+    elif status == "typed_blocker":
+        result_status = "typed_blocker"
+    elif status == "rejected":
+        result_status = "rejected"
+    elif status:
+        result_status = "accepted"
+    else:
+        result_status = "not_consumed"
+    return {
+        "status": result_status,
+        "outcome": status or selected_outcome or result_status,
+        "authority_materialized": False,
+    }
 
 
 def _paper_audit_pack_for_cli_readback(

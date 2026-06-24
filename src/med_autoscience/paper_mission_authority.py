@@ -454,18 +454,8 @@ def _continuation_transaction_for_submission_package(
     mission_id = _first_text(candidate_payload.get("mission_id"), package.get("mission_id"))
     if study_id is None or mission_id is None:
         return {}
-    existing_transaction = _mapping(candidate_payload.get("paper_mission_transaction"))
-    existing_decision = _mapping(existing_transaction.get("stage_terminal_decision"))
-    stage_id = _first_text(
-        existing_transaction.get("stage_id"),
-        existing_decision.get("target_stage_id"),
-        existing_decision.get("next_stage_id"),
-        "submission_milestone_candidate",
-    )
-    stage_run_ref = _first_text(
-        existing_transaction.get("stage_run_ref"),
-        f"paper-mission-package://{study_id}/{stage_id}",
-    )
+    stage_id = "submission_milestone_candidate"
+    stage_run_ref = f"paper-mission-package://{study_id}/{stage_id}"
     terminal_decision = {
         "decision_kind": "continue_same_stage",
         "status": "accepted_submission_milestone_candidate",

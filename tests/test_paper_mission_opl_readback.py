@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.paper_mission_opl_readback import (
+    RUNNING_READBACK_STATUS,
     TERMINAL_READBACK_STATUS,
     WAITING_READBACK_STATUS,
     paper_mission_opl_runtime_carrier_readback,
@@ -212,6 +213,62 @@ def test_opl_terminal_closeout_readback_rejects_cross_transaction_opl_runtime_ta
     assert "terminal_closeout" not in readback
 
 
+def test_opl_terminal_closeout_readback_consumes_completed_stage_attempt_when_task_still_running(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=_opl_running_task_completed_attempt_payload(),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "terminal_closeout_observed"
+    assert readback["dispatch_status"] == "terminal_closeout_observed"
+    assert readback["can_claim_provider_running"] is False
+    terminal = readback["terminal_closeout"]
+    assert terminal["task_id"] == "frt-stage-route"
+    assert terminal["task_status"] == "running"
+    assert terminal["status"] == "completed"
+    assert terminal["stage_attempt_id"] == "sat-completed"
+    assert terminal["closeout_receipt_status"] == "accepted_typed_closeout"
+    assert terminal["closeout_refs"] == [
+        "paper-mission-transaction::dm002#opl_route_command",
+        "opl://stage-attempts/sat-completed/runtime-blockers/no_typed_domain_handler_closeout_observed",
+    ]
+    assert terminal["provider_completion_is_domain_ready"] is False
+
+
+def test_opl_runtime_readback_reports_same_identity_running_attempt(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=_opl_running_task_running_attempt_payload(),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["dispatch_status"] == "provider_attempt_running"
+    assert readback["domain_ready_verdict"] == "opl_runtime_attempt_running"
+    assert readback["can_claim_provider_running"] is True
+    assert readback["can_claim_paper_progress"] is False
+    running = readback["running_attempt"]
+    assert running["stage_attempt_id"] == "sat-running"
+    assert running["provider_status"] == "running"
+    assert running["workflow_id"] == "wf-running"
+    assert running["provider_completion_is_domain_ready"] is False
+
+
 def _carrier() -> dict[str, str]:
     return {
         "study_id": "002-dm-china-us-mortality-attribution",
@@ -301,6 +358,94 @@ def _opl_runtime_task_payload() -> dict[str, object]:
             ],
         },
     }
+
+
+def _opl_running_task_completed_attempt_payload() -> dict[str, object]:
+    payload = _opl_runtime_task_payload()
+    runtime_task = payload["family_runtime_task"]
+    task = runtime_task["task"]
+    task["status"] = "running"
+    task["last_error"] = "paper_mission_stage_route_temporal_started"
+    task["current_control_state"] = {}
+    runtime_task["stage_attempts"] = [
+        {
+            "stage_attempt_id": "sat-stale",
+            "status": "completed",
+            "stage_id": "publication_gate_replay",
+            "workspace_locator": {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "paper_mission_transaction_ref": "paper-mission-transaction::other",
+                "opl_route_command_ref": "paper-mission-transaction::other#opl_route_command",
+                "command_kind": "start_next_stage",
+                "route_target": "publication_gate_replay",
+            },
+            "closeout_refs": ["stale-closeout"],
+            "closeout_receipt_status": "accepted_typed_closeout",
+        },
+        {
+            "stage_attempt_id": "sat-completed",
+            "status": "completed",
+            "stage_id": "publication_gate_replay",
+            "workspace_locator": {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+                "opl_route_command_ref": (
+                    "paper-mission-transaction::dm002#opl_route_command"
+                ),
+                "command_kind": "start_next_stage",
+                "route_target": "publication_gate_replay",
+            },
+            "closeout_refs": [
+                "paper-mission-transaction::dm002#opl_route_command",
+                (
+                    "opl://stage-attempts/sat-completed/runtime-blockers/"
+                    "no_typed_domain_handler_closeout_observed"
+                ),
+            ],
+            "closeout_receipt_status": "accepted_typed_closeout",
+            "provider_run": {
+                "provider_status": "completed",
+                "workflow_id": "wf-completed",
+            },
+        },
+    ]
+    runtime_task["events"] = []
+    return payload
+
+
+def _opl_running_task_running_attempt_payload() -> dict[str, object]:
+    payload = _opl_runtime_task_payload()
+    runtime_task = payload["family_runtime_task"]
+    task = runtime_task["task"]
+    task["status"] = "running"
+    task["last_error"] = "paper_mission_stage_route_temporal_started"
+    task["current_control_state"] = {}
+    runtime_task["stage_attempts"] = [
+        {
+            "stage_attempt_id": "sat-running",
+            "status": "running",
+            "stage_id": "publication_gate_replay",
+            "workspace_locator": {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+                "opl_route_command_ref": (
+                    "paper-mission-transaction::dm002#opl_route_command"
+                ),
+                "command_kind": "start_next_stage",
+                "route_target": "publication_gate_replay",
+            },
+            "provider_kind": "temporal",
+            "workflow_id": "wf-running",
+            "provider_run": {
+                "provider_status": "running",
+                "workflow_id": "wf-running",
+                "last_heartbeat_at": "2026-06-24T09:33:26.074Z",
+                "last_runner_event_kind": "command_execution",
+            },
+        }
+    ]
+    runtime_task["events"] = []
+    return payload
 
 
 def _write_closeout(study_root: Path, override: dict[str, object]) -> None:

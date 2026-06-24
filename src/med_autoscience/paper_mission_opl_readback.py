@@ -14,6 +14,7 @@ CLOSEOUT_RELATIVE_ROOTS = (
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
 )
 TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"
+RUNNING_READBACK_STATUS = "opl_runtime_attempt_running_observed"
 WAITING_READBACK_STATUS = "waiting_for_opl_runtime_live_readback"
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
@@ -38,6 +39,32 @@ def paper_mission_opl_runtime_carrier_readback(
             enable_opl_live_probe=enable_opl_live_probe,
         )
     if matched is None:
+        running = _matching_opl_runtime_running_attempt(
+            carrier=carrier,
+            opl_runtime_payload=opl_runtime_payload,
+            enable_opl_live_probe=enable_opl_live_probe,
+        )
+        if running is not None:
+            attempt, attempt_ref = running
+            return {
+                "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+                "schema_version": 1,
+                "carrier_status": RUNNING_READBACK_STATUS,
+                "runtime_readback_status": "running_attempt_observed",
+                "dispatch_status": "provider_attempt_running",
+                "domain_ready_verdict": "opl_runtime_attempt_running",
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "can_claim_provider_running": True,
+                "can_claim_paper_progress": False,
+                "can_claim_runtime_ready": False,
+                "authority_materialized": False,
+                "request_carrier_preserved": True,
+                "running_attempt": _running_attempt_readback(
+                    attempt=attempt,
+                    attempt_ref=attempt_ref,
+                ),
+            }
         return {
             "surface_kind": "paper_mission_opl_runtime_carrier_readback",
             "schema_version": 1,
@@ -191,6 +218,63 @@ def _matching_opl_runtime_terminal_closeout(
     return None
 
 
+def _matching_opl_runtime_running_attempt(
+    *,
+    carrier: Mapping[str, Any],
+    opl_runtime_payload: Mapping[str, Any] | None,
+    enable_opl_live_probe: bool,
+) -> tuple[dict[str, Any], str] | None:
+    if not _carrier_has_opl_route_identity(carrier):
+        return None
+    if opl_runtime_payload is not None:
+        return _matching_opl_runtime_payload_running_attempt(
+            carrier=carrier,
+            payload=opl_runtime_payload,
+        )
+    if not enable_opl_live_probe:
+        return None
+    list_args = (
+        "family-runtime",
+        "queue",
+        "list",
+        "--domain",
+        OPL_DOMAIN_ID,
+        "--study",
+        _text(carrier.get("study_id")) or "",
+        "--task-kind",
+        OPL_STAGE_ROUTE_TASK_KIND,
+        "--json",
+    )
+    inspect_args_prefix = (
+        "family-runtime",
+        "queue",
+        "inspect",
+    )
+    for candidate in _ranked_opl_bin_candidates():
+        if not candidate.exists():
+            continue
+        list_payload = _run_opl_json(candidate, list_args)
+        for task in _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload):
+            task_id = _text(task.get("task_id"))
+            if task_id is None:
+                continue
+            inspect_payload = _run_opl_json(
+                candidate,
+                (
+                    *inspect_args_prefix,
+                    task_id,
+                    "--json",
+                ),
+            )
+            matched = _matching_opl_runtime_payload_running_attempt(
+                carrier=carrier,
+                payload=inspect_payload,
+            )
+            if matched is not None:
+                return matched
+    return None
+
+
 def _matching_opl_runtime_payload_closeout(
     *,
     carrier: Mapping[str, Any],
@@ -220,6 +304,36 @@ def _matching_opl_runtime_payload_closeout(
         )
         if closeout is not None:
             return closeout, _opl_task_closeout_ref(task)
+    return None
+
+
+def _matching_opl_runtime_payload_running_attempt(
+    *,
+    carrier: Mapping[str, Any],
+    payload: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], str] | None:
+    runtime_task = _mapping(_mapping(payload).get("family_runtime_task"))
+    if runtime_task:
+        task = _mapping(runtime_task.get("task"))
+        if not _matches_opl_task(carrier=carrier, task=task):
+            return None
+        attempt = _opl_task_running_attempt(
+            carrier=carrier,
+            task=task,
+            stage_attempts=runtime_task.get("stage_attempts"),
+        )
+        if attempt is None:
+            return None
+        return attempt, _opl_attempt_ref(attempt)
+
+    for task in _matching_opl_tasks_from_list(carrier=carrier, payload=payload):
+        attempt = _opl_task_running_attempt(
+            carrier=carrier,
+            task=task,
+            stage_attempts=(),
+        )
+        if attempt is not None:
+            return attempt, _opl_attempt_ref(attempt)
     return None
 
 
@@ -276,35 +390,53 @@ def _opl_task_terminal_closeout(
     events: object,
 ) -> dict[str, Any] | None:
     status = _text(task.get("status"))
-    if status not in {"blocked", "dead_letter", "failed", "succeeded"}:
-        return None
     current_control = _mapping(task.get("current_control_state"))
     closeout_status = _text(current_control.get("closeout_receipt_status"))
     closeout_refs = _text_list(current_control.get("closeout_refs"))
     typed_blocker_refs = _text_list(current_control.get("typed_blocker_refs"))
-    if status == "succeeded":
-        return None
-    if closeout_status != "accepted_typed_closeout" and not typed_blocker_refs:
-        return None
     stage_attempt = _matching_opl_stage_attempt(
+        carrier=carrier,
         current_control=current_control,
         stage_attempts=stage_attempts,
     )
+    stage_status = _text(stage_attempt.get("status"))
+    stage_closeout_status = _text(stage_attempt.get("closeout_receipt_status"))
+    stage_closeout_refs = _text_list(stage_attempt.get("closeout_refs"))
+    stage_typed_blocker_refs = _text_list(stage_attempt.get("typed_blocker_refs"))
+    stage_terminal = stage_status in {"completed", "blocked", "failed", "dead_letter"}
+    if status not in {"blocked", "dead_letter", "failed", "succeeded"} and not stage_terminal:
+        return None
+    if status == "succeeded" and not stage_terminal:
+        return None
+    if (
+        closeout_status != "accepted_typed_closeout"
+        and not typed_blocker_refs
+        and stage_closeout_status != "accepted_typed_closeout"
+        and not stage_typed_blocker_refs
+        and not stage_closeout_refs
+    ):
+        return None
     route_target = _carrier_route_target(carrier)
     if route_target is not None:
         attempt_stage = _text(stage_attempt.get("stage_id"))
         control_stage = _text(_mapping(current_control.get("stage_run_currentness_identity")).get("stage_id"))
         if (attempt_stage or control_stage) not in {None, route_target}:
             return None
-    closeout_refs = closeout_refs or _event_closeout_refs(events)
-    typed_blocker_ref = typed_blocker_refs[0] if typed_blocker_refs else None
+    closeout_refs = closeout_refs or stage_closeout_refs or _event_closeout_refs(events)
+    typed_blocker_ref = (
+        typed_blocker_refs[0]
+        if typed_blocker_refs
+        else stage_typed_blocker_refs[0]
+        if stage_typed_blocker_refs
+        else None
+    )
     stage_attempt_id = (
         _text(current_control.get("current_stage_attempt_id"))
         or _text(stage_attempt.get("stage_attempt_id"))
     )
     return {
         "surface_kind": "stage_attempt_closeout_packet",
-        "status": status,
+        "status": stage_status or status,
         "study_id": _text(carrier.get("study_id")),
         "stage_id": route_target or _text(stage_attempt.get("stage_id")),
         "stage_attempt_id": stage_attempt_id,
@@ -324,12 +456,13 @@ def _opl_task_terminal_closeout(
             task.get("last_error"),
             task.get("dead_letter_reason"),
             current_control.get("blocker_reason"),
+            stage_attempt.get("blocked_reason"),
             "domain_gate_pending",
         ),
         "closeout_refs": closeout_refs,
         "task_id": _text(task.get("task_id")),
         "task_status": status,
-        "closeout_receipt_status": closeout_status,
+        "closeout_receipt_status": closeout_status or stage_closeout_status,
         "runtime_readback_source": "opl_family_runtime_queue_inspect",
         "authority_boundary": {
             "record_only_surface": True,
@@ -341,8 +474,64 @@ def _opl_task_terminal_closeout(
     }
 
 
+def _opl_task_running_attempt(
+    *,
+    carrier: Mapping[str, Any],
+    task: Mapping[str, Any],
+    stage_attempts: object,
+) -> dict[str, Any] | None:
+    if _text(task.get("status")) != "running":
+        return None
+    stage_attempt = _matching_opl_stage_attempt(
+        carrier=carrier,
+        current_control=_mapping(task.get("current_control_state")),
+        stage_attempts=stage_attempts,
+    )
+    stage_status = _text(stage_attempt.get("status"))
+    provider_run = _mapping(stage_attempt.get("provider_run"))
+    provider_status = _text(provider_run.get("provider_status"))
+    if stage_status not in {"running", "started", "queued"} and provider_status != "running":
+        return None
+    stage_attempt_id = _text(stage_attempt.get("stage_attempt_id"))
+    return {
+        "surface_kind": "opl_stage_attempt_running_readback",
+        "status": "running",
+        "study_id": _text(carrier.get("study_id")),
+        "stage_id": _carrier_route_target(carrier) or _text(stage_attempt.get("stage_id")),
+        "stage_attempt_id": stage_attempt_id,
+        "work_unit_id": _text(carrier.get("work_unit_id")),
+        "work_unit_fingerprint": _text(carrier.get("work_unit_fingerprint")),
+        "stage_packet_ref": _text(carrier.get("stage_terminal_decision_ref")),
+        "provider_attempt_ref": (
+            _text(stage_attempt.get("provider_attempt_ref"))
+            or (f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None)
+        ),
+        "provider_kind": _text(stage_attempt.get("provider_kind")),
+        "workflow_id": _text(stage_attempt.get("workflow_id"))
+        or _text(provider_run.get("workflow_id")),
+        "provider_status": provider_status or stage_status,
+        "last_heartbeat_at": _text(provider_run.get("last_heartbeat_at")),
+        "last_runner_event_kind": _text(provider_run.get("last_runner_event_kind")),
+        "task_id": _text(task.get("task_id")),
+        "task_status": _text(task.get("status")),
+        "runtime_readback_source": "opl_family_runtime_queue_inspect",
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "can_claim_paper_progress": False,
+        "authority_boundary": {
+            "record_only_surface": True,
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+            "artifact_mutation_authorized": False,
+            "publication_eval_latest_write_authorized": False,
+            "controller_decision_write_authorized": False,
+        },
+    }
+
+
 def _matching_opl_stage_attempt(
     *,
+    carrier: Mapping[str, Any],
     current_control: Mapping[str, Any],
     stage_attempts: object,
 ) -> dict[str, Any]:
@@ -350,18 +539,55 @@ def _matching_opl_stage_attempt(
     if isinstance(stage_attempts, list | tuple):
         for item in stage_attempts:
             candidate = _mapping(item)
-            if wanted is not None and _text(candidate.get("stage_attempt_id")) == wanted:
+            if (
+                wanted is not None
+                and _text(candidate.get("stage_attempt_id")) == wanted
+                and _matches_opl_stage_attempt(carrier=carrier, stage_attempt=candidate)
+            ):
                 return candidate
-        for item in stage_attempts:
+        for item in reversed(stage_attempts):
             candidate = _mapping(item)
-            if candidate:
+            if candidate and _matches_opl_stage_attempt(
+                carrier=carrier,
+                stage_attempt=candidate,
+            ):
                 return candidate
     return {}
+
+
+def _matches_opl_stage_attempt(
+    *,
+    carrier: Mapping[str, Any],
+    stage_attempt: Mapping[str, Any],
+) -> bool:
+    route_target = _carrier_route_target(carrier)
+    if route_target is not None and _text(stage_attempt.get("stage_id")) != route_target:
+        return False
+    locator = _mapping(stage_attempt.get("workspace_locator"))
+    if not locator:
+        return True
+    if _text(locator.get("study_id")) != _text(carrier.get("study_id")):
+        return False
+    for field in ("paper_mission_transaction_ref", "opl_route_command_ref"):
+        carrier_value = _text(carrier.get(field))
+        if carrier_value is not None and _text(locator.get(field)) != carrier_value:
+            return False
+    command_kind = _carrier_command_kind(carrier)
+    if command_kind is not None and _text(locator.get("command_kind")) != command_kind:
+        return False
+    if route_target is not None and _text(locator.get("route_target")) != route_target:
+        return False
+    return True
 
 
 def _opl_task_closeout_ref(task: Mapping[str, Any]) -> str:
     task_id = _text(task.get("task_id")) or "unknown"
     return f"opl://family-runtime/tasks/{task_id}/terminal-closeout-readback"
+
+
+def _opl_attempt_ref(attempt: Mapping[str, Any]) -> str:
+    stage_attempt_id = _text(attempt.get("stage_attempt_id")) or "unknown"
+    return f"opl://stage-attempts/{stage_attempt_id}/running-readback"
 
 
 def _event_closeout_refs(events: object) -> list[str]:
@@ -469,6 +695,44 @@ def _terminal_closeout_readback(
     }
 
 
+def _running_attempt_readback(
+    *,
+    attempt: Mapping[str, Any],
+    attempt_ref: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": _text(attempt.get("surface_kind")),
+        "attempt_ref": attempt_ref,
+        "status": _text(attempt.get("status")),
+        "study_id": _text(attempt.get("study_id")),
+        "stage_id": _text(attempt.get("stage_id")),
+        "stage_attempt_id": _text(attempt.get("stage_attempt_id")),
+        "work_unit_id": _text(attempt.get("work_unit_id")),
+        "work_unit_fingerprint": _text(attempt.get("work_unit_fingerprint")),
+        "stage_packet_ref": _text(attempt.get("stage_packet_ref")),
+        "provider_attempt_ref": _text(attempt.get("provider_attempt_ref")),
+        "provider_kind": _text(attempt.get("provider_kind")),
+        "workflow_id": _text(attempt.get("workflow_id")),
+        "provider_status": _text(attempt.get("provider_status")),
+        "last_heartbeat_at": _text(attempt.get("last_heartbeat_at")),
+        "last_runner_event_kind": _text(attempt.get("last_runner_event_kind")),
+        "task_id": _text(attempt.get("task_id")),
+        "task_status": _text(attempt.get("task_status")),
+        "runtime_readback_source": _text(attempt.get("runtime_readback_source")),
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "can_claim_paper_progress": False,
+        "authority_boundary": {
+            "record_only_surface": True,
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+            "artifact_mutation_authorized": False,
+            "publication_eval_latest_write_authorized": False,
+            "controller_decision_write_authorized": False,
+        },
+    }
+
+
 def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -560,6 +824,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "RUNNING_READBACK_STATUS",
     "TERMINAL_READBACK_STATUS",
     "WAITING_READBACK_STATUS",
     "attach_opl_runtime_carrier_readback",

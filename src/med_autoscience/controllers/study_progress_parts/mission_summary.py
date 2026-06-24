@@ -9,6 +9,9 @@ from med_autoscience.paper_mission_run import (
     PaperMissionRun,
     REQUIRED_PAPER_AUDIT_PACK_FAMILIES,
 )
+from med_autoscience.paper_mission_consumption_readback import (
+    latest_paper_mission_consumption_transaction_readback,
+)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
@@ -255,6 +258,9 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     summary = build_artifact_first_mission_summary(updated)
     updated["artifact_first_mission_summary"] = summary
     updated["mission_state"] = summary["mission_state"]
+    if "consume_candidate_status" in summary:
+        updated["consume_candidate_status"] = summary["consume_candidate_status"]
+    updated["paper_mission_run"] = summary["paper_mission_run"]
     updated["current_objective"] = summary["current_objective"]
     updated["latest_artifact_delta"] = summary["latest_artifact_delta"]
     updated["next_owner_or_human_decision"] = summary["next_owner_or_human_decision"]
@@ -307,6 +313,21 @@ def _materialized_mission_summary(
     materialized_mission: Mapping[str, Any],
 ) -> dict[str, Any]:
     mission = dict(materialized_mission)
+    study_id = _non_empty_text(mission.get("study_id")) or _study_id(progress)
+    consumption_ledger_readback = _latest_consumption_ledger_readback(
+        progress=progress,
+        study_id=study_id,
+    )
+    if consumption_ledger_readback:
+        mission["mission_state"] = _mission_state_for_consumption_ledger(
+            consumption_ledger_readback
+        )
+        mission["paper_mission_transaction"] = consumption_ledger_readback[
+            "paper_mission_transaction"
+        ]
+        mission["consume_result"] = _consume_result_for_consumption_ledger(
+            consumption_ledger_readback
+        )
     default_readback = _mapping(mission.get("one_shot_migration_readback"))
     mission_state = _non_empty_text(mission.get("mission_state")) or "planned"
     current_mission = _mapping(default_readback.get("current_mission"))
@@ -393,6 +414,11 @@ def _materialized_mission_summary(
         mission,
         default_readback,
     )
+    if consumption_ledger_readback:
+        effective_consume_candidate_status = (
+            _non_empty_text(consumption_ledger_readback.get("consume_candidate_status"))
+            or effective_consume_candidate_status
+        )
     if owner_answer_readback:
         owner_answer_transaction = _mapping(
             owner_answer_readback.get("paper_mission_transaction")
@@ -463,9 +489,23 @@ def _materialized_mission_summary(
             "can_mark_dm002_dm003_complete": False,
         },
         "read_model_source": {
-            "source_kind": "materialized_paper_mission_run",
+            "source_kind": (
+                "paper_mission_consumption_ledger"
+                if consumption_ledger_readback
+                else "materialized_paper_mission_run"
+            ),
             "materialized_mission_ref": _non_empty_text(
                 mission.get("materialized_mission_ref")
+            ),
+            **(
+                {
+                    "consumption_ledger_ref": _non_empty_text(
+                        consumption_ledger_readback.get("source_ref")
+                    ),
+                    "consumption_ledger_role": "current_paper_mission_transaction",
+                }
+                if consumption_ledger_readback
+                else {}
             ),
             "legacy_progress_projection_role": "diagnostic_drilldown",
         },
@@ -504,6 +544,58 @@ def _latest_materialized_mission(progress: Mapping[str, Any]) -> dict[str, Any]:
         payload["materialized_mission_ref"] = str(path)
         return payload
     return {}
+
+
+def _latest_consumption_ledger_readback(
+    *,
+    progress: Mapping[str, Any],
+    study_id: str,
+) -> dict[str, Any]:
+    study_root = _materialized_study_root(progress=progress)
+    workspace_root = _workspace_root_from_study_root(study_root)
+    if workspace_root is None:
+        return {}
+    return latest_paper_mission_consumption_transaction_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    ) or {}
+
+
+def _mission_state_for_consumption_ledger(
+    readback: Mapping[str, Any],
+) -> str:
+    status = _non_empty_text(readback.get("consume_candidate_status"))
+    if status == "typed_blocker":
+        return "stable_blocker"
+    if status == "human_gate":
+        return "waiting_human_decision"
+    if status in {"route_back", "rejected"}:
+        return "route_back"
+    return "consumed"
+
+
+def _consume_result_for_consumption_ledger(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    status = _non_empty_text(readback.get("consume_candidate_status"))
+    selected_outcome = _non_empty_text(readback.get("selected_outcome"))
+    if status == "route_back":
+        result_status = "route_back"
+    elif status == "human_gate":
+        result_status = "human_gate"
+    elif status == "typed_blocker":
+        result_status = "typed_blocker"
+    elif status == "rejected":
+        result_status = "rejected"
+    elif status:
+        result_status = "accepted"
+    else:
+        result_status = "not_consumed"
+    return {
+        "status": result_status,
+        "outcome": status or selected_outcome or result_status,
+        "authority_materialized": False,
+    }
 
 
 def _materialized_study_root(*, progress: Mapping[str, Any]) -> Path:
