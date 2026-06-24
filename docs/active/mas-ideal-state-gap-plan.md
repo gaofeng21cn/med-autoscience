@@ -238,6 +238,14 @@ MAS PaperMissionTransaction
 | `projection_or_ui_as_truth` | workbench/progress portal/read-model 可能把展示状态变成 current truth。 | `ReadModelProjectionBoundaryGate`：Portal / Workbench / Progress projection 只显示 refs、freshness、blocker、next owner；所有写入必须回到 MAS owner surface 或 OPL runtime command。 | MAS projection + OPL App | progress portal、workbench projection、stage artifact index | UI / projection 不写 MAS truth、不写 OPL StageRun、不生成 owner receipt；点击或 action 只返回 domain-handler / OPL route handoff ref。 |
 | `sidecar_or_capability_as_admission_gate` | Co-Scientist / EvoScientist / Capability Registry 等 sidecar 可能变成默认前置流程。 | `JITAffordanceFailOpenGate`：sidecar 只能在 current delta 显式需要时产生 refs-only advisory；缺失、失败、低置信不得阻断 owner action，除非命中 source/data/authority/human hard gate。 | MAS current owner + OPL capability runtime | Scientific Capability Registry、Agent Tool Arsenal、external-learning sidecar | Sidecar output 被 owner receipt / reviewer receipt / route-back refs 消费后才计入 progress；未消费只算 advisory，不算 stage closeout。 |
 
+### 2026-06-25 落地状态
+
+`StageTerminalDecisionPromotionGate + TransactionIdentityGate` 的 repo/source/control-plane hardening 已落地到 MAS `main` 与 OPL `main`，但 live runtime readiness 仍另账。
+
+- MAS `main` 已把 `PaperMissionTransaction`、OPL carrier、candidate consumption readback、stage quality / human gate / portal-workbench / capability fail-open 边界收紧到同一 transaction / study / stage / route identity；candidate、consume ledger、route handoff 和 read-model projection 继续固定为 no-authority surface。
+- OPL `main` 已在 `paper_mission/stage-route` intake / runner / terminal sync / linked liveness 中要求并传播 `study_id`、`paper_mission_transaction_ref`、`opl_route_command_ref`、`command_kind`、`route_target`、`route_identity_key`、`attempt_idempotency_key` 和可选 `request_idempotency_key`；缺关键 identity 时 fail closed，且不创建 StageAttempt。
+- 当前 fresh repo evidence：MAS focused suites、`make test-meta` 与 `scripts/verify.sh` 已通过；OPL `node --test` focused suite、`npm run typecheck` 已通过，默认 `scripts/verify.sh` 作为最终 closeout evidence 另跑。上述证据只证明代码、合同和 readback shape 已收口，不能声明 provider running、live runtime ready、paper progress、owner receipt、typed blocker authority file、human gate、publication-ready 或 production-ready。
+
 ### 实施顺序
 
 1. **统一终态合同**：把 `StageTerminalDecision` 作为唯一 stage 终态输入，禁止 OPL 从 provider completion、queue empty、read-model status 推导医学完成。
@@ -270,7 +278,7 @@ MAS PaperMissionTransaction
 
 ### 当前下一步
 
-近期应该先做 `StageTerminalDecisionPromotionGate + TransactionIdentityGate` 的 focused implementation lane：它能一次性压住 provider completion 误判、candidate authority 误判、stale handoff、legacy fallback 复活和 OPL/MAS 互相等待这五类风险。随后再做 production live soak，而不是继续扩写 read-model 或新增平台预检。
+`StageTerminalDecisionPromotionGate + TransactionIdentityGate` 已从“近期先做”变成 repo/source/control-plane 已落地项。下一步不再继续扩写 read-model 或新增平台预检，而是进入 production live soak / owner-consumption evidence lane：选择 DM002/DM003 或下一条真实 paper line 跑同一 identity 的 `drive -> OPL intake -> StageRun/provider -> typed closeout -> MAS consume -> next owner answer`，并用 owner receipt、stable typed blocker、human gate、route-back evidence、paper/artifact delta 或 strict running proof 证明 live lane。缺这些 live evidence 时，只能报 `partial_live_tail_open`，不能把本轮 repo hardening 写成 runtime-ready 或 paper progress。
 
 ## 下一轮 Agent prompt
 
