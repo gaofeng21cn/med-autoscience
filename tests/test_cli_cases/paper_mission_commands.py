@@ -656,12 +656,21 @@ def test_domain_handler_export_prefers_latest_governed_consumption_handoff_for_o
     assert paper_mission_task["paper_mission_default_handoff_source"] == (
         "paper_mission_consumption_ledger"
     )
+    assert paper_mission_task["workspace_root"] == str(workspace_root)
+    assert paper_mission_task["domain_workspace_root"] == str(workspace_root)
+    assert paper_mission_task["profile_ref"] == str(profile_path)
     assert task_payload["paper_mission_default_handoff_source"] == (
         "paper_mission_consumption_ledger"
     )
+    assert task_payload["workspace_root"] == str(workspace_root)
+    assert task_payload["domain_workspace_root"] == str(workspace_root)
+    assert task_payload["profile_ref"] == str(profile_path)
     assert task_payload["paper_mission_default_handoff_ref"] == task_handoff[
         "source_ref"
     ]
+    assert task_handoff["workspace_root"] == str(workspace_root)
+    assert task_handoff["domain_workspace_root"] == str(workspace_root)
+    assert task_handoff["profile_ref"] == str(profile_path)
     assert task_payload["route_command_kind"] == "route_back"
     assert task_payload["route_target"] == "paper-stage::gate-clearing"
     assert task_payload["paper_mission"]["candidate_manifest_ref"].endswith(

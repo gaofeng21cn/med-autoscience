@@ -451,6 +451,10 @@ def _paper_mission_start_or_resume_task(
         )
     payload = {
         "profile": str(profile_ref),
+        "profile_ref": str(profile_ref),
+        "workspace_root": str(profile.workspace_root),
+        "domain_workspace_root": str(profile.workspace_root),
+        "repo_root": str(profile.workspace_root),
         "study_id": study_id,
         "paper_mission_command": "start",
         "dry_run": True,
@@ -485,27 +489,35 @@ def _paper_mission_start_or_resume_task(
         if stage_packet_refs:
             payload["stage_packet_ref"] = stage_packet_refs[0]
     if route_handoff:
+        enriched_route_handoff = {
+            **route_handoff,
+            "workspace_root": str(profile.workspace_root),
+            "domain_workspace_root": str(profile.workspace_root),
+            "repo_root": str(profile.workspace_root),
+            "profile_ref": str(profile_ref),
+        }
         payload.update(
             {
-                "opl_route_handoff": route_handoff,
-                "opl_route_handoff_record": route_handoff,
+                "opl_route_handoff": enriched_route_handoff,
+                "opl_route_handoff_record": enriched_route_handoff,
                 "paper_mission_default_handoff_source": (
                     "paper_mission_consumption_ledger"
                 ),
                 "paper_mission_default_handoff_ref": text(
                     route_handoff.get("source_ref")
                 ),
-                "opl_route_command": mapping(route_handoff.get("opl_route_command")),
-                "route_command_kind": text(route_handoff.get("route_command_kind")),
-                "route_target": text(route_handoff.get("route_target")),
+                "opl_route_command": mapping(enriched_route_handoff.get("opl_route_command")),
+                "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
+                "route_target": text(enriched_route_handoff.get("route_target")),
                 "paper_mission_transaction_ref": text(
-                    route_handoff.get("paper_mission_transaction_ref")
+                    enriched_route_handoff.get("paper_mission_transaction_ref")
                 ),
                 "opl_route_command_ref": text(
-                    route_handoff.get("opl_route_command_ref")
+                    enriched_route_handoff.get("opl_route_command_ref")
                 ),
-                "candidate_ref": text(route_handoff.get("candidate_ref")),
-                "mission_id": text(route_handoff.get("mission_id")),
+                "candidate_ref": text(enriched_route_handoff.get("candidate_ref")),
+                "source_ref": text(enriched_route_handoff.get("source_ref")),
+                "mission_id": text(enriched_route_handoff.get("mission_id")),
                 "next_executable_owner": "one-person-lab",
             }
         )
@@ -531,24 +543,29 @@ def _paper_mission_start_or_resume_task(
     if route_handoff:
         task.update(
             {
-                "opl_route_handoff": route_handoff,
-                "opl_route_handoff_record": route_handoff,
+                "opl_route_handoff": enriched_route_handoff,
+                "opl_route_handoff_record": enriched_route_handoff,
                 "paper_mission_default_handoff_source": (
                     "paper_mission_consumption_ledger"
                 ),
                 "paper_mission_default_handoff_ref": text(
                     route_handoff.get("source_ref")
                 ),
-                "route_command_kind": text(route_handoff.get("route_command_kind")),
-                "route_target": text(route_handoff.get("route_target")),
+                "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
+                "route_target": text(enriched_route_handoff.get("route_target")),
                 "paper_mission_transaction_ref": text(
-                    route_handoff.get("paper_mission_transaction_ref")
+                    enriched_route_handoff.get("paper_mission_transaction_ref")
                 ),
                 "opl_route_command_ref": text(
-                    route_handoff.get("opl_route_command_ref")
+                    enriched_route_handoff.get("opl_route_command_ref")
                 ),
-                "candidate_ref": text(route_handoff.get("candidate_ref")),
-                "mission_id": text(route_handoff.get("mission_id")),
+                "candidate_ref": text(enriched_route_handoff.get("candidate_ref")),
+                "source_ref": text(enriched_route_handoff.get("source_ref")),
+                "mission_id": text(enriched_route_handoff.get("mission_id")),
+                "workspace_root": str(profile.workspace_root),
+                "domain_workspace_root": str(profile.workspace_root),
+                "repo_root": str(profile.workspace_root),
+                "profile_ref": str(profile_ref),
             }
         )
     return task
