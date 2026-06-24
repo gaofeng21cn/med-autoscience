@@ -341,6 +341,7 @@ def opl_route_handoff_record(
     route = _mapping(transaction_readback.get("opl_route_command"))
     decision = _mapping(transaction_readback.get("stage_terminal_decision"))
     carrier = _mapping(transaction_readback.get("opl_runtime_carrier"))
+    carrier_identity = _opl_runtime_carrier_identity(carrier)
     selected_outcome = _text(authority_consume_readback.get("selected_outcome"))
     status = _text(authority_consume_readback.get("status"))
     handoff_status = _route_handoff_status(
@@ -372,6 +373,10 @@ def opl_route_handoff_record(
         "opl_route_command_ref": _opl_route_command_ref(transaction_readback),
         "opl_route_command": route,
         "opl_runtime_carrier": carrier,
+        "route_identity_key": carrier_identity.get("route_identity_key"),
+        "attempt_idempotency_key": carrier_identity.get("attempt_idempotency_key"),
+        "request_idempotency_key": carrier_identity.get("request_idempotency_key"),
+        "idempotency_key": carrier_identity.get("idempotency_key"),
         "route_command_kind": command_kind,
         "route_target": _text(route.get("target")),
         "transaction_materialized": transaction_materialized,
@@ -393,6 +398,15 @@ def opl_route_handoff_record(
         ),
         "forbidden_authority_claims": list(forbidden_authority_claims),
         "forbidden_authority_writes": list(forbidden_authority_writes),
+    }
+
+
+def _opl_runtime_carrier_identity(carrier: Mapping[str, Any]) -> dict[str, str | None]:
+    return {
+        "route_identity_key": _text(carrier.get("route_identity_key")),
+        "attempt_idempotency_key": _text(carrier.get("attempt_idempotency_key")),
+        "request_idempotency_key": _text(carrier.get("request_idempotency_key")),
+        "idempotency_key": _text(carrier.get("idempotency_key")),
     }
 
 

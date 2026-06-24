@@ -2688,12 +2688,137 @@ def test_paper_mission_consume_candidate_can_write_governed_consume_record(
     assert handoff["surface_kind"] == "mas_paper_mission_opl_route_handoff_record"
     assert handoff["handoff_status"] == "ready_for_opl_route_command"
     assert handoff["can_submit_to_opl_runtime"] is True
+    carrier = handoff["opl_runtime_carrier"]
+    assert handoff["route_identity_key"] == carrier["route_identity_key"]
+    assert handoff["attempt_idempotency_key"] == carrier["attempt_idempotency_key"]
+    assert handoff["request_idempotency_key"] == carrier["request_idempotency_key"]
     assert handoff["can_claim_opl_stage_run_created"] is False
     assert handoff["can_claim_paper_progress"] is False
     assert payload["dispatch_plan"]["domain_handler_dispatch_mode"] == (
         "governed_consume_record"
     )
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_domain_handler_export_default_route_handoff_carries_top_level_identity(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "001-paper"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    mission_id = f"paper-mission::{study_id}::gate-clearing::manual"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="advance",
+    )
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        study_id=study_id,
+        paper_mission_transaction=transaction,
+    )
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "domain-handler-export-identity"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Consume paper mission candidate and hand it to OPL.",
+                "mission_state": "candidate_ready_for_consumption",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {"status": "accepted"},
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": transaction,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps({"candidate_id": "pmc-001", "study_id": study_id}),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "domain-handler-export-identity"
+    )
+
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    capsys.readouterr()
+
+    export_exit_code = cli.main(
+        ["domain-handler", "export", "--profile", str(profile_path), "--format", "json"]
+    )
+    export_payload = json.loads(capsys.readouterr().out)
+
+    assert export_exit_code == 0
+    task = next(
+        item
+        for item in export_payload["paper_mission_default_tasks"]
+        if item["study_id"] == study_id
+    )
+    handoff = task["opl_route_handoff"]
+    record = task["opl_route_handoff_record"]
+    payload_handoff = task["payload"]["opl_route_handoff"]
+    carrier = handoff["opl_runtime_carrier"]
+
+    for exported_handoff in (handoff, record, payload_handoff):
+        assert exported_handoff["route_identity_key"] == carrier["route_identity_key"]
+        assert exported_handoff["attempt_idempotency_key"] == (
+            carrier["attempt_idempotency_key"]
+        )
+        assert exported_handoff["request_idempotency_key"] == (
+            carrier["request_idempotency_key"]
+        )
+    assert task["route_identity_key"] == carrier["route_identity_key"]
+    assert task["attempt_idempotency_key"] == carrier["attempt_idempotency_key"]
+    assert task["request_idempotency_key"] == carrier["request_idempotency_key"]
+    assert task["payload"]["route_identity_key"] == carrier["route_identity_key"]
+    assert task["payload"]["attempt_idempotency_key"] == carrier[
+        "attempt_idempotency_key"
+    ]
+    assert task["payload"]["request_idempotency_key"] == carrier[
+        "request_idempotency_key"
+    ]
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
 def test_paper_mission_consume_candidate_route_back_owner_comes_from_terminal_decision(
