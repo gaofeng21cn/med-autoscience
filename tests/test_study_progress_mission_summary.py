@@ -380,17 +380,26 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert authority_readback["owner_answer_materialized"] is True
     assert authority_readback["consume_result"]["status"] == "route_back"
     assert authority_readback["consume_result"]["outcome"] == "route_back_evidence_ref"
-    assert authority_readback["consume_result"]["authority_materialized"] is True
+    assert authority_readback["consume_result"]["authority_materialized"] is False
+    assert authority_readback["consume_result"][
+        "authority_answer_readback_materialized"
+    ] is True
+    assert authority_readback["consume_result"]["authority_file_materialized"] is False
     owner_answer = summary["terminal_owner_gate_owner_answer_readback"]
     assert owner_answer["surface_kind"] == (
         "mas_terminal_owner_gate_owner_answer_readback"
     )
     assert owner_answer["status"] == "route_back"
     assert owner_answer["owner_answer_shape"] == "route_back_evidence_ref"
-    assert owner_answer["authority_materialized"] is True
+    assert owner_answer["authority_materialized"] is False
+    assert owner_answer["authority_answer_readback_materialized"] is True
+    assert owner_answer["authority_file_materialized"] is False
     assert owner_answer["can_claim_paper_progress"] is False
     assert owner_answer["can_claim_runtime_ready"] is False
     assert owner_answer["write_plan"]["written_files"] == []
+    assert owner_answer["write_plan"]["can_write_owner_receipts"] is False
+    assert owner_answer["write_plan"]["can_write_typed_blockers"] is False
+    assert owner_answer["write_plan"]["can_write_human_gate_authority_records"] is False
     assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
     assert summary["stage_terminal_decision"] == owner_answer["stage_terminal_decision"]
@@ -406,6 +415,11 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert authority_readback["authority_boundary"][
         "can_authorize_provider_admission"
     ] is False
+    assert authority_readback["authority_boundary"]["writes_authority_files"] is False
+    assert authority_readback["authority_boundary"]["authority_file_materialized"] is False
+    assert authority_readback["authority_boundary"]["can_write_owner_receipt"] is False
+    assert authority_readback["authority_boundary"]["can_write_typed_blocker"] is False
+    assert authority_readback["authority_boundary"]["can_write_human_gate"] is False
     assert authority_readback["write_plan"]["written_files"] == []
     assert payload["terminal_owner_gate_authority_readback"] == authority_readback
     assert payload["terminal_owner_gate_owner_answer_readback"] == owner_answer

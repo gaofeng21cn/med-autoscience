@@ -90,9 +90,13 @@ def terminal_owner_gate_owner_answer_readback(
         "consume_result": {
             "status": "route_back",
             "outcome": "route_back_evidence_ref",
-            "authority_materialized": True,
+            "authority_materialized": False,
+            "authority_answer_readback_materialized": True,
+            "authority_file_materialized": False,
         },
-        "authority_materialized": True,
+        "authority_materialized": False,
+        "authority_answer_readback_materialized": True,
+        "authority_file_materialized": False,
         "can_claim_paper_progress": False,
         "can_claim_runtime_ready": False,
         "write_plan": {
@@ -112,6 +116,7 @@ def terminal_owner_gate_owner_answer_readback(
             "runtime_owner": "one-person-lab",
             "authority_answer_surface": "route_back_evidence_ref",
             "writes_authority_files": False,
+            "authority_file_materialized": False,
             "writes_runtime": False,
             "can_claim_paper_progress": False,
             "can_claim_runtime_ready": False,
