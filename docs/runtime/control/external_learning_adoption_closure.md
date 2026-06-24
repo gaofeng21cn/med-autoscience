@@ -87,6 +87,18 @@ External-learning 后续优化不再作为 MAS standalone selector / backlog 推
 
 Nature-skills 2026-06-18 router/manifest 学习项也遵守同一条规则：`manifest.yaml` 的 axes / `always_load` / `references.on_demand` 可以启发 MAS-owned prompt authoring、stage quality pack descriptor、Display Pack descriptor 或 generated product-entry descriptor 的加载声明；不能把 Nature-skills manifest 当成 MAS 默认 skill source，也不能在 MAS repo 内新增独立 router selector。若未来推进实现，只能把缺口落为现有 owner surface 可消费的 descriptor field、quality pack ref floor、route-required ref、typed blocker candidate 或 OPL-hosted capability registry 消费项。
 
+## Scientific Capability Registry landing
+
+External-learning 的当前统一落地面是 `scientific_capability_registry` + ScholarSkills owner-consumption，而不是 MAS 私有 selector、第二 backlog 或外部 runtime。外部框架可以进入三类 capability surface：
+
+- `refs_only_advisory_capability`：ARS、AutoSci / OmegaWiki、ARK、ARIS、PaperSpine、PaperOrchestra、Light 等只输出 refs-only advisory / candidate refs，默认 fail-open。
+- `scholarskills_module_capability`：图、表、统计、组学、文献、写作、review、投稿、数据、intake 十类学术能力以 `opl.scholarskills.<module>` descriptor、required ref families、execution receipt candidate 和 file-materialized package manifest 暴露给 MAS。
+- `paper_mission_candidate_package_capability`：`paper-mission package-candidate` 将当前 PaperMission readback 转成 16 个非权威候选文件，包括 `owner_consumption_request.json`、`owner_blocker_packet.json`、`submission_milestone_checklist.json` 与 paper-facing candidate artifacts，用于 owner-consumption-first。
+
+这些 landing 的共同 contract 是：MAS 可以发现、resolve、invoke readback、消费 refs、生成 owner-gate request 或 owner-blocker packet；MAS 不因这些 refs 直接写 study truth、paper body、artifact body、publication eval、controller decisions、owner receipt、typed blocker、human gate、submission package 或 `current_package`。当 external-learning / ScholarSkills package 缺 required refs、含 truthy authority flag、含 forbidden `written_files` 或 module id mismatch 时，consumer fail closed；当只是缺 advisory 或缺 owner response refs 时，ordinary current owner action fail-open 继续推进。
+
+只有后续 MAS owner surface 返回 owner receipt、quality gate receipt、reviewer receipt、route-back evidence、stable typed blocker、human gate 或 accepted canonical artifact delta，external-learning output 才能从 capability candidate 晋级为真实 paper / study progress。
+
 ## 不再走的路径
 
 - 不把 `adopt_contract`、reference intake、design doc、score、ranking、checklist、skill inventory 或 external README 写成 landed。

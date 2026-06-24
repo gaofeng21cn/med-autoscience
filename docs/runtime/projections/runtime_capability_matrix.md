@@ -43,6 +43,16 @@ runtime doctor 不应只返回 pass/fail。它必须说明：
 4. artifact inventory 和 workspace file refs 是否能投影到用户面，且不会被提升为 artifact authority。
 5. 当前 blocker 是配置、凭据、provider 不可达、timeout、owner receipt 缺失，还是 contract 不支持。
 
+## OPL Capability Runtime / ScholarSkills 投影
+
+| capability_id | transport_owner | executor_kind | provider_owner | doctor_status | projection evidence | blocking_reasons |
+| --- | --- | --- | --- | --- | --- | --- |
+| `opl_capability_runtime` | `one-person-lab` | `opl_runway_or_hosted_provider` | `one-person-lab` | `projection_only_until_live_readback` | MAS 只消费 capability descriptor、prepared run-context ref、execution receipt candidate ref、artifact manifest ref、owner-consumption evidence packet 和 no-forbidden-write proof。 | 缺 OPL live invocation、StageRun / outbox / provider attempt readback、same-identity terminal closeout 或 owner-consumed refs时，不能声明 runtime-ready 或 production-ready。 |
+| `opl.scholarskills.*` | `one-person-lab` for execution; `MedAutoScience` for owner gate | `codex_cli_or_hosted_capability_executor` | `one-person-lab` | `repo_capability_surface_landed` | `scientific_capability_registry` 的 index / resolve / invoke / owner-consumption ABI、十模块 descriptor consumer、refs-only execution receipt candidate consumer、file-materialized package refs consumer、owner-gate request readback。 | 真实论文 truth 仍缺 MAS owner receipt、quality gate receipt、route-back evidence、stable typed blocker、human gate 或 canonical artifact delta。 |
+| `paper_mission_submission_milestone_candidate_package` | `MedAutoScience` | `codex_cli` | `MedAutoScience` for package; OPL only after route handoff | `candidate_package_surface_landed` | `paper-mission package-candidate` 输出 16 个非 authority files，包括 `owner_consumption_request.json`、`owner_blocker_packet.json`、`submission_milestone_checklist.json` 和 paper-facing candidate artifact refs。 | `submission_milestone_candidate` 不是 submission-ready、publication-ready、current package、OPL provider attempt 或 governed owner acceptance。 |
+
+Doctor 对这三类 capability 的结论必须分账：descriptor / package / owner-gate request 可以是 repo capability landed；live runtime invocation、provider closeout、owner gate accepted 和 paper truth accepted 必须等待对应 authority surface。缺 capability 或缺 owner response refs 默认 fail-open，不阻断 current owner action；只有命中 source/data/evidence、owner-route identity、forbidden write、不可逆 mutation、independent reviewer、publication gate、human gate 或 MAS hard gate 时才升级为 blocker。
+
 ## Timeout 规则
 
 长时间研究默认由 OPL provider-backed stage runtime 承担，MAS projection 只显示 timeout 能力和 blocker refs。降低 timeout 必须有明确理由，并且不得破坏：

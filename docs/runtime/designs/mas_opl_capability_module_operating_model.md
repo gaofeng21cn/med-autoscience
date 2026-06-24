@@ -112,6 +112,16 @@ medautosci scientific-capability-registry \
 
 文件化消费路径必须 fail closed：`authority_flags` 中任何 MAS authority 写入能力为 `true`，或 `written_files` 声称写入 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper/package truth、owner receipt、typed blocker 或 human gate，均不能被包装成 owner-consumption evidence。该消费路径只输出 `execution_receipt_status`、observed / missing ref families 和 refs-only owner-consumption evidence；即使 refs 齐全，也只表示候选 artifact evidence 可被 MAS owner gate 后续审查，不能写成 full runtime ready、paper progress、publication readiness、current package authority 或 owner receipt。候选图、表、统计结果、omics 结果、文献证据图谱、文稿段落、review 报告、投稿包、数据清单和外部方法 intake contract 只有经过 MAS owner gate 消费后，才可能进入论文 truth。
 
+### ScholarSkills acceptance matrix
+
+| Acceptance item | Capability-surface status | Evidence surface | Remaining live / authority tail |
+| --- | --- | --- | --- |
+| 十模块 descriptor discovery | `done_for_repo_capability_surface` | `scientific_capability_registry index / resolve` 可发现 `opl.scholarskills.display`、`tables`、`stats`、`omics`、`lit`、`write`、`review`、`submit`、`data`、`intake`，并返回 module descriptor、required ref families、dependency/run-context refs 和 no-authority boundary。 | 不证明 OPL Pack 已安装依赖、Runway 已执行 provider、Console 已展示 live run 或任何模块产物被 MAS owner 接受。 |
+| refs-only execution receipt candidate consumer | `done_for_refs_only_receipt_consumer` | owner-consumption helper 校验 module-specific required ref families、execution receipt expectation refs、authority false flags、missing refs 和 fail-closed collision。 | 不写 owner receipt、typed blocker、human gate、publication eval、controller decision、paper truth、artifact authority 或 `current_package`。 |
+| file-materialized package refs consumer | `done_for_file_package_consumption` | `--materialized-package-manifest-path` 可读取 OPL materialized package manifest、`execution_receipt_candidate.json`、artifact manifest path、`written_files`、`sha256` 和 authority flags，并归一为 `materialized_package_consumption` readback。 | 不声明 package body 是 MAS artifact authority；只把 refs 和 hashes 交给后续 owner gate。 |
+| candidate artifact owner-gate request | `done_for_owner_gate_request_readback` | 完整 refs-only package 会输出 `owner_gate_request`、`owner_gate_handoff`、candidate artifact kind/ref/sha256/readiness notes、required owner response shapes 和 no-forbidden-write proof。 | 这只是 MAS owner gate 的非权威 request/handoff；真实 owner acceptance、route-back、stable typed blocker、human gate 或 quality receipt 仍需 live owner surface。 |
+| PaperMission submission milestone candidate | `done_for_non_authority_candidate_package_surface` | `paper-mission package-candidate` 可物化 `owner_consumption_request.json`、`owner_blocker_packet.json`、`submission_milestone_checklist.json`、`paper_facing_candidate_delta.json` 和 5 个 paper-facing candidate artifact JSON；`milestone_kind=submission_milestone_candidate`，`can_claim_submission_ready=false`。 | 可计为候选论文产物能力面；不能声明 submission-ready、publication-ready、current package、owner receipt、typed blocker authority file、human gate 或 governed paper progress。 |
+
 ## 与 OPL 十大品牌模块的关系
 
 外挂能力模块不是 OPL 的第十一个品牌模块。它们是 OPL 十大品牌模块共同管理和使用的 capability 实例。品牌模块定义 framework 的 bounded contexts；能力模块是被这些 bounded contexts 管理、安装、发现、调用、审计和改进的专业资产。
