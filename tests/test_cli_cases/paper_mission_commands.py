@@ -631,8 +631,14 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert payload["output_manifest"]["paper_facing_candidate_delta_ref"].endswith(
         "/paper_facing_candidate_delta.json"
     )
+    assert payload["output_manifest"]["owner_consumption_request_ref"].endswith(
+        "/owner_consumption_request.json"
+    )
+    assert payload["output_manifest"]["owner_blocker_packet_ref"].endswith(
+        "/owner_blocker_packet.json"
+    )
     written_files = [Path(path) for path in payload["output_manifest"]["written_files"]]
-    assert len(written_files) == 13
+    assert len(written_files) == 16
     assert all(path.is_file() for path in written_files)
     assert all(output_root in path.parents for path in written_files)
     package_manifest = json.loads(
@@ -655,12 +661,26 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
             encoding="utf-8"
         )
     )
+    owner_consumption_request = json.loads(
+        Path(payload["output_manifest"]["owner_consumption_request_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_blocker_packet = json.loads(
+        Path(payload["output_manifest"]["owner_blocker_packet_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
     candidate_manifest = json.loads(
         Path(payload["output_manifest"]["candidate_manifest_ref"]).read_text(
             encoding="utf-8"
         )
     )
     assert package_manifest["mode"] == "non_authority_candidate_package"
+    assert package_manifest["milestone_kind"] == "submission_milestone_candidate"
+    assert package_manifest["counts_as_paper_progress"] is True
+    assert package_manifest["can_claim_submission_ready"] is False
+    assert package_manifest["can_claim_publication_ready"] is False
     assert package_manifest["candidate_is_authority"] is False
     assert package_manifest["authority_materialized_by_this_package"] is False
     assert (
@@ -670,6 +690,18 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert (
         package_manifest["artifact_refs"]["paper_facing_candidate_delta"]
         == payload["output_manifest"]["paper_facing_candidate_delta_ref"]
+    )
+    assert (
+        package_manifest["artifact_refs"]["owner_consumption_request"]
+        == payload["output_manifest"]["owner_consumption_request_ref"]
+    )
+    assert (
+        package_manifest["artifact_refs"]["owner_blocker_packet"]
+        == payload["output_manifest"]["owner_blocker_packet_ref"]
+    )
+    assert (
+        package_manifest["artifact_refs"]["submission_milestone_checklist"]
+        == payload["output_manifest"]["submission_milestone_checklist_ref"]
     )
     assert (
         "Yang output outside ops/medautoscience/paper_mission_candidate_package"
@@ -700,9 +732,41 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert paper_facing_delta["surface_kind"] == (
         "paper_mission_paper_facing_candidate_delta"
     )
-    assert paper_facing_delta["status"] == "candidate_context_only"
-    assert paper_facing_delta["counts_as_paper_progress"] is False
+    assert paper_facing_delta["milestone_kind"] == "submission_milestone_candidate"
+    assert paper_facing_delta["status"] == "submission_milestone_candidate_ready"
+    assert paper_facing_delta["counts_as_paper_progress"] is True
+    assert paper_facing_delta["candidate_is_authority"] is False
+    assert paper_facing_delta["can_claim_submission_ready"] is False
+    assert paper_facing_delta["can_claim_publication_ready"] is False
     assert paper_facing_delta["authority_boundary"]["writes_authority"] is False
+    assert owner_consumption_request["surface_kind"] == (
+        "paper_mission_owner_consumption_request"
+    )
+    assert owner_consumption_request["status"] == "owner_review_required"
+    assert owner_consumption_request["request_kind"] == "owner_decision_consumption"
+    assert owner_consumption_request["candidate_refs"][
+        "paper_facing_candidate_delta"
+    ] == payload["output_manifest"]["paper_facing_candidate_delta_ref"]
+    assert owner_consumption_request["candidate_refs"]["owner_blocker_packet"] == (
+        payload["output_manifest"]["owner_blocker_packet_ref"]
+    )
+    assert owner_consumption_request["accepted_owner_answer_shapes"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert owner_consumption_request["authority_boundary"]["writes_authority"] is False
+    assert owner_consumption_request["authority_boundary"]["writes_runtime"] is False
+    assert owner_consumption_request["authority_boundary"][
+        "can_claim_paper_progress"
+    ] is False
+    assert owner_consumption_request["counts_as_paper_progress"] is False
+    assert owner_blocker_packet["surface_kind"] == "paper_mission_owner_blocker_packet"
+    assert owner_blocker_packet["status"] == "context_only"
+    assert owner_blocker_packet["candidate_is_authority"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
     assert set(payload["output_manifest"]["paper_facing_artifact_refs"]) == {
         "manuscript_patch_plan",
         "claim_evidence_ledger_delta",
@@ -824,7 +888,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
 
     assert exit_code == 0
     output_manifest = payload["output_manifest"]
-    assert len(output_manifest["written_files"]) == 13
+    assert len(output_manifest["written_files"]) == 16
     assert output_manifest["writes_authority"] is False
     assert output_manifest["writes_runtime"] is False
     assert output_manifest["writes_yang_authority"] is False
@@ -838,10 +902,25 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
             encoding="utf-8"
         )
     )
+    owner_consumption_request = json.loads(
+        Path(output_manifest["owner_consumption_request_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_blocker_packet = json.loads(
+        Path(output_manifest["owner_blocker_packet_ref"]).read_text(encoding="utf-8")
+    )
+    submission_milestone_checklist = json.loads(
+        Path(output_manifest["submission_milestone_checklist_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
     candidate_manifest = json.loads(
         Path(output_manifest["candidate_manifest_ref"]).read_text(encoding="utf-8")
     )
     assert payload["mission_executor_handoff"] == handoff
+    assert payload["owner_consumption_request"] == owner_consumption_request
+    assert payload["owner_blocker_packet"] == owner_blocker_packet
     assert handoff["surface_kind"] == "paper_mission_executor_handoff"
     assert handoff["status"] == "ready_for_mission_executor"
     assert handoff["next_owner"] == "mission_executor"
@@ -871,8 +950,12 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert paper_facing_delta["surface_kind"] == (
         "paper_mission_paper_facing_candidate_delta"
     )
-    assert paper_facing_delta["status"] == "candidate_ready_for_mas_consume"
-    assert paper_facing_delta["counts_as_paper_progress"] is False
+    assert paper_facing_delta["milestone_kind"] == "submission_milestone_candidate"
+    assert paper_facing_delta["status"] == "submission_milestone_candidate_ready"
+    assert paper_facing_delta["counts_as_paper_progress"] is True
+    assert paper_facing_delta["candidate_is_authority"] is False
+    assert paper_facing_delta["can_claim_submission_ready"] is False
+    assert paper_facing_delta["can_claim_publication_ready"] is False
     assert paper_facing_delta["route_back_evidence_ref"] == (
         "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
     )
@@ -889,6 +972,41 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     )
     assert paper_facing_delta["authority_boundary"]["writes_paper_body"] is False
     assert paper_facing_delta["authority_boundary"]["can_claim_paper_progress"] is False
+    assert owner_consumption_request["status"] == "ready_for_mas_authority_consume"
+    assert owner_consumption_request["request_kind"] == (
+        "route_back_candidate_delta_consumption"
+    )
+    assert owner_consumption_request["next_owner"] == "mission_executor"
+    assert owner_consumption_request["candidate_refs"]["mission_executor_handoff"] == (
+        output_manifest["mission_executor_handoff_ref"]
+    )
+    assert owner_consumption_request["candidate_refs"][
+        "paper_facing_candidate_delta"
+    ] == output_manifest["paper_facing_candidate_delta_ref"]
+    assert owner_consumption_request["candidate_refs"]["owner_blocker_packet"] == (
+        output_manifest["owner_blocker_packet_ref"]
+    )
+    assert owner_consumption_request["authority_boundary"]["writes_authority"] is False
+    assert owner_consumption_request["authority_boundary"]["writes_runtime"] is False
+    assert owner_consumption_request["authority_boundary"]["writes_paper_body"] is False
+    assert owner_consumption_request["authority_boundary"][
+        "can_claim_paper_progress"
+    ] is False
+    assert owner_blocker_packet["status"] == "context_only"
+    assert owner_blocker_packet["blocker_kind"] == "route_back_without_blocker"
+    assert owner_blocker_packet["terminal_owner_gate_materialized"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_write_owner_receipt"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
+    assert (
+        submission_milestone_checklist["milestone_kind"]
+        == "submission_milestone_candidate"
+    )
+    assert submission_milestone_checklist["counts_as_paper_progress"] is True
+    assert submission_milestone_checklist["candidate_is_authority"] is False
+    assert {
+        item["item_id"]: item["status"]
+        for item in submission_milestone_checklist["mas_automatable_items"]
+    }["manuscript_patch_plan"] == "candidate_included"
     assert set(output_manifest["paper_facing_artifact_refs"]) == {
         "manuscript_patch_plan",
         "claim_evidence_ledger_delta",
@@ -917,7 +1035,11 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         "paper/build/review_manuscript.md",
     ]
     assert manuscript_patch_plan["authority_boundary"]["writes_paper_body"] is False
-    assert manuscript_patch_plan["counts_as_paper_progress"] is False
+    assert manuscript_patch_plan["milestone_kind"] == "submission_milestone_candidate"
+    assert manuscript_patch_plan["counts_as_paper_progress"] is True
+    assert manuscript_patch_plan["candidate_is_authority"] is False
+    assert manuscript_patch_plan["authority_materialized"] is False
+    assert manuscript_patch_plan["can_claim_submission_ready"] is False
     assert claim_evidence_delta["surface_kind"] == (
         "paper_mission_claim_evidence_ledger_delta"
     )
@@ -926,10 +1048,157 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         "paper/evidence_ledger.json",
     ]
     assert claim_evidence_delta["authority_boundary"]["writes_authority"] is False
+    assert claim_evidence_delta["counts_as_paper_progress"] is True
     assert (
         output_manifest["paper_facing_candidate_delta_ref"]
         in candidate_manifest["candidate_artifact_refs"]
     )
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    migration_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260624T0200Z"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--one-shot-migration",
+            "--study-progress-payload",
+            str(DM_CANARY_FIXTURE_ROOT / "dm003_progress.json"),
+            "--domain-health-diagnostic-payload",
+            str(DM_CANARY_FIXTURE_ROOT / "dhd_dry_run.json"),
+            "--output-root",
+            str(migration_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+
+    package_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "20260624T0201Z"
+    )
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "package-candidate",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(package_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["consume_candidate_status"] == "typed_blocker"
+    output_manifest = payload["output_manifest"]
+    assert len(output_manifest["written_files"]) == 16
+    assert output_manifest["writes_authority"] is False
+    assert output_manifest["writes_runtime"] is False
+    assert output_manifest["writes_yang_authority"] is False
+    owner_consumption_request = json.loads(
+        Path(output_manifest["owner_consumption_request_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_blocker_packet = json.loads(
+        Path(output_manifest["owner_blocker_packet_ref"]).read_text(encoding="utf-8")
+    )
+    submission_milestone_checklist = json.loads(
+        Path(output_manifest["submission_milestone_checklist_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    paper_facing_delta = json.loads(
+        Path(output_manifest["paper_facing_candidate_delta_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert payload["owner_consumption_request"] == owner_consumption_request
+    assert payload["owner_blocker_packet"] == owner_blocker_packet
+    assert payload["paper_facing_candidate_delta"] == paper_facing_delta
+    assert paper_facing_delta["milestone_kind"] == "submission_milestone_candidate"
+    assert (
+        paper_facing_delta["status"]
+        == "submission_milestone_candidate_ready_with_owner_blocker_context"
+    )
+    assert paper_facing_delta["counts_as_paper_progress"] is True
+    assert paper_facing_delta["candidate_is_authority"] is False
+    assert paper_facing_delta["can_claim_submission_ready"] is False
+    assert paper_facing_delta["can_claim_publication_ready"] is False
+    assert (
+        submission_milestone_checklist["milestone_kind"]
+        == "submission_milestone_candidate"
+    )
+    assert (
+        submission_milestone_checklist["status"]
+        == "candidate_ready_with_owner_blocker_context"
+    )
+    assert submission_milestone_checklist["counts_as_paper_progress"] is True
+    assert submission_milestone_checklist["authority_materialized"] is False
+    assert set(output_manifest["paper_facing_artifact_refs"]) == {
+        "manuscript_patch_plan",
+        "claim_evidence_ledger_delta",
+        "figure_table_caption_delta",
+        "reviewer_gate_response_draft",
+        "owner_decision_packet",
+    }
+    assert owner_consumption_request["status"] == "owner_blocker_packet_required"
+    assert owner_consumption_request["request_kind"] == "owner_blocker_resolution"
+    assert owner_consumption_request["next_owner"] == "one-person-lab"
+    assert owner_consumption_request["candidate_refs"]["owner_blocker_packet"] == (
+        output_manifest["owner_blocker_packet_ref"]
+    )
+    assert owner_consumption_request["authority_boundary"]["writes_authority"] is False
+    assert owner_consumption_request["authority_boundary"]["writes_runtime"] is False
+    assert owner_consumption_request["authority_boundary"]["writes_paper_body"] is False
+    assert owner_consumption_request["authority_boundary"][
+        "can_claim_paper_progress"
+    ] is False
+    assert owner_blocker_packet["surface_kind"] == "paper_mission_owner_blocker_packet"
+    assert owner_blocker_packet["status"] == "owner_blocker_candidate_ready"
+    assert owner_blocker_packet["blocker_kind"] == "missing_opl_runtime_readback"
+    assert owner_blocker_packet["current_terminal_decision"]["decision_kind"] == (
+        "typed_blocker"
+    )
+    assert owner_blocker_packet["current_terminal_decision"]["route_command"] == (
+        "stop_with_typed_blocker"
+    )
+    assert owner_blocker_packet["terminal_owner_gate_materialized"] is False
+    assert owner_blocker_packet["typed_blocker_authority_materialized"] is False
+    assert owner_blocker_packet["human_gate_materialized"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_write_owner_receipt"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_write_human_gate"] is False
+    assert owner_blocker_packet["authority_boundary"]["can_claim_paper_progress"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 

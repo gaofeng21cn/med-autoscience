@@ -16,6 +16,12 @@ from med_autoscience.paper_mission import (
     paper_mission_owner_decision_packet,
 )
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+from med_autoscience.paper_mission_candidate_package import (
+    SUBMISSION_MILESTONE_KIND,
+    paper_mission_owner_blocker_packet,
+    paper_mission_owner_consumption_request,
+    paper_mission_submission_milestone_checklist,
+)
 from med_autoscience.paper_mission_consumption_ledger import (
     write_paper_mission_consumption_ledger_outputs,
 )
@@ -645,6 +651,25 @@ def _build_materialized_candidate_package_readback(
         owner_decision_packet=owner_decision_packet,
         mission_executor_handoff=mission_executor_handoff,
     )
+    owner_blocker_packet = paper_mission_owner_blocker_packet(
+        readback=readback,
+        foreground_owner_decision_summary=summary,
+        mission_executor_handoff=mission_executor_handoff,
+        forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+    owner_consumption_request = paper_mission_owner_consumption_request(
+        readback=readback,
+        candidate_manifest=candidate_manifest,
+        owner_decision_packet=owner_decision_packet,
+        foreground_owner_decision_summary=summary,
+        mission_executor_handoff=mission_executor_handoff,
+        paper_facing_candidate_delta=paper_facing_candidate_delta,
+        owner_blocker_packet=owner_blocker_packet,
+        candidate_refs={},
+        forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
+    )
     output_manifest = _write_materialized_candidate_package_outputs(
         output_root=Path(output_root),
         study_id=str(readback["study_id"]),
@@ -655,6 +680,8 @@ def _build_materialized_candidate_package_readback(
         foreground_owner_decision_summary=summary,
         mission_executor_handoff=mission_executor_handoff,
         paper_facing_candidate_delta=paper_facing_candidate_delta,
+        owner_consumption_request=owner_consumption_request,
+        owner_blocker_packet=owner_blocker_packet,
     )
     return {
         "surface_kind": "paper_mission_candidate_package_write_readback",
@@ -689,6 +716,8 @@ def _build_materialized_candidate_package_readback(
         "foreground_owner_decision_summary": summary,
         "mission_executor_handoff": mission_executor_handoff,
         "paper_facing_candidate_delta": paper_facing_candidate_delta,
+        "owner_consumption_request": owner_consumption_request,
+        "owner_blocker_packet": owner_blocker_packet,
         "mutation_policy": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -1082,6 +1111,8 @@ def _write_materialized_candidate_package_outputs(
     foreground_owner_decision_summary: dict[str, Any],
     mission_executor_handoff: dict[str, Any],
     paper_facing_candidate_delta: dict[str, Any],
+    owner_consumption_request: dict[str, Any],
+    owner_blocker_packet: dict[str, Any],
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
     _assert_safe_candidate_package_output_root(root)
@@ -1099,6 +1130,10 @@ def _write_materialized_candidate_package_outputs(
         "mission_executor_handoff": study_root / "mission_executor_handoff.json",
         "paper_facing_candidate_delta": study_root
         / "paper_facing_candidate_delta.json",
+        "owner_consumption_request": study_root / "owner_consumption_request.json",
+        "owner_blocker_packet": study_root / "owner_blocker_packet.json",
+        "submission_milestone_checklist": study_root
+        / "submission_milestone_checklist.json",
     }
     paper_facing_artifact_outputs = {
         kind: study_root / "paper_facing_candidate_artifacts" / f"{kind}.json"
@@ -1117,6 +1152,11 @@ def _write_materialized_candidate_package_outputs(
         ),
         "mission_executor_handoff": str(outputs["mission_executor_handoff"]),
         "paper_facing_candidate_delta": str(outputs["paper_facing_candidate_delta"]),
+        "owner_consumption_request": str(outputs["owner_consumption_request"]),
+        "owner_blocker_packet": str(outputs["owner_blocker_packet"]),
+        "submission_milestone_checklist": str(
+            outputs["submission_milestone_checklist"]
+        ),
     }
     paper_facing_artifact_refs = {
         kind: str(path) for kind, path in paper_facing_artifact_outputs.items()
@@ -1139,6 +1179,23 @@ def _write_materialized_candidate_package_outputs(
     }
     paper_facing_candidate_delta.clear()
     paper_facing_candidate_delta.update(paper_facing_candidate_delta_payload)
+    owner_consumption_candidate_refs = {
+        **sidecar_refs,
+        "candidate_manifest": str(outputs["candidate_manifest"]),
+        "package_manifest": str(outputs["package_manifest"]),
+    }
+    owner_blocker_packet_payload = {
+        **owner_blocker_packet,
+        "candidate_refs": owner_consumption_candidate_refs,
+    }
+    owner_blocker_packet.clear()
+    owner_blocker_packet.update(owner_blocker_packet_payload)
+    owner_consumption_request_payload = {
+        **owner_consumption_request,
+        "candidate_refs": owner_consumption_candidate_refs,
+    }
+    owner_consumption_request.clear()
+    owner_consumption_request.update(owner_consumption_request_payload)
     candidate_manifest_payload = {
         **candidate_manifest,
         "candidate_artifact_refs": _candidate_artifact_refs_with_paper_delta(
@@ -1157,6 +1214,15 @@ def _write_materialized_candidate_package_outputs(
         "foreground_owner_decision_summary": foreground_owner_decision_summary,
         "mission_executor_handoff": mission_executor_handoff,
         "paper_facing_candidate_delta": paper_facing_candidate_delta_payload,
+        "owner_consumption_request": owner_consumption_request_payload,
+        "owner_blocker_packet": owner_blocker_packet_payload,
+        "submission_milestone_checklist": paper_mission_submission_milestone_checklist(
+            output_kinds=list(paper_facing_artifact_outputs),
+            owner_blocker_context=_optional_text(
+                owner_blocker_packet_payload.get("status")
+            )
+            == "owner_blocker_candidate_ready",
+        ),
     }
     payloads.update(
         {
@@ -1173,13 +1239,19 @@ def _write_materialized_candidate_package_outputs(
         "surface_kind": "paper_mission_foreground_candidate_package_manifest",
         "schema_version": 1,
         "mode": "non_authority_candidate_package",
+        "milestone_kind": SUBMISSION_MILESTONE_KIND,
         "study_id": study_id,
         "mission_id": paper_mission_readback.get("mission_id"),
+        "counts_as_paper_progress": True,
         "candidate_is_authority": False,
         "writes_authority": False,
         "writes_runtime": False,
         "writes_yang_authority": False,
         "writes_paper_body": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "can_claim_current_package": False,
+        "can_claim_owner_receipt_written": False,
         "authority_materialized_by_this_package": False,
         "source_refs": foreground_owner_decision_summary["input_refs"],
         "current_terminal_decision": foreground_owner_decision_summary[
@@ -1195,8 +1267,14 @@ def _write_materialized_candidate_package_outputs(
         "paper_facing_candidate_delta_ref": str(
             outputs["paper_facing_candidate_delta"]
         ),
+        "owner_consumption_request_ref": str(outputs["owner_consumption_request"]),
+        "owner_blocker_packet_ref": str(outputs["owner_blocker_packet"]),
+        "submission_milestone_checklist_ref": str(
+            outputs["submission_milestone_checklist"]
+        ),
         "paper_facing_artifact_refs": paper_facing_artifact_refs,
         "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
     }
     payloads["package_manifest"] = package_manifest
     written_files: list[str] = []
@@ -1236,6 +1314,11 @@ def _write_materialized_candidate_package_outputs(
         "paper_facing_candidate_delta_ref": str(
             outputs["paper_facing_candidate_delta"]
         ),
+        "owner_consumption_request_ref": str(outputs["owner_consumption_request"]),
+        "owner_blocker_packet_ref": str(outputs["owner_blocker_packet"]),
+        "submission_milestone_checklist_ref": str(
+            outputs["submission_milestone_checklist"]
+        ),
         "paper_facing_artifact_refs": paper_facing_artifact_refs,
     }
 
@@ -1268,9 +1351,14 @@ def _paper_facing_candidate_artifact_payload(
         "study_id": paper_facing_candidate_delta.get("study_id"),
         "mission_id": paper_facing_candidate_delta.get("mission_id"),
         "status": "candidate",
+        "milestone_kind": SUBMISSION_MILESTONE_KIND,
         "candidate_is_authority": False,
         "authority_materialized": False,
-        "counts_as_paper_progress": False,
+        "counts_as_paper_progress": True,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "can_claim_current_package": False,
+        "can_claim_owner_receipt_written": False,
         "route_back_evidence_ref": paper_facing_candidate_delta.get(
             "route_back_evidence_ref"
         ),
@@ -1404,22 +1492,31 @@ def _paper_facing_candidate_delta(
     output_kinds = [kind for kind in output_kinds if kind]
     handoff_status = _optional_text(mission_executor_handoff.get("status"))
     route_back_ready = handoff_status == "ready_for_mission_executor"
+    owner_blocker_context = _optional_text(readback.get("consume_candidate_status")) in {
+        "typed_blocker",
+        "human_gate",
+    }
     return {
         "surface_kind": "paper_mission_paper_facing_candidate_delta",
         "schema_version": 1,
+        "milestone_kind": SUBMISSION_MILESTONE_KIND,
         "study_id": readback.get("study_id"),
         "mission_id": readback.get("mission_id"),
         "delta_id": _first_text(
             candidate_artifact_delta.get("delta_id"),
             f"paper-facing-delta::{readback.get('study_id') or 'unknown-study'}",
         ),
-        "status": "candidate_ready_for_mas_consume"
-        if route_back_ready
-        else "candidate_context_only",
+        "status": "submission_milestone_candidate_ready"
+        if not owner_blocker_context
+        else "submission_milestone_candidate_ready_with_owner_blocker_context",
         "candidate_is_authority": False,
         "authority_materialized_by_this_delta": False,
-        "counts_as_paper_progress": False,
+        "counts_as_paper_progress": True,
         "counts_as_candidate_artifact_delta": True,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "can_claim_current_package": False,
+        "can_claim_owner_receipt_written": False,
         "route_back_evidence_ref": mission_executor_handoff.get(
             "route_back_evidence_ref"
         ),

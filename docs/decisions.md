@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-24：foreground candidate package 升级为投稿里程碑候选包
+
+- 决策：`paper-mission package-candidate` 的默认目标不再是状态说明包，而是 `submission_milestone_candidate`。该 package 必须写出 package manifest、paper mission readback、candidate manifest、mission candidate artifact delta、owner decision packet、foreground owner-decision summary、mission executor handoff、paper-facing candidate delta、owner consumption request、owner blocker packet、submission milestone checklist，以及 manuscript patch / claim-evidence / figure-table-caption / reviewer-gate-response / owner-decision 五类 paper-facing candidate artifact JSON。
+- 决策：`submission_milestone_candidate` 可以计为 paper-facing candidate artifact progress：`package_manifest.counts_as_paper_progress=true`、`paper_facing_candidate_delta.counts_as_paper_progress=true`、五类 paper-facing candidate artifact 也计为 candidate progress。该进展只表示生成了可交接、可消费、可审阅的论文候选产物，不表示 MAS authority 已接受。
+- 决策：该 package 继续固定 no-authority 边界：`candidate_is_authority=false`、`writes_authority=false`、`writes_runtime=false`、`writes_yang_authority=false`、`writes_paper_body=false`、`can_claim_submission_ready=false`、`can_claim_publication_ready=false`，不得写 owner receipt、typed blocker authority file、human gate、publication eval、controller decision、current package、runtime queue/provider attempt 或 paper body。
+- 决策：`typed_blocker`、`route_back`、missing OPL live readback 或 owner gate 不得再让 DM002/DM003 paper mission 停在纯状态报告。`package-candidate` 必须继续生成 milestone candidate；typed blocker / owner gate 只进入 `owner_blocker_packet` 和 `owner_consumption_request`，作为 MAS authority 或 OPL owner consume / resolution 的上下文。
+- 理由：用户目标是两篇论文在缺少作者信息、基金号等客观外部信息前由 MAS 自动推进到投稿里程碑候选包。阻塞状态只能作为 owner 路由或消费上下文，不能替代 candidate paper artifact delta。
+- 影响：本决策关闭的是 foreground candidate package 的 product semantics 缺口，不授权 hand-write Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipts、typed blockers、human gates、current package、runtime queues/provider attempts 或 canonical paper body。submission-ready / publication-ready 仍必须由 MAS authority 和 publication gate 的 fresh owner evidence 证明。
+
 ## 2026-06-23：PaperMissionTransaction + StageTerminalDecision 成为论文主路径
 
 - 决策：MAS 顶层论文推进目标从 `PaperMissionRun` candidate/readback 升级为 `PaperMissionTransaction + StageTerminalDecision`。`PaperMissionRun` 保留为当前 no-write materialized readback、one-shot migration 和 consume-candidate 兼容 shape；长期主路径由 MAS stage 持有 transaction identity、objective、artifact delta ledger、decision constraints 和 forbidden-write guard。
