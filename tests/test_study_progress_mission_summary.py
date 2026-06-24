@@ -887,7 +887,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert summary["validator"] == "med_autoscience.paper_mission_run.PaperMissionRun"
     assert summary["legacy_path_role"] == "diagnostics_migration_provenance_only"
     assert summary["default_progress_metric"] == "paper_artifact_delta"
-    assert summary["mission_state"] == "running"
+    assert summary["mission_state"] == "planned"
     assert summary["current_objective"] == {
         "objective": "paper_progress_delta_or_typed_blocker",
         "work_unit_id": "dm002-currentness-repair",
@@ -919,7 +919,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
         "claim_permissions",
     }
     assert paper_mission_run["schema_version"] == "paper-mission-run.v1"
-    assert paper_mission_run["mission_state"] == "running"
+    assert paper_mission_run["mission_state"] == "planned"
     assert paper_mission_run["artifact_delta_ledger"] == []
     assert PaperMissionRun.from_payload(paper_mission_run).mission_id == (
         paper_mission_run["mission_id"]
@@ -927,12 +927,15 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert PaperMissionTransaction.from_payload(
         summary["paper_mission_transaction"]
     ).mission_id == paper_mission_run["mission_id"]
-    assert summary["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
-    assert summary["opl_route_command"]["command_kind"] == "resume_stage"
+    assert summary["stage_terminal_decision"]["decision_kind"] == "human_gate"
+    assert summary["stage_terminal_decision"]["status"] == "paper_mission_readback_missing"
+    assert summary["opl_route_command"]["command_kind"] == "wait_for_human"
     assert summary["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
-        "resume_stage"
+        "wait_for_human"
     )
-    assert summary["transaction_state"]["route_command_kind"] == "resume_stage"
+    assert summary["transaction_state"]["route_command_kind"] == "wait_for_human"
+    assert summary["read_model_source"]["can_select_next_runtime_action"] is False
+    assert summary["read_model_source"]["fallback_transaction_is_runnable"] is False
     assert paper_mission_run["consume_result"] == {"status": "not_consumed"}
     assert paper_mission_run["forbidden_write_guard"]["candidate_writes_authority"] is False
     assert {
@@ -971,6 +974,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
         "current_objective_source": "diagnostic_fallback",
         "next_owner_source": "diagnostic_fallback",
         "can_select_next_runtime_action": False,
+        "fallback_transaction_is_runnable": False,
         "can_authorize_provider_admission": False,
     }
 

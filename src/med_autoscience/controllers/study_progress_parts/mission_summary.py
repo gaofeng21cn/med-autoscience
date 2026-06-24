@@ -246,6 +246,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "current_objective_source": "diagnostic_fallback",
             "next_owner_source": "diagnostic_fallback",
             "can_select_next_runtime_action": False,
+            "fallback_transaction_is_runnable": False,
             "can_authorize_provider_admission": False,
         },
     }
@@ -300,7 +301,7 @@ def _mission_state(
         return "route_back"
     if _delta_count(latest_artifact_delta) > 0:
         return "candidate_ready_for_consumption"
-    if _has_current_objective(progress) or _non_empty_text(user_visible.get("writer_state")) == "live":
+    if _non_empty_text(user_visible.get("writer_state")) == "live":
         return "running"
     if _diagnostic_count(platform_diagnostics) > 0:
         return "planned"
@@ -1078,34 +1079,48 @@ def _paper_mission_transaction_payload(
         mission_state=mission_state,
         next_owner_or_human_decision=next_owner_or_human_decision,
     )
-    terminal_decision = stage_terminal_decision_for_consume_result(
-        mission_id=_non_empty_text(mission.get("mission_id")) or "paper-mission::unknown",
-        study_id=_non_empty_text(mission.get("study_id")) or _study_id(progress),
-        stage_id=stage_id,
-        consume_result=consume_result,
-        default_next_owner=_first_text(
-            next_owner_or_human_decision.get("next_owner"),
-            current_objective.get("next_owner"),
-            "mas_authority_kernel",
+    mission_id = _non_empty_text(mission.get("mission_id")) or "paper-mission::unknown"
+    study_id = _non_empty_text(mission.get("study_id")) or _study_id(progress)
+    terminal_decision = (
+        _diagnostic_fallback_terminal_decision(
+            mission_id=mission_id,
+            study_id=study_id,
+            stage_id=stage_id,
         )
-        or "mas_authority_kernel",
-        default_next_stage_id=_next_stage_id(stage_id=stage_id),
-        default_next_work_unit=_first_text(
-            current_objective.get("work_unit_id"),
-            current_objective.get("objective"),
-            stage_id,
+        if _diagnostic_fallback_requires_materialized_mission(
+            mission_state=mission_state,
+            artifact_delta_ledger=artifact_delta_ledger,
+            platform_diagnostics=platform_diagnostics,
         )
-        or stage_id,
-        default_reason=_first_text(
-            consume_result.get("reason"),
-            next_owner_or_human_decision.get("summary"),
-            "stage terminalized from artifact-first paper mission summary",
+        else stage_terminal_decision_for_consume_result(
+            mission_id=mission_id,
+            study_id=study_id,
+            stage_id=stage_id,
+            consume_result=consume_result,
+            default_next_owner=_first_text(
+                next_owner_or_human_decision.get("next_owner"),
+                current_objective.get("next_owner"),
+                "mas_authority_kernel",
+            )
+            or "mas_authority_kernel",
+            default_next_stage_id=_next_stage_id(stage_id=stage_id),
+            default_next_work_unit=_first_text(
+                current_objective.get("work_unit_id"),
+                current_objective.get("objective"),
+                stage_id,
+            )
+            or stage_id,
+            default_reason=_first_text(
+                consume_result.get("reason"),
+                next_owner_or_human_decision.get("summary"),
+                "stage terminalized from artifact-first paper mission summary",
+            )
+            or "stage terminalized from artifact-first paper mission summary",
         )
-        or "stage terminalized from artifact-first paper mission summary",
     )
     return build_paper_mission_transaction(
-        mission_id=_non_empty_text(mission.get("mission_id")) or "paper-mission::unknown",
-        study_id=_non_empty_text(mission.get("study_id")) or _study_id(progress),
+        mission_id=mission_id,
+        study_id=study_id,
         stage_id=stage_id,
         stage_run_ref=f"opl-stage-run://paper-mission-summary/{_study_id(progress)}/{stage_id}",
         terminal_decision=terminal_decision,
@@ -1121,6 +1136,44 @@ def _paper_mission_transaction_payload(
         )
         or "projection",
     )
+
+
+def _diagnostic_fallback_requires_materialized_mission(
+    *,
+    mission_state: str,
+    artifact_delta_ledger: list[dict[str, Any]],
+    platform_diagnostics: Mapping[str, Any],
+) -> bool:
+    return (
+        mission_state == "planned"
+        and not artifact_delta_ledger
+        and _diagnostic_count(platform_diagnostics) > 0
+    )
+
+
+def _diagnostic_fallback_terminal_decision(
+    *,
+    mission_id: str,
+    study_id: str,
+    stage_id: str,
+) -> dict[str, Any]:
+    return {
+        "decision_kind": "human_gate",
+        "status": "paper_mission_readback_missing",
+        "reason": (
+            "legacy progress/currentness diagnostics cannot select the next "
+            "PaperMission stage; materialize a PaperMissionRun before routing "
+            "work to OPL."
+        ),
+        "next_owner": "MedAutoScience",
+        "question": (
+            "Materialize a PaperMissionRun with MAS stage terminal decision "
+            "before OPL runtime routing?"
+        ),
+        "required_receipt": (
+            f"paper-mission-readback-missing::{study_id}::{stage_id}::{_slug(mission_id)}"
+        ),
+    }
 
 
 def _paper_audit_pack(
