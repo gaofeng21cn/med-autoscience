@@ -1916,7 +1916,11 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert authority_readback["owner_answer_materialized"] is True
     assert authority_readback["consume_result"]["status"] == "route_back"
     assert authority_readback["consume_result"]["outcome"] == "route_back_evidence_ref"
-    assert authority_readback["consume_result"]["authority_materialized"] is True
+    assert authority_readback["consume_result"]["authority_materialized"] is False
+    assert authority_readback["consume_result"][
+        "authority_answer_readback_materialized"
+    ] is True
+    assert authority_readback["consume_result"]["authority_file_materialized"] is False
     assert authority_readback["route_back_evidence_ref"].startswith(
         f"route-back:paper-mission-terminal-owner-gate:{study_id}:"
     )
@@ -1926,10 +1930,15 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     )
     assert owner_answer["status"] == "route_back"
     assert owner_answer["owner_answer_shape"] == "route_back_evidence_ref"
-    assert owner_answer["authority_materialized"] is True
+    assert owner_answer["authority_materialized"] is False
+    assert owner_answer["authority_answer_readback_materialized"] is True
+    assert owner_answer["authority_file_materialized"] is False
     assert owner_answer["can_claim_paper_progress"] is False
     assert owner_answer["can_claim_runtime_ready"] is False
     assert owner_answer["write_plan"]["written_files"] == []
+    assert owner_answer["write_plan"]["can_write_owner_receipts"] is False
+    assert owner_answer["write_plan"]["can_write_typed_blockers"] is False
+    assert owner_answer["write_plan"]["can_write_human_gate_authority_records"] is False
     assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
     assert payload["stage_terminal_decision"] == owner_answer["stage_terminal_decision"]
