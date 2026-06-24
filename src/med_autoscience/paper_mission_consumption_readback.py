@@ -26,7 +26,7 @@ def latest_paper_mission_consumption_transaction_readback(
     )
     if not ledger_root.exists():
         return None
-    candidates: list[tuple[str, float, str, dict[str, Any]]] = []
+    candidates: list[tuple[float, str, str, dict[str, Any]]] = []
     for consume_record_ref in ledger_root.glob(f"**/{study_id}/consume_record.json"):
         readback = _valid_consumption_transaction_readback(
             consume_record_ref=consume_record_ref,
@@ -40,8 +40,8 @@ def latest_paper_mission_consumption_transaction_readback(
             mtime = 0.0
         candidates.append(
             (
-                _ledger_timestamp_key(consume_record_ref),
                 mtime,
+                _ledger_timestamp_key(consume_record_ref),
                 str(consume_record_ref),
                 readback,
             )
@@ -262,7 +262,7 @@ def _consume_candidate_status(
 
 def _ledger_timestamp_key(path: Path) -> str:
     for part in reversed(path.parts):
-        match = re.search(r"20\d{6}T[0-9A-Za-z_-]+", part)
+        match = re.search(r"20\d{6}[TZ][0-9A-Za-z_-]+", part)
         if match:
             return match.group(0)
     return ""

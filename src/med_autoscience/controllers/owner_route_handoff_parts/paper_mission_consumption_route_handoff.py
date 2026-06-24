@@ -21,7 +21,7 @@ def latest_paper_mission_consumption_route_handoff(
     )
     if not ledger_root.exists():
         return None
-    candidates: list[tuple[str, float, str, dict[str, Any]]] = []
+    candidates: list[tuple[float, str, str, dict[str, Any]]] = []
     for handoff_ref in ledger_root.glob(f"**/{study_id}/opl_route_handoff.json"):
         try:
             payload = json.loads(handoff_ref.read_text(encoding="utf-8"))
@@ -42,8 +42,8 @@ def latest_paper_mission_consumption_route_handoff(
             mtime = 0.0
         candidates.append(
             (
-                _paper_mission_handoff_timestamp_key(handoff_ref),
                 mtime,
+                _paper_mission_handoff_timestamp_key(handoff_ref),
                 str(handoff_ref),
                 handoff,
             )
@@ -72,7 +72,7 @@ def paper_mission_handoff_stage_packet_refs(
 
 def _paper_mission_handoff_timestamp_key(handoff_ref: Path) -> str:
     for part in reversed(handoff_ref.parts):
-        match = re.search(r"20\d{6}T[0-9A-Za-z_-]+", part)
+        match = re.search(r"20\d{6}[TZ][0-9A-Za-z_-]+", part)
         if match:
             return match.group(0)
     return ""
