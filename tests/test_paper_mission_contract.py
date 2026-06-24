@@ -145,6 +145,8 @@ def _valid_transaction_payload() -> dict[str, object]:
                 "paper-mission::dm002::gate-clearing::20260623T010000Z"
                 "#stage_terminal_decision"
             ),
+            "stage_run_ref": "opl-stage-run://dm002/gate-clearing/20260623T010000Z",
+            "runtime_owner": "one-person-lab",
         },
         "artifact_delta_refs": [
             {
