@@ -269,6 +269,32 @@ def test_opl_runtime_readback_reports_same_identity_running_attempt(
     assert running["provider_completion_is_domain_ready"] is False
 
 
+def test_opl_runtime_readback_prefers_running_terminal_successor_over_old_closeout(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=_opl_queue_with_terminal_and_running_successor_payload(),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["dispatch_status"] == "provider_attempt_running"
+    assert readback["can_claim_provider_running"] is True
+    assert readback["can_claim_paper_progress"] is False
+    assert "terminal_closeout" not in readback
+    running = readback["running_attempt"]
+    assert running["task_id"] == "frt-successor"
+    assert running["stage_attempt_id"] == "sat-successor"
+    assert running["workflow_id"] == "wf-successor"
+    assert running["provider_status"] == "live"
+
+
 def _carrier() -> dict[str, str]:
     return {
         "study_id": "002-dm-china-us-mortality-attribution",
@@ -446,6 +472,58 @@ def _opl_running_task_running_attempt_payload() -> dict[str, object]:
     ]
     runtime_task["events"] = []
     return payload
+
+
+def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object]:
+    terminal = _opl_runtime_task_payload()["family_runtime_task"]["task"]
+    successor = {
+        "task_id": "frt-successor",
+        "domain_id": "medautoscience",
+        "task_kind": "paper_mission/stage-route",
+        "payload": {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+            "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+            "command_kind": "start_next_stage",
+            "route_target": "publication_gate_replay",
+            "requeued_from_terminal_task_id": "frt-stage-route",
+            "terminal_successor_generation": 1,
+        },
+        "status": "running",
+        "last_error": "paper_mission_stage_route_temporal_started",
+        "linked_stage_attempt_liveness": {
+            "surface_kind": "opl_queue_task_linked_stage_attempt_liveness",
+            "status": "live",
+            "stage_attempt_id": "sat-successor",
+            "workflow_id": "wf-successor",
+            "stage_id": "publication_gate_replay",
+            "provider_kind": "temporal",
+            "executor_kind": "codex_cli",
+            "task_id": "frt-successor",
+            "workspace_locator": {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+                "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+                "command_kind": "start_next_stage",
+                "route_target": "publication_gate_replay",
+            },
+            "closeout_refs": [],
+        },
+    }
+    return {
+        "version": "g2",
+        "family_runtime_queue": {
+            "surface_id": "opl_family_runtime_queue",
+            "queue": {
+                "total": 2,
+                "by_status": {
+                    "blocked": 1,
+                    "running": 1,
+                },
+            },
+            "tasks": [terminal, successor],
+        },
+    }
 
 
 def _write_closeout(study_root: Path, override: dict[str, object]) -> None:

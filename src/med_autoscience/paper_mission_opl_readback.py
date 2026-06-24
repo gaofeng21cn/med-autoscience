@@ -33,12 +33,6 @@ def paper_mission_opl_runtime_carrier_readback(
 ) -> dict[str, Any]:
     matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
     if matched is None:
-        matched = _matching_opl_runtime_terminal_closeout(
-            carrier=carrier,
-            opl_runtime_payload=opl_runtime_payload,
-            enable_opl_live_probe=enable_opl_live_probe,
-        )
-    if matched is None:
         running = _matching_opl_runtime_running_attempt(
             carrier=carrier,
             opl_runtime_payload=opl_runtime_payload,
@@ -65,6 +59,12 @@ def paper_mission_opl_runtime_carrier_readback(
                     attempt_ref=attempt_ref,
                 ),
             }
+        matched = _matching_opl_runtime_terminal_closeout(
+            carrier=carrier,
+            opl_runtime_payload=opl_runtime_payload,
+            enable_opl_live_probe=enable_opl_live_probe,
+        )
+    if matched is None:
         return {
             "surface_kind": "paper_mission_opl_runtime_carrier_readback",
             "schema_version": 1,
@@ -487,10 +487,17 @@ def _opl_task_running_attempt(
         current_control=_mapping(task.get("current_control_state")),
         stage_attempts=stage_attempts,
     )
+    if not stage_attempt:
+        linked = _mapping(task.get("linked_stage_attempt_liveness"))
+        if linked and _matches_opl_stage_attempt(carrier=carrier, stage_attempt=linked):
+            stage_attempt = linked
     stage_status = _text(stage_attempt.get("status"))
     provider_run = _mapping(stage_attempt.get("provider_run"))
     provider_status = _text(provider_run.get("provider_status"))
-    if stage_status not in {"running", "started", "queued"} and provider_status != "running":
+    if (
+        stage_status not in {"running", "started", "queued", "live"}
+        and provider_status != "running"
+    ):
         return None
     stage_attempt_id = _text(stage_attempt.get("stage_attempt_id"))
     return {
