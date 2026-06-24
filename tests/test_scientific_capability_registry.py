@@ -219,6 +219,12 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     }
     assert registry["authority_boundary"]["can_write_domain_truth"] is False
     assert registry["authority_boundary"]["can_write_owner_receipt"] is False
+    assert registry["authority_boundary"]["can_authorize_provider_admission"] is False
+    assert registry["authority_boundary"]["capability_or_sidecar_can_be_admission_gate"] is False
+    assert registry["authority_boundary"]["missing_capability_blocks_owner_action"] is False
+    assert registry["authority_boundary"]["failed_capability_blocks_owner_action"] is False
+    assert registry["authority_boundary"]["low_confidence_capability_blocks_owner_action"] is False
+    assert registry["authority_boundary"]["sidecar_completion_required_for_stage_closeout"] is False
     capability_ids = {item["capability_id"] for item in registry["capabilities"]}
     assert {
         "external_learning_authoring_advisory",
@@ -234,6 +240,9 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     assert resolution["status"] == "resolved"
     assert resolution["mainline_waits_for_capability"] is False
     assert resolution["missing_capability_blocks_owner_action"] is False
+    assert resolution["authority_boundary"]["can_authorize_provider_admission"] is False
+    assert resolution["authority_boundary"]["capability_or_sidecar_can_be_admission_gate"] is False
+    assert resolution["authority_boundary"]["sidecar_completion_required_for_stage_closeout"] is False
     assert selected["external_learning_authoring_advisory"]["invocation_kind"] == (
         "external_learning_sidecar"
     )
@@ -242,6 +251,14 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     )
     assert all(item["refs_only"] is True for item in selected.values())
     assert all(item["can_block_current_owner_action"] is False for item in selected.values())
+    assert all(
+        item["authority_boundary"]["can_authorize_provider_admission"] is False
+        for item in selected.values()
+    )
+    assert all(
+        item["authority_boundary"]["capability_or_sidecar_can_be_admission_gate"] is False
+        for item in selected.values()
+    )
     wildcard_capabilities = {
         item["capability_id"]: item
         for item in registry["capabilities"]
@@ -619,6 +636,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
         "can_write_owner_receipt": False,
         "can_write_typed_blocker": False,
         "can_authorize_owner_action": False,
+        "can_authorize_provider_admission": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_artifact_authority": False,

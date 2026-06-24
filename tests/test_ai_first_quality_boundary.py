@@ -158,3 +158,35 @@ def test_nature_skills_quality_packs_are_consumed_as_stage_boundaries() -> None:
         "template",
     ):
         assert required_boundary in combined
+
+
+def test_executor_self_review_cannot_close_ai_first_quality_gate() -> None:
+    from med_autoscience.controllers.ai_first_private_authority import (
+        validate_ai_first_private_authority_gate,
+    )
+
+    same_invocation_receipt = {
+        "agent_invocation_id": "executor-and-reviewer-same-run",
+        "task_record_ref": "tasks/same-run.json",
+        "context_record_ref": "contexts/same-run.json",
+        "receipt_ref": "receipts/same-run.json",
+    }
+    result = validate_ai_first_private_authority_gate(
+        function_id="ai_reviewer_quality_decision",
+        candidate_record={
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+            "ai_reviewer_record_ref": "reviews/latest.json",
+            "reviewer_operating_system_trace_ref": "reviews/os-trace.json",
+            "quality_pack_evidence_refs": ["quality/ai-reviewer.json"],
+        },
+        executor_receipt=same_invocation_receipt,
+        reviewer_receipt=same_invocation_receipt,
+    )
+
+    assert result["status"] == "typed_blocker"
+    assert result["blocker_id"] == "self_review_context_reuse"
+    assert result["can_close_quality_gate"] is False
+    assert result["program_may_emit_pass_ready_verdict"] is False

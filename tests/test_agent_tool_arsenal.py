@@ -47,6 +47,11 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
         arsenal["authority_boundary"]["resolve_or_plan_can_authorize_provider_admission"]
         is False
     )
+    assert arsenal["authority_boundary"]["capability_or_sidecar_can_be_admission_gate"] is False
+    assert arsenal["authority_boundary"]["missing_capability_blocks_owner_action"] is False
+    assert arsenal["authority_boundary"]["failed_capability_blocks_owner_action"] is False
+    assert arsenal["authority_boundary"]["low_confidence_capability_blocks_owner_action"] is False
+    assert arsenal["authority_boundary"]["sidecar_completion_required_for_stage_closeout"] is False
     readback = arsenal["authority_boundary"]["opl_capability_runtime_readback_requirement"]
     assert readback["requirement_id"] == "opl_capability_runtime_hosted_readback"
     assert readback["runtime_owner"] == "one-person-lab"
@@ -350,6 +355,11 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
         is False
     )
     assert plan["authority_boundary"]["missing_refs_trigger_mutating_invocation"] is False
+    assert plan["authority_boundary"]["capability_or_sidecar_can_be_admission_gate"] is False
+    assert plan["authority_boundary"]["missing_capability_blocks_owner_action"] is False
+    assert plan["authority_boundary"]["failed_capability_blocks_owner_action"] is False
+    assert plan["authority_boundary"]["low_confidence_capability_blocks_owner_action"] is False
+    assert plan["authority_boundary"]["sidecar_completion_required_for_stage_closeout"] is False
     assert plan["authority_boundary"]["capability_plan_can_write_domain_truth"] is False
     assert plan["authority_boundary"]["capability_plan_can_authorize_publication_quality"] is False
     assert "verify_required_input_refs" in plan["invocation_steps"]

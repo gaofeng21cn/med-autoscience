@@ -115,6 +115,11 @@ def test_study_workbench_next_system_action_defaults_to_artifact_first_mission_s
     assert default_read["authority"]["projection_only"] is True
     assert default_read["authority"]["can_generate_action"] is False
     assert default_read["authority"]["can_authorize_provider_admission"] is False
+    assert default_read["authority"]["can_generate_owner_receipt"] is False
+    assert default_read["authority"]["can_generate_typed_blocker"] is False
+    assert default_read["authority"]["can_generate_human_gate"] is False
+    assert default_read["authority"]["can_close_stage"] is False
+    assert default_read["authority"]["must_not_be_used_as_stage_authority"] is True
     owner_delta_summary = payload["owner_delta_summary"]
     assert owner_delta_summary["role"] == "read_only_owner_delta_summary"
     assert owner_delta_summary["summary"] == (
@@ -124,6 +129,11 @@ def test_study_workbench_next_system_action_defaults_to_artifact_first_mission_s
     )
     assert owner_delta_summary["can_generate_action"] is False
     assert owner_delta_summary["can_authorize_provider_admission"] is False
+    assert owner_delta_summary["can_generate_owner_receipt"] is False
+    assert owner_delta_summary["can_generate_typed_blocker"] is False
+    assert owner_delta_summary["can_generate_human_gate"] is False
+    assert owner_delta_summary["can_close_stage"] is False
+    assert owner_delta_summary["must_not_be_used_as_stage_authority"] is True
     assert payload["overview"]["next_system_action"] == (
         "mission_state=stable_blocker; objective=owner_receipt_or_typed_blocker; "
         "next_owner=ai_reviewer"
@@ -149,9 +159,14 @@ def test_study_workbench_next_system_action_defaults_to_artifact_first_mission_s
     assert boundary["can_execute"] is False
     assert boundary["can_authorize_provider_admission"] is False
     assert boundary["can_authorize_worker_attempt"] is False
+    assert boundary["can_generate_owner_receipt"] is False
+    assert boundary["can_generate_typed_blocker"] is False
+    assert boundary["can_generate_human_gate"] is False
+    assert boundary["can_close_stage"] is False
     assert boundary["requires_opl_current_control_readback"] is True
     assert boundary["must_not_be_used_as_provider_admission"] is True
     assert boundary["must_not_be_used_as_next_action_authority"] is True
+    assert boundary["must_not_be_used_as_stage_authority"] is True
     assert boundary["must_not_be_used_as_publication_ready"] is True
     assert boundary["must_not_be_used_as_paper_progress"] is True
 
@@ -198,9 +213,14 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
     assert projection["projection_boundary"]["must_not_be_used_as_provider_admission"] is True
     assert projection["projection_boundary"]["must_not_be_used_as_publication_ready"] is True
     assert projection["projection_boundary"]["can_generate_next_action_authority"] is False
+    assert projection["projection_boundary"]["must_not_be_used_as_stage_authority"] is True
     assert projection["projection_boundary"]["can_execute_controller_action"] is False
     assert projection["projection_boundary"]["can_authorize_provider_admission"] is False
     assert projection["projection_boundary"]["can_authorize_worker_attempt"] is False
+    assert projection["projection_boundary"]["can_generate_owner_receipt"] is False
+    assert projection["projection_boundary"]["can_generate_typed_blocker"] is False
+    assert projection["projection_boundary"]["can_generate_human_gate"] is False
+    assert projection["projection_boundary"]["can_close_stage"] is False
     assert projection["projection_boundary"]["can_transport_operator_action"] is False
     assert projection["projection_boundary"]["can_emit_runtime_command"] is False
     assert projection["projection_boundary"]["can_open_runtime_endpoint"] is False
@@ -210,6 +230,10 @@ def test_runtime_workbench_projection_actions_and_summaries_remain_read_only_ref
     assert projection["authority"]["can_transport_operator_action"] is False
     assert projection["authority"]["can_emit_runtime_command"] is False
     assert projection["authority"]["operator_intent_refs_are_inert"] is True
+    assert "owner_receipt" in projection["authority"]["forbidden_writes"]
+    assert "typed_blocker" in projection["authority"]["forbidden_writes"]
+    assert "human_gate" in projection["authority"]["forbidden_writes"]
+    assert "stage_authority" in projection["authority"]["forbidden_writes"]
 
     assert selected["next_action_summary_role"] == "read_only_drilldown_summary"
     assert selected["user_next_role"] == "read_only_owner_delta_summary"

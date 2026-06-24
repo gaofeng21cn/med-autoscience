@@ -321,6 +321,10 @@ def _pack_promotion_evidence(pack_id: str) -> dict[str, object]:
 def _contract_authority_boundary() -> dict[str, Any]:
     return {
         "pack_role": PACK_ROLE,
+        "quality_pack_can_emit_verdict": False,
+        "self_review_can_close_quality_gate": False,
+        "independent_reviewer_or_auditor_receipt_required": True,
+        "same_executor_context_can_satisfy_reviewer": False,
         "publication_readiness_authority": False,
         "quality_verdict_authority": False,
         "truth_owner": "MedAutoScience",
@@ -337,6 +341,9 @@ def _pack_authority_boundary() -> dict[str, Any]:
         "quality_owner": "MedAutoScience",
         "reviewer_rubric_owner": "MedAutoScience",
         "pack_role": PACK_ROLE,
+        "quality_pack_can_emit_verdict": False,
+        "self_review_can_close_quality_gate": False,
+        "independent_reviewer_or_auditor_receipt_required": True,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_submission_readiness": False,

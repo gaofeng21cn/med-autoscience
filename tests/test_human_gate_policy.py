@@ -25,6 +25,16 @@ def test_controller_human_gate_policy_allows_only_major_boundaries() -> None:
     assert reroute.category == "major_direction_pivot"
     assert final_audit.allowed is True
     assert final_audit.category == "final_submission_audit"
+    assert stop_loss.transport_boundary["opl_role"] == (
+        "question_required_receipt_and_resume_token_transport_only"
+    )
+    assert stop_loss.transport_boundary["question_ref_required"] is True
+    assert stop_loss.transport_boundary["required_receipt_ref_required"] is True
+    assert stop_loss.transport_boundary["resume_path_ref_required"] is True
+    assert stop_loss.transport_boundary["opl_can_approve_human_gate"] is False
+    assert stop_loss.transport_boundary["opl_can_block_without_mas_owner_boundary"] is False
+    assert stop_loss.transport_boundary["can_write_human_gate"] is False
+    assert stop_loss.transport_boundary["can_authorize_provider_admission"] is False
 
 
 def test_controller_human_gate_policy_keeps_ordinary_research_decisions_autonomous() -> None:
@@ -62,6 +72,7 @@ def test_controller_human_gate_policy_keeps_route_back_same_line_autonomous() ->
     assert route_back.allowed is False
     assert route_back.category == "mas_autonomous_scientific_decision"
     assert route_back.reason_code == "mas_autonomous_decision_must_not_create_human_gate"
+    assert route_back.transport_boundary["ordinary_annotation_blocks_auto_progress"] is False
 
 
 def test_require_controller_human_gate_allowed_rejects_autonomous_decisions() -> None:

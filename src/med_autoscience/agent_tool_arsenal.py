@@ -294,6 +294,7 @@ def build_agent_tool_arsenal_index(
             "mas_owns_domain_truth_and_authority_functions": True,
             "opl_owns_generated_descriptor_projection": True,
             **runtime_boundary.opl_capability_runtime_boundary(),
+            **_admission_gate_false_boundary_fields(),
             "tool_arsenal_can_write_domain_truth": False,
             "tool_arsenal_can_authorize_quality_or_export": False,
             "human_operator_manual_composition_required": False,
@@ -608,6 +609,7 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
             "non_read_only_gate": non_read_only_gate,
             "authority_boundary": {
                 **runtime_boundary.opl_capability_runtime_boundary(),
+                **_admission_gate_false_boundary_fields(),
                 "can_write_domain_truth": False,
                 "can_write_publication_quality": False,
                 "can_authorize_publication_quality": False,
@@ -689,6 +691,7 @@ def _owner_callable_invocation_plan(
         ],
         "authority_boundary": {
             **runtime_boundary.opl_capability_runtime_boundary(),
+            **_admission_gate_false_boundary_fields(),
             "can_write_domain_truth": False,
             "can_write_publication_quality": False,
             "can_authorize_publication_quality": False,
@@ -765,6 +768,7 @@ def _action_invocation_plan(
         ],
         "authority_boundary": {
             **runtime_boundary.opl_capability_runtime_boundary(),
+            **_admission_gate_false_boundary_fields(),
             "can_write_domain_truth": False,
             "can_write_publication_quality": False,
             "can_authorize_publication_quality": False,
@@ -885,6 +889,16 @@ def _non_read_only_authority_boundary_fields(gate: Mapping[str, Any]) -> dict[st
         "can_authorize_provider_admission": False,
         "can_start_worker_attempt": False,
         "non_read_only_gate_policy": _text(gate.get("gate_policy")),
+    }
+
+
+def _admission_gate_false_boundary_fields() -> dict[str, bool]:
+    return {
+        "capability_or_sidecar_can_be_admission_gate": False,
+        "missing_capability_blocks_owner_action": False,
+        "failed_capability_blocks_owner_action": False,
+        "low_confidence_capability_blocks_owner_action": False,
+        "sidecar_completion_required_for_stage_closeout": False,
     }
 
 

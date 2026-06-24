@@ -63,11 +63,16 @@ def owner_delta_read_only_summary(projection: Mapping[str, Any] | None) -> dict[
         "can_execute": False,
         "can_authorize_provider_admission": False,
         "can_authorize_worker_attempt": False,
+        "can_generate_owner_receipt": False,
+        "can_generate_typed_blocker": False,
+        "can_generate_human_gate": False,
+        "can_close_stage": False,
         "requires_opl_current_control_readback": True,
         "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_provider_admission": True,
         "must_not_be_used_as_paper_progress": True,
         "must_not_be_used_as_publication_ready": True,
+        "must_not_be_used_as_stage_authority": True,
     }
 
 
@@ -88,10 +93,15 @@ def legacy_next_action_diagnostic(*values: object) -> dict[str, Any]:
         "can_execute": False,
         "can_authorize_provider_admission": False,
         "can_authorize_worker_attempt": False,
+        "can_generate_owner_receipt": False,
+        "can_generate_typed_blocker": False,
+        "can_generate_human_gate": False,
+        "can_close_stage": False,
         "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_provider_admission": True,
         "must_not_be_used_as_paper_progress": True,
         "must_not_be_used_as_publication_ready": True,
+        "must_not_be_used_as_stage_authority": True,
     }
 
 

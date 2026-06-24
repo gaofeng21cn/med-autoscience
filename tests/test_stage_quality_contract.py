@@ -20,6 +20,10 @@ def test_stage_quality_contract_defines_required_pack_boundaries_and_refs() -> N
     assert contract["pack_ids"] == list(REQUIRED_STAGE_QUALITY_PACK_IDS)
     assert contract["authority_boundary"] == {
         "pack_role": "quality_input_and_reviewer_rubric",
+        "quality_pack_can_emit_verdict": False,
+        "self_review_can_close_quality_gate": False,
+        "independent_reviewer_or_auditor_receipt_required": True,
+        "same_executor_context_can_satisfy_reviewer": False,
         "publication_readiness_authority": False,
         "quality_verdict_authority": False,
         "truth_owner": "MedAutoScience",
@@ -45,6 +49,9 @@ def test_stage_quality_contract_defines_required_pack_boundaries_and_refs() -> N
         assert pack["applies_to"]["stages"]
         assert pack["applies_to"]["study_archetypes"]
         assert pack["authority_boundary"]["truth_owner"] == "MedAutoScience"
+        assert pack["authority_boundary"]["quality_pack_can_emit_verdict"] is False
+        assert pack["authority_boundary"]["self_review_can_close_quality_gate"] is False
+        assert pack["authority_boundary"]["independent_reviewer_or_auditor_receipt_required"] is True
         assert pack["authority_boundary"]["can_authorize_publication_readiness"] is False
         assert pack["owner_refs"]
         assert pack["required_refs"]

@@ -1478,9 +1478,15 @@ def _authority_boundary() -> dict[str, bool | str]:
         "can_write_owner_receipt": False,
         "can_write_typed_blocker": False,
         "can_authorize_owner_action": False,
+        "can_authorize_provider_admission": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_artifact_authority": False,
+        "capability_or_sidecar_can_be_admission_gate": False,
+        "missing_capability_blocks_owner_action": False,
+        "failed_capability_blocks_owner_action": False,
+        "low_confidence_capability_blocks_owner_action": False,
+        "sidecar_completion_required_for_stage_closeout": False,
         "can_close_stage": False,
     }
 

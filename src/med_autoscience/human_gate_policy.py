@@ -13,6 +13,7 @@ class HumanGatePolicyVerdict:
     category: str
     reason_code: str
     controller_action_types: tuple[str, ...]
+    transport_boundary: dict[str, object]
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -21,6 +22,7 @@ class HumanGatePolicyVerdict:
             "category": self.category,
             "reason_code": self.reason_code,
             "controller_action_types": list(self.controller_action_types),
+            "transport_boundary": dict(self.transport_boundary),
         }
 
 
@@ -49,6 +51,23 @@ _CATEGORY_BY_DECISION_TYPE = {
     StudyDecisionType.BOUNDED_ANALYSIS.value: "mas_autonomous_scientific_decision",
     StudyDecisionType.RETURN_TO_CONTROLLER.value: "mas_controller_specificity_decision",
     StudyDecisionType.RELAUNCH_BRANCH.value: "mas_autonomous_runtime_recovery",
+}
+
+_HUMAN_GATE_TRANSPORT_BOUNDARY = {
+    "owner": "MedAutoScience",
+    "transport_owner": "one-person-lab",
+    "opl_role": "question_required_receipt_and_resume_token_transport_only",
+    "question_ref_required": True,
+    "required_receipt_ref_required": True,
+    "resume_path_ref_required": True,
+    "opl_can_approve_human_gate": False,
+    "opl_can_block_without_mas_owner_boundary": False,
+    "ordinary_annotation_blocks_auto_progress": False,
+    "writes_authority_surface": False,
+    "can_write_owner_receipt": False,
+    "can_write_typed_blocker": False,
+    "can_write_human_gate": False,
+    "can_authorize_provider_admission": False,
 }
 
 
@@ -95,6 +114,7 @@ def controller_human_gate_policy(
             category=category,
             reason_code="human_gate_allowed_for_major_boundary",
             controller_action_types=normalized_action_types,
+            transport_boundary=dict(_HUMAN_GATE_TRANSPORT_BOUNDARY),
         )
     if normalized_decision_type in _AUTONOMOUS_DECISION_TYPES:
         return HumanGatePolicyVerdict(
@@ -103,6 +123,7 @@ def controller_human_gate_policy(
             category=category,
             reason_code="mas_autonomous_decision_must_not_create_human_gate",
             controller_action_types=normalized_action_types,
+            transport_boundary=dict(_HUMAN_GATE_TRANSPORT_BOUNDARY),
         )
     raise ValueError(f"unsupported human gate policy decision_type: {normalized_decision_type}")
 
