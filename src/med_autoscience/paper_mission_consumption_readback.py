@@ -76,6 +76,20 @@ def _valid_consumption_transaction_readback(
     stage_packet = _read_json_object(ledger_dir / "stage_terminal_decision.json")
     route_packet = _read_json_object(ledger_dir / "opl_route_command.json")
     handoff = _read_json_object(ledger_dir / "opl_route_handoff.json")
+    if not _valid_stage_terminal_decision_packet(
+        stage_packet,
+        study_id=study_id,
+        transaction=transaction,
+        consume_record=consume_record,
+    ):
+        return None
+    if not _valid_opl_route_command_packet(
+        route_packet,
+        study_id=study_id,
+        transaction=transaction,
+        consume_record=consume_record,
+    ):
+        return None
     if not _valid_route_handoff(handoff, study_id=study_id, transaction=transaction):
         return None
     stage_terminal_decision = _mapping(transaction.get("stage_terminal_decision"))
@@ -83,6 +97,8 @@ def _valid_consumption_transaction_readback(
     carrier = _mapping(handoff.get("opl_runtime_carrier")) or paper_mission_opl_runtime_carrier(
         transaction
     )
+    if not _valid_carrier_identity(carrier, transaction=transaction):
+        return None
     return {
         "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
         "schema_version": 1,
@@ -179,6 +195,23 @@ def _valid_route_handoff(
         transaction.get("transaction_id")
     ):
         return False
+    if _text(payload.get("stage_terminal_decision_ref")) != _stage_ref(transaction):
+        return False
+    if _text(payload.get("opl_route_command_ref")) != _route_ref(transaction):
+        return False
+    if _mapping(payload.get("stage_terminal_decision")) != _mapping(
+        transaction.get("stage_terminal_decision")
+    ):
+        return False
+    if _mapping(payload.get("opl_route_command")) != _mapping(
+        transaction.get("opl_route_command")
+    ):
+        return False
+    if not _valid_carrier_identity(
+        _mapping(payload.get("opl_runtime_carrier")),
+        transaction=transaction,
+    ):
+        return False
     command_kind = _text(payload.get("route_command_kind")) or _text(
         _mapping(payload.get("opl_route_command")).get("command_kind")
     )
@@ -198,6 +231,144 @@ def _valid_route_handoff(
     if _has_forbidden_write_claim(payload, _mapping(payload.get("authority_boundary"))):
         return False
     return True
+
+
+def _valid_stage_terminal_decision_packet(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+    transaction: Mapping[str, Any],
+    consume_record: Mapping[str, Any],
+) -> bool:
+    if payload.get("surface_kind") != "mas_paper_mission_stage_terminal_decision_packet":
+        return False
+    if _text(payload.get("study_id")) != study_id:
+        return False
+    if _text(payload.get("candidate_ref")) != _text(consume_record.get("candidate_ref")):
+        return False
+    if _text(payload.get("paper_mission_transaction_ref")) != _text(
+        transaction.get("transaction_id")
+    ):
+        return False
+    if _text(payload.get("stage_terminal_decision_ref")) != _stage_ref(transaction):
+        return False
+    if _text(payload.get("stage_id")) != _text(transaction.get("stage_id")):
+        return False
+    if _text(payload.get("stage_run_ref")) != _text(transaction.get("stage_run_ref")):
+        return False
+    if _mapping(payload.get("stage_terminal_decision")) != _mapping(
+        transaction.get("stage_terminal_decision")
+    ):
+        return False
+    if _has_forbidden_write_claim(payload, _mapping(payload.get("authority_boundary"))):
+        return False
+    return True
+
+
+def _valid_opl_route_command_packet(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+    transaction: Mapping[str, Any],
+    consume_record: Mapping[str, Any],
+) -> bool:
+    if payload.get("surface_kind") != "mas_paper_mission_opl_route_command_packet":
+        return False
+    if _text(payload.get("study_id")) != study_id:
+        return False
+    if _text(payload.get("candidate_ref")) != _text(consume_record.get("candidate_ref")):
+        return False
+    if _text(payload.get("paper_mission_transaction_ref")) != _text(
+        transaction.get("transaction_id")
+    ):
+        return False
+    if _text(payload.get("opl_route_command_ref")) != _route_ref(transaction):
+        return False
+    if _mapping(payload.get("opl_route_command")) != _mapping(
+        transaction.get("opl_route_command")
+    ):
+        return False
+    carrier = _mapping(payload.get("opl_runtime_carrier"))
+    if not _valid_carrier_identity(carrier, transaction=transaction):
+        return False
+    if _has_forbidden_write_claim(payload, _mapping(payload.get("authority_boundary"))):
+        return False
+    return True
+
+
+def _valid_carrier_identity(
+    carrier: Mapping[str, Any],
+    *,
+    transaction: Mapping[str, Any],
+) -> bool:
+    if not carrier:
+        return False
+    if _text(carrier.get("surface_kind")) != "mas_domain_progress_transition_request":
+        return False
+    if _text(carrier.get("source_kind")) != "paper_mission_transaction_opl_route_command":
+        return False
+    if carrier.get("projection_only") is not True:
+        return False
+    transaction_id = _text(transaction.get("transaction_id"))
+    stage_id = _text(transaction.get("stage_id"))
+    idempotency_key = _text(
+        _mapping(transaction.get("idempotency")).get("idempotency_key")
+    )
+    fingerprint = _text(
+        _mapping(transaction.get("idempotency")).get("transaction_fingerprint")
+    )
+    aggregate = _mapping(carrier.get("aggregate_identity"))
+    if _text(carrier.get("paper_mission_transaction_ref")) != transaction_id:
+        return False
+    if _text(carrier.get("stage_terminal_decision_ref")) != _stage_ref(transaction):
+        return False
+    if _text(carrier.get("opl_route_command_ref")) != _route_ref(transaction):
+        return False
+    if _text(carrier.get("study_id")) != _text(transaction.get("study_id")):
+        return False
+    if _text(carrier.get("stage_run_ref")) != _text(transaction.get("stage_run_ref")):
+        return False
+    if _text(carrier.get("work_unit_id")) != stage_id:
+        return False
+    if _text(carrier.get("work_unit_fingerprint")) != fingerprint:
+        return False
+    if _text(carrier.get("route_identity_key")) != f"{transaction_id}::route":
+        return False
+    if _text(carrier.get("idempotency_key")) != idempotency_key:
+        return False
+    if _text(carrier.get("attempt_idempotency_key")) != (
+        f"{idempotency_key}::opl-attempt"
+    ):
+        return False
+    if _text(carrier.get("request_idempotency_key")) != (
+        f"{idempotency_key}::opl-request"
+    ):
+        return False
+    if _text(aggregate.get("aggregate_id")) != transaction_id:
+        return False
+    if _text(aggregate.get("study_id")) != _text(transaction.get("study_id")):
+        return False
+    if _text(aggregate.get("work_unit_id")) != stage_id:
+        return False
+    if _text(aggregate.get("work_unit_fingerprint")) != fingerprint:
+        return False
+    if _mapping(carrier.get("opl_route_command")) != _mapping(
+        transaction.get("opl_route_command")
+    ):
+        return False
+    if _has_forbidden_write_claim(carrier, _mapping(carrier.get("authority_boundary"))):
+        return False
+    return True
+
+
+def _stage_ref(transaction: Mapping[str, Any]) -> str | None:
+    transaction_id = _text(transaction.get("transaction_id"))
+    return f"{transaction_id}#stage_terminal_decision" if transaction_id else None
+
+
+def _route_ref(transaction: Mapping[str, Any]) -> str | None:
+    transaction_id = _text(transaction.get("transaction_id"))
+    return f"{transaction_id}#opl_route_command" if transaction_id else None
 
 
 def _has_forbidden_write_claim(

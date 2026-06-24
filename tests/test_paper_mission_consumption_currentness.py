@@ -12,6 +12,7 @@ from med_autoscience.paper_mission_consumption_readback import (
     _ledger_timestamp_key,
     latest_paper_mission_consumption_transaction_readback,
 )
+from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
 from med_autoscience.paper_mission_transaction import build_paper_mission_transaction
 
 
@@ -114,6 +115,76 @@ def test_consumption_ledger_timestamp_keys_accept_z_run_ids(tmp_path: Path) -> N
     )
 
 
+def test_consumption_transaction_readback_rejects_cross_identity_packets(
+    tmp_path: Path,
+) -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    workspace_root = tmp_path / "workspace"
+    consume_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260624Tcross_identity_dm002",
+        transaction_ref="paper-mission-transaction::dm002::canonical",
+        fingerprint="fingerprint::dm002::canonical",
+    )
+    _patch_json(
+        consume_record.parent / "stage_terminal_decision.json",
+        {
+            "stage_terminal_decision_ref": (
+                "paper-mission-transaction::dm002::other#stage_terminal_decision"
+            )
+        },
+    )
+
+    assert (
+        latest_paper_mission_consumption_transaction_readback(
+            workspace_root=workspace_root,
+            study_id=study_id,
+        )
+        is None
+    )
+
+
+def test_consumption_route_handoff_rejects_cross_identity_carrier(
+    tmp_path: Path,
+) -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    workspace_root = tmp_path / "workspace"
+    handoff_ref = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260624Tcross_carrier_dm002",
+        transaction_ref="paper-mission-transaction::dm002::canonical",
+        fingerprint="fingerprint::dm002::canonical",
+    ).parent / "opl_route_handoff.json"
+    _patch_json(
+        handoff_ref,
+        {
+            "opl_runtime_carrier": {
+                "paper_mission_transaction_ref": (
+                    "paper-mission-transaction::dm002::other"
+                ),
+                "stage_terminal_decision_ref": (
+                    "paper-mission-transaction::dm002::other"
+                    "#stage_terminal_decision"
+                ),
+                "opl_route_command_ref": (
+                    "paper-mission-transaction::dm002::other#opl_route_command"
+                ),
+                "work_unit_fingerprint": "fingerprint::dm002::other",
+            }
+        },
+    )
+
+    assert (
+        latest_paper_mission_consumption_route_handoff(
+            workspace_root=workspace_root,
+            study_id=study_id,
+        )
+        is None
+    )
+
+
 def _write_ledger(
     *,
     workspace_root: Path,
@@ -137,6 +208,7 @@ def _write_ledger(
         transaction_ref=transaction_ref,
         fingerprint=fingerprint,
     )
+    carrier = paper_mission_opl_runtime_carrier(transaction)
     consume_record = {
         "surface_kind": "mas_paper_mission_candidate_consumption_record",
         "schema_version": 1,
@@ -171,21 +243,7 @@ def _write_ledger(
         "stage_terminal_decision": transaction["stage_terminal_decision"],
         "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
         "opl_route_command": transaction["opl_route_command"],
-        "opl_runtime_carrier": {
-            "surface_kind": "mas_domain_progress_transition_request",
-            "action_type": "paper_mission/stage-route",
-            "work_unit_id": transaction["stage_id"],
-            "work_unit_fingerprint": fingerprint,
-            "route_identity_key": f"route::{run_id}",
-            "attempt_idempotency_key": f"attempt::{run_id}",
-            "stage_run_ref": f"opl-stage-run://{study_id}/{run_id}",
-            "authority_boundary": {
-                "mas_can_create_opl_outbox_record": False,
-                "mas_can_create_opl_event": False,
-                "mas_can_create_opl_stage_run": False,
-                "mas_can_authorize_provider_admission": False,
-            },
-        },
+        "opl_runtime_carrier": carrier,
         "route_command_kind": "route_back",
         "route_target": "paper-stage::gate-clearing",
         "transaction_materialized": True,
@@ -208,14 +266,32 @@ def _write_ledger(
     (ledger_root / "stage_terminal_decision.json").write_text(
         json.dumps(
             {
+                "surface_kind": "mas_paper_mission_stage_terminal_decision_packet",
+                "study_id": study_id,
+                "candidate_ref": str(ledger_root / "package_manifest.json"),
+                "paper_mission_transaction_ref": transaction_ref,
+                "stage_terminal_decision_ref": f"{transaction_ref}#stage_terminal_decision",
                 "transaction_state": transaction["stage_terminal_decision"]["status"],
+                "stage_id": transaction["stage_id"],
+                "stage_run_ref": transaction["stage_run_ref"],
                 "stage_terminal_decision": transaction["stage_terminal_decision"],
             }
         ),
         encoding="utf-8",
     )
     (ledger_root / "opl_route_command.json").write_text(
-        json.dumps(transaction["opl_route_command"]),
+        json.dumps(
+            {
+                "surface_kind": "mas_paper_mission_opl_route_command_packet",
+                "study_id": study_id,
+                "candidate_ref": str(ledger_root / "package_manifest.json"),
+                "paper_mission_transaction_ref": transaction_ref,
+                "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
+                "opl_route_command": transaction["opl_route_command"],
+                "opl_runtime_carrier": carrier,
+                **transaction["opl_route_command"],
+            }
+        ),
         encoding="utf-8",
     )
     (ledger_root / "opl_route_handoff.json").write_text(
@@ -265,8 +341,21 @@ def _transaction(
         idempotency_basis=run_id,
     )
     transaction["transaction_id"] = transaction_ref
+    transaction["opl_route_command"][
+        "source_terminal_decision_ref"
+    ] = f"{transaction_ref}#stage_terminal_decision"
     transaction["idempotency"]["transaction_fingerprint"] = fingerprint
     return transaction
+
+
+def _patch_json(path: Path, updates: dict[str, object]) -> None:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    for key, value in updates.items():
+        if isinstance(value, dict) and isinstance(payload.get(key), dict):
+            payload[key].update(value)
+        else:
+            payload[key] = value
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _authority_boundary() -> dict[str, bool]:

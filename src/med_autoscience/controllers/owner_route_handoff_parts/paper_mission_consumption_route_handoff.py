@@ -99,6 +99,8 @@ def _valid_paper_mission_consumption_route_handoff(
     )
     if command_kind not in {"start_next_stage", "resume_stage", "route_back"}:
         return None
+    if not _same_handoff_carrier_identity(payload):
+        return None
     if any(
         payload.get(flag) is True
         for flag in (
@@ -150,6 +152,65 @@ def _valid_paper_mission_consumption_route_handoff(
         "source_surface_kind": "mas_paper_mission_opl_route_handoff_record",
         "paper_mission_default_handoff_source": "paper_mission_consumption_ledger",
     }
+
+
+def _same_handoff_carrier_identity(payload: Mapping[str, Any]) -> bool:
+    transaction_ref = text(payload.get("paper_mission_transaction_ref"))
+    stage_ref = text(payload.get("stage_terminal_decision_ref"))
+    route_ref = text(payload.get("opl_route_command_ref"))
+    route = mapping(payload.get("opl_route_command"))
+    carrier = mapping(payload.get("opl_runtime_carrier"))
+    if not transaction_ref or not stage_ref or not route_ref:
+        return False
+    if stage_ref != f"{transaction_ref}#stage_terminal_decision":
+        return False
+    if route_ref != f"{transaction_ref}#opl_route_command":
+        return False
+    if text(route.get("source_terminal_decision_ref")) != stage_ref:
+        return False
+    if not carrier:
+        return False
+    if text(carrier.get("surface_kind")) != "mas_domain_progress_transition_request":
+        return False
+    if text(carrier.get("source_kind")) != "paper_mission_transaction_opl_route_command":
+        return False
+    if carrier.get("projection_only") is not True:
+        return False
+    if text(carrier.get("paper_mission_transaction_ref")) != transaction_ref:
+        return False
+    if text(carrier.get("stage_terminal_decision_ref")) != stage_ref:
+        return False
+    if text(carrier.get("opl_route_command_ref")) != route_ref:
+        return False
+    if text(carrier.get("study_id")) != text(payload.get("study_id")):
+        return False
+    idempotency_key = text(carrier.get("idempotency_key"))
+    if text(carrier.get("route_identity_key")) != f"{transaction_ref}::route":
+        return False
+    if not idempotency_key:
+        return False
+    if text(carrier.get("attempt_idempotency_key")) != (
+        f"{idempotency_key}::opl-attempt"
+    ):
+        return False
+    if text(carrier.get("request_idempotency_key")) != (
+        f"{idempotency_key}::opl-request"
+    ):
+        return False
+    if mapping(carrier.get("opl_route_command")) != route:
+        return False
+    aggregate = mapping(carrier.get("aggregate_identity"))
+    if text(aggregate.get("aggregate_id")) != transaction_ref:
+        return False
+    if text(aggregate.get("study_id")) != text(payload.get("study_id")):
+        return False
+    if text(aggregate.get("work_unit_id")) != text(carrier.get("work_unit_id")):
+        return False
+    if text(aggregate.get("work_unit_fingerprint")) != text(
+        carrier.get("work_unit_fingerprint")
+    ):
+        return False
+    return True
 
 
 __all__ = [
