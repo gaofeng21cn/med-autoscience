@@ -121,20 +121,24 @@ def validate_paper_mission_opl_runtime_carrier(
         "paper_mission_transaction_ref",
         "stage_terminal_decision_ref",
         "opl_route_command_ref",
+        "stage_run_ref",
         "study_id",
         "work_unit_id",
         "work_unit_fingerprint",
         "route_identity_key",
+        "idempotency_key",
         "attempt_idempotency_key",
         "request_idempotency_key",
         "source_generation",
         "expected_version",
     ):
         _required_text(payload, field)
-    if not _mapping(payload.get("opl_route_command")):
+    route = _mapping(payload.get("opl_route_command"))
+    if not route:
         raise PaperMissionTransactionContractError(
             "paper mission OPL carrier opl_route_command must be a mapping"
         )
+    _validate_carrier_identity(payload=payload, route=route)
     if not _mapping(payload.get("required_postcondition")):
         raise PaperMissionTransactionContractError(
             "paper mission OPL carrier required_postcondition must be a mapping"
@@ -158,6 +162,66 @@ def validate_paper_mission_opl_runtime_carrier(
                 f"paper mission OPL carrier must not include runtime field: {field}"
             )
     return payload
+
+
+def _validate_carrier_identity(
+    *,
+    payload: Mapping[str, Any],
+    route: Mapping[str, Any],
+) -> None:
+    transaction_ref = _required_text(payload, "paper_mission_transaction_ref")
+    expected_stage_decision_ref = f"{transaction_ref}#stage_terminal_decision"
+    expected_route_ref = f"{transaction_ref}#opl_route_command"
+    if _required_text(payload, "stage_terminal_decision_ref") != expected_stage_decision_ref:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier stage_terminal_decision_ref must match transaction"
+        )
+    if _required_text(payload, "opl_route_command_ref") != expected_route_ref:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier opl_route_command_ref must match transaction"
+        )
+    if _required_text(route, "source_terminal_decision_ref") != expected_stage_decision_ref:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier route source_terminal_decision_ref must match transaction"
+        )
+    if _required_text(route, "stage_run_ref") != _required_text(payload, "stage_run_ref"):
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier route stage_run_ref must match carrier"
+        )
+    if _required_text(route, "runtime_owner") != _required_text(payload, "target_runtime_owner"):
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier route runtime_owner must match target runtime owner"
+        )
+    idempotency_key = _required_text(payload, "idempotency_key")
+    if _required_text(payload, "route_identity_key") != f"{transaction_ref}::route":
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier route_identity_key must bind transaction"
+        )
+    if _required_text(payload, "attempt_idempotency_key") != f"{idempotency_key}::opl-attempt":
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier attempt_idempotency_key must derive from idempotency_key"
+        )
+    if _required_text(payload, "request_idempotency_key") != f"{idempotency_key}::opl-request":
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier request_idempotency_key must derive from idempotency_key"
+        )
+    aggregate_identity = _mapping(payload.get("aggregate_identity"))
+    if not aggregate_identity:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier aggregate_identity must be a mapping"
+        )
+    expected_aggregate_values = {
+        "aggregate_kind": "paper_mission_transaction",
+        "aggregate_id": transaction_ref,
+        "study_id": _required_text(payload, "study_id"),
+        "work_unit_id": _required_text(payload, "work_unit_id"),
+        "work_unit_fingerprint": _required_text(payload, "work_unit_fingerprint"),
+    }
+    for field, expected in expected_aggregate_values.items():
+        if _required_text(aggregate_identity, field) != expected:
+            raise PaperMissionTransactionContractError(
+                f"paper mission OPL carrier aggregate_identity {field} must match carrier"
+            )
 
 
 def _mapping(value: object) -> dict[str, Any]:

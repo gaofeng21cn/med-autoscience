@@ -7,6 +7,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts.transi
 )
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
+    validate_paper_mission_opl_runtime_carrier,
 )
 from med_autoscience.paper_mission_transaction import (
     PaperMissionTransactionContractError,
@@ -91,13 +92,48 @@ def test_paper_mission_opl_carrier_rejects_runtime_authority_fields() -> None:
     carrier = paper_mission_opl_runtime_carrier(_transaction())
     carrier["stage_run_identity"] = {"stage_run_id": "forbidden"}
 
-    from med_autoscience.paper_mission_opl_carrier import (
-        validate_paper_mission_opl_runtime_carrier,
-    )
-
     with pytest.raises(
         PaperMissionTransactionContractError,
         match="must not include runtime field: stage_run_identity",
+    ):
+        validate_paper_mission_opl_runtime_carrier(carrier)
+
+
+def test_paper_mission_opl_carrier_rejects_cross_transaction_refs() -> None:
+    carrier = paper_mission_opl_runtime_carrier(_transaction())
+    carrier["opl_route_command_ref"] = "paper-mission-transaction::other#opl_route_command"
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="opl_route_command_ref must match transaction",
+    ):
+        validate_paper_mission_opl_runtime_carrier(carrier)
+
+
+def test_paper_mission_opl_carrier_rejects_route_stage_run_mismatch() -> None:
+    carrier = paper_mission_opl_runtime_carrier(_transaction())
+    carrier["opl_route_command"] = {
+        **carrier["opl_route_command"],
+        "stage_run_ref": "opl-stage-run://other/stage/attempt",
+    }
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="route stage_run_ref must match carrier",
+    ):
+        validate_paper_mission_opl_runtime_carrier(carrier)
+
+
+def test_paper_mission_opl_carrier_rejects_aggregate_identity_mismatch() -> None:
+    carrier = paper_mission_opl_runtime_carrier(_transaction())
+    carrier["aggregate_identity"] = {
+        **carrier["aggregate_identity"],
+        "work_unit_fingerprint": "paper-mission::other::wrong",
+    }
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="aggregate_identity work_unit_fingerprint must match carrier",
     ):
         validate_paper_mission_opl_runtime_carrier(carrier)
 

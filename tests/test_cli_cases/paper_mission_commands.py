@@ -101,6 +101,9 @@ def _paper_mission_transaction_payload(
     study_id: str,
     decision_kind: str = "route_back",
 ) -> dict:
+    transaction_id = "paper-mission-transaction::pmc-001"
+    stage_id = "paper-stage::gate-clearing"
+    stage_run_ref = "opl-stage-run://pmc-001"
     if decision_kind == "advance":
         terminal_decision = {
             "decision_kind": "advance",
@@ -113,10 +116,11 @@ def _paper_mission_transaction_payload(
             "command_kind": "start_next_stage",
             "target": "publication_gate_replay",
             "reason": "candidate accepted for the next MAS paper stage",
-            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+            "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
+            "stage_run_ref": stage_run_ref,
+            "runtime_owner": "one-person-lab",
         }
         transaction_state = "accepted"
-        fingerprint = "fingerprint::pmc-001::advance"
     elif decision_kind == "continue_same_stage":
         terminal_decision = {
             "decision_kind": "continue_same_stage",
@@ -129,10 +133,11 @@ def _paper_mission_transaction_payload(
             "command_kind": "resume_stage",
             "target": "continue paper-facing submission milestone work",
             "reason": "candidate accepted for continued paper-facing work",
-            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+            "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
+            "stage_run_ref": stage_run_ref,
+            "runtime_owner": "one-person-lab",
         }
         transaction_state = "accepted_submission_milestone_candidate"
-        fingerprint = "fingerprint::pmc-001::continue-same-stage"
     elif decision_kind == "typed_blocker":
         terminal_decision = {
             "decision_kind": "typed_blocker",
@@ -146,10 +151,11 @@ def _paper_mission_transaction_payload(
             "command_kind": "stop_with_typed_blocker",
             "target": "source_readiness_missing",
             "reason": "source readiness is missing",
-            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+            "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
+            "stage_run_ref": stage_run_ref,
+            "runtime_owner": "one-person-lab",
         }
         transaction_state = "typed_blocker"
-        fingerprint = "fingerprint::pmc-001::typed-blocker"
     else:
         terminal_decision = {
             "decision_kind": "route_back",
@@ -163,16 +169,21 @@ def _paper_mission_transaction_payload(
             "command_kind": "route_back",
             "target": "paper-stage::gate-clearing",
             "reason": "MAS terminal decision requested route back",
-            "source_terminal_decision_ref": "paper-mission-transaction::pmc-001",
+            "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
+            "stage_run_ref": stage_run_ref,
+            "runtime_owner": "one-person-lab",
         }
         transaction_state = "terminal_decision_recorded"
-        fingerprint = "fingerprint::pmc-001::route-back"
+    fingerprint = (
+        f"{mission_id}::{stage_id}::{terminal_decision['decision_kind']}::"
+        f"{terminal_decision['status']}"
+    )
     return {
-        "transaction_id": "paper-mission-transaction::pmc-001",
+        "transaction_id": transaction_id,
         "mission_id": mission_id,
         "study_id": study_id,
-        "stage_id": "paper-stage::gate-clearing",
-        "stage_run_ref": "opl-stage-run://pmc-001",
+        "stage_id": stage_id,
+        "stage_run_ref": stage_run_ref,
         "stage_terminal_decision": terminal_decision,
         "opl_route_command": route_command,
         "artifact_delta_refs": [
@@ -216,7 +227,7 @@ def _paper_mission_transaction_payload(
             "writes_yang_authority": False,
         },
         "idempotency": {
-            "idempotency_key": "pmc-001::route-back",
+            "idempotency_key": f"{study_id}::{stage_id}::{decision_kind}",
             "transaction_fingerprint": fingerprint,
         },
         "transaction_state": transaction_state,

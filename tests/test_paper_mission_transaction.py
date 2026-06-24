@@ -174,6 +174,52 @@ def test_transaction_rejects_provider_completion_as_domain_completion() -> None:
         PaperMissionTransaction.from_payload(payload)
 
 
+def test_transaction_rejects_cross_identity_terminal_decision_ref() -> None:
+    payload = _valid_transaction()
+    payload["opl_route_command"] = {
+        **payload["opl_route_command"],
+        "source_terminal_decision_ref": (
+            "paper-mission-transaction::other#stage_terminal_decision"
+        ),
+    }
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="source_terminal_decision_ref must match transaction",
+    ):
+        PaperMissionTransaction.from_payload(payload)
+
+
+def test_transaction_rejects_cross_identity_stage_run_ref() -> None:
+    payload = _valid_transaction()
+    payload["opl_route_command"] = {
+        **payload["opl_route_command"],
+        "stage_run_ref": "opl-stage-run://other/stage/attempt",
+    }
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="stage_run_ref must match transaction stage_run_ref",
+    ):
+        PaperMissionTransaction.from_payload(payload)
+
+
+def test_transaction_preserves_external_fingerprint_for_opl_identity() -> None:
+    payload = _valid_transaction()
+    payload["idempotency"] = {
+        **payload["idempotency"],
+        "transaction_fingerprint": "external-fingerprint::opaque-owner-route",
+    }
+
+    transaction = PaperMissionTransaction.from_payload(payload)
+    carrier = paper_mission_opl_runtime_carrier(transaction.to_dict())
+
+    assert carrier["work_unit_fingerprint"] == "external-fingerprint::opaque-owner-route"
+    assert carrier["aggregate_identity"]["work_unit_fingerprint"] == (
+        "external-fingerprint::opaque-owner-route"
+    )
+
+
 def test_terminal_decision_for_not_consumed_continues_same_stage() -> None:
     decision = stage_terminal_decision_for_consume_result(
         mission_id="paper-mission::dm002::stage",

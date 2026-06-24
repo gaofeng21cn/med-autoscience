@@ -144,6 +144,7 @@ class PaperMissionTransaction:
         _validate_artifact_delta_refs(self.artifact_delta_refs)
         _validate_stage_terminal_decision(self.stage_terminal_decision)
         _validate_opl_route_command(
+            transaction=self,
             decision=self.stage_terminal_decision,
             route=self.opl_route_command,
         )
@@ -258,7 +259,7 @@ def opl_route_command_for_terminal_decision(
             "completion as MAS paper authority completion."
         ),
     }
-    _validate_opl_route_command(decision=terminal_decision, route=command)
+    _validate_opl_route_command_shape(decision=terminal_decision, route=command)
     return command
 
 
@@ -354,6 +355,29 @@ def _validate_stage_terminal_decision(decision: Mapping[str, Any]) -> None:
 
 def _validate_opl_route_command(
     *,
+    transaction: PaperMissionTransaction,
+    decision: Mapping[str, Any],
+    route: Mapping[str, Any],
+) -> None:
+    _validate_opl_route_command_shape(decision=decision, route=route)
+    source_ref = _required_text(route, "source_terminal_decision_ref")
+    expected_source_ref = f"{transaction.transaction_id}#stage_terminal_decision"
+    if source_ref != expected_source_ref:
+        raise PaperMissionTransactionContractError(
+            "opl_route_command source_terminal_decision_ref must match transaction"
+        )
+    if _required_text(route, "stage_run_ref") != transaction.stage_run_ref:
+        raise PaperMissionTransactionContractError(
+            "opl_route_command stage_run_ref must match transaction stage_run_ref"
+        )
+    if _required_text(route, "runtime_owner") != "one-person-lab":
+        raise PaperMissionTransactionContractError(
+            "opl_route_command runtime_owner must be one-person-lab"
+        )
+
+
+def _validate_opl_route_command_shape(
+    *,
     decision: Mapping[str, Any],
     route: Mapping[str, Any],
 ) -> None:
@@ -371,6 +395,8 @@ def _validate_opl_route_command(
     _required_text(route, "target")
     _required_text(route, "reason")
     _required_text(route, "source_terminal_decision_ref")
+    _required_text(route, "stage_run_ref")
+    _required_text(route, "runtime_owner")
 
 
 def _validate_paper_audit_pack_refs(audit_pack_refs: Mapping[str, Any]) -> None:

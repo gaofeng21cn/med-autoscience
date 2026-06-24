@@ -67,7 +67,9 @@
       "command_kind",
       "target",
       "reason",
-      "source_terminal_decision_ref"
+      "source_terminal_decision_ref",
+      "stage_run_ref",
+      "runtime_owner"
     ],
     "allowed_command_kinds": [
       "start_next_stage",
