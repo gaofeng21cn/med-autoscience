@@ -630,6 +630,7 @@ def _build_materialized_mission_readback_if_available(
         "study_root_exists": resolved_study_root.exists(),
         "mission_id": mission["mission_id"],
         "objective": mission["objective"],
+        "mission_state": mission["mission_state"],
         "materialized_mission_ref": str(mission_path),
         **_transaction_readback_output_fields(transaction_readback),
         **(
@@ -2327,7 +2328,7 @@ def _paper_mission_transaction_readback(
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
         owner_answer_readback=owner_answer_readback,
     )
-    if owner_answer_readback:
+    if owner_answer_readback and transaction_source_override != "paper_mission_consumption_ledger":
         owner_answer_transaction = _mapping(
             owner_answer_readback.get("paper_mission_transaction")
         )
@@ -2351,11 +2352,16 @@ def _paper_mission_transaction_readback(
     readback["terminal_owner_gate_owner_answer_readback"] = (
         owner_answer_readback or None
     )
+    owner_answer_next_decision = (
+        {}
+        if transaction_source_override == "paper_mission_consumption_ledger"
+        else terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
+    )
     readback["next_owner_or_human_decision"] = (
-        terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
+        owner_answer_next_decision
         or _next_owner_or_human_decision_from_transaction_readback(
-        readback=readback,
-        terminal_owner_gate=terminal_owner_gate,
+            readback=readback,
+            terminal_owner_gate=terminal_owner_gate,
         )
     )
     return readback
@@ -2367,16 +2373,16 @@ def _mission_state_for_materialized_readback(
     transaction_readback: Mapping[str, Any],
     consumption_ledger_readback: Mapping[str, Any] | None,
 ) -> str:
+    if consumption_ledger_readback is not None:
+        status = _optional_text(consumption_ledger_readback.get("consume_candidate_status"))
+        if status in {"typed_blocker", "human_gate"}:
+            return "stable_blocker" if status == "typed_blocker" else "waiting_human_decision"
+        if status in {"route_back", "rejected"}:
+            return "route_back"
+        return "consumed"
     if transaction_readback.get("consume_candidate_status_override") == "route_back":
         return "route_back"
-    if consumption_ledger_readback is None:
-        return _optional_text(mission.get("mission_state")) or "planned"
-    status = _optional_text(consumption_ledger_readback.get("consume_candidate_status"))
-    if status in {"typed_blocker", "human_gate"}:
-        return "stable_blocker" if status == "typed_blocker" else "waiting_human_decision"
-    if status in {"route_back", "rejected"}:
-        return "route_back"
-    return "consumed"
+    return _optional_text(mission.get("mission_state")) or "planned"
 
 
 def _consume_result_for_consumption_ledger_readback(

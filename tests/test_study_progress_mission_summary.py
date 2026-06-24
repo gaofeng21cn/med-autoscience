@@ -6,6 +6,7 @@ import json
 from med_autoscience.paper_mission_run import PaperMissionRun
 from med_autoscience.paper_mission_transaction import PaperMissionTransaction
 from tests.test_cli_cases.paper_mission_commands import (
+    _write_matching_domain_gate_closeout,
     _paper_mission_transaction_payload,
     _paper_mission_forbidden_write_guard,
     _write_submission_milestone_package,
@@ -563,6 +564,158 @@ def test_materialized_mission_summary_prefers_latest_governed_consumption_ledger
         "consumption_ledger_role": "current_paper_mission_transaction",
         "legacy_progress_projection_role": "diagnostic_drilldown",
     }
+
+
+def test_materialized_mission_summary_keeps_governed_consumption_current_when_terminal_residue_exists(
+    tmp_path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    mission_root.mkdir(parents=True)
+    mission_id = (
+        f"paper-mission::{study_id}::"
+        "medical_prose_write_repair_publication_gate_replay::one-shot-migration"
+    )
+    old_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="typed_blocker",
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Older materialized typed blocker mission.",
+                "mission_state": "stable_blocker",
+                "artifact_delta_ledger": [
+                    {
+                        "delta_id": "delta::dm003::one-shot",
+                        "artifact_ref": "mission://dm003/prose-repair-owner-decision",
+                        "delta_kind": "formal_paper_mission_owner_decision_packet",
+                        "status": "candidate",
+                    }
+                ],
+                "source_refs": [
+                    {
+                        "ref_id": "legacy_truth_import_pack",
+                        "ref_kind": "legacy_truth_import_pack",
+                        "uri": "mission://dm003/import-pack",
+                    }
+                ],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {"status": "typed_blocker"},
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": old_transaction,
+                "one_shot_migration_readback": {
+                    "required_output": {
+                        "next_owner": "one-person-lab",
+                        "work_unit_id": "analysis_claim_evidence_repair",
+                    },
+                    "consume_candidate_status": "typed_blocker",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=old_transaction,
+    )
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_consumption_ledger"
+                / "sat-current"
+            ),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    consume_payload = json.loads(capsys.readouterr().out)
+    _write_matching_domain_gate_closeout(
+        study_root=study_root,
+        study_id=study_id,
+        transaction=consume_payload["paper_mission_transaction_readback"][
+            "paper_mission_transaction"
+        ],
+    )
+
+    progress_exit_code = cli.main(
+        [
+            "study",
+            "progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert progress_exit_code == 0
+    assert payload["mission_state"] == "consumed"
+    assert payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert payload["paper_mission_run"]["mission_state"] == "consumed"
+    assert payload["paper_mission_run"]["consume_result"]["status"] == "accepted"
+    assert payload["stage_terminal_decision"]["decision_kind"] == (
+        "continue_same_stage"
+    )
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["paper_mission_transaction"]["stage_id"] == (
+        "submission_milestone_candidate"
+    )
+    assert payload["terminal_owner_gate_owner_answer_readback"]["status"] == (
+        "route_back"
+    )
+    assert payload["paper_mission_transaction"] != payload[
+        "terminal_owner_gate_owner_answer_readback"
+    ]["paper_mission_transaction"]
+    assert payload["artifact_first_mission_summary"]["read_model_source"][
+        "source_kind"
+    ] == "paper_mission_consumption_ledger"
 
 
 def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(

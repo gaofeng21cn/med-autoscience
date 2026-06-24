@@ -161,7 +161,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         owner_answer_readback=owner_answer_readback,
     )
     effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
-    if owner_answer_readback:
+    if owner_answer_readback and not consumption_ledger_readback:
         owner_answer_transaction = _mapping(
             owner_answer_readback.get("paper_mission_transaction")
         )
@@ -419,7 +419,7 @@ def _materialized_mission_summary(
             _non_empty_text(consumption_ledger_readback.get("consume_candidate_status"))
             or effective_consume_candidate_status
         )
-    if owner_answer_readback:
+    if owner_answer_readback and not consumption_ledger_readback:
         owner_answer_transaction = _mapping(
             owner_answer_readback.get("paper_mission_transaction")
         )
@@ -428,7 +428,7 @@ def _materialized_mission_summary(
             transaction_state = _transaction_state(effective_transaction)
             mission_state = "route_back"
             effective_consume_candidate_status = "route_back"
-    if terminal_owner_gate:
+    if terminal_owner_gate and not consumption_ledger_readback:
         next_owner_or_human_decision = (
             terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
             or terminal_owner_gate_next_decision(terminal_owner_gate)

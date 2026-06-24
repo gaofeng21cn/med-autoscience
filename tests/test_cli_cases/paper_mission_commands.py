@@ -207,6 +207,66 @@ def _paper_mission_transaction_payload(
     }
 
 
+def _write_matching_domain_gate_closeout(
+    *,
+    study_root: Path,
+    study_id: str,
+    transaction: dict,
+) -> Path:
+    closeout_root = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+    )
+    closeout_root.mkdir(parents=True, exist_ok=True)
+    closeout_ref = closeout_root / "sat-terminal.closeout.json"
+    closeout_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "blocked",
+                "study_id": study_id,
+                "stage_id": transaction["opl_route_command"]["target"],
+                "stage_attempt_id": "sat-terminal",
+                "action_type": transaction["opl_route_command"]["command_kind"],
+                "work_unit_id": transaction["stage_id"],
+                "work_unit_fingerprint": transaction["idempotency"][
+                    "transaction_fingerprint"
+                ],
+                "stage_packet_ref": (
+                    f"{transaction['transaction_id']}#stage_terminal_decision"
+                ),
+                "provider_attempt_ref": "temporal://attempt/sat-terminal",
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "typed_blocker_ref": (
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-terminal.closeout.json#domain_blocker"
+                ),
+                "blocked_reason": "domain_gate_pending",
+                "closeout_refs": [
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-terminal.closeout.json",
+                    "typed-blocker:domain_gate_pending",
+                ],
+                "authority_boundary": {
+                    "record_only_surface": True,
+                    "provider_completion_is_domain_completion": False,
+                    "artifact_mutation_authorized": False,
+                    "publication_eval_latest_write_authorized": False,
+                    "controller_decision_write_authorized": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return closeout_ref
+
+
 def test_paper_mission_help_exposes_default_commands(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
@@ -1937,52 +1997,10 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
         json.dumps(mission_payload),
         encoding="utf-8",
     )
-    closeout_root = (
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
-    )
-    closeout_root.mkdir(parents=True)
-    closeout_ref = closeout_root / "sat-terminal.closeout.json"
-    closeout_ref.write_text(
-        json.dumps(
-            {
-                "surface_kind": "stage_attempt_closeout_packet",
-                "status": "blocked",
-                "study_id": study_id,
-                "stage_id": transaction["opl_route_command"]["target"],
-                "stage_attempt_id": "sat-terminal",
-                "action_type": "route_back",
-                "work_unit_id": transaction["stage_id"],
-                "work_unit_fingerprint": transaction["idempotency"][
-                    "transaction_fingerprint"
-                ],
-                "stage_packet_ref": (
-                    f"{transaction['transaction_id']}#stage_terminal_decision"
-                ),
-                "provider_attempt_ref": "temporal://attempt/sat-terminal",
-                "provider_completion_is_domain_completion": False,
-                "provider_completion_is_domain_ready": False,
-                "domain_completion_claimed": False,
-                "domain_ready_claimed": False,
-                "typed_blocker_ref": (
-                    "artifacts/supervision/consumer/default_executor_execution/"
-                    "sat-terminal.closeout.json#domain_blocker"
-                ),
-                "blocked_reason": "domain_gate_pending",
-                "closeout_refs": [
-                    "artifacts/supervision/consumer/default_executor_execution/"
-                    "sat-terminal.closeout.json",
-                    "typed-blocker:domain_gate_pending",
-                ],
-                "authority_boundary": {
-                    "record_only_surface": True,
-                    "provider_completion_is_domain_completion": False,
-                    "artifact_mutation_authorized": False,
-                    "publication_eval_latest_write_authorized": False,
-                    "controller_decision_write_authorized": False,
-                },
-            }
-        ),
-        encoding="utf-8",
+    _write_matching_domain_gate_closeout(
+        study_root=study_root,
+        study_id=study_id,
+        transaction=transaction,
     )
 
     exit_code = cli.main(
@@ -2111,6 +2129,165 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
         "opl_runtime_terminal_readback_observed"
     )
     assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_materialized_readback_keeps_governed_consumption_current_when_terminal_residue_exists(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = (
+        f"paper-mission::{study_id}::"
+        "medical_prose_write_repair_publication_gate_replay::one-shot-migration"
+    )
+    old_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="typed_blocker",
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Older typed blocker mission with terminal residue.",
+        "mission_state": "stable_blocker",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm003::one-shot",
+                "artifact_ref": "mission://dm003/prose-repair-owner-decision",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": "mission://dm003/import-pack",
+            }
+        ],
+        "authority_touchpoints": [],
+        "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+        "consume_result": {"status": "typed_blocker"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "paper_mission_transaction": old_transaction,
+        "one_shot_migration_readback": {
+            "required_output": {
+                "next_owner": "one-person-lab",
+                "work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "consume_candidate_status": "typed_blocker",
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=old_transaction,
+    )
+
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_consumption_ledger"
+                / "sat-current"
+            ),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    consume_payload = json.loads(capsys.readouterr().out)
+    current_transaction = consume_payload["paper_mission_transaction_readback"][
+        "paper_mission_transaction"
+    ]
+    _write_matching_domain_gate_closeout(
+        study_root=study_root,
+        study_id=study_id,
+        transaction=current_transaction,
+    )
+
+    inspect_exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    inspect_payload = json.loads(capsys.readouterr().out)
+
+    assert inspect_exit_code == 0
+    assert inspect_payload["mission_state"] == "consumed"
+    assert inspect_payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert inspect_payload["paper_mission_current_transaction_source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert inspect_payload["paper_mission_run"]["consume_result"]["status"] == (
+        "accepted"
+    )
+    assert inspect_payload["paper_mission_run"]["consume_result"]["outcome"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert inspect_payload["stage_terminal_decision"]["decision_kind"] == (
+        "continue_same_stage"
+    )
+    assert inspect_payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert inspect_payload["paper_mission_transaction"]["stage_id"] == (
+        "submission_milestone_candidate"
+    )
+    assert inspect_payload["paper_mission_transaction_readback"]["source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert inspect_payload["terminal_owner_gate_owner_answer_readback"]["status"] == (
+        "route_back"
+    )
+    assert inspect_payload["paper_mission_transaction"] != inspect_payload[
+        "terminal_owner_gate_owner_answer_readback"
+    ]["paper_mission_transaction"]
+    assert inspect_payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
