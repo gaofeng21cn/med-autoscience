@@ -5,9 +5,21 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.paper_mission_transaction import build_paper_mission_transaction
+
 
 SURFACE_KIND = "mas_paper_mission_candidate_consume_readback"
 SCHEMA_VERSION = 1
+PAPER_AUDIT_PACK_FAMILIES = (
+    "analysis_rationale_log",
+    "decision_trace",
+    "evidence_ledger_delta",
+    "review_ledger_delta",
+    "revision_log_delta",
+    "failed_path_ledger",
+    "artifact_lineage",
+    "reproducibility_refs",
+)
 ALLOWED_OUTCOMES = (
     "accepted_candidate",
     "rejected_candidate",
@@ -45,6 +57,9 @@ FORBIDDEN_WRITE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
 def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -> dict[str, Any]:
     payload, manifest_input = _load_candidate_payload(candidate)
     base = _base_payload(payload)
+    paper_mission_transaction = _mapping(payload.get("paper_mission_transaction"))
+    if paper_mission_transaction:
+        base["paper_mission_transaction"] = paper_mission_transaction
     if manifest_input is not None:
         base["candidate_manifest_input"] = manifest_input
 
@@ -238,7 +253,7 @@ def _load_candidate_payload(
     candidate: Mapping[str, Any] | str | Path,
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     if isinstance(candidate, Mapping):
-        return dict(candidate), None
+        return _normalize_candidate_payload(dict(candidate), base_path=None), None
     path = Path(candidate).expanduser().resolve()
     manifest_input: dict[str, Any] = {
         "path": str(path),
@@ -254,7 +269,367 @@ def _load_candidate_payload(
         manifest_input["error"] = "manifest_root_not_object"
         return {}, manifest_input
     manifest_input["loaded"] = True
-    return dict(loaded), manifest_input
+    payload = _normalize_candidate_payload(
+        dict(loaded),
+        base_path=path.parent,
+        manifest_input=manifest_input,
+    )
+    return payload, manifest_input
+
+
+def _normalize_candidate_payload(
+    payload: dict[str, Any],
+    *,
+    base_path: Path | None,
+    manifest_input: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if not _is_submission_package_manifest(payload):
+        return payload
+    return _candidate_payload_from_submission_package(
+        package=payload,
+        base_path=base_path,
+        manifest_input=manifest_input,
+    )
+
+
+def _is_submission_package_manifest(payload: Mapping[str, Any]) -> bool:
+    return (
+        _text(payload.get("surface_kind"))
+        == "paper_mission_foreground_candidate_package_manifest"
+        or (
+            _text(payload.get("mode")) == "non_authority_candidate_package"
+            and _text(payload.get("milestone_kind")) == "submission_milestone_candidate"
+        )
+    )
+
+
+def _candidate_payload_from_submission_package(
+    *,
+    package: Mapping[str, Any],
+    base_path: Path | None,
+    manifest_input: dict[str, Any] | None,
+) -> dict[str, Any]:
+    artifact_refs = _mapping(package.get("artifact_refs"))
+    candidate_manifest_ref = _text(artifact_refs.get("candidate_manifest"))
+    candidate_payload = _load_sidecar_json(
+        candidate_manifest_ref,
+        base_path=base_path,
+        manifest_input=manifest_input,
+        manifest_input_key="resolved_manifest_ref",
+    )
+    sidecar_refs = _mapping(candidate_payload.get("mission_candidate_sidecar_refs"))
+    package_sidecar_refs = {
+        **artifact_refs,
+        **{
+            key: value
+            for key, value in {
+                "paper_facing_candidate_delta": package.get(
+                    "paper_facing_candidate_delta_ref"
+                ),
+                "owner_consumption_request": package.get(
+                    "owner_consumption_request_ref"
+                ),
+                "owner_blocker_packet": package.get("owner_blocker_packet_ref"),
+                "submission_milestone_checklist": package.get(
+                    "submission_milestone_checklist_ref"
+                ),
+            }.items()
+            if _text(value)
+        },
+    }
+    owner_blocker_packet = _load_sidecar_json(
+        _text(package_sidecar_refs.get("owner_blocker_packet")),
+        base_path=base_path,
+    )
+    paper_mission_transaction = _first_mapping(
+        _continuation_transaction_for_submission_package(
+            package=package,
+            candidate_payload=candidate_payload,
+            owner_blocker_packet=owner_blocker_packet,
+        ),
+        _mapping(candidate_payload.get("paper_mission_transaction")),
+        _transaction_from_sidecar_refs(sidecar_refs, base_path=base_path),
+        _transaction_from_sidecar_refs(package_sidecar_refs, base_path=base_path),
+    )
+    candidate_id = _first_text(
+        candidate_payload.get("candidate_id"),
+        package.get("candidate_id"),
+        f"paper-mission-package::{_text(package.get('study_id')) or 'unknown-study'}",
+    )
+    candidate_artifact_refs = _candidate_artifact_refs_from_package(
+        candidate_payload=candidate_payload,
+        package=package,
+        sidecar_refs=package_sidecar_refs,
+    )
+    normalized = {
+        **candidate_payload,
+        "candidate_id": candidate_id,
+        "mission_id": _first_text(
+            candidate_payload.get("mission_id"),
+            package.get("mission_id"),
+            "unknown_mission",
+        ),
+        "study_id": _first_text(
+            candidate_payload.get("study_id"),
+            package.get("study_id"),
+            "unknown_study",
+        ),
+        "requested_outcome": _first_text(
+            candidate_payload.get("requested_outcome"),
+            package.get("requested_outcome"),
+            "accepted_candidate",
+        ),
+        "candidate_manifest_ref": _first_text(
+            candidate_payload.get("candidate_manifest_ref"),
+            candidate_manifest_ref,
+            package.get("package_manifest_ref"),
+        ),
+        "candidate_artifact_refs": candidate_artifact_refs,
+        "source_readiness_refs": _source_readiness_refs_from_package(
+            candidate_payload=candidate_payload,
+            package=package,
+        ),
+        "quality_auditor_requirement": _first_mapping(
+            _mapping(candidate_payload.get("quality_auditor_requirement")),
+            {
+                "independent_auditor_required": True,
+                "owner": "MedAutoScience",
+                "requirement_ref": (
+                    "paper-mission-quality-audit::"
+                    f"{_text(package.get('study_id')) or 'unknown-study'}::"
+                    "submission_milestone_candidate"
+                ),
+            },
+        ),
+        "artifact_authority_boundary": _first_mapping(
+            _mapping(candidate_payload.get("artifact_authority_boundary")),
+            {
+                "artifact_authority_owner": "MedAutoScience",
+                "candidate_is_authority": False,
+                "can_update_current_package": False,
+                "can_write_paper_body": False,
+            },
+        ),
+        "next_owner": _first_text(
+            candidate_payload.get("next_owner"),
+            package.get("next_owner"),
+            "mas_authority_kernel",
+        ),
+        "resume_condition": _first_text(
+            candidate_payload.get("resume_condition"),
+            package.get("required_owner_action"),
+            "MAS authority kernel consumes the submission milestone candidate package",
+        ),
+        "submission_milestone_package": {
+            "package_manifest_ref": (
+                manifest_input.get("path") if manifest_input is not None else None
+            ),
+            "milestone_kind": package.get("milestone_kind"),
+            "counts_as_paper_progress": bool(package.get("counts_as_paper_progress")),
+            "owner_consumption_request_ref": package.get(
+                "owner_consumption_request_ref"
+            ),
+            "owner_blocker_packet_ref": package.get("owner_blocker_packet_ref"),
+            "candidate_is_authority": False,
+            "authority_materialized": False,
+        },
+    }
+    if paper_mission_transaction:
+        normalized["paper_mission_transaction"] = paper_mission_transaction
+    if manifest_input is not None:
+        manifest_input["mode"] = "read_only_submission_milestone_package_manifest"
+        manifest_input["source_surface_kind"] = package.get("surface_kind")
+    return normalized
+
+
+def _continuation_transaction_for_submission_package(
+    *,
+    package: Mapping[str, Any],
+    candidate_payload: Mapping[str, Any],
+    owner_blocker_packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _text(owner_blocker_packet.get("blocker_kind")) != "missing_opl_runtime_readback":
+        return {}
+    study_id = _first_text(candidate_payload.get("study_id"), package.get("study_id"))
+    mission_id = _first_text(candidate_payload.get("mission_id"), package.get("mission_id"))
+    if study_id is None or mission_id is None:
+        return {}
+    existing_transaction = _mapping(candidate_payload.get("paper_mission_transaction"))
+    existing_decision = _mapping(existing_transaction.get("stage_terminal_decision"))
+    stage_id = _first_text(
+        existing_transaction.get("stage_id"),
+        existing_decision.get("target_stage_id"),
+        existing_decision.get("next_stage_id"),
+        "submission_milestone_candidate",
+    )
+    stage_run_ref = _first_text(
+        existing_transaction.get("stage_run_ref"),
+        f"paper-mission-package://{study_id}/{stage_id}",
+    )
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": (
+            "Submission milestone candidate was consumed; missing OPL live "
+            "readback is preserved as runtime followthrough, not a paper blocker."
+        ),
+        "next_owner": "mission_executor",
+        "next_work_unit": (
+            "continue paper-facing submission milestone work and request OPL "
+            "route readback for the same PaperMissionTransaction"
+        ),
+    }
+    return build_paper_mission_transaction(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id or "submission_milestone_candidate",
+        stage_run_ref=stage_run_ref or f"paper-mission-package://{study_id}",
+        terminal_decision=terminal_decision,
+        artifact_delta_refs=_artifact_delta_refs_for_submission_package(
+            candidate_payload=candidate_payload,
+            package=package,
+        ),
+        paper_audit_pack_refs=_paper_audit_pack_refs_for_submission_package(
+            candidate_payload=candidate_payload,
+            package=package,
+        ),
+        idempotency_basis="submission-milestone-candidate-consumed",
+    )
+
+
+def _load_sidecar_json(
+    ref: str | None,
+    *,
+    base_path: Path | None,
+    manifest_input: dict[str, Any] | None = None,
+    manifest_input_key: str | None = None,
+) -> dict[str, Any]:
+    path = _resolve_ref_path(ref, base_path=base_path)
+    if path is None:
+        return {}
+    if manifest_input is not None and manifest_input_key is not None:
+        manifest_input[manifest_input_key] = str(path)
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(loaded) if isinstance(loaded, Mapping) else {}
+
+
+def _transaction_from_sidecar_refs(
+    refs: Mapping[str, Any],
+    *,
+    base_path: Path | None,
+) -> dict[str, Any]:
+    for key in ("paper_mission_readback", "default_readback", "paper_mission_run"):
+        payload = _load_sidecar_json(_text(refs.get(key)), base_path=base_path)
+        transaction = _mapping(payload.get("paper_mission_transaction"))
+        if transaction:
+            return transaction
+    return {}
+
+
+def _candidate_artifact_refs_from_package(
+    *,
+    candidate_payload: Mapping[str, Any],
+    package: Mapping[str, Any],
+    sidecar_refs: Mapping[str, Any],
+) -> list[str]:
+    refs = _text_list(candidate_payload.get("candidate_artifact_refs"))
+    refs.extend(_text_list(package.get("candidate_artifact_refs")))
+    refs.extend(
+        _text_list(
+            [
+                package.get("paper_facing_candidate_delta_ref"),
+                sidecar_refs.get("mission_candidate_artifact_delta"),
+                sidecar_refs.get("owner_decision_packet"),
+            ]
+        )
+    )
+    paper_facing_refs = _mapping(package.get("paper_facing_artifact_refs"))
+    refs.extend(_text_list(paper_facing_refs.values()))
+    return _dedupe(refs)
+
+
+def _source_readiness_refs_from_package(
+    *,
+    candidate_payload: Mapping[str, Any],
+    package: Mapping[str, Any],
+) -> list[str]:
+    refs = _text_list(candidate_payload.get("source_readiness_refs"))
+    for source_ref in package.get("source_refs", []):
+        if isinstance(source_ref, Mapping):
+            refs.extend(_text_list([source_ref.get("uri"), source_ref.get("ref_id")]))
+    if not refs:
+        refs.append(
+            "submission-milestone-package:"
+            f"{_text(package.get('study_id')) or 'unknown-study'}"
+        )
+    return _dedupe(refs)
+
+
+def _artifact_delta_refs_for_submission_package(
+    *,
+    candidate_payload: Mapping[str, Any],
+    package: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    refs = _candidate_artifact_refs_from_package(
+        candidate_payload=candidate_payload,
+        package=package,
+        sidecar_refs=_mapping(package.get("artifact_refs")),
+    )
+    return [
+        {
+            "ref_id": f"submission_milestone_artifact::{index}",
+            "ref_kind": "submission_milestone_candidate_artifact",
+            "uri": ref,
+        }
+        for index, ref in enumerate(refs, start=1)
+    ] or [
+        {
+            "ref_id": "submission_milestone_artifact::package_manifest",
+            "ref_kind": "submission_milestone_candidate_package",
+            "uri": _text(package.get("package_manifest_ref"))
+            or "submission-milestone-package://missing-ref",
+        }
+    ]
+
+
+def _paper_audit_pack_refs_for_submission_package(
+    *,
+    candidate_payload: Mapping[str, Any],
+    package: Mapping[str, Any],
+) -> dict[str, list[dict[str, str]]]:
+    source_refs = _source_readiness_refs_from_package(
+        candidate_payload=candidate_payload,
+        package=package,
+    )
+    refs = [
+        {
+            "ref_id": f"submission_milestone_source::{index}",
+            "ref_kind": "submission_milestone_candidate_ref",
+            "uri": ref,
+        }
+        for index, ref in enumerate(source_refs, start=1)
+    ] or [
+        {
+            "ref_id": "submission_milestone_source::package",
+            "ref_kind": "submission_milestone_candidate_package",
+            "uri": _text(package.get("package_manifest_ref"))
+            or "submission-milestone-package://missing-ref",
+        }
+    ]
+    return {family: list(refs) for family in PAPER_AUDIT_PACK_FAMILIES}
+
+
+def _resolve_ref_path(ref: str | None, *, base_path: Path | None) -> Path | None:
+    text = _text(ref)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute() and base_path is not None:
+        path = base_path / path
+    return path.resolve()
 
 
 def _artifact_authority_boundary(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -402,6 +777,22 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _first_mapping(*values: Mapping[str, Any]) -> dict[str, Any]:
+    for value in values:
+        mapped = _mapping(value)
+        if mapped:
+            return mapped
+    return {}
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        text = _text(value)
+        if text is not None:
+            return text
+    return None
+
+
 def _text_list(value: object) -> list[str]:
     if isinstance(value, str):
         items: Sequence[object] = [value]
@@ -413,6 +804,18 @@ def _text_list(value: object) -> list[str]:
     seen: set[str] = set()
     for item in items:
         text = _text(item)
+        if text is None or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
+
+
+def _dedupe(values: Sequence[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _text(value)
         if text is None or text in seen:
             continue
         seen.add(text)

@@ -163,7 +163,7 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
 
     consume_parser = mission_subparsers.add_parser("consume-candidate")
     _add_common_args(consume_parser)
-    consume_parser.add_argument("--candidate", required=True)
+    consume_parser.add_argument("--candidate")
     consume_mode = consume_parser.add_mutually_exclusive_group(required=True)
     consume_mode.add_argument("--dry-run", action="store_true")
     consume_mode.add_argument("--output-root")
@@ -256,12 +256,27 @@ def build_paper_mission_readback(
         objective=selected_objective,
         paper_mission_command=paper_mission_command,
     )
-    candidate_ref = str(candidate) if candidate is not None else None
+    candidate_ref = _resolve_consume_candidate_ref(
+        profile=profile,
+        study_id=study_id,
+        candidate=candidate,
+    ) if paper_mission_command == "consume-candidate" else (
+        str(candidate) if candidate is not None else None
+    )
     authority_consume_readback = (
-        consume_paper_mission_candidate(candidate)
-        if paper_mission_command == "consume-candidate" and candidate is not None
+        consume_paper_mission_candidate(candidate_ref)
+        if paper_mission_command == "consume-candidate" and candidate_ref is not None
         else None
     )
+    if paper_mission_command == "consume-candidate" and authority_consume_readback is None:
+        return _consume_candidate_missing_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command=paper_mission_command,
+            source=source,
+            dry_run=dry_run,
+        )
     transaction_readback = _paper_mission_transaction_readback(
         mission_id=selected_mission_id,
         study_id=study_id,
@@ -269,7 +284,7 @@ def build_paper_mission_readback(
         paper_mission_command=paper_mission_command,
         study_root=Path(profile.studies_root) / study_id,
         mission=None,
-        candidate=candidate,
+        candidate=candidate_ref,
         authority_consume_readback=authority_consume_readback,
     )
     candidate_mission_id = _candidate_mission_id_for_readback(
@@ -288,7 +303,7 @@ def build_paper_mission_readback(
             paper_mission_command=paper_mission_command,
             study_root=Path(profile.studies_root) / study_id,
             mission=None,
-            candidate=candidate,
+            candidate=candidate_ref,
             authority_consume_readback=authority_consume_readback,
         )
     mission_candidate = _paper_mission_run_candidate(
@@ -306,7 +321,7 @@ def build_paper_mission_readback(
         _write_paper_mission_consumption_ledger_outputs(
             output_root=Path(output_root),
             study_id=study_id,
-            candidate_ref=str(candidate),
+            candidate_ref=str(candidate_ref),
             authority_consume_readback=authority_consume_readback,
             transaction_readback=transaction_readback,
             mission_candidate=mission_candidate,
@@ -315,7 +330,7 @@ def build_paper_mission_readback(
         if (
             paper_mission_command == "consume-candidate"
             and output_root is not None
-            and candidate is not None
+            and candidate_ref is not None
             and authority_consume_readback is not None
         )
         else None
@@ -363,6 +378,72 @@ def build_paper_mission_readback(
                 if consume_output_manifest is not None
                 else "dry_run_no_write"
             ),
+            "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
+        },
+    }
+
+
+def _consume_candidate_missing_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    paper_mission_command: str,
+    source: str,
+    dry_run: bool,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_mission_consume_candidate_missing_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": paper_mission_command,
+        "action_intent": _action_intent(paper_mission_command),
+        "source": source,
+        "dry_run": bool(dry_run),
+        "profile": {
+            "profile_name": str(getattr(profile, "name", "")),
+            "profile_ref": str(profile_ref),
+        },
+        "study_id": study_id,
+        "study_root": str(Path(profile.studies_root) / study_id),
+        "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
+        "status": "candidate_package_missing",
+        "required_next_command": (
+            "paper-mission package-candidate --output-root "
+            f"{Path(profile.workspace_root) / PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH / '<run_id>'}"
+        ),
+        "authority_consume_readback": {
+            "surface_kind": "mas_paper_mission_candidate_consume_readback",
+            "schema_version": 1,
+            "status": "route_back",
+            "selected_outcome": "route_back",
+            "consume_result": {
+                "status": "route_back",
+                "outcome": "route_back",
+                "authority_materialized": False,
+            },
+            "candidate_is_authority": False,
+            "route_back": {
+                "reason_code": "candidate_package_missing",
+                "next_owner": "mission_executor",
+                "resume_condition": (
+                    "generate a submission_milestone_candidate package before "
+                    "MAS authority consumption"
+                ),
+            },
+            "write_plan": {
+                "mode": "readback_only",
+                "written_files": [],
+            },
+        },
+        "mutation_policy": _mutation_policy(paper_mission_command=paper_mission_command),
+        "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+        "dispatch_plan": {
+            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "domain_handler_dispatch_mode": "candidate_package_missing_no_write",
             "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
         },
     }
@@ -602,6 +683,46 @@ def _latest_materialized_mission_path(
         reverse=True,
     )
     return candidates[0] if candidates else None
+
+
+def _latest_candidate_package_manifest_path(
+    *,
+    workspace_root: Path,
+    study_id: str,
+) -> Path | None:
+    root = (
+        workspace_root.expanduser().resolve()
+        / PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH
+    )
+    if not root.exists():
+        return None
+    candidates = sorted(
+        (
+            path
+            for path in root.glob("*/**/package_manifest.json")
+            if path.is_file()
+            and _materialized_mission_path_matches(path, requested_study_id=study_id)
+        ),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
+
+
+def _resolve_consume_candidate_ref(
+    *,
+    profile: Any,
+    study_id: str,
+    candidate: str | Path | None,
+) -> str | None:
+    explicit = _optional_text(candidate)
+    if explicit is not None:
+        return explicit
+    candidate_package = _latest_candidate_package_manifest_path(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+    )
+    return str(candidate_package) if candidate_package is not None else None
 
 
 def _build_materialized_candidate_package_readback(
