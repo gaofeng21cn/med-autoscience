@@ -24,6 +24,8 @@ from med_autoscience.scholarskills_package_consumption import (
 
 
 SURFACE_KIND = "mas_scientific_capability_registry"
+SUMMARY_SURFACE_KIND = "mas_scientific_capability_registry_summary"
+INVENTORY_SURFACE_KIND = "mas_scientific_capability_inventory"
 RESOLUTION_SURFACE_KIND = "mas_scientific_capability_resolution"
 INVOCATION_SURFACE_KIND = "mas_scientific_capability_invocation"
 OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND = (
@@ -295,6 +297,52 @@ def build_scientific_capability_registry() -> dict[str, Any]:
                 for module_id in SCHOLARSKILLS_CAPABILITY_IDS
             },
         },
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def build_scientific_capability_registry_summary() -> dict[str, Any]:
+    capabilities = _capabilities()
+    inventory = _capability_inventory(capabilities)
+    return {
+        "surface_kind": SUMMARY_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "registry_surface_kind": SURFACE_KIND,
+        "capability_count": len(capabilities),
+        "capability_family_count": len(
+            {item["capability_family"] for item in capabilities}
+        ),
+        "module_capability_count": sum(1 for item in capabilities if item.get("module_id")),
+        "descriptor_only_count": sum(1 for item in capabilities if item.get("descriptor_only")),
+        "refs_only_count": sum(1 for item in capabilities if item.get("refs_only")),
+        "wildcard_trigger_count": sum(
+            1 for item in capabilities if item.get("wildcard_action_trigger_policy")
+        ),
+        "invocation_kind_counts": _string_counts(
+            item["invocation_kind"] for item in capabilities
+        ),
+        "capability_families": sorted(
+            {item["capability_family"] for item in capabilities}
+        ),
+        "capability_ids": [item["capability_id"] for item in inventory],
+        "inventory_count": len(inventory),
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def build_scientific_capability_registry_inventory() -> dict[str, Any]:
+    capabilities = _capabilities()
+    inventory = _capability_inventory(capabilities)
+    return {
+        "surface_kind": INVENTORY_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "registry_surface_kind": SURFACE_KIND,
+        "inventory_count": len(inventory),
+        "inventory": inventory,
+        "capability_ids": [item["capability_id"] for item in inventory],
+        "capability_families": sorted(
+            {item["capability_family"] for item in capabilities}
+        ),
         "authority_boundary": _authority_boundary(),
     }
 
@@ -676,6 +724,27 @@ def _capabilities() -> list[dict[str, Any]]:
             role="figure_intent_compilation_template_preflight_quality_floor_and_render_next_step",
         ),
         *_scholarskills_capabilities(),
+    ]
+
+
+def _capability_inventory(capabilities: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "capability_id": _text(capability.get("capability_id")),
+            "capability_family": _text(capability.get("capability_family")),
+            "module_id": _text(capability.get("module_id")) or None,
+            "invocation_kind": _text(capability.get("invocation_kind")),
+            "refs_only": bool(capability.get("refs_only")),
+            "descriptor_only": bool(capability.get("descriptor_only")),
+            "external_runner_invocation_allowed": bool(
+                capability.get("external_runner_invocation_allowed", False)
+            ),
+            "source_frameworks": _text_list(capability.get("source_frameworks")),
+            "action_triggers": _text_list(capability.get("action_triggers")),
+            "output_refs": _text_list(capability.get("output_refs")),
+            "role": _text(capability.get("role")),
+        }
+        for capability in capabilities
     ]
 
 
@@ -1583,13 +1652,26 @@ def _dedupe_texts(values: list[str]) -> list[str]:
     return result
 
 
+def _string_counts(values: list[str] | tuple[str, ...] | Any) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        text = _text(value)
+        if not text:
+            continue
+        counts[text] = counts.get(text, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 __all__ = [
     "INVOCATION_SURFACE_KIND",
+    "INVENTORY_SURFACE_KIND",
     "OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND",
     "RESOLUTION_SURFACE_KIND",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_scientific_capability_registry",
+    "build_scientific_capability_registry_summary",
+    "build_scientific_capability_registry_inventory",
     "build_capability_owner_consumption_evidence",
     "invoke_scientific_capability",
     "resolve_scientific_capabilities",

@@ -1425,6 +1425,67 @@ def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_
     assert not (study_root / "package").exists()
 
 
+def test_scientific_capability_registry_cli_index_exposes_inventory_surface(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(
+        [
+            "scientific-capability-registry",
+            "--mode",
+            "index",
+        ]
+    )
+
+    assert exit_code == 0
+    registry = json.loads(capsys.readouterr().out)
+    assert registry["surface_kind"] == "mas_scientific_capability_registry"
+    assert registry["schema_version"] == 1
+    assert registry["capability_count"] == len(registry["capabilities"])
+    assert registry["default_policy"]["fail_open"] is True
+    assert registry["default_policy"]["always_on_scan"] is False
+    assert registry["default_policy"]["wildcard_action_triggers_require_explicit_capability_request"] is True
+    assert registry["owner_consumption_evidence_schema"]["surface_kind"] == (
+        "mas_scientific_capability_owner_consumption_evidence"
+    )
+    assert registry["authority_boundary"]["can_write_domain_truth"] is False
+    assert registry["authority_boundary"]["can_write_owner_receipt"] is False
+
+
+def test_scientific_capability_registry_cli_resolve_exposes_summary_surface(
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(
+        [
+            "scientific-capability-registry",
+            "--mode",
+            "resolve",
+            "--current-owner-delta-json",
+            json.dumps(
+                {
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "repair-story",
+                    "work_unit_fingerprint": "sha256:repair",
+                }
+            ),
+        ]
+    )
+
+    assert exit_code == 0
+    resolution = json.loads(capsys.readouterr().out)
+    assert resolution["surface_kind"] == "mas_scientific_capability_resolution"
+    assert resolution["schema_version"] == 1
+    assert resolution["planning_root"] == "current_owner_delta"
+    assert resolution["current_owner_delta"]["work_unit_id"] == "repair-story"
+    assert resolution["status"] == "resolved"
+    assert resolution["selected_count"] >= 1
+    assert resolution["mainline_waits_for_capability"] is False
+    assert resolution["missing_capability_blocks_owner_action"] is False
+    assert resolution["authority_boundary"]["can_authorize_provider_admission"] is False
+    assert resolution["authority_boundary"]["can_write_owner_receipt"] is False
+
+
 def test_scientific_capability_registry_cli_rejects_materialized_package_module_mismatch(
     tmp_path: Path,
 ) -> None:
@@ -2100,6 +2161,8 @@ def test_scientific_capability_registry_mcp_modes_and_tool_arsenal_card(
 
     assert "scientific_capability_registry" in tools
     assert tools["scientific_capability_registry"]["inputSchema"]["properties"]["mode"]["enum"] == [
+        "summary",
+        "inventory",
         "index",
         "resolve",
         "invoke",
@@ -2188,6 +2251,30 @@ def test_scientific_capability_registry_mcp_modes_and_tool_arsenal_card(
 def test_scientific_capability_registry_cli_modes_emit_json(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     study_root = tmp_path / "studies" / "001-risk"
+
+    exit_code = cli.main(["scientific-capability-registry", "--mode", "summary"])
+    assert exit_code == 0
+    summary_payload = json.loads(capsys.readouterr().out)
+    assert summary_payload["surface_kind"] == "mas_scientific_capability_registry_summary"
+    assert summary_payload["registry_surface_kind"] == "mas_scientific_capability_registry"
+    assert summary_payload["capability_count"] == len(summary_payload["capability_ids"])
+    assert summary_payload["inventory_count"] == len(summary_payload["capability_ids"])
+    assert summary_payload["capability_family_count"] <= summary_payload["capability_count"]
+    assert summary_payload["descriptor_only_count"] > 0
+    assert summary_payload["refs_only_count"] >= summary_payload["descriptor_only_count"]
+    assert summary_payload["authority_boundary"]["can_write_publication_eval"] is False
+
+    exit_code = cli.main(["scientific-capability-registry", "--mode", "inventory"])
+    assert exit_code == 0
+    inventory_payload = json.loads(capsys.readouterr().out)
+    assert inventory_payload["surface_kind"] == "mas_scientific_capability_inventory"
+    assert inventory_payload["registry_surface_kind"] == "mas_scientific_capability_registry"
+    assert inventory_payload["inventory_count"] == len(inventory_payload["inventory"])
+    assert inventory_payload["capability_ids"] == [
+        item["capability_id"] for item in inventory_payload["inventory"]
+    ]
+    assert inventory_payload["inventory"][0]["capability_id"]
+    assert inventory_payload["inventory"][0]["refs_only"] is True
 
     exit_code = cli.main(["scientific-capability-registry", "--mode", "index"])
     assert exit_code == 0

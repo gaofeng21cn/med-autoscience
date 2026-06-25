@@ -231,7 +231,13 @@ def build_tool_registry(
                 "properties": {
                     "mode": {
                         "type": "string",
-                        "enum": ["index", "resolve", "invoke"],
+                        "enum": [
+                            "summary",
+                            "inventory",
+                            "index",
+                            "resolve",
+                            "invoke",
+                        ],
                     },
                     "capability_id": {"type": "string"},
                     "current_owner_delta": {"type": "object"},

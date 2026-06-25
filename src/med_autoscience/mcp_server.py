@@ -44,6 +44,8 @@ from med_autoscience.mcp_server_parts.jsonrpc_transport import (
 from med_autoscience.mcp_server_parts.tool_result_rendering import json_text, tool_text_result
 from med_autoscience.scientific_capability_registry import (
     build_scientific_capability_registry,
+    build_scientific_capability_registry_inventory,
+    build_scientific_capability_registry_summary,
     invoke_scientific_capability,
     resolve_scientific_capabilities,
 )
@@ -828,6 +830,16 @@ def _call_scientific_capability_registry_index(arguments: dict[str, Any]) -> dic
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_scientific_capability_registry_summary(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = build_scientific_capability_registry_summary()
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_scientific_capability_registry_inventory(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = build_scientific_capability_registry_inventory()
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_scientific_capability_registry_resolve(arguments: dict[str, Any]) -> dict[str, Any]:
     current_owner_delta = _optional_mapping(
         arguments.get("current_owner_delta"),
@@ -858,6 +870,8 @@ def _call_scientific_capability_registry(arguments: dict[str, Any]) -> dict[str,
         tool_name="scientific_capability_registry",
         arguments=arguments,
         handlers={
+            "summary": _call_scientific_capability_registry_summary,
+            "inventory": _call_scientific_capability_registry_inventory,
             "index": _call_scientific_capability_registry_index,
             "resolve": _call_scientific_capability_registry_resolve,
             "invoke": _call_scientific_capability_registry_invoke,

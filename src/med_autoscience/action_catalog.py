@@ -89,7 +89,16 @@ MCP_INPUT_SCHEMA_BY_ACTION_ID = {
     "scientific_capability_registry": {
         "type": "object",
         "properties": {
-            "mode": {"type": "string", "enum": ["index", "resolve", "invoke"]},
+            "mode": {
+                "type": "string",
+                "enum": [
+                    "summary",
+                    "inventory",
+                    "index",
+                    "resolve",
+                    "invoke",
+                ],
+            },
             "capability_id": {"type": "string"},
             "current_owner_delta": {"type": "object"},
             "study_root": {"type": "string"},
@@ -509,7 +518,10 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "without adding a default external runtime, selector, backlog, or admission gate."
             ),
             "effect": "read_only",
-            "command": "{prefix} scientific-capability-registry --mode <index|resolve|invoke>",
+            "command": (
+                "{prefix} scientific-capability-registry "
+                "--mode <summary|inventory|index|resolve|invoke>"
+            ),
             "surface_kind": "mas_scientific_capability_registry",
             "workspace_locator_fields": ["current_owner_delta", "study_root", "capability_id"],
             "mcp_tool_name": "scientific_capability_registry",

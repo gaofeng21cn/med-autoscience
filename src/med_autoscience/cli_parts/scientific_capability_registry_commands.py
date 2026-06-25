@@ -13,7 +13,7 @@ def register_scientific_capability_registry_parser(
     parser = subparsers.add_parser("scientific-capability-registry")
     parser.add_argument(
         "--mode",
-        choices=("index", "resolve", "invoke", "owner-consumption"),
+        choices=("summary", "inventory", "index", "resolve", "invoke", "owner-consumption"),
         required=True,
     )
     parser.add_argument("--capability-id")
@@ -46,7 +46,11 @@ def handle_scientific_capability_registry_command(args: argparse.Namespace) -> i
     )
     registry = importlib.import_module("med_autoscience.scientific_capability_registry")
 
-    if args.mode == "index":
+    if args.mode == "summary":
+        result = registry.build_scientific_capability_registry_summary()
+    elif args.mode == "inventory":
+        result = registry.build_scientific_capability_registry_inventory()
+    elif args.mode == "index":
         result = registry.build_scientific_capability_registry()
     elif args.mode == "resolve":
         result = registry.resolve_scientific_capabilities(
