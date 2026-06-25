@@ -933,21 +933,37 @@ def paper_mission_domain_handler_dispatch_receipt(
             reason="missing_study_id",
         )
     profile = load_profile(Path(str(profile_ref)))
+    requested_command = _optional_text(payload.get("paper_mission_command"))
+    dry_run = payload.get("dry_run") is True
+    dispatch_command = _domain_handler_paper_mission_command(
+        task=task,
+        requested_command=requested_command,
+        dry_run=dry_run,
+    )
     readback = build_paper_mission_readback(
         profile=profile,
         profile_ref=Path(str(profile_ref)),
         study_id=study_id,
-        paper_mission_command=str(payload.get("paper_mission_command") or "start"),
+        paper_mission_command=dispatch_command,
         objective=_optional_text(payload.get("objective")),
         mission_id=_optional_text(payload.get("mission_id")),
         candidate=_optional_text(payload.get("candidate")),
+        run_id=(
+            _optional_text(payload.get("run_id"))
+            or _default_domain_handler_drive_run_id(
+                task=task,
+                study_id=study_id,
+            )
+        ),
+        submit_opl_runtime=bool(payload.get("submit_opl_runtime", False)),
+        opl_bin=_optional_text(payload.get("opl_bin")),
         one_shot_migration=bool(payload.get("one_shot_migration", False)),
         study_progress_payload=_optional_text(payload.get("study_progress_payload")),
         domain_health_diagnostic_payload=_optional_text(
             payload.get("domain_health_diagnostic_payload")
         ),
         output_root=_optional_text(payload.get("output_root")),
-        dry_run=bool(payload.get("dry_run", True)),
+        dry_run=dry_run,
         source="domain-handler-dispatch",
     )
     return {
@@ -985,6 +1001,31 @@ def paper_mission_domain_handler_dispatch_receipt(
             "requested_writes": [],
         },
     }
+
+
+def _domain_handler_paper_mission_command(
+    *,
+    task: Mapping[str, Any],
+    requested_command: str | None,
+    dry_run: bool,
+) -> str:
+    if dry_run:
+        return requested_command or "start"
+    if _optional_text(task.get("task_kind")) == PAPER_MISSION_START_OR_RESUME_TASK_KIND:
+        if requested_command in {None, "start", "resume"}:
+            return "drive"
+    return requested_command or "inspect"
+
+
+def _default_domain_handler_drive_run_id(
+    *,
+    task: Mapping[str, Any],
+    study_id: str,
+) -> str | None:
+    if _optional_text(task.get("task_kind")) != PAPER_MISSION_START_OR_RESUME_TASK_KIND:
+        return None
+    task_id = _optional_text(task.get("task_id")) or "paper-mission-start-or-resume"
+    return f"domain-handler-dispatch-{_slug(study_id)}-{_slug(task_id)}"
 
 
 def _build_materialized_mission_readback_if_available(
@@ -1507,6 +1548,8 @@ def _materialized_opl_route_command(mission: dict[str, Any]) -> dict[str, Any] |
 
 
 def _dispatch_execution_policy(readback: dict[str, Any]) -> str:
+    if readback.get("surface_kind") == "paper_mission_drive_readback":
+        return "paper_mission_drive_non_authority_candidate_and_ledger"
     if readback.get("surface_kind") == "paper_mission_materialized_readback":
         return "paper_mission_materialized_readback_no_write"
     return "paper_mission_no_write_dry_run"
@@ -1518,13 +1561,22 @@ def _recommended_domain_command(
     study_id: str,
     readback: dict[str, Any],
 ) -> str:
-    command = (
+    inspect_command = (
         "uv run python -m med_autoscience.cli paper-mission inspect "
         f"--profile {profile_ref} --study-id {study_id} --format json"
     )
+    if readback.get("surface_kind") == "paper_mission_drive_readback":
+        output_root = _optional_text(readback.get("output_root"))
+        output_root_arg = f" --output-root {output_root}" if output_root else ""
+        return (
+            "uv run python -m med_autoscience.cli paper-mission drive "
+            f"--profile {profile_ref} --study-id {study_id}{output_root_arg} "
+            "--format json # writes non-authority candidate package and "
+            "consumption ledger only"
+        )
     if readback.get("surface_kind") == "paper_mission_materialized_readback":
-        return f"{command} # reads materialized PaperMissionRun"
-    return command
+        return f"{inspect_command} # reads materialized PaperMissionRun"
+    return inspect_command
 
 
 def _paper_mission_dispatch_error(

@@ -56,6 +56,10 @@ class MedAutoScienceDomainEntry:
                 objective=_optional_text(request.get("objective")),
                 mission_id=_optional_text(request.get("mission_id")),
                 candidate=_optional_text(request.get("candidate")),
+                run_id=_optional_text(request.get("run_id")),
+                output_root=_optional_text(request.get("output_root")),
+                submit_opl_runtime=bool(request.get("submit_opl_runtime")),
+                opl_bin=_optional_text(request.get("opl_bin")),
                 dry_run=bool(request.get("dry_run")),
                 source="domain-entry",
             )

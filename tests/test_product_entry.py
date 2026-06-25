@@ -34,5 +34,7 @@ def test_product_entry_manifest_exposes_paper_mission_default_entry(tmp_path):
     paper_mission = manifest["medical_paper_product_entry"]
     assert paper_mission["default_action_intent"] == "paper_mission/start_or_resume"
     assert paper_mission["authority_boundary"]["writes_authority"] is False
+    assert "paper-mission drive" in paper_mission["default_command"]
+    assert paper_mission["drive_command"] == paper_mission["default_command"]
     assert "paper-mission inspect" in paper_mission["inspect_command"]
     assert "paper_mission" not in manifest["product_entry_shell"]

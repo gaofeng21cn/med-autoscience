@@ -570,15 +570,17 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         },
         {
             "action_id": "domain_handler_dispatch",
-            "title": "Inspect MAS domain-handler dispatch boundary",
+            "title": "Dispatch MAS domain-handler task",
             "summary": (
-                "Descriptor-only boundary for OPL typed task consumption. Ordinary paper execution "
-                "uses paper_mission/start_or_resume; legacy default-executor dispatch is tombstoned "
-                "and can only return diagnostic/fail-closed readback. This action does not create "
-                "owner receipts, typed blockers, domain truth, publication quality, artifact gate, "
-                "or current package writes."
+                "Boundary for OPL typed task consumption. Ordinary paper execution uses "
+                "paper_mission/start_or_resume and may materialize non-authority "
+                "submission milestone candidate packages plus consumption ledgers; legacy "
+                "default-executor dispatch is tombstoned and can only return "
+                "diagnostic/fail-closed readback. This action does not create owner "
+                "receipts, typed blockers, domain truth, publication quality, artifact "
+                "gate, current package writes, runtime queue rows, or provider attempts."
             ),
-            "effect": "read_only",
+            "effect": "mutating",
             "command": "medautosci domain-handler dispatch --task <task.json> --format json",
             "surface_kind": "mas_family_domain_handler_dispatch_receipt",
             "workspace_locator_fields": ["task_ref"],

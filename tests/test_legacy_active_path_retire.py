@@ -57,7 +57,7 @@ def test_old_path_replacement_points_to_paper_mission_run_contract() -> None:
         "status": "machine_proved",
         "replacement_action_intent": "paper_mission/start_or_resume",
         "product_entry_surface": "medical_paper_product_entry",
-        "product_entry_default_command_contains": "paper-mission inspect",
+        "product_entry_default_command_contains": "paper-mission drive",
         "domain_handler_default_task_kind": "paper_mission/start_or_resume",
         "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
         "legacy_task_kind_policy": {
@@ -405,7 +405,8 @@ def test_product_entry_default_mainline_has_no_legacy_dhd_or_dispatch_command(
     paper_mission = manifest["medical_paper_product_entry"]
     default_command = paper_mission["default_command"]
     assert paper_mission["default_action_intent"] == "paper_mission/start_or_resume"
-    assert "paper-mission inspect" in default_command
+    assert "paper-mission drive" in default_command
+    assert "paper-mission inspect" in paper_mission["inspect_command"]
     assert "domain-health-diagnostic" not in default_command
     assert "default-executor-dispatch" not in default_command
     assert "PaperRecovery" not in default_command
@@ -489,14 +490,20 @@ def test_tracked_action_catalog_and_tool_arsenal_demote_domain_handler_dispatch(
 
     actions = {item["action_id"]: item for item in action_catalog["actions"]}
     dispatch_action = actions["domain_handler_dispatch"]
-    assert dispatch_action["effect"] == "read_only"
+    assert dispatch_action["effect"] == "mutating"
+    assert "non-authority submission milestone candidate packages" in dispatch_action[
+        "summary"
+    ]
     assert "does not create owner receipts" in dispatch_action["summary"]
     assert "can only return diagnostic/fail-closed readback" in dispatch_action["summary"]
 
     tool_cards = {item["tool_id"]: item for item in tool_arsenal["tool_cards"]}
     dispatch_tool = tool_cards["domain_handler_dispatch"]
-    assert dispatch_tool["effect"] == "read_only"
-    assert dispatch_tool["allowed_writes"] == []
+    assert dispatch_tool["effect"] == "mutating"
+    assert dispatch_tool["allowed_writes"] == [
+        "ops/medautoscience/paper_mission_candidate_package/<run_id>/**",
+        "ops/medautoscience/paper_mission_consumption_ledger/<run_id>/**",
+    ]
     assert dispatch_tool["authority_effects"]["can_return_owner_receipt"] is False
     assert dispatch_tool["authority_effects"]["can_return_typed_blocker"] is False
     assert dispatch_tool["authority_effects"]["owner_answer_surface"] == (
@@ -504,7 +511,9 @@ def test_tracked_action_catalog_and_tool_arsenal_demote_domain_handler_dispatch(
     )
     assert dispatch_tool["invocation_gate"]["requires_opl_stage_attempt_or_lease"] is False
     assert dispatch_tool["invocation_gate"]["owner_receipt_or_typed_blocker_required"] is False
-    assert "non_read_only_gate" not in dispatch_tool
+    assert dispatch_tool["non_read_only_gate"][
+        "requires_owner_receipt_or_typed_blocker_proof"
+    ] is False
 
 
 def test_plugin_skill_ordinary_path_does_not_use_legacy_default_paper_mainline() -> None:

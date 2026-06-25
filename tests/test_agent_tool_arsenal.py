@@ -165,14 +165,22 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert display_preflight["risk_annotations"]["readOnlyHint"] is True
 
     dispatch = cards["domain_handler_dispatch"]
-    assert dispatch["effect"] == "read_only"
+    assert dispatch["effect"] == "mutating"
     assert dispatch["callability"] == "descriptor_only"
-    assert dispatch["risk_annotations"]["readOnlyHint"] is True
+    assert dispatch["risk_annotations"]["readOnlyHint"] is False
     assert dispatch["risk_annotations"]["requires_opl_stage_attempt_or_lease"] is False
-    assert "non_read_only_gate" not in dispatch
-    assert "non_read_only_gate_policy" not in dispatch["invocation_gate"]
+    assert dispatch["non_read_only_gate"]["requires_current_owner_delta"] is True
+    assert dispatch["non_read_only_gate"][
+        "requires_owner_receipt_or_typed_blocker_proof"
+    ] is False
+    assert dispatch["invocation_gate"]["non_read_only_gate_policy"] == (
+        "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof"
+    )
     assert dispatch["invocation_gate"]["owner_receipt_or_typed_blocker_required"] is False
-    assert dispatch["allowed_writes"] == []
+    assert dispatch["allowed_writes"] == [
+        "ops/medautoscience/paper_mission_candidate_package/<run_id>/**",
+        "ops/medautoscience/paper_mission_consumption_ledger/<run_id>/**",
+    ]
     assert dispatch["authority_effects"]["can_return_owner_receipt"] is False
     assert dispatch["authority_effects"]["can_return_typed_blocker"] is False
     assert dispatch["authority_effects"]["owner_answer_surface"] == (

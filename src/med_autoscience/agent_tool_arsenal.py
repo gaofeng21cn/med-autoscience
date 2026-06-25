@@ -393,15 +393,24 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
     callability = "mcp_runtime" if public_runtime and not descriptor_only else "descriptor_only"
     read_only = effect == "read_only"
     refs_only_runtime_write = action_id == "scientific_capability_registry"
+    bounded_non_authority_dispatch = action_id == "domain_handler_dispatch"
     human_gate_ids = [str(item) for item in list(action.get("human_gate_ids") or [])]
     authority_boundary = (
         dict(action.get("authority_boundary"))
         if isinstance(action.get("authority_boundary"), Mapping)
         else {}
     )
-    requires_stage_attempt = (not read_only) and not human_gate_ids and not refs_only_runtime_write
+    requires_stage_attempt = (
+        (not read_only)
+        and not human_gate_ids
+        and not refs_only_runtime_write
+        and not bounded_non_authority_dispatch
+    )
     non_read_only_gate = (
-        _non_read_only_gate(requires_human_gate=bool(human_gate_ids))
+        _non_read_only_gate(
+            requires_human_gate=bool(human_gate_ids),
+            requires_owner_receipt_or_typed_blocker=not bounded_non_authority_dispatch,
+        )
         if not read_only or refs_only_runtime_write
         else None
     )
@@ -856,15 +865,17 @@ def _allowed_writes_for_action(action_id: str) -> list[str]:
         ]
     if action_id == "domain_handler_dispatch":
         return [
-            "MAS owner-route dispatch receipt refs",
-            "MAS owner receipt refs",
-            "MAS typed blocker refs",
-            "explicit OPL opt-in executor/proof refs",
+            "ops/medautoscience/paper_mission_candidate_package/<run_id>/**",
+            "ops/medautoscience/paper_mission_consumption_ledger/<run_id>/**",
         ]
     return ["MAS domain handler target refs only"]
 
 
-def _non_read_only_gate(*, requires_human_gate: bool) -> dict[str, Any]:
+def _non_read_only_gate(
+    *,
+    requires_human_gate: bool,
+    requires_owner_receipt_or_typed_blocker: bool = True,
+) -> dict[str, Any]:
     return {
         "surface_kind": "mas_agent_tool_non_read_only_gate",
         "gate_policy": "current_owner_delta_or_human_gate_with_owner_receipt_typed_blocker_proof",
@@ -872,7 +883,7 @@ def _non_read_only_gate(*, requires_human_gate: bool) -> dict[str, Any]:
         "requires_current_owner_delta_match": True,
         "requires_human_gate_or_owner_delta": True,
         "requires_human_gate": requires_human_gate,
-        "requires_owner_receipt_or_typed_blocker_proof": True,
+        "requires_owner_receipt_or_typed_blocker_proof": requires_owner_receipt_or_typed_blocker,
         "owner_receipt_or_typed_blocker_proof_replaces_publication_quality": False,
         "can_substitute_owner_receipt": False,
         "can_authorize_publication_quality": False,

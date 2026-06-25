@@ -184,11 +184,12 @@ def test_mas_action_catalog_projects_domain_handler_without_new_mcp_tool(tmp_pat
     assert domain_handler_export["surface_kind"] == "mas_family_domain_handler_export"
 
     domain_handler_dispatch = cli_projection["domain_handler_dispatch"]
-    assert domain_handler_dispatch["effect"] == "read_only"
     assert domain_handler_dispatch["command"] == "medautosci domain-handler dispatch --task <task.json> --format json"
     assert domain_handler_dispatch["surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
-    assert "Descriptor-only boundary" in domain_handler_dispatch["summary"]
+    assert domain_handler_dispatch["effect"] == "mutating"
+    assert "Boundary for OPL typed task consumption" in domain_handler_dispatch["summary"]
     assert "paper_mission/start_or_resume" in domain_handler_dispatch["summary"]
+    assert "non-authority" in domain_handler_dispatch["summary"]
     assert "legacy default-executor dispatch is tombstoned" in domain_handler_dispatch["summary"]
     assert "does not create owner receipts" in domain_handler_dispatch["summary"]
     assert "typed blockers" in domain_handler_dispatch["summary"]
@@ -196,11 +197,12 @@ def test_mas_action_catalog_projects_domain_handler_without_new_mcp_tool(tmp_pat
     assert "publication quality" in domain_handler_dispatch["summary"]
     assert "artifact gate" in domain_handler_dispatch["summary"]
     assert "current package" in domain_handler_dispatch["summary"]
+    assert "runtime queue rows" in domain_handler_dispatch["summary"]
 
     assert product_entry_projection["domain_handler_export"]["command"] == domain_handler_export["command"]
     assert product_entry_projection["domain_handler_dispatch"]["command"] == domain_handler_dispatch["command"]
     assert skill_projection["domain_handler_export"]["effect"] == "read_only"
-    assert skill_projection["domain_handler_dispatch"]["effect"] == "read_only"
+    assert skill_projection["domain_handler_dispatch"]["effect"] == "mutating"
 
     assert mcp_projection["domain_handler_export"]["descriptor_only"] is True
     assert mcp_projection["domain_handler_export"]["public_runtime"] is False

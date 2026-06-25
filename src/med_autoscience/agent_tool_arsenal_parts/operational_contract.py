@@ -94,7 +94,7 @@ def success_signals_for_action(*, action_id: str) -> list[str]:
         "no_forbidden_authority_claim",
     ]
     if action_id == "domain_handler_dispatch":
-        signals.insert(1, "owner_receipt_ref_or_typed_blocker_ref_present")
+        signals.insert(1, "non_authority_candidate_package_or_consumption_ledger_present")
     return signals
 
 

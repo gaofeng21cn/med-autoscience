@@ -36,7 +36,7 @@
         "status": "machine_proved",
         "replacement_action_intent": "paper_mission/start_or_resume",
         "product_entry_surface": "medical_paper_product_entry",
-        "product_entry_default_command_contains": "paper-mission inspect",
+        "product_entry_default_command_contains": "paper-mission drive",
         "domain_handler_default_task_kind": "paper_mission/start_or_resume",
         "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
         "legacy_task_kind_policy": {

@@ -495,9 +495,14 @@ def _with_paper_mission_product_entry(
     profile_ref: str | Path | None,
 ) -> dict[str, Any]:
     profile_arg = str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else "<profile>"
-    command = (
+    inspect_command = (
         "uv run python -m med_autoscience.cli paper-mission inspect "
         f"--profile {profile_arg} --study-id <study_id> --format json"
+    )
+    drive_command = (
+        "uv run python -m med_autoscience.cli paper-mission drive "
+        f"--profile {profile_arg} --study-id <study_id> "
+        "--run-id <run_id> --format json"
     )
     authority_boundary = {
         "domain_truth_owner": "MedAutoScience",
@@ -512,8 +517,9 @@ def _with_paper_mission_product_entry(
         "medical_paper_product_entry": {
             "surface_kind": "medical_paper_product_entry",
             "default_action_intent": "paper_mission/start_or_resume",
-            "default_command": command,
-            "inspect_command": command,
+            "default_command": drive_command,
+            "drive_command": drive_command,
+            "inspect_command": inspect_command,
             "start_dry_run_command": (
                 "uv run python -m med_autoscience.cli paper-mission start "
                 f"--profile {profile_arg} --study-id <study_id> "

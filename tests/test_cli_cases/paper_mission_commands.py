@@ -451,6 +451,22 @@ def test_domain_handler_export_defaults_to_paper_mission_start_or_resume(
     paper_mission_tasks = payload["paper_mission_default_tasks"]
     assert paper_mission_tasks
     assert paper_mission_tasks[0]["default_paper_mission_entry"] is True
+    assert paper_mission_tasks[0]["payload"]["paper_mission_command"] == "drive"
+    assert paper_mission_tasks[0]["payload"]["dry_run"] is False
+    assert paper_mission_tasks[0]["payload"]["submit_opl_runtime"] is False
+    assert paper_mission_tasks[0]["payload"]["run_id"].startswith(
+        "domain-handler-default-drive-"
+    )
+    assert paper_mission_tasks[0]["payload"]["dispatch_execution_boundary"] == {
+        "mode": "non_authority_candidate_package_and_consumption_ledger",
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "runtime_queue_submission_requires_explicit_submit_opl_runtime": True,
+    }
+    assert paper_mission_tasks[0]["payload"]["diagnostic_readback_command"] == "start"
+    assert paper_mission_tasks[0]["payload"]["diagnostic_readback_dry_run"] is True
     assert paper_mission_tasks[0]["payload"]["paper_mission"]["dry_run"] is True
     assert not [
         task
@@ -594,6 +610,116 @@ def test_domain_handler_export_paper_mission_task_carries_opl_runtime_carrier_fo
         "/candidate_manifest.json"
     )
     assert task_payload["paper_mission"]["opl_runtime_carrier"] == carrier
+
+
+def test_domain_handler_export_default_task_dispatches_to_drive(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260624Texportdispatch"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::gate-clearing::exportdispatch"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="route_back",
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Exported default task must dispatch to paper mission drive.",
+        "mission_state": "route_back",
+        "artifact_delta_ledger": [],
+        "source_refs": [],
+        "consume_result": {"status": "route_back"},
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "mission_executor",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "stage_terminal_decision": transaction["stage_terminal_decision"],
+            "opl_route_command": transaction["opl_route_command"],
+            "consume_candidate_status": "route_back",
+        },
+        "paper_mission_transaction": transaction,
+        "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps(
+            {
+                "candidate_id": "pmc-dm002-exportdispatch",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "next_owner": "mission_executor",
+                "source_readiness_refs": ["source-readiness:dm002"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    export_exit_code = cli.main(
+        ["domain-handler", "export", "--profile", str(profile_path), "--format", "json"]
+    )
+    export_payload = json.loads(capsys.readouterr().out)
+    assert export_exit_code == 0
+    exported_task = next(
+        task
+        for task in export_payload["paper_mission_default_tasks"]
+        if task["task_kind"] == "paper_mission/start_or_resume"
+        and task["study_id"] == study_id
+    )
+    task_path = tmp_path / "exported-paper-mission-task.json"
+    task_path.write_text(json.dumps(exported_task), encoding="utf-8")
+
+    dispatch_exit_code = cli.main(
+        ["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"]
+    )
+    dispatch_payload = json.loads(capsys.readouterr().out)
+
+    assert dispatch_exit_code == 0
+    assert dispatch_payload["dispatch"]["execution_policy"] == (
+        "paper_mission_drive_non_authority_candidate_and_ledger"
+    )
+    result = dispatch_payload["dispatch"]["result"]
+    assert result["surface_kind"] == "paper_mission_drive_readback"
+    assert result["paper_mission_command"] == "drive"
+    assert result["output_manifest"]["writes_authority"] is False
+    assert result["output_manifest"]["writes_runtime"] is False
+    assert result["output_manifest"]["writes_yang_authority"] is False
+    assert result["candidate_package_readback"]["output_manifest"][
+        "package_manifest_ref"
+    ].endswith(f"/{study_id}/package_manifest.json")
+    assert result["consume_readback"]["consume_output_manifest"][
+        "opl_route_handoff_ref"
+    ].endswith(f"/{study_id}/opl_route_handoff.json")
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
 
@@ -1356,6 +1482,124 @@ def test_domain_handler_dispatch_accepts_paper_mission_dry_run_without_authority
     assert payload["dispatch"]["execution_policy"] == "paper_mission_no_write_dry_run"
     assert payload["dispatch"]["result"]["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_domain_handler_dispatch_drives_default_paper_mission_without_authority_writes(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260624Tdispatch"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::gate-clearing::dispatch"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="route_back",
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Dispatch default paper mission into submission milestone packaging.",
+        "mission_state": "route_back",
+        "artifact_delta_ledger": [],
+        "source_refs": [],
+        "consume_result": {"status": "route_back"},
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "mission_executor",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "stage_terminal_decision": transaction["stage_terminal_decision"],
+            "opl_route_command": transaction["opl_route_command"],
+            "consume_candidate_status": "route_back",
+        },
+        "paper_mission_transaction": transaction,
+        "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps(
+            {
+                "candidate_id": "pmc-dm002-dispatch",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "next_owner": "mission_executor",
+                "source_readiness_refs": ["source-readiness:dm002"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    task_path = tmp_path / "paper-mission-default-task.json"
+    task_path.write_text(
+        json.dumps(
+            {
+                "task_id": "paper-mission-start-or-resume::dm002",
+                "domain_id": "medautoscience",
+                "task_kind": "paper_mission/start_or_resume",
+                "action_intent": "paper_mission/start_or_resume",
+                "payload": {
+                    "profile": str(profile_path),
+                    "study_id": study_id,
+                    "paper_mission_command": "start",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        ["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["dispatch"]["action_intent"] == "paper_mission/start_or_resume"
+    assert payload["dispatch"]["execution_policy"] == (
+        "paper_mission_drive_non_authority_candidate_and_ledger"
+    )
+    result = payload["dispatch"]["result"]
+    assert result["surface_kind"] == "paper_mission_drive_readback"
+    assert result["paper_mission_command"] == "drive"
+    assert result["consume_candidate_status"] == "route_back"
+    assert result["drive_result"]["status"] == "ready_for_opl_route_command"
+    assert result["mutation_policy"]["writes_authority"] is False
+    assert result["mutation_policy"]["writes_runtime"] is False
+    assert result["mutation_policy"]["writes_yang_authority"] is False
+    package_manifest = result["candidate_package_readback"]["output_manifest"]
+    consume_manifest = result["consume_readback"]["consume_output_manifest"]
+    assert package_manifest["mode"] == "non_authority_candidate_package"
+    assert consume_manifest["mode"] == "governed_consume_record"
+    assert Path(package_manifest["package_manifest_ref"]).exists()
+    assert Path(consume_manifest["opl_route_handoff_ref"]).exists()
+    assert str(workspace_root / "ops" / "medautoscience") in result["output_root"]
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
 def test_paper_mission_start_reads_materialized_one_shot_mission_when_present(

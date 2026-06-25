@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -428,6 +429,7 @@ def _paper_mission_start_or_resume_task(
     profile_ref: Path,
     study_id: str,
 ) -> dict[str, Any]:
+    dispatch_run_id = _paper_mission_default_dispatch_run_id(study_id)
     readback = build_paper_mission_readback(
         profile=profile,
         profile_ref=profile_ref,
@@ -461,8 +463,20 @@ def _paper_mission_start_or_resume_task(
         "domain_workspace_root": str(profile.workspace_root),
         "repo_root": str(profile.workspace_root),
         "study_id": study_id,
-        "paper_mission_command": "start",
-        "dry_run": True,
+        "paper_mission_command": "drive",
+        "run_id": dispatch_run_id,
+        "submit_opl_runtime": False,
+        "dry_run": False,
+        "dispatch_execution_boundary": {
+            "mode": "non_authority_candidate_package_and_consumption_ledger",
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "runtime_queue_submission_requires_explicit_submit_opl_runtime": True,
+        },
+        "diagnostic_readback_command": "start",
+        "diagnostic_readback_dry_run": True,
         "paper_mission": readback,
     }
     if carrier:
@@ -601,6 +615,10 @@ def _paper_mission_start_or_resume_task(
             }
         )
     return task
+
+
+def _paper_mission_default_dispatch_run_id(study_id: str) -> str:
+    return f"domain-handler-default-drive-{_slug(study_id)}"
 
 
 def _paper_mission_default_route_handoff(
@@ -1838,6 +1856,10 @@ def _aggregate_domain_refs(studies: list[Mapping[str, Any]]) -> list[dict[str, A
 
 def _fingerprint(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_.-]+", "-", value).strip("-").lower() or "study"
 
 
 __all__ = ["export_family_domain_handler"]

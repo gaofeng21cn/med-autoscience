@@ -456,8 +456,10 @@ def _capability_tags(card: Mapping[str, Any]) -> list[str]:
         tags.extend(["scientific_capability", "refs_only_capability"])
     if "study_progress" in haystack:
         tags.extend(["study_progress", "progress_projection"])
-    if "authority" in haystack:
+    if "authority" in haystack and action_id != "domain_handler_dispatch":
         tags.append("authority_operation")
+    if action_id == "domain_handler_dispatch":
+        tags.extend(["paper_mission", "non_authority_candidate_package"])
     if "quality_repair" in haystack or "repair" in haystack:
         tags.extend(["quality_repair", "owner_callable"])
     if _text(card.get("card_kind")) == "owner_callable":
