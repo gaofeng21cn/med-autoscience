@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-25：OPL closeout object refs 修复属于 transport/currentness，不是论文 authority 进度
+
+- 决策：当 OPL `paper_mission/stage-route` live session 返回 typed closeout packet 且 `closeout_refs` 为 refs-only object array（例如 `{ref_kind, uri, sha256, size_bytes}`）时，MAS 侧不得把 “OPL 读成缺 closeout” 解释为论文产物缺失。该断点归属 OPL typed closeout parser / Temporal compaction 合同。
+- 决策：MAS 继续只消费 OPL same-identity terminal readback、owner receipt refs、typed blocker refs、human gate refs、route-back evidence、quality gate receipt 或 canonical artifact delta。OPL parser 修复只让合法 closeout refs 能被运输、恢复和投影；它不创建 MAS owner receipt、typed blocker authority file、human gate、publication eval、controller decision、current package 或 paper body。
+- 决策：DM002/DM003 的论文进度仍必须从当前 `PaperMissionRun` / `PaperMissionTransaction`、governed candidate consumption ledger、paper-facing candidate artifact delta、MAS authority owner answer、publication gate / reviewer delta、stable typed blocker、human gate 或 route-back evidence 判定。OPL main 上的 parser/currentness 修复只能计为 platform repair absorbed，不能单独写成 submission-ready、publication-ready、domain-ready、runtime-ready 或 paper progress。
+- 理由：本轮根因是两侧 closeout 形状合同不一致：MAS/执行器能产出合法 refs-only object closeout，OPL 旧读面只收字符串或 `ref`，导致 “有 closeout 但 runtime 判定缺 closeout”。正确修复是 OPL normalization 接受 `uri` object 并让 Temporal compaction 复用同一规范化，同时保持 fail-closed。
+- 影响：MAS 文档、readback 和汇报必须把该类修复列为 `platform_or_observability_delta`，除非同一轮 fresh MAS owner evidence 证明 paper-facing candidate、owner receipt、typed blocker、human gate、route-back 或 artifact delta 也发生了变化。
+
 ## 2026-06-24：PaperMission drive 是默认一键推进编排面
 
 - 决策：`paper-mission drive` 是 MAS 侧默认一键推进编排入口。它必须从当前 materialized `PaperMissionRun` 出发，自动执行 foreground `package-candidate`、MAS `consume-candidate`、governed consumption ledger 写入，并返回同一 `PaperMissionTransaction` 的 `StageTerminalDecision`、`OPL RouteCommand` 与 `opl_route_handoff`。
