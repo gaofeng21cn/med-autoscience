@@ -296,13 +296,26 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
                     f"paper-mission::{study_id}::gate-clearing"
                     "#stage_terminal_decision"
                 ),
+                "opl_route_command_ref": (
+                    f"paper-mission-transaction::{study_id}::"
+                    "gate_clearing_claim_evidence_repair::"
+                    f"paper-mission::{study_id}::gate-clearing"
+                    "#opl_route_command"
+                ),
                 "provider_completion_is_domain_completion": False,
                 "provider_completion_is_domain_ready": False,
                 "domain_completion_claimed": False,
                 "domain_ready_claimed": False,
                 "typed_blocker_ref": "closeout.json#domain_blocker",
                 "blocked_reason": "domain_gate_pending",
-                "closeout_refs": ["closeout.json", "typed-blocker:domain_gate_pending"],
+                "closeout_refs": [
+                    f"paper-mission-transaction::{study_id}::"
+                    "gate_clearing_claim_evidence_repair::"
+                    f"paper-mission::{study_id}::gate-clearing"
+                    "#opl_route_command",
+                    "closeout.json",
+                    "typed-blocker:domain_gate_pending",
+                ],
                 "authority_boundary": {
                     "record_only_surface": True,
                     "provider_completion_is_domain_completion": False,

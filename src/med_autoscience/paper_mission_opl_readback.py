@@ -422,6 +422,15 @@ def _opl_task_terminal_closeout(
         control_stage = _text(_mapping(current_control.get("stage_run_currentness_identity")).get("stage_id"))
         if (attempt_stage or control_stage) not in {None, route_target}:
             return None
+    blocked_reason = _first_text(
+        task.get("last_error"),
+        task.get("dead_letter_reason"),
+        current_control.get("blocker_reason"),
+        stage_attempt.get("blocked_reason"),
+        "domain_gate_pending",
+    )
+    if _non_current_closeout_reason(blocked_reason):
+        return None
     closeout_refs = closeout_refs or stage_closeout_refs or _event_closeout_refs(events)
     typed_blocker_ref = (
         typed_blocker_refs[0]
@@ -452,13 +461,7 @@ def _opl_task_terminal_closeout(
         "domain_completion_claimed": False,
         "domain_ready_claimed": False,
         "typed_blocker_ref": typed_blocker_ref,
-        "blocked_reason": _first_text(
-            task.get("last_error"),
-            task.get("dead_letter_reason"),
-            current_control.get("blocker_reason"),
-            stage_attempt.get("blocked_reason"),
-            "domain_gate_pending",
-        ),
+        "blocked_reason": blocked_reason,
         "closeout_refs": closeout_refs,
         "task_id": _text(task.get("task_id")),
         "task_status": status,
@@ -480,11 +483,15 @@ def _opl_task_running_attempt(
     task: Mapping[str, Any],
     stage_attempts: object,
 ) -> dict[str, Any] | None:
-    if _text(task.get("status")) != "running":
+    current_control = _mapping(task.get("current_control_state"))
+    if (
+        _text(task.get("status")) != "running"
+        and current_control.get("running_provider_attempt") is not True
+    ):
         return None
     stage_attempt = _matching_opl_stage_attempt(
         carrier=carrier,
-        current_control=_mapping(task.get("current_control_state")),
+        current_control=current_control,
         stage_attempts=stage_attempts,
     )
     if not stage_attempt:
@@ -627,6 +634,11 @@ def _matches_carrier(
     route_target = _carrier_route_target(carrier)
     if route_target is not None and _text(closeout.get("stage_id")) != route_target:
         return False
+    if _carrier_has_opl_route_identity(carrier) and (
+        _non_current_closeout_reason(closeout.get("blocked_reason"))
+        or not _closeout_binds_route_identity(closeout=closeout, carrier=carrier)
+    ):
+        return False
     if closeout.get("provider_completion_is_domain_completion") is True:
         return False
     if closeout.get("provider_completion_is_domain_ready") is True:
@@ -637,6 +649,34 @@ def _matches_carrier(
         return False
     boundary = _mapping(closeout.get("authority_boundary"))
     return boundary.get("record_only_surface") is True
+
+
+def _closeout_binds_route_identity(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+) -> bool:
+    refs = {
+        ref
+        for ref in (
+            _text(closeout.get("stage_packet_ref")),
+            _text(closeout.get("opl_route_command_ref")),
+            _text(closeout.get("route_command_ref")),
+            *_text_list(closeout.get("closeout_refs")),
+        )
+        if ref is not None
+    }
+    route_ref = _text(carrier.get("opl_route_command_ref"))
+    return route_ref is not None and route_ref in refs
+
+
+def _non_current_closeout_reason(value: object) -> bool:
+    reason = _text(value)
+    if reason is None:
+        return False
+    return reason == "stage_attempt_currentness_mismatch" or reason.startswith(
+        "operator_retired_stale_runtime_residue:"
+    )
 
 
 def _carrier_has_opl_route_identity(carrier: Mapping[str, Any]) -> bool:

@@ -160,6 +160,85 @@ def test_opl_terminal_closeout_readback_accepts_current_route_target_closeout(
     assert readback["terminal_closeout"]["stage_id"] == "publication_gate_replay"
 
 
+def test_opl_terminal_closeout_readback_rejects_unbound_local_closeout_for_route_identity(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "blocked_reason": "domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_terminal_closeout_readback_rejects_currentness_mismatch_residue(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+            "closeout_refs": [
+                carrier["stage_terminal_decision_ref"],
+                carrier["opl_route_command_ref"],
+                "typed-blocker:stage_attempt_currentness_mismatch",
+            ],
+            "typed_blocker_ref": "local-closeout#domain_blocker",
+            "blocked_reason": "stage_attempt_currentness_mismatch",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_terminal_closeout_readback_rejects_retired_stale_opl_task(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    payload = _opl_runtime_task_payload()
+    task = payload["family_runtime_task"]["task"]
+    task["last_error"] = (
+        "operator_retired_stale_runtime_residue:"
+        "mas_paper_mission_current_thread_replaces_stale_stage_route_rows"
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
 def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
     tmp_path: Path,
 ) -> None:
@@ -267,6 +346,34 @@ def test_opl_runtime_readback_reports_same_identity_running_attempt(
     assert running["provider_status"] == "running"
     assert running["workflow_id"] == "wf-running"
     assert running["provider_completion_is_domain_ready"] is False
+
+
+def test_opl_runtime_readback_accepts_current_control_running_on_blocked_task(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    payload = _opl_running_task_running_attempt_payload()
+    task = payload["family_runtime_task"]["task"]
+    task["status"] = "blocked"
+    task["current_control_state"] = {
+        "running_provider_attempt": True,
+        "current_stage_attempt_id": "sat-running",
+    }
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-running"
+    assert readback["running_attempt"]["task_status"] == "blocked"
+    assert readback["running_attempt"]["provider_status"] == "running"
+    assert readback["can_claim_paper_progress"] is False
 
 
 def test_opl_runtime_readback_prefers_running_terminal_successor_over_old_closeout(

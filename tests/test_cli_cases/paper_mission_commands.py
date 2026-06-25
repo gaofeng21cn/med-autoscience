@@ -265,6 +265,9 @@ def _write_matching_domain_gate_closeout(
                 "stage_packet_ref": (
                     f"{transaction['transaction_id']}#stage_terminal_decision"
                 ),
+                "opl_route_command_ref": (
+                    f"{transaction['transaction_id']}#opl_route_command"
+                ),
                 "provider_attempt_ref": "temporal://attempt/sat-terminal",
                 "provider_completion_is_domain_completion": False,
                 "provider_completion_is_domain_ready": False,
@@ -276,6 +279,7 @@ def _write_matching_domain_gate_closeout(
                 ),
                 "blocked_reason": "domain_gate_pending",
                 "closeout_refs": [
+                    f"{transaction['transaction_id']}#opl_route_command",
                     "artifacts/supervision/consumer/default_executor_execution/"
                     "sat-terminal.closeout.json",
                     "typed-blocker:domain_gate_pending",
