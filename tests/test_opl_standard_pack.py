@@ -127,6 +127,19 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "domain_adapter_must_not_copy_policy_body_as_authority": True,
         "consumer_alignment_check": "foundry:policy-release",
     }
+    assert foundry_series["agent_membership_projection_policy"] == {
+        "surface_kind": "opl_foundry_agent_membership_projection_policy",
+        "version": "foundry-agent-membership-projection.v1",
+        "policy_id": "standard_agent_membership_not_surface_origin",
+        "default_membership": "standard_domain_agent",
+        "public_agent_list_must_not_split_by_generated_surface": True,
+        "public_agent_list_must_not_split_by_plugin_transport": True,
+        "generated_surface_is_membership_axis": False,
+        "generated_surface_is_status_axis": False,
+        "plugin_transport_is_membership_axis": False,
+        "plugin_transport_is_status_axis": False,
+        "generated_surface_only_field_public_default": False,
+    }
     assert generated["domain_descriptor"]["standard_contract_refs"][
         "foundry_agent_series_policy_release"
     ] == "contracts/opl-framework/foundry-agent-series-policy-release.json"

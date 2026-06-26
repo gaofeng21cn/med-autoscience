@@ -13,6 +13,20 @@ SHARED_POLICY_RELEASE = {
     "consumer_alignment_check": "foundry:policy-release",
 }
 
+AGENT_MEMBERSHIP_PROJECTION_POLICY = {
+    "surface_kind": "opl_foundry_agent_membership_projection_policy",
+    "version": "foundry-agent-membership-projection.v1",
+    "policy_id": "standard_agent_membership_not_surface_origin",
+    "default_membership": "standard_domain_agent",
+    "public_agent_list_must_not_split_by_generated_surface": True,
+    "public_agent_list_must_not_split_by_plugin_transport": True,
+    "generated_surface_is_membership_axis": False,
+    "generated_surface_is_status_axis": False,
+    "plugin_transport_is_membership_axis": False,
+    "plugin_transport_is_status_axis": False,
+    "generated_surface_only_field_public_default": False,
+}
+
 SERIES_DESIGN_PROFILE = {
     "surface_kind": "opl_foundry_agent_series_design_profile",
     "version": "foundry-agent-series-design-profile.v1",

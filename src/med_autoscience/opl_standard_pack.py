@@ -47,6 +47,7 @@ from med_autoscience.opl_standard_pack_parts.authority_policies import (
     STAGE_QUALITY_GATE_BOUNDARIES,
 )
 from med_autoscience.opl_standard_pack_parts.series_profiles import (
+    AGENT_MEMBERSHIP_PROJECTION_POLICY,
     DOMAIN_SPECIFIC_PROFILE,
     SERIES_DESIGN_PROFILE,
     SHARED_POLICY_RELEASE,
@@ -175,6 +176,7 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
             "domain_contract_version_pin_does_not_authorize_domain_truth": True,
         },
         "shared_policy_release": SHARED_POLICY_RELEASE,
+        "agent_membership_projection_policy": AGENT_MEMBERSHIP_PROJECTION_POLICY,
         "series_design_profile": SERIES_DESIGN_PROFILE,
         "workspace_topology_profile": WORKSPACE_TOPOLOGY_PROFILE,
         "domain_specific_profile": DOMAIN_SPECIFIC_PROFILE,

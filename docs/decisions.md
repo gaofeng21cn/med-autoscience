@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-26：DM002/DM003 停滞根因按 transport、candidate materializer 与 currentness 分账修复
+
+- 决策：本轮 “目标受阻 / stage 无法推进” 的根因按三层分账，不再把它描述成单一 MAS stage blocker。第一层是 OPL transport defect：`domain-handler export` 与 `dispatch` 共用短 timeout，clean MAS export 超过预算时被 OPL 误杀。第二层是 MAS foreground candidate gap：旧 `package-candidate` 虽有 milestone shape，但 paper-facing 内容仍偏泛化。第三层是 read-model/currentness guard：governed consumption ledger 已 current 时，旧 terminal closeout residue 不得覆盖当前 transaction。
+- 决策：OPL timeout 修复的 owner 是 `one-person-lab`。MAS 文档和 readback 只能把该修复记为 `platform_or_observability_delta` / route transport currentness 修复；它不创建 MAS owner receipt、typed blocker authority file、human gate、publication eval、controller decision、current package、paper body、OPL provider running proof、runtime-ready、submission-ready 或 publication-ready。
+- 决策：MAS `paper-mission package-candidate` 的当前合法 paper-facing 推进是生成 `concrete_non_authority_paper_delta`。materializer 可以读取 manuscript markdown 与 claim/evidence/table/figure/review JSON source snapshot，物化 patch operation、claim/evidence row、figure/table candidate、reviewer response draft 和 owner ballot；这些 artifact 可作为非权威候选产物和 owner-consumption input，但不得写入或冒充 authority surfaces。
+- 决策：当 `paper_mission_consumption_ledger` 存在 same-study current transaction 时，`paper-mission inspect` 与 `study_progress` 顶层必须以 governed ledger 的 `StageTerminalDecision` / `OPL RouteCommand` 为准。只有同一 current carrier identity 的 terminal closeout 可派生 terminal owner-answer route-back；不匹配的旧 terminal residue 必须保持诊断 residue，不得生成顶层 `terminal_owner_gate_owner_answer_readback` 或覆盖 `resume_stage` handoff。
+- 理由：此前长期停滞的循环把 transport 超时、候选产物泛化、OPL running/readback、MAS authority owner-answer 和 read-model residue 混在一起，导致 “修了一个层面” 仍被误判为未推进或错误 closeout。分账后，OPL route 运输、MAS non-authority candidate、governed consume ledger、MAS authority acceptance 和 live provider proof 分别有各自 owner 与证据。
+- 影响：该决策允许 repo-source / CLI / test / docs 层闭合 materializer 和 currentness contract，但最终 DM002/DM003 论文目标仍必须由 fresh `PaperMissionRun` / candidate package / consumption ledger / OPL attempt readback / owner receipt / typed blocker / human gate / route-back / reviewer-gate delta 逐项证明。focused tests、docs 写回、OPL queue running 或 pushed commits 不能单独声明论文完成、submission-ready、publication-ready、runtime-ready 或 production-ready。
+
 ## 2026-06-25：OPL closeout object refs 修复属于 transport/currentness，不是论文 authority 进度
 
 - 决策：当 OPL `paper_mission/stage-route` live session 返回 typed closeout packet 且 `closeout_refs` 为 refs-only object array（例如 `{ref_kind, uri, sha256, size_bytes}`）时，MAS 侧不得把 “OPL 读成缺 closeout” 解释为论文产物缺失。该断点归属 OPL typed closeout parser / Temporal compaction 合同。

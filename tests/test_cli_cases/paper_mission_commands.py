@@ -2544,12 +2544,18 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     assert inspect_payload["paper_mission_transaction_readback"]["source"] == (
         "paper_mission_consumption_ledger"
     )
-    assert inspect_payload["terminal_owner_gate_owner_answer_readback"]["status"] == (
-        "route_back"
+    assert inspect_payload["next_owner_or_human_decision"]["next_owner"] == (
+        "mission_executor"
     )
-    assert inspect_payload["paper_mission_transaction"] != inspect_payload[
+    assert inspect_payload["next_owner_or_human_decision"]["route_command"] == (
+        "resume_stage"
+    )
+    assert inspect_payload["terminal_owner_gate"] is None
+    assert inspect_payload["terminal_owner_gate_authority_readback"] is None
+    assert inspect_payload["terminal_owner_gate_owner_answer_readback"] is None
+    assert inspect_payload["paper_mission_transaction_readback"][
         "terminal_owner_gate_owner_answer_readback"
-    ]["paper_mission_transaction"]
+    ] is None
     assert inspect_payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 

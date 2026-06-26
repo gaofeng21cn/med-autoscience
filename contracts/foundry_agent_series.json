@@ -1,4 +1,17 @@
 {
+  "agent_membership_projection_policy": {
+    "default_membership": "standard_domain_agent",
+    "generated_surface_is_membership_axis": false,
+    "generated_surface_is_status_axis": false,
+    "generated_surface_only_field_public_default": false,
+    "plugin_transport_is_membership_axis": false,
+    "plugin_transport_is_status_axis": false,
+    "policy_id": "standard_agent_membership_not_surface_origin",
+    "public_agent_list_must_not_split_by_generated_surface": true,
+    "public_agent_list_must_not_split_by_plugin_transport": true,
+    "surface_kind": "opl_foundry_agent_membership_projection_policy",
+    "version": "foundry-agent-membership-projection.v1"
+  },
   "app_projection_policy": {
     "app_can_claim_quality_or_export": false,
     "app_can_read_domain_body": false,

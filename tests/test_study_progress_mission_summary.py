@@ -747,12 +747,18 @@ def test_materialized_mission_summary_keeps_governed_consumption_current_when_te
     assert payload["paper_mission_transaction"]["stage_id"] == (
         "submission_milestone_candidate"
     )
-    assert payload["terminal_owner_gate_owner_answer_readback"]["status"] == (
-        "route_back"
+    assert payload["next_owner_or_human_decision"]["next_owner"] == (
+        "mission_executor"
     )
-    assert payload["paper_mission_transaction"] != payload[
+    assert payload["next_owner_or_human_decision"]["route_command"] == (
+        "resume_stage"
+    )
+    assert payload["terminal_owner_gate"] is None
+    assert payload["terminal_owner_gate_authority_readback"] is None
+    assert payload["terminal_owner_gate_owner_answer_readback"] is None
+    assert payload["artifact_first_mission_summary"][
         "terminal_owner_gate_owner_answer_readback"
-    ]["paper_mission_transaction"]
+    ] is None
     assert payload["artifact_first_mission_summary"]["read_model_source"][
         "source_kind"
     ] == "paper_mission_consumption_ledger"
