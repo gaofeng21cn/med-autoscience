@@ -11,6 +11,8 @@ Machine boundary: 人读示例文档。机器真相继续归 display-pack templa
 
 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。代码、payload 或 style 可能变化时运行默认增量构建：
 
+作为 OPL ScholarSkills `opl.scholarskills.display` 的 compact gallery review package 时，只传播 PDF gallery、reference、status、quality audit、manifest 和 snapshot 这类审阅 refs。该 package 用于人工快速判断默认覆盖、视觉下限和质量审计注记；它不是 publication-ready、visual audit receipt、artifact authority、paper truth 或 owner acceptance。workspace / quest 的 `.codex/skills/opl-scholarskills` install 不应复制 `outputs/display-pack-gallery/` build workspace、render caches、single-figure PNG/SVG/HTML exports、dependency locks、run-context files 或其他大规模中间产物。
+
 ```bash
 ./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
 ```

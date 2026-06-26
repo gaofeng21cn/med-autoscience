@@ -16757,7 +16757,7 @@
       },
       "callability": "mcp_runtime",
       "card_kind": "action_catalog",
-      "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+      "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "default_invocation": {
         "arguments": {},

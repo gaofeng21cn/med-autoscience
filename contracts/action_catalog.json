@@ -884,7 +884,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+        "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
         "surface_kind": "mas_scientific_capability_registry"
       },
       "summary": "Expose the MAS scientific capability registry as a current-owner-delta-bound resolver. It can list capabilities, resolve refs-only advisory candidates for the current owner delta, or invoke already-landed refs-only capability surfaces without adding a default external runtime, selector, backlog, or admission gate.",
@@ -893,11 +893,11 @@
           "tool_name": "scientific_capability_registry"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
           "surface_kind": "mas_scientific_capability_registry"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
           "descriptor_only": false,
           "public_runtime": true,
           "surface_kind": "mas_scientific_capability_registry",
@@ -908,11 +908,11 @@
         },
         "product_entry": {
           "action_key": "scientific_capability_registry",
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
           "surface_kind": "mas_scientific_capability_registry"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
           "command_contract_id": "scientific_capability_registry",
           "surface_kind": "mas_scientific_capability_registry"
         }

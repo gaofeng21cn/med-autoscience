@@ -77,13 +77,13 @@ MAS 当前吸收的不是 Docker / OpenHands sandbox runtime，而是 lightweigh
 
 ## 后续优化折回
 
-External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前 MAS repo-native callable 入口是 `scientific_capability_registry`，由 action catalog、MCP runtime、CLI/product-entry 和 Agent Tool Arsenal 暴露 `index / resolve / invoke` ABI；hosted OPL ordinary path 仍按 OPL family-level `W3-capability-registry-fail-open` 消费该 ABI。
+External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前 MAS repo-native callable 入口是 `scientific_capability_registry`，由 action catalog、MCP runtime、CLI/product-entry 和 Agent Tool Arsenal 暴露 `summary / inventory / index / resolve / invoke` ABI；CLI 另提供 `owner-consumption` 文件化 package 消费入口，用于把 OPL ScholarSkills materialized package 归一为 MAS owner-gate request/readback。hosted OPL ordinary path 仍按 OPL family-level `W3-capability-registry-fail-open` 消费这些 ABI。
 
 - `W3-capability-registry-fail-open`：OPL `Atlas + Pack + Stagecraft` 负责 hosted current-delta-bound capability resolver / selector、fail-open policy 和 route-required blocker policy；MAS 只提供 repo-native capability registry ABI 和 domain authority boundary。
 - `W4-domain-kernel-manifest`：MAS 负责声明每个 external-learning ref family 的 domain consumption boundary、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级条件。
 - `W7-production-evidence-soak`：只有 ARS claim-support、AutoSci source discovery、ARK micro-canary 等 refs 被真实 owner action 消费并产出 owner receipt、typed blocker、reviewer receipt、human gate 或 route-back evidence 后，才计入 study progress。
 
-因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot，`scientific_capability_registry` 只负责按 `current_owner_delta` 列出、解析或显式调用已落地 refs-only capability。
+因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot，`scientific_capability_registry` 只负责按 `current_owner_delta` 汇总、列出、解析或显式调用已落地 refs-only capability，并通过 CLI 文件输入消费 ScholarSkills package refs。
 
 Nature-skills 2026-06-18 router/manifest 学习项也遵守同一条规则：`manifest.yaml` 的 axes / `always_load` / `references.on_demand` 可以启发 MAS-owned prompt authoring、stage quality pack descriptor、Display Pack descriptor 或 generated product-entry descriptor 的加载声明；不能把 Nature-skills manifest 当成 MAS 默认 skill source，也不能在 MAS repo 内新增独立 router selector。若未来推进实现，只能把缺口落为现有 owner surface 可消费的 descriptor field、quality pack ref floor、route-required ref、typed blocker candidate 或 OPL-hosted capability registry 消费项。
 
@@ -95,7 +95,9 @@ External-learning 的当前统一落地面是 `scientific_capability_registry` +
 - `scholarskills_module_capability`：图、表、统计、组学、文献、写作、review、投稿、数据、intake 十类学术能力以 `opl.scholarskills.<module>` descriptor、required ref families、execution receipt candidate 和 file-materialized package manifest 暴露给 MAS。
 - `paper_mission_candidate_package_capability`：`paper-mission package-candidate` 将当前 PaperMission readback 转成 16 个非权威候选文件，包括 `owner_consumption_request.json`、`owner_blocker_packet.json`、`submission_milestone_checklist.json` 与 paper-facing candidate artifacts，用于 owner-consumption-first。
 
-这些 landing 的共同 contract 是：MAS 可以发现、resolve、invoke readback、消费 refs、生成 owner-gate request 或 owner-blocker packet；MAS 不因这些 refs 直接写 study truth、paper body、artifact body、publication eval、controller decisions、owner receipt、typed blocker、human gate、submission package 或 `current_package`。当 external-learning / ScholarSkills package 缺 required refs、含 truthy authority flag、含 forbidden `written_files` 或 module id mismatch 时，consumer fail closed；当只是缺 advisory 或缺 owner response refs 时，ordinary current owner action fail-open 继续推进。
+`scholarskills_module_capability` 的 source of truth 是外部 `opl-scholarskills` repo 的 skill entry 和 module contract。MAS 只引用该 source 的 descriptor/readback、authority false flags、required ref families 和 compact review refs，不在本仓维护第二套 ScholarSkills catalog。Display gallery 的跨仓传播只允许 compact review package：PDF gallery、reference、status、quality audit、manifest 和 snapshot；不得把 MAS `outputs/display-pack-gallery/` build workspace、render caches、single-figure PNG/SVG/HTML exports、dependency locks、run-context files 或其他大规模中间产物复制进每个 workspace / quest local install。
+
+这些 landing 的共同 contract 是：MAS 可以 `summary` / `inventory` 汇总当前能力面，发现、resolve、invoke readback、消费 refs、生成 owner-gate request 或 owner-blocker packet；MAS 不因这些 refs 直接写 study truth、paper body、artifact body、publication eval、controller decisions、owner receipt、typed blocker、human gate、submission package 或 `current_package`。当 external-learning / ScholarSkills package 缺 required refs、含 truthy authority flag、含 forbidden `written_files` 或 module id mismatch 时，consumer fail closed；当只是缺 advisory 或缺 owner response refs 时，ordinary current owner action fail-open 继续推进。
 
 只有后续 MAS owner surface 返回 owner receipt、quality gate receipt、reviewer receipt、route-back evidence、stable typed blocker、human gate 或 accepted canonical artifact delta，external-learning output 才能从 capability candidate 晋级为真实 paper / study progress。
 
