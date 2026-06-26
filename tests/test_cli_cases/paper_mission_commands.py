@@ -2550,12 +2550,25 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     assert inspect_payload["next_owner_or_human_decision"]["route_command"] == (
         "resume_stage"
     )
-    assert inspect_payload["terminal_owner_gate"] is None
-    assert inspect_payload["terminal_owner_gate_authority_readback"] is None
-    assert inspect_payload["terminal_owner_gate_owner_answer_readback"] is None
+    terminal_gate = inspect_payload["terminal_owner_gate"]
+    assert terminal_gate["owner"] == "mas_authority_kernel"
+    assert terminal_gate["gate_kind"] == "domain_gate"
+    assert terminal_gate["can_claim_paper_progress"] is False
+    assert terminal_gate["can_claim_runtime_ready"] is False
+    authority_readback = inspect_payload["terminal_owner_gate_authority_readback"]
+    assert authority_readback["status"] == "route_back"
+    assert authority_readback["selected_outcome"] == "route_back_evidence_ref"
+    assert authority_readback["owner_answer_materialized"] is True
+    assert authority_readback["authority_boundary"]["can_claim_paper_progress"] is False
+    owner_answer = inspect_payload["terminal_owner_gate_owner_answer_readback"]
+    assert owner_answer["owner_answer_shape"] == "route_back_evidence_ref"
+    assert owner_answer["can_claim_paper_progress"] is False
+    assert owner_answer["can_claim_runtime_ready"] is False
+    assert owner_answer["write_plan"]["written_files"] == []
+    assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert inspect_payload["paper_mission_transaction_readback"][
         "terminal_owner_gate_owner_answer_readback"
-    ] is None
+    ] == owner_answer
     assert inspect_payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
