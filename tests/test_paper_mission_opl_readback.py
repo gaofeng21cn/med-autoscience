@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
+import textwrap
+import time
 from pathlib import Path
 
 from med_autoscience.paper_mission_opl_readback import (
@@ -465,7 +470,13 @@ def test_opl_runtime_live_probe_uses_queue_list_liveness_before_heavy_inspect(
     opl_bin = tmp_path / "opl"
     opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
 
-    def fake_opl_json(_opl_bin: Path, args: tuple[str, ...]) -> dict[str, object] | None:
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
         if args[:3] == ("family-runtime", "queue", "list"):
             return _opl_queue_with_terminal_and_running_successor_payload()
         raise AssertionError("heavy queue inspect should not be needed")
@@ -483,6 +494,83 @@ def test_opl_runtime_live_probe_uses_queue_list_liveness_before_heavy_inspect(
     assert readback["runtime_readback_status"] == "running_attempt_observed"
     assert readback["running_attempt"]["stage_attempt_id"] == "sat-successor"
     assert "terminal_closeout" not in readback
+
+
+def test_opl_runtime_live_probe_caps_heavy_inspect_count(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    inspected: list[str] = []
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_many_matching_terminal_tasks_payload()
+        if args[:3] == ("family-runtime", "queue", "inspect"):
+            inspected.append(args[3])
+            return _opl_runtime_task_payload()
+        raise AssertionError(f"unexpected OPL command: {args}")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert inspected == ["frt-stage-route-0", "frt-stage-route-1"]
+
+
+def test_opl_json_timeout_terminates_process_group_without_hanging(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text(
+        textwrap.dedent(
+            f"""\
+            #!{sys.executable}
+            import subprocess
+            import sys
+            import time
+
+            subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                stdout=sys.stdout,
+                stderr=sys.stderr,
+            )
+            time.sleep(30)
+            """
+        ),
+        encoding="utf-8",
+    )
+    os.chmod(opl_bin, 0o755)
+
+    started = time.monotonic()
+    payload = readback_module._run_opl_json(
+        opl_bin,
+        ("family-runtime", "queue", "list", "--json"),
+        timeout_seconds=0.2,
+    )
+    elapsed = time.monotonic() - started
+
+    assert payload is None
+    assert elapsed < 2.0
 
 
 def _carrier() -> dict[str, str]:
@@ -712,6 +800,28 @@ def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object
                 },
             },
             "tasks": [terminal, successor],
+        },
+    }
+
+
+def _opl_queue_with_many_matching_terminal_tasks_payload() -> dict[str, object]:
+    tasks = []
+    for index in range(5):
+        task = _opl_runtime_task_payload()["family_runtime_task"]["task"]
+        task["task_id"] = f"frt-stage-route-{index}"
+        task["current_control_state"] = {}
+        tasks.append(task)
+    return {
+        "version": "g2",
+        "family_runtime_queue": {
+            "surface_id": "opl_family_runtime_queue",
+            "queue": {
+                "total": len(tasks),
+                "by_status": {
+                    "blocked": len(tasks),
+                },
+            },
+            "tasks": tasks,
         },
     }
 

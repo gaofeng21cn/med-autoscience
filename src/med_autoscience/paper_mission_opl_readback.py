@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import shutil
 import subprocess
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -20,6 +22,8 @@ PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
 DEFAULT_OPL_READBACK_TIMEOUT_SECONDS = 8.0
+DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS = 8.0
+DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT = 2
 OPL_STAGE_ROUTE_TASK_KIND = "paper_mission/stage-route"
 OPL_DOMAIN_ID = "medautoscience"
 
@@ -31,11 +35,20 @@ def paper_mission_opl_runtime_carrier_readback(
     opl_runtime_payload: Mapping[str, Any] | None = None,
     enable_opl_live_probe: bool = True,
 ) -> dict[str, Any]:
-    running = _matching_opl_runtime_running_attempt(
-        carrier=carrier,
-        opl_runtime_payload=opl_runtime_payload,
-        enable_opl_live_probe=enable_opl_live_probe,
-    )
+    live_probe = None
+    live_probe_attempted = False
+    if opl_runtime_payload is None and enable_opl_live_probe:
+        live_probe_attempted = True
+        live_probe = _matching_opl_runtime_live_probe(carrier=carrier)
+    running = None
+    if live_probe is not None and live_probe[0] == "running":
+        running = (live_probe[1], live_probe[2])
+    elif not live_probe_attempted:
+        running = _matching_opl_runtime_running_attempt(
+            carrier=carrier,
+            opl_runtime_payload=opl_runtime_payload,
+            enable_opl_live_probe=enable_opl_live_probe,
+        )
     if running is not None:
         attempt, attempt_ref = running
         return {
@@ -59,11 +72,14 @@ def paper_mission_opl_runtime_carrier_readback(
         }
     matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
     if matched is None:
-        matched = _matching_opl_runtime_terminal_closeout(
-            carrier=carrier,
-            opl_runtime_payload=opl_runtime_payload,
-            enable_opl_live_probe=enable_opl_live_probe,
-        )
+        if live_probe is not None and live_probe[0] == "terminal":
+            matched = (live_probe[1], live_probe[2])
+        elif not live_probe_attempted:
+            matched = _matching_opl_runtime_terminal_closeout(
+                carrier=carrier,
+                opl_runtime_payload=opl_runtime_payload,
+                enable_opl_live_probe=enable_opl_live_probe,
+            )
     if matched is None:
         return {
             "surface_kind": "paper_mission_opl_runtime_carrier_readback",
@@ -176,6 +192,7 @@ def _matching_opl_runtime_terminal_closeout(
         )
     if not enable_opl_live_probe:
         return None
+    deadline = time.monotonic() + DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS
     list_args = (
         "family-runtime",
         "queue",
@@ -196,8 +213,15 @@ def _matching_opl_runtime_terminal_closeout(
     for candidate in _ranked_opl_bin_candidates():
         if not candidate.exists():
             continue
-        list_payload = _run_opl_json(candidate, list_args)
-        for task in _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload):
+        list_payload = _run_opl_json(
+            candidate,
+            list_args,
+            timeout_seconds=_remaining_seconds(deadline),
+        )
+        for task in _matching_opl_tasks_from_list(
+            carrier=carrier,
+            payload=list_payload,
+        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
             task_id = _text(task.get("task_id"))
             if task_id is None:
                 continue
@@ -208,6 +232,7 @@ def _matching_opl_runtime_terminal_closeout(
                     task_id,
                     "--json",
                 ),
+                timeout_seconds=_remaining_seconds(deadline),
             )
             matched = _matching_opl_runtime_payload_closeout(
                 carrier=carrier,
@@ -215,6 +240,80 @@ def _matching_opl_runtime_terminal_closeout(
             )
             if matched is not None:
                 return matched
+    return None
+
+
+def _matching_opl_runtime_live_probe(
+    *,
+    carrier: Mapping[str, Any],
+) -> tuple[str, dict[str, Any], str] | None:
+    if not _carrier_has_opl_route_identity(carrier):
+        return None
+    deadline = time.monotonic() + DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS
+    list_args = (
+        "family-runtime",
+        "queue",
+        "list",
+        "--domain",
+        OPL_DOMAIN_ID,
+        "--study",
+        _text(carrier.get("study_id")) or "",
+        "--task-kind",
+        OPL_STAGE_ROUTE_TASK_KIND,
+        "--json",
+    )
+    inspect_args_prefix = (
+        "family-runtime",
+        "queue",
+        "inspect",
+    )
+    terminal_match: tuple[dict[str, Any], str] | None = None
+    for candidate in _ranked_opl_bin_candidates():
+        if not candidate.exists():
+            continue
+        list_payload = _run_opl_json(
+            candidate,
+            list_args,
+            timeout_seconds=_remaining_seconds(deadline),
+        )
+        matched_running = _matching_opl_runtime_payload_running_attempt(
+            carrier=carrier,
+            payload=list_payload,
+        )
+        if matched_running is not None:
+            attempt, attempt_ref = matched_running
+            return "running", attempt, attempt_ref
+        for task in _matching_opl_tasks_from_list(
+            carrier=carrier,
+            payload=list_payload,
+        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
+            task_id = _text(task.get("task_id"))
+            if task_id is None:
+                continue
+            inspect_payload = _run_opl_json(
+                candidate,
+                (
+                    *inspect_args_prefix,
+                    task_id,
+                    "--json",
+                ),
+                timeout_seconds=_remaining_seconds(deadline),
+            )
+            matched_running = _matching_opl_runtime_payload_running_attempt(
+                carrier=carrier,
+                payload=inspect_payload,
+            )
+            if matched_running is not None:
+                attempt, attempt_ref = matched_running
+                return "running", attempt, attempt_ref
+            if terminal_match is None:
+                terminal_match = _matching_opl_runtime_payload_closeout(
+                    carrier=carrier,
+                    payload=inspect_payload,
+                )
+        if terminal_match is not None:
+            closeout, closeout_ref = terminal_match
+            return "terminal", closeout, closeout_ref
     return None
 
 
@@ -233,6 +332,7 @@ def _matching_opl_runtime_running_attempt(
         )
     if not enable_opl_live_probe:
         return None
+    deadline = time.monotonic() + DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS
     list_args = (
         "family-runtime",
         "queue",
@@ -253,14 +353,21 @@ def _matching_opl_runtime_running_attempt(
     for candidate in _ranked_opl_bin_candidates():
         if not candidate.exists():
             continue
-        list_payload = _run_opl_json(candidate, list_args)
+        list_payload = _run_opl_json(
+            candidate,
+            list_args,
+            timeout_seconds=_remaining_seconds(deadline),
+        )
         matched = _matching_opl_runtime_payload_running_attempt(
             carrier=carrier,
             payload=list_payload,
         )
         if matched is not None:
             return matched
-        for task in _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload):
+        for task in _matching_opl_tasks_from_list(
+            carrier=carrier,
+            payload=list_payload,
+        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
             task_id = _text(task.get("task_id"))
             if task_id is None:
                 continue
@@ -271,6 +378,7 @@ def _matching_opl_runtime_running_attempt(
                     task_id,
                     "--json",
                 ),
+                timeout_seconds=_remaining_seconds(deadline),
             )
             matched = _matching_opl_runtime_payload_running_attempt(
                 carrier=carrier,
@@ -817,7 +925,14 @@ def _ranked_opl_bin_candidates() -> list[Path]:
     return ranked
 
 
-def _run_opl_json(opl_bin: Path, args: tuple[str, ...]) -> dict[str, Any] | None:
+def _run_opl_json(
+    opl_bin: Path,
+    args: tuple[str, ...],
+    *,
+    timeout_seconds: float = DEFAULT_OPL_READBACK_TIMEOUT_SECONDS,
+) -> dict[str, Any] | None:
+    if timeout_seconds <= 0:
+        return None
     process: subprocess.Popen[str] | None = None
     try:
         process = subprocess.Popen(
@@ -827,11 +942,10 @@ def _run_opl_json(opl_bin: Path, args: tuple[str, ...]) -> dict[str, Any] | None
             text=True,
             start_new_session=True,
         )
-        stdout, _ = process.communicate(timeout=DEFAULT_OPL_READBACK_TIMEOUT_SECONDS)
+        stdout, _ = process.communicate(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
         if process is not None:
-            process.kill()
-            process.communicate()
+            _terminate_process_group(process)
         return None
     except OSError:
         return None
@@ -842,6 +956,36 @@ def _run_opl_json(opl_bin: Path, args: tuple[str, ...]) -> dict[str, Any] | None
     except json.JSONDecodeError:
         return None
     return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _remaining_seconds(deadline: float) -> float:
+    return max(0.0, deadline - time.monotonic())
+
+
+def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    except OSError:
+        process.kill()
+        return
+    try:
+        process.communicate(timeout=0.2)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    except OSError:
+        process.kill()
+        return
+    try:
+        process.communicate(timeout=0.2)
+    except subprocess.TimeoutExpired:
+        pass
 
 
 def _study_relative_ref(*, study_root: Path, path: Path) -> str:
