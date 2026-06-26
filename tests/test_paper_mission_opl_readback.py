@@ -496,7 +496,105 @@ def test_opl_runtime_live_probe_uses_queue_list_liveness_before_heavy_inspect(
     assert "terminal_closeout" not in readback
 
 
-def test_opl_runtime_live_probe_caps_heavy_inspect_count(
+def test_opl_runtime_default_readback_does_not_probe_live_queue(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+
+    def fail_opl_json(*_args, **_kwargs) -> None:
+        raise AssertionError("default readback must not call OPL live queue")
+
+    monkeypatch.setattr(readback_module, "_run_opl_json", fail_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+
+
+def test_opl_runtime_live_probe_does_not_heavy_inspect_when_list_lacks_summary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    calls: list[tuple[str, ...]] = []
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        calls.append(args)
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_matching_tasks_without_closeout_summary_payload()
+        raise AssertionError("live probe must not call heavy queue inspect")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert [call[:3] for call in calls] == [("family-runtime", "queue", "list")]
+
+
+def test_opl_runtime_list_payload_terminal_closeout_does_not_require_heavy_inspect(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_list_closeout_summary_payload()
+        raise AssertionError("live probe must not call heavy queue inspect")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-list-terminal"
+    assert readback["terminal_closeout"]["runtime_readback_source"] == (
+        "opl_family_runtime_queue_list"
+    )
+
+
+def test_opl_runtime_live_probe_does_not_heavy_inspect_terminal_list_tasks(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -531,8 +629,8 @@ def test_opl_runtime_live_probe_caps_heavy_inspect_count(
         enable_opl_live_probe=True,
     )
 
-    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
-    assert inspected == ["frt-stage-route-0", "frt-stage-route-1"]
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert inspected == []
 
 
 def test_opl_json_timeout_terminates_process_group_without_hanging(
@@ -822,6 +920,58 @@ def _opl_queue_with_many_matching_terminal_tasks_payload() -> dict[str, object]:
                 },
             },
             "tasks": tasks,
+        },
+    }
+
+
+def _opl_queue_with_matching_tasks_without_closeout_summary_payload() -> dict[str, object]:
+    task = _opl_runtime_task_payload()["family_runtime_task"]["task"]
+    task["status"] = "blocked"
+    task["current_control_state"] = {}
+    return {
+        "version": "g2",
+        "family_runtime_queue": {
+            "surface_id": "opl_family_runtime_queue",
+            "queue": {
+                "total": 1,
+                "by_status": {
+                    "blocked": 1,
+                },
+            },
+            "tasks": [task],
+        },
+    }
+
+
+def _opl_queue_with_list_closeout_summary_payload() -> dict[str, object]:
+    task = _opl_runtime_task_payload()["family_runtime_task"]["task"]
+    task["status"] = "blocked"
+    task["current_control_state"] = {
+        "current_stage_attempt_id": "sat-list-terminal",
+        "running_provider_attempt": False,
+        "closeout_receipt_status": "accepted_typed_closeout",
+        "closeout_refs": [
+            "paper-mission-transaction::dm002#opl_route_command",
+            "opl://stage-attempts/sat-list-terminal/runtime-blockers/domain_gate_pending",
+        ],
+        "typed_blocker_refs": [
+            "opl://stage-attempts/sat-list-terminal/runtime-blockers/domain_gate_pending"
+        ],
+        "stage_run_currentness_identity": {
+            "stage_id": "publication_gate_replay",
+        },
+    }
+    return {
+        "version": "g2",
+        "family_runtime_queue": {
+            "surface_id": "opl_family_runtime_queue",
+            "queue": {
+                "total": 1,
+                "by_status": {
+                    "blocked": 1,
+                },
+            },
+            "tasks": [task],
         },
     }
 

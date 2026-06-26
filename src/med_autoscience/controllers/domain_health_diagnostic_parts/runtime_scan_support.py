@@ -319,8 +319,14 @@ def _with_fresh_progress_currentness(
     profile: WorkspaceProfile | None,
     study_root: Path,
     status_payload: Mapping[str, Any],
+    prefer_embedded_progress_projection: bool = False,
 ) -> dict[str, Any]:
     payload = dict(status_payload)
+    if prefer_embedded_progress_projection:
+        embedded_progress = _embedded_progress_currentness_payload(payload)
+        if embedded_progress is not None:
+            payload.update(embedded_progress)
+            return payload
     if profile is None:
         return payload
     study_id = _non_empty_text(payload.get("study_id")) or Path(study_root).name
@@ -334,6 +340,7 @@ def _with_fresh_progress_currentness(
             study_id=study_id,
             sync_runtime_summary=False,
             materialize_read_model_artifacts=False,
+            enable_opl_live_provider_attempt_probe=False,
         )
     except Exception:
         return payload
@@ -354,3 +361,28 @@ def _with_fresh_progress_currentness(
     if (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
         payload["study_progress_generated_at"] = generated_at
     return payload
+
+
+def _embedded_progress_currentness_payload(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    progress = status_payload.get("progress_projection")
+    if not isinstance(progress, Mapping):
+        return None
+    currentness: dict[str, Any] = {}
+    for key in PROGRESS_CURRENTNESS_KEYS:
+        if key not in progress:
+            continue
+        value = progress.get(key)
+        if isinstance(value, Mapping):
+            currentness[key] = dict(value)
+        elif isinstance(value, list):
+            currentness[key] = [
+                dict(item) if isinstance(item, Mapping) else item
+                for item in value
+            ]
+        else:
+            currentness[key] = value
+    if not currentness:
+        return None
+    if (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
+        currentness["study_progress_generated_at"] = generated_at
+    return currentness

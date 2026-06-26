@@ -185,6 +185,33 @@ def _read_json_mapping(path: Path) -> dict[str, object] | None:
     return dict(payload)
 
 
+_OPL_CURRENT_CONTROL_STATE_CACHE: dict[Path, tuple[int, int, dict[str, object]]] = {}
+
+
+def _read_opl_current_control_state_handoff(path: Path) -> dict[str, object] | None:
+    try:
+        stat_result = path.stat()
+    except OSError:
+        return None
+    resolved_path = path.expanduser().resolve()
+    cached = _OPL_CURRENT_CONTROL_STATE_CACHE.get(resolved_path)
+    if (
+        cached is not None
+        and cached[0] == stat_result.st_mtime_ns
+        and cached[1] == stat_result.st_size
+    ):
+        return dict(cached[2])
+    payload = _read_json_mapping(path)
+    if payload is None:
+        return None
+    _OPL_CURRENT_CONTROL_STATE_CACHE[resolved_path] = (
+        stat_result.st_mtime_ns,
+        stat_result.st_size,
+        dict(payload),
+    )
+    return dict(payload)
+
+
 def _load_json_dict(path: Path) -> dict[str, object]:
     payload = _read_json_mapping(path)
     return payload if payload is not None else {}

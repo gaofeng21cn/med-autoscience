@@ -33,7 +33,7 @@ def paper_mission_opl_runtime_carrier_readback(
     carrier: Mapping[str, Any],
     study_root: Path,
     opl_runtime_payload: Mapping[str, Any] | None = None,
-    enable_opl_live_probe: bool = True,
+    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     live_probe = None
     live_probe_attempted = False
@@ -124,7 +124,7 @@ def attach_opl_runtime_carrier_readback(
     *,
     readback: Mapping[str, Any],
     study_root: Path,
-    enable_opl_live_probe: bool = True,
+    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     result = dict(readback)
     carrier = _mapping(result.get("opl_runtime_carrier"))
@@ -262,11 +262,6 @@ def _matching_opl_runtime_live_probe(
         OPL_STAGE_ROUTE_TASK_KIND,
         "--json",
     )
-    inspect_args_prefix = (
-        "family-runtime",
-        "queue",
-        "inspect",
-    )
     terminal_match: tuple[dict[str, Any], str] | None = None
     for candidate in _ranked_opl_bin_candidates():
         if not candidate.exists():
@@ -283,34 +278,10 @@ def _matching_opl_runtime_live_probe(
         if matched_running is not None:
             attempt, attempt_ref = matched_running
             return "running", attempt, attempt_ref
-        for task in _matching_opl_tasks_from_list(
+        terminal_match = _matching_opl_runtime_payload_closeout(
             carrier=carrier,
             payload=list_payload,
-        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
-            task_id = _text(task.get("task_id"))
-            if task_id is None:
-                continue
-            inspect_payload = _run_opl_json(
-                candidate,
-                (
-                    *inspect_args_prefix,
-                    task_id,
-                    "--json",
-                ),
-                timeout_seconds=_remaining_seconds(deadline),
-            )
-            matched_running = _matching_opl_runtime_payload_running_attempt(
-                carrier=carrier,
-                payload=inspect_payload,
-            )
-            if matched_running is not None:
-                attempt, attempt_ref = matched_running
-                return "running", attempt, attempt_ref
-            if terminal_match is None:
-                terminal_match = _matching_opl_runtime_payload_closeout(
-                    carrier=carrier,
-                    payload=inspect_payload,
-                )
+        )
         if terminal_match is not None:
             closeout, closeout_ref = terminal_match
             return "terminal", closeout, closeout_ref
@@ -404,6 +375,7 @@ def _matching_opl_runtime_payload_closeout(
             task=task,
             stage_attempts=runtime_task.get("stage_attempts"),
             events=runtime_task.get("events"),
+            runtime_readback_source="opl_family_runtime_queue_inspect",
         )
         if closeout is None:
             return None
@@ -415,6 +387,7 @@ def _matching_opl_runtime_payload_closeout(
             task=task,
             stage_attempts=(),
             events=(),
+            runtime_readback_source="opl_family_runtime_queue_list",
         )
         if closeout is not None:
             return closeout, _opl_task_closeout_ref(task)
@@ -435,6 +408,7 @@ def _matching_opl_runtime_payload_running_attempt(
             carrier=carrier,
             task=task,
             stage_attempts=runtime_task.get("stage_attempts"),
+            runtime_readback_source="opl_family_runtime_queue_inspect",
         )
         if attempt is None:
             return None
@@ -445,6 +419,7 @@ def _matching_opl_runtime_payload_running_attempt(
             carrier=carrier,
             task=task,
             stage_attempts=(),
+            runtime_readback_source="opl_family_runtime_queue_list",
         )
         if attempt is not None:
             return attempt, _opl_attempt_ref(attempt)
@@ -502,6 +477,7 @@ def _opl_task_terminal_closeout(
     task: Mapping[str, Any],
     stage_attempts: object,
     events: object,
+    runtime_readback_source: str,
 ) -> dict[str, Any] | None:
     status = _text(task.get("status"))
     current_control = _mapping(task.get("current_control_state"))
@@ -580,7 +556,7 @@ def _opl_task_terminal_closeout(
         "task_id": _text(task.get("task_id")),
         "task_status": status,
         "closeout_receipt_status": closeout_status or stage_closeout_status,
-        "runtime_readback_source": "opl_family_runtime_queue_inspect",
+        "runtime_readback_source": runtime_readback_source,
         "authority_boundary": {
             "record_only_surface": True,
             "provider_completion_is_domain_completion": False,
@@ -596,6 +572,7 @@ def _opl_task_running_attempt(
     carrier: Mapping[str, Any],
     task: Mapping[str, Any],
     stage_attempts: object,
+    runtime_readback_source: str,
 ) -> dict[str, Any] | None:
     current_control = _mapping(task.get("current_control_state"))
     if (
@@ -642,7 +619,7 @@ def _opl_task_running_attempt(
         "last_runner_event_kind": _text(provider_run.get("last_runner_event_kind")),
         "task_id": _text(task.get("task_id")),
         "task_status": _text(task.get("status")),
-        "runtime_readback_source": "opl_family_runtime_queue_inspect",
+        "runtime_readback_source": runtime_readback_source,
         "provider_completion_is_domain_completion": False,
         "provider_completion_is_domain_ready": False,
         "can_claim_paper_progress": False,

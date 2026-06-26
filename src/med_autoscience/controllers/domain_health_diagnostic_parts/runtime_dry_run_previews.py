@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -122,8 +123,23 @@ def attach_domain_handler_owner_resolution_preview(
     if profile_ref is None:
         report["domain_handler_owner_resolution_preview_status"] = "profile_ref_missing"
         return
-    exported = export_family_domain_handler(profile=profile, profile_ref=profile_ref)
-    requested = set(_text_items(study_ids))
+    requested_ids = tuple(dict.fromkeys(_text_items(study_ids)))
+    requested = set(requested_ids)
+    progress_by_study_id = _progress_by_study_id_from_report(report)
+    if "study_ids" in inspect.signature(export_family_domain_handler).parameters:
+        kwargs: dict[str, Any] = {
+            "profile": profile,
+            "profile_ref": profile_ref,
+            "study_ids": requested_ids,
+        }
+        if (
+            progress_by_study_id
+            and "progress_by_study_id" in inspect.signature(export_family_domain_handler).parameters
+        ):
+            kwargs["progress_by_study_id"] = progress_by_study_id
+        exported = export_family_domain_handler(**kwargs)
+    else:
+        exported = export_family_domain_handler(profile=profile, profile_ref=profile_ref)
     tasks = [
         dict(task)
         for task in exported.get("pending_family_tasks") or []
@@ -144,6 +160,17 @@ def attach_domain_handler_owner_resolution_preview(
     }
     report["domain_handler_owner_resolution_preview_task_count"] = len(tasks)
     _attach_owner_resolution_preview_to_managed_actions(report=report, tasks=tasks)
+
+
+def _progress_by_study_id_from_report(report: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
+    result: dict[str, Mapping[str, Any]] = {}
+    for action in report.get("managed_study_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _non_empty_text(action.get("study_id"))
+        if study_id is not None:
+            result[study_id] = action
+    return result
 
 
 def _attach_materialization_preview_to_managed_actions(

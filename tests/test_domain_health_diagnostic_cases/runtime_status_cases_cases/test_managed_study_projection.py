@@ -141,6 +141,24 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
 
+
+def test_domain_health_diagnostic_projection_disables_live_provider_attempt_probe(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    observed_kwargs: dict[str, object] = {}
+
+    def fake_progress_projection(**kwargs):
+        observed_kwargs.update(kwargs)
+        return make_progress_projection_payload()
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_progress_projection)
+
+    result = module._progress_projection_for_diagnostic(profile=object(), study_root=Path("/tmp/studies/001-risk"))
+
+    assert result["study_id"] == "001-risk"
+    assert observed_kwargs["sync_runtime_summary"] is False
+    assert observed_kwargs["enable_opl_live_provider_attempt_probe"] is False
+
+
 def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")

@@ -97,6 +97,55 @@ def test_legacy_default_executor_dispatch_tasks_split_out_of_ordinary_pending_ta
     ]
 
 
+def test_domain_handler_export_uses_precomputed_progress_without_rebuilding_study_progress(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("must reuse precomputed progress")),
+    )
+
+    export = module.export_family_domain_handler(
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+        study_ids=(study_id,),
+        progress_by_study_id={
+            study_id: {
+                "study_id": study_id,
+                "current_work_unit": {
+                    "status": "typed_blocker",
+                    "owner": "one-person-lab",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "work_unit_fingerprint": "wu-fp-1",
+                    "typed_blocker": {
+                        "blocker_type": "codex_cli_provider_unavailable",
+                        "owner": "one-person-lab",
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "typed_blocker",
+                    "owner": "one-person-lab",
+                    "typed_blocker": {
+                        "blocker_type": "codex_cli_provider_unavailable",
+                        "owner": "one-person-lab",
+                    },
+                },
+            }
+        },
+    )
+
+    assert export["studies"][0]["study_id"] == study_id
+    assert all(study["study_id"] == study_id for study in export["studies"])
+
+
 def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
     profile = make_profile(tmp_path)

@@ -99,6 +99,92 @@ def test_progress_projection_uses_opl_current_control_state_as_live_liveness_pro
     assert result["active_run_id"] == "opl-stage-attempt://sat-live-001"
 
 
+def test_opl_current_control_state_handoff_reader_reuses_unchanged_large_payload(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    publication_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+    )
+    handoff_path = tmp_path / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-26T01:21:00+00:00",
+            "studies": [{"study_id": "001-risk", "running_provider_attempt": False}],
+        },
+    )
+    publication_module._OPL_CURRENT_CONTROL_STATE_CACHE.clear()
+    original_read_text = Path.read_text
+    read_count = {"count": 0}
+
+    def counting_read_text(self, *args, **kwargs):
+        if self == handoff_path:
+            read_count["count"] += 1
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", counting_read_text)
+
+    first = publication_module._read_opl_current_control_state_handoff(handoff_path)
+    second = publication_module._read_opl_current_control_state_handoff(handoff_path)
+    assert first == second
+    assert read_count["count"] == 1
+
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-26T01:22:00+00:00",
+            "studies": [{"study_id": "001-risk", "running_provider_attempt": True}],
+        },
+    )
+    third = publication_module._read_opl_current_control_state_handoff(handoff_path)
+    assert third["generated_at"] == "2026-06-26T01:22:00+00:00"
+    assert read_count["count"] == 2
+
+
+def test_read_study_progress_passes_live_provider_probe_policy(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    domain_status_projection = importlib.import_module(
+        "med_autoscience.controllers.domain_status_projection"
+    )
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    observed: dict[str, object] = {}
+
+    def fake_progress_projection(**kwargs):
+        observed.update(kwargs)
+        return {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.studies_root / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {},
+            "quest_id": "quest-001",
+            "quest_root": str(profile.runtime_root / "quest-001"),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(profile.studies_root / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+        }
+
+    monkeypatch.setattr(domain_status_projection, "progress_projection", fake_progress_projection)
+
+    module.read_study_progress(
+        profile=profile,
+        study_id="001-risk",
+        enable_opl_live_provider_attempt_probe=False,
+    )
+
+    assert observed["enable_opl_live_provider_attempt_probe"] is False
+    assert observed["include_progress_projection"] is False
+
+
 def test_progress_projection_uses_opl_live_attempt_when_runtime_state_waiting_for_user(
     monkeypatch,
     tmp_path: Path,

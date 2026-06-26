@@ -159,6 +159,7 @@ def run_domain_health_diagnostic_for_runtime(
                     profile=profile,
                     study_root=study_root,
                     status_payload=status_payload,
+                    prefer_embedded_progress_projection=True,
                 )
                 progress_currentness = {
                     key: status_payload[key]

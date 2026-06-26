@@ -90,6 +90,7 @@ def _status_state(
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
     include_progress_projection: bool = True,
+    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> ProgressProjectionStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload, profile=profile)
@@ -117,6 +118,7 @@ def _status_state(
             study_root=study_root,
             study_id=study_id,
             quest_status=quest_status,
+            enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
         )
         quest_runtime = quest_runtime.with_runtime_liveness_audit(
             runtime_liveness_projection
@@ -493,6 +495,7 @@ def _status_state(
                     entry_mode=entry_mode,
                     sync_runtime_summary=sync_runtime_summary,
                     include_progress_projection=include_progress_projection,
+                    enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
             ),
             execution=execution,
             study_root=study_root,
@@ -544,6 +547,7 @@ def _status_payload(
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
     include_progress_projection: bool = True,
+    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, object]:
     router = _router_module()
     return router._status_state(
@@ -554,6 +558,7 @@ def _status_payload(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
+        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     ).to_dict()
 
 
@@ -653,9 +658,10 @@ def _opl_current_control_state_runtime_liveness_projection(
     study_root: Path,
     study_id: str,
     quest_status: StudyRuntimeQuestStatus | None,
+    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, object] | None:
     latest_report_path = _opl_current_control_state_handoff_path(study_root=study_root)
-    latest_report = _read_json_mapping(latest_report_path) or {}
+    latest_report = _read_opl_current_control_state_handoff(latest_report_path) or {}
     study_entry = _opl_current_control_state_study_entry(latest_report, study_id=study_id)
     if study_entry is not None:
         handoff_projection = _opl_current_control_state_handoff_liveness_projection(
@@ -668,6 +674,8 @@ def _opl_current_control_state_runtime_liveness_projection(
             return handoff_projection
     else:
         handoff_projection = None
+    if not enable_opl_live_provider_attempt_probe:
+        return handoff_projection
     live_attempt = opl_provider_attempts.live_provider_attempt_for_study(
         profile=profile,
         study_id=study_id,

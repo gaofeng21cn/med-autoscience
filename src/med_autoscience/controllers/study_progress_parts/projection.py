@@ -979,6 +979,7 @@ def read_study_progress(
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     materialize_read_model_artifacts: bool | None = None,
+    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
         profile=profile,
@@ -992,6 +993,7 @@ def read_study_progress(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=False,
+        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
     return build_study_progress_projection(
         profile=profile,

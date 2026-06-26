@@ -86,8 +86,15 @@ def export_family_domain_handler(
     profile: WorkspaceProfile,
     profile_ref: Path,
     opl_production_proof_ref: str | Path | None = None,
+    study_ids: tuple[str, ...] = (),
+    progress_by_study_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    studies = [build_study_projection(study_root=study_root, profile=profile) for study_root in study_roots(profile)]
+    requested_study_ids = {str(study_id).strip() for study_id in study_ids if str(study_id).strip()}
+    studies = [
+        build_study_projection(study_root=study_root, profile=profile)
+        for study_root in study_roots(profile)
+        if not requested_study_ids or study_root.name in requested_study_ids
+    ]
     generated_at = _now_iso()
     opl_production_proof = opl_provider_ready_adapter.load_opl_production_proof(opl_production_proof_ref)
     provider_availability = opl_provider_ready_adapter.build_provider_availability_from_opl_proof(
@@ -107,6 +114,7 @@ def export_family_domain_handler(
         profile_ref=profile_ref,
         provider_availability=provider_availability,
         opl_production_proof_ref=opl_production_proof_ref,
+        progress_by_study_id=progress_by_study_id,
     )
     return {
         "surface_kind": "mas_family_domain_handler_export",
@@ -278,6 +286,7 @@ def _pending_family_tasks(
     profile_ref: Path,
     provider_availability: Mapping[str, Any],
     opl_production_proof_ref: str | Path | None,
+    progress_by_study_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     tasks: list[dict[str, Any]] = []
     paper_mission_default_tasks: list[dict[str, Any]] = []
@@ -314,6 +323,7 @@ def _pending_family_tasks(
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
+            progress_by_study_id=progress_by_study_id,
         )
         paper_mission_default_tasks.append(
             _paper_mission_start_or_resume_task(
@@ -1538,7 +1548,12 @@ def _fresh_study_progress(
     profile: WorkspaceProfile,
     profile_ref: Path,
     study_id: str,
+    progress_by_study_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
+    if progress_by_study_id is not None:
+        current_progress = progress_by_study_id.get(study_id)
+        if isinstance(current_progress, Mapping):
+            return current_progress
     try:
         from med_autoscience.controllers import study_progress
     except ImportError:

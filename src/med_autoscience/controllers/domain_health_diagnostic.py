@@ -229,6 +229,7 @@ def _status_payload_with_fresh_progress_currentness(
             study_id=study_id,
             sync_runtime_summary=False,
             materialize_read_model_artifacts=False,
+            enable_opl_live_provider_attempt_probe=False,
         )
     except Exception:
         return payload
@@ -362,6 +363,7 @@ def _legacy_refs_only_stage_run_intake_candidate(
 def _progress_projection_for_diagnostic(**kwargs: Any) -> dict[str, Any]:
     payload_kwargs = dict(kwargs)
     payload_kwargs["sync_runtime_summary"] = False
+    payload_kwargs["enable_opl_live_provider_attempt_probe"] = False
     return domain_status_projection.progress_projection(**payload_kwargs)
 
 
@@ -1060,6 +1062,7 @@ def _fresh_progress_currentness_for_report(
                 study_id=study_id,
                 sync_runtime_summary=False,
                 materialize_read_model_artifacts=False,
+                enable_opl_live_provider_attempt_probe=False,
             )
         except Exception:
             continue

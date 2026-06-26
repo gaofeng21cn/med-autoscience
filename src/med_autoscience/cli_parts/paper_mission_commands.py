@@ -50,6 +50,7 @@ from med_autoscience.paper_mission_terminal_owner_gate import (
     stage_terminal_next_owner_or_human_decision,
     terminal_owner_gate_authority_readback,
     terminal_owner_gate_from_carrier_readback,
+    terminal_owner_gate_from_stage_terminal_decision,
     terminal_owner_gate_next_decision,
 )
 from med_autoscience.paper_mission_transaction import (
@@ -2626,7 +2627,7 @@ def _paper_mission_transaction_readback(
     readback = attach_opl_runtime_carrier_readback(
         readback=readback,
         study_root=study_root,
-        enable_opl_live_probe=paper_mission_command != "consume-candidate",
+        enable_opl_live_probe=False,
     )
     terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
     readback["terminal_owner_gate"] = terminal_owner_gate or None
@@ -2873,8 +2874,14 @@ def _transaction_readback_output_fields(
 def _terminal_owner_gate_from_transaction_readback(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
-    return terminal_owner_gate_from_carrier_readback(
+    carrier_gate = terminal_owner_gate_from_carrier_readback(
         _mapping(readback.get("opl_runtime_carrier_readback"))
+    )
+    if carrier_gate:
+        return carrier_gate
+    return terminal_owner_gate_from_stage_terminal_decision(
+        stage_terminal_decision=_mapping(readback.get("stage_terminal_decision")),
+        paper_mission_transaction=_mapping(readback.get("paper_mission_transaction")),
     )
 
 

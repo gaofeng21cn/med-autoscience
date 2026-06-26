@@ -739,6 +739,7 @@ def test_runtime_scan_fresh_currentness_carries_owner_gate_events(monkeypatch, t
 
     def fake_read_study_progress(**kwargs):
         assert kwargs["study_id"] == study_id
+        assert kwargs["enable_opl_live_provider_attempt_probe"] is False
         return {
             "generated_at": "2026-06-14T02:30:00+00:00",
             "current_work_unit": {
@@ -788,6 +789,7 @@ def test_runtime_scan_fresh_currentness_carries_evidence_gap_read_model(monkeypa
 
     def fake_read_study_progress(**kwargs):
         assert kwargs["study_id"] == study_id
+        assert kwargs["enable_opl_live_provider_attempt_probe"] is False
         return {
             "generated_at": "2026-06-20T02:20:00+00:00",
             "study_id": study_id,
@@ -817,6 +819,47 @@ def test_runtime_scan_fresh_currentness_carries_evidence_gap_read_model(monkeypa
     assert result["current_action_can_continue"] is True
 
 
+def test_runtime_scan_reuses_embedded_progress_currentness_without_rebuilding_progress(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    runtime_scan_support = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.runtime_scan_support"
+    )
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_work_unit = {
+        "status": "executable_owner_action",
+        "study_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "wu-003",
+    }
+
+    def fail_read_study_progress(**kwargs):
+        raise AssertionError("embedded progress currentness should avoid full study progress rebuild")
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fail_read_study_progress)
+
+    result = runtime_scan_support._with_fresh_progress_currentness(
+        profile=object(),
+        study_root=tmp_path / study_id,
+        status_payload={
+            "study_id": study_id,
+            "progress_projection": {
+                "generated_at": "2026-06-26T01:21:00+00:00",
+                "study_id": study_id,
+                "current_work_unit": current_work_unit,
+                "provider_admission_pending_count": 1,
+            },
+        },
+        prefer_embedded_progress_projection=True,
+    )
+
+    assert result["current_work_unit"] == current_work_unit
+    assert result["provider_admission_pending_count"] == 1
+    assert result["study_progress_generated_at"] == "2026-06-26T01:21:00+00:00"
+
+
 def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
@@ -834,6 +877,7 @@ def test_same_tick_report_currentness_carries_owner_gate_events(monkeypatch) -> 
 
     def fake_read_study_progress(**kwargs):
         assert kwargs["study_id"] == study_id
+        assert kwargs["enable_opl_live_provider_attempt_probe"] is False
         return {
             "generated_at": "2026-06-14T02:30:00+00:00",
             "current_work_unit": {
@@ -869,6 +913,7 @@ def test_same_tick_report_currentness_carries_gate_followthrough(monkeypatch) ->
 
     def fake_read_study_progress(**kwargs):
         assert kwargs["study_id"] == study_id
+        assert kwargs["enable_opl_live_provider_attempt_probe"] is False
         return {
             "generated_at": "2026-06-14T02:30:00+00:00",
             "study_id": study_id,

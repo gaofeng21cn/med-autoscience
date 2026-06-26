@@ -46,6 +46,41 @@ def terminal_owner_gate_from_carrier_readback(
     )
 
 
+def terminal_owner_gate_from_stage_terminal_decision(
+    *,
+    stage_terminal_decision: Mapping[str, Any],
+    paper_mission_transaction: Mapping[str, Any],
+) -> dict[str, Any]:
+    decision = _mapping(stage_terminal_decision)
+    decision_kind = _text(decision.get("decision_kind"))
+    status = _text(decision.get("status"))
+    blocked_reason = _first_text(decision.get("reason"), status)
+    if decision_kind != "route_back" and status != "route_back":
+        return {}
+    if _terminal_owner_gate_owner(blocked_reason) != "mas_authority_kernel":
+        return {}
+    transaction = _mapping(paper_mission_transaction)
+    return _compact(
+        {
+            "surface_kind": "paper_mission_terminal_owner_gate",
+            "owner": "mas_authority_kernel",
+            "gate_kind": "domain_gate",
+            "blocked_reason": blocked_reason,
+            "typed_blocker_ref": _text(decision.get("typed_blocker_ref")),
+            "closeout_ref": _text(decision.get("closeout_ref")),
+            "stage_attempt_id": _text(decision.get("stage_attempt_id")),
+            "work_unit_id": _first_text(
+                transaction.get("stage_id"),
+                decision.get("target_stage_id"),
+            ),
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+            "authority_materialized": False,
+            "legal_next_action": "route_to_owner_or_human_gate",
+        }
+    )
+
+
 def terminal_owner_gate_next_decision(
     terminal_owner_gate: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -239,5 +274,6 @@ __all__ = [
     "stage_terminal_next_owner_or_human_decision",
     "terminal_owner_gate_authority_readback",
     "terminal_owner_gate_from_carrier_readback",
+    "terminal_owner_gate_from_stage_terminal_decision",
     "terminal_owner_gate_next_decision",
 ]

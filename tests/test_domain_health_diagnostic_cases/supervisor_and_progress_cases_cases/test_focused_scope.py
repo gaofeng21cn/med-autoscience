@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import dataclasses
+
 from tests.test_domain_health_diagnostic_cases import shared as _shared
 
 globals().update({
@@ -159,6 +161,66 @@ def test_domain_health_diagnostic_provider_admission_scope_skips_quest_and_owner
     assert not hasattr(module, "domain_action_request_materializer")
     assert "domain_action_request_materialization_preview" not in result
     assert result["provider_admission_pending_count"] == 1
+
+
+def test_domain_handler_owner_resolution_preview_exports_only_requested_studies(
+    tmp_path: Path,
+) -> None:
+    previews = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.runtime_dry_run_previews"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.toml"
+    profile_ref.write_text("[profile]\n", encoding="utf-8")
+    profile = dataclasses.replace(profile, profile_ref=profile_ref)
+    requested_study_id = "002-risk"
+    other_study_id = "003-risk"
+    observed: dict[str, object] = {}
+
+    def fake_export_family_domain_handler(*, profile, profile_ref, study_ids=(), progress_by_study_id=None):
+        del profile, profile_ref
+        observed["study_ids"] = study_ids
+        observed["progress_by_study_id"] = progress_by_study_id
+        return {
+            "pending_family_tasks": [
+                {
+                    "task_kind": "domain_route/reconcile-apply",
+                    "payload": {"study_id": requested_study_id},
+                },
+                {
+                    "task_kind": "domain_route/reconcile-apply",
+                    "payload": {"study_id": other_study_id},
+                },
+            ]
+        }
+
+    report = {
+        "managed_study_actions": [
+            {
+                "study_id": requested_study_id,
+                "paper_recovery_state": {
+                    "next_safe_action": {"kind": "materialize_successor_owner_gate"}
+                },
+            }
+        ]
+    }
+
+    previews.attach_domain_handler_owner_resolution_preview(
+        report=report,
+        profile=profile,
+        study_ids=(requested_study_id,),
+        export_family_domain_handler=fake_export_family_domain_handler,
+    )
+
+    assert observed["study_ids"] == (requested_study_id,)
+    assert set(observed["progress_by_study_id"]) == {requested_study_id}
+    preview = report["domain_handler_owner_resolution_preview"]
+    assert preview["task_count"] == 1
+    assert preview["tasks"][0]["payload"]["study_id"] == requested_study_id
+    assert report["managed_study_actions"][0]["domain_handler_owner_resolution_preview"][
+        "task_count"
+    ] == 1
 
 
 def test_domain_health_diagnostic_currentness_only_scope_rejects_apply(
