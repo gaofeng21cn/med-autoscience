@@ -51,6 +51,112 @@ def _assert_forbidden_authority_untouched(tmp_path: Path, *, study_id: str = "00
         assert not (study_root / relative_path).exists()
 
 
+def _write_paper_source_fixture(tmp_path: Path, *, study_id: str) -> None:
+    paper_root = tmp_path / "workspace" / "studies" / study_id / "paper"
+    (paper_root / "build").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables").mkdir(parents=True, exist_ok=True)
+    (paper_root / "figures").mkdir(parents=True, exist_ok=True)
+    (paper_root / "review").mkdir(parents=True, exist_ok=True)
+    (paper_root / "draft.md").write_text(
+        "\n".join(
+            [
+                "# DM paper draft",
+                "",
+                "## Methods",
+                "Current methods text.",
+                "",
+                "## Results",
+                "Current results text.",
+                "",
+                "## Limitations",
+                "Current limitations text.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "build" / "review_manuscript.md").write_text(
+        "\n".join(
+            [
+                "# Review manuscript",
+                "",
+                "## Discussion",
+                "Reviewer-facing discussion text.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "claim_evidence_map.json").write_text(
+        json.dumps(
+            {
+                "claims": [
+                    {
+                        "claim_id": "claim-primary",
+                        "title": "Primary mortality gap claim",
+                        "status": "needs_binding",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "evidence_ledger.json").write_text(
+        json.dumps(
+            {
+                "evidence": [
+                    {
+                        "evidence_id": "ev-primary",
+                        "title": "Model comparison evidence",
+                        "source_ref": "analysis://primary-model",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "tables" / "table_catalog.json").write_text(
+        json.dumps(
+            {
+                "tables": [
+                    {
+                        "table_id": "T1",
+                        "title": "Cohort characteristics",
+                        "status": "candidate",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "figures" / "figure_catalog.json").write_text(
+        json.dumps(
+            {
+                "figures": [
+                    {
+                        "figure_id": "F1",
+                        "title": "Attribution curve",
+                        "status": "candidate",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "review" / "review_ledger.json").write_text(
+        json.dumps(
+            {
+                "reviews": [
+                    {
+                        "id": "gate-1",
+                        "verdict": "revise",
+                        "section": "Results",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def _write_candidate_manifest(
     tmp_path: Path,
     *,
@@ -1038,6 +1144,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     cli = importlib.import_module("med_autoscience.cli")
     study_id = "002-dm-china-us-mortality-attribution"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    _write_paper_source_fixture(tmp_path, study_id=study_id)
     workspace_root = tmp_path / "workspace"
     mission_root = (
         workspace_root
@@ -1135,6 +1242,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert output_manifest["writes_authority"] is False
     assert output_manifest["writes_runtime"] is False
     assert output_manifest["writes_yang_authority"] is False
+    assert output_manifest["written_files"]
     handoff = json.loads(
         Path(output_manifest["mission_executor_handoff_ref"]).read_text(
             encoding="utf-8"
@@ -1161,9 +1269,20 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     candidate_manifest = json.loads(
         Path(output_manifest["candidate_manifest_ref"]).read_text(encoding="utf-8")
     )
+    package_manifest = json.loads(
+        Path(output_manifest["package_manifest_ref"]).read_text(encoding="utf-8")
+    )
     assert payload["mission_executor_handoff"] == handoff
     assert payload["owner_consumption_request"] == owner_consumption_request
     assert payload["owner_blocker_packet"] == owner_blocker_packet
+    assert package_manifest["mission_executor_materialized"] is True
+    assert package_manifest["candidate_content_kind"] == (
+        "concrete_non_authority_paper_delta"
+    )
+    assert any(
+        ref.endswith("/paper/draft.md")
+        for ref in package_manifest["source_document_refs"]
+    )
     assert handoff["surface_kind"] == "paper_mission_executor_handoff"
     assert handoff["status"] == "ready_for_mission_executor"
     assert handoff["next_owner"] == "mission_executor"
@@ -1197,6 +1316,15 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert paper_facing_delta["status"] == "submission_milestone_candidate_ready"
     assert paper_facing_delta["counts_as_paper_progress"] is True
     assert paper_facing_delta["candidate_is_authority"] is False
+    assert paper_facing_delta["mission_executor_materialized"] is True
+    assert paper_facing_delta["candidate_content_kind"] == (
+        "concrete_non_authority_paper_delta"
+    )
+    assert any(
+        ref.endswith("/paper/claim_evidence_map.json")
+        for ref in paper_facing_delta["source_document_refs"]
+    )
+    assert paper_facing_delta["paper_source_snapshot"]["source_snapshot_complete"] is False
     assert paper_facing_delta["can_claim_submission_ready"] is False
     assert paper_facing_delta["can_claim_publication_ready"] is False
     assert paper_facing_delta["route_back_evidence_ref"] == (
@@ -1270,6 +1398,21 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
             encoding="utf-8"
         )
     )
+    figure_table_delta = json.loads(
+        Path(output_manifest["paper_facing_artifact_refs"]["figure_table_caption_delta"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    reviewer_response = json.loads(
+        Path(output_manifest["paper_facing_artifact_refs"]["reviewer_gate_response_draft"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_decision_artifact = json.loads(
+        Path(output_manifest["paper_facing_artifact_refs"]["owner_decision_packet"]).read_text(
+            encoding="utf-8"
+        )
+    )
     assert manuscript_patch_plan["surface_kind"] == (
         "paper_mission_manuscript_patch_plan"
     )
@@ -1277,6 +1420,16 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         "paper/draft.md",
         "paper/build/review_manuscript.md",
     ]
+    assert manuscript_patch_plan["mission_executor_materialized"] is True
+    assert manuscript_patch_plan["candidate_content_kind"] == (
+        "concrete_non_authority_paper_delta"
+    )
+    assert manuscript_patch_plan["candidate_content"]["source_headings"][0][
+        "headings"
+    ][0]["text"] == "DM paper draft"
+    assert manuscript_patch_plan["candidate_content"]["candidate_patch_operations"][0][
+        "target_heading"
+    ]["text"] == "Results"
     assert manuscript_patch_plan["authority_boundary"]["writes_paper_body"] is False
     assert manuscript_patch_plan["milestone_kind"] == "submission_milestone_candidate"
     assert manuscript_patch_plan["counts_as_paper_progress"] is True
@@ -1290,8 +1443,25 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         "paper/claim_evidence_map.json",
         "paper/evidence_ledger.json",
     ]
+    assert claim_evidence_delta["candidate_content"]["claim_evidence_rows"][0][
+        "candidate_row"
+    ]["claim_id"] == "claim-primary"
+    assert claim_evidence_delta["candidate_content"]["source_claim_count"] == 1
+    assert claim_evidence_delta["candidate_content"]["source_evidence_count"] == 1
     assert claim_evidence_delta["authority_boundary"]["writes_authority"] is False
     assert claim_evidence_delta["counts_as_paper_progress"] is True
+    assert figure_table_delta["candidate_content"]["table_candidates"][0][
+        "candidate_ref"
+    ]["table_id"] == "T1"
+    assert figure_table_delta["candidate_content"]["figure_candidates"][0][
+        "candidate_ref"
+    ]["figure_id"] == "F1"
+    assert reviewer_response["candidate_content"]["response_draft_items"][0][
+        "review_item"
+    ]["id"] == "gate-1"
+    assert owner_decision_artifact["candidate_content"]["owner_ballot"][
+        "recommended_owner"
+    ] == "MAS authority consume path"
     assert (
         output_manifest["paper_facing_candidate_delta_ref"]
         in candidate_manifest["candidate_artifact_refs"]

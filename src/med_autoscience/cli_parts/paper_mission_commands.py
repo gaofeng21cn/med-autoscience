@@ -18,6 +18,11 @@ from med_autoscience.paper_mission import (
     paper_mission_owner_decision_packet,
 )
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+from med_autoscience.paper_mission_candidate_materializer import (
+    CONCRETE_NON_AUTHORITY_PAPER_DELTA_KIND,
+    materialized_paper_facing_candidate_artifact_payload,
+    materialized_paper_facing_candidate_delta,
+)
 from med_autoscience.paper_mission_candidate_package import (
     SUBMISSION_MILESTONE_KIND,
     paper_mission_owner_blocker_packet,
@@ -1316,11 +1321,13 @@ def _build_materialized_candidate_package_readback(
         readback=readback,
         foreground_owner_decision_summary=summary,
     )
-    paper_facing_candidate_delta = _paper_facing_candidate_delta(
+    paper_facing_candidate_delta = materialized_paper_facing_candidate_delta(
         readback=readback,
         candidate_artifact_delta=candidate_artifact_delta,
         owner_decision_packet=owner_decision_packet,
         mission_executor_handoff=mission_executor_handoff,
+        forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
     )
     owner_blocker_packet = paper_mission_owner_blocker_packet(
         readback=readback,
@@ -1916,11 +1923,13 @@ def _write_materialized_candidate_package_outputs(
     }
     payloads.update(
         {
-            f"paper_facing_artifact::{kind}": _paper_facing_candidate_artifact_payload(
+            f"paper_facing_artifact::{kind}": materialized_paper_facing_candidate_artifact_payload(
                 kind=kind,
                 path=path,
                 paper_facing_candidate_delta=paper_facing_candidate_delta_payload,
                 mission_executor_handoff=mission_executor_handoff,
+                forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+                forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
             )
             for kind, path in paper_facing_artifact_outputs.items()
         }
@@ -1933,6 +1942,8 @@ def _write_materialized_candidate_package_outputs(
         "study_id": study_id,
         "mission_id": paper_mission_readback.get("mission_id"),
         "counts_as_paper_progress": True,
+        "mission_executor_materialized": True,
+        "candidate_content_kind": CONCRETE_NON_AUTHORITY_PAPER_DELTA_KIND,
         "candidate_is_authority": False,
         "writes_authority": False,
         "writes_runtime": False,
@@ -1944,6 +1955,9 @@ def _write_materialized_candidate_package_outputs(
         "can_claim_owner_receipt_written": False,
         "authority_materialized_by_this_package": False,
         "source_refs": foreground_owner_decision_summary["input_refs"],
+        "source_document_refs": paper_facing_candidate_delta_payload.get(
+            "source_document_refs", []
+        ),
         "current_terminal_decision": foreground_owner_decision_summary[
             "current_terminal_decision"
         ],
@@ -2026,132 +2040,6 @@ def _paper_facing_output_kinds(
     return kinds
 
 
-def _paper_facing_candidate_artifact_payload(
-    *,
-    kind: str,
-    path: Path,
-    paper_facing_candidate_delta: Mapping[str, Any],
-    mission_executor_handoff: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "surface_kind": f"paper_mission_{kind}",
-        "schema_version": 1,
-        "artifact_kind": kind,
-        "artifact_ref": str(path),
-        "study_id": paper_facing_candidate_delta.get("study_id"),
-        "mission_id": paper_facing_candidate_delta.get("mission_id"),
-        "status": "candidate",
-        "milestone_kind": SUBMISSION_MILESTONE_KIND,
-        "candidate_is_authority": False,
-        "authority_materialized": False,
-        "counts_as_paper_progress": True,
-        "can_claim_submission_ready": False,
-        "can_claim_publication_ready": False,
-        "can_claim_current_package": False,
-        "can_claim_owner_receipt_written": False,
-        "route_back_evidence_ref": paper_facing_candidate_delta.get(
-            "route_back_evidence_ref"
-        ),
-        "repair_scope": paper_facing_candidate_delta.get("repair_scope"),
-        "target_stage_id": paper_facing_candidate_delta.get("target_stage_id"),
-        "candidate_content": _paper_facing_candidate_content(
-            kind=kind,
-            paper_facing_candidate_delta=paper_facing_candidate_delta,
-            mission_executor_handoff=mission_executor_handoff,
-        ),
-        "authority_boundary": {
-            "candidate_is_authority": False,
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_paper_body": False,
-            "can_write_owner_receipt": False,
-            "can_write_typed_blocker": False,
-            "can_write_human_gate": False,
-            "can_update_current_package": False,
-            "can_claim_paper_progress": False,
-        },
-        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
-        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-    }
-
-
-def _paper_facing_candidate_content(
-    *,
-    kind: str,
-    paper_facing_candidate_delta: Mapping[str, Any],
-    mission_executor_handoff: Mapping[str, Any],
-) -> dict[str, Any]:
-    base = {
-        "route_back_evidence_ref": paper_facing_candidate_delta.get(
-            "route_back_evidence_ref"
-        ),
-        "repair_scope": paper_facing_candidate_delta.get("repair_scope"),
-        "handoff_reason": mission_executor_handoff.get("handoff_reason"),
-    }
-    if kind == "manuscript_patch_plan":
-        return {
-            **base,
-            "patch_targets": [
-                "paper/draft.md",
-                "paper/build/review_manuscript.md",
-            ],
-            "required_patch_sections": [
-                "Methods/results wording tied to current evidence",
-                "Claim-specific interpretation and limitations",
-                "Display/table references consistent with evidence refs",
-            ],
-        }
-    if kind == "claim_evidence_ledger_delta":
-        return {
-            **base,
-            "delta_targets": [
-                "paper/claim_evidence_map.json",
-                "paper/evidence_ledger.json",
-            ],
-            "required_delta": (
-                "Add or update claim-level evidence rows needed to clear the "
-                "route-back scope without writing authority surfaces."
-            ),
-        }
-    if kind == "figure_table_caption_delta":
-        return {
-            **base,
-            "delta_targets": [
-                "paper/display_refs.json",
-                "paper/table_refs.json",
-                "paper/figure_caption_plan.json",
-            ],
-            "required_delta": (
-                "Bind figure/table/caption candidates to claim and evidence refs."
-            ),
-        }
-    if kind == "reviewer_gate_response_draft":
-        return {
-            **base,
-            "delta_targets": [
-                "paper/review/reviewer_response_draft.json",
-                "paper/review/gate_response_draft.json",
-            ],
-            "required_delta": (
-                "Draft reviewer/gate response entries for MAS authority review."
-            ),
-        }
-    if kind == "owner_decision_packet":
-        return {
-            **base,
-            "delta_targets": ["owner_decision_packet.json"],
-            "required_delta": (
-                "Submit the candidate bundle through MAS authority consume path."
-            ),
-        }
-    return {
-        **base,
-        "delta_targets": [],
-        "required_delta": "Candidate paper-facing artifact content pending.",
-    }
-
-
 def _candidate_artifact_refs_with_paper_delta(
     candidate_manifest: Mapping[str, Any],
     *,
@@ -2164,108 +2052,6 @@ def _candidate_artifact_refs_with_paper_delta(
     ]
     refs.append(paper_facing_candidate_delta_ref)
     return refs
-
-
-def _paper_facing_candidate_delta(
-    *,
-    readback: Mapping[str, Any],
-    candidate_artifact_delta: Mapping[str, Any],
-    owner_decision_packet: Mapping[str, Any],
-    mission_executor_handoff: Mapping[str, Any],
-) -> dict[str, Any]:
-    expected_outputs = [
-        _mapping(item)
-        for item in mission_executor_handoff.get("expected_paper_facing_outputs", [])
-        if isinstance(item, Mapping)
-    ]
-    output_kinds = [_optional_text(item.get("kind")) for item in expected_outputs]
-    output_kinds = [kind for kind in output_kinds if kind]
-    handoff_status = _optional_text(mission_executor_handoff.get("status"))
-    route_back_ready = handoff_status == "ready_for_mission_executor"
-    owner_blocker_context = _optional_text(readback.get("consume_candidate_status")) in {
-        "typed_blocker",
-        "human_gate",
-    }
-    return {
-        "surface_kind": "paper_mission_paper_facing_candidate_delta",
-        "schema_version": 1,
-        "milestone_kind": SUBMISSION_MILESTONE_KIND,
-        "study_id": readback.get("study_id"),
-        "mission_id": readback.get("mission_id"),
-        "delta_id": _first_text(
-            candidate_artifact_delta.get("delta_id"),
-            f"paper-facing-delta::{readback.get('study_id') or 'unknown-study'}",
-        ),
-        "status": "submission_milestone_candidate_ready"
-        if not owner_blocker_context
-        else "submission_milestone_candidate_ready_with_owner_blocker_context",
-        "candidate_is_authority": False,
-        "authority_materialized_by_this_delta": False,
-        "counts_as_paper_progress": True,
-        "counts_as_candidate_artifact_delta": True,
-        "can_claim_submission_ready": False,
-        "can_claim_publication_ready": False,
-        "can_claim_current_package": False,
-        "can_claim_owner_receipt_written": False,
-        "route_back_evidence_ref": mission_executor_handoff.get(
-            "route_back_evidence_ref"
-        ),
-        "repair_scope": mission_executor_handoff.get("repair_scope"),
-        "target_stage_id": mission_executor_handoff.get("target_stage_id"),
-        "source_candidate_artifact_delta_ref": candidate_artifact_delta.get(
-            "artifact_ref"
-        ),
-        "owner_decision_packet_id": owner_decision_packet.get("packet_id"),
-        "paper_facing_outputs": [
-            _paper_facing_candidate_output(
-                kind=kind,
-                study_id=str(readback.get("study_id") or "unknown-study"),
-                route_back_ready=route_back_ready,
-            )
-            for kind in output_kinds
-        ],
-        "consume_path": {
-            "surface": "MAS authority consume path",
-            "candidate_manifest_ref_required": True,
-            "authority_materialized_by_this_delta": False,
-            "allowed_results": [
-                "accepted_owner_decision_packet",
-                "route_back",
-                "human_gate",
-                "stable_typed_blocker",
-            ],
-        },
-        "authority_boundary": {
-            "candidate_is_authority": False,
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_paper_body": False,
-            "can_write_owner_receipt": False,
-            "can_write_typed_blocker": False,
-            "can_write_human_gate": False,
-            "can_update_current_package": False,
-            "can_claim_paper_progress": False,
-            "can_claim_runtime_ready": False,
-        },
-        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
-        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-    }
-
-
-def _paper_facing_candidate_output(
-    *,
-    kind: str,
-    study_id: str,
-    route_back_ready: bool,
-) -> dict[str, Any]:
-    return {
-        "kind": kind,
-        "status": "candidate_required" if route_back_ready else "context_only",
-        "artifact_ref": f"candidate://{study_id}/paper-facing/{kind}",
-        "candidate_only": True,
-        "authority_materialized": False,
-    }
 
 
 def _mission_executor_handoff(
