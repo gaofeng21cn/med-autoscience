@@ -31,34 +31,34 @@ def paper_mission_opl_runtime_carrier_readback(
     opl_runtime_payload: Mapping[str, Any] | None = None,
     enable_opl_live_probe: bool = True,
 ) -> dict[str, Any]:
+    running = _matching_opl_runtime_running_attempt(
+        carrier=carrier,
+        opl_runtime_payload=opl_runtime_payload,
+        enable_opl_live_probe=enable_opl_live_probe,
+    )
+    if running is not None:
+        attempt, attempt_ref = running
+        return {
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "schema_version": 1,
+            "carrier_status": RUNNING_READBACK_STATUS,
+            "runtime_readback_status": "running_attempt_observed",
+            "dispatch_status": "provider_attempt_running",
+            "domain_ready_verdict": "opl_runtime_attempt_running",
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+            "can_claim_provider_running": True,
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+            "authority_materialized": False,
+            "request_carrier_preserved": True,
+            "running_attempt": _running_attempt_readback(
+                attempt=attempt,
+                attempt_ref=attempt_ref,
+            ),
+        }
     matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
     if matched is None:
-        running = _matching_opl_runtime_running_attempt(
-            carrier=carrier,
-            opl_runtime_payload=opl_runtime_payload,
-            enable_opl_live_probe=enable_opl_live_probe,
-        )
-        if running is not None:
-            attempt, attempt_ref = running
-            return {
-                "surface_kind": "paper_mission_opl_runtime_carrier_readback",
-                "schema_version": 1,
-                "carrier_status": RUNNING_READBACK_STATUS,
-                "runtime_readback_status": "running_attempt_observed",
-                "dispatch_status": "provider_attempt_running",
-                "domain_ready_verdict": "opl_runtime_attempt_running",
-                "provider_completion_is_domain_completion": False,
-                "provider_completion_is_domain_ready": False,
-                "can_claim_provider_running": True,
-                "can_claim_paper_progress": False,
-                "can_claim_runtime_ready": False,
-                "authority_materialized": False,
-                "request_carrier_preserved": True,
-                "running_attempt": _running_attempt_readback(
-                    attempt=attempt,
-                    attempt_ref=attempt_ref,
-                ),
-            }
         matched = _matching_opl_runtime_terminal_closeout(
             carrier=carrier,
             opl_runtime_payload=opl_runtime_payload,
@@ -254,6 +254,12 @@ def _matching_opl_runtime_running_attempt(
         if not candidate.exists():
             continue
         list_payload = _run_opl_json(candidate, list_args)
+        matched = _matching_opl_runtime_payload_running_attempt(
+            carrier=carrier,
+            payload=list_payload,
+        )
+        if matched is not None:
+            return matched
         for task in _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload):
             task_id = _text(task.get("task_id"))
             if task_id is None:

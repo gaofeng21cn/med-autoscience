@@ -348,6 +348,38 @@ def test_opl_runtime_readback_reports_same_identity_running_attempt(
     assert running["provider_completion_is_domain_ready"] is False
 
 
+def test_opl_runtime_readback_prefers_live_running_attempt_over_local_terminal_residue(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    _write_closeout(
+        study_root,
+        {
+            "study_id": carrier["study_id"],
+            "stage_id": "publication_gate_replay",
+            "work_unit_id": carrier["work_unit_id"],
+            "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+            "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+            "closeout_refs": [carrier["opl_route_command_ref"]],
+            "blocked_reason": "domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=_opl_running_task_running_attempt_payload(),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert "terminal_closeout" not in readback
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-running"
+    assert readback["can_claim_paper_progress"] is False
+
+
 def test_opl_runtime_readback_accepts_current_control_running_on_blocked_task(
     tmp_path: Path,
 ) -> None:
@@ -400,6 +432,57 @@ def test_opl_runtime_readback_prefers_running_terminal_successor_over_old_closeo
     assert running["stage_attempt_id"] == "sat-successor"
     assert running["workflow_id"] == "wf-successor"
     assert running["provider_status"] == "live"
+
+
+def test_opl_runtime_list_payload_running_successor_does_not_require_heavy_inspect(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=_opl_queue_with_terminal_and_running_successor_payload(),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["running_attempt"]["task_id"] == "frt-successor"
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-successor"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_runtime_live_probe_uses_queue_list_liveness_before_heavy_inspect(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+
+    def fake_opl_json(_opl_bin: Path, args: tuple[str, ...]) -> dict[str, object] | None:
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_terminal_and_running_successor_payload()
+        raise AssertionError("heavy queue inspect should not be needed")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-successor"
+    assert "terminal_closeout" not in readback
 
 
 def _carrier() -> dict[str, str]:
