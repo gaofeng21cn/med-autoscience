@@ -1499,6 +1499,10 @@ def _paper_mission_semantic_progress_guard(
         "can_claim_runtime_ready": False,
     }
     if status == "non_advancing_route_back":
+        executor_stage = _paper_mission_mas_owned_executor_stage_packet(
+            signature=signature,
+            signature_payload=signature_payload,
+        )
         result.update(
             {
                 "reason": (
@@ -1508,13 +1512,44 @@ def _paper_mission_semantic_progress_guard(
                     "or route-back evidence ref."
                 ),
                 "requires_mas_owned_executor_delta": True,
-                "required_next_executor_stage": "mas_owned_executor_delta",
+                "required_next_executor_stage": executor_stage["stage_type"],
+                "mas_owned_executor_stage": executor_stage,
                 "next_legal_actions": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
                 "stop_same_semantic_redrive": True,
                 "owner_surface": "med-autoscience PaperMissionRun / MAS authority",
             }
         )
     return result
+
+
+def _paper_mission_mas_owned_executor_stage_packet(
+    *,
+    signature: str,
+    signature_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_mission_mas_owned_executor_stage_packet",
+        "schema_version": 1,
+        "stage_type": "paper_mission_semantic_progress_executor",
+        "owner": "MedAutoScience",
+        "executor": "Codex CLI",
+        "trigger": "non_advancing_route_back",
+        "semantic_progress_signature": signature,
+        "semantic_progress_signature_payload": signature_payload,
+        "required_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
+        "next_legal_action": "materialize_mas_owned_executor_delta_before_redrive",
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_paper_progress": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
 
 
 def _paper_mission_semantic_progress_signature_payload(

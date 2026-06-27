@@ -57,6 +57,18 @@ def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> 
     assert second_guard["status"] == "non_advancing_route_back"
     assert second_guard["requires_mas_owned_executor_delta"] is True
     assert second_guard["stop_same_semantic_redrive"] is True
+    assert second_guard["required_next_executor_stage"] == (
+        "paper_mission_semantic_progress_executor"
+    )
+    executor_stage = second_guard["mas_owned_executor_stage"]
+    assert executor_stage["stage_type"] == "paper_mission_semantic_progress_executor"
+    assert executor_stage["owner"] == "MedAutoScience"
+    assert executor_stage["executor"] == "Codex CLI"
+    assert executor_stage["required_outputs"] == list(
+        commands.NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS
+    )
+    assert executor_stage["forbidden_next_action"] == "synonymous_route_back_redrive"
+    assert executor_stage["authority_boundary"]["writes_authority"] is False
     assert second_guard["can_claim_paper_progress"] is False
     assert "paper_facing_delta" in second_guard["next_legal_actions"]
 
