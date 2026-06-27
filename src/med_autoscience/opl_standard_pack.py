@@ -212,6 +212,62 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
             "platform_repair_delta",
             "next_forced_delta",
         ],
+        "mission_first_non_advancing_escalation_policy": {
+            "surface_kind": "opl_foundry_agent_mission_first_non_advancing_escalation_policy",
+            "policy_id": "foundry_agent.mission_first_non_advancing_escalation.v1",
+            "domain_policy_ref": (
+                "contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy"
+            ),
+            "applies_to_agents": ["MAS"],
+            "stage_type_projection": {
+                "mas_owned_stage_type": "paper_mission_semantic_progress_executor",
+                "opl_runtime_stage_role": "provider_backing_transport_for_domain_refs",
+                "codex_executor_is_first_class_stage_executor": True,
+                "generic_provider_completion_counts_as_domain_progress": False,
+            },
+            "semantic_progress_signature_projection": {
+                "projected_fields": [
+                    "study_id",
+                    "paper_mission_run_id",
+                    "stage_id",
+                    "current_owner",
+                    "action_type",
+                    "work_unit_id",
+                    "work_unit_fingerprint",
+                    "route_identity_key",
+                    "attempt_idempotency_key",
+                    "required_output_surface",
+                    "accepted_answer_shape",
+                ],
+                "transport_only_fields_are_observability": True,
+                "same_signature_without_domain_delta_counts_as_non_advancing": True,
+            },
+            "route_back_budget_policy": {
+                "same_signature_repeat_threshold": 2,
+                "after_threshold_next_owner": (
+                    "MedAutoScience.paper_mission_semantic_progress_executor"
+                ),
+                "opl_redrive_after_worker_ready_allowed": False,
+                "queue_or_worker_readiness_can_reset_budget": False,
+                "budget_exhausted_can_claim_completion": False,
+            },
+            "forbidden_public_or_readiness_claims": [
+                "domain_ready",
+                "runtime_ready",
+                "publication_ready",
+                "submission_ready",
+                "provider_running",
+                "DM002_ready",
+                "DM003_ready",
+            ],
+            "authority_boundary": {
+                "domain_owns_semantic_progress_signature": True,
+                "domain_owns_non_advancing_escalation": True,
+                "opl_owns_transport_lifecycle": True,
+                "opl_can_write_domain_truth": False,
+                "opl_can_claim_domain_readiness_from_transport": False,
+            },
+        },
         "domain_progress_aliases": {
             "deliverable": ["paper_progress_delta", "paper_work_progress"],
             "platform": ["platform_repair_delta"],

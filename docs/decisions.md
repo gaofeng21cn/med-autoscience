@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-27：mission-first non-advancing route-back 自动升级口径
+
+- 决策：`route_back`、`domain_gate`、`paper_mission_stage_route_domain_gate_pending`、`owner_answer_shape=route_back_evidence_ref` 或 `non_advancing_apply` 反复出现时，默认不再继续 OPL redrive / tick / worker readiness 循环。MAS 必须先计算 `semantic_progress_signature`：study、PaperMissionRun、stage、current owner、action、work-unit id / fingerprint、route identity、attempt idempotency、required output surface 和 accepted answer shape；只有 owner receipt、stable typed blocker、human gate、route-back evidence、canonical paper/artifact delta、AI reviewer / publication gate delta、successor work unit 或 `CarryForwardRiskReceipt` 这类 semantic delta 才能改变签名推进状态。
+- 决策：同一 `semantic_progress_signature` 第一次 route-back 可记录为 owner handoff；第二次仍无 semantic delta 时，自动升级到 MAS-owned Codex executor stage，stage type 固定为 `paper_mission_semantic_progress_executor`。该 stage 的目标不是再解释状态，而是产出一个可消费的 mission delta：canonical paper/artifact delta、owner receipt、stable typed blocker、human gate、带 successor work unit 的 route-back evidence、`CarryForwardRiskReceipt` 或明确的 repair-lane proposal。
+- 决策：worker ready、queue blocked/empty、OPL route transport fixed、provider liveness、stage attempt id、active run id、read-model refresh、focused tests、docs/contract diff 或 pushed commit 都是 transport / observability / repo evidence；它们不能重置 non-advancing budget，不能声明 paper progress、runtime-ready、submission-ready、publication-ready，也不能把 DM002/DM003 写成 ready。
+- 决策：MAS 持有 semantic progress detection、executor stage type、medical authority、owner receipt、typed blocker、human gate、publication / submission readiness 和 artifact authority。OPL 持有 route transport、queue、attempt、StageRun、provider lifecycle、retry/dead-letter 和 refs-only projection；OPL 只能运输 route-back refs，不能替 MAS 判断 route-back 是否产生了医学语义推进。
+- 决策：本口径落入 `contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy` 与 `contracts/foundry_agent_series.json#/mission_first_non_advancing_escalation_policy`。文档 runbook 负责解释 operator 读法；机器 consumer 应以 contract 字段为准。
+- 理由：近期 DM002/DM003 停滞已经证明，route-back/domain-gate 本身可以是正确 owner handoff，但重复同一签名时会退化成“transport 健康、队列有记录、状态解释正确、论文不前进”的循环。mission-first 口径把重复 route-back 从 OPL transport 循环升级为 MAS 语义执行问题，迫使下一轮产出可接力的论文/owner delta 或 typed owner blocker。
+- 影响：该决策只固化 docs / contract / runbook 验收口径；不写 Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker authority file、human gate、current package、runtime queue/provider attempt 或 paper body。DM002/DM003 的 ready、submission-ready、publication-ready、runtime-ready 和 paper-progress claim 仍必须由 fresh live PaperMissionRun、owner receipt、stable typed blocker、human gate、route-back evidence、canonical artifact delta、quality gate receipt 或 same-identity strict provider running proof 证明。
+
 ## 2026-06-27：PaperMission / OPL followthrough repo 功能面关闭，live paper evidence 后置
 
 - 决策：本轮只关闭 MAS PaperMission / OPL followthrough 的 repo 功能面，不推进 DM002/DM003 论文 live drive。功能面完成的 owner evidence 是 source / contract / CLI / read-model / tests / OPL scaffold validator 和 dated closeout handoff；live paper evidence 仍归独立论文推进会话。

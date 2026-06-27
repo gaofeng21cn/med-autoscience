@@ -79,6 +79,100 @@
     "can_authorize_submission_readiness": false,
     "provider_completion_is_paper_progress": false
   },
+  "mission_first_non_advancing_route_back_policy": {
+    "surface_kind": "mas_mission_first_non_advancing_route_back_policy",
+    "policy_id": "mas.paper_mission.non_advancing_route_back_escalation.v1",
+    "version": "mission-first-non-advancing-route-back.v1",
+    "applies_to_terminal_shapes": [
+      "route_back",
+      "domain_gate",
+      "non_advancing_apply",
+      "owner_answer_shape=route_back_evidence_ref",
+      "paper_mission_stage_route_domain_gate_pending"
+    ],
+    "semantic_progress_signature": {
+      "purpose": "Detect repeated route_back/domain_gate loops that do not change the mission artifact, owner answer, or next executable work unit.",
+      "identity_fields": [
+        "study_id",
+        "paper_mission_run_id",
+        "stage_id",
+        "current_owner",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "required_output_surface",
+        "accepted_answer_shape"
+      ],
+      "semantic_delta_fields": [
+        "owner_receipt_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "canonical_paper_or_artifact_delta_ref",
+        "ai_reviewer_or_publication_gate_delta_ref",
+        "successor_work_unit_ref",
+        "carry_forward_risk_receipt_ref"
+      ],
+      "transport_only_fields_do_not_change_signature": [
+        "observed_at",
+        "queue_id",
+        "stage_attempt_id",
+        "active_run_id",
+        "worker_readiness",
+        "provider_liveness",
+        "retry_count",
+        "read_model_generated_at",
+        "focused_test_result",
+        "docs_or_contract_commit"
+      ],
+      "repeated_signature_without_semantic_delta_is_non_advancing": true
+    },
+    "budget_and_escalation_policy": {
+      "first_same_signature_route_back": "record_route_back_and_require_mission_executor_next_delta",
+      "second_same_signature_route_back_without_semantic_delta": "escalate_to_mas_owned_codex_executor_stage",
+      "same_signature_opl_redrive_budget_after_escalation": 0,
+      "transport_repair_budget_after_worker_ready": 0,
+      "budget_exhaustion_is_not_completion": true,
+      "allowed_escalation_outcomes": [
+        "canonical_paper_or_artifact_delta",
+        "owner_receipt_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref_with_successor_work_unit",
+        "carry_forward_risk_receipt_ref",
+        "open_repair_lane_proposal"
+      ]
+    },
+    "mas_owned_codex_executor_stage": {
+      "stage_type": "paper_mission_semantic_progress_executor",
+      "owner": "MedAutoScience",
+      "executor": "Codex CLI",
+      "entry_condition": "same semantic_progress_signature repeats through route_back/domain_gate without a new semantic_delta_fields value",
+      "required_output": "one of semantic artifact delta, owner receipt, stable typed blocker, human gate, route-back evidence with successor work unit, or repair-lane proposal",
+      "opl_role": "transport_refs_attempts_queue_and_stage_run_lifecycle_only"
+    },
+    "completion_and_readiness_forbidden_claims": [
+      "DM002_ready",
+      "DM003_ready",
+      "submission_ready",
+      "publication_ready",
+      "runtime_ready",
+      "provider_running",
+      "paper_progress_from_repeated_route_back",
+      "paper_progress_from_domain_gate_only",
+      "paper_progress_from_focused_tests_or_docs"
+    ],
+    "authority_boundary": {
+      "mas_owns_semantic_progress_detection": true,
+      "mas_owns_executor_stage_type": true,
+      "opl_can_transport_route_back_refs": true,
+      "opl_can_decide_semantic_progress": false,
+      "opl_transport_or_worker_ready_counts_as_semantic_progress": false,
+      "policy_can_write_authority_surfaces": false
+    }
+  },
   "stages": [
     {
       "stage_id": "01-study_intake",
