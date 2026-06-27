@@ -44,6 +44,22 @@ from med_autoscience.paper_mission_opl_carrier import (
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
 )
+from med_autoscience.cli_parts.paper_mission_output_roots import (
+    PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
+    PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
+    PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH,
+    YANG_WORKSPACE_ROOT,
+    _assert_safe_candidate_output_root,
+    _assert_safe_candidate_package_output_root,
+    _assert_safe_consumption_ledger_output_root,
+    _assert_safe_one_shot_output_root,
+    _is_yang_ops_candidate_package_root,
+    _is_yang_ops_candidate_root,
+    _is_yang_ops_consumption_ledger_root,
+    _is_yang_ops_non_authority_candidate_root,
+    _is_yang_ops_root,
+    _is_under_yang_workspace,
+)
 from med_autoscience.paper_mission_owner_answer import (
     terminal_owner_gate_authority_consume_readback,
     terminal_owner_gate_owner_answer_next_decision,
@@ -67,19 +83,9 @@ PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
 PAPER_MISSION_CONTRACT_COMMIT = "a410db5c0c874187c8b1ddecee79c2e00c8fe691"
 PAPER_MISSION_START_OR_RESUME_TASK_KIND = "paper_mission/start_or_resume"
-YANG_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang")
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
-PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
-    Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
-)
-PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH = (
-    Path("ops") / "medautoscience" / "paper_mission_candidate_package"
-)
-PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH = (
-    Path("ops") / "medautoscience" / "paper_mission_consumption_ledger"
-)
 PAPER_MISSION_ROUTE_BACK_BUDGET_LEDGER_FILENAME = "route_back_budget_ledger.json"
 PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS = 2
 DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT = 2
@@ -4286,112 +4292,6 @@ def _no_write_output_manifest() -> dict[str, Any]:
         "writes_yang_ops_candidate_package": False,
         "writes_yang_ops_consumption_ledger": False,
     }
-
-
-def _assert_safe_candidate_output_root(path: Path) -> None:
-    _assert_safe_non_authority_output_root(
-        path,
-        allowed_yang_relpath=None,
-    )
-
-
-def _assert_safe_one_shot_output_root(path: Path) -> None:
-    _assert_safe_non_authority_output_root(
-        path,
-        allowed_yang_relpath=PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH,
-    )
-
-
-def _assert_safe_candidate_package_output_root(path: Path) -> None:
-    _assert_safe_non_authority_output_root(
-        path,
-        allowed_yang_relpath=PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
-    )
-
-
-def _assert_safe_consumption_ledger_output_root(path: Path) -> None:
-    _assert_safe_non_authority_output_root(
-        path,
-        allowed_yang_relpath=PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
-    )
-
-
-def _assert_safe_non_authority_output_root(
-    path: Path,
-    *,
-    allowed_yang_relpath: Path | None,
-) -> None:
-    normalized_path = path.expanduser().resolve()
-    normalized = normalized_path.as_posix()
-    forbidden_parts = (
-        "/studies/",
-        "/runtime/",
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-        "owner_receipt",
-        "typed_blocker",
-        "human_gate",
-        "current_package",
-        "runtime/queue",
-        "provider_attempt",
-    )
-    if (
-        _is_under_yang_workspace(normalized_path)
-        and allowed_yang_relpath is not None
-        and not _is_yang_ops_root(normalized_path, allowed_yang_relpath)
-    ):
-        raise ValueError(f"forbidden paper mission output root: {path}")
-    if (
-        _is_under_yang_workspace(normalized_path)
-        and allowed_yang_relpath is None
-        and not _is_yang_ops_non_authority_candidate_root(normalized_path)
-    ):
-        raise ValueError(f"forbidden paper mission output root: {path}")
-    for forbidden in forbidden_parts:
-        if forbidden in normalized:
-            raise ValueError(f"forbidden paper mission output root: {path}")
-
-
-def _is_yang_ops_candidate_root(path: str | Path | None) -> bool:
-    return _is_yang_ops_root(path, PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH)
-
-
-def _is_yang_ops_candidate_package_root(path: str | Path | None) -> bool:
-    return _is_yang_ops_root(path, PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH)
-
-
-def _is_yang_ops_non_authority_candidate_root(path: str | Path | None) -> bool:
-    return (
-        _is_yang_ops_candidate_root(path)
-        or _is_yang_ops_candidate_package_root(path)
-        or _is_yang_ops_consumption_ledger_root(path)
-    )
-
-
-def _is_yang_ops_consumption_ledger_root(path: str | Path | None) -> bool:
-    return _is_yang_ops_root(path, PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH)
-
-
-def _is_yang_ops_root(path: str | Path | None, relpath: Path) -> bool:
-    if path is None:
-        return False
-    normalized = Path(path).expanduser().resolve()
-    try:
-        relative = normalized.relative_to(YANG_WORKSPACE_ROOT)
-    except ValueError:
-        return False
-    parts = relative.parts
-    if len(parts) < len(relpath.parts) + 2:
-        return False
-    return Path(*parts[1 : 1 + len(relpath.parts)]) == relpath
-
-
-def _is_under_yang_workspace(path: Path) -> bool:
-    try:
-        path.relative_to(YANG_WORKSPACE_ROOT)
-    except ValueError:
-        return False
-    return True
 
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
