@@ -315,6 +315,27 @@ def build_paper_recovery_state(
                 suppressed_surfaces=_suppressed_surfaces_for_typed_blocker(progress),
                 diagnostic_report=diagnostic,
             )
+        owner_callable = _current_mas_owner_callable(progress, obligation=obligation)
+        if owner_callable is not None:
+            return _state(
+                progress,
+                obligation=obligation,
+                phase="owner_action_ready",
+                conditions=[
+                    {
+                        "condition": "current_mas_owner_callable_ready",
+                        "reason": blocker_reason,
+                    }
+                ],
+                next_safe_action=_next_action(
+                    "run_mas_owner_callable",
+                    provider_admission_allowed=False,
+                    owner=owner,
+                    owner_callable=owner_callable,
+                ),
+                current_owner=owner,
+                diagnostic_report=diagnostic,
+            )
         owner_gate = None
         if not _typed_blocker_has_stable_outcome_ref(typed_blocker):
             owner_gate = _successor_owner_gate_from_terminal_blocker(
@@ -821,16 +842,14 @@ def _mas_policy_projection_can_supersede_stale_supervisor_decision(
         return True
     if next_action_kind != "materialize_successor_owner_action":
         return False
+    conditions = _paper_recovery_condition_names(paper_recovery_state)
+    if "current_owner_action_supersedes_typed_blocker" in conditions:
+        return False
     successor = _mapping(_mapping(paper_recovery_state.get("next_safe_action")).get("successor_owner_action"))
     if _text(successor.get("source_surface")) == (
         "gate_clearing_batch_followthrough.actionable_current_work_unit"
     ):
         return True
-    conditions = {
-        _text(condition.get("condition"))
-        for condition in paper_recovery_state.get("conditions") or []
-        if isinstance(condition, Mapping)
-    }
     return bool(
         conditions
         & {
@@ -840,6 +859,15 @@ def _mas_policy_projection_can_supersede_stale_supervisor_decision(
             "consumed_owner_receipt_domain_transition_successor",
         }
     )
+
+
+def _paper_recovery_condition_names(paper_recovery_state: Mapping[str, Any]) -> set[str]:
+    return {
+        condition_name
+        for condition in paper_recovery_state.get("conditions") or []
+        if isinstance(condition, Mapping)
+        if (condition_name := _text(condition.get("condition"))) is not None
+    }
 
 
 def _owner_receipt_state(

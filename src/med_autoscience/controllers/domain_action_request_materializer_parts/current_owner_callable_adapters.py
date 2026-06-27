@@ -84,7 +84,13 @@ def current_owner_callable_adapters(
         if text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter"
     ]
     transition_source_dispatches = [
-        dispatch for dispatch in dispatches if dispatch not in foreground_dispatches
+        _transition_projection_dispatch(
+            dispatch,
+            apply=apply,
+            dispatch_ready_for_execution=dispatch_ready_for_execution,
+            text=text,
+        )
+        for dispatch in dispatches
     ]
     transition_requests = domain_progress_transition_request_projection(
         transition_source_dispatches
@@ -156,6 +162,22 @@ def _developer_mode_payload_for_dry_run_execution(
         "safe_actions_enabled": True,
         "dry_run_executor_dispatch": True,
     }
+
+
+def _transition_projection_dispatch(
+    dispatch: dict[str, Any],
+    *,
+    apply: bool,
+    dispatch_ready_for_execution: bool,
+    text: Callable[[object], str | None],
+) -> dict[str, Any]:
+    if text(dispatch.get("adapter_kind")) != "mas_foreground_owner_callable_adapter":
+        return dispatch
+    status = "transition_request_pending" if dispatch_ready_for_execution and not apply else "dry_run"
+    payload = {**dispatch, "dispatch_status": status}
+    if status == "transition_request_pending":
+        payload.setdefault("blocked_reason", "opl_execution_authorization_required")
+    return payload
 
 
 def _dispatch_status_count(
