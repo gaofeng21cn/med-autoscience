@@ -5,7 +5,7 @@ Purpose: `current_truth_summary`
 State: `active_current_truth`
 Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。具体 study 当前状态必须 fresh 读取 live `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts。
 
-文档更新时间：`2026-06-26`
+文档更新时间：`2026-06-27`
 
 当前状态 anchors：
 
@@ -23,6 +23,8 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 Plugin native profile pointer: `contracts/opl-native-profile.json` 只声明 OPL Flow / OPL Doc 插件同步与 drift 检查所需的 repo-native profile；它不是 MAS medical truth、runtime truth、publication verdict、artifact authority、owner receipt 或 production-ready 证据。
 
 Live Evidence 后置 / 功能结构优先是 MAS 日常开发读法。repo-source retirement、contract / schema / readback shape、projection demotion、no-authority guard、tombstone / no-active-caller、DHD / policy adapter 的功能边界可以先完成，不等待 live provider、live paper-line、DM002/DM003 fresh project run 或 production-soak evidence。Live Evidence 另账保留为 readiness / publication / production claim 的后置验收：真实 `study_progress`、OPL StageRun / outbox readback、owner receipt、stable typed blocker、human gate、route-back、paper artifact delta 和 live provider evidence 才能关闭对应 live lane；focused tests、projection clean、queue empty、contract pass 或 repo-source 删除不能声明 paper progress、publication-ready、domain-ready 或 production-ready。
+
+2026-06-27 PaperMission / OPL followthrough 功能面 closeout：MAS repo 功能面已经把 `paper-mission drive` 默认编排、governed consumption ledger 的 `opl_route_handoff`、同 transaction / StageTerminalDecision / OPL route command readback、bounded OPL tick followthrough、domain-handler export study scope、OPL standard Foundry public projection policy 和 scaffold validation blocker 清零落到 source / contract / tests / closeout handoff。具体 15 项验收、验证命令、authority 禁写边界和给论文 live 线程的后续命令见 [PaperMission / OPL followthrough repo closeout 2026-06-27](./history/program/paper_mission_opl_followthrough_repo_closeout_2026_06_27.md)。该 closeout 只声明 repo 功能面和 handoff artifact 完成；DM002/DM003 live drive、fresh paper evidence、owner receipt、typed blocker authority file、human gate、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、OPL provider running proof、submission-ready、publication-ready、runtime-ready 和 production-ready 仍由 live evidence lane 单独验证。
 
 2026-06-26 DM002/DM003 MAS-OPL 根因与候选物化读法：本次长期停滞的根因链不是 MAS stage 目标态本身，而是 OPL `domain-handler export` 与 `dispatch` 共用短 timeout，MAS clean export 超过短预算时被 OPL 提前杀死，导致 route refs 未进入 OPL typed queue。OPL 修复属于 transport/currentness：export timeout 预算已从 dispatch timeout 拆分，dispatch 仍保持短默认，export 默认允许长 clean readback；这只证明 route handoff 可被运输，不证明论文 authority、submission-ready、publication-ready 或 runtime-ready。MAS 侧 `paper-mission package-candidate` 的候选物化现在从泛化 work order 升级为具体 `concrete_non_authority_paper_delta`：读取 `paper/draft.md`、`paper/build/review_manuscript.md`、claim/evidence/table/figure/review JSON source snapshot，生成 candidate patch operations、claim/evidence rows、figure/table candidates、reviewer response draft items 和 owner ballot。该 materializer 仍只写 candidate package / paper-facing candidate artifact JSON，不写 owner receipt、typed blocker authority file、human gate、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、runtime queue/provider attempt 或 paper body。
 

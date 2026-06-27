@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-27：PaperMission / OPL followthrough repo 功能面关闭，live paper evidence 后置
+
+- 决策：本轮只关闭 MAS PaperMission / OPL followthrough 的 repo 功能面，不推进 DM002/DM003 论文 live drive。功能面完成的 owner evidence 是 source / contract / CLI / read-model / tests / OPL scaffold validator 和 dated closeout handoff；live paper evidence 仍归独立论文推进会话。
+- 决策：`paper-mission drive` 的默认主路径必须保持 `package-candidate -> consume-candidate -> governed consumption ledger -> opl_route_handoff -> optional OPL submit/followthrough`；`--no-submit-opl-runtime` 继续保留禁用 runtime submit 的操作边界。OPL tick followthrough 只做 bounded readback，不把 timeout、queue request 或 hydrate 结果写成 StageRun created、provider running、runtime-ready 或 paper progress。
+- 决策：`paper_mission_consumption_ledger` 中 same-identity `opl_route_handoff` 是 MAS 交给 OPL 的 executable route source。DHD、owner-route reconcile、default dispatch、PaperRecovery、provider-admission projection 和旧 owner-answer residue 只能是 diagnostics / migration / provenance，不能重新决定默认 PaperMission 下一步。
+- 决策：OPL Foundry public standard surface 只能是 OPL generated / hosted series surface。MAS `contracts/foundry_agent_series.json` 必须声明 `standard_public_projection_policy`，canonical inspect pattern 为 `opl foundry agents inspect <agent_id>`；domain-owned CLI、retired aliases、compatibility aliases、legacy JSON aliases、minimal authority functions 和 domain-owned helpers 不得成为 public standard membership axis。
+- 决策：本轮 closeout 的 docs / history artifact 只记录功能面落地、验证结果、authority 禁写边界和 019ef954 live 线程 handoff 命令。它不授权手写 Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package、runtime queue/provider attempt 或 paper body。
+- 理由：前一轮验收发现两个非代码缺口：功能边界和 live handoff 只在聊天中说明，且本地提交尚未推送。将 closeout / handoff 写入 repo history，并把 source commits 推送到 `origin/main`，可以让后续论文推进线程从同一 repo truth 接力，同时避免把 repo 绿灯误解成 live paper 完成。
+- 影响：完成口径是 `focused PaperMission suite`、`make test-meta`、`scripts/verify.sh`、OPL scaffold validation、clean root 和 pushed main。任何 DM002/DM003 live progress / readiness / publication claim 仍必须 fresh 读取 live `paper-mission inspect`、`study_progress`、OPL current-control / StageRun / queue / attempt、owner receipt、stable typed blocker、human gate、route-back 或 artifact delta。
+
 ## 2026-06-26：DM002/DM003 停滞根因按 transport、candidate materializer 与 currentness 分账修复
 
 - 决策：本轮 “目标受阻 / stage 无法推进” 的根因按三层分账，不再把它描述成单一 MAS stage blocker。第一层是 OPL transport defect：`domain-handler export` 与 `dispatch` 共用短 timeout，clean MAS export 超过预算时被 OPL 误杀。第二层是 MAS foreground candidate gap：旧 `package-candidate` 虽有 milestone shape，但 paper-facing 内容仍偏泛化。第三层是 read-model/currentness guard：governed consumption ledger 已 current 时，旧 terminal closeout residue 不得覆盖当前 transaction。
