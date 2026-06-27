@@ -1125,6 +1125,20 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert paper_facing_delta["can_claim_submission_ready"] is False
     assert paper_facing_delta["can_claim_publication_ready"] is False
     assert paper_facing_delta["authority_boundary"]["writes_authority"] is False
+    assert paper_facing_delta["adopted_external_paper_delta_ref"] == adopted_external_ref
+    assert paper_facing_delta["source_paper_facing_delta_ref"] == adopted_external_ref
+    assert paper_facing_delta[
+        "adopted_external_paper_delta_authority_boundary"
+    ] == {
+        "candidate_is_authority": False,
+        "authority_materialized": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+    }
     assert owner_consumption_request["surface_kind"] == (
         "paper_mission_owner_consumption_request"
     )
@@ -1241,6 +1255,26 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         Path(path).exists()
         for path in payload["output_manifest"]["paper_facing_artifact_refs"].values()
     )
+    for artifact_ref in payload["output_manifest"]["paper_facing_artifact_refs"].values():
+        artifact = json.loads(Path(artifact_ref).read_text(encoding="utf-8"))
+        assert artifact["adopted_external_paper_delta_ref"] == adopted_external_ref
+        assert artifact["source_paper_facing_delta_ref"] == adopted_external_ref
+        assert artifact["candidate_content"][
+            "adopted_external_paper_delta_ref"
+        ] == adopted_external_ref
+        assert artifact["candidate_content"]["source_paper_facing_delta_ref"] == (
+            adopted_external_ref
+        )
+        assert artifact["adopted_external_paper_delta_authority_boundary"] == {
+            "candidate_is_authority": False,
+            "authority_materialized": False,
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+        }
     assert (
         payload["output_manifest"]["paper_facing_candidate_delta_ref"]
         in candidate_manifest["candidate_artifact_refs"]

@@ -28,6 +28,19 @@ PAPER_SOURCE_JSON_RELPATHS = (
 )
 
 
+def adopted_external_paper_delta_authority_boundary() -> dict[str, bool]:
+    return {
+        "candidate_is_authority": False,
+        "authority_materialized": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+    }
+
+
 def materialized_paper_facing_candidate_artifact_payload(
     *,
     kind: str,
@@ -37,6 +50,9 @@ def materialized_paper_facing_candidate_artifact_payload(
     forbidden_authority_writes: Sequence[str],
     forbidden_authority_claims: Sequence[str],
 ) -> dict[str, Any]:
+    adopted_external_delta = _adopted_external_paper_delta(
+        paper_facing_candidate_delta
+    )
     return {
         "surface_kind": f"paper_mission_{kind}",
         "schema_version": 1,
@@ -64,6 +80,7 @@ def materialized_paper_facing_candidate_artifact_payload(
             "source_document_refs", []
         ),
         "source_snapshot": paper_facing_candidate_delta.get("paper_source_snapshot"),
+        **adopted_external_delta,
         "candidate_content": _paper_facing_candidate_content(
             kind=kind,
             paper_facing_candidate_delta=paper_facing_candidate_delta,
@@ -197,6 +214,7 @@ def _paper_facing_candidate_content(
         "source_document_refs": paper_facing_candidate_delta.get(
             "source_document_refs", []
         ),
+        **_adopted_external_paper_delta(paper_facing_candidate_delta),
     }
     source_snapshot = _mapping(paper_facing_candidate_delta.get("paper_source_snapshot"))
     markdown_sources = [
@@ -288,6 +306,17 @@ def _paper_facing_candidate_content(
                 "candidate_refs": paper_facing_candidate_delta.get(
                     "paper_facing_artifact_refs", {}
                 ),
+                **(
+                    {
+                        "adopted_external_paper_delta": paper_facing_candidate_delta[
+                            "adopted_external_paper_delta_ref"
+                        ]
+                    }
+                    if paper_facing_candidate_delta.get(
+                        "adopted_external_paper_delta_ref"
+                    )
+                    else {}
+                ),
                 "source_document_refs": paper_facing_candidate_delta.get(
                     "source_document_refs", []
                 ),
@@ -297,6 +326,23 @@ def _paper_facing_candidate_content(
         **base,
         "delta_targets": [],
         "required_delta": "Candidate paper-facing artifact content pending.",
+    }
+
+
+def _adopted_external_paper_delta(
+    paper_facing_candidate_delta: Mapping[str, Any],
+) -> dict[str, Any]:
+    adopted_external_ref = _optional_text(
+        paper_facing_candidate_delta.get("adopted_external_paper_delta_ref")
+    ) or _optional_text(paper_facing_candidate_delta.get("source_paper_facing_delta_ref"))
+    if adopted_external_ref is None:
+        return {}
+    return {
+        "adopted_external_paper_delta_ref": adopted_external_ref,
+        "source_paper_facing_delta_ref": adopted_external_ref,
+        "adopted_external_paper_delta_authority_boundary": (
+            adopted_external_paper_delta_authority_boundary()
+        ),
     }
 
 

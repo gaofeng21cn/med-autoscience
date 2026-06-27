@@ -21,6 +21,7 @@ from med_autoscience.paper_mission import (
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 from med_autoscience.paper_mission_candidate_materializer import (
     CONCRETE_NON_AUTHORITY_PAPER_DELTA_KIND,
+    adopted_external_paper_delta_authority_boundary,
     materialized_paper_facing_candidate_artifact_payload,
     materialized_paper_facing_candidate_delta,
 )
@@ -3780,6 +3781,16 @@ def _write_materialized_candidate_package_outputs(
             if isinstance(item, Mapping)
         ],
     }
+    if adopted_external_paper_delta_ref is not None:
+        paper_facing_candidate_delta_payload.update(
+            {
+                "adopted_external_paper_delta_ref": adopted_external_paper_delta_ref,
+                "source_paper_facing_delta_ref": adopted_external_paper_delta_ref,
+                "adopted_external_paper_delta_authority_boundary": (
+                    adopted_external_paper_delta_authority_boundary()
+                ),
+            }
+        )
     paper_facing_candidate_delta.clear()
     paper_facing_candidate_delta.update(paper_facing_candidate_delta_payload)
     owner_consumption_candidate_refs = {
@@ -3855,16 +3866,7 @@ def _write_materialized_candidate_package_outputs(
         ] = adopted_external_paper_delta_ref
         payloads["submission_milestone_checklist"][
             "adopted_external_paper_delta_authority_boundary"
-        ] = {
-            "candidate_is_authority": False,
-            "authority_materialized": False,
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_paper_body": False,
-            "can_claim_submission_ready": False,
-            "can_claim_publication_ready": False,
-        }
+        ] = adopted_external_paper_delta_authority_boundary()
     payloads.update(
         {
             f"ai_owner_decision_sidecar::{kind}": {
