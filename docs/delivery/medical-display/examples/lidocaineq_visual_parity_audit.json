@@ -15,10 +15,8 @@
       "category_label": "Survival / Kaplan-Meier",
       "expected_source_renderer": "LidocaineQ/Figure_Template::survival_km",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/survival_km.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -45,10 +43,8 @@
       "category_label": "Survival / Kaplan-Meier",
       "expected_source_renderer": "LidocaineQ/Figure_Template::cumulative_incidence_grouped",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/cumulative_incidence_grouped.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -75,10 +71,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::roc_auc",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/roc_auc.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -105,10 +99,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::time_dependent_roc_horizon",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/time_dependent_roc_horizon.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -135,10 +127,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::calibration_curve_binary",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/calibration_curve_binary.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -165,10 +155,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::pr_curve_binary",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/pr_curve_binary.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -195,10 +183,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::decision_curve_binary",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/decision_curve_binary.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -225,10 +211,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_decision_curve",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/time_to_event_decision_curve.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -255,10 +239,8 @@
       "category_label": "ROC / AUC",
       "expected_source_renderer": "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/time_to_event_multihorizon_calibration_panel.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -285,10 +267,8 @@
       "category_label": "Forest / Cox model",
       "expected_source_renderer": "LidocaineQ/Figure_Template::forest_cox",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/forest_cox.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -315,10 +295,8 @@
       "category_label": "Forest / Cox model",
       "expected_source_renderer": "LidocaineQ/Figure_Template::coefficient_path_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/coefficient_path_panel.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -345,10 +323,8 @@
       "category_label": "Forest / Cox model",
       "expected_source_renderer": "LidocaineQ/Figure_Template::generalizability_subgroup_composite_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/generalizability_subgroup_composite_panel.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -375,10 +351,8 @@
       "category_label": "Violin / box comparison",
       "expected_source_renderer": "LidocaineQ/Figure_Template::violin_box",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/violin_box.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -405,10 +379,8 @@
       "category_label": "Bar / stacked proportion",
       "expected_source_renderer": "LidocaineQ/Figure_Template::bar_stacked",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/bar_stacked.png",
-        "width_px": 1664,
-        "height_px": 1088
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -435,10 +407,8 @@
       "category_label": "Bar / stacked proportion",
       "expected_source_renderer": "LidocaineQ/Figure_Template::risk_layering_monotonic_bars",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/risk_layering_monotonic_bars.png",
-        "width_px": 1664,
-        "height_px": 1088
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -465,10 +435,8 @@
       "category_label": "Scatter / correlation",
       "expected_source_renderer": "LidocaineQ/Figure_Template::scatter_correlation",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/scatter_correlation.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -495,10 +463,8 @@
       "category_label": "UMAP / t-SNE embedding",
       "expected_source_renderer": "LidocaineQ/Figure_Template::embedding_umap_tsne",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/embedding_umap_tsne.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -547,10 +513,8 @@
       "category_label": "Heatmap / matrix pattern",
       "expected_source_renderer": "LidocaineQ/Figure_Template::heatmap",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/heatmap.png",
-        "width_px": 1664,
-        "height_px": 1184
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -577,10 +541,8 @@
       "category_label": "Heatmap / matrix pattern",
       "expected_source_renderer": "LidocaineQ/Figure_Template::confusion_matrix_heatmap_binary",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/confusion_matrix_heatmap_binary.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -607,10 +569,8 @@
       "category_label": "Volcano / differential expression",
       "expected_source_renderer": "LidocaineQ/Figure_Template::volcano_deg",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/volcano_deg.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -637,10 +597,8 @@
       "category_label": "GSEA / enrichment",
       "expected_source_renderer": "LidocaineQ/Figure_Template::gsea_enrichment",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/gsea_enrichment.png",
-        "width_px": 1696,
-        "height_px": 1184
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -667,10 +625,8 @@
       "category_label": "Oncoplot / mutation landscape",
       "expected_source_renderer": "LidocaineQ/Figure_Template::oncoplot_mutation",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/oncoplot_mutation.png",
-        "width_px": 2240,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -697,10 +653,8 @@
       "category_label": "Oncoplot / mutation landscape",
       "expected_source_renderer": "LidocaineQ/Figure_Template::genomic_alteration_consequence_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/genomic_alteration_consequence_panel.png",
-        "width_px": 1696,
-        "height_px": 1120
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -727,10 +681,8 @@
       "category_label": "Oncoplot / mutation landscape",
       "expected_source_renderer": "LidocaineQ/Figure_Template::cnv_recurrence_summary_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/cnv_recurrence_summary_panel.png",
-        "width_px": 1696,
-        "height_px": 1088
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -757,10 +709,8 @@
       "category_label": "Waterfall / ranked risk score",
       "expected_source_renderer": "LidocaineQ/Figure_Template::waterfall",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/waterfall.png",
-        "width_px": 1696,
-        "height_px": 1088
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -787,10 +737,8 @@
       "category_label": "Scatter / correlation",
       "expected_source_renderer": "LidocaineQ/Figure_Template::shap_dependence_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/shap_dependence_panel.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -817,10 +765,8 @@
       "category_label": "Scatter / correlation",
       "expected_source_renderer": "LidocaineQ/Figure_Template::shap_summary_beeswarm",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/shap_summary_beeswarm.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -847,10 +793,8 @@
       "category_label": "Waterfall / ranked risk score",
       "expected_source_renderer": "LidocaineQ/Figure_Template::shap_waterfall_local_explanation_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/shap_waterfall_local_explanation_panel.png",
-        "width_px": 1696,
-        "height_px": 1120
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -877,10 +821,8 @@
       "category_label": "Scatter / correlation",
       "expected_source_renderer": "LidocaineQ/Figure_Template::model_complexity_audit_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/model_complexity_audit_panel.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -907,10 +849,8 @@
       "category_label": "Heatmap / matrix pattern",
       "expected_source_renderer": "LidocaineQ/Figure_Template::celltype_marker_dotplot_panel",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/celltype_marker_dotplot_panel.png",
-        "width_px": 1728,
-        "height_px": 1184
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -937,10 +877,8 @@
       "category_label": "Sankey / alluvial flow",
       "expected_source_renderer": "LidocaineQ/Figure_Template::sankey_alluvial",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/sankey_alluvial.png",
-        "width_px": 1696,
-        "height_px": 1120
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -967,10 +905,8 @@
       "category_label": "Radar / radial profile",
       "expected_source_renderer": "LidocaineQ/Figure_Template::radar",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/radar.png",
-        "width_px": 1536,
-        "height_px": 1536
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {
@@ -997,10 +933,8 @@
       "category_label": "Baseline / summary table",
       "expected_source_renderer": "LidocaineQ/Figure_Template::baseline_table",
       "reference_image": {
-        "exists": true,
-        "path": "/tmp/lidocaineq_figure_template/figures/reference/baseline_table.png",
-        "width_px": 1824,
-        "height_px": 1024
+        "exists": false,
+        "path": ""
       },
       "mas_templates": [
         {

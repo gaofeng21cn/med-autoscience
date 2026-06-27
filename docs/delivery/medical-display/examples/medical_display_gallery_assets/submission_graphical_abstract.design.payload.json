@@ -1,29 +1,30 @@
 {
   "schema_version": 1,
-  "shell_id": "fenggaolab.org.medical-display-core::submission_graphical_abstract",
+  "shell_id": "submission_graphical_abstract",
   "display_id": "submission_graphical_abstract",
   "catalog_id": "GA1",
   "paper_role": "submission_companion",
-  "layout_style": "square_storyline",
-  "title": "Cohort to risk-stratified care",
-  "caption": "Synthetic graphical abstract preview for the Display Pack Gallery.",
+  "layout_style": "reference_guided_flow",
+  "title": "Question to claim-ready figure",
+  "caption": "Brief-first, reference-guided, critic-gated graphical abstract workflow.",
+  "quality_floor_policy": "brief_first_reference_guided_ai_candidate_not_single_template_reuse",
   "panels": [
     {
-      "panel_id": "population",
+      "panel_id": "brief",
       "panel_label": "A",
-      "visual_role": "population",
-      "evidence_token": "n=15,120",
-      "title": "Population",
-      "subtitle": "Cohort locked before modeling",
+      "visual_role": "brief",
+      "evidence_cue": "Claim + evidence refs locked",
+      "title": "Figure brief",
+      "subtitle": "Core claim and evidence chain before drawing",
       "rows": [
         {
           "cards": [
             {
-              "card_id": "cohort",
-              "title": "Analytic cohort",
-              "value": "15,120",
-              "evidence_token": "n=15,120",
-              "detail": "auditable outcomes",
+              "card_id": "brief",
+              "title": "Locked inputs",
+              "value": "Brief",
+              "evidence_token": "claim_refs",
+              "detail": "refs only",
               "accent_role": "primary"
             }
           ]
@@ -31,21 +32,21 @@
       ]
     },
     {
-      "panel_id": "model_signal",
+      "panel_id": "reference_style",
       "panel_label": "B",
-      "visual_role": "model_signal",
-      "evidence_token": "C=0.86",
-      "title": "Model signal",
-      "subtitle": "Primary endpoint risk ranking",
+      "visual_role": "reference_style",
+      "evidence_cue": "Reference style + preserve list",
+      "title": "Reference style",
+      "subtitle": "Journal family, layout cue, labels to preserve",
       "rows": [
         {
           "cards": [
             {
-              "card_id": "c_index",
-              "title": "Validation C-index",
-              "value": "0.86",
-              "evidence_token": "C=0.86",
-              "detail": "temporal holdout",
+              "card_id": "reference",
+              "title": "Style brief",
+              "value": "Target",
+              "evidence_token": "style_ref",
+              "detail": "preserve list",
               "accent_role": "contrast"
             }
           ]
@@ -53,21 +54,21 @@
       ]
     },
     {
-      "panel_id": "clinical_use",
+      "panel_id": "critic_gate",
       "panel_label": "C",
-      "visual_role": "clinical_use",
-      "evidence_token": "3.4x",
-      "title": "Clinical use",
-      "subtitle": "Risk-stratified follow-up",
+      "visual_role": "critic_gate",
+      "evidence_cue": "Visual critic before owner use",
+      "title": "Candidate gate",
+      "subtitle": "Readability, source preservation, owner review",
       "rows": [
         {
           "cards": [
             {
-              "card_id": "risk_group",
-              "title": "High-risk group",
-              "value": "3.4x",
-              "evidence_token": "3.4x",
-              "detail": "event enrichment",
+              "card_id": "gate",
+              "title": "Required refs",
+              "value": "Review",
+              "evidence_token": "critic_ref",
+              "detail": "owner gate",
               "accent_role": "secondary"
             }
           ]
@@ -78,20 +79,20 @@
   "footer_pills": [
     {
       "pill_id": "p1",
-      "panel_id": "population",
-      "label": "Cohort lock",
+      "panel_id": "brief",
+      "label": "Claim + evidence",
       "style_role": "primary"
     },
     {
       "pill_id": "p2",
-      "panel_id": "model_signal",
-      "label": "Model evidence",
+      "panel_id": "reference_style",
+      "label": "Style + preserve",
       "style_role": "contrast"
     },
     {
       "pill_id": "p3",
-      "panel_id": "clinical_use",
-      "label": "Clinical message",
+      "panel_id": "critic_gate",
+      "label": "Critic + owner gate",
       "style_role": "secondary"
     }
   ]

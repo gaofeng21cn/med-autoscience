@@ -472,6 +472,14 @@ def test_gallery_builder_fails_closed_without_opl_dependency_run_context(tmp_pat
     assert "requires OPL-prepared dependency run-context" in result.stderr
 
 
+def test_core_r_evidence_renderer_finds_helpers_when_invoked_by_absolute_path() -> None:
+    renderer_path = CORE_PACK_ROOT / "rlib" / "medicaldisplaycore" / "evidence_renderer.R"
+    text = renderer_path.read_text(encoding="utf-8")
+
+    assert 'grep("^--file=", script_args, value = TRUE)' in text
+    assert "file.path(script_dir, file_name)" in text
+
+
 def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_path: Path) -> None:
     from med_autoscience.display_pack_gallery_catalog import TemplateRecord
     from med_autoscience.display_pack_gallery_parts import paths
@@ -846,6 +854,27 @@ def test_gallery_builder_package_only_fails_closed_without_assets(monkeypatch, t
 
     assert "package-only gallery build requires existing rendered gallery assets" in message
     assert "roc_curve_binary.png" in message
+
+
+def test_package_only_asset_seed_updates_stale_target_files(tmp_path: Path) -> None:
+    from med_autoscience.display_pack_gallery_parts.asset_reuse import seed_package_only_assets
+
+    source_root = tmp_path / "docs_assets"
+    target_root = tmp_path / "output_assets"
+    source_root.mkdir()
+    target_root.mkdir()
+    (source_root / "submission_graphical_abstract.design.png").write_bytes(b"fresh-ga")
+    (target_root / "submission_graphical_abstract.design.png").write_bytes(b"stale-ga")
+    (source_root / "submission_graphical_abstract.design.layout.json").write_text('{"layout":"fresh"}\n', encoding="utf-8")
+
+    result = seed_package_only_assets(source_asset_root=source_root, target_asset_root=target_root)
+
+    assert result["status"] == "synced_from_docs_mirror"
+    assert result["updated_file_count"] == 1
+    assert result["copied_file_count"] == 1
+    assert result["skipped_existing_count"] == 0
+    assert (target_root / "submission_graphical_abstract.design.png").read_bytes() == b"fresh-ga"
+    assert (target_root / "submission_graphical_abstract.design.layout.json").read_text(encoding="utf-8") == '{"layout":"fresh"}\n'
 
 
 def test_embedding_templates_use_feature_matrix_workflow_schema() -> None:

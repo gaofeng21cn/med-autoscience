@@ -10,6 +10,13 @@ suppressPackageStartupMessages({
 }
 
 source_renderer_helper <- function(file_name) {
+  script_args <- commandArgs(trailingOnly = FALSE)
+  script_file_args <- grep("^--file=", script_args, value = TRUE)
+  script_dir <- ""
+  if (length(script_file_args) > 0) {
+    script_path <- sub("^--file=", "", script_file_args[[length(script_file_args)]])
+    script_dir <- dirname(normalizePath(script_path, mustWork = FALSE))
+  }
   frame_files <- vapply(sys.frames(), function(frame) {
     value <- frame$ofile %||% ""
     trimws(as.character(value))
@@ -22,6 +29,7 @@ source_renderer_helper <- function(file_name) {
     }
   }
   fallback_paths <- c(
+    if (nzchar(script_dir)) file.path(script_dir, file_name) else character(0),
     file.path("..", "..", "rlib", "medicaldisplaycore", file_name),
     file_name
   )

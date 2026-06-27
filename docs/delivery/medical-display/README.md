@@ -42,6 +42,12 @@ Medical Display 文档和 template pack 可以定义 renderer family、input sch
 
 Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md) 读取；当前模板数量、Gallery 数量、retired alias 数量、Python evidence 数量和 quality-audit 结论按生成的 [Display Pack Gallery status](./examples/display_pack_gallery_status.md) 读取。MAS 域内已落地 pack/template descriptor、paper-level figure quality refs、article-level `paper/publication_style_profile.json` style-token lock、single/batch medical figure grammar、R/ggplot2-first subprocess runtime protocol、Python evidence 清理边界、AI/VLM polish lifecycle、template discovery/describe CLI、agent-facing orchestrate/discovery/plan/preflight/render receipt surface、one-shot scaffold render、golden refresh/check lower-bound surface、deterministic E2E render/QC/publication manifest、display lock 和 submission refs preservation；OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces。OPL surfaces 只消费和运输 refs，不表示 MAS 已拥有 generic Pack OS substrate。`publication_style_profile`、`display_pack_lock.json`、golden match、visual-audit clear、polish lifecycle、agent orchestration/render receipt、comparison receipt 或 OPL smoke receipt 都不能代签 publication readiness、artifact authority 或 owner receipt。
 
+## Quality Floor 与重构边界
+
+通用科研做图策略按 [Gallery quality audit](./examples/display_pack_gallery_quality_audit.md) 的 `mas_scientific_figure_quality_floor.v1` 读取。模板库提供质量下限和可审阅起点，不锁死图型、布局、panel hierarchy、后端或候选数量；AI executor 应从 figure brief、reference/style brief、preserve list、candidate generation、critic review 和 owner gate 反推图件，而不是复用单个模板来声明完成。
+
+“彻底重构”的边界按图件角色区分：design shell、graphical abstract 和 reporting-flow 图可以在 brief 与 owner gate 支持下重构到更强视觉系统；R/ggplot2 证据图主要通过统一 theme、尺寸、QC、critic gate、参考驱动和 source/data/statistics refs preservation 提升，不默认全部手工重画。任何 Gallery、模板、参考风格或质量审计都不得 claim publication ready。
+
 ## Agent 调用路径
 
 Display Pack 是 MAS agent 使用的能力包，不要求用户理解每个模板。主路径是：

@@ -56,6 +56,78 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - `shared_legend_or_direct_label_strategy_declared`
 - `programmatic_evidence_primitives_preserve_data_statistics_refs`
 
+## 通用科研做图 Quality Floor
+
+- policy: `mas_scientific_figure_quality_floor.v1`
+- scope: `all_gallery_and_paper_candidate_figures`
+- graphical abstract strategy: `brief_first_reference_guided_ai_candidate_not_single_template_reuse`
+- AI executor freedom: `ai_may_choose_figure_type_layout_panel_hierarchy_backend_and_candidate_count_from_paper_local_claims`
+- template library role: `quality_floor_and_reviewable_starting_point_not_ceiling_or_publication_ready_authority`
+- publication ready claim authorized: `false`
+
+Learned patterns:
+
+- `discoverable_skill_pack_with_provenance`
+- `figure_brief_before_plotting`
+- `reference_selection_and_style_brief`
+- `reference_target_preserve_list`
+- `candidate_generation_before_owner_gate`
+- `critic_review_or_route_back`
+- `final_size_readability_inspection`
+- `vector_export_when_possible`
+- `semantic_palette_and_color_vision_check`
+- `source_data_statistics_and_claim_refs_preserved`
+
+Required refs before Gallery or paper use:
+
+- `core_claim_and_evidence_chain_ref`
+- `figure_brief_ref`
+- `reference_selection_ref`
+- `style_brief_ref`
+- `preserve_list_ref`
+- `candidate_artifact_ref`
+- `critic_review_ref`
+- `final_size_inspection_ref`
+- `source_preservation_ref`
+- `owner_gate_ref`
+
+Rebuild boundary:
+
+- `design_shell_graphical_abstract_reporting_flow`: may_be_rebuilt_into_stronger_visual_systems_when_the_figure_brief_and_owner_gate_require_it
+- `r_ggplot2_evidence_figures`: raise_quality_through_theme_size_qc_critic_gate_references_and_source_preservation_not_wholesale_manual_redraw
+
+External learning sources:
+
+- `K-Dense-AI/scientific-agent-skills`
+- `Yuan1z0825/nature-skills`
+- `google-research/papervizagent`
+- `dwzhu-pku/PaperBanana`
+- `VILA-Lab/FigMirror`
+- `dazhiyang/scientific-plotting-skill`
+- `keros68/abstract-fig`
+- `kpoduska/GraphicalAbstractTemplate`
+- `Figpad/awesome-research-figure-prompts`
+- `IyatomiLab/SciGA`
+
+Reference learning lessons:
+
+- [nature_final_submission_artwork](https://www.nature.com/nature/for-authors/final-submission): Use consistent figure lettering, readable reduced-size labels, vector line art when possible, RGB color, and production-quality figure files.
+- [ggplot2_theme_system](https://ggplot2.tidyverse.org/reference/theme.html): Use a single theme system for titles, labels, fonts, backgrounds, gridlines, and legends so all evidence figures share one article-level visual grammar.
+- [ggsci_npg_palette](https://nanx.me/ggsci/reference/scale_npg.html): Nature Publishing Group inspired discrete palettes are mature ggplot2-compatible references for publication-style categorical roles.
+- [colorspace_hcl_palettes](https://colorspace.r-forge.r-project.org/): HCL-based qualitative, sequential and diverging palettes are a stable basis for article-level semantic color roles.
+- [viridis_perceptual_palette](https://sjmgarnier.github.io/viridis/): Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings.
+- [complexheatmap_color_mapping](https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html): Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability.
+- [nature_skills_figure_contract](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure): Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract.
+- [scientific_agent_skills_provenance](https://github.com/K-Dense-AI/scientific-agent-skills): Scientific figure skills should be discoverable, task-scoped, and provenance-carrying instead of hidden inside a generic plotting prompt.
+- [papervizagent_reference_pipeline](https://github.com/google-research/papervizagent): Reference-driven figure agents separate retrieval, planning, styling, visualization, and critique; MAS adapts this as refs-only quality-floor evidence.
+- [paperbanana_candidate_critic_loop](https://github.com/dwzhu-pku/PaperBanana): Academic illustration generation benefits from multiple candidates and critic rounds before owner review rather than single-shot template reuse.
+- [figmirror_reference_preserve_list](https://github.com/VILA-Lab/FigMirror): Reference matching needs an explicit preserve list so style transfer does not drift away from claim, evidence, labels, or source constraints.
+- [scientific_plotting_skill_hard_rules](https://github.com/dazhiyang/scientific-plotting-skill): Small hard rules for vector export, dimensions, color, typography, and parameter blocks raise the plotting floor without constraining the figure concept.
+- [abstract_fig_editable_source](https://github.com/keros68/abstract-fig): Graphical abstract skills are easier to review and revise when the visual source remains editable instead of only producing a flattened image.
+- [graphical_abstract_template_three_panel](https://github.com/kpoduska/GraphicalAbstractTemplate): A simple three-panel flow remains useful as a low-risk default only when it is treated as a brief-driven composition skeleton, not a fixed final visual system.
+- [figpad_research_prompt_patterns](https://github.com/Figpad/awesome-research-figure-prompts): Prompt collections are most useful when converted into explicit brief, preserve-list, candidate, and critic gates rather than copied as prose prompts.
+- [sciga_graphical_abstract_dataset](https://github.com/IyatomiLab/SciGA): Graphical abstracts vary by field and paper intent; a renderer should preserve AI choice of composition while enforcing readable layout and evidence constraints.
+
 ## 页面级图页方案
 
 | Recipe | Title | Hero panel | Supporting | Primitive families | Programmatic evidence | Design shell |
@@ -195,3 +267,12 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 - [viridis_perceptual_palette](https://sjmgarnier.github.io/viridis/): Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings.
 - [complexheatmap_color_mapping](https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html): Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability.
 - [nature_skills_figure_contract](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure): Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract.
+- [scientific_agent_skills_provenance](https://github.com/K-Dense-AI/scientific-agent-skills): Scientific figure skills should be discoverable, task-scoped, and provenance-carrying instead of hidden inside a generic plotting prompt.
+- [papervizagent_reference_pipeline](https://github.com/google-research/papervizagent): Reference-driven figure agents separate retrieval, planning, styling, visualization, and critique; MAS adapts this as refs-only quality-floor evidence.
+- [paperbanana_candidate_critic_loop](https://github.com/dwzhu-pku/PaperBanana): Academic illustration generation benefits from multiple candidates and critic rounds before owner review rather than single-shot template reuse.
+- [figmirror_reference_preserve_list](https://github.com/VILA-Lab/FigMirror): Reference matching needs an explicit preserve list so style transfer does not drift away from claim, evidence, labels, or source constraints.
+- [scientific_plotting_skill_hard_rules](https://github.com/dazhiyang/scientific-plotting-skill): Small hard rules for vector export, dimensions, color, typography, and parameter blocks raise the plotting floor without constraining the figure concept.
+- [abstract_fig_editable_source](https://github.com/keros68/abstract-fig): Graphical abstract skills are easier to review and revise when the visual source remains editable instead of only producing a flattened image.
+- [graphical_abstract_template_three_panel](https://github.com/kpoduska/GraphicalAbstractTemplate): A simple three-panel flow remains useful as a low-risk default only when it is treated as a brief-driven composition skeleton, not a fixed final visual system.
+- [figpad_research_prompt_patterns](https://github.com/Figpad/awesome-research-figure-prompts): Prompt collections are most useful when converted into explicit brief, preserve-list, candidate, and critic gates rather than copied as prose prompts.
+- [sciga_graphical_abstract_dataset](https://github.com/IyatomiLab/SciGA): Graphical abstracts vary by field and paper intent; a renderer should preserve AI choice of composition while enforcing readable layout and evidence constraints.

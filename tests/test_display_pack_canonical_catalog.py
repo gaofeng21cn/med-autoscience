@@ -481,6 +481,43 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["quality_audit"]["quality_policy"]["composition_recipe_policy"] == (
         "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards"
     )
+    scientific_floor = manifest["quality_audit"]["quality_policy"]["scientific_figure_quality_floor_policy"]
+    assert scientific_floor["policy_id"] == "mas_scientific_figure_quality_floor.v1"
+    assert scientific_floor["graphical_abstract_strategy"] == (
+        "brief_first_reference_guided_ai_candidate_not_single_template_reuse"
+    )
+    assert scientific_floor["template_library_role"] == (
+        "quality_floor_and_reviewable_starting_point_not_ceiling_or_publication_ready_authority"
+    )
+    assert "figure_brief_before_plotting" in scientific_floor["learned_scientific_figure_patterns"]
+    assert "reference_selection_and_style_brief" in scientific_floor["learned_scientific_figure_patterns"]
+    assert "reference_target_preserve_list" in scientific_floor["learned_scientific_figure_patterns"]
+    assert "candidate_generation_before_owner_gate" in scientific_floor["learned_scientific_figure_patterns"]
+    assert "critic_review_or_route_back" in scientific_floor["learned_scientific_figure_patterns"]
+    assert "vector_export_when_possible" in scientific_floor["learned_scientific_figure_patterns"]
+    assert "source_data_statistics_and_claim_refs_preserved" in scientific_floor[
+        "learned_scientific_figure_patterns"
+    ]
+    assert "figure_brief_ref" in scientific_floor["required_before_gallery_or_paper_use"]
+    assert "preserve_list_ref" in scientific_floor["required_before_gallery_or_paper_use"]
+    assert "critic_review_ref" in scientific_floor["required_before_gallery_or_paper_use"]
+    assert "owner_gate_ref" in scientific_floor["required_before_gallery_or_paper_use"]
+    assert "publication_ready" in scientific_floor["forbidden_claims"]
+    assert scientific_floor["rebuild_boundary"]["design_shell_graphical_abstract_reporting_flow"] == (
+        "may_be_rebuilt_into_stronger_visual_systems_when_the_figure_brief_and_owner_gate_require_it"
+    )
+    assert scientific_floor["rebuild_boundary"]["r_ggplot2_evidence_figures"] == (
+        "raise_quality_through_theme_size_qc_critic_gate_references_and_source_preservation_not_wholesale_manual_redraw"
+    )
+    assert "K-Dense-AI/scientific-agent-skills" in scientific_floor["external_learning_sources"]
+    assert "google-research/papervizagent" in scientific_floor["external_learning_sources"]
+    assert "VILA-Lab/FigMirror" in scientific_floor["external_learning_sources"]
+    assert "keros68/abstract-fig" in scientific_floor["external_learning_sources"]
+    assert "IyatomiLab/SciGA" in scientific_floor["external_learning_sources"]
+    reference_learning = {item["source_id"]: item for item in scientific_floor["reference_learning_sources"]}
+    assert reference_learning["abstract_fig_editable_source"]["url"] == "https://github.com/keros68/abstract-fig"
+    assert "editable" in reference_learning["abstract_fig_editable_source"]["lesson"]
+    assert reference_learning["sciga_graphical_abstract_dataset"]["url"] == "https://github.com/IyatomiLab/SciGA"
     assert "core_conclusion_and_evidence_chain_locked" in manifest["quality_audit"]["quality_policy"][
         "required_before_paper_use"
     ]
@@ -520,6 +557,16 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`" in quality_markdown
     assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in quality_markdown
     assert "composition storyboard gallery pages: `6`" in quality_markdown
+    assert "通用科研做图 Quality Floor" in quality_markdown
+    assert "policy: `mas_scientific_figure_quality_floor.v1`" in quality_markdown
+    assert "AI executor freedom:" in quality_markdown
+    assert "publication ready claim authorized: `false`" in quality_markdown
+    assert "- `reference_target_preserve_list`" in quality_markdown
+    assert "- `critic_review_ref`" in quality_markdown
+    assert "- `design_shell_graphical_abstract_reporting_flow`:" in quality_markdown
+    assert "- `google-research/papervizagent`" in quality_markdown
+    assert "[abstract_fig_editable_source](https://github.com/keros68/abstract-fig)" in quality_markdown
+    assert "[sciga_graphical_abstract_dataset](https://github.com/IyatomiLab/SciGA)" in quality_markdown
     assert "reporting flow visual template count: `1`" in quality_markdown
     assert "design visual template count: `1`" in quality_markdown
     assert "table preview visual template count: `1`" in quality_markdown

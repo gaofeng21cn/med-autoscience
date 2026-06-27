@@ -1,30 +1,6 @@
 {
   "schema_version": 1,
   "surface_kind": "display_pack_gallery_docs_manifest",
-  "scholarskills_compact_review_package_policy": {
-    "source_of_truth_owner": "MedAutoScience Display Pack",
-    "scholarskills_module_id": "opl.scholarskills.display",
-    "review_refs_only": true,
-    "allowed_review_refs": [
-      "medical_display_gallery.pdf",
-      "medical_display_gallery_reference.md",
-      "display_pack_gallery_status.md",
-      "display_pack_gallery_quality_audit.md",
-      "gallery_manifest.json",
-      "gallery_snapshot.json"
-    ],
-    "forbidden_workspace_install_copies": [
-      "outputs/display-pack-gallery build workspace",
-      "render caches",
-      "single-figure PNG/SVG/HTML exports",
-      "dependency locks",
-      "run-context files",
-      "large gallery intermediates"
-    ],
-    "publication_ready_claim_authorized": false,
-    "artifact_authority": false,
-    "owner_acceptance": false
-  },
   "asset_ref_base": "docs/delivery/medical-display/examples",
   "asset_ref_docs_mirror": "docs/delivery/medical-display/examples",
   "asset_ref_resolution": "template artifact refs are emitted relative to this docs examples directory; medical_display_gallery_assets is copied with the PDF so Markdown and browser readers can resolve images",
@@ -33,17 +9,16 @@
   "force_render": false,
   "package_only": true,
   "asset_reuse": {
-    "status": "seeded_from_docs_mirror",
+    "status": "synced_from_docs_mirror",
     "source_asset_root": "docs/delivery/medical-display/examples/medical_display_gallery_assets",
     "target_asset_root": "outputs/display-pack-gallery/medical_display_gallery_assets",
-    "copied_file_count": 186,
+    "copied_file_count": 0,
+    "updated_file_count": 2,
     "missing_source_count": 0,
-    "skipped_existing_count": 0,
+    "skipped_existing_count": 184,
     "extension_counts": {
-      ".json": 112,
-      ".pdf": 36,
-      ".png": 37,
-      ".svg": 1
+      ".json": 1,
+      ".png": 1
     }
   },
   "render_cache_summary": {

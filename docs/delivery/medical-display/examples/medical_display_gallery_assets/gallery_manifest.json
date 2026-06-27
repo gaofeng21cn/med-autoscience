@@ -3298,6 +3298,141 @@
       "ai_authority": "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim",
       "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
       "current_surface": "canonical_current_gallery_templates_not_input_data_specific_variants",
+      "scientific_figure_quality_floor_policy": {
+        "policy_id": "mas_scientific_figure_quality_floor.v1",
+        "scope": "all_gallery_and_paper_candidate_figures",
+        "graphical_abstract_strategy": "brief_first_reference_guided_ai_candidate_not_single_template_reuse",
+        "ai_executor_freedom": "ai_may_choose_figure_type_layout_panel_hierarchy_backend_and_candidate_count_from_paper_local_claims",
+        "template_library_role": "quality_floor_and_reviewable_starting_point_not_ceiling_or_publication_ready_authority",
+        "learned_scientific_figure_patterns": [
+          "discoverable_skill_pack_with_provenance",
+          "figure_brief_before_plotting",
+          "reference_selection_and_style_brief",
+          "reference_target_preserve_list",
+          "candidate_generation_before_owner_gate",
+          "critic_review_or_route_back",
+          "final_size_readability_inspection",
+          "vector_export_when_possible",
+          "semantic_palette_and_color_vision_check",
+          "source_data_statistics_and_claim_refs_preserved"
+        ],
+        "required_before_gallery_or_paper_use": [
+          "core_claim_and_evidence_chain_ref",
+          "figure_brief_ref",
+          "reference_selection_ref",
+          "style_brief_ref",
+          "preserve_list_ref",
+          "candidate_artifact_ref",
+          "critic_review_ref",
+          "final_size_inspection_ref",
+          "source_preservation_ref",
+          "owner_gate_ref"
+        ],
+        "rebuild_boundary": {
+          "design_shell_graphical_abstract_reporting_flow": "may_be_rebuilt_into_stronger_visual_systems_when_the_figure_brief_and_owner_gate_require_it",
+          "r_ggplot2_evidence_figures": "raise_quality_through_theme_size_qc_critic_gate_references_and_source_preservation_not_wholesale_manual_redraw"
+        },
+        "external_learning_sources": [
+          "K-Dense-AI/scientific-agent-skills",
+          "Yuan1z0825/nature-skills",
+          "google-research/papervizagent",
+          "dwzhu-pku/PaperBanana",
+          "VILA-Lab/FigMirror",
+          "dazhiyang/scientific-plotting-skill",
+          "keros68/abstract-fig",
+          "kpoduska/GraphicalAbstractTemplate",
+          "Figpad/awesome-research-figure-prompts",
+          "IyatomiLab/SciGA"
+        ],
+        "reference_learning_sources": [
+          {
+            "source_id": "nature_final_submission_artwork",
+            "url": "https:/www.nature.com/nature/for-authors/final-submission",
+            "lesson": "Use consistent figure lettering, readable reduced-size labels, vector line art when possible, RGB color, and production-quality figure files."
+          },
+          {
+            "source_id": "ggplot2_theme_system",
+            "url": "https:/ggplot2.tidyverse.org/reference/theme.html",
+            "lesson": "Use a single theme system for titles, labels, fonts, backgrounds, gridlines, and legends so all evidence figures share one article-level visual grammar."
+          },
+          {
+            "source_id": "ggsci_npg_palette",
+            "url": "https:/nanx.me/ggsci/reference/scale_npg.html",
+            "lesson": "Nature Publishing Group inspired discrete palettes are mature ggplot2-compatible references for publication-style categorical roles."
+          },
+          {
+            "source_id": "colorspace_hcl_palettes",
+            "url": "https:/colorspace.r-forge.r-project.org",
+            "lesson": "HCL-based qualitative, sequential and diverging palettes are a stable basis for article-level semantic color roles."
+          },
+          {
+            "source_id": "viridis_perceptual_palette",
+            "url": "https:/sjmgarnier.github.io/viridis",
+            "lesson": "Perceptually uniform and color-vision-friendly sequential palettes are preferred for continuous matrix and density-like encodings."
+          },
+          {
+            "source_id": "complexheatmap_color_mapping",
+            "url": "https:/jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html",
+            "lesson": "Matrix heatmaps need fixed value-to-color mapping rather than per-plot drift; shared sequential and diverging mappings preserve cross-figure comparability."
+          },
+          {
+            "source_id": "nature_skills_figure_contract",
+            "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
+            "lesson": "Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract."
+          },
+          {
+            "source_id": "scientific_agent_skills_provenance",
+            "url": "https:/github.com/K-Dense-AI/scientific-agent-skills",
+            "lesson": "Scientific figure skills should be discoverable, task-scoped, and provenance-carrying instead of hidden inside a generic plotting prompt."
+          },
+          {
+            "source_id": "papervizagent_reference_pipeline",
+            "url": "https:/github.com/google-research/papervizagent",
+            "lesson": "Reference-driven figure agents separate retrieval, planning, styling, visualization, and critique; MAS adapts this as refs-only quality-floor evidence."
+          },
+          {
+            "source_id": "paperbanana_candidate_critic_loop",
+            "url": "https:/github.com/dwzhu-pku/PaperBanana",
+            "lesson": "Academic illustration generation benefits from multiple candidates and critic rounds before owner review rather than single-shot template reuse."
+          },
+          {
+            "source_id": "figmirror_reference_preserve_list",
+            "url": "https:/github.com/VILA-Lab/FigMirror",
+            "lesson": "Reference matching needs an explicit preserve list so style transfer does not drift away from claim, evidence, labels, or source constraints."
+          },
+          {
+            "source_id": "scientific_plotting_skill_hard_rules",
+            "url": "https:/github.com/dazhiyang/scientific-plotting-skill",
+            "lesson": "Small hard rules for vector export, dimensions, color, typography, and parameter blocks raise the plotting floor without constraining the figure concept."
+          },
+          {
+            "source_id": "abstract_fig_editable_source",
+            "url": "https:/github.com/keros68/abstract-fig",
+            "lesson": "Graphical abstract skills are easier to review and revise when the visual source remains editable instead of only producing a flattened image."
+          },
+          {
+            "source_id": "graphical_abstract_template_three_panel",
+            "url": "https:/github.com/kpoduska/GraphicalAbstractTemplate",
+            "lesson": "A simple three-panel flow remains useful as a low-risk default only when it is treated as a brief-driven composition skeleton, not a fixed final visual system."
+          },
+          {
+            "source_id": "figpad_research_prompt_patterns",
+            "url": "https:/github.com/Figpad/awesome-research-figure-prompts",
+            "lesson": "Prompt collections are most useful when converted into explicit brief, preserve-list, candidate, and critic gates rather than copied as prose prompts."
+          },
+          {
+            "source_id": "sciga_graphical_abstract_dataset",
+            "url": "https:/github.com/IyatomiLab/SciGA",
+            "lesson": "Graphical abstracts vary by field and paper intent; a renderer should preserve AI choice of composition while enforcing readable layout and evidence constraints."
+          }
+        ],
+        "forbidden_claims": [
+          "publication_ready",
+          "owner_accepted",
+          "artifact_authority",
+          "style_reference_as_claim_or_data_authority"
+        ]
+      },
       "composition_recipe_policy": "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards",
       "reporting_flow_gallery_policy": "validated_reporting_flow_shells_are_programmatic_disposition_starting_points",
       "design_gallery_policy": "illustration_shells_are_visible_non_statistical_design_starting_points",
@@ -5053,6 +5188,51 @@
         "ref_id": "nature_skills_figure_contract",
         "url": "https:/github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
         "lesson": "Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract."
+      },
+      {
+        "ref_id": "scientific_agent_skills_provenance",
+        "url": "https:/github.com/K-Dense-AI/scientific-agent-skills",
+        "lesson": "Scientific figure skills should be discoverable, task-scoped, and provenance-carrying instead of hidden inside a generic plotting prompt."
+      },
+      {
+        "ref_id": "papervizagent_reference_pipeline",
+        "url": "https:/github.com/google-research/papervizagent",
+        "lesson": "Reference-driven figure agents separate retrieval, planning, styling, visualization, and critique; MAS adapts this as refs-only quality-floor evidence."
+      },
+      {
+        "ref_id": "paperbanana_candidate_critic_loop",
+        "url": "https:/github.com/dwzhu-pku/PaperBanana",
+        "lesson": "Academic illustration generation benefits from multiple candidates and critic rounds before owner review rather than single-shot template reuse."
+      },
+      {
+        "ref_id": "figmirror_reference_preserve_list",
+        "url": "https:/github.com/VILA-Lab/FigMirror",
+        "lesson": "Reference matching needs an explicit preserve list so style transfer does not drift away from claim, evidence, labels, or source constraints."
+      },
+      {
+        "ref_id": "scientific_plotting_skill_hard_rules",
+        "url": "https:/github.com/dazhiyang/scientific-plotting-skill",
+        "lesson": "Small hard rules for vector export, dimensions, color, typography, and parameter blocks raise the plotting floor without constraining the figure concept."
+      },
+      {
+        "ref_id": "abstract_fig_editable_source",
+        "url": "https:/github.com/keros68/abstract-fig",
+        "lesson": "Graphical abstract skills are easier to review and revise when the visual source remains editable instead of only producing a flattened image."
+      },
+      {
+        "ref_id": "graphical_abstract_template_three_panel",
+        "url": "https:/github.com/kpoduska/GraphicalAbstractTemplate",
+        "lesson": "A simple three-panel flow remains useful as a low-risk default only when it is treated as a brief-driven composition skeleton, not a fixed final visual system."
+      },
+      {
+        "ref_id": "figpad_research_prompt_patterns",
+        "url": "https:/github.com/Figpad/awesome-research-figure-prompts",
+        "lesson": "Prompt collections are most useful when converted into explicit brief, preserve-list, candidate, and critic gates rather than copied as prose prompts."
+      },
+      {
+        "ref_id": "sciga_graphical_abstract_dataset",
+        "url": "https:/github.com/IyatomiLab/SciGA",
+        "lesson": "Graphical abstracts vary by field and paper intent; a renderer should preserve AI choice of composition while enforcing readable layout and evidence constraints."
       }
     ],
     "templates": [
@@ -21656,12 +21836,12 @@
       "render_reason": ".",
       "image_size_px": [
         1800,
-        1800
+        1000
       ],
       "image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "preview_image_size_px": [
         1800,
-        1800
+        1000
       ],
       "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "payload_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.payload.json",
@@ -22209,12 +22389,12 @@
       "render_reason": ".",
       "image_size_px": [
         1800,
-        1800
+        1000
       ],
       "image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "preview_image_size_px": [
         1800,
-        1800
+        1000
       ],
       "preview_image_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.png",
       "payload_ref": "medical_display_gallery_assets/submission_graphical_abstract.design.payload.json",
@@ -23422,17 +23602,16 @@
   "lidocaineq_visual_parity_audit_json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json",
   "lidocaineq_visual_parity_contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
   "asset_reuse": {
-    "status": "seeded_from_docs_mirror",
+    "status": "synced_from_docs_mirror",
     "source_asset_root": "docs/delivery/medical-display/examples/medical_display_gallery_assets",
     "target_asset_root": "outputs/display-pack-gallery/medical_display_gallery_assets",
-    "copied_file_count": 186,
+    "copied_file_count": 0,
+    "updated_file_count": 2,
     "missing_source_count": 0,
-    "skipped_existing_count": 0,
+    "skipped_existing_count": 184,
     "extension_counts": {
-      ".json": 112,
-      ".pdf": 36,
-      ".png": 37,
-      ".svg": 1
+      ".json": 1,
+      ".png": 1
     }
   },
   "lidocaineq_visual_parity_audit": {

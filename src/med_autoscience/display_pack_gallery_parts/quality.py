@@ -63,7 +63,120 @@ EXTERNAL_QUALITY_REFERENCES: tuple[dict[str, str], ...] = (
         "url": "https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure",
         "lesson": "Figure work should start from core conclusion, evidence chain, panel hierarchy, backend-exclusive export, and final visual QA; MAS adapts this into a nonblocking R-first agent contract.",
     },
+    {
+        "ref_id": "scientific_agent_skills_provenance",
+        "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
+        "lesson": "Scientific figure skills should be discoverable, task-scoped, and provenance-carrying instead of hidden inside a generic plotting prompt.",
+    },
+    {
+        "ref_id": "papervizagent_reference_pipeline",
+        "url": "https://github.com/google-research/papervizagent",
+        "lesson": "Reference-driven figure agents separate retrieval, planning, styling, visualization, and critique; MAS adapts this as refs-only quality-floor evidence.",
+    },
+    {
+        "ref_id": "paperbanana_candidate_critic_loop",
+        "url": "https://github.com/dwzhu-pku/PaperBanana",
+        "lesson": "Academic illustration generation benefits from multiple candidates and critic rounds before owner review rather than single-shot template reuse.",
+    },
+    {
+        "ref_id": "figmirror_reference_preserve_list",
+        "url": "https://github.com/VILA-Lab/FigMirror",
+        "lesson": "Reference matching needs an explicit preserve list so style transfer does not drift away from claim, evidence, labels, or source constraints.",
+    },
+    {
+        "ref_id": "scientific_plotting_skill_hard_rules",
+        "url": "https://github.com/dazhiyang/scientific-plotting-skill",
+        "lesson": "Small hard rules for vector export, dimensions, color, typography, and parameter blocks raise the plotting floor without constraining the figure concept.",
+    },
+    {
+        "ref_id": "abstract_fig_editable_source",
+        "url": "https://github.com/keros68/abstract-fig",
+        "lesson": "Graphical abstract skills are easier to review and revise when the visual source remains editable instead of only producing a flattened image.",
+    },
+    {
+        "ref_id": "graphical_abstract_template_three_panel",
+        "url": "https://github.com/kpoduska/GraphicalAbstractTemplate",
+        "lesson": "A simple three-panel flow remains useful as a low-risk default only when it is treated as a brief-driven composition skeleton, not a fixed final visual system.",
+    },
+    {
+        "ref_id": "figpad_research_prompt_patterns",
+        "url": "https://github.com/Figpad/awesome-research-figure-prompts",
+        "lesson": "Prompt collections are most useful when converted into explicit brief, preserve-list, candidate, and critic gates rather than copied as prose prompts.",
+    },
+    {
+        "ref_id": "sciga_graphical_abstract_dataset",
+        "url": "https://github.com/IyatomiLab/SciGA",
+        "lesson": "Graphical abstracts vary by field and paper intent; a renderer should preserve AI choice of composition while enforcing readable layout and evidence constraints.",
+    },
 )
+
+SCIENTIFIC_FIGURE_QUALITY_FLOOR_POLICY: dict[str, Any] = {
+    "policy_id": "mas_scientific_figure_quality_floor.v1",
+    "scope": "all_gallery_and_paper_candidate_figures",
+    "graphical_abstract_strategy": "brief_first_reference_guided_ai_candidate_not_single_template_reuse",
+    "ai_executor_freedom": (
+        "ai_may_choose_figure_type_layout_panel_hierarchy_backend_and_candidate_count_from_paper_local_claims"
+    ),
+    "template_library_role": "quality_floor_and_reviewable_starting_point_not_ceiling_or_publication_ready_authority",
+    "learned_scientific_figure_patterns": [
+        "discoverable_skill_pack_with_provenance",
+        "figure_brief_before_plotting",
+        "reference_selection_and_style_brief",
+        "reference_target_preserve_list",
+        "candidate_generation_before_owner_gate",
+        "critic_review_or_route_back",
+        "final_size_readability_inspection",
+        "vector_export_when_possible",
+        "semantic_palette_and_color_vision_check",
+        "source_data_statistics_and_claim_refs_preserved",
+    ],
+    "required_before_gallery_or_paper_use": [
+        "core_claim_and_evidence_chain_ref",
+        "figure_brief_ref",
+        "reference_selection_ref",
+        "style_brief_ref",
+        "preserve_list_ref",
+        "candidate_artifact_ref",
+        "critic_review_ref",
+        "final_size_inspection_ref",
+        "source_preservation_ref",
+        "owner_gate_ref",
+    ],
+    "rebuild_boundary": {
+        "design_shell_graphical_abstract_reporting_flow": (
+            "may_be_rebuilt_into_stronger_visual_systems_when_the_figure_brief_and_owner_gate_require_it"
+        ),
+        "r_ggplot2_evidence_figures": (
+            "raise_quality_through_theme_size_qc_critic_gate_references_and_source_preservation_not_wholesale_manual_redraw"
+        ),
+    },
+    "external_learning_sources": [
+        "K-Dense-AI/scientific-agent-skills",
+        "Yuan1z0825/nature-skills",
+        "google-research/papervizagent",
+        "dwzhu-pku/PaperBanana",
+        "VILA-Lab/FigMirror",
+        "dazhiyang/scientific-plotting-skill",
+        "keros68/abstract-fig",
+        "kpoduska/GraphicalAbstractTemplate",
+        "Figpad/awesome-research-figure-prompts",
+        "IyatomiLab/SciGA",
+    ],
+    "reference_learning_sources": [
+        {
+            "source_id": ref["ref_id"],
+            "url": ref["url"],
+            "lesson": ref["lesson"],
+        }
+        for ref in EXTERNAL_QUALITY_REFERENCES
+    ],
+    "forbidden_claims": [
+        "publication_ready",
+        "owner_accepted",
+        "artifact_authority",
+        "style_reference_as_claim_or_data_authority",
+    ],
+}
 
 FAMILY_BASELINE_WARNINGS: dict[str, tuple[str, ...]] = {
     "coefficient_path_panel": ("coefficient_path_semantic_fit_review",),
@@ -317,6 +430,7 @@ def build_quality_audit(
             "ai_authority": "ai_may_freely_modify_template_structure_layout_palette_labels_and_composition_for_paper_specific_claim",
             "not_authority": "gallery_does_not_authorize_publication_readiness_or_final_artwork_acceptance",
             "current_surface": "canonical_current_gallery_templates_not_input_data_specific_variants",
+            "scientific_figure_quality_floor_policy": SCIENTIFIC_FIGURE_QUALITY_FLOOR_POLICY,
             "composition_recipe_policy": "page_level_recipes_organize_primitives_without_becoming_duplicate_gallery_cards",
             "reporting_flow_gallery_policy": "validated_reporting_flow_shells_are_programmatic_disposition_starting_points",
             "design_gallery_policy": "illustration_shells_are_visible_non_statistical_design_starting_points",
@@ -512,6 +626,23 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
     composition_before_paper_lines = "\n".join(
         f"- `{item}`" for item in audit["quality_policy"]["composition_recipe_required_before_paper_use"]
     )
+    scientific_floor = audit["quality_policy"]["scientific_figure_quality_floor_policy"]
+    scientific_floor_pattern_lines = "\n".join(
+        f"- `{item}`" for item in scientific_floor["learned_scientific_figure_patterns"]
+    )
+    scientific_floor_required_lines = "\n".join(
+        f"- `{item}`" for item in scientific_floor["required_before_gallery_or_paper_use"]
+    )
+    scientific_floor_rebuild_lines = "\n".join(
+        f"- `{key}`: {value}" for key, value in scientific_floor["rebuild_boundary"].items()
+    )
+    scientific_floor_source_lines = "\n".join(
+        f"- `{item}`" for item in scientific_floor["external_learning_sources"]
+    )
+    scientific_floor_reference_lines = "\n".join(
+        f"- [{item['source_id']}]({item['url']}): {item['lesson']}"
+        for item in scientific_floor["reference_learning_sources"]
+    )
     design_lines = "\n".join(
         (
             f"| `{item['template_id']}` | {item['category']} | {item['renderer_family']} | "
@@ -611,6 +742,35 @@ Machine boundary: 人读质量审计。机器真相继续归 Gallery manifest、
 ## 页面级图页方案前置检查
 
 {composition_before_paper_lines}
+
+## 通用科研做图 Quality Floor
+
+- policy: `{scientific_floor["policy_id"]}`
+- scope: `{scientific_floor["scope"]}`
+- graphical abstract strategy: `{scientific_floor["graphical_abstract_strategy"]}`
+- AI executor freedom: `{scientific_floor["ai_executor_freedom"]}`
+- template library role: `{scientific_floor["template_library_role"]}`
+- publication ready claim authorized: `false`
+
+Learned patterns:
+
+{scientific_floor_pattern_lines}
+
+Required refs before Gallery or paper use:
+
+{scientific_floor_required_lines}
+
+Rebuild boundary:
+
+{scientific_floor_rebuild_lines}
+
+External learning sources:
+
+{scientific_floor_source_lines}
+
+Reference learning lessons:
+
+{scientific_floor_reference_lines}
 
 ## 页面级图页方案
 

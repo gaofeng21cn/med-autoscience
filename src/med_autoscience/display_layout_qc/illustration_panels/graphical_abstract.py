@@ -18,8 +18,13 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
-    issues.extend(_check_required_box_types(all_boxes, required_box_types=("title", "panel_label", "card_box", "footer_pill")))
     layout_style = str(sidecar.metrics.get("layout_style") or "").strip()
+    required_box_types = ["title", "panel_label", "card_box", "footer_pill"]
+    if layout_style in {"square_storyline", "reference_guided_flow"}:
+        required_box_types.append("visual_glyph")
+    if layout_style == "reference_guided_flow":
+        required_box_types.append("evidence_cue")
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=tuple(required_box_types)))
 
     panel_boxes = tuple(box for box in sidecar.panel_boxes if box.box_type == "panel")
     if len(panel_boxes) < 3:
@@ -38,10 +43,11 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     panel_labels = _boxes_of_type(sidecar.layout_boxes, "panel_label")
     arrow_boxes = _boxes_of_type(sidecar.guide_boxes, "arrow_connector")
     visual_glyphs = _boxes_of_type(sidecar.layout_boxes, "visual_glyph")
+    evidence_cues = _boxes_of_type(sidecar.layout_boxes, "evidence_cue")
     text_boxes = tuple(
         box
         for box in sidecar.layout_boxes
-        if box.box_type in {"panel_title", "panel_subtitle", "card_title", "card_value", "card_detail"}
+        if box.box_type in {"panel_title", "panel_subtitle", "card_title", "card_value", "card_detail", "evidence_cue"}
     )
 
     issues.extend(_check_pairwise_non_overlap(card_boxes, rule_id="graphical_abstract_card_overlap", target="card_box"))
@@ -49,7 +55,7 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="graphical_abstract_text_overlap", target="text"))
     issues.extend(_check_pairwise_non_overlap(visual_glyphs, rule_id="graphical_abstract_visual_glyph_overlap", target="visual_glyph"))
 
-    if layout_style == "square_storyline":
+    if layout_style in {"square_storyline", "reference_guided_flow"}:
         if len(visual_glyphs) < len(panel_boxes):
             issues.append(
                 _issue(
@@ -68,6 +74,16 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
                     target="guide_boxes",
                     expected={"minimum_count": max(0, len(panel_boxes) - 1)},
                     observed={"count": len(arrow_boxes)},
+                )
+            )
+        if layout_style == "reference_guided_flow" and len(evidence_cues) < len(panel_boxes):
+            issues.append(
+                _issue(
+                    rule_id="graphical_abstract_evidence_cues_missing",
+                    message="reference-guided graphical abstract requires one evidence cue per panel",
+                    target="layout_boxes",
+                    expected={"minimum_count": len(panel_boxes)},
+                    observed={"count": len(evidence_cues)},
                 )
             )
 
@@ -102,6 +118,17 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
                 message="graphical-abstract visual glyphs must stay within a panel",
                 target="visual_glyph",
                 box_refs=(visual_glyph.box_id,),
+            )
+        )
+    for evidence_cue in evidence_cues:
+        if any(_box_within_box(evidence_cue, panel_box) for panel_box in panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="evidence_cue_out_of_panel",
+                message="graphical-abstract evidence cues must stay within a panel",
+                target="evidence_cue",
+                box_refs=(evidence_cue.box_id,),
             )
         )
     for text_box in text_boxes:

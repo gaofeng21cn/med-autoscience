@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import shutil
 from typing import Any
 
@@ -45,6 +46,7 @@ def seed_package_only_assets(
         }
     target_asset_root.mkdir(parents=True, exist_ok=True)
     copied = 0
+    updated = 0
     missing_source = 0
     skipped_existing = 0
     extension_counts: dict[str, int] = {}
@@ -59,6 +61,7 @@ def seed_package_only_assets(
             "source_asset_root": str(source_asset_root),
             "target_asset_root": str(target_asset_root),
             "copied_file_count": 0,
+            "updated_file_count": 0,
             "missing_source_count": 0,
             "skipped_existing_count": 0,
             "extension_counts": {},
@@ -66,7 +69,12 @@ def seed_package_only_assets(
     for source_path in source_files:
         target_path = target_asset_root / source_path.name
         if target_path.is_file():
-            skipped_existing += 1
+            if _file_sha256(source_path) == _file_sha256(target_path):
+                skipped_existing += 1
+                continue
+            shutil.copy2(source_path, target_path)
+            updated += 1
+            extension_counts[source_path.suffix] = extension_counts.get(source_path.suffix, 0) + 1
             continue
         if not source_path.is_file():
             missing_source += 1
@@ -74,12 +82,24 @@ def seed_package_only_assets(
         shutil.copy2(source_path, target_path)
         copied += 1
         extension_counts[source_path.suffix] = extension_counts.get(source_path.suffix, 0) + 1
+    status = "target_already_complete"
+    if copied or updated:
+        status = "synced_from_docs_mirror"
     return {
-        "status": "seeded_from_docs_mirror" if copied else "target_already_complete",
+        "status": status,
         "source_asset_root": str(source_asset_root),
         "target_asset_root": str(target_asset_root),
         "copied_file_count": copied,
+        "updated_file_count": updated,
         "missing_source_count": missing_source,
         "skipped_existing_count": skipped_existing,
         "extension_counts": extension_counts,
     }
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

@@ -22,8 +22,8 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
 | LidocaineQ reference coverage audit | 33/33 |
-| LidocaineQ visual parity audit | /Users/gaofeng/workspace/med-autoscience/.worktrees/codex-display-pack-extraction-main/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md |
-| LidocaineQ parity contact sheet | /Users/gaofeng/workspace/med-autoscience/.worktrees/codex-display-pack-extraction-main/outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png |
+| LidocaineQ visual parity audit | /Users/gaofeng/workspace/med-autoscience/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md |
+| LidocaineQ parity contact sheet | /Users/gaofeng/workspace/med-autoscience/outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png |
 | Render cache hit | 0 |
 | Render cache miss | 0 |
 | Package-only reused assets | 37 |
@@ -31,7 +31,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 `Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
-Package-only 打包复用状态：`seeded_from_docs_mirror`；复制资产数：`186`。代码、payload、style profile 或 dependency receipt 未变化时，Gallery 可从既有 assets 重打包 HTML/PDF/docs；真正的渲染 freshness 仍由 render cache key、layout sidecar、dependency run-context 和真实论文 artifact 审计证明。
+Package-only 打包复用状态：`synced_from_docs_mirror`；复制资产数：`0`；更新资产数：`2`。代码、payload、style profile 或 dependency receipt 未变化时，Gallery 可从既有 assets 重打包 HTML/PDF/docs；真正的渲染 freshness 仍由 render cache key、layout sidecar、dependency run-context 和真实论文 artifact 审计证明。
 
 ## 渲染器与质量口径
 
@@ -60,7 +60,7 @@ Package-only 打包复用状态：`seeded_from_docs_mirror`；复制资产数：
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
 - LidocaineQ 33 项参考覆盖完整: `true`
-- LidocaineQ 33 项逐图视觉审计: `/Users/gaofeng/workspace/med-autoscience/.worktrees/codex-display-pack-extraction-main/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md`
+- LidocaineQ 33 项逐图视觉审计: `/Users/gaofeng/workspace/med-autoscience/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md`
 
 ## LidocaineQ 质量审计面
 

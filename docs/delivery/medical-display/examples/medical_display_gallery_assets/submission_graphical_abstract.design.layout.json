@@ -10,316 +10,364 @@
     {
       "box_id": "title",
       "box_type": "title",
+      "x0": 0.058,
+      "y0": 0.042,
+      "x1": 0.7380000000000001,
+      "y1": 0.10823999999999999
+    },
+    {
+      "box_id": "subtitle",
+      "box_type": "subtitle",
       "x0": 0.06,
-      "y0": 0.06055555555555556,
-      "x1": 0.94,
-      "y1": 0.09575555555555557
+      "y0": 0.118,
+      "x1": 0.72,
+      "y1": 0.1468
     },
     {
-      "box_id": "panel_label_population",
+      "box_id": "surface_label",
+      "box_type": "surface_label",
+      "x0": 0.7619999999999999,
+      "y0": 0.07,
+      "x1": 0.952,
+      "y1": 0.0988
+    },
+    {
+      "box_id": "panel_label_brief",
       "box_type": "panel_label",
-      "x0": 0.06966666666666667,
-      "y0": 0.23217500000000002,
-      "x1": 0.09633333333333334,
-      "y1": 0.27897500000000003
+      "x0": 0.07283333333333333,
+      "y0": 0.2383,
+      "x1": 0.10055333333333333,
+      "y1": 0.29657500000000003
     },
     {
-      "box_id": "visual_glyph_population",
+      "box_id": "visual_glyph_brief",
       "box_type": "visual_glyph",
-      "x0": 0.10833333333333334,
-      "y0": 0.27605,
-      "x1": 0.26833333333333337,
-      "y1": 0.45155
+      "x0": 0.11903333333333332,
+      "y0": 0.268825,
+      "x1": 0.2576333333333333,
+      "y1": 0.451975
     },
     {
-      "box_id": "panel_title_population",
+      "box_id": "panel_title_brief",
       "box_type": "panel_title",
-      "x0": 0.087,
-      "y0": 0.4816833333333333,
-      "x1": 0.28966666666666663,
-      "y1": 0.5056833333333334
+      "x0": 0.08695,
+      "y0": 0.473925,
+      "x1": 0.2897166666666667,
+      "y1": 0.514245
     },
     {
-      "box_id": "panel_subtitle_population",
+      "box_id": "panel_subtitle_brief",
       "box_type": "panel_subtitle",
-      "x0": 0.087,
-      "y0": 0.5364083333333333,
-      "x1": 0.28966666666666663,
-      "y1": 0.5532083333333333
+      "x0": 0.08695,
+      "y0": 0.52555,
+      "x1": 0.2897166666666667,
+      "y1": 0.5737899999999999
     },
     {
-      "box_id": "card_population",
+      "box_id": "evidence_cue_brief",
+      "box_type": "evidence_cue",
+      "x0": 0.1068375,
+      "y0": 0.60514,
+      "x1": 0.2855541666666666,
+      "y1": 0.62674
+    },
+    {
+      "box_id": "card_brief",
       "box_type": "card_box",
-      "x0": 0.087,
-      "y0": 0.6329,
-      "x1": 0.28966666666666663,
-      "y1": 0.7382
+      "x0": 0.08695,
+      "y0": 0.646225,
+      "x1": 0.2897166666666667,
+      "y1": 0.7350249999999999
     },
     {
-      "box_id": "card_title_population",
+      "box_id": "card_title_brief",
       "box_type": "card_title",
-      "x0": 0.10321333333333332,
-      "y0": 0.6502198888888889,
-      "x1": 0.18833333333333332,
-      "y1": 0.6799976666666666
+      "x0": 0.099116,
+      "y0": 0.6675209999999999,
+      "x1": 0.17413966666666666,
+      "y1": 0.6905609999999999
     },
     {
-      "box_id": "card_value_population",
+      "box_id": "card_value_brief",
       "box_type": "card_value",
-      "x0": 0.1923866666666667,
-      "y0": 0.6496968888888889,
-      "x1": 0.2734533333333334,
-      "y1": 0.680096888888889
+      "x0": 0.18833333333333332,
+      "y0": 0.657297,
+      "x1": 0.26741233333333336,
+      "y1": 0.697617
     },
     {
-      "box_id": "card_detail_population",
+      "box_id": "card_detail_brief",
       "box_type": "card_detail",
-      "x0": 0.1923866666666667,
-      "y0": 0.6923980000000001,
-      "x1": 0.2734533333333334,
-      "y1": 0.7067980000000001
+      "x0": 0.18833333333333332,
+      "y0": 0.701933,
+      "x1": 0.26741233333333336,
+      "y1": 0.722093
     },
     {
-      "box_id": "panel_label_model_signal",
+      "box_id": "panel_label_reference_style",
       "box_type": "panel_label",
-      "x0": 0.3813333333333333,
-      "y0": 0.23217500000000002,
-      "x1": 0.408,
-      "y1": 0.27897500000000003
+      "x0": 0.3845,
+      "y0": 0.2383,
+      "x1": 0.41222,
+      "y1": 0.29657500000000003
     },
     {
-      "box_id": "visual_glyph_model_signal",
+      "box_id": "visual_glyph_reference_style",
       "box_type": "visual_glyph",
-      "x0": 0.42,
-      "y0": 0.27605,
-      "x1": 0.58,
-      "y1": 0.45155
+      "x0": 0.43069999999999997,
+      "y0": 0.268825,
+      "x1": 0.5693,
+      "y1": 0.451975
     },
     {
-      "box_id": "panel_title_model_signal",
+      "box_id": "panel_title_reference_style",
       "box_type": "panel_title",
-      "x0": 0.39866666666666667,
-      "y0": 0.4816833333333333,
-      "x1": 0.6013333333333334,
-      "y1": 0.5056833333333334
+      "x0": 0.3986166666666667,
+      "y0": 0.473925,
+      "x1": 0.6013833333333334,
+      "y1": 0.514245
     },
     {
-      "box_id": "panel_subtitle_model_signal",
+      "box_id": "panel_subtitle_reference_style",
       "box_type": "panel_subtitle",
-      "x0": 0.39866666666666667,
-      "y0": 0.5364083333333333,
-      "x1": 0.6013333333333334,
-      "y1": 0.5532083333333333
+      "x0": 0.3986166666666667,
+      "y0": 0.52555,
+      "x1": 0.6013833333333334,
+      "y1": 0.5737899999999999
     },
     {
-      "box_id": "card_model_signal",
+      "box_id": "evidence_cue_reference_style",
+      "box_type": "evidence_cue",
+      "x0": 0.4185041666666667,
+      "y0": 0.60514,
+      "x1": 0.5972208333333333,
+      "y1": 0.62674
+    },
+    {
+      "box_id": "card_reference_style",
       "box_type": "card_box",
-      "x0": 0.39866666666666667,
-      "y0": 0.6329,
-      "x1": 0.6013333333333334,
-      "y1": 0.7382
+      "x0": 0.3986166666666667,
+      "y0": 0.646225,
+      "x1": 0.6013833333333334,
+      "y1": 0.7350249999999999
     },
     {
-      "box_id": "card_title_model_signal",
+      "box_id": "card_title_reference_style",
       "box_type": "card_title",
-      "x0": 0.41487999999999997,
-      "y0": 0.6502198888888889,
-      "x1": 0.5,
-      "y1": 0.6799976666666666
+      "x0": 0.4107826666666667,
+      "y0": 0.6675209999999999,
+      "x1": 0.48580633333333334,
+      "y1": 0.6905609999999999
     },
     {
-      "box_id": "card_value_model_signal",
+      "box_id": "card_value_reference_style",
       "box_type": "card_value",
-      "x0": 0.5040533333333334,
-      "y0": 0.6496968888888889,
-      "x1": 0.5851200000000001,
-      "y1": 0.680096888888889
+      "x0": 0.5,
+      "y0": 0.657297,
+      "x1": 0.579079,
+      "y1": 0.697617
     },
     {
-      "box_id": "card_detail_model_signal",
+      "box_id": "card_detail_reference_style",
       "box_type": "card_detail",
-      "x0": 0.5040533333333334,
-      "y0": 0.6923980000000001,
-      "x1": 0.5851200000000001,
-      "y1": 0.7067980000000001
+      "x0": 0.5,
+      "y0": 0.701933,
+      "x1": 0.579079,
+      "y1": 0.722093
     },
     {
-      "box_id": "panel_label_clinical_use",
+      "box_id": "panel_label_critic_gate",
       "box_type": "panel_label",
-      "x0": 0.6930000000000001,
-      "y0": 0.23217500000000002,
-      "x1": 0.7196666666666667,
-      "y1": 0.27897500000000003
+      "x0": 0.6961666666666666,
+      "y0": 0.2383,
+      "x1": 0.7238866666666666,
+      "y1": 0.29657500000000003
     },
     {
-      "box_id": "visual_glyph_clinical_use",
+      "box_id": "visual_glyph_critic_gate",
       "box_type": "visual_glyph",
-      "x0": 0.7316666666666667,
-      "y0": 0.27605,
-      "x1": 0.8916666666666667,
-      "y1": 0.45155
+      "x0": 0.7423666666666666,
+      "y0": 0.268825,
+      "x1": 0.8809666666666667,
+      "y1": 0.451975
     },
     {
-      "box_id": "panel_title_clinical_use",
+      "box_id": "panel_title_critic_gate",
       "box_type": "panel_title",
-      "x0": 0.7103333333333333,
-      "y0": 0.4816833333333333,
-      "x1": 0.9129999999999999,
-      "y1": 0.5056833333333334
+      "x0": 0.7102833333333334,
+      "y0": 0.473925,
+      "x1": 0.91305,
+      "y1": 0.514245
     },
     {
-      "box_id": "panel_subtitle_clinical_use",
+      "box_id": "panel_subtitle_critic_gate",
       "box_type": "panel_subtitle",
-      "x0": 0.7103333333333333,
-      "y0": 0.5364083333333333,
-      "x1": 0.9129999999999999,
-      "y1": 0.5532083333333333
+      "x0": 0.7102833333333334,
+      "y0": 0.52555,
+      "x1": 0.91305,
+      "y1": 0.5737899999999999
     },
     {
-      "box_id": "card_clinical_use",
+      "box_id": "evidence_cue_critic_gate",
+      "box_type": "evidence_cue",
+      "x0": 0.7301708333333334,
+      "y0": 0.60514,
+      "x1": 0.9088875000000001,
+      "y1": 0.62674
+    },
+    {
+      "box_id": "card_critic_gate",
       "box_type": "card_box",
-      "x0": 0.7103333333333333,
-      "y0": 0.6329,
-      "x1": 0.9129999999999999,
-      "y1": 0.7382
+      "x0": 0.7102833333333334,
+      "y0": 0.646225,
+      "x1": 0.91305,
+      "y1": 0.7350249999999999
     },
     {
-      "box_id": "card_title_clinical_use",
+      "box_id": "card_title_critic_gate",
       "box_type": "card_title",
-      "x0": 0.7265466666666666,
-      "y0": 0.6502198888888889,
-      "x1": 0.8116666666666666,
-      "y1": 0.6799976666666666
+      "x0": 0.7224493333333333,
+      "y0": 0.6675209999999999,
+      "x1": 0.797473,
+      "y1": 0.6905609999999999
     },
     {
-      "box_id": "card_value_clinical_use",
+      "box_id": "card_value_critic_gate",
       "box_type": "card_value",
-      "x0": 0.8157199999999999,
-      "y0": 0.6496968888888889,
-      "x1": 0.8967866666666666,
-      "y1": 0.680096888888889
+      "x0": 0.8116666666666666,
+      "y0": 0.657297,
+      "x1": 0.8907456666666667,
+      "y1": 0.697617
     },
     {
-      "box_id": "card_detail_clinical_use",
+      "box_id": "card_detail_critic_gate",
       "box_type": "card_detail",
-      "x0": 0.8157199999999999,
-      "y0": 0.6923980000000001,
-      "x1": 0.8967866666666666,
-      "y1": 0.7067980000000001
+      "x0": 0.8116666666666666,
+      "y0": 0.701933,
+      "x1": 0.8907456666666667,
+      "y1": 0.722093
+    },
+    {
+      "box_id": "quality_band_label",
+      "box_type": "quality_band_label",
+      "x0": 0.0725,
+      "y0": 0.82985,
+      "x1": 0.20299999999999999,
+      "y1": 0.85577
     },
     {
       "box_id": "footer_pill_p1",
       "box_type": "footer_pill",
-      "x0": 0.12,
+      "x0": 0.06,
       "y0": 0.835,
-      "x1": 0.36,
-      "y1": 0.895
+      "x1": 0.3333333333333333,
+      "y1": 0.89
     },
     {
       "box_id": "footer_pill_text_p1",
       "box_type": "footer_pill_text",
-      "x0": 0.1392,
-      "y0": 0.8592444444444445,
-      "x1": 0.34080000000000005,
-      "y1": 0.8744444444444445
+      "x0": 0.07913333333333333,
+      "y0": 0.8521,
+      "x1": 0.31146666666666667,
+      "y1": 0.87658
     },
     {
       "box_id": "footer_pill_p2",
       "box_type": "footer_pill",
-      "x0": 0.38,
+      "x0": 0.36333333333333334,
       "y0": 0.835,
-      "x1": 0.62,
-      "y1": 0.895
+      "x1": 0.6366666666666667,
+      "y1": 0.89
     },
     {
       "box_id": "footer_pill_text_p2",
       "box_type": "footer_pill_text",
-      "x0": 0.39919999999999994,
-      "y0": 0.8592444444444445,
-      "x1": 0.6008,
-      "y1": 0.8744444444444445
+      "x0": 0.3824666666666667,
+      "y0": 0.8521,
+      "x1": 0.6148,
+      "y1": 0.87658
     },
     {
       "box_id": "footer_pill_p3",
       "box_type": "footer_pill",
-      "x0": 0.64,
+      "x0": 0.6666666666666666,
       "y0": 0.835,
-      "x1": 0.88,
-      "y1": 0.895
+      "x1": 0.94,
+      "y1": 0.89
     },
     {
       "box_id": "footer_pill_text_p3",
       "box_type": "footer_pill_text",
-      "x0": 0.6592,
-      "y0": 0.8592444444444445,
-      "x1": 0.8608,
-      "y1": 0.8744444444444445
+      "x0": 0.6858000000000001,
+      "y0": 0.8521,
+      "x1": 0.9181333333333334,
+      "y1": 0.87658
     }
   ],
   "panel_boxes": [
     {
-      "box_id": "panel_population",
+      "box_id": "panel_brief",
       "box_type": "panel",
-      "x0": 0.055,
-      "y0": 0.2,
-      "x1": 0.32166666666666666,
-      "y1": 0.785
+      "x0": 0.06,
+      "y0": 0.205,
+      "x1": 0.31666666666666665,
+      "y1": 0.76
     },
     {
-      "box_id": "panel_model_signal",
+      "box_id": "panel_reference_style",
       "box_type": "panel",
-      "x0": 0.36666666666666664,
-      "y0": 0.2,
-      "x1": 0.6333333333333333,
-      "y1": 0.785
+      "x0": 0.37166666666666665,
+      "y0": 0.205,
+      "x1": 0.6283333333333333,
+      "y1": 0.76
     },
     {
-      "box_id": "panel_clinical_use",
+      "box_id": "panel_critic_gate",
       "box_type": "panel",
-      "x0": 0.6783333333333333,
-      "y0": 0.2,
-      "x1": 0.945,
-      "y1": 0.785
+      "x0": 0.6833333333333333,
+      "y0": 0.205,
+      "x1": 0.94,
+      "y1": 0.76
     }
   ],
   "guide_boxes": [
     {
       "box_id": "arrow_connector_1",
       "box_type": "arrow_connector",
-      "x0": 0.33366666666666667,
-      "y0": 0.401825,
-      "x1": 0.35466666666666663,
-      "y1": 0.43682499999999996
+      "x0": 0.32866666666666666,
+      "y0": 0.4825,
+      "x1": 0.35966666666666663,
+      "y1": 0.5125
     },
     {
       "box_id": "arrow_connector_2",
       "box_type": "arrow_connector",
-      "x0": 0.6453333333333333,
-      "y0": 0.401825,
-      "x1": 0.6663333333333332,
-      "y1": 0.43682499999999996
+      "x0": 0.6403333333333333,
+      "y0": 0.4825,
+      "x1": 0.6713333333333332,
+      "y1": 0.5125
     }
   ],
   "metrics": {
-    "layout_style": "square_storyline",
+    "layout_style": "reference_guided_flow",
     "panel_count": 3,
     "panels": [
       {
-        "panel_id": "population",
+        "panel_id": "brief",
         "panel_label": "A",
-        "visual_role": "population",
-        "evidence_token": "n=15,120",
-        "title": "Population",
-        "subtitle": "Cohort locked before modeling",
+        "visual_role": "brief",
+        "evidence_cue": "Claim + evidence refs locked",
+        "title": "Figure brief",
+        "subtitle": "Core claim and evidence chain before drawing",
         "rows": [
           {
             "cards": [
               {
-                "card_id": "cohort",
-                "title": "Analytic cohort",
-                "value": "15,120",
-                "evidence_token": "n=15,120",
-                "detail": "auditable outcomes",
+                "card_id": "brief",
+                "title": "Locked inputs",
+                "value": "Brief",
+                "evidence_token": "claim_refs",
+                "detail": "refs only",
                 "accent_role": "primary"
               }
             ]
@@ -327,21 +375,21 @@
         ]
       },
       {
-        "panel_id": "model_signal",
+        "panel_id": "reference_style",
         "panel_label": "B",
-        "visual_role": "model_signal",
-        "evidence_token": "C=0.86",
-        "title": "Model signal",
-        "subtitle": "Primary endpoint risk ranking",
+        "visual_role": "reference_style",
+        "evidence_cue": "Reference style + preserve list",
+        "title": "Reference style",
+        "subtitle": "Journal family, layout cue, labels to preserve",
         "rows": [
           {
             "cards": [
               {
-                "card_id": "c_index",
-                "title": "Validation C-index",
-                "value": "0.86",
-                "evidence_token": "C=0.86",
-                "detail": "temporal holdout",
+                "card_id": "reference",
+                "title": "Style brief",
+                "value": "Target",
+                "evidence_token": "style_ref",
+                "detail": "preserve list",
                 "accent_role": "contrast"
               }
             ]
@@ -349,21 +397,21 @@
         ]
       },
       {
-        "panel_id": "clinical_use",
+        "panel_id": "critic_gate",
         "panel_label": "C",
-        "visual_role": "clinical_use",
-        "evidence_token": "3.4x",
-        "title": "Clinical use",
-        "subtitle": "Risk-stratified follow-up",
+        "visual_role": "critic_gate",
+        "evidence_cue": "Visual critic before owner use",
+        "title": "Candidate gate",
+        "subtitle": "Readability, source preservation, owner review",
         "rows": [
           {
             "cards": [
               {
-                "card_id": "risk_group",
-                "title": "High-risk group",
-                "value": "3.4x",
-                "evidence_token": "3.4x",
-                "detail": "event enrichment",
+                "card_id": "gate",
+                "title": "Required refs",
+                "value": "Review",
+                "evidence_token": "critic_ref",
+                "detail": "owner gate",
                 "accent_role": "secondary"
               }
             ]
@@ -374,29 +422,33 @@
     "footer_pills": [
       {
         "pill_id": "p1",
-        "panel_id": "population",
-        "label": "Cohort lock",
+        "panel_id": "brief",
+        "label": "Claim + evidence",
         "style_role": "primary"
       },
       {
         "pill_id": "p2",
-        "panel_id": "model_signal",
-        "label": "Model evidence",
+        "panel_id": "reference_style",
+        "label": "Style + preserve",
         "style_role": "contrast"
       },
       {
         "pill_id": "p3",
-        "panel_id": "clinical_use",
-        "label": "Clinical message",
+        "panel_id": "critic_gate",
+        "label": "Critic + owner gate",
         "style_role": "secondary"
       }
     ],
     "visual_roles": [
-      "population",
-      "model_signal",
-      "clinical_use"
+      "brief",
+      "reference_style",
+      "critic_gate"
     ],
-    "source_renderer": "mas_gallery_stdlib_svg_preview"
+    "source_renderer": "mas_reference_guided_svg_preview",
+    "canvas_size_px": [
+      1800,
+      1000
+    ]
   },
   "render_context": {
     "style_profile_id": "student_curated_clinical_publication_v1",
