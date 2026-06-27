@@ -13,6 +13,20 @@ ACCEPTED_OWNER_ANSWER_SHAPES = (
     "route_back_evidence_ref",
 )
 SUBMISSION_MILESTONE_KIND = "submission_milestone_candidate"
+REQUIRED_AUTHORITY_MATERIALIZATION_REFS = (
+    "domain_owner_receipt_ref",
+    "quality_gate_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "publication_eval_record_ref",
+    "current_package_ref",
+)
+REQUIRED_QUALITY_GATE_REFS = (
+    "independent_reviewer_invocation_ref",
+    "independent_reviewer_context_ref",
+    "reviewer_quality_receipt_ref",
+    "review_ledger_delta_ref",
+)
 
 
 def paper_mission_submission_milestone_checklist(
@@ -65,6 +79,10 @@ def paper_mission_submission_milestone_checklist(
                 "candidate_package_can_satisfy_without_authority": False,
             },
         ],
+        "required_authority_materialization_refs": _pending_ref_items(
+            REQUIRED_AUTHORITY_MATERIALIZATION_REFS
+        ),
+        "required_quality_gate_refs": _pending_ref_items(REQUIRED_QUALITY_GATE_REFS),
         "human_objective_metadata_items": [
             {
                 "item_id": "author_information",
@@ -147,6 +165,10 @@ def paper_mission_owner_blocker_packet(
         "terminal_owner_gate_materialized": bool(terminal_owner_gate),
         "typed_blocker_authority_materialized": False,
         "human_gate_materialized": False,
+        "required_authority_materialization_refs": _pending_ref_items(
+            REQUIRED_AUTHORITY_MATERIALIZATION_REFS
+        ),
+        "required_quality_gate_refs": _pending_ref_items(REQUIRED_QUALITY_GATE_REFS),
         "runtime_touchpoint": {
             "opl_runtime_readback_status": readback.get("opl_runtime_readback_status"),
             "opl_runtime_carrier_readback": readback.get("opl_runtime_carrier_readback"),
@@ -269,6 +291,10 @@ def paper_mission_owner_consumption_request(
                 "human_gate",
                 "stable_typed_blocker",
             ],
+            "required_authority_materialization_refs": list(
+                REQUIRED_AUTHORITY_MATERIALIZATION_REFS
+            ),
+            "required_quality_gate_refs": list(REQUIRED_QUALITY_GATE_REFS),
         },
         "authority_boundary": _authority_boundary(),
         "forbidden_authority_writes": list(forbidden_authority_writes),
@@ -453,6 +479,17 @@ def _checklist_item(*, item_id: str, included: bool) -> dict[str, Any]:
     }
 
 
+def _pending_ref_items(refs: Sequence[str]) -> list[dict[str, Any]]:
+    return [
+        {
+            "ref_kind": ref,
+            "status": "pending_owner_authority",
+            "candidate_package_can_satisfy_without_authority": False,
+        }
+        for ref in refs
+    ]
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -474,6 +511,8 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "ACCEPTED_OWNER_ANSWER_SHAPES",
+    "REQUIRED_AUTHORITY_MATERIALIZATION_REFS",
+    "REQUIRED_QUALITY_GATE_REFS",
     "SUBMISSION_MILESTONE_KIND",
     "paper_mission_owner_blocker_packet",
     "paper_mission_owner_consumption_request",

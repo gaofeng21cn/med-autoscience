@@ -1117,6 +1117,14 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         "human_gate_ref",
         "route_back_evidence_ref",
     ]
+    consume_path = owner_consumption_request["consume_path"]
+    assert consume_path["authority_materialized_by_this_request"] is False
+    assert "publication_eval_record_ref" in consume_path[
+        "required_authority_materialization_refs"
+    ]
+    assert "reviewer_quality_receipt_ref" in consume_path[
+        "required_quality_gate_refs"
+    ]
     assert owner_consumption_request["authority_boundary"]["writes_authority"] is False
     assert owner_consumption_request["authority_boundary"]["writes_runtime"] is False
     assert owner_consumption_request["authority_boundary"][
@@ -1126,6 +1134,13 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert owner_blocker_packet["surface_kind"] == "paper_mission_owner_blocker_packet"
     assert owner_blocker_packet["status"] == "context_only"
     assert owner_blocker_packet["candidate_is_authority"] is False
+    assert owner_blocker_packet["authority_materialized"] is False
+    assert {
+        item["ref_kind"] for item in owner_blocker_packet["required_quality_gate_refs"]
+    } >= {
+        "independent_reviewer_invocation_ref",
+        "reviewer_quality_receipt_ref",
+    }
     assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
     assert set(payload["output_manifest"]["paper_facing_artifact_refs"]) == {
         "manuscript_patch_plan",
@@ -1425,6 +1440,16 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert submission_milestone_checklist["counts_as_paper_progress"] is True
     assert submission_milestone_checklist["candidate_is_authority"] is False
     assert {
+        item["ref_kind"]
+        for item in submission_milestone_checklist[
+            "required_authority_materialization_refs"
+        ]
+    } >= {"domain_owner_receipt_ref", "publication_eval_record_ref"}
+    assert {
+        item["ref_kind"]
+        for item in submission_milestone_checklist["required_quality_gate_refs"]
+    } >= {"independent_reviewer_invocation_ref", "reviewer_quality_receipt_ref"}
+    assert {
         item["item_id"]: item["status"]
         for item in submission_milestone_checklist["mas_automatable_items"]
     }["manuscript_patch_plan"] == "candidate_included"
@@ -1627,6 +1652,16 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     )
     assert submission_milestone_checklist["counts_as_paper_progress"] is True
     assert submission_milestone_checklist["authority_materialized"] is False
+    assert {
+        item["ref_kind"]
+        for item in submission_milestone_checklist[
+            "required_authority_materialization_refs"
+        ]
+    } >= {"typed_blocker_ref", "human_gate_ref"}
+    assert {
+        item["ref_kind"]
+        for item in submission_milestone_checklist["required_quality_gate_refs"]
+    } >= {"independent_reviewer_context_ref", "reviewer_quality_receipt_ref"}
     assert set(output_manifest["paper_facing_artifact_refs"]) == {
         "manuscript_patch_plan",
         "claim_evidence_ledger_delta",
@@ -1652,6 +1687,12 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
+    ]
+    consume_path = owner_consumption_request["consume_path"]
+    assert consume_path["authority_materialized_by_this_request"] is False
+    assert "human_gate_ref" in consume_path["required_authority_materialization_refs"]
+    assert "reviewer_quality_receipt_ref" in consume_path[
+        "required_quality_gate_refs"
     ]
     assert owner_consumption_request["candidate_refs"]["owner_blocker_packet"] == (
         output_manifest["owner_blocker_packet_ref"]
@@ -1690,6 +1731,10 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     assert owner_blocker_packet["terminal_owner_gate_materialized"] is False
     assert owner_blocker_packet["typed_blocker_authority_materialized"] is False
     assert owner_blocker_packet["human_gate_materialized"] is False
+    assert {
+        item["ref_kind"]
+        for item in owner_blocker_packet["required_authority_materialization_refs"]
+    } >= {"typed_blocker_ref", "human_gate_ref", "publication_eval_record_ref"}
     assert owner_blocker_packet["authority_boundary"]["can_write_owner_receipt"] is False
     assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
     assert owner_blocker_packet["authority_boundary"]["can_write_human_gate"] is False
