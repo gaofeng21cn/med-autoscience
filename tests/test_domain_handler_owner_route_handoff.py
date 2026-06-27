@@ -65,6 +65,62 @@ def test_domain_handler_export_keeps_retired_dispatch_out_of_current_paper_queue
     ]
 
 
+def test_paper_recovery_materializer_fail_closed_for_default_executor_dispatch(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.paper_recovery_default_executor_tasks"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_progress = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "paper_recovery_state": {
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "owner": "write",
+                "successor_owner_action": {
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            },
+            "supervisor_decision": {
+                "decision": "materialize_recovery_action",
+                "decision_id": "supervisor-decision::materialize_recovery_action::test",
+            },
+        },
+        "domain_progress_transition_requests": [
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "dispatch_status": "transition_request_pending",
+                "next_executable_owner": "write",
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                    "target_runtime_owner": "one-person-lab",
+                },
+            }
+        ],
+    }
+
+    tasks = module.paper_recovery_default_executor_dispatch_tasks(
+        current_progress=current_progress,
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+        study_id=study_id,
+    )
+
+    assert tasks == []
+
+
 def test_retired_default_paper_dispatch_tasks_split_out_of_ordinary_pending_tasks() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"

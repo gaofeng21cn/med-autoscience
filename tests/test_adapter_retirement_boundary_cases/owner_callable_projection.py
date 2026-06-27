@@ -588,7 +588,7 @@ def test_current_controller_decision_refresh_does_not_emit_legacy_domain_owner_a
     assert 'SURFACE = "current_controller_decision_refresh"' in source
 
 
-def test_paper_recovery_export_consumes_only_canonical_transition_request_preview(
+def test_paper_recovery_export_no_longer_materializes_default_executor_tasks(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
@@ -646,29 +646,7 @@ def test_paper_recovery_export_consumes_only_canonical_transition_request_previe
     )
 
     assert owner_callable_only_tasks == []
-    assert len(canonical_request_tasks) == 1
-    task = canonical_request_tasks[0]
-    assert task["task_kind"] == "domain_owner/default-executor-dispatch"
-    assert task["provider_admission_pending"] is False
-    assert task["provider_admission_requires_opl_runtime_result"] is True
-    assert task["opl_domain_progress_transition_request"]["target_runtime_owner"] == "one-person-lab"
-    assert task["payload"]["authority_boundary"]["target_runtime_owner"] == "one-person-lab"
-    assert task["payload"]["authority_boundary"]["mas_can_authorize_provider_admission"] is False
-    assert task["payload"]["paper_recovery_authority_boundary"] == (
-        "mas_domain_progress_transition_request_only"
-    )
-    assert "default_executor_dispatch_request" not in task["payload"]
-    legacy_dispatch_ref = task["payload"]["legacy_default_executor_dispatch_request_ref"]
-    assert legacy_dispatch_ref["projection_kind"] == "legacy_default_executor_dispatch_request_ref"
-    assert legacy_dispatch_ref["body_included"] is False
-    assert legacy_dispatch_ref["source_action_body_included"] is False
-    assert legacy_dispatch_ref["dispatch_body_included"] is False
-    assert legacy_dispatch_ref["authority_boundary"] == "mas_domain_progress_transition_request_only"
-    assert legacy_dispatch_ref["mas_can_authorize_provider_admission"] is False
-    assert legacy_dispatch_ref["mas_can_create_opl_stage_run"] is False
-    assert legacy_dispatch_ref["source_transition_request_status"] == (
-        "transition_request_pending"
-    )
+    assert canonical_request_tasks == []
 
 
 def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:
