@@ -276,6 +276,45 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "paper_progress_delta",
         "paper_work_progress",
     ]
+    public_projection_policy = foundry_series["standard_public_projection_policy"]
+    assert public_projection_policy["surface_kind"] == (
+        "opl_foundry_agent_standard_public_projection_policy"
+    )
+    assert public_projection_policy["standard_public_foundry_surface"] == (
+        "opl_generated_hosted_series"
+    )
+    assert public_projection_policy["canonical_inspect_command_pattern"] == (
+        "opl foundry agents inspect <agent_id>"
+    )
+    assert public_projection_policy["allowed_active_public_foundry_surfaces"] == [
+        "opl_foundry_agent_series_spine",
+        "opl_family_hosted_surfaces",
+    ]
+    assert (
+        public_projection_policy[
+            "active_public_projection_allows_domain_owned_cli_as_standard_surface"
+        ]
+        is False
+    )
+    assert (
+        public_projection_policy["active_public_projection_allows_compatibility_aliases"]
+        is False
+    )
+    assert (
+        public_projection_policy["minimal_authority_functions_are_membership_axis"]
+        is False
+    )
+    assert (
+        public_projection_policy["domain_owned_helpers_are_membership_axis"]
+        is False
+    )
+    assert public_projection_policy["allowed_domain_owned_helper_context"] == (
+        "minimal_authority_functions_only"
+    )
+    assert public_projection_policy["non_standard_surface_retention_contexts"] == [
+        "history",
+        "tombstone",
+    ]
     assert foundry_series["domain_adapter_policy"]["no_parallel_progress_schema"] is True
     assert foundry_series["domain_adapter_policy"]["no_parallel_blocker_lineage_schema"] is True
     thinning = foundry_series["purpose_first_adapter_thinning_policy"]

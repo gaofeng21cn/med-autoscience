@@ -240,6 +240,29 @@
   "stage_control_plane_ref": "contracts/stage_control_plane.json",
   "stage_control_plane_target_domain_id": "med-autoscience",
   "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
+  "standard_public_projection_policy": {
+    "active_public_projection_allows_compatibility_aliases": false,
+    "active_public_projection_allows_domain_owned_cli_as_standard_surface": false,
+    "active_public_projection_allows_legacy_json_aliases": false,
+    "active_public_projection_allows_non_opl_foundry_cli": false,
+    "active_public_projection_allows_retired_surface_aliases": false,
+    "allowed_active_public_foundry_surfaces": [
+      "opl_foundry_agent_series_spine",
+      "opl_family_hosted_surfaces"
+    ],
+    "allowed_domain_owned_helper_context": "minimal_authority_functions_only",
+    "canonical_inspect_command_pattern": "opl foundry agents inspect <agent_id>",
+    "domain_owned_helpers_are_membership_axis": false,
+    "minimal_authority_functions_are_membership_axis": false,
+    "non_standard_surface_retention_contexts": [
+      "history",
+      "tombstone"
+    ],
+    "policy_id": "standard_agent_public_foundry_surface_is_opl_generated_hosted_series",
+    "standard_public_foundry_surface": "opl_generated_hosted_series",
+    "surface_kind": "opl_foundry_agent_standard_public_projection_policy",
+    "version": "foundry-agent-standard-public-projection.v1"
+  },
   "surface_kind": "opl_foundry_agent_series_contract",
   "version": "foundry-agent-series.v1",
   "workspace_topology_profile": {
