@@ -13,6 +13,7 @@ class HumanGatePolicyVerdict:
     category: str
     reason_code: str
     controller_action_types: tuple[str, ...]
+    accepted_owner_answer_shapes: tuple[str, ...]
     transport_boundary: dict[str, object]
 
     def to_dict(self) -> dict[str, object]:
@@ -22,6 +23,7 @@ class HumanGatePolicyVerdict:
             "category": self.category,
             "reason_code": self.reason_code,
             "controller_action_types": list(self.controller_action_types),
+            "accepted_owner_answer_shapes": list(self.accepted_owner_answer_shapes),
             "transport_boundary": dict(self.transport_boundary),
         }
 
@@ -68,7 +70,15 @@ _HUMAN_GATE_TRANSPORT_BOUNDARY = {
     "can_write_typed_blocker": False,
     "can_write_human_gate": False,
     "can_authorize_provider_admission": False,
+    "accepted_owner_answer_shapes": [
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "typed_blocker_ref",
+    ],
 }
+_HUMAN_GATE_OWNER_ANSWER_SHAPES = tuple(
+    _HUMAN_GATE_TRANSPORT_BOUNDARY["accepted_owner_answer_shapes"]
+)
 
 
 def _normalized_decision_type(value: object) -> str:
@@ -114,6 +124,7 @@ def controller_human_gate_policy(
             category=category,
             reason_code="human_gate_allowed_for_major_boundary",
             controller_action_types=normalized_action_types,
+            accepted_owner_answer_shapes=_HUMAN_GATE_OWNER_ANSWER_SHAPES,
             transport_boundary=dict(_HUMAN_GATE_TRANSPORT_BOUNDARY),
         )
     if normalized_decision_type in _AUTONOMOUS_DECISION_TYPES:
@@ -123,6 +134,7 @@ def controller_human_gate_policy(
             category=category,
             reason_code="mas_autonomous_decision_must_not_create_human_gate",
             controller_action_types=normalized_action_types,
+            accepted_owner_answer_shapes=(),
             transport_boundary=dict(_HUMAN_GATE_TRANSPORT_BOUNDARY),
         )
     raise ValueError(f"unsupported human gate policy decision_type: {normalized_decision_type}")

@@ -31,10 +31,25 @@ def test_controller_human_gate_policy_allows_only_major_boundaries() -> None:
     assert stop_loss.transport_boundary["question_ref_required"] is True
     assert stop_loss.transport_boundary["required_receipt_ref_required"] is True
     assert stop_loss.transport_boundary["resume_path_ref_required"] is True
+    assert stop_loss.accepted_owner_answer_shapes == (
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "typed_blocker_ref",
+    )
+    assert stop_loss.transport_boundary["accepted_owner_answer_shapes"] == [
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "typed_blocker_ref",
+    ]
     assert stop_loss.transport_boundary["opl_can_approve_human_gate"] is False
     assert stop_loss.transport_boundary["opl_can_block_without_mas_owner_boundary"] is False
     assert stop_loss.transport_boundary["can_write_human_gate"] is False
     assert stop_loss.transport_boundary["can_authorize_provider_admission"] is False
+    assert stop_loss.to_dict()["accepted_owner_answer_shapes"] == [
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "typed_blocker_ref",
+    ]
 
 
 def test_controller_human_gate_policy_keeps_ordinary_research_decisions_autonomous() -> None:
@@ -55,6 +70,7 @@ def test_controller_human_gate_policy_keeps_ordinary_research_decisions_autonomo
 
     assert continue_line.allowed is False
     assert continue_line.category == "mas_autonomous_scientific_decision"
+    assert continue_line.accepted_owner_answer_shapes == ()
     assert bounded_analysis.allowed is False
     assert bounded_analysis.category == "mas_autonomous_scientific_decision"
     assert relaunch.allowed is False
