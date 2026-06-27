@@ -628,3 +628,58 @@ def test_paper_mission_consume_candidate_uses_authority_consume_readback(
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_route_back_owner_comes_from_terminal_decision(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    mission_id = "paper-mission::001-paper::gate-clearing::manual"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id="001-paper",
+        decision_kind="route_back",
+    )
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        paper_mission_transaction=transaction,
+    )
+    output_root = tmp_path / "consumption-ledger"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    output_manifest = payload["consume_output_manifest"]
+    assert output_manifest["route_handoff_status"] == "ready_for_opl_route_command"
+    assert output_manifest["route_command_kind"] == "route_back"
+    assert output_manifest["next_owner"] == "mission_executor"
+    consume_record = json.loads(
+        Path(output_manifest["consume_record_ref"]).read_text(encoding="utf-8")
+    )
+    handoff = json.loads(
+        Path(output_manifest["opl_route_handoff_ref"]).read_text(encoding="utf-8")
+    )
+    assert consume_record["next_owner"] == "mission_executor"
+    assert handoff["next_owner"] == "mission_executor"
+    assert handoff["stage_terminal_decision"]["next_owner"] == "mission_executor"
+    assert handoff["can_submit_to_opl_runtime"] is True
+    assert handoff["can_claim_paper_progress"] is False
+    _assert_forbidden_authority_untouched(tmp_path)
