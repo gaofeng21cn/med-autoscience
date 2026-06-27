@@ -272,6 +272,25 @@ def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_withou
     assert module.has_provider_admission_opl_transition_readback(candidate) is False
 
 
+def test_exactly_one_outcome_rejects_mixed_provider_and_non_advancing_flags() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+    )
+    readback = _live_readback()
+    readback["exactly_one_outcome"] = {
+        **readback["exactly_one_outcome"],
+        "non_advancing_apply": True,
+    }
+    readback["read_model_readback"]["exactly_one_outcome"] = readback[
+        "exactly_one_outcome"
+    ]
+
+    assert readback["exactly_one_outcome"]["outcome_kind"] == (
+        "provider_admission_enqueued_or_blocked"
+    )
+    assert module.valid_opl_transition_readback(readback) is False
+
+
 def test_opl_transition_readback_exposes_source_claimability() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"

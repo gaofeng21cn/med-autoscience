@@ -137,6 +137,7 @@ def _valid_live_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
     return outcome.get("selected") is True and outcome.get("exactly_one_transition") is True and (
         outcome.get("stable_outcome") is True
         and outcome.get("fail_closed") is False
+        and _selected_outcome_family_count(outcome) == 1
         and outcome_kind
         in {
             LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
@@ -148,6 +149,15 @@ def _valid_live_exactly_one_outcome(outcome: Mapping[str, Any]) -> bool:
                 outcome.get("non_advancing_apply") is True
                 and _text(outcome.get("transition_kind")) == "NonAdvancingApply"
             )
+        )
+    )
+
+
+def _selected_outcome_family_count(outcome: Mapping[str, Any]) -> int:
+    return sum(
+        (
+            _text(outcome.get("outcome_kind")) == LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
+            outcome.get("non_advancing_apply") is True,
         )
     )
 
