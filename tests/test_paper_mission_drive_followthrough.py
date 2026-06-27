@@ -57,6 +57,18 @@ def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> 
     assert second_guard["status"] == "non_advancing_route_back"
     assert second_guard["requires_mas_owned_executor_delta"] is True
     assert second_guard["stop_same_semantic_redrive"] is True
+    assert second_guard["required_next_executor_stage"] == (
+        "paper_mission_semantic_progress_executor"
+    )
+    executor_stage = second_guard["mas_owned_executor_stage"]
+    assert executor_stage["stage_type"] == "paper_mission_semantic_progress_executor"
+    assert executor_stage["owner"] == "MedAutoScience"
+    assert executor_stage["executor"] == "Codex CLI"
+    assert executor_stage["required_outputs"] == list(
+        commands.NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS
+    )
+    assert executor_stage["forbidden_next_action"] == "synonymous_route_back_redrive"
+    assert executor_stage["authority_boundary"]["writes_authority"] is False
     assert second_guard["can_claim_paper_progress"] is False
     assert "paper_facing_delta" in second_guard["next_legal_actions"]
 
@@ -116,6 +128,38 @@ def test_semantic_progress_guard_ignores_followthrough_identity_wrappers() -> No
     assert second_guard["semantic_progress_observed"] is False
 
 
+def test_followthrough_transaction_uses_canonical_mission_identity() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    readback = _route_back_consume_readback(
+        mission_id="paper-mission::dm003::followthrough::followthrough",
+        transaction_ref="paper-mission-transaction::dm003::followthrough::followthrough",
+    )
+    readback["paper_mission_transaction"]["artifact_delta_refs"] = [
+        {
+            "ref_id": "existing-delta",
+            "ref_kind": "submission_milestone_candidate_artifact",
+            "uri": "artifact-delta::same",
+        }
+    ]
+    readback["paper_mission_transaction"]["paper_audit_pack_refs"] = {
+        family: [
+            {
+                "ref_id": f"{family}::same",
+                "ref_kind": "submission_milestone_candidate_ref",
+                "uri": f"audit-pack::{family}",
+            }
+        ]
+        for family in commands.PAPER_AUDIT_PACK_FAMILIES
+    }
+
+    transaction = commands._followthrough_transaction_for_readback(readback)
+
+    assert transaction["mission_id"] == "paper-mission::dm003"
+    assert "::followthrough::followthrough" not in transaction["transaction_id"]
+    route = transaction["opl_route_command"]
+    assert "::followthrough::followthrough" not in route["source_terminal_decision_ref"]
+
+
 def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     first = _route_back_consume_readback()
@@ -151,10 +195,77 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
     guard = payload["semantic_progress_guard"]
     assert guard["guard_kind"] == "non_advancing_route_back_detection"
     assert guard["can_claim_paper_progress"] is False
+    assert payload["mas_owned_executor_stage"] == guard["mas_owned_executor_stage"]
+    assert payload["mas_owned_executor_stage"]["stage_type"] == (
+        "paper_mission_semantic_progress_executor"
+    )
     assert guard["signature_payload"]["paper_mission_transaction_ref"] == (
         "paper-mission-transaction::dm003"
     )
     assert "typed_blocker_materialization" in guard["required_executor_outputs"]
+
+
+def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    consume_readback = _route_back_consume_readback()
+    consume_readback["opl_runtime_readback_status"] = "waiting_for_opl_runtime_live_readback"
+    handoff = _route_back_handoff()
+    progress_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=consume_readback,
+        handoff=handoff,
+    )
+    package_readback = {
+        "output_manifest": {
+            "package_manifest_ref": "/tmp/package/package_manifest.json",
+            "owner_decision_packet_ref": "/tmp/package/owner_decision_packet.json",
+            "paper_facing_candidate_delta_ref": (
+                "/tmp/package/paper_facing_candidate_delta.json"
+            ),
+            "owner_consumption_request_ref": "/tmp/package/owner_consumption_request.json",
+            "owner_blocker_packet_ref": "/tmp/package/owner_blocker_packet.json",
+            "submission_milestone_checklist_ref": (
+                "/tmp/package/submission_milestone_checklist.json"
+            ),
+        }
+    }
+
+    checkpoint = commands._paper_mission_mas_owned_executor_delta_checkpoint(
+        package_readback=package_readback,
+        consume_readback=consume_readback,
+        handoff=handoff,
+        progress_guard=progress_guard,
+    )
+    result = commands._paper_mission_drive_result(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        opl_runtime_submission={"status": "not_requested"},
+        mas_owned_executor_delta=checkpoint,
+    )
+
+    assert checkpoint["status"] == "mas_owned_executor_delta_ready"
+    assert checkpoint["owner"] == "MedAutoScience"
+    assert checkpoint["executor"] == "Codex CLI"
+    assert checkpoint["produced_outputs"] == {
+        "owner_decision_packet_ref": "/tmp/package/owner_decision_packet.json",
+        "paper_facing_delta_ref": "/tmp/package/paper_facing_candidate_delta.json",
+        "owner_consumption_request_ref": "/tmp/package/owner_consumption_request.json",
+        "owner_blocker_packet_ref": "/tmp/package/owner_blocker_packet.json",
+        "submission_milestone_checklist_ref": (
+            "/tmp/package/submission_milestone_checklist.json"
+        ),
+        "package_manifest_ref": "/tmp/package/package_manifest.json",
+    }
+    assert checkpoint["mas_owned_executor_stage"]["stage_type"] == (
+        "paper_mission_semantic_progress_executor"
+    )
+    assert checkpoint["stop_same_semantic_redrive"] is True
+    assert checkpoint["forbidden_next_action"] == "synonymous_route_back_redrive"
+    assert checkpoint["authority_boundary"]["writes_authority"] is False
+    assert checkpoint["authority_boundary"]["writes_runtime"] is False
+    assert checkpoint["authority_boundary"]["can_claim_submission_ready"] is False
+    assert result["status"] == "mas_owned_executor_delta_ready"
+    assert result["can_claim_paper_progress"] is False
+    assert result["can_claim_runtime_ready"] is False
 
 
 def _route_back_consume_readback(

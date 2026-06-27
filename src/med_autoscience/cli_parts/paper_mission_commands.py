@@ -593,6 +593,7 @@ def _build_paper_mission_drive_readback(
         ledger_root=ledger_root,
         source=source,
         opl_bin=opl_bin,
+        submit_opl_runtime=runtime_submit_requested,
         initial_package_readback=package_readback,
         initial_consume_readback=consume_readback,
         initial_handoff=handoff,
@@ -604,6 +605,18 @@ def _build_paper_mission_drive_readback(
         consume_readback = _mapping(final_round.get("consume_readback"))
         handoff = _mapping(final_round.get("opl_route_handoff"))
         opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
+    mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
+        package_readback=package_readback,
+        consume_readback=consume_readback,
+        handoff=handoff,
+        progress_guard=followthrough["semantic_progress_guard"],
+    )
+    drive_result = _paper_mission_drive_result(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        opl_runtime_submission=opl_runtime_submission,
+        mas_owned_executor_delta=mas_executor_delta,
+    )
     return {
         "surface_kind": "paper_mission_drive_readback",
         "schema_version": 1,
@@ -647,6 +660,10 @@ def _build_paper_mission_drive_readback(
         "followthrough": followthrough,
         "semantic_progress_guard": followthrough["semantic_progress_guard"],
         "non_advancing_route_back": followthrough["non_advancing_route_back"],
+        "mas_owned_executor_delta": mas_executor_delta,
+        "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
+            "mas_owned_executor_stage"
+        ),
         "requires_mas_owned_executor_delta": followthrough[
             "requires_mas_owned_executor_delta"
         ],
@@ -685,11 +702,7 @@ def _build_paper_mission_drive_readback(
         },
         "forbidden_authority_writes": list(CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-        "drive_result": _paper_mission_drive_result(
-            consume_readback=consume_readback,
-            handoff=handoff,
-            opl_runtime_submission=opl_runtime_submission,
-        ),
+        "drive_result": drive_result,
     }
 
 
@@ -703,6 +716,7 @@ def _paper_mission_drive_followthrough(
     ledger_root: Path,
     source: str,
     opl_bin: str | Path | None,
+    submit_opl_runtime: bool,
     initial_package_readback: Mapping[str, Any],
     initial_consume_readback: Mapping[str, Any],
     initial_handoff: Mapping[str, Any],
@@ -762,7 +776,7 @@ def _paper_mission_drive_followthrough(
             handoff = _load_json_object(Path(handoff_ref)) if handoff_ref else {}
         submission = _opl_runtime_submission_readback(
             handoff=handoff,
-            submit_opl_runtime=True,
+            submit_opl_runtime=submit_opl_runtime,
             opl_bin=opl_bin,
         )
         consume_readback = _refresh_consume_readback_after_opl_submission(
@@ -804,16 +818,32 @@ def _paper_mission_drive_followthrough(
         if next_progress_guard.get("status") == "non_advancing_route_back":
             non_advancing_route_back = next_progress_guard
             break
-    stop_reason = _paper_mission_followthrough_stop_reason(
+    mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
+        package_readback=current_package_readback,
         consume_readback=current_consume_readback,
-        opl_runtime_submission=current_submission,
-        exhausted=len(rounds) >= DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT
-        and _paper_mission_followthrough_trigger(
+        handoff=current_handoff,
+        progress_guard=current_progress_guard,
+    )
+    stop_reason = (
+        "mas_owned_executor_delta_ready"
+        if mas_executor_delta is not None and not non_advancing_route_back
+        else _paper_mission_followthrough_stop_reason(
             consume_readback=current_consume_readback,
             opl_runtime_submission=current_submission,
+            exhausted=len(rounds) >= DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT
+            and _paper_mission_followthrough_trigger(
+                consume_readback=current_consume_readback,
+                opl_runtime_submission=current_submission,
+            )
+            is not None,
+            non_advancing_route_back=non_advancing_route_back is not None,
         )
-        is not None,
-        non_advancing_route_back=non_advancing_route_back is not None,
+    )
+    final_drive_result = _paper_mission_drive_result(
+        consume_readback=current_consume_readback,
+        handoff=current_handoff,
+        opl_runtime_submission=current_submission,
+        mas_owned_executor_delta=mas_executor_delta,
     )
     return {
         "surface_kind": "paper_mission_drive_followthrough_readback",
@@ -825,12 +855,12 @@ def _paper_mission_drive_followthrough(
         "stop_reason": stop_reason,
         "semantic_progress_guard": current_progress_guard,
         "non_advancing_route_back": non_advancing_route_back,
-        "requires_mas_owned_executor_delta": non_advancing_route_back is not None,
-        "final_drive_result": _paper_mission_drive_result(
-            consume_readback=current_consume_readback,
-            handoff=current_handoff,
-            opl_runtime_submission=current_submission,
+        "mas_owned_executor_delta": mas_executor_delta,
+        "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
+            "mas_owned_executor_stage"
         ),
+        "requires_mas_owned_executor_delta": non_advancing_route_back is not None,
+        "final_drive_result": final_drive_result,
         "authority_boundary": {
             "mas_authority_owner": "MedAutoScience",
             "runtime_owner": "one-person-lab",
@@ -853,6 +883,109 @@ def _paper_mission_drive_followthrough(
                 ]
             ),
             "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
+
+
+def _paper_mission_mas_owned_executor_delta_checkpoint(
+    *,
+    package_readback: Mapping[str, Any],
+    consume_readback: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    progress_guard: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    output_manifest = _mapping(package_readback.get("output_manifest"))
+    owner_decision_packet_ref = _optional_text(
+        output_manifest.get("owner_decision_packet_ref")
+    )
+    paper_facing_delta_ref = _optional_text(
+        output_manifest.get("paper_facing_candidate_delta_ref")
+    )
+    if owner_decision_packet_ref is None and paper_facing_delta_ref is None:
+        return None
+    decision = _mapping(consume_readback.get("stage_terminal_decision"))
+    next_decision = _mapping(consume_readback.get("next_owner_or_human_decision"))
+    next_owner = _first_text(
+        decision.get("next_owner"),
+        handoff.get("next_owner"),
+        next_decision.get("next_owner"),
+    )
+    if next_owner != "mission_executor":
+        return None
+    runtime_status = _optional_text(consume_readback.get("opl_runtime_readback_status"))
+    if runtime_status not in {
+        "waiting_for_opl_runtime_live_readback",
+        "opl_runtime_readback_missing",
+        None,
+    }:
+        return None
+    signature = _optional_text(progress_guard.get("signature")) or _stable_sha256(
+        _mapping(progress_guard.get("signature_payload"))
+    )
+    signature_payload = _mapping(progress_guard.get("signature_payload")) or {
+        "study_id": _optional_text(consume_readback.get("study_id")),
+        "mission_id": _optional_text(consume_readback.get("mission_id")),
+        "paper_mission_transaction_ref": _optional_text(
+            handoff.get("paper_mission_transaction_ref")
+        ),
+        "route_command": _first_text(
+            handoff.get("route_command_kind"),
+            _mapping(consume_readback.get("opl_route_command")).get("command_kind"),
+        ),
+        "route_target": _first_text(
+            handoff.get("route_target"),
+            _mapping(consume_readback.get("opl_route_command")).get("target"),
+        ),
+    }
+    produced_outputs = _compact_non_null_mapping(
+        {
+            "owner_decision_packet_ref": owner_decision_packet_ref,
+            "paper_facing_delta_ref": paper_facing_delta_ref,
+            "owner_consumption_request_ref": _optional_text(
+                output_manifest.get("owner_consumption_request_ref")
+            ),
+            "owner_blocker_packet_ref": _optional_text(
+                output_manifest.get("owner_blocker_packet_ref")
+            ),
+            "submission_milestone_checklist_ref": _optional_text(
+                output_manifest.get("submission_milestone_checklist_ref")
+            ),
+            "package_manifest_ref": _optional_text(
+                output_manifest.get("package_manifest_ref")
+            ),
+            "consume_readback_ref": _optional_text(
+                _mapping(consume_readback.get("consume_output_manifest")).get(
+                    "consume_readback_ref"
+                )
+            ),
+        }
+    )
+    return {
+        "surface_kind": "paper_mission_mas_owned_executor_delta_checkpoint",
+        "schema_version": 1,
+        "status": "mas_owned_executor_delta_ready",
+        "owner": "MedAutoScience",
+        "executor": "Codex CLI",
+        "trigger": "opl_runtime_live_readback_missing_after_candidate_materialization",
+        "next_owner": "mission_executor",
+        "semantic_progress_signature": signature,
+        "semantic_progress_signature_payload": signature_payload,
+        "mas_owned_executor_stage": _paper_mission_mas_owned_executor_stage_packet(
+            signature=signature,
+            signature_payload=signature_payload,
+        ),
+        "produced_outputs": produced_outputs,
+        "stop_same_semantic_redrive": True,
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_paper_progress": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
             "can_claim_runtime_ready": False,
         },
     }
@@ -1246,6 +1379,9 @@ def _refresh_consume_readback_after_opl_submission(
     )
     refreshed = dict(consume_readback)
     refreshed.update(_transaction_readback_output_fields(transaction_readback))
+    refreshed["stage_route_submission_source_transaction"] = _mapping(
+        consume_readback.get("paper_mission_transaction")
+    )
     refreshed["consume_candidate_status"] = (
         _consume_candidate_status_for_transaction_readback(
             transaction_readback=transaction_readback,
@@ -1312,6 +1448,7 @@ def _opl_stage_route_runtime_request_from_handoff(
             command_kind,
         ]
     )
+    progress_guard = _paper_mission_route_request_progress_guard(handoff=handoff)
     payload = {
         "surface_kind": "opl_mas_paper_mission_route_runtime_request",
         "schema_version": 1,
@@ -1329,9 +1466,8 @@ def _opl_stage_route_runtime_request_from_handoff(
         "route_command_materialized": handoff.get("transaction_materialized") is True,
         "opl_route_command": route,
         "opl_route_handoff_record": dict(handoff),
-        "semantic_progress_guard": _paper_mission_route_request_progress_guard(
-            handoff=handoff
-        ),
+        "semantic_progress_guard": progress_guard,
+        "mas_owned_executor_stage": progress_guard.get("mas_owned_executor_stage"),
         "stage_run_request": {
             "request_status": "requested",
             "requested_by": "mas_paper_mission_route_handoff",
@@ -1410,6 +1546,7 @@ def _paper_mission_drive_result(
     consume_readback: Mapping[str, Any],
     handoff: Mapping[str, Any],
     opl_runtime_submission: Mapping[str, Any],
+    mas_owned_executor_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     handoff_ready = _optional_text(handoff.get("handoff_status")) == (
         "ready_for_opl_route_command"
@@ -1425,6 +1562,12 @@ def _paper_mission_drive_result(
         runtime_status=runtime_status,
         carrier_readback=carrier_readback,
     )
+    if (
+        _optional_text(_mapping(mas_owned_executor_delta).get("status"))
+        == "mas_owned_executor_delta_ready"
+        and status == "opl_runtime_submission_pending"
+    ):
+        status = "mas_owned_executor_delta_ready"
     return {
         "status": status,
         "stage_terminal_decision": decision.get("decision_kind"),
@@ -1494,6 +1637,10 @@ def _paper_mission_semantic_progress_guard(
         "can_claim_runtime_ready": False,
     }
     if status == "non_advancing_route_back":
+        executor_stage = _paper_mission_mas_owned_executor_stage_packet(
+            signature=signature,
+            signature_payload=signature_payload,
+        )
         result.update(
             {
                 "reason": (
@@ -1503,13 +1650,44 @@ def _paper_mission_semantic_progress_guard(
                     "or route-back evidence ref."
                 ),
                 "requires_mas_owned_executor_delta": True,
-                "required_next_executor_stage": "mas_owned_executor_delta",
+                "required_next_executor_stage": executor_stage["stage_type"],
+                "mas_owned_executor_stage": executor_stage,
                 "next_legal_actions": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
                 "stop_same_semantic_redrive": True,
                 "owner_surface": "med-autoscience PaperMissionRun / MAS authority",
             }
         )
     return result
+
+
+def _paper_mission_mas_owned_executor_stage_packet(
+    *,
+    signature: str,
+    signature_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_mission_mas_owned_executor_stage_packet",
+        "schema_version": 1,
+        "stage_type": "paper_mission_semantic_progress_executor",
+        "owner": "MedAutoScience",
+        "executor": "Codex CLI",
+        "trigger": "non_advancing_route_back",
+        "semantic_progress_signature": signature,
+        "semantic_progress_signature_payload": signature_payload,
+        "required_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
+        "next_legal_action": "materialize_mas_owned_executor_delta_before_redrive",
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_paper_progress": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
 
 
 def _paper_mission_semantic_progress_signature_payload(
@@ -1746,6 +1924,37 @@ def _paper_mission_canonical_followthrough_identity(value: str | None) -> str | 
     return value[:index]
 
 
+def _paper_mission_compact_followthrough_identity(value: str | None) -> str | None:
+    if value is None:
+        return None
+    marker = "::followthrough"
+    index = value.find(marker)
+    if index < 0:
+        return value
+    return f"{value[:index]}{marker}"
+
+
+def _canonicalize_followthrough_transaction_identity(
+    transaction: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(_mapping(transaction))
+    mission_id = _paper_mission_canonical_followthrough_identity(
+        _optional_text(payload.get("mission_id"))
+    )
+    if mission_id is not None:
+        payload["mission_id"] = mission_id
+    transaction_id = _paper_mission_compact_followthrough_identity(
+        _optional_text(payload.get("transaction_id"))
+    )
+    if transaction_id is not None:
+        payload["transaction_id"] = transaction_id
+    route = dict(_mapping(payload.get("opl_route_command")))
+    if route and transaction_id is not None:
+        route["source_terminal_decision_ref"] = f"{transaction_id}#stage_terminal_decision"
+        payload["opl_route_command"] = route
+    return payload
+
+
 def _route_back_evidence_kind(ref: str | None) -> str | None:
     if ref is None:
         return None
@@ -1798,14 +2007,20 @@ def _paper_mission_route_request_progress_guard(
         "route_target": _first_text(handoff.get("route_target"), route.get("target")),
         "semantic_progress_guard_kind": "non_advancing_route_back_detection",
     }
+    signature = _stable_sha256(payload)
+    executor_stage = _paper_mission_mas_owned_executor_stage_packet(
+        signature=signature,
+        signature_payload=payload,
+    )
     return {
         "surface_kind": "opl_route_semantic_progress_guard",
         "schema_version": 1,
         "guard_kind": "non_advancing_route_back_detection",
-        "signature": _stable_sha256(payload),
+        "signature": signature,
         "signature_payload": payload,
         "non_advancing_status": "not_evaluated_by_mas_payload_only",
         "required_executor_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
+        "mas_owned_executor_stage": executor_stage,
         "runtime_owner_expected_action": (
             "If OPL observes the same route-back/domain gate transaction without a "
             "new accepted owner answer, human gate, typed blocker, or paper-facing "
@@ -2576,14 +2791,31 @@ def _followthrough_transaction_for_readback(
 ) -> dict[str, Any]:
     owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
     transaction = _first_mapping(
-        _mapping(owner_answer.get("paper_mission_transaction")),
-        _mapping(readback.get("paper_mission_transaction")),
+        _canonicalize_followthrough_transaction_identity(
+            _mapping(owner_answer.get("paper_mission_transaction"))
+        ),
+        _canonicalize_followthrough_transaction_identity(
+            _mapping(readback.get("stage_route_submission_source_transaction"))
+        ),
+        _canonicalize_followthrough_transaction_identity(
+            _mapping(readback.get("paper_mission_transaction"))
+        ),
     )
     decision = _mapping(transaction.get("stage_terminal_decision"))
-    if _optional_text(decision.get("decision_kind")) != "route_back":
+    decision_kind = _optional_text(decision.get("decision_kind"))
+    terminal_closeout_observed = _optional_text(
+        readback.get("opl_runtime_readback_status")
+    ) == "opl_runtime_terminal_readback_observed" or _optional_text(
+        _mapping(readback.get("opl_runtime_carrier_readback")).get("carrier_status")
+    ) == "opl_runtime_terminal_readback_observed"
+    if decision_kind != "route_back" and not (
+        decision_kind == "continue_same_stage" and terminal_closeout_observed
+    ):
         return {}
     study_id = _optional_text(transaction.get("study_id"))
-    mission_id = _optional_text(transaction.get("mission_id"))
+    mission_id = _paper_mission_canonical_followthrough_identity(
+        _optional_text(transaction.get("mission_id"))
+    )
     if study_id is None or mission_id is None:
         return {}
     target_stage = (
@@ -2606,8 +2838,9 @@ def _followthrough_transaction_for_readback(
         "decision_kind": "continue_same_stage",
         "status": "accepted_submission_milestone_candidate",
         "reason": (
-            "MAS mission executor consumed the terminal route-back as a fresh "
-            "paper-facing candidate and is continuing the same PaperMission stage."
+            "MAS mission executor consumed the terminal closeout/route-back as a "
+            "fresh paper-facing candidate and is continuing the same PaperMission "
+            "stage."
         ),
         "next_owner": "mission_executor",
         "next_work_unit": next_work_unit,
@@ -2615,7 +2848,11 @@ def _followthrough_transaction_for_readback(
             decision.get("route_back_evidence_ref")
         ),
     }
-    followthrough_basis = f"terminal-route-back-followthrough::{_slug(mission_id)}"
+    source_transaction_id = _optional_text(transaction.get("transaction_id")) or mission_id
+    followthrough_basis = (
+        "terminal-route-back-followthrough::"
+        f"{_slug(mission_id)}::{_slug(source_transaction_id)}"
+    )
     stage_run_ref = f"paper-mission-followthrough://{study_id}/{_slug(mission_id)}"
     return _paper_mission_followthrough_transaction_instance(
         build_paper_mission_transaction(

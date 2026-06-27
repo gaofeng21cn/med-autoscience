@@ -2867,6 +2867,15 @@ def test_paper_mission_consume_candidate_reports_repeated_route_back_as_non_adva
     assert guard["semantic_progress_observed"] is False
     assert payload["non_advancing_route_back"] == guard
     assert payload["requires_mas_owned_executor_delta"] is True
+    assert guard["mas_owned_executor_stage"]["stage_type"] == (
+        "paper_mission_semantic_progress_executor"
+    )
+    assert guard["mas_owned_executor_stage"]["required_outputs"] == [
+        "owner_decision_packet",
+        "human_gate_question",
+        "paper_facing_delta",
+        "typed_blocker_materialization",
+    ]
     assert guard["next_legal_actions"] == [
         "owner_decision_packet",
         "human_gate_question",
