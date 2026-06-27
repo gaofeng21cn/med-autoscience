@@ -65,9 +65,7 @@ def test_semantic_progress_guard_allows_new_paper_facing_delta() -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     first = _route_back_consume_readback()
     second = _route_back_consume_readback(
-        consume_output_manifest={
-            "paper_facing_candidate_delta_ref": "/tmp/paper-facing-delta.json",
-        }
+        consume_result={"paper_facing_delta_ref": "/tmp/paper-facing-delta.json"}
     )
 
     first_guard = commands._paper_mission_semantic_progress_guard(
@@ -105,6 +103,7 @@ def _route_back_consume_readback(
     *,
     candidate_ref: str = "/tmp/package.json",
     consume_output_manifest: dict[str, object] | None = None,
+    consume_result: dict[str, object] | None = None,
 ) -> dict[str, object]:
     transaction = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -150,6 +149,9 @@ def _route_back_consume_readback(
             "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
         },
         "terminal_owner_gate_owner_answer_readback": owner_answer,
+        "authority_consume_readback": {
+            "consume_result": consume_result or {},
+        },
         "consume_output_manifest": consume_output_manifest or {},
     }
 

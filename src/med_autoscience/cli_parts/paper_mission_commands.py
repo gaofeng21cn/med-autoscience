@@ -337,6 +337,14 @@ def build_paper_mission_readback(
             source=source,
             dry_run=dry_run,
         )
+    previous_consumption_readback = (
+        latest_paper_mission_consumption_transaction_readback(
+            workspace_root=Path(profile.workspace_root),
+            study_id=study_id,
+        )
+        if paper_mission_command == "consume-candidate"
+        else None
+    )
     transaction_readback = _paper_mission_transaction_readback(
         mission_id=selected_mission_id,
         study_id=study_id,
@@ -397,6 +405,12 @@ def build_paper_mission_readback(
         )
         else None
     )
+    progress_refs = _paper_mission_progress_refs(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        transaction=transaction,
+        owner_answer=owner_answer,
+    )
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -435,6 +449,12 @@ def build_paper_mission_readback(
             if consume_output_manifest is not None
             else {}
         ),
+        **_paper_mission_consume_non_advancing_fields(
+            paper_mission_command=paper_mission_command,
+            transaction_readback=transaction_readback,
+            consume_output_manifest=consume_output_manifest,
+            previous_consumption_readback=previous_consumption_readback,
+        ),
         "contract_validation": _validate_with_contract_if_available(mission_candidate),
         "dispatch_plan": {
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
@@ -446,6 +466,62 @@ def build_paper_mission_readback(
             ),
             "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
         },
+    }
+
+
+def _paper_mission_consume_non_advancing_fields(
+    *,
+    paper_mission_command: str,
+    transaction_readback: Mapping[str, Any],
+    consume_output_manifest: Mapping[str, Any] | None,
+    previous_consumption_readback: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if paper_mission_command != "consume-candidate" or previous_consumption_readback is None:
+        return {}
+    handoff = _mapping(_mapping(consume_output_manifest).get("opl_route_handoff"))
+    if not handoff:
+        handoff = _mapping(transaction_readback.get("opl_route_handoff"))
+    current_readback = _paper_mission_semantic_progress_readback(transaction_readback)
+    previous_readback = _paper_mission_semantic_progress_readback(
+        previous_consumption_readback
+    )
+    guard = _paper_mission_semantic_progress_guard(
+        consume_readback=current_readback,
+        handoff=handoff,
+        previous_guard=_paper_mission_semantic_progress_guard(
+            consume_readback=previous_readback,
+            handoff=_mapping(previous_consumption_readback.get("opl_route_handoff")),
+        ),
+    )
+    if guard.get("status") != "non_advancing_route_back":
+        return {}
+    return {
+        "semantic_progress_guard": guard,
+        "non_advancing_route_back": guard,
+        "requires_mas_owned_executor_delta": True,
+    }
+
+
+def _paper_mission_semantic_progress_readback(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    transaction = _mapping(readback.get("paper_mission_transaction"))
+    return {
+        **dict(readback),
+        "paper_mission_transaction": transaction,
+        "stage_terminal_decision": _mapping(
+            readback.get("stage_terminal_decision")
+        )
+        or _mapping(transaction.get("stage_terminal_decision")),
+        "opl_route_command": _mapping(readback.get("opl_route_command"))
+        or _mapping(transaction.get("opl_route_command")),
+        "next_owner_or_human_decision": _mapping(
+            readback.get("next_owner_or_human_decision")
+        ),
+        "terminal_owner_gate": _mapping(readback.get("terminal_owner_gate")),
+        "terminal_owner_gate_owner_answer_readback": _mapping(
+            readback.get("terminal_owner_gate_owner_answer_readback")
+        ),
     }
 
 
@@ -1466,6 +1542,7 @@ def _paper_mission_semantic_progress_signature_payload(
             "paper_mission_transaction_ref": _first_text(
                 handoff.get("paper_mission_transaction_ref"),
                 route.get("paper_mission_transaction_ref"),
+                transaction.get("transaction_id"),
             ),
             "stage_id": _first_text(
                 transaction.get("stage_id"),
@@ -1504,9 +1581,11 @@ def _paper_mission_semantic_progress_signature_payload(
                 decision.get("repair_scope"),
                 decision.get("next_work_unit"),
             ),
-            "route_back_evidence_ref": _first_text(
-                owner_answer_decision.get("route_back_evidence_ref"),
-                decision.get("route_back_evidence_ref"),
+            "route_back_evidence_kind": _route_back_evidence_kind(
+                _first_text(
+                    owner_answer_decision.get("route_back_evidence_ref"),
+                    decision.get("route_back_evidence_ref"),
+                )
             ),
         },
         "domain_gate_identity": {
@@ -1520,12 +1599,8 @@ def _paper_mission_semantic_progress_signature_payload(
             "owner_answer_shape": _optional_text(owner_answer.get("owner_answer_shape")),
             "owner_answer_status": _optional_text(owner_answer.get("status")),
         },
-        "progress_refs": _paper_mission_progress_refs(
-            consume_readback=consume_readback,
-            handoff=handoff,
-            transaction=transaction,
-            owner_answer=owner_answer,
-        ),
+        "semantic_delta_refs": _paper_mission_semantic_delta_refs(progress_refs),
+        "progress_refs": progress_refs,
     }
 
 
@@ -1536,7 +1611,6 @@ def _paper_mission_progress_refs(
     transaction: Mapping[str, Any],
     owner_answer: Mapping[str, Any],
 ) -> dict[str, Any]:
-    consume_manifest = _mapping(consume_readback.get("consume_output_manifest"))
     authority_readback = _mapping(consume_readback.get("authority_consume_readback"))
     consume_result = _mapping(authority_readback.get("consume_result"))
     return {
@@ -1565,20 +1639,81 @@ def _paper_mission_progress_refs(
             ),
         ),
         "paper_facing_delta_ref": _first_text(
-            consume_manifest.get("paper_facing_candidate_delta_ref"),
             consume_result.get("paper_facing_delta_ref"),
             owner_answer.get("paper_facing_delta_ref"),
         ),
         "owner_decision_packet_ref": _first_text(
-            consume_manifest.get("owner_decision_packet_ref"),
             consume_result.get("owner_decision_packet_ref"),
             owner_answer.get("owner_decision_packet_ref"),
+        ),
+        "successor_work_unit_ref": _first_text(
+            consume_result.get("successor_work_unit_ref"),
+            owner_answer.get("successor_work_unit_ref"),
+            _mapping(owner_answer.get("stage_terminal_decision")).get(
+                "successor_work_unit_ref"
+            ),
+            _mapping(transaction.get("stage_terminal_decision")).get(
+                "successor_work_unit_ref"
+            ),
+        ),
+        "carry_forward_risk_receipt_ref": _first_text(
+            consume_result.get("carry_forward_risk_receipt_ref"),
+            owner_answer.get("carry_forward_risk_receipt_ref"),
+            _mapping(owner_answer.get("stage_terminal_decision")).get(
+                "carry_forward_risk_receipt_ref"
+            ),
+            _mapping(transaction.get("stage_terminal_decision")).get(
+                "carry_forward_risk_receipt_ref"
+            ),
+        ),
+        "canonical_paper_or_artifact_delta_ref": _first_text(
+            consume_result.get("canonical_paper_or_artifact_delta_ref"),
+            owner_answer.get("canonical_paper_or_artifact_delta_ref"),
+            consume_result.get("canonical_artifact_delta_ref"),
+            owner_answer.get("canonical_artifact_delta_ref"),
+        ),
+        "ai_reviewer_or_publication_gate_delta_ref": _first_text(
+            consume_result.get("ai_reviewer_or_publication_gate_delta_ref"),
+            owner_answer.get("ai_reviewer_or_publication_gate_delta_ref"),
+            consume_result.get("ai_reviewer_delta_ref"),
+            owner_answer.get("ai_reviewer_delta_ref"),
+            consume_result.get("publication_gate_delta_ref"),
+            owner_answer.get("publication_gate_delta_ref"),
         ),
         "artifact_delta_refs": _paper_mission_artifact_delta_ref_ids(transaction),
         "paper_audit_pack_refs": _paper_mission_sorted_mapping(
             _mapping(transaction.get("paper_audit_pack_refs"))
         ),
     }
+
+
+def _paper_mission_semantic_delta_refs(progress_refs: Mapping[str, Any]) -> dict[str, Any]:
+    return _compact_mapping(
+        {
+            "accepted_owner_receipt_ref": progress_refs.get("accepted_owner_receipt_ref"),
+            "typed_blocker_ref": progress_refs.get("typed_blocker_ref"),
+            "human_gate_ref": progress_refs.get("human_gate_ref"),
+            "successor_work_unit_ref": progress_refs.get("successor_work_unit_ref"),
+            "carry_forward_risk_receipt_ref": progress_refs.get(
+                "carry_forward_risk_receipt_ref"
+            ),
+            "canonical_paper_or_artifact_delta_ref": progress_refs.get(
+                "canonical_paper_or_artifact_delta_ref"
+            ),
+            "ai_reviewer_or_publication_gate_delta_ref": progress_refs.get(
+                "ai_reviewer_or_publication_gate_delta_ref"
+            ),
+        }
+    )
+
+
+def _route_back_evidence_kind(ref: str | None) -> str | None:
+    if ref is None:
+        return None
+    if ref.startswith("route-back:"):
+        parts = ref.split(":")
+        return ":".join(parts[:3]) if len(parts) >= 3 else ref
+    return ref
 
 
 def _paper_mission_required_executor_delta_present(
@@ -1590,15 +1725,17 @@ def _paper_mission_required_executor_delta_present(
         consume_readback=consume_readback,
         handoff=handoff,
     )
-    progress_refs = _mapping(signature_payload.get("progress_refs"))
+    progress_refs = _mapping(signature_payload.get("semantic_delta_refs"))
     return any(
         progress_refs.get(key)
         for key in (
             "accepted_owner_receipt_ref",
             "typed_blocker_ref",
             "human_gate_ref",
-            "paper_facing_delta_ref",
-            "owner_decision_packet_ref",
+            "successor_work_unit_ref",
+            "carry_forward_risk_receipt_ref",
+            "canonical_paper_or_artifact_delta_ref",
+            "ai_reviewer_or_publication_gate_delta_ref",
         )
     )
 

@@ -2813,6 +2813,74 @@ def test_paper_mission_consume_candidate_accepts_submission_package_manifest(
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_consume_candidate_reports_repeated_route_back_as_non_advancing(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::gate-clearing::route-back"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="route_back",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=transaction,
+        requested_outcome="route_back",
+    )
+
+    for ledger_id in ("repeat-first", "repeat-second"):
+        exit_code = cli.main(
+            [
+                "paper-mission",
+                "consume-candidate",
+                "--candidate",
+                str(package_path),
+                "--output-root",
+                str(
+                    workspace_root
+                    / "ops"
+                    / "medautoscience"
+                    / "paper_mission_consumption_ledger"
+                    / ledger_id
+                ),
+                "--profile",
+                str(profile_path),
+                "--study-id",
+                study_id,
+                "--format",
+                "json",
+            ]
+        )
+        assert exit_code == 0
+        payload = json.loads(capsys.readouterr().out)
+
+    guard = payload["semantic_progress_guard"]
+    assert guard["status"] == "non_advancing_route_back"
+    assert guard["required_executor_delta_present"] is False
+    assert guard["semantic_progress_observed"] is False
+    assert payload["non_advancing_route_back"] == guard
+    assert payload["requires_mas_owned_executor_delta"] is True
+    assert guard["next_legal_actions"] == [
+        "owner_decision_packet",
+        "human_gate_question",
+        "paper_facing_delta",
+        "typed_blocker_materialization",
+    ]
+    assert guard["can_claim_paper_progress"] is False
+    assert guard["can_claim_submission_ready"] is False
+    assert payload["authority_consume_readback"]["status"] == "route_back"
+    assert payload["consume_candidate_status"] == "route_back"
+    assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_auto_discovers_latest_package_manifest(
     tmp_path: Path,
     capsys,
@@ -4590,6 +4658,7 @@ def _write_submission_milestone_package(
     study_id: str,
     mission_id: str,
     base_transaction: dict,
+    requested_outcome: str = "accepted_candidate",
 ) -> Path:
     package_root = (
         workspace_root
@@ -4604,7 +4673,7 @@ def _write_submission_milestone_package(
         "candidate_id": f"paper-mission-candidate::{study_id}::submission",
         "mission_id": mission_id,
         "study_id": study_id,
-        "requested_outcome": "accepted_candidate",
+        "requested_outcome": requested_outcome,
         "candidate_manifest_ref": str(package_root / "candidate_manifest.json"),
         "candidate_artifact_refs": [
             str(package_root / "paper_facing_candidate_delta.json"),
@@ -4646,6 +4715,7 @@ def _write_submission_milestone_package(
         "schema_version": 1,
         "mode": "non_authority_candidate_package",
         "milestone_kind": "submission_milestone_candidate",
+        "requested_outcome": requested_outcome,
         "study_id": study_id,
         "mission_id": mission_id,
         "counts_as_paper_progress": True,
