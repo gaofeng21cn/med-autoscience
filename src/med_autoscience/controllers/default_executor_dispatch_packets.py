@@ -12,6 +12,7 @@ IMMUTABLE_PACKET_DIRNAME = "immutable"
 LEGACY_DISPATCH_PACKET_BOUNDARY = {
     "surface_kind": "legacy_default_executor_dispatch_packet_boundary",
     "active_caller_class": "abi_provenance_carrier_only",
+    "allowed_reference_class": "OPL StageRun ABI carrier",
     "diagnostic_role": "retired_default_paper_dispatch",
     "replacement_task_kind": "paper_mission/start_or_resume",
     "ordinary_schedulable": False,
@@ -22,6 +23,17 @@ LEGACY_DISPATCH_PACKET_BOUNDARY = {
     "counts_as_paper_progress": False,
     "can_claim_runtime_ready": False,
     "can_claim_publication_ready": False,
+    "forbidden_claims": [
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "runtime_ready",
+        "provider_running",
+        "owner_receipt_written",
+        "typed_blocker_written",
+        "human_gate_written",
+        "current_package",
+    ],
     "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
 }
 
@@ -58,6 +70,7 @@ def dispatch_with_immutable_packet_ref(
     payload["refs"] = refs
     payload["legacy_default_executor_dispatch_packet_boundary"] = dict(LEGACY_DISPATCH_PACKET_BOUNDARY)
     payload["active_caller_class"] = "abi_provenance_carrier_only"
+    payload["allowed_reference_class"] = "OPL StageRun ABI carrier"
     payload["diagnostic_role"] = "retired_default_paper_dispatch"
     payload["replacement_task_kind"] = "paper_mission/start_or_resume"
     payload["ordinary_schedulable"] = False
@@ -68,6 +81,7 @@ def dispatch_with_immutable_packet_ref(
     payload["counts_as_paper_progress"] = False
     payload["can_claim_runtime_ready"] = False
     payload["can_claim_publication_ready"] = False
+    payload["forbidden_claims"] = list(LEGACY_DISPATCH_PACKET_BOUNDARY["forbidden_claims"])
     return payload
 
 

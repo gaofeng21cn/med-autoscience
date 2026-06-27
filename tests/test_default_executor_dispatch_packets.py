@@ -36,6 +36,7 @@ def test_immutable_default_executor_packet_is_abi_provenance_only(tmp_path: Path
     assert packet["refs"]["dispatch_path"] == str(dispatch_path)
     assert packet["refs"]["stage_packet_path"] == packet["refs"]["immutable_dispatch_path"]
     assert packet["active_caller_class"] == "abi_provenance_carrier_only"
+    assert packet["allowed_reference_class"] == "OPL StageRun ABI carrier"
     assert packet["diagnostic_role"] == "retired_default_paper_dispatch"
     assert packet["replacement_task_kind"] == "paper_mission/start_or_resume"
     assert packet["default_paper_mission_entry"] is False
@@ -46,6 +47,15 @@ def test_immutable_default_executor_packet_is_abi_provenance_only(tmp_path: Path
     assert packet["counts_as_paper_progress"] is False
     assert packet["can_claim_runtime_ready"] is False
     assert packet["can_claim_publication_ready"] is False
+    assert set(packet["forbidden_claims"]) >= {
+        "paper_progress",
+        "runtime_ready",
+        "provider_running",
+        "owner_receipt_written",
+        "typed_blocker_written",
+        "human_gate_written",
+        "current_package",
+    }
     assert packet["legacy_default_executor_dispatch_packet_boundary"] == {
         **default_executor_dispatch_packets.LEGACY_DISPATCH_PACKET_BOUNDARY
     }
