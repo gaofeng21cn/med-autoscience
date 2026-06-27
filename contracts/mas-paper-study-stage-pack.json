@@ -225,7 +225,6 @@
         "residual_user_review_artifact_role": "residual_reviewer_issues_user_review",
         "hard_blockers_still_block": [
           "source_readiness_gate",
-          "publication_gate",
           "artifact_mutation_authority_gate",
           "human_or_expert_gate",
           "forbidden_write_guard"
@@ -233,7 +232,9 @@
         "authority_boundary": {
           "residual_user_review_can_authorize_quality": false,
           "residual_user_review_can_authorize_submission": false,
-          "residual_user_review_can_block_auto_advance": false
+          "residual_user_review_can_block_auto_advance": false,
+          "publication_gate_blocks_publication_ready_claim": true,
+          "publication_gate_blocks_stage_advance": false
         }
       },
       "next_stage_ids": [

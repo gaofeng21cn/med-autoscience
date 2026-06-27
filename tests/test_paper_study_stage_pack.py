@@ -22,7 +22,10 @@ def test_independent_review_stage_has_bounded_repair_and_residual_user_review_co
         "residual_user_review_can_authorize_quality": False,
         "residual_user_review_can_authorize_submission": False,
         "residual_user_review_can_block_auto_advance": False,
+        "publication_gate_blocks_publication_ready_claim": True,
+        "publication_gate_blocks_stage_advance": False,
     }
+    assert "publication_gate" not in policy["hard_blockers_still_block"]
 
     roles = {item["role"]: item["artifact_ref"] for item in stage["stable_artifact_roles"]}
     assert roles["residual_reviewer_issues_user_review"] == (

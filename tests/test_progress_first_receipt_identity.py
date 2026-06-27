@@ -64,6 +64,41 @@ def test_gate_clearing_batch_receipt_rejects_different_work_unit_identity() -> N
     ) is None
 
 
+def test_gate_clearing_batch_receipt_consumes_blocked_terminal_gate_verdict() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_first_receipt_identity")
+
+    receipt = module.gate_clearing_batch_receipt_consumption_for_transition(
+        transition=_gate_clearing_transition(),
+        record={
+            "status": "blocked",
+            "source_eval_id": "publication-eval::003::current",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+            "gate_replay_status": "blocked",
+            "publication_gate_report_json": "runtime/quests/003/reports/publishability_gate/blocked.json",
+        },
+    )
+
+    assert receipt is not None
+    assert receipt["consumption_status"] == "receipt_consumed"
+    assert receipt["execution_status"] == "blocked"
+    assert receipt["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+
+
+def test_gate_clearing_batch_receipt_rejects_blocked_record_without_gate_verdict() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_first_receipt_identity")
+
+    assert module.gate_clearing_batch_receipt_consumption_for_transition(
+        transition=_gate_clearing_transition(),
+        record={
+            "status": "blocked",
+            "source_eval_id": "publication-eval::003::current",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+        },
+    ) is None
+
+
 def _gate_clearing_transition() -> dict[str, object]:
     return {
         "decision_type": "route_back_same_line",

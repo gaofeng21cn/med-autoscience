@@ -164,7 +164,7 @@ def gate_clearing_batch_receipt_matches_transition_work_unit(
 ) -> bool:
     if not _transition_is_gate_clearing_batch(transition):
         return False
-    if _text(record.get("status")) not in GATE_CLEARING_BATCH_CONSUMED_STATUSES:
+    if not _gate_clearing_batch_record_is_terminal_output(record):
         return False
     receipt_identity = canonical_work_unit_identity_from_gate_clearing_batch(record)
     transition_identity = canonical_work_unit_identity_from_transition(transition)
@@ -181,6 +181,24 @@ def gate_clearing_batch_receipt_matches_transition_work_unit(
     if receipt_fingerprints and transition_fingerprints:
         return bool(receipt_fingerprints & transition_fingerprints)
     return False
+
+
+def _gate_clearing_batch_record_is_terminal_output(record: Mapping[str, Any]) -> bool:
+    status = _text(record.get("status"))
+    if status in GATE_CLEARING_BATCH_CONSUMED_STATUSES:
+        return True
+    if status != "blocked":
+        return False
+    if any(
+        _text(value) == "blocked"
+        for value in (
+            record.get("gate_replay_status"),
+            record.get("publication_work_unit_lifecycle_status"),
+            _mapping(record.get("gate_replay")).get("status"),
+        )
+    ):
+        return True
+    return _text(record.get("publication_gate_report_json")) is not None
 
 
 def consumed_ai_reviewer_receipt_matches_transition_work_unit(
