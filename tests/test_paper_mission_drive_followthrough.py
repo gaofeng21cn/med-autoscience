@@ -61,7 +61,7 @@ def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> 
     assert "paper_facing_delta" in second_guard["next_legal_actions"]
 
 
-def test_semantic_progress_guard_allows_new_paper_facing_delta() -> None:
+def test_semantic_progress_guard_ignores_candidate_packet_refs_without_owner_delta() -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     first = _route_back_consume_readback()
     second = _route_back_consume_readback(
@@ -78,8 +78,35 @@ def test_semantic_progress_guard_allows_new_paper_facing_delta() -> None:
         previous_guard=first_guard,
     )
 
+    assert second_guard["status"] == "non_advancing_route_back"
+    assert second_guard["required_executor_delta_present"] is False
+    assert second_guard["progress_refs"]["paper_facing_delta_ref"] == (
+        "/tmp/paper-facing-delta.json"
+    )
+
+
+def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    first = _route_back_consume_readback()
+    second = _route_back_consume_readback(
+        consume_result={"domain_owner_receipt_ref": "owner-receipt::dm003"}
+    )
+
+    first_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=first,
+        handoff=_route_back_handoff(),
+    )
+    second_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=second,
+        handoff=_route_back_handoff(),
+        previous_guard=first_guard,
+    )
+
     assert second_guard["status"] == "semantic_progress_observed"
     assert second_guard["required_executor_delta_present"] is True
+    assert second_guard["signature_payload"]["semantic_delta_refs"] == {
+        "accepted_owner_receipt_ref": "owner-receipt::dm003"
+    }
 
 
 def test_opl_stage_route_request_carries_non_advancing_guard() -> None:

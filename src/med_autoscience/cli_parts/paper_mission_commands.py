@@ -405,12 +405,6 @@ def build_paper_mission_readback(
         )
         else None
     )
-    progress_refs = _paper_mission_progress_refs(
-        consume_readback=consume_readback,
-        handoff=handoff,
-        transaction=transaction,
-        owner_answer=owner_answer,
-    )
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -1487,6 +1481,10 @@ def _paper_mission_semantic_progress_guard(
         "signature": signature,
         "previous_signature": previous_signature,
         "signature_payload": signature_payload,
+        "progress_refs": _paper_mission_progress_refs_for_guard(
+            consume_readback=consume_readback,
+            handoff=handoff,
+        ),
         "semantic_progress_observed": semantic_progress_observed,
         "required_executor_delta_present": has_required_delta,
         "required_executor_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
@@ -1527,6 +1525,12 @@ def _paper_mission_semantic_progress_signature_payload(
         consume_readback.get("terminal_owner_gate_owner_answer_readback")
     )
     owner_answer_decision = _mapping(owner_answer.get("stage_terminal_decision"))
+    progress_refs = _paper_mission_progress_refs(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        transaction=transaction,
+        owner_answer=owner_answer,
+    )
     return {
         "study_id": _first_text(
             consume_readback.get("study_id"),
@@ -1600,8 +1604,24 @@ def _paper_mission_semantic_progress_signature_payload(
             "owner_answer_status": _optional_text(owner_answer.get("status")),
         },
         "semantic_delta_refs": _paper_mission_semantic_delta_refs(progress_refs),
-        "progress_refs": progress_refs,
     }
+
+
+def _paper_mission_progress_refs_for_guard(
+    *,
+    consume_readback: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    transaction = _mapping(consume_readback.get("paper_mission_transaction"))
+    owner_answer = _mapping(
+        consume_readback.get("terminal_owner_gate_owner_answer_readback")
+    )
+    return _paper_mission_progress_refs(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        transaction=transaction,
+        owner_answer=owner_answer,
+    )
 
 
 def _paper_mission_progress_refs(
@@ -1688,7 +1708,7 @@ def _paper_mission_progress_refs(
 
 
 def _paper_mission_semantic_delta_refs(progress_refs: Mapping[str, Any]) -> dict[str, Any]:
-    return _compact_mapping(
+    return _compact_non_null_mapping(
         {
             "accepted_owner_receipt_ref": progress_refs.get("accepted_owner_receipt_ref"),
             "typed_blocker_ref": progress_refs.get("typed_blocker_ref"),
@@ -1705,6 +1725,10 @@ def _paper_mission_semantic_delta_refs(progress_refs: Mapping[str, Any]) -> dict
             ),
         }
     )
+
+
+def _compact_non_null_mapping(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in payload.items() if value is not None}
 
 
 def _route_back_evidence_kind(ref: str | None) -> str | None:
