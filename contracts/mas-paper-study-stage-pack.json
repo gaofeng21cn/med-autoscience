@@ -103,7 +103,11 @@
         "route_identity_key",
         "attempt_idempotency_key",
         "required_output_surface",
-        "accepted_answer_shape"
+        "accepted_answer_shape",
+        "canonical_mission_id",
+        "candidate_semantic_fingerprint",
+        "normalized_route_back_reason",
+        "normalized_repair_scope"
       ],
       "semantic_delta_fields": [
         "paper_facing_delta_ref",
@@ -119,7 +123,14 @@
         "scope_reduction_decision_ref",
         "evidence_substitution_decision_ref",
         "research_pivot_decision_ref",
-        "stop_loss_decision_ref"
+        "stop_loss_decision_ref",
+        "owner_decision_packet_ref",
+        "claim_decision_ref",
+        "scope_decision_ref",
+        "evidence_decision_ref",
+        "pivot_decision_ref",
+        "carry_forward_decision_ref",
+        "mission_executor_continuation_ref"
       ],
       "transport_only_fields_do_not_change_signature": [
         "observed_at",
@@ -131,7 +142,11 @@
         "retry_count",
         "read_model_generated_at",
         "focused_test_result",
-        "docs_or_contract_commit"
+        "docs_or_contract_commit",
+        "run_id",
+        "quest_id",
+        "temporal_workflow_id",
+        "opl_attempt_ledger_row_id"
       ],
       "repeated_signature_without_semantic_delta_is_non_advancing": true
     },
@@ -162,7 +177,30 @@
         "evidence_substitution_decision_ref",
         "research_pivot_decision_ref",
         "stop_loss_decision_ref",
-        "open_repair_lane_proposal"
+        "open_repair_lane_proposal",
+        "owner_decision_packet_ref",
+        "claim_decision_ref",
+        "scope_decision_ref",
+        "evidence_decision_ref",
+        "pivot_decision_ref",
+        "carry_forward_decision_ref",
+        "mission_executor_continuation_ref"
+      ],
+      "mas_mission_executor_fallback_auto_continue": true,
+      "fallback_entry_after_synonymous_budget": "mission_executor_continue_same_stage_until_semantic_delta_or_narrow_gate",
+      "forbidden_budget_reset_evidence": [
+        "run_id",
+        "quest_id",
+        "queue_id",
+        "stage_attempt_id",
+        "active_run_id",
+        "temporal_workflow_id",
+        "worker_readiness",
+        "provider_liveness",
+        "retry_count",
+        "read_model_generated_at",
+        "focused_test_result",
+        "docs_or_contract_commit"
       ]
     },
     "typed_blocker_and_human_gate_narrowing_policy": {
@@ -186,6 +224,23 @@
         "ethics_or_permission_decision_required",
         "target_journal_or_submission_risk_tolerance_required",
         "irreversible_artifact_or_external_submission_authorization_required"
+      ],
+      "typed_blocker_requires_failed_fallback_attempts": [
+        "claim_strength_adjustment",
+        "scope_reduction",
+        "evidence_substitution",
+        "carry_forward_risk_receipt",
+        "research_pivot_decision"
+      ],
+      "human_gate_requires_decision_owner_question": true,
+      "typed_blocker_must_name_smallest_owner_surface": true,
+      "forbidden_blocker_reasons": [
+        "missing_ideal_evidence_without_scope_or_evidence_attempt",
+        "queue_empty",
+        "worker_not_running_without_same_identity_runtime_requirement",
+        "focused_tests_only",
+        "docs_or_contract_only",
+        "repeated_route_back_budget_exhausted_only"
       ]
     },
     "mas_owned_codex_executor_stage": {
@@ -194,7 +249,21 @@
       "executor": "Codex CLI",
       "entry_condition": "same semantic_progress_signature repeats through route_back/domain_gate without a new semantic_delta_fields value",
       "required_output": "one of semantic artifact delta, owner receipt, stable typed blocker, human gate, route-back evidence with successor work unit, or repair-lane proposal",
-      "opl_role": "transport_refs_attempts_queue_and_stage_run_lifecycle_only"
+      "opl_role": "transport_refs_attempts_queue_and_stage_run_lifecycle_only",
+      "auto_continue_after_synonymous_budget": true,
+      "fallback_stop_condition": "semantic_delta_owner_decision_narrow_typed_blocker_human_gate_or_repair_lane_proposal",
+      "required_product_refs": [
+        "paper_facing_delta_ref",
+        "owner_decision_packet_ref",
+        "claim_decision_ref",
+        "scope_decision_ref",
+        "evidence_decision_ref",
+        "pivot_decision_ref",
+        "carry_forward_decision_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "mission_executor_continuation_ref"
+      ]
     },
     "completion_and_readiness_forbidden_claims": [
       "DM002_ready",
@@ -205,7 +274,10 @@
       "provider_running",
       "paper_progress_from_repeated_route_back",
       "paper_progress_from_domain_gate_only",
-      "paper_progress_from_focused_tests_or_docs"
+      "paper_progress_from_focused_tests_or_docs",
+      "paper_progress_from_canary_contract_only",
+      "paper_progress_from_queue_empty",
+      "paper_progress_from_opl_hydrate_only"
     ],
     "authority_boundary": {
       "mas_owns_semantic_progress_detection": true,
@@ -213,7 +285,124 @@
       "opl_can_transport_route_back_refs": true,
       "opl_can_decide_semantic_progress": false,
       "opl_transport_or_worker_ready_counts_as_semantic_progress": false,
-      "policy_can_write_authority_surfaces": false
+      "policy_can_write_authority_surfaces": false,
+      "canary_contract_can_write_runtime_or_authority": false,
+      "fallback_contract_can_write_owner_receipt_or_gate": false
+    },
+    "synonymous_route_back_budget_ledger": {
+      "ledger_scope": "cross_run_same_study_mission_signature",
+      "ledger_key_fields": [
+        "study_id",
+        "canonical_mission_id",
+        "paper_mission_run_id",
+        "stage_id",
+        "current_owner",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "required_output_surface",
+        "accepted_answer_shape",
+        "candidate_semantic_fingerprint",
+        "normalized_route_back_reason",
+        "normalized_repair_scope"
+      ],
+      "cross_run_synonyms": [
+        "route_back",
+        "domain_gate",
+        "owner_answer_shape=route_back_evidence_ref",
+        "paper_mission_stage_route_domain_gate_pending",
+        "non_advancing_apply"
+      ],
+      "fields_that_do_not_reset_budget": [
+        "run_id",
+        "quest_id",
+        "queue_id",
+        "stage_attempt_id",
+        "active_run_id",
+        "temporal_workflow_id",
+        "worker_readiness",
+        "provider_liveness",
+        "retry_count",
+        "read_model_generated_at",
+        "focused_test_result",
+        "docs_or_contract_commit"
+      ],
+      "budget_reset_requires_one_of": [
+        "new_candidate_semantic_fingerprint",
+        "paper_facing_delta_ref",
+        "owner_decision_packet_ref",
+        "claim_decision_ref",
+        "scope_decision_ref",
+        "evidence_decision_ref",
+        "pivot_decision_ref",
+        "carry_forward_decision_ref",
+        "owner_receipt_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "successor_work_unit_ref",
+        "mission_executor_continuation_ref"
+      ],
+      "second_synonymous_route_back_without_reset": "enter_mas_mission_executor_fallback",
+      "budget_exhaustion_result": "mas_mission_executor_must_continue_or_emit_narrow_owner_gate",
+      "budget_exhaustion_can_claim_completion": false
+    },
+    "ai_owner_decision_product_refs": {
+      "surface_kind": "mas_ai_owner_decision_product_ref_family",
+      "required_when_fallback_selects_owner_decision": true,
+      "ref_families": [
+        "claim_decision_ref",
+        "scope_decision_ref",
+        "evidence_decision_ref",
+        "pivot_decision_ref",
+        "carry_forward_decision_ref"
+      ],
+      "minimum_packet_fields": [
+        "study_id",
+        "paper_mission_run_id",
+        "decision_kind",
+        "affected_claims_or_scope",
+        "evidence_basis_refs",
+        "residual_risk_statement",
+        "next_owner",
+        "successor_work_unit_ref",
+        "forbidden_authority_writes"
+      ],
+      "decision_kind_to_ref": {
+        "claim_strength_adjustment": "claim_decision_ref",
+        "scope_reduction": "scope_decision_ref",
+        "evidence_substitution": "evidence_decision_ref",
+        "research_pivot": "pivot_decision_ref",
+        "carry_forward_with_residual_risk": "carry_forward_decision_ref"
+      },
+      "can_authorize_submission_or_publication_ready": false,
+      "can_replace_owner_receipt_or_quality_gate": false
+    },
+    "dm002_dm003_canary_acceptance": {
+      "surface_kind": "mas_paper_mission_owner_fallback_canary_acceptance",
+      "applies_to_studies": [
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+      ],
+      "success_requires_fresh_readback_one_of": [
+        "paper_mission_inspect_exposes_mas_owner_fallback_semantic_ref",
+        "artifact_delta_refs_include_changed_paper_facing_candidate",
+        "synonymous_route_back_budget_ledger_enters_mission_executor_fallback",
+        "mission_executor_outputs_ai_owner_decision_product_ref",
+        "opl_stale_running_rows_rejected_as_running_proof"
+      ],
+      "failure_cases": [
+        "tests_only",
+        "queue_empty_only",
+        "opl_hydrate_only",
+        "docs_or_contract_only",
+        "route_back_packet_without_changed_owner_answer_shape",
+        "stale_opl_running_row_counted_as_provider_running"
+      ],
+      "canary_can_claim_submission_ready": false,
+      "canary_can_claim_publication_ready": false,
+      "canary_can_claim_runtime_ready": false
     }
   },
   "stages": [

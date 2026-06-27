@@ -317,6 +317,69 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     ]
     assert foundry_series["domain_adapter_policy"]["no_parallel_progress_schema"] is True
     assert foundry_series["domain_adapter_policy"]["no_parallel_blocker_lineage_schema"] is True
+    non_advancing = foundry_series["mission_first_non_advancing_escalation_policy"]
+    assert non_advancing["route_back_budget_policy"] == {
+        "same_signature_repeat_threshold": 2,
+        "ledger_scope": "cross_run_same_study_mission_signature",
+        "after_threshold_next_owner": (
+            "MedAutoScience.paper_mission_semantic_progress_executor"
+        ),
+        "after_threshold_action": (
+            "mission_executor_continue_same_stage_until_semantic_delta_or_narrow_gate"
+        ),
+        "opl_redrive_after_worker_ready_allowed": False,
+        "queue_or_worker_readiness_can_reset_budget": False,
+        "transport_or_observability_fields_can_reset_budget": False,
+        "budget_exhausted_can_claim_completion": False,
+    }
+    assert non_advancing["mas_mission_executor_fallback_projection"][
+        "auto_continue_after_synonymous_budget"
+    ] is True
+    assert {
+        "owner_decision_packet_ref",
+        "claim_decision_ref",
+        "scope_decision_ref",
+        "evidence_decision_ref",
+        "pivot_decision_ref",
+        "carry_forward_decision_ref",
+        "mission_executor_continuation_ref",
+    } <= set(
+        non_advancing["mas_mission_executor_fallback_projection"][
+            "required_product_refs"
+        ]
+    )
+    assert non_advancing["ai_owner_decision_product_refs_projection"] == {
+        "domain_policy_section_ref": (
+            "contracts/mas-paper-study-stage-pack.json"
+            "#/mission_first_non_advancing_route_back_policy/"
+            "ai_owner_decision_product_refs"
+        ),
+        "ref_families": [
+            "claim_decision_ref",
+            "scope_decision_ref",
+            "evidence_decision_ref",
+            "pivot_decision_ref",
+            "carry_forward_decision_ref",
+        ],
+        "can_authorize_submission_or_publication_ready": False,
+        "can_replace_owner_receipt_or_quality_gate": False,
+    }
+    assert non_advancing["dm002_dm003_canary_acceptance_projection"] == {
+        "domain_policy_section_ref": (
+            "contracts/mas-paper-study-stage-pack.json"
+            "#/mission_first_non_advancing_route_back_policy/"
+            "dm002_dm003_canary_acceptance"
+        ),
+        "success_requires_fresh_readback": True,
+        "contract_or_tests_only_can_pass": False,
+        "stale_opl_running_row_can_count_as_running_proof": False,
+    }
+    assert (
+        non_advancing["authority_boundary"][
+            "opl_can_reset_synonymous_route_back_budget_from_transport"
+        ]
+        is False
+    )
     thinning = foundry_series["purpose_first_adapter_thinning_policy"]
     assert thinning["default_retained_surface_roles"] == [
         "refs_only_adapter",

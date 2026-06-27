@@ -73,15 +73,19 @@ A route-back is synonymous when these fields match after normalization:
 
 - `study_id`
 - canonical `mission_id`
+- `paper_mission_run_id`
 - `stage_id` or target stage id
+- current owner / action / work-unit id / work-unit fingerprint
+- route identity key and attempt idempotency key
+- required output surface and accepted answer shape
 - `stage_terminal_decision.reason`
 - `stage_terminal_decision.repair_scope`
 - `route_back_evidence_kind`
 - candidate semantic fingerprint when available
-- accepted answer shape set
 
 Do not include these fields in the semantic signature:
 
+- run id or quest id;
 - OPL task id;
 - stage attempt id;
 - workflow id;
@@ -91,15 +95,43 @@ Do not include these fields in the semantic signature:
 - focused test result;
 - docs or contract commit id.
 
+The synonymous budget ledger is cross-run. A new Codex thread, OPL attempt,
+queue item, worker heartbeat, read-model timestamp, focused test, or docs /
+contract commit does not reset the budget. Reset requires a changed candidate
+semantic fingerprint or a MAS semantic ref such as `paper_facing_delta_ref`,
+`owner_decision_packet_ref`, claim / scope / evidence / pivot / carry-forward
+decision refs, owner receipt, stable typed blocker, human gate, successor work
+unit, or mission executor continuation ref.
+
 ## Runtime Rule
 
 First route-back can re-enter OPL if a new candidate or route command exists.
 
 Second synonymous route-back may run a targeted repair if it changes the candidate semantic fingerprint.
 
-Third synonymous route-back must switch to MAS owner fallback. The result must be one of the progress refs listed above, or a narrow stop-loss/human-gate decision.
+Third synonymous route-back must switch to MAS owner fallback. The fallback is
+automatic continuation by `mission_executor` in the same paper mission/stage
+until it emits one of the progress refs listed above, an AI owner decision
+packet, or a narrow stop-loss/human-gate decision.
 
 This is a synonymous redrive budget, not a task budget. Budget exhaustion changes execution mode from OPL redrive to MAS owner fallback; it does not mean the paper mission is unusable.
+
+## AI Owner Decision Packet
+
+When fallback chooses an owner decision instead of direct paper mutation, the
+decision product must expose one or more of:
+
+- `claim_decision_ref`
+- `scope_decision_ref`
+- `evidence_decision_ref`
+- `pivot_decision_ref`
+- `carry_forward_decision_ref`
+
+The packet must include study and mission ids, decision kind, affected claims or
+scope, evidence basis refs, residual risk, next owner, successor work unit, and
+forbidden-authority-write boundary. These refs help MAS continue the mission;
+they do not replace owner receipt, quality gate, submission readiness, or
+publication readiness.
 
 ## Currentness Rule
 
@@ -113,6 +145,8 @@ The canary is successful only when fresh readback shows at least one of:
 
 - `paper-mission inspect` exposes a non-empty MAS owner fallback paper semantic ref;
 - `artifact_delta_refs` or semantic delta refs include a changed paper-facing candidate;
+- the synonymous route-back budget ledger enters `mission_executor` fallback;
+- `mission_executor` emits an AI owner decision product ref;
 - repeated route-back no longer triggers synonymous OPL redrive;
 - OPL stale running rows no longer count as running proof.
 

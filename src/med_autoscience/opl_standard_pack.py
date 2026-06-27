@@ -244,11 +244,14 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
             },
             "route_back_budget_policy": {
                 "same_signature_repeat_threshold": 2,
+                "ledger_scope": "cross_run_same_study_mission_signature",
                 "after_threshold_next_owner": (
                     "MedAutoScience.paper_mission_semantic_progress_executor"
                 ),
+                "after_threshold_action": "mission_executor_continue_same_stage_until_semantic_delta_or_narrow_gate",
                 "opl_redrive_after_worker_ready_allowed": False,
                 "queue_or_worker_readiness_can_reset_budget": False,
+                "transport_or_observability_fields_can_reset_budget": False,
                 "budget_exhausted_can_claim_completion": False,
             },
             "mas_mission_executor_fallback_projection": {
@@ -259,6 +262,19 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
                     "scope_or_evidence_or_research_pivot_decision",
                     "narrow_stop_loss_or_human_gate",
                 ],
+                "auto_continue_after_synonymous_budget": True,
+                "required_product_refs": [
+                    "paper_facing_delta_ref",
+                    "owner_decision_packet_ref",
+                    "claim_decision_ref",
+                    "scope_decision_ref",
+                    "evidence_decision_ref",
+                    "pivot_decision_ref",
+                    "carry_forward_decision_ref",
+                    "stable_typed_blocker_ref",
+                    "human_gate_ref",
+                    "mission_executor_continuation_ref",
+                ],
                 "typed_blocker_or_human_gate_default": False,
                 "opl_redrive_default": False,
                 "domain_policy_section_ref": (
@@ -266,6 +282,32 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
                     "#/mission_first_non_advancing_route_back_policy/"
                     "typed_blocker_and_human_gate_narrowing_policy"
                 ),
+            },
+            "ai_owner_decision_product_refs_projection": {
+                "domain_policy_section_ref": (
+                    "contracts/mas-paper-study-stage-pack.json"
+                    "#/mission_first_non_advancing_route_back_policy/"
+                    "ai_owner_decision_product_refs"
+                ),
+                "ref_families": [
+                    "claim_decision_ref",
+                    "scope_decision_ref",
+                    "evidence_decision_ref",
+                    "pivot_decision_ref",
+                    "carry_forward_decision_ref",
+                ],
+                "can_authorize_submission_or_publication_ready": False,
+                "can_replace_owner_receipt_or_quality_gate": False,
+            },
+            "dm002_dm003_canary_acceptance_projection": {
+                "domain_policy_section_ref": (
+                    "contracts/mas-paper-study-stage-pack.json"
+                    "#/mission_first_non_advancing_route_back_policy/"
+                    "dm002_dm003_canary_acceptance"
+                ),
+                "success_requires_fresh_readback": True,
+                "contract_or_tests_only_can_pass": False,
+                "stale_opl_running_row_can_count_as_running_proof": False,
             },
             "forbidden_public_or_readiness_claims": [
                 "domain_ready",
@@ -275,6 +317,7 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
                 "provider_running",
                 "DM002_ready",
                 "DM003_ready",
+                "paper_progress_from_canary_contract_only",
             ],
             "authority_boundary": {
                 "domain_owns_semantic_progress_signature": True,
@@ -282,6 +325,7 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
                 "opl_owns_transport_lifecycle": True,
                 "opl_can_write_domain_truth": False,
                 "opl_can_claim_domain_readiness_from_transport": False,
+                "opl_can_reset_synonymous_route_back_budget_from_transport": False,
             },
         },
         "domain_progress_aliases": {
