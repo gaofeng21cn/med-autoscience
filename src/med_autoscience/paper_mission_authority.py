@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -274,6 +275,8 @@ def _load_candidate_payload(
         base_path=path.parent,
         manifest_input=manifest_input,
     )
+    if _is_submission_package_manifest(loaded):
+        payload.setdefault("package_manifest_ref", str(path))
     return payload, manifest_input
 
 
@@ -350,10 +353,16 @@ def _candidate_payload_from_submission_package(
         package=package,
         candidate_payload=candidate_payload,
         owner_blocker_packet=owner_blocker_packet,
+        package_ref=manifest_input.get("path") if manifest_input is not None else None,
     )
     paper_mission_transaction = _submission_package_transaction_for_consume(
         embedded_transaction=embedded_transaction,
         continuation_transaction=continuation_transaction,
+        requested_outcome=_first_text(
+            candidate_payload.get("requested_outcome"),
+            package.get("requested_outcome"),
+            "accepted_candidate",
+        ),
     )
     candidate_id = _first_text(
         candidate_payload.get("candidate_id"),
@@ -440,6 +449,8 @@ def _candidate_payload_from_submission_package(
             "authority_materialized": False,
         },
     }
+    if manifest_input is not None:
+        normalized["package_manifest_ref"] = manifest_input.get("path")
     if paper_mission_transaction:
         normalized["paper_mission_transaction"] = dict(paper_mission_transaction)
     if manifest_input is not None:
@@ -452,6 +463,7 @@ def _submission_package_transaction_for_consume(
     *,
     embedded_transaction: Mapping[str, Any],
     continuation_transaction: Mapping[str, Any],
+    requested_outcome: str | None,
 ) -> dict[str, Any]:
     embedded = _mapping(embedded_transaction)
     continuation = _mapping(continuation_transaction)
@@ -461,6 +473,10 @@ def _submission_package_transaction_for_consume(
         and _text(embedded_decision.get("status"))
         == "accepted_submission_milestone_candidate"
     ):
+        return embedded
+    if requested_outcome == "accepted_candidate" and continuation:
+        return continuation
+    if _text(embedded_decision.get("decision_kind")) not in {None, "route_back"}:
         return embedded
     return _first_mapping(continuation, embedded)
 
@@ -480,6 +496,7 @@ def _continuation_transaction_for_submission_package(
     package: Mapping[str, Any],
     candidate_payload: Mapping[str, Any],
     owner_blocker_packet: Mapping[str, Any],
+    package_ref: str | None = None,
 ) -> dict[str, Any]:
     blocker_kind = _text(owner_blocker_packet.get("blocker_kind"))
     if blocker_kind not in {
@@ -507,6 +524,13 @@ def _continuation_transaction_for_submission_package(
             _mapping(owner_blocker_packet.get("terminal_owner_gate")).get("work_unit_id"),
         )
         or "submission_milestone_candidate"
+    )
+    stage_id = _submission_milestone_stage_identity(
+        stage_id=stage_id,
+        embedded_transaction=_mapping(candidate_payload.get("paper_mission_transaction")),
+        package_ref=package_ref
+        or _text(package.get("package_manifest_ref"))
+        or _text(candidate_payload.get("candidate_manifest_ref")),
     )
     stage_run_ref = f"paper-mission-package://{study_id}/{stage_id}"
     reason = (
@@ -564,8 +588,54 @@ def _continuation_transaction_for_submission_package(
             candidate_payload=candidate_payload,
             package=package,
         ),
-        idempotency_basis="submission-milestone-candidate-consumed",
+        idempotency_basis=_submission_milestone_transaction_idempotency_basis(
+            package=package,
+            candidate_payload=candidate_payload,
+        ),
     )
+
+
+def _submission_milestone_transaction_idempotency_basis(
+    *,
+    package: Mapping[str, Any],
+    candidate_payload: Mapping[str, Any],
+) -> str:
+    return "::".join(
+        [
+            "submission-milestone-candidate-consumed",
+            _text(package.get("package_manifest_ref"))
+            or _text(package.get("owner_consumption_request_ref"))
+            or "package-ref-missing",
+            _text(candidate_payload.get("candidate_manifest_ref"))
+            or _text(candidate_payload.get("candidate_id"))
+            or "candidate-ref-missing",
+            _text(
+                _mapping(candidate_payload.get("paper_mission_transaction")).get(
+                    "transaction_id"
+                )
+            )
+            or "transaction-ref-missing",
+        ]
+    )
+
+
+def _submission_milestone_stage_identity(
+    *,
+    stage_id: str,
+    embedded_transaction: Mapping[str, Any],
+    package_ref: str | None,
+) -> str:
+    transaction_id = _text(embedded_transaction.get("transaction_id")) or ""
+    marker = "::followthrough::"
+    if marker not in transaction_id:
+        package_ref_text = package_ref or ""
+        match = re.search(r"/(followthrough-[^/]+)/", package_ref_text)
+        if match is None:
+            return stage_id
+        return f"{stage_id}{marker}{match.group(1)}"
+    if marker in stage_id:
+        return stage_id
+    return f"{stage_id}{marker}{transaction_id.rsplit(marker, 1)[-1]}"
 
 
 def _load_sidecar_json(

@@ -221,6 +221,51 @@ def test_missing_non_degradation_fields_route_back_to_candidate_owner() -> None:
     assert result["write_plan"]["written_files"] == []
 
 
+def test_terminal_owner_answer_materializes_paper_facing_delta_when_route_back_has_no_artifact_delta() -> None:
+    from med_autoscience.paper_mission_owner_answer import (
+        terminal_owner_gate_owner_answer_readback,
+    )
+
+    result = terminal_owner_gate_owner_answer_readback(
+        terminal_owner_gate={
+            "surface_kind": "paper_mission_terminal_owner_gate",
+            "owner": "mas_authority_kernel",
+            "gate_kind": "domain_gate",
+            "blocked_reason": "domain_gate_pending",
+            "closeout_ref": "closeout.json",
+            "stage_attempt_id": "sat-terminal",
+            "work_unit_id": "paper-stage::gate-clearing",
+        },
+        paper_mission_transaction={
+            "transaction_id": "paper-mission-transaction::study-001::paper-stage::gate-clearing::mission-001",
+            "mission_id": "mission-001",
+            "study_id": "study-001",
+            "stage_id": "paper-stage::gate-clearing",
+            "stage_run_ref": "opl-stage-run://study-001/paper-stage::gate-clearing",
+        },
+        artifact_delta_refs=[],
+        paper_audit_pack_refs=_paper_audit_pack_refs(),
+    )
+
+    assert result["status"] == "route_back"
+    assert result["owner_answer_shape"] == "paper_facing_delta_ref"
+    assert result["selected_outcome"] == "paper_facing_delta_ref"
+    assert result["paper_facing_delta_ref"].startswith(
+        "paper-facing-delta:owner-answer:study-001:"
+    )
+    transaction = result["paper_mission_transaction"]
+    assert transaction["artifact_delta_refs"] == [
+        {
+            "ref_id": "paper_facing_delta_ref",
+            "ref_kind": "paper_facing_delta_ref",
+            "uri": result["paper_facing_delta_ref"],
+        }
+    ]
+    assert result["consume_result"]["status"] == "route_back"
+    assert result["consume_result"]["outcome"] == "paper_facing_delta_ref"
+    assert result["write_plan"]["written_files"] == []
+
+
 def test_terminal_owner_gate_authority_readback_is_readback_only() -> None:
     from med_autoscience.paper_mission_terminal_owner_gate import (
         terminal_owner_gate_authority_readback,
@@ -254,6 +299,7 @@ def test_terminal_owner_gate_authority_readback_is_readback_only() -> None:
     assert result["owner_answer_contract"]["accepted_shapes"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -266,3 +312,26 @@ def test_terminal_owner_gate_authority_readback_is_readback_only() -> None:
     assert result["write_plan"]["written_files"] == []
     assert result["authority_boundary"]["can_claim_paper_progress"] is False
     assert result["authority_boundary"]["can_authorize_provider_admission"] is False
+
+
+def _paper_audit_pack_refs() -> dict[str, list[dict[str, str]]]:
+    families = (
+        "analysis_rationale_log",
+        "decision_trace",
+        "evidence_ledger_delta",
+        "review_ledger_delta",
+        "revision_log_delta",
+        "failed_path_ledger",
+        "artifact_lineage",
+        "reproducibility_refs",
+    )
+    return {
+        family: [
+            {
+                "ref_id": f"{family}::test",
+                "ref_kind": "test_ref",
+                "uri": f"test://paper-audit-pack/{family}",
+            }
+        ]
+        for family in families
+    }

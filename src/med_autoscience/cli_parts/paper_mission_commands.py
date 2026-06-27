@@ -4140,13 +4140,13 @@ def _paper_mission_transaction_readback(
 ) -> dict[str, Any]:
     transaction = _first_mapping(
         _mapping(transaction_override),
+        _mapping((authority_consume_readback or {}).get("paper_mission_transaction")),
         _mapping((mission or {}).get("paper_mission_transaction")),
         _transaction_from_materialized_legacy_mission(
             mission=mission,
             study_id=study_id,
         ),
         _candidate_manifest_transaction(candidate),
-        _mapping((authority_consume_readback or {}).get("paper_mission_transaction")),
     )
     source = (
         transaction_source_override
@@ -4171,6 +4171,18 @@ def _paper_mission_transaction_readback(
         )
     elif mission is None and candidate is not None:
         source = "candidate_manifest"
+
+    owner_answer_readback_prefill = (
+        _owner_answer_readback_for_route_back_without_artifact_delta(transaction)
+        if transaction_source_override != "paper_mission_consumption_ledger"
+        else {}
+    )
+    if owner_answer_readback_prefill:
+        owner_answer_transaction = _mapping(
+            owner_answer_readback_prefill.get("paper_mission_transaction")
+        )
+        if owner_answer_transaction:
+            transaction = owner_answer_transaction
 
     readback = {
         "surface_kind": "paper_mission_transaction_pickup_readback",
@@ -4205,7 +4217,7 @@ def _paper_mission_transaction_readback(
         paper_mission_transaction=transaction,
         artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
         paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
-    )
+    ) if not owner_answer_readback_prefill else dict(owner_answer_readback_prefill)
     terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
         owner_answer_readback=owner_answer_readback,
@@ -4247,6 +4259,25 @@ def _paper_mission_transaction_readback(
         )
     )
     return readback
+
+
+def _owner_answer_readback_for_route_back_without_artifact_delta(
+    transaction: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _mapping_list(transaction.get("artifact_delta_refs")):
+        return {}
+    terminal_owner_gate = terminal_owner_gate_from_stage_terminal_decision(
+        stage_terminal_decision=_mapping(transaction.get("stage_terminal_decision")),
+        paper_mission_transaction=transaction,
+    )
+    if not terminal_owner_gate:
+        return {}
+    return terminal_owner_gate_owner_answer_readback(
+        terminal_owner_gate=terminal_owner_gate,
+        paper_mission_transaction=transaction,
+        artifact_delta_refs=[],
+        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+    )
 
 
 def _mission_state_for_materialized_readback(

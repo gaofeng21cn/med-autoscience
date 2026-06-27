@@ -145,6 +145,7 @@ def terminal_owner_gate_authority_readback(
                     "accepted_shapes": [
                         "domain_owner_receipt_ref",
                         "quality_gate_receipt_ref",
+                        "paper_facing_delta_ref",
                         "typed_blocker_ref",
                         "human_gate_ref",
                         "route_back_evidence_ref",

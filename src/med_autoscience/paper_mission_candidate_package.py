@@ -7,6 +7,7 @@ from typing import Any
 ACCEPTED_OWNER_ANSWER_SHAPES = (
     "domain_owner_receipt_ref",
     "quality_gate_receipt_ref",
+    "paper_facing_delta_ref",
     "typed_blocker_ref",
     "human_gate_ref",
     "route_back_evidence_ref",

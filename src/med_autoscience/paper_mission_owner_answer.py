@@ -12,6 +12,7 @@ from med_autoscience.paper_mission_transaction import (
 ACCEPTED_OWNER_ANSWER_SHAPES = (
     "domain_owner_receipt_ref",
     "quality_gate_receipt_ref",
+    "paper_facing_delta_ref",
     "typed_blocker_ref",
     "human_gate_ref",
     "route_back_evidence_ref",
@@ -48,6 +49,30 @@ def terminal_owner_gate_owner_answer_readback(
         blocked_reason=blocked_reason,
         closeout_ref=_text(gate.get("closeout_ref")),
     )
+    artifact_refs = [dict(item) for item in artifact_delta_refs]
+    paper_facing_delta_ref = (
+        None
+        if artifact_refs
+        else _paper_facing_delta_ref(
+            study_id=study_id,
+            mission_id=mission_id,
+            stage_id=stage_id,
+            route_back_evidence_ref=evidence_ref,
+        )
+    )
+    selected_outcome = (
+        "paper_facing_delta_ref"
+        if paper_facing_delta_ref is not None
+        else "route_back_evidence_ref"
+    )
+    if paper_facing_delta_ref is not None:
+        artifact_refs = [
+            {
+                "ref_id": "paper_facing_delta_ref",
+                "ref_kind": "paper_facing_delta_ref",
+                "uri": paper_facing_delta_ref,
+            }
+        ]
     terminal_decision = {
         "decision_kind": "route_back",
         "status": "route_back",
@@ -60,6 +85,11 @@ def terminal_owner_gate_owner_answer_readback(
             "a concrete owner answer shape before OPL can advance."
         ),
         "route_back_evidence_ref": evidence_ref,
+        **(
+            {"paper_facing_delta_ref": paper_facing_delta_ref}
+            if paper_facing_delta_ref is not None
+            else {}
+        ),
     }
     owner_answer_transaction = build_paper_mission_transaction(
         mission_id=mission_id,
@@ -67,7 +97,7 @@ def terminal_owner_gate_owner_answer_readback(
         stage_id=stage_id,
         stage_run_ref=stage_run_ref,
         terminal_decision=terminal_decision,
-        artifact_delta_refs=artifact_delta_refs,
+        artifact_delta_refs=artifact_refs,
         paper_audit_pack_refs=paper_audit_pack_refs,
         idempotency_basis=f"terminal-owner-gate::{blocked_reason}",
     )
@@ -75,10 +105,15 @@ def terminal_owner_gate_owner_answer_readback(
         "surface_kind": "mas_terminal_owner_gate_owner_answer_readback",
         "schema_version": 1,
         "status": "route_back",
-        "selected_outcome": "route_back_evidence_ref",
-        "owner_answer_shape": "route_back_evidence_ref",
+        "selected_outcome": selected_outcome,
+        "owner_answer_shape": selected_outcome,
         "accepted_owner_answer_shapes": list(ACCEPTED_OWNER_ANSWER_SHAPES),
         "route_back_evidence_ref": evidence_ref,
+        **(
+            {"paper_facing_delta_ref": paper_facing_delta_ref}
+            if paper_facing_delta_ref is not None
+            else {}
+        ),
         "next_owner": "mission_executor",
         "terminal_owner_gate": gate,
         "paper_mission_transaction_ref": _text(transaction.get("transaction_id")),
@@ -89,7 +124,7 @@ def terminal_owner_gate_owner_answer_readback(
         "paper_mission_transaction": owner_answer_transaction,
         "consume_result": {
             "status": "route_back",
-            "outcome": "route_back_evidence_ref",
+            "outcome": selected_outcome,
             "authority_materialized": False,
             "authority_answer_readback_materialized": True,
             "authority_file_materialized": False,
@@ -114,7 +149,7 @@ def terminal_owner_gate_owner_answer_readback(
         "authority_boundary": {
             "mas_authority_owner": "MedAutoScience",
             "runtime_owner": "one-person-lab",
-            "authority_answer_surface": "route_back_evidence_ref",
+            "authority_answer_surface": selected_outcome,
             "writes_authority_files": False,
             "authority_file_materialized": False,
             "writes_runtime": False,
@@ -151,6 +186,7 @@ def terminal_owner_gate_authority_consume_readback(
         "owner_answer_materialized": True,
         "owner_answer_readback": owner_answer,
         "route_back_evidence_ref": owner_answer.get("route_back_evidence_ref"),
+        "paper_facing_delta_ref": owner_answer.get("paper_facing_delta_ref"),
         "stage_terminal_decision": owner_answer.get("stage_terminal_decision"),
         "opl_route_command": owner_answer.get("opl_route_command"),
         "consume_result": owner_answer["consume_result"],
@@ -166,7 +202,7 @@ def terminal_owner_gate_owner_answer_next_decision(
     if not owner_answer:
         return {}
     route = _mapping(owner_answer.get("opl_route_command"))
-    return {
+    decision = {
         "kind": "owner_or_route",
         "next_owner": _text(owner_answer.get("next_owner")) or "mission_executor",
         "human_decision_required": False,
@@ -176,6 +212,9 @@ def terminal_owner_gate_owner_answer_next_decision(
         "can_execute": False,
         "can_authorize_provider_admission": False,
     }
+    if owner_answer.get("paper_facing_delta_ref") is not None:
+        decision["paper_facing_delta_ref"] = owner_answer.get("paper_facing_delta_ref")
+    return decision
 
 
 def _route_back_evidence_ref(
@@ -197,6 +236,18 @@ def _route_back_evidence_ref(
     )
     digest = hashlib.sha256(basis.encode("utf-8")).hexdigest()[:16]
     return f"route-back:paper-mission-terminal-owner-gate:{study_id}:{digest}"
+
+
+def _paper_facing_delta_ref(
+    *,
+    study_id: str,
+    mission_id: str,
+    stage_id: str,
+    route_back_evidence_ref: str,
+) -> str:
+    basis = "::".join([study_id, mission_id, stage_id, route_back_evidence_ref])
+    digest = hashlib.sha256(basis.encode("utf-8")).hexdigest()[:16]
+    return f"paper-facing-delta:owner-answer:{study_id}:{digest}"
 
 
 def _mapping(value: object) -> dict[str, Any]:

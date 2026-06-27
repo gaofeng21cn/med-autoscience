@@ -1107,6 +1107,7 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert owner_consumption_request["accepted_owner_answer_shapes"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -1365,6 +1366,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert owner_consumption_request["requested_answer_shape"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -1400,6 +1402,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert owner_blocker_packet["requested_answer_shape"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -1640,6 +1643,7 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     assert owner_consumption_request["requested_answer_shape"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -1667,6 +1671,7 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     assert owner_blocker_packet["requested_answer_shape"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -2444,6 +2449,7 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert authority_readback["owner_answer_contract"]["accepted_shapes"] == [
         "domain_owner_receipt_ref",
         "quality_gate_receipt_ref",
+        "paper_facing_delta_ref",
         "typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref",
@@ -4340,6 +4346,62 @@ def test_paper_mission_consume_candidate_picks_up_transaction_fields(
     assert payload["paper_mission_transaction_readback"]["writes_authority"] is False
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
+    _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_route_back_readback_exposes_owner_answer_delta_ref(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    transaction = _paper_mission_transaction_payload(
+        mission_id="paper-mission::001-paper::gate-clearing::manual",
+        study_id="001-paper",
+    )
+    transaction["stage_terminal_decision"]["status"] = "route_back"
+    transaction["stage_terminal_decision"]["reason"] = "domain_gate_pending"
+    transaction["artifact_delta_refs"] = []
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        paper_mission_transaction=transaction,
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    owner_answer = payload["terminal_owner_gate_owner_answer_readback"]
+    assert owner_answer["owner_answer_shape"] == "paper_facing_delta_ref"
+    assert owner_answer["paper_facing_delta_ref"].startswith(
+        "paper-facing-delta:owner-answer:001-paper:"
+    )
+    assert payload["paper_mission_transaction"]["artifact_delta_refs"] == [
+        {
+            "ref_id": "paper_facing_delta_ref",
+            "ref_kind": "paper_facing_delta_ref",
+            "uri": owner_answer["paper_facing_delta_ref"],
+        }
+    ]
+    assert payload["stage_terminal_decision"]["paper_facing_delta_ref"] == (
+        owner_answer["paper_facing_delta_ref"]
+    )
+    assert owner_answer["write_plan"]["written_files"] == []
+    assert payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path)
 
 
