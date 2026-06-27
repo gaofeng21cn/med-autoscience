@@ -1317,6 +1317,7 @@ def _opl_stage_route_runtime_request_from_handoff(
             command_kind,
         ]
     )
+    progress_guard = _paper_mission_route_request_progress_guard(handoff=handoff)
     payload = {
         "surface_kind": "opl_mas_paper_mission_route_runtime_request",
         "schema_version": 1,
@@ -1334,9 +1335,8 @@ def _opl_stage_route_runtime_request_from_handoff(
         "route_command_materialized": handoff.get("transaction_materialized") is True,
         "opl_route_command": route,
         "opl_route_handoff_record": dict(handoff),
-        "semantic_progress_guard": _paper_mission_route_request_progress_guard(
-            handoff=handoff
-        ),
+        "semantic_progress_guard": progress_guard,
+        "mas_owned_executor_stage": progress_guard.get("mas_owned_executor_stage"),
         "stage_run_request": {
             "request_status": "requested",
             "requested_by": "mas_paper_mission_route_handoff",
@@ -1859,14 +1859,20 @@ def _paper_mission_route_request_progress_guard(
         "route_target": _first_text(handoff.get("route_target"), route.get("target")),
         "semantic_progress_guard_kind": "non_advancing_route_back_detection",
     }
+    signature = _stable_sha256(payload)
+    executor_stage = _paper_mission_mas_owned_executor_stage_packet(
+        signature=signature,
+        signature_payload=payload,
+    )
     return {
         "surface_kind": "opl_route_semantic_progress_guard",
         "schema_version": 1,
         "guard_kind": "non_advancing_route_back_detection",
-        "signature": _stable_sha256(payload),
+        "signature": signature,
         "signature_payload": payload,
         "non_advancing_status": "not_evaluated_by_mas_payload_only",
         "required_executor_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
+        "mas_owned_executor_stage": executor_stage,
         "runtime_owner_expected_action": (
             "If OPL observes the same route-back/domain gate transaction without a "
             "new accepted owner answer, human gate, typed blocker, or paper-facing "

@@ -195,6 +195,10 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
     guard = payload["semantic_progress_guard"]
     assert guard["guard_kind"] == "non_advancing_route_back_detection"
     assert guard["can_claim_paper_progress"] is False
+    assert payload["mas_owned_executor_stage"] == guard["mas_owned_executor_stage"]
+    assert payload["mas_owned_executor_stage"]["stage_type"] == (
+        "paper_mission_semantic_progress_executor"
+    )
     assert guard["signature_payload"]["paper_mission_transaction_ref"] == (
         "paper-mission-transaction::dm003"
     )
