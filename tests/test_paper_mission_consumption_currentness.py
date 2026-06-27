@@ -145,6 +145,38 @@ def test_consumption_transaction_readback_rejects_cross_identity_packets(
     )
 
 
+def test_consumption_transaction_readback_keeps_accepted_candidate_when_route_handoff_is_route_back(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    consume_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="paper_mission_drive/followthrough-02",
+        transaction_ref="paper-mission-transaction::dm003::followthrough-02",
+        fingerprint="fingerprint::dm003::followthrough-02",
+    )
+    _patch_json(
+        consume_record.parent / "stage_terminal_decision.json",
+        {"transaction_state": "route_back"},
+    )
+
+    readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+
+    assert readback["source_ref"] == str(consume_record)
+    assert readback["selected_outcome"] == "accepted_candidate"
+    assert readback["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    assert readback["stage_terminal_decision"]["decision_kind"] == "route_back"
+    assert readback["opl_route_command"]["command_kind"] == "route_back"
+    assert readback["transaction_state"] == "route_back"
+
+
 def test_consumption_route_handoff_rejects_cross_identity_carrier(
     tmp_path: Path,
 ) -> None:

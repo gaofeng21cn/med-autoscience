@@ -418,16 +418,16 @@ def _consume_candidate_status(
     consume_record: Mapping[str, Any],
     stage_terminal_decision: Mapping[str, Any],
 ) -> str:
-    status = _text(stage_terminal_decision.get("status"))
-    if status:
-        return status
     selected = _text(consume_record.get("selected_outcome"))
     if selected == "accepted_candidate":
-        return "accepted"
+        return "accepted_submission_milestone_candidate"
     if selected == "typed_blocker_required":
         return "typed_blocker"
     if selected == "human_gate_required":
         return "human_gate"
+    status = _text(stage_terminal_decision.get("status"))
+    if status:
+        return status
     return _text(consume_record.get("status")) or "not_consumed"
 
 

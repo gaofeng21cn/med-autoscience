@@ -4668,6 +4668,11 @@ def _consume_candidate_status_for_transaction_readback(
     transaction_readback: Mapping[str, Any],
     authority_consume_readback: Mapping[str, Any] | None,
 ) -> str:
+    authority = _mapping(authority_consume_readback)
+    selected = _optional_text(authority.get("selected_outcome"))
+    status = _optional_text(authority.get("status"))
+    if selected == "accepted_candidate" or status == "accepted_candidate":
+        return "accepted_submission_milestone_candidate"
     decision = _mapping(transaction_readback.get("stage_terminal_decision"))
     decision_kind = _optional_text(decision.get("decision_kind"))
     if decision_kind == "route_back":
@@ -4678,9 +4683,6 @@ def _consume_candidate_status_for_transaction_readback(
         return "human_gate"
     if decision_kind == "mission_complete":
         return "mission_complete"
-    authority = _mapping(authority_consume_readback)
-    selected = _optional_text(authority.get("selected_outcome"))
-    status = _optional_text(authority.get("status"))
     if decision_kind in {"advance", "continue_same_stage"}:
         return selected or status or "accepted"
     if selected == "typed_blocker_required" or status == "typed_blocker_required":
