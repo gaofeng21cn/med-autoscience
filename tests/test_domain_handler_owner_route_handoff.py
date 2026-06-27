@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, runtime_state_path as canonical_runtime_state_path, write_study
+from tests.test_cli_cases.shared import write_profile
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -144,6 +145,36 @@ def test_domain_handler_export_uses_precomputed_progress_without_rebuilding_stud
 
     assert export["studies"][0]["study_id"] == study_id
     assert all(study["study_id"] == study_id for study in export["studies"])
+
+
+def test_domain_handler_export_cli_passes_study_scope_to_export(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.toml"
+    write_profile(profile_path, workspace_root=profile.workspace_root)
+    write_study(profile.workspace_root, "DM002", quest_id="DM002")
+    write_study(profile.workspace_root, "DM003", quest_id="DM003")
+    write_study(profile.workspace_root, "DM004", quest_id="DM004")
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "export",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "DM002",
+            "--studies",
+            "DM003",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert [study["study_id"] for study in payload["studies"]] == ["DM002", "DM003"]
 
 
 def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:

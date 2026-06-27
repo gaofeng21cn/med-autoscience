@@ -192,6 +192,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_handler_export_parser = domain_handler_subparsers.add_parser("export")
     domain_handler_export_parser.add_argument("--profile", required=True)
     domain_handler_export_parser.add_argument("--opl-production-proof", type=str)
+    domain_handler_export_parser.add_argument("--studies", nargs="+")
+    domain_handler_export_parser.add_argument("--study-id", action="append", dest="study_ids")
     domain_handler_export_parser.add_argument("--format", choices=("json",), default="json")
     domain_handler_dispatch_parser = domain_handler_subparsers.add_parser("dispatch")
     domain_handler_dispatch_parser.add_argument("--task", required=True)

@@ -78,6 +78,7 @@ PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_consumption_ledger"
 )
 DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT = 2
+OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS = 15
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
@@ -1034,12 +1035,14 @@ def _opl_runtime_tick_readback(
     if transaction_ref is not None:
         command.extend(["--payload-match", f"paper_mission_transaction_ref={transaction_ref}"])
     try:
+        # A hydrated OPL tick may launch a long-running provider activity; drive
+        # only needs a bounded followthrough readback after enqueue succeeds.
         completed = subprocess.run(
             command,
             check=False,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS,
         )
     except OSError as exc:
         return {
@@ -1054,9 +1057,12 @@ def _opl_runtime_tick_readback(
     except subprocess.TimeoutExpired as exc:
         return {
             "status": "timeout",
-            "reason": "opl_tick_timeout",
+            "reason": "opl_tick_followthrough_timeout",
             "error": str(exc),
             "command_preview": _opl_command_preview(command),
+            "followthrough_observation_window_seconds": (
+                OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS
+            ),
             "can_claim_stage_run_created": False,
             "can_claim_provider_running": False,
             "can_claim_paper_progress": False,

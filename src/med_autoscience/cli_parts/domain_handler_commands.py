@@ -26,10 +26,12 @@ def handle_domain_handler_command(
     if args.domain_handler_command == "export":
         profile_ref = Path(args.profile)
         profile = load_profile(profile_ref)
+        study_ids = tuple(dict.fromkeys([*(args.studies or ()), *(args.study_ids or ())]))
         result = owner_route_handoff.export_family_domain_handler(
             profile=profile,
             profile_ref=profile_ref,
             opl_production_proof_ref=args.opl_production_proof,
+            study_ids=study_ids,
         )
         _print_json(result)
         return 0
