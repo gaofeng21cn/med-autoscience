@@ -3141,6 +3141,61 @@ def test_paper_mission_consume_candidate_counts_accepted_package_delta_as_semant
         mission_id=mission_id,
         base_transaction=transaction,
     )
+    stale_owner_request_ref = str(
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "stale-prior-run"
+        / study_id
+        / "owner_consumption_request.json"
+    )
+    package_manifest = json.loads(package_path.read_text(encoding="utf-8"))
+    package_manifest["owner_consumption_request_ref"] = stale_owner_request_ref
+    package_path.write_text(json.dumps(package_manifest), encoding="utf-8")
+    stale_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    stale_transaction["idempotency"]["idempotency_key"] = (
+        f"{study_id}::submission_milestone_candidate::"
+        f"submission-milestone-candidate-consumed::{stale_owner_request_ref}::"
+        "candidate-ref-missing::transaction-ref-missing"
+    )
+    stale_readback = {
+        "surface_kind": "paper_mission_materialized_readback",
+        "paper_mission_transaction": stale_transaction,
+    }
+    (package_path.parent / "paper_mission_readback.json").write_text(
+        json.dumps(stale_readback),
+        encoding="utf-8",
+    )
+    owner_blocker_packet = json.loads(
+        (package_path.parent / "owner_blocker_packet.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_blocker_packet["blocker_kind"] = "route_back_without_blocker"
+    owner_blocker_packet["current_terminal_decision"] = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": (
+            "MAS mission executor consumed route-back/domain-gate evidence as a "
+            "fresh paper-facing candidate and is continuing the PaperMission stage."
+        ),
+        "route_command": "resume_stage",
+        "route_target": "paper_mission_stage_route_domain_gate_pending",
+    }
+    (package_path.parent / "owner_blocker_packet.json").write_text(
+        json.dumps(owner_blocker_packet),
+        encoding="utf-8",
+    )
+    package_manifest["artifact_refs"] = {
+        **package_manifest.get("artifact_refs", {}),
+        "paper_mission_readback": str(package_path.parent / "paper_mission_readback.json"),
+    }
+    package_path.write_text(json.dumps(package_manifest), encoding="utf-8")
 
     for ledger_id in ("accepted-first", "accepted-second"):
         exit_code = cli.main(
@@ -3180,6 +3235,18 @@ def test_paper_mission_consume_candidate_counts_accepted_package_delta_as_semant
         "authority_materialized"
     ] is False
     assert payload["consume_candidate_status"] == "accepted_candidate"
+    idempotency_key = payload["paper_mission_transaction"]["idempotency"][
+        "idempotency_key"
+    ]
+    carrier = payload["opl_runtime_carrier"]
+    assert str(package_path) in idempotency_key
+    assert stale_owner_request_ref not in idempotency_key
+    assert carrier["idempotency_key"] == idempotency_key
+    assert str(package_path) in carrier["attempt_idempotency_key"]
+    assert stale_owner_request_ref not in carrier["attempt_idempotency_key"]
+    assert payload["opl_route_command"]["target"] == (
+        "paper_mission_stage_route_domain_gate_pending"
+    )
     assert payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 

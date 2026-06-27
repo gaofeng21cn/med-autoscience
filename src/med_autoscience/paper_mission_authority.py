@@ -286,6 +286,8 @@ def _load_candidate_payload(
     if not isinstance(loaded, Mapping):
         manifest_input["error"] = "manifest_root_not_object"
         return {}, manifest_input
+    if _is_submission_package_manifest(loaded):
+        loaded = {**dict(loaded), "package_manifest_ref": str(path)}
     manifest_input["loaded"] = True
     payload = _normalize_candidate_payload(
         dict(loaded),
@@ -375,6 +377,7 @@ def _candidate_payload_from_submission_package(
     paper_mission_transaction = _submission_package_transaction_for_consume(
         embedded_transaction=embedded_transaction,
         continuation_transaction=continuation_transaction,
+        package_ref=manifest_input.get("path") if manifest_input is not None else None,
         requested_outcome=_first_text(
             candidate_payload.get("requested_outcome"),
             package.get("requested_outcome"),
@@ -483,6 +486,7 @@ def _submission_package_transaction_for_consume(
     *,
     embedded_transaction: Mapping[str, Any],
     continuation_transaction: Mapping[str, Any],
+    package_ref: str | None,
     requested_outcome: str | None,
 ) -> dict[str, Any]:
     embedded = _mapping(embedded_transaction)
@@ -492,6 +496,7 @@ def _submission_package_transaction_for_consume(
         _text(embedded_decision.get("decision_kind")) == "continue_same_stage"
         and _text(embedded_decision.get("status"))
         == "accepted_submission_milestone_candidate"
+        and _transaction_idempotency_matches_ref(embedded, package_ref)
     ):
         return embedded
     if requested_outcome == "accepted_candidate" and continuation:
@@ -499,6 +504,19 @@ def _submission_package_transaction_for_consume(
     if _text(embedded_decision.get("decision_kind")) not in {None, "route_back"}:
         return embedded
     return _first_mapping(continuation, embedded)
+
+
+def _transaction_idempotency_matches_ref(
+    transaction: Mapping[str, Any],
+    expected_ref: str | None,
+) -> bool:
+    ref = _text(expected_ref)
+    if ref is None:
+        return True
+    idempotency_key = _text(
+        _mapping(transaction.get("idempotency")).get("idempotency_key")
+    )
+    return idempotency_key is not None and ref in idempotency_key
 
 
 def _canonical_followthrough_identity(value: str | None) -> str | None:
@@ -568,8 +586,10 @@ def _continuation_transaction_for_submission_package(
         )
         next_work_unit = (
             _first_text(
+                current_decision.get("route_target"),
+                current_decision.get("next_work_unit"),
+                current_decision.get("work_unit_id"),
                 current_decision.get("repair_scope"),
-                current_decision.get("reason"),
                 "continue paper-facing route-back repair work",
             )
             or "continue paper-facing route-back repair work"
