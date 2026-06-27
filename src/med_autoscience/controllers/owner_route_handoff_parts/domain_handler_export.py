@@ -264,6 +264,9 @@ def _pending_family_tasks_policy() -> dict[str, Any]:
         "default_paper_mission_queue_source": "/paper_mission_default_tasks",
         "legacy_mixed_queue_source": "/pending_family_tasks",
         "pending_family_tasks_role": "mixed_explicit_owner_handoff_and_migration_compatibility_queue",
+        "legacy_dispatch_diagnostics_source": "/retired_default_paper_dispatch_diagnostics",
+        "ordinary_consumer_forbidden_task_kinds": sorted(RETIRED_DIAGNOSTIC_TASK_KINDS),
+        "legacy_task_kinds_must_not_hydrate_from_pending_family_tasks": True,
         "ordinary_consumer_rule": (
             "OPL consumers that want the MAS paper loop must hydrate only "
             "/paper_mission_default_tasks unless an explicit owner handoff task "

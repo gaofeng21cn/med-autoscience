@@ -337,6 +337,18 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert provider["domain_handler_contract"]["queue_hydration_source_role"] == (
         "mixed_explicit_owner_handoff_and_migration_compatibility_queue"
     )
+    assert payload["pending_family_tasks_policy"]["legacy_dispatch_diagnostics_source"] == (
+        "/retired_default_paper_dispatch_diagnostics"
+    )
+    assert payload["pending_family_tasks_policy"]["ordinary_consumer_forbidden_task_kinds"] == [
+        "domain_owner/default-executor-dispatch"
+    ]
+    assert (
+        payload["pending_family_tasks_policy"][
+            "legacy_task_kinds_must_not_hydrate_from_pending_family_tasks"
+        ]
+        is True
+    )
     assert provider["domain_handler_contract"]["ordinary_paper_loop_consumer_rule"] == (
         "Hydrate /paper_mission_default_tasks for the default MAS paper loop; "
         "/pending_family_tasks remains available only for explicit owner "
