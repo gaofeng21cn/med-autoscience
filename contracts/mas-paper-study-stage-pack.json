@@ -106,6 +106,8 @@
         "accepted_answer_shape"
       ],
       "semantic_delta_fields": [
+        "paper_facing_delta_ref",
+        "owner_decision_ref",
         "owner_receipt_ref",
         "stable_typed_blocker_ref",
         "human_gate_ref",
@@ -113,7 +115,11 @@
         "canonical_paper_or_artifact_delta_ref",
         "ai_reviewer_or_publication_gate_delta_ref",
         "successor_work_unit_ref",
-        "carry_forward_risk_receipt_ref"
+        "carry_forward_risk_receipt_ref",
+        "scope_reduction_decision_ref",
+        "evidence_substitution_decision_ref",
+        "research_pivot_decision_ref",
+        "stop_loss_decision_ref"
       ],
       "transport_only_fields_do_not_change_signature": [
         "observed_at",
@@ -135,14 +141,51 @@
       "same_signature_opl_redrive_budget_after_escalation": 0,
       "transport_repair_budget_after_worker_ready": 0,
       "budget_exhaustion_is_not_completion": true,
+      "opl_redrive_is_default_after_budget_exhaustion": false,
+      "mas_mission_executor_fallback_priority_order": [
+        "paper_facing_delta",
+        "owner_decision",
+        "carry_forward_risk_receipt",
+        "scope_or_evidence_or_research_pivot_decision",
+        "narrow_stop_loss_or_human_gate"
+      ],
       "allowed_escalation_outcomes": [
+        "paper_facing_delta",
+        "owner_decision_ref",
         "canonical_paper_or_artifact_delta",
         "owner_receipt_ref",
         "stable_typed_blocker_ref",
         "human_gate_ref",
         "route_back_evidence_ref_with_successor_work_unit",
         "carry_forward_risk_receipt_ref",
+        "scope_reduction_decision_ref",
+        "evidence_substitution_decision_ref",
+        "research_pivot_decision_ref",
+        "stop_loss_decision_ref",
         "open_repair_lane_proposal"
+      ]
+    },
+    "typed_blocker_and_human_gate_narrowing_policy": {
+      "typed_blocker_is_default_after_budget_exhaustion": false,
+      "human_gate_is_default_after_budget_exhaustion": false,
+      "missing_ideal_evidence_must_try_before_blocker": [
+        "claim_strength_adjustment",
+        "scope_reduction",
+        "evidence_substitution",
+        "carry_forward_risk_receipt",
+        "research_pivot_decision"
+      ],
+      "typed_blocker_allowed_only_for": [
+        "required_source_or_data_unavailable",
+        "privacy_ethics_permission_or_credential_boundary",
+        "core_publishable_result_absent",
+        "no_supported_claim_scope_proxy_or_pivot_remains"
+      ],
+      "human_gate_allowed_only_for": [
+        "human_preference_required",
+        "ethics_or_permission_decision_required",
+        "target_journal_or_submission_risk_tolerance_required",
+        "irreversible_artifact_or_external_submission_authorization_required"
       ]
     },
     "mas_owned_codex_executor_stage": {

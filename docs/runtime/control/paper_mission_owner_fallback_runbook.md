@@ -27,6 +27,7 @@ Paper progress is one of:
 - `scope_reduction_decision_ref`
 - `evidence_substitution_decision_ref`
 - `research_pivot_decision_ref`
+- narrow `stop_loss_decision_ref`
 - `accepted_owner_receipt_ref`
 - `quality_gate_receipt_ref`
 - `human_gate_ref`
@@ -46,18 +47,17 @@ Transport evidence is not paper progress:
 
 When the same mission/stage/route-back reason returns without a new paper semantic delta, MAS should not default to blocker or human gate. The automatic fallback order is:
 
-1. `candidate_revision`: revise the current candidate into a more concrete paper-facing delta.
-2. `claim_strength_adjustment`: weaken unsupported claims while preserving publishable contribution.
-3. `scope_reduction`: narrow the paper question to what current evidence supports.
-4. `evidence_substitution`: use acceptable proxy, secondary, sensitivity, negative-control, subgroup, or literature-triangulation evidence.
-5. `carry_forward_risk_receipt`: continue with explicit non-fatal residual risk when quality is imperfect but still usable.
-6. `research_pivot_decision`: pivot to the nearest publishable question when the original framing is weak.
-7. `early_stop_loss`: stop only when the core result is absent, source/data are unusable, or continuing would fabricate evidence.
-8. `human_gate`: ask a human only for real preference, ethics, permission, target-journal, or risk-tolerance choices.
+1. `paper_facing_delta`: revise or materialize the current candidate into a concrete paper-facing delta.
+2. `owner_decision`: record a MAS owner decision that changes the next executable work unit.
+3. `carry_forward_risk_receipt`: continue with explicit non-fatal residual risk when quality is imperfect but still usable.
+4. `scope_or_evidence_or_research_pivot_decision`: narrow the question, substitute acceptable evidence, or pivot to the nearest publishable question.
+5. `narrow_stop_loss_or_human_gate`: stop or ask a human only when MAS cannot safely choose among the remaining options.
+
+OPL redrive is not the default after this budget is exhausted. It is only valid when a new candidate semantic fingerprint or a concrete transport/control-plane repair changes the route command.
 
 ## Narrow Blocker Rule
 
-Missing ideal evidence is not a blocker. It should be converted to claim downgrade, scope reduction, evidence substitution, carry-forward risk, or pivot first.
+Missing ideal evidence is not a blocker. It should be converted to paper-facing delta, owner decision, carry-forward risk, scope reduction, evidence substitution, or pivot first.
 
 Use `typed_blocker_ref` only when at least one is true:
 
