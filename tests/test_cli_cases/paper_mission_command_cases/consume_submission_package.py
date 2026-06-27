@@ -776,3 +776,66 @@ def test_paper_mission_consume_candidate_picks_up_transaction_fields(
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_route_back_readback_exposes_owner_answer_delta_ref(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    transaction = _paper_mission_transaction_payload(
+        mission_id="paper-mission::001-paper::gate-clearing::manual",
+        study_id="001-paper",
+    )
+    transaction["stage_terminal_decision"]["status"] = "route_back"
+    transaction["stage_terminal_decision"]["reason"] = "domain_gate_pending"
+    transaction["artifact_delta_refs"] = []
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        paper_mission_transaction=transaction,
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    owner_answer = payload["terminal_owner_gate_owner_answer_readback"]
+    assert owner_answer["owner_answer_shape"] == "paper_facing_delta_ref"
+    assert owner_answer["paper_facing_delta_ref"].startswith(
+        "paper-facing-delta:owner-answer:001-paper:"
+    )
+    assert payload["route_back_budget"]["opl_redrive_budget_remaining"] == 0
+    assert payload["mission_executor_fallback_action"]["default_action"] == (
+        "materialize_submission_milestone_candidate"
+    )
+    assert payload["carry_forward_risk_receipt_ref"].startswith(
+        "carry-forward-risk:paper-mission-owner-fallback:001-paper:"
+    )
+    assert payload["paper_mission_transaction"]["artifact_delta_refs"] == [
+        {
+            "ref_id": "paper_facing_delta_ref",
+            "ref_kind": "paper_facing_delta_ref",
+            "uri": owner_answer["paper_facing_delta_ref"],
+        }
+    ]
+    assert payload["stage_terminal_decision"]["paper_facing_delta_ref"] == (
+        owner_answer["paper_facing_delta_ref"]
+    )
+    assert owner_answer["write_plan"]["written_files"] == []
+    assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path)
