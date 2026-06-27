@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from collections.abc import Mapping
 
 from med_autoscience.controllers import opl_runtime_refs, work_unit_ledger
 
@@ -153,6 +154,340 @@ def _gate_replay_telemetry(study_root: Path | None) -> dict[str, Any]:
     }
 
 
+def _token_usage_surface(telemetry: dict[str, Any] | None) -> dict[str, Any]:
+    raw = telemetry.get("token_usage") if isinstance(telemetry, dict) else None
+    if isinstance(raw, dict) and raw:
+        result = dict(raw)
+        result.setdefault("status", "present")
+        if "total_tokens" not in result:
+            result["total_tokens"] = _token_usage_total(result)
+        return result
+    return {
+        "status": "missing",
+        "total_tokens": None,
+        "missing_token_usage_reason": "no_completed_runner_telemetry_token_usage_observed",
+    }
+
+
+def _token_usage_total(token_usage: Mapping[str, Any]) -> int | None:
+    total = _number(token_usage.get("total_tokens"))
+    if total is not None:
+        return total
+    parts = [
+        _number(token_usage.get("input_tokens")),
+        _number(token_usage.get("cached_input_tokens")),
+        _number(token_usage.get("output_tokens")),
+        _number(token_usage.get("reasoning_tokens")),
+    ]
+    present = [value for value in parts if value is not None]
+    return sum(present) if present else None
+
+
+def _number(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return int(float(text))
+        except ValueError:
+            return None
+    return None
+
+
+def _float_number(value: object) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return float(text)
+        except ValueError:
+            return None
+    return None
+
+
+def _stage_execution_records(
+    *,
+    study_root: Path | None,
+    telemetry_status: str,
+) -> list[dict[str, Any]]:
+    if study_root is None:
+        return []
+    controller_records: list[dict[str, Any]] = []
+    for record in (
+        _controller_stage_record(
+            study_root=study_root,
+            controller_name="quality_repair_batch",
+            action_type="run_quality_repair_batch",
+        ),
+        _controller_stage_record(
+            study_root=study_root,
+            controller_name="gate_clearing_batch",
+            action_type="run_gate_clearing_batch",
+        ),
+    ):
+        if record is not None:
+            controller_records.append(record)
+    lifecycle_records = _work_unit_stage_records(study_root=study_root)
+    result = _select_stage_records(
+        controller_records=controller_records,
+        lifecycle_records=lifecycle_records,
+        limit=12,
+    )
+    for record in result:
+        record["token_usage"] = _stage_token_usage(record, telemetry_status=telemetry_status)
+        record["duration"] = _stage_duration(record)
+    return result
+
+
+def _controller_stage_record(
+    *,
+    study_root: Path,
+    controller_name: str,
+    action_type: str,
+) -> dict[str, Any] | None:
+    path = study_root / "artifacts" / "controller" / controller_name / "latest.json"
+    payload = _read_json_object(path)
+    if payload is None:
+        return None
+    step = _mapping_copy(payload.get("gate_replay_step"))
+    repair = _mapping_copy(payload.get("repair_execution_evidence"))
+    work_unit = _mapping_copy(payload.get("selected_publication_work_unit"))
+    repair_work_unit = _mapping_copy(repair.get("repair_work_unit"))
+    changed_artifact_refs = _changed_artifact_paths(repair) or _changed_artifact_paths(payload)
+    gate_replay = _mapping_copy(payload.get("gate_replay"))
+    status = (
+        _non_empty_text(step.get("status"))
+        or _non_empty_text(repair.get("status"))
+        or _non_empty_text(payload.get("status"))
+        or "unknown"
+    )
+    finished_at = (
+        _non_empty_text(step.get("finished_at"))
+        or _non_empty_text(payload.get("finished_at"))
+        or _non_empty_text(payload.get("generated_at"))
+        or _non_empty_text(payload.get("emitted_at"))
+    )
+    return {
+        "record_kind": "controller_stage_execution",
+        "source": f"study_controller.{controller_name}.latest",
+        "source_ref": str(path),
+        "stage_id": "publication_supervision",
+        "controller_name": controller_name,
+        "action_type": action_type,
+        "work_unit_id": (
+            _non_empty_text(payload.get("work_unit_id"))
+            or _non_empty_text(work_unit.get("unit_id"))
+            or _non_empty_text(repair_work_unit.get("unit_id"))
+        ),
+        "work_unit_fingerprint": (
+            _non_empty_text(payload.get("work_unit_fingerprint"))
+            or _non_empty_text(payload.get("source_work_unit_fingerprint"))
+        ),
+        "status": status,
+        "started_at": _non_empty_text(step.get("started_at")),
+        "finished_at": finished_at,
+        "duration_seconds": _float_number(step.get("duration_seconds")),
+        "work_done": _controller_work_done(
+            controller_name=controller_name,
+            status=status,
+            changed_artifact_count=len(changed_artifact_refs),
+            gate_replay_status=_non_empty_text(gate_replay.get("status")),
+        ),
+        "changed_artifact_refs": changed_artifact_refs[:12],
+        "remaining_blockers": _text_list(gate_replay.get("blockers")) or _text_list(repair.get("blockers")),
+        "evidence_refs": _controller_evidence_refs(payload=payload, repair=repair, gate_replay=gate_replay),
+    }
+
+
+def _controller_work_done(
+    *,
+    controller_name: str,
+    status: str,
+    changed_artifact_count: int,
+    gate_replay_status: str | None,
+) -> list[str]:
+    if controller_name == "quality_repair_batch":
+        result = ["Ran the quality repair batch for the selected paper work unit."]
+        if changed_artifact_count:
+            result.append(f"Recorded {changed_artifact_count} changed artifact ref(s).")
+        if gate_replay_status is not None:
+            result.append(f"Requested or observed publication gate replay: {gate_replay_status}.")
+        return result
+    if controller_name == "gate_clearing_batch":
+        return [f"Replayed the publication gate for the selected work unit; result: {status}."]
+    return [f"Observed controller stage execution: {status}."]
+
+
+def _changed_artifact_paths(payload: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for item in payload.get("changed_artifact_refs") or []:
+        if isinstance(item, Mapping) and (text := _non_empty_text(item.get("path"))):
+            refs.append(text)
+    canonical = _mapping_copy(payload.get("canonical_artifact_delta"))
+    for item in canonical.get("artifact_refs") or []:
+        if isinstance(item, Mapping) and (text := _non_empty_text(item.get("path"))):
+            refs.append(text)
+    return list(dict.fromkeys(refs))
+
+
+def _controller_evidence_refs(
+    *,
+    payload: Mapping[str, Any],
+    repair: Mapping[str, Any],
+    gate_replay: Mapping[str, Any],
+) -> list[str]:
+    refs: list[str] = []
+    refs.extend(_text_list(repair.get("source_refs")))
+    refs.extend(_text_list(repair.get("gate_replay_refs")))
+    for key in ("repair_execution_evidence_path", "source_eval_artifact_path", "source_summary_artifact_path"):
+        if text := _non_empty_text(payload.get(key)):
+            refs.append(text)
+    for key in ("report_json", "report_markdown"):
+        if text := _non_empty_text(gate_replay.get(key)):
+            refs.append(text)
+    return list(dict.fromkeys(refs))[:12]
+
+
+def _work_unit_stage_records(*, study_root: Path) -> list[dict[str, Any]]:
+    try:
+        lifecycle = work_unit_ledger.lifecycle_summary(study_root=study_root)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return []
+    records: list[dict[str, Any]] = []
+    for unit in lifecycle.get("units") or []:
+        if not isinstance(unit, Mapping):
+            continue
+        records.append(
+            {
+                "record_kind": "work_unit_lifecycle",
+                "source": "work_unit_ledger.lifecycle_summary",
+                "source_ref": _non_empty_text(lifecycle.get("ledger_path")),
+                "stage_id": "publication_supervision",
+                "controller_name": _non_empty_text(unit.get("lane")),
+                "action_type": _non_empty_text(unit.get("action_type")),
+                "work_unit_id": _non_empty_text(unit.get("unit_id")),
+                "work_unit_fingerprint": _non_empty_text(unit.get("dispatch_key")),
+                "status": _non_empty_text(unit.get("lifecycle_state")) or "unknown",
+                "started_at": _non_empty_text(unit.get("first_recorded_at")),
+                "finished_at": _non_empty_text(unit.get("latest_recorded_at")),
+                "duration_seconds": None,
+                "work_done": [f"Recorded lifecycle events: {', '.join(_text_list(unit.get('event_types')))}."],
+                "changed_artifact_refs": [],
+                "remaining_blockers": [],
+                "evidence_refs": [_non_empty_text(lifecycle.get("ledger_path"))]
+                if _non_empty_text(lifecycle.get("ledger_path"))
+                else [],
+            }
+        )
+    return records
+
+
+def _dedupe_stage_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None]] = set()
+    for record in sorted(records, key=lambda item: _non_empty_text(item.get("finished_at")) or ""):
+        key = (
+            _non_empty_text(record.get("source_ref")),
+            _non_empty_text(record.get("action_type")),
+            _non_empty_text(record.get("work_unit_id")),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(record)
+    return result
+
+
+def _select_stage_records(
+    *,
+    controller_records: list[dict[str, Any]],
+    lifecycle_records: list[dict[str, Any]],
+    limit: int,
+) -> list[dict[str, Any]]:
+    controllers = _dedupe_stage_records(controller_records)
+    controller_keys = {
+        (
+            _non_empty_text(record.get("source_ref")),
+            _non_empty_text(record.get("action_type")),
+            _non_empty_text(record.get("work_unit_id")),
+        )
+        for record in controllers
+    }
+    lifecycle = [
+        record
+        for record in _dedupe_stage_records(lifecycle_records)
+        if (
+            _non_empty_text(record.get("source_ref")),
+            _non_empty_text(record.get("action_type")),
+            _non_empty_text(record.get("work_unit_id")),
+        )
+        not in controller_keys
+    ]
+    remaining_slots = max(limit - len(controllers), 0)
+    selected = lifecycle[-remaining_slots:] if remaining_slots else []
+    selected.extend(controllers[-limit:])
+    return _dedupe_stage_records_preserving_order(selected)[-limit:]
+
+
+def _dedupe_stage_records_preserving_order(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None]] = set()
+    for record in records:
+        key = (
+            _non_empty_text(record.get("source_ref")),
+            _non_empty_text(record.get("action_type")),
+            _non_empty_text(record.get("work_unit_id")),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(record)
+    return result
+
+
+def _stage_token_usage(record: Mapping[str, Any], *, telemetry_status: str) -> dict[str, Any]:
+    token_usage = _mapping_copy(record.get("token_usage"))
+    if token_usage:
+        return token_usage
+    return {
+        "status": "missing" if telemetry_status == "missing" else "not_available",
+        "total_tokens": None,
+        "missing_token_usage_reason": "stage_record_has_no_token_usage",
+    }
+
+
+def _stage_duration(record: Mapping[str, Any]) -> dict[str, Any]:
+    seconds = _float_number(record.get("duration_seconds"))
+    if seconds is not None:
+        return {"status": "present", "seconds": seconds}
+    return {
+        "status": "missing",
+        "seconds": None,
+        "missing_duration_reason": "stage_record_has_no_duration",
+    }
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _non_empty_text(item)) is not None]
+
+
 def _latest_run_telemetry_surface(
     *,
     quest_root: Path | None,
@@ -188,7 +523,7 @@ def _latest_run_telemetry_surface(
         if evidence_index_path is not None and evidence_index_path.exists()
         else None
     )
-    token_usage = (telemetry or {}).get("token_usage") if isinstance((telemetry or {}).get("token_usage"), dict) else {}
+    token_usage = _token_usage_surface(telemetry)
     compacted_count = _int_value((telemetry or {}).get("compacted_tool_result_count"))
     full_detail_count = _int_value((telemetry or {}).get("full_detail_tool_call_count"))
     tool_result_bytes = _int_value((telemetry or {}).get("tool_result_bytes_total"))
@@ -206,12 +541,17 @@ def _latest_run_telemetry_surface(
         }
     gate_cache_surfaces = _gate_cache_surfaces(quest_root)
     gate_replay_telemetry = _gate_replay_telemetry(study_root)
+    stage_execution_records = _stage_execution_records(
+        study_root=study_root,
+        telemetry_status="present" if telemetry is not None else "missing",
+    )
     if (
         telemetry is None
         and evidence_index is None
         and gate_cache_surface is None
         and not gate_cache_surfaces
         and not gate_replay_telemetry
+        and not stage_execution_records
     ):
         return None
     return {
@@ -259,6 +599,8 @@ def _latest_run_telemetry_surface(
         "latest_evidence_packets": _compact_evidence_items(evidence_index),
         "gate_cache": gate_cache_surface,
         "gate_cache_surfaces": gate_cache_surfaces,
+        "stage_execution_records": stage_execution_records,
+        "stage_execution_record_count": len(stage_execution_records),
         **gate_replay_telemetry,
         "summary": (
             f"run `{run_id}` prompt {prompt_bytes} bytes; compacted tool results {compacted_count}; "
@@ -267,7 +609,9 @@ def _latest_run_telemetry_surface(
             f"repeated reads {_int_value((telemetry or {}).get('repeated_read_result_count'))}/"
             f"{_int_value((telemetry or {}).get('read_tool_call_count'))}; "
             f"unique commands {_int_value((telemetry or {}).get('unique_command_count'))}; "
-            f"gate replay hits {gate_replay_telemetry.get('gate_replay_hit_count') or 0}."
+            f"gate replay hits {gate_replay_telemetry.get('gate_replay_hit_count') or 0}; "
+            f"stage records {len(stage_execution_records)}; "
+            f"token usage {token_usage.get('status') or 'unknown'}."
         ),
     }
 
@@ -323,6 +667,13 @@ def _runtime_efficiency_markdown_lines(runtime_efficiency: dict[str, Any]) -> li
             f"{runtime_efficiency.get('gate_replay_hit_count')} hit(s); "
             f"latest: `{runtime_efficiency.get('latest_gate_replay_at') or 'unknown'}`; "
             f"ref: `{runtime_efficiency.get('gate_replay_ref') or 'none'}`"
+        )
+    if runtime_efficiency.get("stage_execution_record_count"):
+        token_usage = _mapping_copy(runtime_efficiency.get("token_usage"))
+        lines.append(
+            "- Stage execution records: "
+            f"{runtime_efficiency.get('stage_execution_record_count')} record(s); "
+            f"token_usage_status: `{token_usage.get('status') or 'unknown'}`"
         )
     return lines
 

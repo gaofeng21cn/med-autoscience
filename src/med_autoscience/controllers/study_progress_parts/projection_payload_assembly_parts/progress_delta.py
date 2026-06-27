@@ -267,7 +267,7 @@ def _progress_delta_classification(
     return "typed_blocker"
 
 
-def _token_usage_total(token_usage: dict[str, Any]) -> int:
+def _token_usage_total(token_usage: dict[str, Any]) -> int | None:
     total = _number(
         token_usage.get("total_tokens")
         if token_usage
@@ -281,7 +281,7 @@ def _token_usage_total(token_usage: dict[str, Any]) -> int:
         token_usage.get("output_tokens") if token_usage else None,
         token_usage.get("reasoning_tokens") if token_usage else None,
     )
-    return partial or 0
+    return partial
 
 
 def _number(value: object) -> int | None:

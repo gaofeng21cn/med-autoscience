@@ -70,6 +70,35 @@ def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projectio
     assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"
 
 
+def test_paper_delta_with_missing_runtime_token_usage_reports_unknown_token_total() -> None:
+    assembly = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+
+    progress_delta = assembly._progress_delta_metrics(
+        quality_repair_batch_followthrough={
+            "status": "executed",
+        },
+        gate_clearing_batch_followthrough={},
+        opl_current_control_state_handoff=None,
+        runtime_efficiency={
+            "token_usage": {
+                "status": "missing",
+                "total_tokens": None,
+                "missing_token_usage_reason": "no_completed_runner_telemetry_token_usage_observed",
+            }
+        },
+    )
+
+    assert progress_delta["deliverable_progress_delta"] == {
+        "count": 1,
+        "token_usage_total": None,
+        "sources": ["quality_repair_batch_followthrough"],
+    }
+    assert progress_delta["paper_progress_delta"] == progress_delta["deliverable_progress_delta"]
+    assert progress_delta["platform_repair_delta"] == {"count": 0, "token_usage_total": 0, "sources": []}
+
+
 def test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delta() -> None:
     assembly = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"

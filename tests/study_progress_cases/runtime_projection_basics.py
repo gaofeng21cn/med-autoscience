@@ -203,6 +203,139 @@ def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetr
     assert result["runtime_efficiency"]["gate_cache"]["input_fingerprint"] == "gate-fingerprint-live"
 
 
+def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        recommended_actions=[
+            {
+                "action_id": "action-stage-record",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Publication gate remains blocked.",
+                "requires_controller_decision": True,
+                "work_unit_fingerprint": "publication-blockers::stage-record",
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                    "summary": "Repair claim-evidence consistency.",
+                },
+            }
+        ],
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "status": "executed",
+            "repair_execution_evidence_path": str(
+                study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+            ),
+            "repair_execution_evidence": {
+                "status": "progress_delta_candidate",
+                "repair_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+                "source_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                "changed_artifact_refs": [
+                    {"path": str(study_root / "paper" / "claim_evidence_map.json")},
+                    {"path": str(study_root / "paper" / "evidence_ledger.json")},
+                ],
+                "gate_replay_refs": [
+                    str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+                ],
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "status": "executed",
+            "work_unit_fingerprint": "publication-blockers::stage-record",
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "blockers": ["claim_evidence_consistency_failed"],
+            },
+            "gate_replay_step": {
+                "step_id": "publication_gate_replay",
+                "status": "blocked",
+                "started_at": "2026-04-10T09:30:00+00:00",
+                "finished_at": "2026-04-10T09:30:01+00:00",
+                "duration_seconds": 1.25,
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    runtime_efficiency = result["runtime_efficiency"]
+    assert runtime_efficiency["telemetry_status"] == "missing"
+    assert runtime_efficiency["token_usage"] == {
+        "status": "missing",
+        "total_tokens": None,
+        "missing_token_usage_reason": "no_completed_runner_telemetry_token_usage_observed",
+    }
+    assert runtime_efficiency["stage_execution_record_count"] == 2
+    quality_record, gate_record = runtime_efficiency["stage_execution_records"]
+    assert quality_record["action_type"] == "run_quality_repair_batch"
+    assert quality_record["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert quality_record["changed_artifact_refs"] == [
+        str(study_root / "paper" / "claim_evidence_map.json"),
+        str(study_root / "paper" / "evidence_ledger.json"),
+    ]
+    assert quality_record["token_usage"]["status"] == "missing"
+    assert gate_record["action_type"] == "run_gate_clearing_batch"
+    assert gate_record["duration"] == {"status": "present", "seconds": 1.25}
+    assert gate_record["remaining_blockers"] == ["claim_evidence_consistency_failed"]
+    assert "stage records 2" in runtime_efficiency["summary"]
+    assert result["deliverable_progress_delta"]["token_usage_total"] == 0
+
+
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
