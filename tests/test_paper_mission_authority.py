@@ -331,6 +331,20 @@ def test_terminal_owner_answer_materializes_paper_facing_delta_when_route_back_h
     ]
     assert result["consume_result"]["status"] == "route_back"
     assert result["consume_result"]["outcome"] == "paper_facing_delta_ref"
+    assert result["route_back_budget"]["opl_redrive_budget_remaining"] == 0
+    assert result["route_back_budget"]["next_mode"] == (
+        "mas_mission_executor_fallback"
+    )
+    assert result["semantic_progress_signature"]["identity"]["study_id"] == "study-001"
+    assert result["mission_executor_fallback_action"]["default_action"] == (
+        "materialize_submission_milestone_candidate"
+    )
+    assert result["mission_executor_fallback_action"]["recommended_cli"] == (
+        "paper-mission package-candidate"
+    )
+    assert result["carry_forward_risk_receipt_ref"].startswith(
+        "carry-forward-risk:paper-mission-owner-fallback:study-001:"
+    )
     assert result["write_plan"]["written_files"] == []
 
 

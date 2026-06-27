@@ -1394,6 +1394,20 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     assert owner_consumption_request["evidence_refs"]["route_back_evidence_ref"] == (
         "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
     )
+    assert owner_consumption_request["carry_forward_risk_receipt"] == (
+        owner_blocker_packet["carry_forward_risk_receipt"]
+    )
+    carry_forward_risk = owner_consumption_request["carry_forward_risk_receipt"]
+    assert carry_forward_risk["risk_kind"] == "synonymous_route_back_redrive"
+    assert carry_forward_risk["forbidden_next_action"] == (
+        "synonymous_route_back_redrive"
+    )
+    assert carry_forward_risk["required_owner_fallback_action"] == (
+        "consume_candidate_or_return_owner_answer_shape"
+    )
+    assert carry_forward_risk["source_route_back_evidence_ref"] == (
+        "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
+    )
     assert owner_consumption_request["candidate_refs"]["mission_executor_handoff"] == (
         output_manifest["mission_executor_handoff_ref"]
     )
@@ -2441,7 +2455,19 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
         "authority_materialized": False,
         "legal_next_action": "route_to_owner_or_human_gate",
     }
-    assert payload["next_owner_or_human_decision"] == {
+    assert {
+        key: payload["next_owner_or_human_decision"][key]
+        for key in (
+            "kind",
+            "next_owner",
+            "human_decision_required",
+            "summary",
+            "route_back_evidence_ref",
+            "opl_route_command_ref",
+            "can_execute",
+            "can_authorize_provider_admission",
+        )
+    } == {
         "kind": "owner_or_route",
         "next_owner": "mission_executor",
         "human_decision_required": False,
@@ -2489,6 +2515,35 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert owner_answer["write_plan"]["can_write_human_gate_authority_records"] is False
     assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
+    assert owner_answer["route_back_budget"]["opl_redrive_budget_remaining"] == 0
+    assert owner_answer["route_back_budget"]["next_mode"] == (
+        "mas_mission_executor_fallback"
+    )
+    assert owner_answer["mission_executor_fallback_action"]["stage_type"] == (
+        "paper_mission_semantic_progress_executor"
+    )
+    assert owner_answer["mission_executor_fallback_action"]["default_action"] == (
+        "materialize_submission_milestone_candidate"
+    )
+    assert owner_answer["carry_forward_risk_receipt_ref"].startswith(
+        f"carry-forward-risk:paper-mission-owner-fallback:{study_id}:"
+    )
+    assert payload["route_back_budget"] == owner_answer["route_back_budget"]
+    assert payload["semantic_progress_signature"] == (
+        owner_answer["semantic_progress_signature"]
+    )
+    assert payload["mission_executor_fallback_action"] == (
+        owner_answer["mission_executor_fallback_action"]
+    )
+    assert payload["carry_forward_risk_receipt_ref"] == (
+        owner_answer["carry_forward_risk_receipt_ref"]
+    )
+    assert payload["next_owner_or_human_decision"]["route_back_budget"] == (
+        owner_answer["route_back_budget"]
+    )
+    assert payload["next_owner_or_human_decision"][
+        "mission_executor_fallback_action"
+    ] == owner_answer["mission_executor_fallback_action"]
     assert payload["stage_terminal_decision"] == owner_answer["stage_terminal_decision"]
     assert payload["opl_route_command"] == owner_answer["opl_route_command"]
     assert payload["paper_mission_transaction"] == owner_answer["paper_mission_transaction"]
@@ -2705,6 +2760,13 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     assert owner_answer["can_claim_runtime_ready"] is False
     assert owner_answer["write_plan"]["written_files"] == []
     assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
+    assert inspect_payload["route_back_budget"] == owner_answer["route_back_budget"]
+    assert inspect_payload["mission_executor_fallback_action"] == (
+        owner_answer["mission_executor_fallback_action"]
+    )
+    assert inspect_payload["carry_forward_risk_receipt_ref"] == (
+        owner_answer["carry_forward_risk_receipt_ref"]
+    )
     assert inspect_payload["paper_mission_transaction_readback"][
         "terminal_owner_gate_owner_answer_readback"
     ] == owner_answer
@@ -4510,6 +4572,13 @@ def test_paper_mission_consume_candidate_route_back_readback_exposes_owner_answe
     assert owner_answer["owner_answer_shape"] == "paper_facing_delta_ref"
     assert owner_answer["paper_facing_delta_ref"].startswith(
         "paper-facing-delta:owner-answer:001-paper:"
+    )
+    assert payload["route_back_budget"]["opl_redrive_budget_remaining"] == 0
+    assert payload["mission_executor_fallback_action"]["default_action"] == (
+        "materialize_submission_milestone_candidate"
+    )
+    assert payload["carry_forward_risk_receipt_ref"].startswith(
+        "carry-forward-risk:paper-mission-owner-fallback:001-paper:"
     )
     assert payload["paper_mission_transaction"]["artifact_delta_refs"] == [
         {

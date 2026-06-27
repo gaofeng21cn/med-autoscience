@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -141,6 +142,12 @@ def paper_mission_owner_blocker_packet(
         )
         or "mas_authority_kernel",
     )
+    carry_forward_risk_receipt = _carry_forward_risk_receipt(
+        readback=readback,
+        blocker_kind=blocker_kind,
+        terminal_decision=terminal_decision,
+        terminal_owner_gate=terminal_owner_gate,
+    )
     return {
         "surface_kind": "paper_mission_owner_blocker_packet",
         "schema_version": 1,
@@ -187,6 +194,11 @@ def paper_mission_owner_blocker_packet(
             study_id=_text(readback.get("study_id")),
             candidate_manifest_ref=None,
         ),
+        **(
+            {"carry_forward_risk_receipt": carry_forward_risk_receipt}
+            if carry_forward_risk_receipt
+            else {}
+        ),
         "evidence_refs": _owner_evidence_refs(
             readback=readback,
             terminal_decision=terminal_decision,
@@ -225,6 +237,9 @@ def paper_mission_owner_consumption_request(
     )
     owner_blocker_kind = _text(owner_blocker_packet.get("blocker_kind")) or (
         "route_back_without_blocker"
+    )
+    carry_forward_risk_receipt = _mapping(
+        owner_blocker_packet.get("carry_forward_risk_receipt")
     )
     return {
         "surface_kind": "paper_mission_owner_consumption_request",
@@ -274,6 +289,11 @@ def paper_mission_owner_consumption_request(
         "next_legal_command": _next_legal_command(
             study_id=_text(readback.get("study_id")),
             candidate_manifest_ref=_text(candidate_refs.get("package_manifest")),
+        ),
+        **(
+            {"carry_forward_risk_receipt": carry_forward_risk_receipt}
+            if carry_forward_risk_receipt
+            else {}
         ),
         "evidence_refs": _owner_evidence_refs(
             readback=readback,
@@ -453,6 +473,60 @@ def _owner_evidence_refs(
     if terminal_owner_gate:
         refs["terminal_owner_gate"] = terminal_owner_gate
     return {key: value for key, value in refs.items() if value}
+
+
+def _carry_forward_risk_receipt(
+    *,
+    readback: Mapping[str, Any],
+    blocker_kind: str,
+    terminal_decision: Mapping[str, Any],
+    terminal_owner_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    if blocker_kind not in {
+        "route_back_without_blocker",
+        "domain_gate",
+        "missing_opl_runtime_readback",
+    }:
+        return {}
+    route_back_ref = _first_text(
+        terminal_decision.get("route_back_evidence_ref"),
+        _mapping(readback.get("next_owner_or_human_decision")).get(
+            "route_back_evidence_ref"
+        ),
+        _mapping(terminal_owner_gate).get("route_back_evidence_ref"),
+    )
+    basis = "::".join(
+        [
+            _text(readback.get("study_id")) or "unknown-study",
+            _text(readback.get("mission_id")) or "unknown-mission",
+            _text(terminal_decision.get("target_stage_id"))
+            or _text(terminal_decision.get("next_stage_id"))
+            or _text(_mapping(terminal_owner_gate).get("work_unit_id"))
+            or "unknown-stage",
+            blocker_kind,
+            route_back_ref or "missing-route-back-ref",
+        ]
+    )
+    return {
+        "receipt_ref": (
+            "carry-forward-risk:paper-mission-candidate-package:"
+            f"{_text(readback.get('study_id')) or 'unknown-study'}:"
+            f"{hashlib.sha256(basis.encode('utf-8')).hexdigest()[:16]}"
+        ),
+        "risk_kind": "synonymous_route_back_redrive",
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "required_owner_fallback_action": _next_legal_action(
+            blocker_kind=blocker_kind
+        ),
+        "source_route_back_evidence_ref": route_back_ref,
+        "fallback_priority": [
+            "paper_facing_delta",
+            "owner_decision",
+            "carry_forward_risk_receipt",
+            "scope_reduction_or_evidence_substitution_or_research_pivot",
+            "narrow_stop_loss_or_human_gate",
+        ],
+    }
 
 
 def _authority_boundary() -> dict[str, bool]:

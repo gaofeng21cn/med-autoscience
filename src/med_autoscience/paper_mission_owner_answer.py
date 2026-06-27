@@ -17,6 +17,11 @@ ACCEPTED_OWNER_ANSWER_SHAPES = (
     "human_gate_ref",
     "route_back_evidence_ref",
 )
+NON_ADVANCING_ROUTE_BACK_POLICY_REF = (
+    "contracts/mas-paper-study-stage-pack.json"
+    "#/mission_first_non_advancing_route_back_policy"
+)
+MISSION_EXECUTOR_FALLBACK_STAGE_TYPE = "paper_mission_semantic_progress_executor"
 
 
 def terminal_owner_gate_owner_answer_readback(
@@ -91,6 +96,38 @@ def terminal_owner_gate_owner_answer_readback(
             else {}
         ),
     }
+    signature = _semantic_progress_signature(
+        study_id=study_id,
+        mission_id=mission_id,
+        stage_id=stage_id,
+        gate=gate,
+        blocked_reason=blocked_reason,
+        selected_outcome=selected_outcome,
+    )
+    carry_forward_ref = _carry_forward_risk_receipt_ref(
+        study_id=study_id,
+        mission_id=mission_id,
+        stage_id=stage_id,
+        signature=signature,
+    )
+    fallback_action = _mission_executor_fallback_action(
+        study_id=study_id,
+        mission_id=mission_id,
+        stage_id=stage_id,
+        selected_outcome=selected_outcome,
+        route_back_evidence_ref=evidence_ref,
+        paper_facing_delta_ref=paper_facing_delta_ref,
+        carry_forward_risk_receipt_ref=carry_forward_ref,
+    )
+    route_back_budget = {
+        "policy_ref": NON_ADVANCING_ROUTE_BACK_POLICY_REF,
+        "semantic_progress_signature": signature,
+        "same_signature_repeat_threshold": 2,
+        "same_signature_opl_redrive_budget_after_escalation": 0,
+        "opl_redrive_budget_remaining": 0,
+        "budget_exhaustion_is_not_completion": True,
+        "next_mode": "mas_mission_executor_fallback",
+    }
     owner_answer_transaction = build_paper_mission_transaction(
         mission_id=mission_id,
         study_id=study_id,
@@ -108,6 +145,10 @@ def terminal_owner_gate_owner_answer_readback(
         "selected_outcome": selected_outcome,
         "owner_answer_shape": selected_outcome,
         "accepted_owner_answer_shapes": list(ACCEPTED_OWNER_ANSWER_SHAPES),
+        "semantic_progress_signature": signature,
+        "route_back_budget": route_back_budget,
+        "mission_executor_fallback_action": fallback_action,
+        "carry_forward_risk_receipt_ref": carry_forward_ref,
         "route_back_evidence_ref": evidence_ref,
         **(
             {"paper_facing_delta_ref": paper_facing_delta_ref}
@@ -128,6 +169,9 @@ def terminal_owner_gate_owner_answer_readback(
             "authority_materialized": False,
             "authority_answer_readback_materialized": True,
             "authority_file_materialized": False,
+            "semantic_progress_signature": signature,
+            "mission_executor_fallback_action_ref": fallback_action["action_ref"],
+            "carry_forward_risk_receipt_ref": carry_forward_ref,
         },
         "authority_materialized": False,
         "authority_answer_readback_materialized": True,
@@ -187,6 +231,14 @@ def terminal_owner_gate_authority_consume_readback(
         "owner_answer_readback": owner_answer,
         "route_back_evidence_ref": owner_answer.get("route_back_evidence_ref"),
         "paper_facing_delta_ref": owner_answer.get("paper_facing_delta_ref"),
+        "semantic_progress_signature": owner_answer.get("semantic_progress_signature"),
+        "route_back_budget": owner_answer.get("route_back_budget"),
+        "mission_executor_fallback_action": owner_answer.get(
+            "mission_executor_fallback_action"
+        ),
+        "carry_forward_risk_receipt_ref": owner_answer.get(
+            "carry_forward_risk_receipt_ref"
+        ),
         "stage_terminal_decision": owner_answer.get("stage_terminal_decision"),
         "opl_route_command": owner_answer.get("opl_route_command"),
         "consume_result": owner_answer["consume_result"],
@@ -209,12 +261,132 @@ def terminal_owner_gate_owner_answer_next_decision(
         "summary": _text(owner_answer.get("status")) or "route_back",
         "route_back_evidence_ref": owner_answer.get("route_back_evidence_ref"),
         "opl_route_command_ref": route.get("source_terminal_decision_ref"),
+        "semantic_progress_signature": owner_answer.get("semantic_progress_signature"),
+        "route_back_budget": owner_answer.get("route_back_budget"),
+        "mission_executor_fallback_action": owner_answer.get(
+            "mission_executor_fallback_action"
+        ),
+        "carry_forward_risk_receipt_ref": owner_answer.get(
+            "carry_forward_risk_receipt_ref"
+        ),
         "can_execute": False,
         "can_authorize_provider_admission": False,
     }
     if owner_answer.get("paper_facing_delta_ref") is not None:
         decision["paper_facing_delta_ref"] = owner_answer.get("paper_facing_delta_ref")
     return decision
+
+
+def _semantic_progress_signature(
+    *,
+    study_id: str,
+    mission_id: str,
+    stage_id: str,
+    gate: Mapping[str, Any],
+    blocked_reason: str,
+    selected_outcome: str,
+) -> dict[str, Any]:
+    identity = {
+        "study_id": study_id,
+        "paper_mission_run_id": mission_id,
+        "stage_id": stage_id,
+        "current_owner": _text(gate.get("owner")) or "mas_authority_kernel",
+        "action_type": "route_back",
+        "work_unit_id": _text(gate.get("work_unit_id")) or stage_id,
+        "work_unit_fingerprint": _text(gate.get("work_unit_fingerprint"))
+        or f"paper-mission::{stage_id}",
+        "route_identity_key": _text(gate.get("route_identity_key"))
+        or blocked_reason,
+        "attempt_idempotency_key": _text(gate.get("stage_attempt_id"))
+        or _text(gate.get("closeout_ref"))
+        or "missing-attempt-idempotency",
+        "required_output_surface": "paper_mission_owner_answer",
+        "accepted_answer_shape": selected_outcome,
+    }
+    basis = json_digest_basis(identity)
+    return {
+        "surface_kind": "paper_mission_semantic_progress_signature",
+        "policy_ref": NON_ADVANCING_ROUTE_BACK_POLICY_REF,
+        "identity": identity,
+        "signature": hashlib.sha256(basis.encode("utf-8")).hexdigest()[:24],
+        "semantic_delta_required": True,
+        "transport_only_fields_reset_signature": False,
+    }
+
+
+def _mission_executor_fallback_action(
+    *,
+    study_id: str,
+    mission_id: str,
+    stage_id: str,
+    selected_outcome: str,
+    route_back_evidence_ref: str,
+    paper_facing_delta_ref: str | None,
+    carry_forward_risk_receipt_ref: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_mission_executor_fallback_action",
+        "policy_ref": NON_ADVANCING_ROUTE_BACK_POLICY_REF,
+        "action_ref": (
+            f"paper-mission-owner-fallback:{study_id}:"
+            f"{hashlib.sha256(f'{mission_id}::{stage_id}'.encode('utf-8')).hexdigest()[:16]}"
+        ),
+        "stage_type": MISSION_EXECUTOR_FALLBACK_STAGE_TYPE,
+        "next_owner": "mission_executor",
+        "default_action": "materialize_submission_milestone_candidate",
+        "recommended_cli": "paper-mission package-candidate",
+        "then_consume_with": "paper-mission consume-candidate",
+        "source_route_back_evidence_ref": route_back_evidence_ref,
+        "owner_answer_shape": selected_outcome,
+        **(
+            {"paper_facing_delta_ref": paper_facing_delta_ref}
+            if paper_facing_delta_ref is not None
+            else {}
+        ),
+        "carry_forward_risk_receipt_ref": carry_forward_risk_receipt_ref,
+        "allowed_ai_owner_outputs": [
+            "paper_facing_delta_ref",
+            "owner_decision_packet_ref",
+            "carry_forward_risk_receipt_ref",
+            "scope_reduction_decision_ref",
+            "evidence_substitution_decision_ref",
+            "research_pivot_decision_ref",
+            "narrow_stop_loss_or_human_gate_ref",
+        ],
+        "typed_blocker_policy": (
+            "Only data inaccessible, ethics/permission boundary, human preference, "
+            "or core stop-loss can become blocker; missing ideal evidence should "
+            "degrade claim, reduce scope, substitute evidence, carry risk, or pivot."
+        ),
+        "writes_authority": False,
+        "writes_runtime": False,
+    }
+
+
+def _carry_forward_risk_receipt_ref(
+    *,
+    study_id: str,
+    mission_id: str,
+    stage_id: str,
+    signature: Mapping[str, Any],
+) -> str:
+    digest = hashlib.sha256(
+        json_digest_basis(
+            {
+                "study_id": study_id,
+                "mission_id": mission_id,
+                "stage_id": stage_id,
+                "signature": _mapping(signature).get("signature"),
+            }
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    return f"carry-forward-risk:paper-mission-owner-fallback:{study_id}:{digest}"
+
+
+def json_digest_basis(payload: Mapping[str, Any]) -> str:
+    import json
+
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
 def _route_back_evidence_ref(
