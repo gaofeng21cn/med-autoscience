@@ -166,10 +166,12 @@ def test_executor_self_review_cannot_close_ai_first_quality_gate() -> None:
     )
 
     same_invocation_receipt = {
+        "agent_role": "quality_gate_reviewer_or_auditor",
         "agent_invocation_id": "executor-and-reviewer-same-run",
         "task_record_ref": "tasks/same-run.json",
         "context_record_ref": "contexts/same-run.json",
         "receipt_ref": "receipts/same-run.json",
+        "ai_reviewer_record_ref": "reviews/latest.json",
     }
     result = validate_ai_first_private_authority_gate(
         function_id="ai_reviewer_quality_decision",

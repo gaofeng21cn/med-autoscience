@@ -134,6 +134,30 @@ def _independent_reviewer_receipt_blocker(
             function=function,
             details={"reused_record_keys": reused_keys},
         )
+    if _text(reviewer_receipt.get("agent_role")) != "quality_gate_reviewer_or_auditor":
+        return _typed_blocker(
+            function_id=function_id,
+            blocker_id="invalid_independent_reviewer_role",
+            route_back=_text(function.get("route_back_semantics")),
+            function=function,
+            details={"required_agent_role": "quality_gate_reviewer_or_auditor"},
+        )
+    if not (
+        _text(reviewer_receipt.get("ai_reviewer_record_ref"))
+        or _text(reviewer_receipt.get("quality_gate_receipt_ref"))
+    ):
+        return _typed_blocker(
+            function_id=function_id,
+            blocker_id="missing_independent_reviewer_quality_record_ref",
+            route_back=_text(function.get("route_back_semantics")),
+            function=function,
+            details={
+                "required_any_ref": [
+                    "ai_reviewer_record_ref",
+                    "quality_gate_receipt_ref",
+                ]
+            },
+        )
     return None
 
 
@@ -173,6 +197,8 @@ def _independent_quality_evidence_refs(receipt: Mapping[str, Any]) -> list[str]:
             _text(receipt.get("task_record_ref")),
             _text(receipt.get("context_record_ref")),
             _text(receipt.get("receipt_ref")),
+            _text(receipt.get("ai_reviewer_record_ref")),
+            _text(receipt.get("quality_gate_receipt_ref")),
         )
         if ref
     ]
