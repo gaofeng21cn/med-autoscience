@@ -158,6 +158,19 @@ def _independent_reviewer_receipt_blocker(
                 ]
             },
         )
+    reviewed_executor_receipt_ref = _text(reviewer_receipt.get("reviewed_executor_receipt_ref"))
+    executor_receipt_ref = _text(executor_receipt.get("receipt_ref"))
+    if reviewed_executor_receipt_ref != executor_receipt_ref:
+        return _typed_blocker(
+            function_id=function_id,
+            blocker_id="reviewer_receipt_not_bound_to_executor_receipt",
+            route_back=_text(function.get("route_back_semantics")),
+            function=function,
+            details={
+                "required_reviewer_field": "reviewed_executor_receipt_ref",
+                "executor_receipt_ref": executor_receipt_ref,
+            },
+        )
     return None
 
 

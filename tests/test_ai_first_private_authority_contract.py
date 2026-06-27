@@ -43,6 +43,12 @@ def test_private_authority_manifest_classifies_judgment_modes() -> None:
         assert item["missing_ai_first_record_policy"] == "typed_blocker_or_route_back"
         assert item["standard_stage_output"] is True
 
+    independent_policy = authority["independent_executor_reviewer_agent_policy"]
+    assert independent_policy["reviewer_receipt_must_bind_executor_receipt"] is True
+    assert independent_policy["reviewer_receipt_executor_binding_field"] == (
+        "reviewed_executor_receipt_ref"
+    )
+
     assert by_id["artifact_mutation_authorization"]["judgment_mode"] == "ai_first_record_validator"
     assert by_id["artifact_mutation_authorization"]["program_may_emit_pass_ready_verdict"] is False
     assert by_id["owner_receipt_signer"]["judgment_mode"] == "mechanical_guard"
@@ -125,6 +131,7 @@ def test_ai_first_gate_accepts_independent_reviewer_record_refs() -> None:
             "context_record_ref": "contexts/review-1.json",
             "receipt_ref": "receipts/review-1.json",
             "ai_reviewer_record_ref": "reviews/latest.json",
+            "reviewed_executor_receipt_ref": "receipts/exec-1.json",
         },
     )
 
@@ -139,6 +146,41 @@ def test_ai_first_gate_accepts_independent_reviewer_record_refs() -> None:
         "receipts/review-1.json",
         "reviews/latest.json",
     ]
+
+
+def test_ai_first_gate_rejects_reviewer_receipt_not_bound_to_executor_receipt() -> None:
+    result = validate_ai_first_private_authority_gate(
+        function_id="publication_quality_verdict",
+        candidate_record={
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+            "ai_reviewer_record_ref": "reviews/latest.json",
+            "quality_pack_evidence_refs": ["quality/publication.json"],
+        },
+        executor_receipt={
+            "agent_invocation_id": "exec-1",
+            "task_record_ref": "tasks/exec-1.json",
+            "context_record_ref": "contexts/exec-1.json",
+            "receipt_ref": "receipts/exec-1.json",
+        },
+        reviewer_receipt={
+            "agent_role": "quality_gate_reviewer_or_auditor",
+            "agent_invocation_id": "review-1",
+            "task_record_ref": "tasks/review-1.json",
+            "context_record_ref": "contexts/review-1.json",
+            "receipt_ref": "receipts/review-1.json",
+            "ai_reviewer_record_ref": "reviews/latest.json",
+            "reviewed_executor_receipt_ref": "receipts/other-exec.json",
+        },
+    )
+
+    assert result["status"] == "typed_blocker"
+    assert result["can_close_quality_gate"] is False
+    assert result["blocker_id"] == "reviewer_receipt_not_bound_to_executor_receipt"
+    assert result["details"]["required_reviewer_field"] == "reviewed_executor_receipt_ref"
+    assert result["details"]["executor_receipt_ref"] == "receipts/exec-1.json"
 
 
 def test_ai_first_gate_rejects_reviewer_receipt_without_quality_record_ref() -> None:

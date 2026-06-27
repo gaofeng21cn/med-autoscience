@@ -146,6 +146,8 @@ INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY = {
     "separate_context_record_required": True,
     "separate_task_record_required": True,
     "separate_receipt_required": True,
+    "reviewer_receipt_must_bind_executor_receipt": True,
+    "reviewer_receipt_executor_binding_field": "reviewed_executor_receipt_ref",
     "self_review_closes_quality_gate": False,
     "codex_cli_may_serve_both_roles_only_as_separate_invocations": True,
     "missing_independent_reviewer_record_policy": "fail_closed_or_route_back",

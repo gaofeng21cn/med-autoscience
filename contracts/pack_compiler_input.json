@@ -163,6 +163,8 @@
     "missing_independent_reviewer_record_policy": "fail_closed_or_route_back",
     "required": true,
     "reviewer_auditor_agent_role": "quality_gate_reviewer_or_auditor",
+    "reviewer_receipt_executor_binding_field": "reviewed_executor_receipt_ref",
+    "reviewer_receipt_must_bind_executor_receipt": true,
     "self_review_closes_quality_gate": false,
     "separate_context_record_required": true,
     "separate_invocation_required": true,
