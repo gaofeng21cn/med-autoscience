@@ -266,6 +266,7 @@ chmod +x "${{UV_PROJECT_ENVIRONMENT}}/bin/python"
         {
             "MAS_CLEAN_RUNNER_REUSE_ENV": "1",
             "MAS_CLEAN_RUNNER_REUSE_ROOT": str(reuse_root),
+            "MAS_CLEAN_RUNNER_TMP_ROOT": "",
             "MAS_FAKE_UV_LOG": str(uv_log),
             "PATH": f"{fake_bin}{os.pathsep}{env['PATH']}",
         }
