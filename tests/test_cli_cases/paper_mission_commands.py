@@ -948,6 +948,21 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         / "paper_mission_candidate_package"
         / "20260623T2100Z"
     )
+    external_paper_delta_ref = tmp_path / "non_synonymous_paper_delta_packet.json"
+    external_paper_delta_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_non_authority_owner_decision_packet",
+                "authority_flags": {
+                    "writes_authority": False,
+                    "writes_runtime": False,
+                    "writes_yang_authority": False,
+                    "writes_paper_body": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
     exit_code = cli.main(
         [
@@ -959,6 +974,8 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
             study_id,
             "--output-root",
             str(output_root),
+            "--paper-facing-delta-ref",
+            str(external_paper_delta_ref),
             "--format",
             "json",
         ]
@@ -1030,11 +1047,17 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
             encoding="utf-8"
         )
     )
+    submission_milestone_checklist = json.loads(
+        Path(payload["output_manifest"]["submission_milestone_checklist_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
     candidate_manifest = json.loads(
         Path(payload["output_manifest"]["candidate_manifest_ref"]).read_text(
             encoding="utf-8"
         )
     )
+    adopted_external_ref = str(external_paper_delta_ref.resolve())
     assert package_manifest["mode"] == "non_authority_candidate_package"
     assert package_manifest["milestone_kind"] == "submission_milestone_candidate"
     assert package_manifest["counts_as_paper_progress"] is True
@@ -1057,6 +1080,10 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert (
         package_manifest["artifact_refs"]["owner_blocker_packet"]
         == payload["output_manifest"]["owner_blocker_packet_ref"]
+    )
+    assert package_manifest["adopted_external_paper_delta_ref"] == adopted_external_ref
+    assert payload["output_manifest"]["adopted_external_paper_delta_ref"] == (
+        adopted_external_ref
     )
     assert (
         package_manifest["artifact_refs"]["submission_milestone_checklist"]
@@ -1106,6 +1133,9 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
     assert owner_consumption_request["candidate_refs"][
         "paper_facing_candidate_delta"
     ] == payload["output_manifest"]["paper_facing_candidate_delta_ref"]
+    assert owner_consumption_request["candidate_refs"][
+        "adopted_external_paper_delta"
+    ] == adopted_external_ref
     assert owner_consumption_request["candidate_refs"]["owner_blocker_packet"] == (
         payload["output_manifest"]["owner_blocker_packet_ref"]
     )
@@ -1131,6 +1161,21 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         "can_claim_paper_progress"
     ] is False
     assert owner_consumption_request["counts_as_paper_progress"] is False
+    assert submission_milestone_checklist["adopted_external_paper_delta_ref"] == (
+        adopted_external_ref
+    )
+    assert submission_milestone_checklist[
+        "adopted_external_paper_delta_authority_boundary"
+    ] == {
+        "candidate_is_authority": False,
+        "authority_materialized": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+    }
     assert owner_blocker_packet["surface_kind"] == "paper_mission_owner_blocker_packet"
     assert owner_blocker_packet["status"] == "context_only"
     assert owner_blocker_packet["candidate_is_authority"] is False

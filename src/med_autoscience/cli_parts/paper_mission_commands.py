@@ -177,6 +177,7 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     package_parser = mission_subparsers.add_parser("package-candidate")
     _add_common_args(package_parser)
     package_parser.add_argument("--output-root", required=True)
+    package_parser.add_argument("--paper-facing-delta-ref")
 
     drive_parser = mission_subparsers.add_parser("drive")
     _add_common_args(drive_parser)
@@ -241,6 +242,7 @@ def handle_paper_mission_command(
             None,
         ),
         output_root=getattr(args, "output_root", None),
+        paper_facing_delta_ref=getattr(args, "paper_facing_delta_ref", None),
         dry_run=bool(getattr(args, "dry_run", False)),
         source="cli",
     )
@@ -264,6 +266,7 @@ def build_paper_mission_readback(
     study_progress_payload: str | Path | None = None,
     domain_health_diagnostic_payload: str | Path | None = None,
     output_root: str | Path | None = None,
+    paper_facing_delta_ref: str | Path | None = None,
     dry_run: bool = False,
     source: str = "unknown",
     enable_opl_live_probe: bool = False,
@@ -284,6 +287,7 @@ def build_paper_mission_readback(
             profile_ref=profile_ref,
             study_id=study_id,
             output_root=output_root,
+            paper_facing_delta_ref=paper_facing_delta_ref,
             source=source,
         )
     if paper_mission_command == "drive":
@@ -2844,6 +2848,7 @@ def _build_materialized_candidate_package_readback(
     output_root: str | Path | None,
     source: str,
     source_readback_override: Mapping[str, Any] | None = None,
+    paper_facing_delta_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     if output_root is None:
         raise ValueError("--output-root is required for package-candidate")
@@ -2929,6 +2934,11 @@ def _build_materialized_candidate_package_readback(
         paper_facing_candidate_delta=paper_facing_candidate_delta,
         owner_consumption_request=owner_consumption_request,
         owner_blocker_packet=owner_blocker_packet,
+        adopted_external_paper_delta_ref=(
+            str(Path(paper_facing_delta_ref).expanduser().resolve())
+            if paper_facing_delta_ref is not None
+            else None
+        ),
     )
     return {
         "surface_kind": "paper_mission_candidate_package_write_readback",
@@ -3672,6 +3682,7 @@ def _write_materialized_candidate_package_outputs(
     paper_facing_candidate_delta: dict[str, Any],
     owner_consumption_request: dict[str, Any],
     owner_blocker_packet: dict[str, Any],
+    adopted_external_paper_delta_ref: str | None = None,
 ) -> dict[str, Any]:
     root = output_root.expanduser().resolve()
     _assert_safe_candidate_package_output_root(root)
@@ -3752,6 +3763,10 @@ def _write_materialized_candidate_package_outputs(
         "candidate_manifest": str(outputs["candidate_manifest"]),
         "package_manifest": str(outputs["package_manifest"]),
     }
+    if adopted_external_paper_delta_ref is not None:
+        owner_consumption_candidate_refs["adopted_external_paper_delta"] = (
+            adopted_external_paper_delta_ref
+        )
     owner_blocker_packet_payload = {
         **owner_blocker_packet,
         "candidate_refs": owner_consumption_candidate_refs,
@@ -3810,6 +3825,22 @@ def _write_materialized_candidate_package_outputs(
             == "owner_blocker_candidate_ready",
         ),
     }
+    if adopted_external_paper_delta_ref is not None:
+        payloads["submission_milestone_checklist"][
+            "adopted_external_paper_delta_ref"
+        ] = adopted_external_paper_delta_ref
+        payloads["submission_milestone_checklist"][
+            "adopted_external_paper_delta_authority_boundary"
+        ] = {
+            "candidate_is_authority": False,
+            "authority_materialized": False,
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+        }
     payloads.update(
         {
             f"ai_owner_decision_sidecar::{kind}": {
@@ -3866,6 +3897,11 @@ def _write_materialized_candidate_package_outputs(
         ],
         "artifact_refs": sidecar_refs,
         "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
+        **(
+            {"adopted_external_paper_delta_ref": adopted_external_paper_delta_ref}
+            if adopted_external_paper_delta_ref is not None
+            else {}
+        ),
         "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
         "paper_facing_candidate_delta_ref": str(
             outputs["paper_facing_candidate_delta"]
@@ -3906,6 +3942,7 @@ def _write_materialized_candidate_package_outputs(
         "writes_authority": False,
         "writes_runtime": False,
         "writes_yang_authority": False,
+        "writes_paper_body": False,
         "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(root),
         "package_manifest_ref": str(outputs["package_manifest"]),
         "paper_mission_readback_ref": str(outputs["paper_mission_readback"]),
@@ -3928,6 +3965,11 @@ def _write_materialized_candidate_package_outputs(
         ),
         "paper_facing_artifact_refs": paper_facing_artifact_refs,
         "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
+        **(
+            {"adopted_external_paper_delta_ref": adopted_external_paper_delta_ref}
+            if adopted_external_paper_delta_ref is not None
+            else {}
+        ),
     }
 
 
