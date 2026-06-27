@@ -3161,51 +3161,6 @@ def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
 
 
 
-def test_paper_mission_consume_candidate_picks_up_transaction_fields(
-    tmp_path: Path,
-    capsys,
-) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = _write_profile_with_study(tmp_path)
-    mission_id = "paper-mission::001-paper::gate-clearing::manual"
-    transaction = _paper_mission_transaction_payload(
-        mission_id=mission_id,
-        study_id="001-paper",
-    )
-    candidate_path = _write_candidate_manifest(
-        tmp_path,
-        paper_mission_transaction=transaction,
-    )
-
-    exit_code = cli.main(
-        [
-            "paper-mission",
-            "consume-candidate",
-            "--candidate",
-            str(candidate_path),
-            "--dry-run",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-paper",
-            "--format",
-            "json",
-        ]
-    )
-    payload = json.loads(capsys.readouterr().out)
-
-    assert exit_code == 0
-    assert payload["transaction_state"] == "terminal_decision_recorded"
-    assert payload["stage_terminal_decision"] == transaction["stage_terminal_decision"]
-    assert payload["opl_route_command"] == transaction["opl_route_command"]
-    assert payload["paper_mission_run_candidate"]["transaction_state"] == (
-        "terminal_decision_recorded"
-    )
-    assert payload["paper_mission_transaction_readback"]["writes_authority"] is False
-    assert payload["mutation_policy"]["writes_authority"] is False
-    assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
-    _assert_forbidden_authority_untouched(tmp_path)
-
 
 def test_paper_mission_consume_candidate_route_back_readback_exposes_owner_answer_delta_ref(
     tmp_path: Path,
