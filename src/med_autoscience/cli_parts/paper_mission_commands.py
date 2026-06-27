@@ -415,6 +415,11 @@ def build_paper_mission_readback(
         )
         else None
     )
+    candidate_source_transaction = (
+        _candidate_manifest_transaction(candidate_ref)
+        if paper_mission_command == "consume-candidate"
+        else {}
+    )
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -435,6 +440,11 @@ def build_paper_mission_readback(
         "objective": selected_objective,
         **({"candidate_ref": candidate_ref} if candidate_ref is not None else {}),
         **_transaction_readback_output_fields(transaction_readback),
+        **(
+            {"candidate_source_transaction": candidate_source_transaction}
+            if candidate_source_transaction
+            else {}
+        ),
         "consume_candidate_status": _consume_candidate_status_for_transaction_readback(
             transaction_readback=transaction_readback,
             authority_consume_readback=authority_consume_readback,
@@ -1419,6 +1429,11 @@ def _refresh_consume_readback_after_opl_submission(
         "idempotent_noop",
     }:
         return dict(consume_readback)
+    submission_source_transaction = _first_mapping(
+        _mapping(consume_readback.get("stage_route_submission_source_transaction")),
+        _mapping(consume_readback.get("candidate_source_transaction")),
+        _mapping(consume_readback.get("paper_mission_transaction")),
+    )
     transaction_readback = _paper_mission_transaction_readback(
         mission_id=_optional_text(consume_readback.get("mission_id"))
         or "paper-mission::unknown",
@@ -1439,9 +1454,7 @@ def _refresh_consume_readback_after_opl_submission(
     )
     refreshed = dict(consume_readback)
     refreshed.update(_transaction_readback_output_fields(transaction_readback))
-    refreshed["stage_route_submission_source_transaction"] = _mapping(
-        consume_readback.get("paper_mission_transaction")
-    )
+    refreshed["stage_route_submission_source_transaction"] = submission_source_transaction
     refreshed["consume_candidate_status"] = (
         _consume_candidate_status_for_transaction_readback(
             transaction_readback=transaction_readback,
@@ -2232,6 +2245,13 @@ def _canonicalize_followthrough_transaction_identity(
         payload["transaction_id"] = transaction_id
     route = dict(_mapping(payload.get("opl_route_command")))
     if route and transaction_id is not None:
+        decision = _mapping(payload.get("stage_terminal_decision"))
+        if (
+            _optional_text(decision.get("decision_kind")) == "route_back"
+            and (target_stage_id := _optional_text(decision.get("target_stage_id")))
+            is not None
+        ):
+            route["target"] = target_stage_id
         route["source_terminal_decision_ref"] = f"{transaction_id}#stage_terminal_decision"
         payload["opl_route_command"] = route
     return payload
@@ -3125,10 +3145,10 @@ def _followthrough_transaction_for_readback(
     owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
     transaction = _first_mapping(
         _canonicalize_followthrough_transaction_identity(
-            _mapping(owner_answer.get("paper_mission_transaction"))
+            _mapping(readback.get("stage_route_submission_source_transaction"))
         ),
         _canonicalize_followthrough_transaction_identity(
-            _mapping(readback.get("stage_route_submission_source_transaction"))
+            _mapping(owner_answer.get("paper_mission_transaction"))
         ),
         _canonicalize_followthrough_transaction_identity(
             _mapping(readback.get("paper_mission_transaction"))
@@ -3154,6 +3174,7 @@ def _followthrough_transaction_for_readback(
     target_stage = (
         _first_text(
             decision.get("target_stage_id"),
+            decision.get("route_target"),
             decision.get("next_stage_id"),
             transaction.get("stage_id"),
         )
@@ -3161,8 +3182,11 @@ def _followthrough_transaction_for_readback(
     )
     next_work_unit = (
         _first_text(
-            decision.get("repair_scope"),
             decision.get("target_stage_id"),
+            decision.get("route_target"),
+            decision.get("next_work_unit"),
+            decision.get("work_unit_id"),
+            decision.get("repair_scope"),
             "continue paper-facing submission milestone work",
         )
         or "continue paper-facing submission milestone work"
@@ -4196,6 +4220,10 @@ def _foreground_owner_decision_summary(
             "reason": terminal_decision.get("reason"),
             "next_owner": decision_next_owner,
             "next_stage_id": terminal_decision.get("next_stage_id"),
+            "target_stage_id": terminal_decision.get("target_stage_id"),
+            "next_work_unit": terminal_decision.get("next_work_unit"),
+            "work_unit_id": terminal_decision.get("work_unit_id"),
+            "repair_scope": terminal_decision.get("repair_scope"),
             "blocker_id": terminal_decision.get("blocker_id"),
             "unblock_condition": terminal_decision.get("unblock_condition"),
         },
@@ -4929,6 +4957,17 @@ def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, A
         payload = _load_json_object(path)
     except (OSError, json.JSONDecodeError, ValueError):
         return {}
+    package_candidate_ref = _optional_text(
+        _mapping(payload.get("artifact_refs")).get("candidate_manifest")
+    )
+    if package_candidate_ref is not None:
+        package_candidate_path = Path(package_candidate_ref).expanduser()
+        if not package_candidate_path.is_absolute():
+            package_candidate_path = path.parent / package_candidate_path
+        if package_candidate_path != path:
+            package_transaction = _candidate_manifest_transaction(package_candidate_path)
+            if package_transaction:
+                return package_transaction
     inline = _mapping(payload.get("paper_mission_transaction"))
     if inline:
         return inline

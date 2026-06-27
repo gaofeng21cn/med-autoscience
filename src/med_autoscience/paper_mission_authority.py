@@ -586,6 +586,7 @@ def _continuation_transaction_for_submission_package(
         )
         next_work_unit = (
             _first_text(
+                current_decision.get("target_stage_id"),
                 current_decision.get("route_target"),
                 current_decision.get("next_work_unit"),
                 current_decision.get("work_unit_id"),

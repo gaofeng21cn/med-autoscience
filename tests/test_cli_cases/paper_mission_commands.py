@@ -4220,6 +4220,14 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
         study_id=study_id,
         decision_kind="route_back",
     )
+    transaction["stage_terminal_decision"]["target_stage_id"] = (
+        "paper_mission_stage_route_domain_gate_pending"
+    )
+    transaction["stage_terminal_decision"]["repair_scope"] = (
+        "MAS authority kernel observed a domain gate terminal closeout; mission "
+        "executor must revise the paper mission candidate or submit a concrete "
+        "owner answer shape before OPL can advance."
+    )
     mission_payload = {
         "schema_version": "paper-mission-run.v1",
         "mission_id": mission_id,
@@ -4391,6 +4399,13 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
     assert payload["consume_candidate_status"] == "accepted_candidate"
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert enqueues[1]["payload"]["route_target"] == (
+        "paper_mission_stage_route_domain_gate_pending"
+    )
+    assert (
+        "MAS authority kernel observed"
+        not in enqueues[1]["payload"]["route_target"]
+    )
     assert enqueues[1]["payload"]["mission_id"] == mission_id
     assert "::followthrough" not in enqueues[1]["payload"]["mission_id"]
     followthrough_transaction = payload["consume_readback"][
