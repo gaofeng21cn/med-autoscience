@@ -45,12 +45,14 @@ def consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[st
     work_unit_id = _text(next_work_unit.get("unit_id")) or _text(next_work_unit.get("work_unit_id"))
     truth = _mapping(current_study.get("study_truth_snapshot"))
     route_epoch = _text(truth.get("truth_epoch")) or _text(truth.get("authority_epoch")) or study_id
-    source_fingerprint = _text(truth.get("source_signature")) or (
-        f"domain-transition::{_text(transition.get('decision_type')) or 'current'}::{work_unit_id or action_type}"
-    )
     current_route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
     current_basis = _mapping(_mapping(current_route.get("currentness_contract")).get("basis")) or _mapping(
         _mapping(current_route.get("source_refs")).get("owner_route_currentness_basis")
+    )
+    source_fingerprint = (
+        _text(current_route.get("source_fingerprint"))
+        or _text(truth.get("source_signature"))
+        or f"domain-transition::{_text(transition.get('decision_type')) or 'current'}::{work_unit_id or action_type}"
     )
     runtime_health_epoch = _text(_mapping(current_study.get("runtime_health_snapshot")).get("runtime_health_epoch")) or _text(
         current_basis.get("runtime_health_epoch")

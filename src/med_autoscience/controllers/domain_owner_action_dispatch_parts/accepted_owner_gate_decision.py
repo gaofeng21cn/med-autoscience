@@ -84,9 +84,74 @@ def dispatch_owner_route_for_progress(
     progress: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if not dispatch_matches_progress(progress=progress, dispatch=dispatch):
+    accepted = accepted_decision(progress)
+    if not accepted:
         return {}
-    return dispatch_owner_route(dispatch)
+    route = dispatch_owner_route(dispatch)
+    if dispatch_matches_progress(progress=progress, dispatch=dispatch):
+        return route
+    if not _body_omitted_dispatch_matches_accepted_decision(
+        accepted=accepted,
+        dispatch=dispatch,
+    ):
+        return {}
+    return owner_route_part.ensure_owner_route_v2(
+        {
+            "study_id": _text(dispatch.get("study_id")) or _text(progress.get("study_id")),
+            "quest_id": _text(dispatch.get("quest_id")) or _text(progress.get("quest_id")),
+            "next_owner": _text(dispatch.get("next_executable_owner"))
+            or _text(dispatch.get("owner")),
+            "allowed_actions": [_text(dispatch.get("action_type"))],
+            "truth_epoch": _text(accepted.get("work_unit_fingerprint")),
+            "runtime_health_epoch": _text(accepted.get("work_unit_fingerprint")),
+            "route_epoch": _text(accepted.get("work_unit_fingerprint")),
+            "source_fingerprint": _text(accepted.get("work_unit_fingerprint")),
+            "work_unit_fingerprint": _text(accepted.get("work_unit_fingerprint")),
+            "failure_signature": _text(accepted.get("work_unit_id")),
+            "owner_reason": _text(accepted.get("work_unit_id")),
+            "source_refs": {
+                "source_surface": AUTHORITY,
+                "source_ref": _text(accepted.get("route_back_evidence_ref")),
+                "work_unit_id": _text(accepted.get("work_unit_id")),
+                "work_unit_fingerprint": _text(accepted.get("work_unit_fingerprint")),
+                "owner_route_currentness_basis": _accepted_currentness_basis(accepted),
+            },
+            "currentness_contract": {
+                "status": "currentness_basis_required",
+                "basis": _accepted_currentness_basis(accepted),
+            },
+        }
+    )
+
+
+def _body_omitted_dispatch_matches_accepted_decision(
+    *,
+    accepted: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if _text(dispatch.get("action_type")) != _text(accepted.get("action_type")):
+        return False
+    if _text(dispatch.get("study_id")) is None:
+        return False
+    accepted_work_unit = _text(accepted.get("work_unit_id"))
+    if accepted_work_unit is not None and accepted_work_unit not in _dispatch_work_unit_values(dispatch):
+        return False
+    accepted_fingerprint = _text(accepted.get("work_unit_fingerprint"))
+    return bool(
+        accepted_fingerprint is not None
+        and accepted_fingerprint in _dispatch_fingerprint_values(dispatch)
+    )
+
+
+def _accepted_currentness_basis(accepted: Mapping[str, Any]) -> dict[str, Any]:
+    fingerprint = _text(accepted.get("work_unit_fingerprint"))
+    return {
+        "truth_epoch": fingerprint,
+        "runtime_health_epoch": fingerprint,
+        "source_fingerprint": fingerprint,
+        "work_unit_id": _text(accepted.get("work_unit_id")),
+        "work_unit_fingerprint": fingerprint,
+    }
 
 
 def _dispatch_uses_accepted_owner_gate_authority(dispatch: Mapping[str, Any]) -> bool:
@@ -109,12 +174,17 @@ def _dispatch_fingerprint_values(dispatch: Mapping[str, Any]) -> set[str]:
     basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(route.get("currentness_contract")).get("basis")
     )
+    dispatch_basis = _mapping(dispatch.get("currentness_basis"))
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     prompt_basis = _mapping(prompt_contract.get("owner_route_currentness_basis"))
     values = (
         dispatch.get("action_fingerprint"),
         dispatch.get("work_unit_fingerprint"),
         dispatch.get("repeat_suppression_key"),
+        dispatch.get("source_fingerprint"),
+        dispatch_basis.get("action_fingerprint"),
+        dispatch_basis.get("work_unit_fingerprint"),
+        dispatch_basis.get("source_fingerprint"),
         source_action.get("action_fingerprint"),
         source_action.get("work_unit_fingerprint"),
         route.get("work_unit_fingerprint"),
@@ -139,9 +209,12 @@ def _dispatch_work_unit_values(dispatch: Mapping[str, Any]) -> set[str]:
     basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(route.get("currentness_contract")).get("basis")
     )
+    dispatch_basis = _mapping(dispatch.get("currentness_basis"))
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     prompt_basis = _mapping(prompt_contract.get("owner_route_currentness_basis"))
     values = (
+        dispatch.get("work_unit_id"),
+        dispatch_basis.get("work_unit_id"),
         source_action.get("work_unit_id"),
         source_refs.get("work_unit_id"),
         basis.get("work_unit_id"),

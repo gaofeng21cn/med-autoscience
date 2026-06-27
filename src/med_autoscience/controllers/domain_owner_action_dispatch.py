@@ -1300,15 +1300,31 @@ def dispatch_domain_owner_actions(
             scan_payload=study_scan_payload,
             fresh_progress=study_fresh_progress,
         )
-        if not selected_dispatches and consumer_payload is None:
+        if (
+            not selected_dispatches
+            and consumer_payload is None
+            and not persisted_dispatches.has_current_consumer_dispatches(
+                study_id=study_id,
+                action_types=resolved_action_types,
+                consumer_latest_path=_consumer_latest_path(profile),
+            )
+        ):
             selected_dispatches = (
-                _current_materialized_dispatches(
+                persisted_dispatches.current_materialized_dispatches_for_current_route(
                     profile=profile,
                     study_id=study_id,
-                    action_types=resolved_action_types,
-                    mode=mode,
-                    apply=apply,
-                    fresh_progress=study_fresh_progress,
+                    dispatches=_current_materialized_dispatches(
+                        profile=profile,
+                        study_id=study_id,
+                        action_types=resolved_action_types,
+                        mode=mode,
+                        apply=apply,
+                        fresh_progress=study_fresh_progress,
+                    ),
+                    current_study=persisted_dispatches.current_study_with_consumed_transition_route(
+                        scan_payload=study_scan_payload,
+                        study_id=study_id,
+                    ),
                 )
             )
         for dispatch in selected_dispatches:

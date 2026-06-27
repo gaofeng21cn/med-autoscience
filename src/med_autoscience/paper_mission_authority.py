@@ -342,14 +342,14 @@ def _candidate_payload_from_submission_package(
         base_path=base_path,
     )
     paper_mission_transaction = _first_mapping(
+        _mapping(candidate_payload.get("paper_mission_transaction")),
+        _transaction_from_sidecar_refs(sidecar_refs, base_path=base_path),
+        _transaction_from_sidecar_refs(package_sidecar_refs, base_path=base_path),
         _continuation_transaction_for_submission_package(
             package=package,
             candidate_payload=candidate_payload,
             owner_blocker_packet=owner_blocker_packet,
         ),
-        _mapping(candidate_payload.get("paper_mission_transaction")),
-        _transaction_from_sidecar_refs(sidecar_refs, base_path=base_path),
-        _transaction_from_sidecar_refs(package_sidecar_refs, base_path=base_path),
     )
     candidate_id = _first_text(
         candidate_payload.get("candidate_id"),

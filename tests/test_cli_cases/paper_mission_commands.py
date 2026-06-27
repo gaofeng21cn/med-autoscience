@@ -4021,6 +4021,23 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
     assert payload["consume_candidate_status"] == "accepted_candidate"
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert enqueues[1]["payload"]["mission_id"] == mission_id
+    assert "::followthrough" not in enqueues[1]["payload"]["mission_id"]
+    followthrough_transaction = payload["consume_readback"][
+        "paper_mission_transaction_readback"
+    ][
+        "paper_mission_transaction"
+    ]
+    assert followthrough_transaction["mission_id"] == mission_id
+    assert (
+        followthrough_transaction["transaction_id"]
+        == enqueues[1]["payload"]["paper_mission_transaction_ref"]
+    )
+    assert (
+        followthrough_transaction["transaction_id"]
+        != payload["mission_id"]
+    )
+    assert payload["consume_readback"]["contract_validation"]["status"] == "validated"
     assert enqueues[0]["payload"]["paper_mission_transaction_ref"] != (
         enqueues[1]["payload"]["paper_mission_transaction_ref"]
     )

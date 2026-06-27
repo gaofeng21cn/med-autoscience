@@ -85,6 +85,37 @@ def test_semantic_progress_guard_ignores_candidate_packet_refs_without_owner_del
     )
 
 
+def test_semantic_progress_guard_ignores_followthrough_identity_wrappers() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    first = _route_back_consume_readback(
+        mission_id="paper-mission::dm003",
+        transaction_ref="paper-mission-transaction::dm003",
+    )
+    second = _route_back_consume_readback(
+        mission_id="paper-mission::dm003::followthrough::followthrough",
+        transaction_ref="paper-mission-transaction::dm003::followthrough::followthrough",
+    )
+
+    first_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=first,
+        handoff=_route_back_handoff(
+            mission_id="paper-mission::dm003",
+            transaction_ref="paper-mission-transaction::dm003",
+        ),
+    )
+    second_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=second,
+        handoff=_route_back_handoff(
+            mission_id="paper-mission::dm003::followthrough::followthrough",
+            transaction_ref="paper-mission-transaction::dm003::followthrough::followthrough",
+        ),
+        previous_guard=first_guard,
+    )
+
+    assert second_guard["status"] == "non_advancing_route_back"
+    assert second_guard["semantic_progress_observed"] is False
+
+
 def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     first = _route_back_consume_readback()
@@ -129,12 +160,15 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
 def _route_back_consume_readback(
     *,
     candidate_ref: str = "/tmp/package.json",
+    mission_id: str = "paper-mission::dm003",
+    transaction_ref: str = "paper-mission-transaction::dm003",
     consume_output_manifest: dict[str, object] | None = None,
     consume_result: dict[str, object] | None = None,
 ) -> dict[str, object]:
     transaction = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-        "mission_id": "paper-mission::dm003",
+        "mission_id": mission_id,
+        "transaction_id": transaction_ref,
         "stage_id": "submission_milestone_candidate",
         "stage_run_ref": "stage-run::same",
         "stage_terminal_decision": {
@@ -161,7 +195,7 @@ def _route_back_consume_readback(
     }
     return {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-        "mission_id": "paper-mission::dm003",
+        "mission_id": mission_id,
         "candidate_ref": candidate_ref,
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": transaction["stage_terminal_decision"],
@@ -184,14 +218,17 @@ def _route_back_consume_readback(
 
 
 def _route_back_handoff(
-    *, candidate_ref: str = "/tmp/package.json"
+    *,
+    candidate_ref: str = "/tmp/package.json",
+    mission_id: str = "paper-mission::dm003",
+    transaction_ref: str = "paper-mission-transaction::dm003",
 ) -> dict[str, object]:
     return {
         "handoff_status": "ready_for_opl_route_command",
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-        "mission_id": "paper-mission::dm003",
+        "mission_id": mission_id,
         "candidate_ref": candidate_ref,
-        "paper_mission_transaction_ref": "paper-mission-transaction::dm003",
+        "paper_mission_transaction_ref": transaction_ref,
         "opl_route_command_ref": "/tmp/opl-route-command.json",
         "route_command_kind": "route_back",
         "route_target": "submission_milestone_candidate",

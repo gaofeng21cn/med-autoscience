@@ -816,6 +816,38 @@ def _consumed_transition_current_dispatches_only(
     return current
 
 
+def current_study_with_consumed_transition_route(
+    *,
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+) -> dict[str, Any]:
+    return _with_consumed_transition_owner_route(scan_route_currentness.scan_study(scan_payload, study_id))
+
+
+def current_materialized_dispatches_for_current_route(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatches: list[dict[str, Any]],
+    current_study: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    if not dispatches:
+        return []
+    if scan_route_currentness.consumed_transition_owner_route(current_study):
+        return _consumed_transition_current_dispatches_only(
+            current_study=current_study,
+            dispatches=dispatches,
+            profile=profile,
+            study_id=study_id,
+        )
+    runtime_current = runtime_current_dispatch_selection.current_dispatches_only(
+        dispatches=dispatches,
+        current_study=current_study,
+        dispatch_currentness_score=_dispatch_currentness_score,
+    )
+    return runtime_current or dispatches
+
+
 def _dispatches_selectable_despite_blocking_progress(
     *,
     profile: WorkspaceProfile,
@@ -1117,6 +1149,23 @@ def current_consumer_dispatches(
         seen.add(key)
         dispatches.append(payload)
     return dispatches
+
+
+def has_current_consumer_dispatches(
+    *,
+    study_id: str,
+    action_types: tuple[str, ...],
+    consumer_latest_path: Path,
+) -> bool:
+    requested = set(action_types)
+    return any(
+        not requested or _text(dispatch.get("action_type")) in requested
+        for dispatch in current_consumer_dispatches(
+            study_id=study_id,
+            consumer_payload=None,
+            consumer_latest_path=consumer_latest_path,
+        )
+    )
 
 
 def _explicit_transition_request_blocker_dispatches(

@@ -167,7 +167,9 @@ def project_domain_transition(
             completion_receipt_consumption=human_gate_resume_receipt_consumption,
         )
 
-    if _requires_human_gate(controller_decision) and _controller_decision_currently_blocks_progress(status):
+    if _requires_human_gate(controller_decision) and _controller_decision_currently_blocks_progress(
+        status, controller_decision=controller_decision
+    ):
         return _transition(
             study_id=study_id,
             decision_type="human_gate",
@@ -796,18 +798,35 @@ def _current_progress_requires_human_gate(status: Mapping[str, Any]) -> bool:
     )
 
 
-def _controller_decision_currently_blocks_progress(status: Mapping[str, Any]) -> bool:
+def _controller_decision_currently_blocks_progress(
+    status: Mapping[str, Any],
+    *,
+    controller_decision: Mapping[str, Any] | None = None,
+) -> bool:
     decision = _text(status.get("decision"))
     reason = _text(status.get("reason"))
     quest_status = _text(status.get("quest_status"))
     if decision in {"resume", "continue", "relaunch", "noop"} and quest_status in {"running", "active", "retrying"}:
         return False
-    return decision in {"blocked", "pause", "stop"} or reason in {
+    if decision in {"blocked", "pause", "stop"} or reason in {
         "stop_loss",
         "user_stop",
         "publishability_stop_loss_recommended",
         "quest_waiting_for_user",
+    }:
+        return True
+    controller_decision = controller_decision or {}
+    controller_candidates = {
+        _text(controller_decision.get("decision_type")),
+        _text(controller_decision.get("route_decision")),
+        _text(controller_decision.get("route_target")),
+        _text(controller_decision.get("runtime_decision")),
+        _text(controller_decision.get("blocked_reason")),
     }
+    return bool(
+        {"stop_loss", "terminal_stop", "human_gate", "blocked", "stop"} & controller_candidates
+        or controller_decision.get("requires_human_confirmation") is True
+    )
 
 
 def _is_stop_loss(
@@ -816,7 +835,7 @@ def _is_stop_loss(
     controller_decision: Mapping[str, Any],
     status: Mapping[str, Any],
 ) -> bool:
-    if not _controller_decision_currently_blocks_progress(status):
+    if not _controller_decision_currently_blocks_progress(status, controller_decision=controller_decision):
         return _text(macro_state.get("reason")) in {
             "stop_loss",
             "user_stop",
