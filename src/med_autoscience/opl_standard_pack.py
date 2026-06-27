@@ -251,6 +251,22 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
                 "queue_or_worker_readiness_can_reset_budget": False,
                 "budget_exhausted_can_claim_completion": False,
             },
+            "mas_mission_executor_fallback_projection": {
+                "fallback_priority_order": [
+                    "paper_facing_delta",
+                    "owner_decision",
+                    "carry_forward_risk_receipt",
+                    "scope_or_evidence_or_research_pivot_decision",
+                    "narrow_stop_loss_or_human_gate",
+                ],
+                "typed_blocker_or_human_gate_default": False,
+                "opl_redrive_default": False,
+                "domain_policy_section_ref": (
+                    "contracts/mas-paper-study-stage-pack.json"
+                    "#/mission_first_non_advancing_route_back_policy/"
+                    "typed_blocker_and_human_gate_narrowing_policy"
+                ),
+            },
             "forbidden_public_or_readiness_claims": [
                 "domain_ready",
                 "runtime_ready",
