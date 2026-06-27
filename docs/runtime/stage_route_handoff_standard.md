@@ -171,6 +171,8 @@ Mission-first non-advancing route-back 的自动升级口径固定为 contract p
 
 MAS `paper-mission drive` 与 OPL `paper_mission/stage-route` request 必须同时携带 `mas_owned_executor_stage` packet。OPL 可以运输该 packet、展示 next stage 和停止同义 redrive，但不能把 packet 本身写成 owner receipt、typed blocker、human gate、paper delta、provider running 或 readiness 证据；这些输出仍必须由 MAS-owned executor stage 后续物化。
 
+当 `paper-mission drive` 已物化非 authority `owner_decision_packet`、`paper_facing_candidate_delta`、`owner_consumption_request` 和 governed consumption ledger，但 OPL live readback 仍是 `waiting_for_opl_runtime_live_readback` 时，MAS 不得继续把停止原因只写成 runtime pending。读面必须暴露 `mas_owned_executor_delta_ready` checkpoint、produced output refs、`mas_owned_executor_stage` 和 `forbidden_next_action=synonymous_route_back_redrive`，使下一步回到 MAS-owned executor / owner consumption，而不是等待同义 OPL redrive。该 checkpoint 仍不写 owner receipt、typed blocker、human gate、paper body、publication/controller authority、runtime queue 或 provider attempt；它只证明 foreground executor 已产出可消费候选。
+
 这条规则不授权 MAS 手写 OPL queue / StageRun / provider attempt，也不授权 OPL 代替 MAS 判断医学语义推进。它同样不把重复 route-back、domain gate、worker ready、queue blocked、provider liveness、focused tests、docs 更新或 contract landed 写成 DM002/DM003 ready、runtime-ready、submission-ready、publication-ready、provider running 或 paper progress。
 
 ## Ordinary Progress Handoff

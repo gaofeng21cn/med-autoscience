@@ -605,6 +605,18 @@ def _build_paper_mission_drive_readback(
         consume_readback = _mapping(final_round.get("consume_readback"))
         handoff = _mapping(final_round.get("opl_route_handoff"))
         opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
+    mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
+        package_readback=package_readback,
+        consume_readback=consume_readback,
+        handoff=handoff,
+        progress_guard=followthrough["semantic_progress_guard"],
+    )
+    drive_result = _paper_mission_drive_result(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        opl_runtime_submission=opl_runtime_submission,
+        mas_owned_executor_delta=mas_executor_delta,
+    )
     return {
         "surface_kind": "paper_mission_drive_readback",
         "schema_version": 1,
@@ -648,6 +660,10 @@ def _build_paper_mission_drive_readback(
         "followthrough": followthrough,
         "semantic_progress_guard": followthrough["semantic_progress_guard"],
         "non_advancing_route_back": followthrough["non_advancing_route_back"],
+        "mas_owned_executor_delta": mas_executor_delta,
+        "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
+            "mas_owned_executor_stage"
+        ),
         "requires_mas_owned_executor_delta": followthrough[
             "requires_mas_owned_executor_delta"
         ],
@@ -686,11 +702,7 @@ def _build_paper_mission_drive_readback(
         },
         "forbidden_authority_writes": list(CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-        "drive_result": _paper_mission_drive_result(
-            consume_readback=consume_readback,
-            handoff=handoff,
-            opl_runtime_submission=opl_runtime_submission,
-        ),
+        "drive_result": drive_result,
     }
 
 
@@ -806,16 +818,32 @@ def _paper_mission_drive_followthrough(
         if next_progress_guard.get("status") == "non_advancing_route_back":
             non_advancing_route_back = next_progress_guard
             break
-    stop_reason = _paper_mission_followthrough_stop_reason(
+    mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
+        package_readback=current_package_readback,
         consume_readback=current_consume_readback,
-        opl_runtime_submission=current_submission,
-        exhausted=len(rounds) >= DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT
-        and _paper_mission_followthrough_trigger(
+        handoff=current_handoff,
+        progress_guard=current_progress_guard,
+    )
+    stop_reason = (
+        "mas_owned_executor_delta_ready"
+        if mas_executor_delta is not None and not non_advancing_route_back
+        else _paper_mission_followthrough_stop_reason(
             consume_readback=current_consume_readback,
             opl_runtime_submission=current_submission,
+            exhausted=len(rounds) >= DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT
+            and _paper_mission_followthrough_trigger(
+                consume_readback=current_consume_readback,
+                opl_runtime_submission=current_submission,
+            )
+            is not None,
+            non_advancing_route_back=non_advancing_route_back is not None,
         )
-        is not None,
-        non_advancing_route_back=non_advancing_route_back is not None,
+    )
+    final_drive_result = _paper_mission_drive_result(
+        consume_readback=current_consume_readback,
+        handoff=current_handoff,
+        opl_runtime_submission=current_submission,
+        mas_owned_executor_delta=mas_executor_delta,
     )
     return {
         "surface_kind": "paper_mission_drive_followthrough_readback",
@@ -827,12 +855,12 @@ def _paper_mission_drive_followthrough(
         "stop_reason": stop_reason,
         "semantic_progress_guard": current_progress_guard,
         "non_advancing_route_back": non_advancing_route_back,
-        "requires_mas_owned_executor_delta": non_advancing_route_back is not None,
-        "final_drive_result": _paper_mission_drive_result(
-            consume_readback=current_consume_readback,
-            handoff=current_handoff,
-            opl_runtime_submission=current_submission,
+        "mas_owned_executor_delta": mas_executor_delta,
+        "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
+            "mas_owned_executor_stage"
         ),
+        "requires_mas_owned_executor_delta": non_advancing_route_back is not None,
+        "final_drive_result": final_drive_result,
         "authority_boundary": {
             "mas_authority_owner": "MedAutoScience",
             "runtime_owner": "one-person-lab",
@@ -855,6 +883,109 @@ def _paper_mission_drive_followthrough(
                 ]
             ),
             "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
+
+
+def _paper_mission_mas_owned_executor_delta_checkpoint(
+    *,
+    package_readback: Mapping[str, Any],
+    consume_readback: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    progress_guard: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    output_manifest = _mapping(package_readback.get("output_manifest"))
+    owner_decision_packet_ref = _optional_text(
+        output_manifest.get("owner_decision_packet_ref")
+    )
+    paper_facing_delta_ref = _optional_text(
+        output_manifest.get("paper_facing_candidate_delta_ref")
+    )
+    if owner_decision_packet_ref is None and paper_facing_delta_ref is None:
+        return None
+    decision = _mapping(consume_readback.get("stage_terminal_decision"))
+    next_decision = _mapping(consume_readback.get("next_owner_or_human_decision"))
+    next_owner = _first_text(
+        decision.get("next_owner"),
+        handoff.get("next_owner"),
+        next_decision.get("next_owner"),
+    )
+    if next_owner != "mission_executor":
+        return None
+    runtime_status = _optional_text(consume_readback.get("opl_runtime_readback_status"))
+    if runtime_status not in {
+        "waiting_for_opl_runtime_live_readback",
+        "opl_runtime_readback_missing",
+        None,
+    }:
+        return None
+    signature = _optional_text(progress_guard.get("signature")) or _stable_sha256(
+        _mapping(progress_guard.get("signature_payload"))
+    )
+    signature_payload = _mapping(progress_guard.get("signature_payload")) or {
+        "study_id": _optional_text(consume_readback.get("study_id")),
+        "mission_id": _optional_text(consume_readback.get("mission_id")),
+        "paper_mission_transaction_ref": _optional_text(
+            handoff.get("paper_mission_transaction_ref")
+        ),
+        "route_command": _first_text(
+            handoff.get("route_command_kind"),
+            _mapping(consume_readback.get("opl_route_command")).get("command_kind"),
+        ),
+        "route_target": _first_text(
+            handoff.get("route_target"),
+            _mapping(consume_readback.get("opl_route_command")).get("target"),
+        ),
+    }
+    produced_outputs = _compact_non_null_mapping(
+        {
+            "owner_decision_packet_ref": owner_decision_packet_ref,
+            "paper_facing_delta_ref": paper_facing_delta_ref,
+            "owner_consumption_request_ref": _optional_text(
+                output_manifest.get("owner_consumption_request_ref")
+            ),
+            "owner_blocker_packet_ref": _optional_text(
+                output_manifest.get("owner_blocker_packet_ref")
+            ),
+            "submission_milestone_checklist_ref": _optional_text(
+                output_manifest.get("submission_milestone_checklist_ref")
+            ),
+            "package_manifest_ref": _optional_text(
+                output_manifest.get("package_manifest_ref")
+            ),
+            "consume_readback_ref": _optional_text(
+                _mapping(consume_readback.get("consume_output_manifest")).get(
+                    "consume_readback_ref"
+                )
+            ),
+        }
+    )
+    return {
+        "surface_kind": "paper_mission_mas_owned_executor_delta_checkpoint",
+        "schema_version": 1,
+        "status": "mas_owned_executor_delta_ready",
+        "owner": "MedAutoScience",
+        "executor": "Codex CLI",
+        "trigger": "opl_runtime_live_readback_missing_after_candidate_materialization",
+        "next_owner": "mission_executor",
+        "semantic_progress_signature": signature,
+        "semantic_progress_signature_payload": signature_payload,
+        "mas_owned_executor_stage": _paper_mission_mas_owned_executor_stage_packet(
+            signature=signature,
+            signature_payload=signature_payload,
+        ),
+        "produced_outputs": produced_outputs,
+        "stop_same_semantic_redrive": True,
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_paper_progress": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
             "can_claim_runtime_ready": False,
         },
     }
@@ -1415,6 +1546,7 @@ def _paper_mission_drive_result(
     consume_readback: Mapping[str, Any],
     handoff: Mapping[str, Any],
     opl_runtime_submission: Mapping[str, Any],
+    mas_owned_executor_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     handoff_ready = _optional_text(handoff.get("handoff_status")) == (
         "ready_for_opl_route_command"
@@ -1430,6 +1562,12 @@ def _paper_mission_drive_result(
         runtime_status=runtime_status,
         carrier_readback=carrier_readback,
     )
+    if (
+        _optional_text(_mapping(mas_owned_executor_delta).get("status"))
+        == "mas_owned_executor_delta_ready"
+        and status == "opl_runtime_submission_pending"
+    ):
+        status = "mas_owned_executor_delta_ready"
     return {
         "status": status,
         "stage_terminal_decision": decision.get("decision_kind"),
