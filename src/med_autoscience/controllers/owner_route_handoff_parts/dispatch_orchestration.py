@@ -39,7 +39,7 @@ from .dispatch_receipts import write_dispatch_receipt
 from .task_kinds import (
     ALLOWED_TASK_KINDS,
     FORBIDDEN_PAYLOAD_FLAGS,
-    LEGACY_DIAGNOSTIC_TASK_KINDS,
+    RETIRED_DIAGNOSTIC_TASK_KINDS,
 )
 
 STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
@@ -630,7 +630,7 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
             reason="wrong_domain",
             detail=f"MAS domain handler cannot dispatch domain {domain_id}",
         )
-    if task_kind in LEGACY_DIAGNOSTIC_TASK_KINDS:
+    if task_kind in RETIRED_DIAGNOSTIC_TASK_KINDS:
         return _dispatch_error(
             generated_at=generated_at,
             task_id=task_id,
@@ -641,7 +641,7 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
                 "only after the PaperMissionRun cutover; use paper_mission/start_or_resume "
                 "or MAS authority consume surfaces instead."
             ),
-            legacy_diagnostic_task_kind=True,
+            retired_diagnostic_task_kind=True,
         )
     if _forbidden_write_requested(task):
         forbidden_requested_writes = _forbidden_requested_writes(task)
@@ -705,7 +705,7 @@ def _dispatch_error(
     forbidden_domain_truth_write: bool = False,
     requested_writes: list[str] | None = None,
     forbidden_requested_writes: list[str] | None = None,
-    legacy_diagnostic_task_kind: bool = False,
+    retired_diagnostic_task_kind: bool = False,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "surface_kind": "mas_family_domain_handler_dispatch_receipt",
@@ -724,15 +724,16 @@ def _dispatch_error(
     }
     if forbidden_requested_writes is not None:
         payload["forbidden_requested_writes"] = forbidden_requested_writes
-    if legacy_diagnostic_task_kind:
+    if retired_diagnostic_task_kind:
         payload.update(
             {
-                "legacy_diagnostic_task_kind": True,
+                "retired_diagnostic_task_kind": True,
                 "default_paper_mission_entry": False,
                 "migration_diagnostic_only": True,
                 "ordinary_schedulable": False,
                 "active_caller_class": "diagnostic_only",
                 "replacement_task_kind": "paper_mission/start_or_resume",
+                "diagnostic_role": "retired_default_paper_dispatch",
             }
         )
     if task_id is not None:

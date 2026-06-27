@@ -291,9 +291,9 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     }
     assert "domain_owner/default-executor-dispatch" not in export["dispatch"]["allowed_task_kinds"]
     assert "domain_owner/default-executor-dispatch" in export["dispatch"][
-        "legacy_diagnostic_task_kinds"
+        "retired_diagnostic_task_kinds"
     ]
-    assert export["legacy_default_executor_dispatch_diagnostics"] == []
+    assert export["retired_default_paper_dispatch_diagnostics"] == []
 
     default_tasks = export["paper_mission_default_tasks"]
     assert [task["task_kind"] for task in default_tasks] == ["paper_mission/start_or_resume"]
@@ -350,44 +350,13 @@ def test_domain_handler_dispatch_rejects_legacy_default_executor_task_kind(
     assert receipt["accepted"] is False
     assert receipt["reason"] == "legacy_default_executor_dispatch_tombstoned"
     assert receipt["task_kind"] == "domain_owner/default-executor-dispatch"
-    assert receipt["legacy_diagnostic_task_kind"] is True
+    assert receipt["retired_diagnostic_task_kind"] is True
     assert receipt["default_paper_mission_entry"] is False
     assert receipt["migration_diagnostic_only"] is True
     assert receipt["ordinary_schedulable"] is False
     assert receipt["active_caller_class"] == "diagnostic_only"
     assert receipt["replacement_task_kind"] == "paper_mission/start_or_resume"
-
-
-def test_legacy_default_executor_dispatch_task_is_demoted_when_carried() -> None:
-    from med_autoscience.controllers.owner_route_handoff_parts import domain_handler_export
-
-    marked = domain_handler_export._mark_legacy_default_executor_tasks(
-        [
-            {
-                "task_kind": "domain_owner/default-executor-dispatch",
-            },
-            {
-                "task_kind": "paper_mission/start_or_resume",
-                "default_paper_mission_entry": True,
-                "migration_diagnostic_only": False,
-            },
-        ]
-    )
-
-    legacy_task, paper_mission_task = marked
-    assert legacy_task == {
-        "task_kind": "domain_owner/default-executor-dispatch",
-        "action_intent": "legacy_default_executor_diagnostic",
-        "default_paper_mission_entry": False,
-        "migration_diagnostic_only": True,
-        "ordinary_schedulable": False,
-        "active_caller_class": "diagnostic_only",
-    }
-    assert paper_mission_task == {
-        "task_kind": "paper_mission/start_or_resume",
-        "default_paper_mission_entry": True,
-        "migration_diagnostic_only": False,
-    }
+    assert receipt["diagnostic_role"] == "retired_default_paper_dispatch"
 
 
 def test_product_entry_default_mainline_has_no_legacy_dhd_or_dispatch_command(

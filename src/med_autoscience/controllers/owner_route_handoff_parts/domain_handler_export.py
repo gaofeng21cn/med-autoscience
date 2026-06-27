@@ -36,7 +36,7 @@ from ..study_domain_transition_table_parts import family_transition_spec
 from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
-from .default_executor_dispatch_tasks import legacy_default_executor_dispatch_diagnostics
+from .default_executor_dispatch_tasks import retired_default_paper_dispatch_diagnostics
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
@@ -63,7 +63,7 @@ from .supervisor_typed_blocker_resolution import (
     supervisor_stop_decision_resolution_shapes as _supervisor_stop_decision_resolution_shapes,
 )
 from .substrate_adapter import build_opl_substrate_adapter_projection
-from .task_kinds import ALLOWED_TASK_KINDS, LEGACY_DIAGNOSTIC_TASK_KINDS
+from .task_kinds import ALLOWED_TASK_KINDS, RETIRED_DIAGNOSTIC_TASK_KINDS
 from .transition_readback_consumption import (
     current_owner_action_supersedes_transition_request,
     currentness_consumes_current_control_transition_request,
@@ -108,7 +108,7 @@ def export_family_domain_handler(
         opl_production_proof=opl_production_proof,
         opl_production_proof_ref=opl_production_proof_ref,
     )
-    pending_tasks, legacy_dispatch_diagnostics, paper_mission_default_tasks = _pending_family_tasks(
+    pending_tasks, retired_dispatch_diagnostics, paper_mission_default_tasks = _pending_family_tasks(
         studies=studies,
         profile=profile,
         profile_ref=profile_ref,
@@ -175,7 +175,7 @@ def export_family_domain_handler(
             "default_queue_source": "/paper_mission_default_tasks",
             "legacy_queue_source": "/pending_family_tasks",
             "allowed_task_kinds": sorted({*ALLOWED_TASK_KINDS, PAPER_MISSION_START_OR_RESUME_TASK_KIND}),
-            "legacy_diagnostic_task_kinds": sorted(LEGACY_DIAGNOSTIC_TASK_KINDS),
+            "retired_diagnostic_task_kinds": sorted(RETIRED_DIAGNOSTIC_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
@@ -254,7 +254,7 @@ def export_family_domain_handler(
         "paper_mission_default_tasks": paper_mission_default_tasks,
         "pending_family_tasks_policy": _pending_family_tasks_policy(),
         "pending_family_tasks": pending_tasks,
-        "legacy_default_executor_dispatch_diagnostics": legacy_dispatch_diagnostics,
+        "retired_default_paper_dispatch_diagnostics": retired_dispatch_diagnostics,
         "studies": studies,
     }
 
@@ -290,7 +290,7 @@ def _pending_family_tasks(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     tasks: list[dict[str, Any]] = []
     paper_mission_default_tasks: list[dict[str, Any]] = []
-    legacy_dispatch_diagnostics: list[dict[str, Any]] = []
+    retired_dispatch_diagnostics: list[dict[str, Any]] = []
     guarded_apply_targets = _guarded_apply_targets(studies)
     tasks.extend(
         provider_hosted_guarded_apply_tasks(
@@ -312,12 +312,12 @@ def _pending_family_tasks(
         study_id = text(study.get("study_id"))
         if study_id is None:
             continue
-        legacy_diagnostic = legacy_default_executor_dispatch_diagnostics(
+        retired_diagnostic = retired_default_paper_dispatch_diagnostics(
             profile=profile,
             study_id=study_id,
         )
-        if legacy_diagnostic is not None:
-            legacy_dispatch_diagnostics.append(legacy_diagnostic)
+        if retired_diagnostic is not None:
+            retired_dispatch_diagnostics.append(retired_diagnostic)
         current_progress = _fresh_study_progress(
             study=study,
             profile=profile,
@@ -424,11 +424,11 @@ def _pending_family_tasks(
         )
         if controller_task is not None:
             tasks.append(controller_task)
-    ordinary_tasks, legacy_task_diagnostics = _split_legacy_default_executor_tasks(tasks)
-    legacy_dispatch_diagnostics.extend(legacy_task_diagnostics)
+    ordinary_tasks, retired_task_diagnostics = _split_retired_default_paper_tasks(tasks)
+    retired_dispatch_diagnostics.extend(retired_task_diagnostics)
     return (
         _mark_non_default_paper_mission_tasks(ordinary_tasks),
-        legacy_dispatch_diagnostics,
+        retired_dispatch_diagnostics,
         paper_mission_default_tasks,
     )
 
@@ -759,26 +759,17 @@ def _paper_mission_stage_packet_refs(readback: Mapping[str, Any]) -> list[str]:
     return [ref for ref in refs if ref]
 
 
-def _mark_legacy_default_executor_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    marked: list[dict[str, Any]] = []
-    for task in tasks:
-        if text(task.get("task_kind")) == "domain_owner/default-executor-dispatch":
-            task = _mark_legacy_default_executor_task(task)
-        marked.append(task)
-    return marked
-
-
-def _split_legacy_default_executor_tasks(
+def _split_retired_default_paper_tasks(
     tasks: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     ordinary_tasks: list[dict[str, Any]] = []
-    legacy_diagnostics: list[dict[str, Any]] = []
+    retired_diagnostics: list[dict[str, Any]] = []
     for task in tasks:
         if text(task.get("task_kind")) == "domain_owner/default-executor-dispatch":
-            legacy_diagnostics.append(_mark_legacy_default_executor_task(task))
+            retired_diagnostics.append(_retired_default_paper_task_diagnostic(task))
             continue
         ordinary_tasks.append(task)
-    return ordinary_tasks, legacy_diagnostics
+    return ordinary_tasks, retired_diagnostics
 
 
 def _mark_non_default_paper_mission_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -803,14 +794,17 @@ def _mark_non_default_paper_mission_tasks(tasks: list[dict[str, Any]]) -> list[d
     return marked
 
 
-def _mark_legacy_default_executor_task(task: Mapping[str, Any]) -> dict[str, Any]:
+def _retired_default_paper_task_diagnostic(task: Mapping[str, Any]) -> dict[str, Any]:
     return {
         **task,
+        "surface_kind": "retired_default_paper_dispatch_task_diagnostic",
         "default_paper_mission_entry": False,
         "migration_diagnostic_only": True,
         "ordinary_schedulable": False,
         "active_caller_class": "diagnostic_only",
-        "action_intent": text(task.get("action_intent")) or "legacy_default_executor_diagnostic",
+        "action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        "replacement_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        "diagnostic_role": "retired_default_paper_dispatch",
     }
 
 

@@ -557,7 +557,7 @@ def _dispatch_has_currentness_identity(dispatch: Mapping[str, Any]) -> bool:
     )
 
 
-def legacy_default_executor_dispatch_diagnostics(
+def retired_default_paper_dispatch_diagnostics(
     *,
     profile: WorkspaceProfile,
     study_id: str,
@@ -576,7 +576,7 @@ def legacy_default_executor_dispatch_diagnostics(
             continue
         refs.append(
             {
-                "role": "legacy_default_executor_dispatch_request",
+                "role": "retired_default_paper_dispatch_request",
                 "ref": _workspace_relative(dispatch_path, workspace_root=profile.workspace_root),
                 "action_type": _text(dispatch.get("action_type")),
                 "dispatch_status": _text(dispatch.get("dispatch_status")),
@@ -587,12 +587,14 @@ def legacy_default_executor_dispatch_diagnostics(
     if not refs:
         return None
     return {
-        "surface_kind": "legacy_default_executor_dispatch_diagnostics",
+        "surface_kind": "retired_default_paper_dispatch_diagnostics",
         "study_id": study_id,
         "status": "projection_only_not_pending_family_task",
+        "diagnostic_role": "retired_default_paper_dispatch",
+        "replacement_task_kind": "paper_mission/start_or_resume",
         "legacy_surface": REQUIRED_SURFACE,
-        "legacy_carrier_projection": True,
-        "legacy_dispatch_ref_count": len(refs),
+        "retired_carrier_projection": True,
+        "retired_dispatch_ref_count": len(refs),
         "refs": refs,
         "body_included": False,
         "schedulable": False,
@@ -1179,5 +1181,5 @@ def _normalized_path_text(value: object) -> str | None:
 __all__ = [
     "TASK_KIND",
     "default_executor_dispatch_tasks",
-    "legacy_default_executor_dispatch_diagnostics",
+    "retired_default_paper_dispatch_diagnostics",
 ]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .default_executor_dispatch_tasks import TASK_KIND as DEFAULT_EXECUTOR_DISPATCH_TASK_KIND
+from .default_executor_dispatch_tasks import TASK_KIND as RETIRED_DEFAULT_PAPER_DISPATCH_TASK_KIND
 
 
 FORBIDDEN_PAYLOAD_FLAGS = (
@@ -28,6 +28,6 @@ ALLOWED_TASK_KINDS = {
     "status/read": "status_read",
     "notification/receipt": "notification_receipt",
 }
-LEGACY_DIAGNOSTIC_TASK_KINDS = {
-    DEFAULT_EXECUTOR_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
+RETIRED_DIAGNOSTIC_TASK_KINDS = {
+    RETIRED_DEFAULT_PAPER_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
 }

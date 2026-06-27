@@ -471,19 +471,21 @@ def test_domain_handler_export_demotes_unbound_default_executor_dispatch_to_diag
         for task in payload["pending_family_tasks"]
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
     ] == []
-    diagnostics = payload["legacy_default_executor_dispatch_diagnostics"]
+    diagnostics = payload["retired_default_paper_dispatch_diagnostics"]
     assert len(diagnostics) == 1
     diagnostic = diagnostics[0]
     assert diagnostic == {
-        "surface_kind": "legacy_default_executor_dispatch_diagnostics",
+        "surface_kind": "retired_default_paper_dispatch_diagnostics",
         "study_id": study_id,
         "status": "projection_only_not_pending_family_task",
+        "diagnostic_role": "retired_default_paper_dispatch",
+        "replacement_task_kind": "paper_mission/start_or_resume",
         "legacy_surface": "default_executor_dispatch_request",
-        "legacy_carrier_projection": True,
-        "legacy_dispatch_ref_count": 1,
+        "retired_carrier_projection": True,
+        "retired_dispatch_ref_count": 1,
         "refs": [
             {
-                "role": "legacy_default_executor_dispatch_request",
+                "role": "retired_default_paper_dispatch_request",
                 "ref": dispatch_ref,
                 "action_type": "run_quality_repair_batch",
                 "dispatch_status": "ready",

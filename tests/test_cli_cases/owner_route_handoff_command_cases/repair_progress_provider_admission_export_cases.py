@@ -360,4 +360,4 @@ def test_domain_handler_export_prefers_fresh_repair_progress_ai_reviewer_followu
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
     ]
     assert tasks == []
-    assert payload["legacy_default_executor_dispatch_diagnostics"] == []
+    assert payload["retired_default_paper_dispatch_diagnostics"] == []

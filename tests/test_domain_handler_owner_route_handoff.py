@@ -42,7 +42,7 @@ def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: P
     assert capability["authority_boundary"]["can_authorize_publication_readiness"] is False
 
 
-def test_domain_handler_export_routes_legacy_dispatch_kind_to_diagnostic_bucket(tmp_path: Path) -> None:
+def test_domain_handler_export_keeps_retired_dispatch_out_of_current_paper_queue(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-paper", quest_id="001-paper")
@@ -55,7 +55,7 @@ def test_domain_handler_export_routes_legacy_dispatch_kind_to_diagnostic_bucket(
     assert export["dispatch"]["default_action_intent"] == "paper_mission/start_or_resume"
     assert "paper_mission/start_or_resume" in export["dispatch"]["allowed_task_kinds"]
     assert "domain_owner/default-executor-dispatch" not in export["dispatch"]["allowed_task_kinds"]
-    assert export["dispatch"]["legacy_diagnostic_task_kinds"] == [
+    assert export["dispatch"]["retired_diagnostic_task_kinds"] == [
         "domain_owner/default-executor-dispatch"
     ]
     assert not [
@@ -65,12 +65,12 @@ def test_domain_handler_export_routes_legacy_dispatch_kind_to_diagnostic_bucket(
     ]
 
 
-def test_legacy_default_executor_dispatch_tasks_split_out_of_ordinary_pending_tasks() -> None:
+def test_retired_default_paper_dispatch_tasks_split_out_of_ordinary_pending_tasks() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
     )
 
-    ordinary, diagnostics = module._split_legacy_default_executor_tasks(
+    ordinary, diagnostics = module._split_retired_default_paper_tasks(
         [
             {
                 "task_kind": "domain_owner/default-executor-dispatch",
@@ -87,9 +87,12 @@ def test_legacy_default_executor_dispatch_tasks_split_out_of_ordinary_pending_ta
     assert [task["task_kind"] for task in ordinary] == ["paper_mission/start_or_resume"]
     assert diagnostics == [
         {
+            "surface_kind": "retired_default_paper_dispatch_task_diagnostic",
             "task_kind": "domain_owner/default-executor-dispatch",
             "task_id": "legacy-dispatch-001",
-            "action_intent": "legacy_default_executor_diagnostic",
+            "action_intent": "paper_mission/start_or_resume",
+            "replacement_task_kind": "paper_mission/start_or_resume",
+            "diagnostic_role": "retired_default_paper_dispatch",
             "default_paper_mission_entry": False,
             "migration_diagnostic_only": True,
             "ordinary_schedulable": False,
