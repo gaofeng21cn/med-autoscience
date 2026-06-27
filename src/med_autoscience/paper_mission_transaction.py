@@ -7,6 +7,13 @@ from typing import Any
 
 
 CONTRACT_VERSION = "paper-mission-transaction.v1"
+MAS_SEMANTIC_PROGRESS_EXECUTOR_STAGE = "paper_mission_semantic_progress_executor"
+NON_ADVANCING_ROUTE_BACK_STATUSES = frozenset(
+    {
+        "non_advancing_apply",
+        "non_advancing_route_back",
+    }
+)
 REQUIRED_FIELDS = (
     "transaction_id",
     "mission_id",
@@ -179,6 +186,30 @@ def stage_terminal_decision_for_consume_result(
             "next_stage_id": default_next_stage_id,
             "accepted_result": outcome,
         }
+    elif _consume_result_requires_semantic_progress_executor(consume_result):
+        decision = {
+            "decision_kind": "route_back",
+            "status": "non_advancing_route_back",
+            "reason": default_reason,
+            "next_owner": MAS_SEMANTIC_PROGRESS_EXECUTOR_STAGE,
+            "target_stage_id": MAS_SEMANTIC_PROGRESS_EXECUTOR_STAGE,
+            "repair_scope": _text(consume_result.get("resume_condition"))
+            or "materialize MAS semantic progress delta before any OPL redrive",
+            "stop_same_semantic_redrive": True,
+            "forbidden_next_action": "synonymous_route_back_redrive",
+            "mas_owned_executor_stage": {
+                "stage_type": MAS_SEMANTIC_PROGRESS_EXECUTOR_STAGE,
+                "owner": "MedAutoScience",
+                "executor": "Codex CLI",
+                "trigger": "non_advancing_route_back",
+                "required_output": (
+                    "semantic artifact delta, owner receipt, stable typed blocker, "
+                    "human gate, route-back evidence with successor work unit, "
+                    "carry-forward risk receipt, or repair-lane proposal"
+                ),
+            },
+            **_semantic_progress_refs(consume_result),
+        }
     elif status == "route_back":
         decision = {
             "decision_kind": "route_back",
@@ -231,6 +262,44 @@ def stage_terminal_decision_for_consume_result(
         }
     _validate_stage_terminal_decision(decision)
     return decision
+
+
+def _consume_result_requires_semantic_progress_executor(
+    consume_result: Mapping[str, Any],
+) -> bool:
+    status = _text(consume_result.get("status"))
+    outcome = _text(consume_result.get("outcome"))
+    if status in NON_ADVANCING_ROUTE_BACK_STATUSES:
+        return True
+    if outcome in NON_ADVANCING_ROUTE_BACK_STATUSES:
+        return True
+    guard_value = consume_result.get("semantic_progress_guard")
+    guard = dict(guard_value) if isinstance(guard_value, Mapping) else {}
+    if _text(guard.get("status")) == "non_advancing_route_back":
+        return True
+    if isinstance(consume_result.get("non_advancing_route_back"), Mapping):
+        return True
+    return consume_result.get("non_advancing_route_back") is True
+
+
+def _semantic_progress_refs(consume_result: Mapping[str, Any]) -> dict[str, Any]:
+    refs: dict[str, Any] = {}
+    for key in (
+        "semantic_progress_signature",
+        "semantic_progress_signature_payload",
+        "stable_non_advancing_blocker_ref",
+    ):
+        value = consume_result.get(key)
+        if _text(value) is not None or isinstance(value, Mapping):
+            refs[key] = deepcopy(value)
+    guard_value = consume_result.get("semantic_progress_guard")
+    guard = dict(guard_value) if isinstance(guard_value, Mapping) else {}
+    if guard:
+        refs["semantic_progress_guard"] = guard
+    non_advancing = consume_result.get("non_advancing_route_back")
+    if isinstance(non_advancing, Mapping):
+        refs["non_advancing_route_back"] = deepcopy(dict(non_advancing))
+    return refs
 
 
 def opl_route_command_for_terminal_decision(

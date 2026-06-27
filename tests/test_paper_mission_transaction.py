@@ -234,3 +234,28 @@ def test_terminal_decision_for_not_consumed_continues_same_stage() -> None:
 
     assert decision["decision_kind"] == "continue_same_stage"
     assert decision["next_work_unit"] == "claim_evidence_repair"
+
+
+def test_terminal_decision_for_non_advancing_route_back_uses_mas_executor_stage() -> None:
+    decision = stage_terminal_decision_for_consume_result(
+        mission_id="paper-mission::dm003::stage",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        stage_id="phenotype_gap_repair",
+        consume_result={
+            "status": "route_back",
+            "semantic_progress_guard": {
+                "status": "non_advancing_route_back",
+                "semantic_progress_signature": "signature::same",
+            },
+        },
+        default_next_owner="one-person-lab",
+        default_next_stage_id="publication_gate_replay",
+        default_next_work_unit="phenotype_gap_repair",
+        default_reason="same semantic route-back repeated without paper delta",
+    )
+
+    assert decision["decision_kind"] == "route_back"
+    assert decision["status"] == "non_advancing_route_back"
+    assert decision["next_owner"] == "paper_mission_semantic_progress_executor"
+    assert decision["target_stage_id"] == "paper_mission_semantic_progress_executor"
+    assert decision["stop_same_semantic_redrive"] is True
