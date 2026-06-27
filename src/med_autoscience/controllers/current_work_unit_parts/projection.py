@@ -125,6 +125,15 @@ def action_work_unit(
             "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref")),
             "provider_admission_pending": pending_provider_admission,
             "transition_request_pending": action.get("transition_request_pending") is True,
+            "active_caller_class": _text(action.get("active_caller_class")),
+            "paper_mission_default_role": _text(action.get("paper_mission_default_role")),
+            "diagnostic_role": _text(action.get("diagnostic_role")),
+            "replacement_task_kind": _text(action.get("replacement_task_kind")),
+            "default_paper_mission_entry": _explicit_bool(action, "default_paper_mission_entry"),
+            "ordinary_schedulable": _explicit_bool(action, "ordinary_schedulable"),
+            "can_select_next_paper_stage": _explicit_bool(action, "can_select_next_paper_stage"),
+            "can_authorize_provider_admission": _explicit_bool(action, "can_authorize_provider_admission"),
+            "counts_as_paper_progress": _explicit_bool(action, "counts_as_paper_progress"),
             "provider_attempt_or_lease_required": action.get("provider_attempt_or_lease_required") is True,
             "provider_admission_requires_opl_runtime_result": action.get(
                 "provider_admission_requires_opl_runtime_result"
@@ -426,6 +435,12 @@ def _text_items(value: object) -> list[str]:
         if text is not None and text not in result:
             result.append(text)
     return result
+
+
+def _explicit_bool(payload: Mapping[str, Any], key: str) -> bool | None:
+    if key not in payload:
+        return None
+    return payload.get(key) is True
 
 
 def _projection_metadata(currentness_basis: Mapping[str, Any]) -> dict[str, Any]:

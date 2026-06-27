@@ -629,3 +629,48 @@ def test_current_work_unit_rejects_cross_identity_opl_transition_readback() -> N
     assert work_unit["status"] == "executable_owner_action"
     assert work_unit["state"]["provider_admission_pending"] is False
     assert "pending_provider_admission_evidence" not in work_unit["state"]
+
+
+def test_paper_recovery_successor_projects_consume_readback_diagnostic_boundary() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "materialize_successor_owner_action",
+                    "successor_owner_action": {
+                        "action_type": "request_opl_stage_attempt",
+                        "owner": "write",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "source_surface": "domain_transition",
+                    },
+                },
+            },
+        }
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert work_unit["state"]["active_caller_class"] == "consume_readback_diagnostic_only"
+    assert work_unit["state"]["paper_mission_default_role"] == (
+        "consume_readback_diagnostic_or_explicit_owner_handoff"
+    )
+    assert work_unit["state"]["replacement_task_kind"] == "paper_mission/start_or_resume"
+    assert work_unit["state"]["default_paper_mission_entry"] is False
+    assert work_unit["state"]["ordinary_schedulable"] is False
+    assert work_unit["state"]["can_select_next_paper_stage"] is False
+    assert work_unit["state"]["can_authorize_provider_admission"] is False
+    assert work_unit["state"]["counts_as_paper_progress"] is False
+    assert "paper_progress" in work_unit["state"]["forbidden_claims"]
+    assert work_unit["state"]["provider_admission_pending"] is False
+    assert work_unit["state"]["transition_request_pending"] is True

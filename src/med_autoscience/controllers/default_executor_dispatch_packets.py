@@ -9,6 +9,21 @@ from typing import Any
 
 
 IMMUTABLE_PACKET_DIRNAME = "immutable"
+LEGACY_DISPATCH_PACKET_BOUNDARY = {
+    "surface_kind": "legacy_default_executor_dispatch_packet_boundary",
+    "active_caller_class": "abi_provenance_carrier_only",
+    "diagnostic_role": "retired_default_paper_dispatch",
+    "replacement_task_kind": "paper_mission/start_or_resume",
+    "ordinary_schedulable": False,
+    "default_paper_mission_entry": False,
+    "migration_diagnostic_only": True,
+    "can_select_next_paper_stage": False,
+    "can_authorize_provider_admission": False,
+    "counts_as_paper_progress": False,
+    "can_claim_runtime_ready": False,
+    "can_claim_publication_ready": False,
+    "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+}
 
 
 def immutable_dispatch_packet_path(
@@ -41,6 +56,18 @@ def dispatch_with_immutable_packet_ref(
     refs["immutable_dispatch_path"] = str(packet_path)
     refs["stage_packet_path"] = str(packet_path)
     payload["refs"] = refs
+    payload["legacy_default_executor_dispatch_packet_boundary"] = dict(LEGACY_DISPATCH_PACKET_BOUNDARY)
+    payload["active_caller_class"] = "abi_provenance_carrier_only"
+    payload["diagnostic_role"] = "retired_default_paper_dispatch"
+    payload["replacement_task_kind"] = "paper_mission/start_or_resume"
+    payload["ordinary_schedulable"] = False
+    payload["default_paper_mission_entry"] = False
+    payload["migration_diagnostic_only"] = True
+    payload["can_select_next_paper_stage"] = False
+    payload["can_authorize_provider_admission"] = False
+    payload["counts_as_paper_progress"] = False
+    payload["can_claim_runtime_ready"] = False
+    payload["can_claim_publication_ready"] = False
     return payload
 
 
@@ -81,6 +108,7 @@ def _mapping(value: object) -> dict[str, Any]:
 
 __all__ = [
     "IMMUTABLE_PACKET_DIRNAME",
+    "LEGACY_DISPATCH_PACKET_BOUNDARY",
     "dispatch_stage_packet_path",
     "dispatch_with_immutable_packet_ref",
     "immutable_dispatch_packet_path",
