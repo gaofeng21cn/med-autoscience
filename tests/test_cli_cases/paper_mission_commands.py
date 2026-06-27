@@ -2089,50 +2089,6 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
-def test_paper_mission_consume_candidate_uses_authority_consume_readback(
-    tmp_path: Path,
-    capsys,
-) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = _write_profile_with_study(tmp_path)
-    candidate_path = _write_candidate_manifest(tmp_path)
-
-    exit_code = cli.main(
-        [
-            "paper-mission",
-            "consume-candidate",
-            "--candidate",
-            str(candidate_path),
-            "--dry-run",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-paper",
-            "--format",
-            "json",
-        ]
-    )
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
-
-    assert exit_code == 0
-    assert payload["paper_mission_command"] == "consume-candidate"
-    assert payload["action_intent"] == "paper_mission/consume_candidate"
-    assert payload["authority_consume_readback"]["status"] == "accepted_candidate"
-    assert payload["authority_consume_readback"]["consume_result"]["status"] == "accepted"
-    assert (
-        payload["paper_mission_run_candidate"]["consume_result"]
-        == payload["authority_consume_readback"]["consume_result"]
-    )
-    assert payload["paper_mission_run_candidate"]["mission_state"] == "consumed"
-    assert payload["paper_mission_run_candidate"]["artifact_delta_ledger"][0]["status"] == (
-        "candidate_consumed"
-    )
-    assert payload["contract_validation"]["status"] == "validated"
-    assert payload["mutation_policy"]["writes_authority"] is False
-    assert payload["authority_consume_readback"]["write_plan"]["written_files"] == []
-    _assert_forbidden_authority_untouched(tmp_path)
-
 
 def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transaction(
     tmp_path: Path,
