@@ -55,6 +55,7 @@ from med_autoscience.paper_mission_terminal_owner_gate import (
     terminal_owner_gate_next_decision,
 )
 from med_autoscience.paper_mission_transaction import (
+    PaperMissionTransaction,
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
 )
@@ -1537,16 +1538,20 @@ def _paper_mission_semantic_progress_signature_payload(
             handoff.get("study_id"),
             transaction.get("study_id"),
         ),
-        "mission_id": _first_text(
-            consume_readback.get("mission_id"),
-            handoff.get("mission_id"),
-            transaction.get("mission_id"),
+        "mission_id": _paper_mission_canonical_followthrough_identity(
+            _first_text(
+                consume_readback.get("mission_id"),
+                handoff.get("mission_id"),
+                transaction.get("mission_id"),
+            )
         ),
         "transaction_identity": {
-            "paper_mission_transaction_ref": _first_text(
-                handoff.get("paper_mission_transaction_ref"),
-                route.get("paper_mission_transaction_ref"),
-                transaction.get("transaction_id"),
+            "paper_mission_transaction_ref": _paper_mission_canonical_followthrough_identity(
+                _first_text(
+                    handoff.get("paper_mission_transaction_ref"),
+                    route.get("paper_mission_transaction_ref"),
+                    transaction.get("transaction_id"),
+                )
             ),
             "stage_id": _first_text(
                 transaction.get("stage_id"),
@@ -1729,6 +1734,16 @@ def _paper_mission_semantic_delta_refs(progress_refs: Mapping[str, Any]) -> dict
 
 def _compact_non_null_mapping(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if value is not None}
+
+
+def _paper_mission_canonical_followthrough_identity(value: str | None) -> str | None:
+    if value is None:
+        return None
+    marker = "::followthrough"
+    index = value.find(marker)
+    if index < 0:
+        return value
+    return value[:index]
 
 
 def _route_back_evidence_kind(ref: str | None) -> str | None:
@@ -2600,17 +2615,45 @@ def _followthrough_transaction_for_readback(
             decision.get("route_back_evidence_ref")
         ),
     }
+    followthrough_basis = f"terminal-route-back-followthrough::{_slug(mission_id)}"
     stage_run_ref = f"paper-mission-followthrough://{study_id}/{_slug(mission_id)}"
-    return build_paper_mission_transaction(
-        mission_id=f"{mission_id}::followthrough",
-        study_id=study_id,
-        stage_id=target_stage,
-        stage_run_ref=stage_run_ref,
-        terminal_decision=terminal_decision,
-        artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
-        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
-        idempotency_basis=f"terminal-route-back-followthrough::{_slug(mission_id)}",
+    return _paper_mission_followthrough_transaction_instance(
+        build_paper_mission_transaction(
+            mission_id=mission_id,
+            study_id=study_id,
+            stage_id=target_stage,
+            stage_run_ref=stage_run_ref,
+            terminal_decision=terminal_decision,
+            artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
+            paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+            idempotency_basis=followthrough_basis,
+        ),
+        instance_basis=followthrough_basis,
     )
+
+
+def _paper_mission_followthrough_transaction_instance(
+    transaction: Mapping[str, Any],
+    *,
+    instance_basis: str,
+) -> dict[str, Any]:
+    payload = dict(transaction)
+    suffix = f"::followthrough::{_stable_sha256(instance_basis)[:12]}"
+    payload["transaction_id"] = f"{payload['transaction_id']}{suffix}"
+    decision = dict(_mapping(payload.get("stage_terminal_decision")))
+    route = dict(_mapping(payload.get("opl_route_command")))
+    route["source_terminal_decision_ref"] = (
+        f"{payload['transaction_id']}#stage_terminal_decision"
+    )
+    payload["stage_terminal_decision"] = decision
+    payload["opl_route_command"] = route
+    idempotency = dict(_mapping(payload.get("idempotency")))
+    idempotency["idempotency_key"] = f"{idempotency['idempotency_key']}{suffix}"
+    idempotency["transaction_fingerprint"] = (
+        f"{idempotency['transaction_fingerprint']}{suffix}"
+    )
+    payload["idempotency"] = idempotency
+    return PaperMissionTransaction.from_payload(payload).to_dict()
 
 
 def _followthrough_candidate_manifest(
