@@ -28,6 +28,19 @@ REQUIRED_QUALITY_GATE_REFS = (
     "reviewer_quality_receipt_ref",
     "review_ledger_delta_ref",
 )
+AI_OWNER_DECISION_SIDECAR_REFS = {
+    "claim_strength_adjustment": (
+        "ai_owner_decision_sidecars/claim_strength_adjustment.json"
+    ),
+    "scope_reduction": "ai_owner_decision_sidecars/scope_reduction.json",
+    "evidence_substitution": (
+        "ai_owner_decision_sidecars/evidence_substitution.json"
+    ),
+    "research_pivot": "ai_owner_decision_sidecars/research_pivot.json",
+    "carry_forward_risk_receipt": (
+        "ai_owner_decision_sidecars/carry_forward_risk_receipt.json"
+    ),
+}
 
 
 def paper_mission_submission_milestone_checklist(
@@ -148,6 +161,14 @@ def paper_mission_owner_blocker_packet(
         terminal_decision=terminal_decision,
         terminal_owner_gate=terminal_owner_gate,
     )
+    ai_owner_decision_sidecars = paper_mission_ai_owner_decision_sidecars(
+        readback=readback,
+        blocker_kind=blocker_kind,
+        blocked_reason=blocked_reason,
+        terminal_decision=terminal_decision,
+        terminal_owner_gate=terminal_owner_gate,
+        carry_forward_risk_receipt=carry_forward_risk_receipt,
+    )
     return {
         "surface_kind": "paper_mission_owner_blocker_packet",
         "schema_version": 1,
@@ -194,6 +215,8 @@ def paper_mission_owner_blocker_packet(
             study_id=_text(readback.get("study_id")),
             candidate_manifest_ref=None,
         ),
+        "ai_owner_decision_sidecar_refs": dict(AI_OWNER_DECISION_SIDECAR_REFS),
+        "ai_owner_decision_sidecars": ai_owner_decision_sidecars,
         **(
             {"carry_forward_risk_receipt": carry_forward_risk_receipt}
             if carry_forward_risk_receipt
@@ -240,6 +263,9 @@ def paper_mission_owner_consumption_request(
     )
     carry_forward_risk_receipt = _mapping(
         owner_blocker_packet.get("carry_forward_risk_receipt")
+    )
+    ai_owner_decision_sidecars = _mapping(
+        owner_blocker_packet.get("ai_owner_decision_sidecars")
     )
     return {
         "surface_kind": "paper_mission_owner_consumption_request",
@@ -295,6 +321,8 @@ def paper_mission_owner_consumption_request(
             if carry_forward_risk_receipt
             else {}
         ),
+        "ai_owner_decision_sidecar_refs": dict(AI_OWNER_DECISION_SIDECAR_REFS),
+        "ai_owner_decision_sidecars": ai_owner_decision_sidecars,
         "evidence_refs": _owner_evidence_refs(
             readback=readback,
             terminal_decision=_mapping(readback.get("stage_terminal_decision")),
@@ -315,10 +343,109 @@ def paper_mission_owner_consumption_request(
                 REQUIRED_AUTHORITY_MATERIALIZATION_REFS
             ),
             "required_quality_gate_refs": list(REQUIRED_QUALITY_GATE_REFS),
+            "ai_owner_decision_sidecar_refs": dict(AI_OWNER_DECISION_SIDECAR_REFS),
         },
         "authority_boundary": _authority_boundary(),
         "forbidden_authority_writes": list(forbidden_authority_writes),
         "forbidden_authority_claims": list(forbidden_authority_claims),
+    }
+
+
+def paper_mission_ai_owner_decision_sidecars(
+    *,
+    readback: Mapping[str, Any],
+    blocker_kind: str,
+    blocked_reason: str,
+    terminal_decision: Mapping[str, Any],
+    terminal_owner_gate: Mapping[str, Any],
+    carry_forward_risk_receipt: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    base = {
+        "schema_version": 1,
+        "study_id": readback.get("study_id"),
+        "mission_id": readback.get("mission_id"),
+        "status": "candidate",
+        "candidate_is_authority": False,
+        "authority_materialized": False,
+        "counts_as_paper_progress": False,
+        "blocker_kind": blocker_kind,
+        "blocked_reason": blocked_reason,
+        "route_back_evidence_ref": _first_text(
+            terminal_decision.get("route_back_evidence_ref"),
+            _mapping(readback.get("next_owner_or_human_decision")).get(
+                "route_back_evidence_ref"
+            ),
+            terminal_owner_gate.get("route_back_evidence_ref"),
+        ),
+        "target_stage_id": _first_text(
+            terminal_decision.get("target_stage_id"),
+            terminal_decision.get("next_stage_id"),
+            terminal_owner_gate.get("work_unit_id"),
+        ),
+        "authority_boundary": _authority_boundary(),
+    }
+    return {
+        "claim_strength_adjustment": {
+            **base,
+            "surface_kind": "paper_mission_ai_owner_claim_strength_adjustment",
+            "decision_kind": "claim_strength_adjustment",
+            "owner_question": (
+                "Should the route-back candidate reduce claim strength to match "
+                "the available evidence?"
+            ),
+            "allowed_owner_answers": [
+                "reduce_claim_strength",
+                "keep_claim_with_additional_evidence",
+                "route_back_with_specific_evidence_gap",
+            ],
+        },
+        "scope_reduction": {
+            **base,
+            "surface_kind": "paper_mission_ai_owner_scope_reduction",
+            "decision_kind": "scope_reduction",
+            "owner_question": (
+                "Should the candidate narrow scope instead of redriving the same "
+                "route-back work unit?"
+            ),
+            "allowed_owner_answers": [
+                "narrow_population_or_endpoint_scope",
+                "defer_out_of_scope_claim",
+                "keep_scope_with_owner_receipt",
+            ],
+        },
+        "evidence_substitution": {
+            **base,
+            "surface_kind": "paper_mission_ai_owner_evidence_substitution",
+            "decision_kind": "evidence_substitution",
+            "owner_question": (
+                "Should a substitute evidence source be used for the blocked claim?"
+            ),
+            "allowed_owner_answers": [
+                "substitute_existing_valid_evidence",
+                "request_new_evidence_ref",
+                "reject_substitution",
+            ],
+        },
+        "research_pivot": {
+            **base,
+            "surface_kind": "paper_mission_ai_owner_research_pivot",
+            "decision_kind": "research_pivot",
+            "owner_question": (
+                "Should the mission pivot the research framing instead of carrying "
+                "the current claim forward?"
+            ),
+            "allowed_owner_answers": [
+                "pivot_research_question",
+                "keep_current_question_with_risk_receipt",
+                "stop_loss_or_human_gate",
+            ],
+        },
+        "carry_forward_risk_receipt": {
+            **base,
+            **dict(carry_forward_risk_receipt),
+            "surface_kind": "paper_mission_ai_owner_carry_forward_risk_receipt",
+            "decision_kind": "carry_forward_risk_receipt",
+        },
     }
 
 
@@ -585,9 +712,11 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "ACCEPTED_OWNER_ANSWER_SHAPES",
+    "AI_OWNER_DECISION_SIDECAR_REFS",
     "REQUIRED_AUTHORITY_MATERIALIZATION_REFS",
     "REQUIRED_QUALITY_GATE_REFS",
     "SUBMISSION_MILESTONE_KIND",
+    "paper_mission_ai_owner_decision_sidecars",
     "paper_mission_owner_blocker_packet",
     "paper_mission_owner_consumption_request",
     "paper_mission_submission_milestone_checklist",

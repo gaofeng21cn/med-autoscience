@@ -997,7 +997,7 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         "/owner_blocker_packet.json"
     )
     written_files = [Path(path) for path in payload["output_manifest"]["written_files"]]
-    assert len(written_files) == 16
+    assert len(written_files) == 21
     assert all(path.is_file() for path in written_files)
     assert all(output_root in path.parents for path in written_files)
     package_manifest = json.loads(
@@ -1142,6 +1142,46 @@ def test_paper_mission_package_candidate_writes_non_authority_owner_decision_pac
         "reviewer_quality_receipt_ref",
     }
     assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
+    assert set(payload["output_manifest"]["ai_owner_decision_sidecar_refs"]) == {
+        "claim_strength_adjustment",
+        "scope_reduction",
+        "evidence_substitution",
+        "research_pivot",
+        "carry_forward_risk_receipt",
+    }
+    assert package_manifest["ai_owner_decision_sidecar_refs"] == payload[
+        "output_manifest"
+    ]["ai_owner_decision_sidecar_refs"]
+    assert owner_consumption_request["ai_owner_decision_sidecar_refs"] == payload[
+        "output_manifest"
+    ]["ai_owner_decision_sidecar_refs"]
+    assert owner_consumption_request["consume_path"]["ai_owner_decision_sidecar_refs"] == (
+        payload["output_manifest"]["ai_owner_decision_sidecar_refs"]
+    )
+    ai_owner_sidecars = {
+        kind: json.loads(Path(path).read_text(encoding="utf-8"))
+        for kind, path in payload["output_manifest"][
+            "ai_owner_decision_sidecar_refs"
+        ].items()
+    }
+    assert all(
+        sidecar["candidate_is_authority"] is False
+        and sidecar["authority_materialized"] is False
+        and sidecar["authority_boundary"]["writes_authority"] is False
+        and sidecar["authority_boundary"]["writes_runtime"] is False
+        for sidecar in ai_owner_sidecars.values()
+    )
+    assert ai_owner_sidecars["claim_strength_adjustment"]["decision_kind"] == (
+        "claim_strength_adjustment"
+    )
+    assert ai_owner_sidecars["scope_reduction"]["decision_kind"] == "scope_reduction"
+    assert ai_owner_sidecars["evidence_substitution"]["decision_kind"] == (
+        "evidence_substitution"
+    )
+    assert ai_owner_sidecars["research_pivot"]["decision_kind"] == "research_pivot"
+    assert ai_owner_sidecars["carry_forward_risk_receipt"]["decision_kind"] == (
+        "carry_forward_risk_receipt"
+    )
     assert set(payload["output_manifest"]["paper_facing_artifact_refs"]) == {
         "manuscript_patch_plan",
         "claim_evidence_ledger_delta",
@@ -1264,7 +1304,7 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
 
     assert exit_code == 0
     output_manifest = payload["output_manifest"]
-    assert len(output_manifest["written_files"]) == 16
+    assert len(output_manifest["written_files"]) == 21
     assert output_manifest["writes_authority"] is False
     assert output_manifest["writes_runtime"] is False
     assert output_manifest["writes_yang_authority"] is False
@@ -1283,6 +1323,16 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         Path(output_manifest["owner_consumption_request_ref"]).read_text(
             encoding="utf-8"
         )
+    )
+    assert set(output_manifest["ai_owner_decision_sidecar_refs"]) == {
+        "claim_strength_adjustment",
+        "scope_reduction",
+        "evidence_substitution",
+        "research_pivot",
+        "carry_forward_risk_receipt",
+    }
+    assert owner_consumption_request["ai_owner_decision_sidecar_refs"] == (
+        output_manifest["ai_owner_decision_sidecar_refs"]
     )
     owner_blocker_packet = json.loads(
         Path(output_manifest["owner_blocker_packet_ref"]).read_text(encoding="utf-8")
@@ -1622,7 +1672,7 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     assert exit_code == 0
     assert payload["consume_candidate_status"] == "typed_blocker"
     output_manifest = payload["output_manifest"]
-    assert len(output_manifest["written_files"]) == 16
+    assert len(output_manifest["written_files"]) == 21
     assert output_manifest["writes_authority"] is False
     assert output_manifest["writes_runtime"] is False
     assert output_manifest["writes_yang_authority"] is False
@@ -1630,6 +1680,16 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
         Path(output_manifest["owner_consumption_request_ref"]).read_text(
             encoding="utf-8"
         )
+    )
+    assert set(output_manifest["ai_owner_decision_sidecar_refs"]) == {
+        "claim_strength_adjustment",
+        "scope_reduction",
+        "evidence_substitution",
+        "research_pivot",
+        "carry_forward_risk_receipt",
+    }
+    assert owner_consumption_request["ai_owner_decision_sidecar_refs"] == (
+        output_manifest["ai_owner_decision_sidecar_refs"]
     )
     owner_blocker_packet = json.loads(
         Path(output_manifest["owner_blocker_packet_ref"]).read_text(encoding="utf-8")

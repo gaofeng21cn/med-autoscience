@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from med_autoscience.paper_mission_candidate_package import (
+    AI_OWNER_DECISION_SIDECAR_REFS,
     REQUIRED_AUTHORITY_MATERIALIZATION_REFS,
     REQUIRED_QUALITY_GATE_REFS,
     paper_mission_owner_blocker_packet,
@@ -91,4 +92,85 @@ def test_owner_packets_keep_authority_and_reviewer_gaps_explicit() -> None:
     ) == set(REQUIRED_AUTHORITY_MATERIALIZATION_REFS)
     assert set(owner_request["consume_path"]["required_quality_gate_refs"]) == set(
         REQUIRED_QUALITY_GATE_REFS
+    )
+
+
+def test_route_back_owner_fallback_exposes_ai_owner_decision_sidecars() -> None:
+    readback = {
+        "study_id": "study-1",
+        "mission_id": "mission-1",
+        "stage_terminal_decision": {
+            "decision_kind": "route_back",
+            "status": "route_back",
+            "reason": "claim_evidence_alignment_gap",
+            "route_back_evidence_ref": "route-back:study-1:mission-1",
+            "target_stage_id": "paper-write",
+        },
+        "opl_route_command": {
+            "command_kind": "route_back",
+            "target": "mission_executor",
+        },
+        "next_owner_or_human_decision": {
+            "next_owner": "mission_executor",
+            "route_back_evidence_ref": "route-back:study-1:mission-1",
+        },
+        "opl_runtime_readback_status": "route_back",
+    }
+    summary = {
+        "next_owner": "mission_executor",
+        "blocked_reason": "claim_evidence_alignment_gap",
+    }
+    handoff = {"status": "ready_for_mission_executor"}
+
+    owner_blocker = paper_mission_owner_blocker_packet(
+        readback=readback,
+        foreground_owner_decision_summary=summary,
+        mission_executor_handoff=handoff,
+        forbidden_authority_writes=["owner_receipt"],
+        forbidden_authority_claims=["publication_ready"],
+    )
+    owner_request = paper_mission_owner_consumption_request(
+        readback=readback,
+        candidate_manifest={"next_owner": "mission_executor"},
+        owner_decision_packet={"packet_id": "packet-1"},
+        foreground_owner_decision_summary=summary,
+        mission_executor_handoff=handoff,
+        paper_facing_candidate_delta={"status": "candidate_ready"},
+        owner_blocker_packet=owner_blocker,
+        candidate_refs={"package_manifest": "package_manifest.json"},
+        forbidden_authority_writes=["owner_receipt"],
+        forbidden_authority_claims=["publication_ready"],
+    )
+
+    assert owner_blocker["ai_owner_decision_sidecar_refs"] == (
+        AI_OWNER_DECISION_SIDECAR_REFS
+    )
+    assert owner_request["ai_owner_decision_sidecar_refs"] == (
+        AI_OWNER_DECISION_SIDECAR_REFS
+    )
+    assert owner_request["consume_path"]["ai_owner_decision_sidecar_refs"] == (
+        AI_OWNER_DECISION_SIDECAR_REFS
+    )
+    sidecars = owner_request["ai_owner_decision_sidecars"]
+    assert set(sidecars) == set(AI_OWNER_DECISION_SIDECAR_REFS)
+    assert all(
+        item["candidate_is_authority"] is False
+        and item["authority_materialized"] is False
+        and item["authority_boundary"]["writes_authority"] is False
+        and item["authority_boundary"]["writes_runtime"] is False
+        for item in sidecars.values()
+    )
+    assert sidecars["claim_strength_adjustment"]["decision_kind"] == (
+        "claim_strength_adjustment"
+    )
+    assert sidecars["scope_reduction"]["decision_kind"] == "scope_reduction"
+    assert sidecars["evidence_substitution"]["decision_kind"] == (
+        "evidence_substitution"
+    )
+    assert sidecars["research_pivot"]["decision_kind"] == "research_pivot"
+    assert sidecars["carry_forward_risk_receipt"]["decision_kind"] == (
+        "carry_forward_risk_receipt"
+    )
+    assert sidecars["carry_forward_risk_receipt"]["receipt_ref"] == (
+        owner_request["carry_forward_risk_receipt"]["receipt_ref"]
     )

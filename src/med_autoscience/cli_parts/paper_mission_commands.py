@@ -25,6 +25,7 @@ from med_autoscience.paper_mission_candidate_materializer import (
     materialized_paper_facing_candidate_delta,
 )
 from med_autoscience.paper_mission_candidate_package import (
+    AI_OWNER_DECISION_SIDECAR_REFS,
     SUBMISSION_MILESTONE_KIND,
     paper_mission_owner_blocker_packet,
     paper_mission_owner_consumption_request,
@@ -3697,7 +3698,13 @@ def _write_materialized_candidate_package_outputs(
         kind: study_root / "paper_facing_candidate_artifacts" / f"{kind}.json"
         for kind in _paper_facing_output_kinds(paper_facing_candidate_delta)
     }
+    ai_owner_decision_sidecar_outputs = {
+        kind: study_root / relpath
+        for kind, relpath in AI_OWNER_DECISION_SIDECAR_REFS.items()
+    }
     for path in paper_facing_artifact_outputs.values():
+        path.parent.mkdir(parents=True, exist_ok=True)
+    for path in ai_owner_decision_sidecar_outputs.values():
         path.parent.mkdir(parents=True, exist_ok=True)
     sidecar_refs = {
         "paper_mission_readback": str(outputs["paper_mission_readback"]),
@@ -3718,6 +3725,9 @@ def _write_materialized_candidate_package_outputs(
     }
     paper_facing_artifact_refs = {
         kind: str(path) for kind, path in paper_facing_artifact_outputs.items()
+    }
+    ai_owner_decision_sidecar_refs = {
+        kind: str(path) for kind, path in ai_owner_decision_sidecar_outputs.items()
     }
     paper_facing_candidate_delta_payload = {
         **paper_facing_candidate_delta,
@@ -3745,6 +3755,7 @@ def _write_materialized_candidate_package_outputs(
     owner_blocker_packet_payload = {
         **owner_blocker_packet,
         "candidate_refs": owner_consumption_candidate_refs,
+        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
     }
     _attach_candidate_manifest_to_next_command(
         owner_blocker_packet_payload,
@@ -3755,6 +3766,11 @@ def _write_materialized_candidate_package_outputs(
     owner_consumption_request_payload = {
         **owner_consumption_request,
         "candidate_refs": owner_consumption_candidate_refs,
+        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
+        "consume_path": {
+            **_mapping(owner_consumption_request.get("consume_path")),
+            "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
+        },
     }
     _attach_candidate_manifest_to_next_command(
         owner_consumption_request_payload,
@@ -3771,7 +3787,11 @@ def _write_materialized_candidate_package_outputs(
             ),
         ),
         "mission_candidate_sidecar_refs": sidecar_refs,
+        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
     }
+    ai_owner_decision_sidecars = _mapping(
+        owner_consumption_request_payload.get("ai_owner_decision_sidecars")
+    ) or _mapping(owner_blocker_packet_payload.get("ai_owner_decision_sidecars"))
     payloads = {
         "paper_mission_readback": paper_mission_readback,
         "candidate_manifest": candidate_manifest_payload,
@@ -3790,6 +3810,15 @@ def _write_materialized_candidate_package_outputs(
             == "owner_blocker_candidate_ready",
         ),
     }
+    payloads.update(
+        {
+            f"ai_owner_decision_sidecar::{kind}": {
+                **_mapping(ai_owner_decision_sidecars.get(kind)),
+                "sidecar_ref": ai_owner_decision_sidecar_refs[kind],
+            }
+            for kind in ai_owner_decision_sidecar_outputs
+        }
+    )
     payloads.update(
         {
             f"paper_facing_artifact::{kind}": materialized_paper_facing_candidate_artifact_payload(
@@ -3836,6 +3865,7 @@ def _write_materialized_candidate_package_outputs(
             "required_owner_action"
         ],
         "artifact_refs": sidecar_refs,
+        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
         "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
         "paper_facing_candidate_delta_ref": str(
             outputs["paper_facing_candidate_delta"]
@@ -3857,6 +3887,10 @@ def _write_materialized_candidate_package_outputs(
         **{
             f"paper_facing_artifact::{kind}": path
             for kind, path in paper_facing_artifact_outputs.items()
+        },
+        **{
+            f"ai_owner_decision_sidecar::{kind}": path
+            for kind, path in ai_owner_decision_sidecar_outputs.items()
         },
     }
     for key, path in all_outputs.items():
@@ -3893,6 +3927,7 @@ def _write_materialized_candidate_package_outputs(
             outputs["submission_milestone_checklist"]
         ),
         "paper_facing_artifact_refs": paper_facing_artifact_refs,
+        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
     }
 
 
