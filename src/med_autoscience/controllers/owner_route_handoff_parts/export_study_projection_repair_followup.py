@@ -10,7 +10,11 @@ from ..default_executor_action_policy import (
 )
 from ..domain_health_diagnostic_parts import provider_admission
 from ..study_progress_parts import repair_progress_projection
-from .export_study_projection_common import mapping, text
+from .export_study_projection_common import (
+    legacy_owner_callable_task_boundary,
+    mapping,
+    text,
+)
 
 
 def provider_admission_owner_action_record(
@@ -59,7 +63,7 @@ def provider_admission_owner_action_record(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "next_owner": text(candidate.get("next_executable_owner")),
         "allowed_actions": [action_type],
         "required_output_surface": text(candidate.get("required_output_surface")),
@@ -154,7 +158,7 @@ def repair_progress_followup_owner_action_record(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "next_owner": next_owner,
         "allowed_actions": [action_type],
         "required_output_surface": text(mapping(current_action.get("target_surface")).get("surface_ref"))

@@ -65,6 +65,21 @@ def test_domain_handler_export_keeps_retired_dispatch_out_of_current_paper_queue
     ]
 
 
+def test_legacy_owner_callable_recommendation_is_claim_limited() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection_common"
+    )
+
+    assert module.legacy_owner_callable_task_boundary() == {
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "recommended_task_kind_role": "legacy_owner_callable_carrier",
+        "default_paper_mission_entry": False,
+        "can_select_next_paper_stage": False,
+        "can_authorize_provider_admission": False,
+        "counts_as_paper_progress": False,
+    }
+
+
 def test_paper_recovery_materializer_fail_closed_for_default_executor_dispatch(
     tmp_path: Path,
 ) -> None:

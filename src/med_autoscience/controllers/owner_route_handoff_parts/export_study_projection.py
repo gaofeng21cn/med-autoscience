@@ -15,7 +15,13 @@ from ..default_executor_action_policy import (
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
-from .export_study_projection_common import mapping, read_json_object, text, workspace_relative
+from .export_study_projection_common import (
+    legacy_owner_callable_task_boundary,
+    mapping,
+    read_json_object,
+    text,
+    workspace_relative,
+)
 from .export_study_projection_repair_followup import (
     provider_admission_owner_action_record,
     repair_progress_followup_owner_action_record,
@@ -289,7 +295,7 @@ def current_control_owner_action_record(
         "recorded_at": current_recorded_at,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "owner_route_currentness_basis": currentness_basis,
         "owner_route": dict(owner_route),
         "currentness_status": "current_owner_action_active",
@@ -340,7 +346,7 @@ def current_writer_handoff_owner_action_record(
         "recorded_at": recorded_at,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "owner_route_currentness_basis": currentness_basis,
         "owner_route": dict(owner_route),
         "currentness_status": "current_writer_handoff_active",
@@ -391,7 +397,7 @@ def stage_native_next_action_owner_action_record(
         "recorded_at": text(next_action.get("generated_at")) or text(next_action.get("recorded_at")),
         "action_type": action_type,
         "work_unit_id": currentness_basis["work_unit_id"],
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "next_owner": owner,
         "allowed_actions": [action_type],
         "required_output_surface": text(next_action.get("required_output_surface"))
@@ -460,7 +466,7 @@ def owner_route_reconcile_readiness_repair_owner_action_record(
         "recorded_at": recorded_at,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "next_owner": next_owner,
         "allowed_actions": allowed_actions,
         "required_output_surface": text(action.get("required_output_surface")),
@@ -543,7 +549,7 @@ def current_readiness_owner_action_record(
         "recorded_at": text(controller_decision.get("generated_at")),
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        **legacy_owner_callable_task_boundary(),
         "next_owner": "MedAutoScience",
         "allowed_actions": [action_type],
         "surface_key": surface_key,
