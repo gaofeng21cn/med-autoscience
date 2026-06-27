@@ -38,6 +38,7 @@ from .opl_current_control_state_handoff import (
 from .current_domain_truth_projection import (
     _current_blockers_respecting_controller_closure,
     domain_truth_supersedes_ai_repair_lifecycle as _domain_truth_supersedes_ai_repair_lifecycle,
+    progress_projection_with_canonical_domain_next_action as _progress_projection_with_canonical_domain_next_action,
     progress_projection_respecting_current_domain_truth as _progress_projection_respecting_current_domain_truth,
 )
 from .projection_sources import (
@@ -963,11 +964,12 @@ def build_study_progress_projection(
         profile=profile,
         materialize_sidecar_observation=materialize_read_model_artifacts,
     )
-    return _progress_projection_respecting_current_domain_truth(
+    payload = _progress_projection_respecting_current_domain_truth(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
         payload=payload,
     )
+    return _progress_projection_with_canonical_domain_next_action(payload)
 
 
 def read_study_progress(

@@ -182,16 +182,16 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         carrier=carrier,
         study_root=_materialized_study_root(progress=progress),
     )
-    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(
-        carrier_readback
-    ) or terminal_owner_gate_from_stage_terminal_decision(
-        stage_terminal_decision=_mapping(
-            paper_mission_run["paper_mission_transaction"].get(
-                "stage_terminal_decision"
-            )
-        ),
-        paper_mission_transaction=paper_mission_run["paper_mission_transaction"],
-    )
+    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
+    if not terminal_owner_gate and consumption_ledger_readback:
+        terminal_owner_gate = terminal_owner_gate_from_stage_terminal_decision(
+            stage_terminal_decision=_mapping(
+                paper_mission_run["paper_mission_transaction"].get(
+                    "stage_terminal_decision"
+                )
+            ),
+            paper_mission_transaction=paper_mission_run["paper_mission_transaction"],
+        )
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
         terminal_owner_gate
     )
@@ -460,12 +460,12 @@ def _materialized_mission_summary(
         carrier=carrier,
         study_root=_materialized_study_root(progress=progress),
     )
-    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(
-        carrier_readback
-    ) or terminal_owner_gate_from_stage_terminal_decision(
-        stage_terminal_decision=_mapping(transaction.get("stage_terminal_decision")),
-        paper_mission_transaction=transaction,
-    )
+    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
+    if not terminal_owner_gate and consumption_ledger_readback:
+        terminal_owner_gate = terminal_owner_gate_from_stage_terminal_decision(
+            stage_terminal_decision=_mapping(transaction.get("stage_terminal_decision")),
+            paper_mission_transaction=transaction,
+        )
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
         terminal_owner_gate
     )

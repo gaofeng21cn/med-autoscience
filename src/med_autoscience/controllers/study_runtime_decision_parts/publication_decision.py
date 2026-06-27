@@ -27,6 +27,13 @@ _PROSE_REVIEW_WORK_UNIT = {
     "lane": "review",
     "summary": "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality before draft advancement.",
 }
+_GATE_NEEDS_SPECIFICITY_WORK_UNIT = {
+    "unit_id": "gate_needs_specificity",
+    "lane": "controller",
+    "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+    "controller_work_unit_executable": False,
+    "non_executable_reason": "gate_needs_specificity_without_targets",
+}
 
 
 def _medical_prose_quality_status(report: dict[str, object]) -> str:
@@ -204,6 +211,15 @@ def publication_eval_action(
             report,
             specificity_targets=list(resolved_specificity_targets),
         )
+    if _blocked_gate_needs_specificity(
+        report=report,
+        status=status,
+        action_type=action_type,
+        work_unit_payload=work_unit_payload,
+    ):
+        work_unit_payload = _gate_needs_specificity_work_unit_payload()
+        action_type = "return_to_controller"
+        route_contract = {}
     if publication_stop_loss.non_actionable_gate_overrides(status=status, action_type=action_type, work_unit_payload=work_unit_payload):
         action_type = "return_to_controller"
         route_contract = {}
@@ -224,3 +240,55 @@ def publication_eval_action(
         next_work_unit=work_unit_payload.get("next_work_unit") if isinstance(work_unit_payload.get("next_work_unit"), dict) else None,
         specificity_targets=resolved_specificity_targets,
     )
+
+
+def _blocked_gate_needs_specificity(
+    *,
+    report: dict[str, object],
+    status: str,
+    action_type: str,
+    work_unit_payload: dict[str, object],
+) -> bool:
+    if status == "clear":
+        return False
+    if publication_stop_loss.should_keep_action_through_non_actionable_gate(action_type=action_type):
+        return False
+    if action_type == "return_to_controller":
+        return False
+    blocker_set = {
+        str(item or "").strip()
+        for key in (
+            "blockers",
+            "medical_publication_surface_named_blockers",
+            "medical_publication_surface_blockers",
+        )
+        for item in (report.get(key) or [])
+        if str(item or "").strip()
+    }
+    if (
+        "medical_publication_surface_blocked" in blocker_set
+        or "reviewer_first_concerns_unresolved" in blocker_set
+    ) and not _gate_report_has_concrete_blocker_refs(report):
+        return True
+    next_work_unit = work_unit_payload.get("next_work_unit")
+    if not isinstance(next_work_unit, dict):
+        return False
+    return str(next_work_unit.get("unit_id") or "").strip() == "gate_needs_specificity"
+
+
+def _gate_needs_specificity_work_unit_payload() -> dict[str, object]:
+    return {
+        "fingerprint": "publication-blockers::gate-needs-specificity",
+        "blocking_work_units": [dict(_GATE_NEEDS_SPECIFICITY_WORK_UNIT)],
+        "next_work_unit": dict(_GATE_NEEDS_SPECIFICITY_WORK_UNIT),
+    }
+
+
+def _gate_report_has_concrete_blocker_refs(report: dict[str, object]) -> bool:
+    for key in ("blocking_artifact_refs", "blocker_details", "gate_blocker_details", "gaps"):
+        value = report.get(key)
+        if isinstance(value, list) and value:
+            return True
+        if isinstance(value, dict) and value:
+            return True
+    return False

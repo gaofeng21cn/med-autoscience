@@ -90,6 +90,11 @@ def _apply_quality_review_followthrough_to_operator_status(
     if _non_empty_text(card.get("handling_state")) in {"runtime_recovering", "publication_gate_specificity_required"}:
         return card
     card["quality_review_followthrough"] = follow
+    if isinstance(card.get("no_op_suppression"), Mapping):
+        next_signal = _non_empty_text(follow.get("next_confirmation_signal"))
+        if next_signal is not None:
+            card.setdefault("quality_review_next_confirmation_signal", next_signal)
+        return card
     card["current_focus"] = _non_empty_text(follow.get("summary")) or card.get("current_focus")
     next_signal = _non_empty_text(follow.get("next_confirmation_signal"))
     if next_signal is not None:

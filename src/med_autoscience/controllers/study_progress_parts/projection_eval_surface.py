@@ -45,7 +45,12 @@ def read_projection_surface_payloads(
     materialize_read_model_artifacts: bool = True,
 ) -> ProjectionSurfacePayloads:
     controller_decision_payload = _read_json_object(paths.controller_decision_path)
-    if controller_decision_payload is not None and materialize_read_model_artifacts:
+    controller_confirmation_summary_path = stable_controller_confirmation_summary_path(study_root=study_root)
+    preexisting_controller_confirmation_summary = _read_controller_confirmation_summary(
+        study_root=study_root,
+        ref=controller_confirmation_summary_path,
+    )
+    if controller_decision_payload is not None:
         try:
             materialize_controller_confirmation_summary(
                 study_root=study_root,
@@ -53,11 +58,10 @@ def read_projection_surface_payloads(
             )
         except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
-    controller_confirmation_summary_path = stable_controller_confirmation_summary_path(study_root=study_root)
     controller_confirmation_summary = _read_controller_confirmation_summary(
         study_root=study_root,
         ref=controller_confirmation_summary_path,
-    )
+    ) or preexisting_controller_confirmation_summary
     domain_health_diagnostic_payload = (
         _read_json_object(paths.domain_health_diagnostic_path) if paths.domain_health_diagnostic_path is not None else None
     )

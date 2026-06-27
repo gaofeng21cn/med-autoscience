@@ -111,14 +111,14 @@ def _paper_state(
         return "opl_stage_attempt_admission_required"
     if _controller_route_blocked(payload, blocking_reasons):
         return "blocked_controller_route"
-    if _owner_callable_surface_missing(payload, next_owner):
-        return "awaiting_callable_owner"
     if _is_downstream_only(payload, blocking_reasons):
         return "downstream_only"
-    if package_delivered and not same_line_reactivation:
-        return "terminal_delivered"
     if actual_write_active and meaningful_artifact_delta:
         return "progressing"
+    if _owner_callable_surface_missing(payload, next_owner):
+        return "awaiting_callable_owner"
+    if package_delivered and not same_line_reactivation:
+        return "terminal_delivered"
     if next_owner:
         return "awaiting_callable_owner"
     return "blocked_controller_route"
@@ -266,12 +266,43 @@ def _live_provider_attempt(payload: Mapping[str, Any]) -> bool:
 
 def _canonical_typed_blocker_blocks_liveness(payload: Mapping[str, Any]) -> bool:
     current_work_unit = _mapping(payload.get("current_work_unit"))
-    if _text(current_work_unit.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+    status = _text(current_work_unit.get("status"))
+    if status in {"typed_blocker", "blocked_current_work_unit"}:
+        state = _mapping(current_work_unit.get("state"))
+        typed_blocker = _mapping(state.get("typed_blocker")) or _mapping(current_work_unit.get("typed_blocker"))
+        if status == "blocked_current_work_unit" and _generic_unresolved_typed_blocker(
+            typed_blocker=typed_blocker,
+            source=_text(state.get("source")),
+        ):
+            return False
         return True
     execution = _mapping(payload.get("current_execution_envelope"))
-    return _text(execution.get("state_kind")) == "typed_blocker" and bool(
-        _mapping(execution.get("typed_blocker"))
+    typed_blocker = _mapping(execution.get("typed_blocker"))
+    return _text(execution.get("state_kind")) == "typed_blocker" and bool(typed_blocker) and not _generic_unresolved_typed_blocker(
+        typed_blocker=typed_blocker,
+        source="blocked_current_work_unit",
     )
+
+
+def _generic_unresolved_typed_blocker(*, typed_blocker: Mapping[str, Any], source: str | None) -> bool:
+    if source != "blocked_current_work_unit":
+        return False
+    reason = _text(typed_blocker.get("blocked_reason")) or _text(typed_blocker.get("blocker_type")) or _text(
+        typed_blocker.get("blocker_kind")
+    ) or _text(typed_blocker.get("reason")) or _text(typed_blocker.get("blocker_id"))
+    if reason != "current_work_unit_unresolved":
+        return False
+    identity_fields = (
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "blocker_id",
+        "latest_owner_answer_ref",
+        "typed_blocker_ref",
+        "owner_receipt_ref",
+    )
+    return not any(_text(typed_blocker.get(key)) is not None for key in identity_fields)
 
 
 def _provider_attempt_run_id(payload: Mapping[str, Any]) -> str | None:

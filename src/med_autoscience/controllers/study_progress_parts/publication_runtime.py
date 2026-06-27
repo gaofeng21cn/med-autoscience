@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
+from med_autoscience.evaluation_summary_parts.materialization_builders import _build_evaluation_summary_payload
+from med_autoscience.evaluation_summary_parts.refs_and_validation import _build_promotion_gate_payload
+from med_autoscience.study_charter import read_study_charter
 
 from . import shared as _shared
 from . import publication_runtime_followthrough as _publication_runtime_followthrough
@@ -581,7 +584,6 @@ def _refresh_publication_surfaces_from_gate_report(
                 publishability_gate_payload=publishability_gate_payload,
             )
         )
-        and materialize_read_model_artifacts
     ):
         try:
             decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
@@ -704,7 +706,34 @@ def _evaluation_module_surface(
         ):
             return None
         if not materialize_read_model_artifacts:
-            return None
+            gate_report = _read_json_object(gate_report_path)
+            charter_payload = read_study_charter(study_root=study_root, ref=charter_path)
+            if gate_report is None or charter_payload is None:
+                return None
+            summary = _build_evaluation_summary_payload(
+                study_root=study_root,
+                publication_eval=publication_eval_payload,
+                charter_payload=charter_payload,
+                runtime_escalation_ref={
+                    "artifact_path": str(runtime_escalation_path),
+                },
+                promotion_gate_ref={
+                    "artifact_path": str(promotion_gate_path),
+                    "materialized": False,
+                    "source_ref": str(gate_report_path),
+                },
+                promotion_gate_payload=_build_promotion_gate_payload(
+                    study_root=study_root,
+                    publication_eval=publication_eval_payload,
+                    runtime_escalation_ref={"artifact_path": str(runtime_escalation_path)},
+                    gate_report={**gate_report, "source_gate_report_ref": str(gate_report_path)},
+                ),
+            )
+            return _evaluation_module_surface_from_summary(
+                summary=summary,
+                evaluation_summary_path=evaluation_summary_path,
+                promotion_gate_path=promotion_gate_path,
+            )
         materialize_evaluation_summary_artifacts(
             study_root=study_root,
             runtime_escalation_ref=runtime_escalation_path,
@@ -714,6 +743,19 @@ def _evaluation_module_surface(
         return None
     read_evaluation_summary_fn = _controller_override("read_evaluation_summary", read_evaluation_summary)
     summary = read_evaluation_summary_fn(study_root=study_root, ref=evaluation_summary_path)
+    return _evaluation_module_surface_from_summary(
+        summary=summary,
+        evaluation_summary_path=evaluation_summary_path,
+        promotion_gate_path=promotion_gate_path,
+    )
+
+
+def _evaluation_module_surface_from_summary(
+    *,
+    summary: dict[str, Any],
+    evaluation_summary_path: Path,
+    promotion_gate_path: Path,
+) -> dict[str, Any]:
     promotion_gate_status = _mapping_copy(summary.get("promotion_gate_status"))
     quality_closure_truth = _mapping_copy(summary.get("quality_closure_truth"))
     quality_execution_lane = _mapping_copy(summary.get("quality_execution_lane"))
@@ -751,7 +793,7 @@ def _evaluation_module_surface(
         "surface_kind": "evaluation_module_surface",
         "summary_id": summary["summary_id"],
         "summary_ref": str(evaluation_summary_path),
-        "promotion_gate_ref": str(promotion_gate_path) if promotion_gate_path.exists() else None,
+        "promotion_gate_ref": str(promotion_gate_path),
         "overall_verdict": summary["overall_verdict"],
         "primary_claim_status": summary["primary_claim_status"],
         "stop_loss_pressure": summary["stop_loss_pressure"],

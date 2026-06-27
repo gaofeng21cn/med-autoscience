@@ -165,6 +165,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     ):
         return None
     publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
+    if _same_eval_quality_followthrough_consumes_publication_repair(
+        payload=payload,
+        publication_repair_action=publication_repair_action,
+    ):
+        publication_repair_action = None
     repair_progress_consumes_publication_repair = _repair_progress_consumes_publication_repair(
         repair_progress_action=repair_progress_action,
         publication_repair_action=publication_repair_action,
@@ -247,7 +252,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if _stage_kernel_owner_answer_recorded_without_next_action(payload):
         if gate_followthrough_action is not None:
             return gate_followthrough_action
-        return stage_native_action or domain_transition_action
+        return stage_native_action or _active_domain_transition_action(payload, domain_transition_action)
     if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
         if gate_followthrough_action is not None:
             return gate_followthrough_action
@@ -261,20 +266,25 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             return publication_repair_action
         return (
             stage_native_action
-            or domain_transition_action
+            or _active_domain_transition_action(payload, domain_transition_action)
             or _from_stage_kernel_readiness_followup(payload)
         )
     readiness_followup = _from_stage_kernel_readiness_followup(payload)
     if readiness_followup is not None:
         return readiness_followup
     if _stage_kernel_readiness_answer_without_followup(payload):
-        return stage_native_action or domain_transition_action
+        return stage_native_action or _active_domain_transition_action(payload, domain_transition_action)
     artifact_action = _from_stage_artifact_index(payload)
     if artifact_action is not None and domain_transition_action is None:
         return artifact_action
     if gate_followthrough_action is not None:
         return gate_followthrough_action
-    return next_forced_delta_action or domain_transition_action or publication_repair_action or paper_recovery_action
+    return (
+        next_forced_delta_action
+        or _active_domain_transition_action(payload, domain_transition_action)
+        or publication_repair_action
+        or paper_recovery_action
+    )
 
 
 def _canonical_current_work_unit_has_terminal_stop_loss(
@@ -673,6 +683,149 @@ def _fresh_ai_reviewer_transition_supersedes_stale_handoff(
     if _non_empty_text(transition.get("emitted_at")) is None and _non_empty_text(transition.get("generated_at")) is None:
         return False
     return True
+
+
+def _active_domain_transition_action(
+    payload: Mapping[str, Any],
+    domain_transition_action: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    action = _mapping_copy(domain_transition_action)
+    if not action:
+        return None
+    if _non_empty_text(action.get("source")) != "domain_transition":
+        return None
+    decision_type = _non_empty_text(action.get("domain_transition_decision_type"))
+    if decision_type == "ai_reviewer_re_eval":
+        return action
+    if _specific_intervention_lane_blocks_domain_transition(payload):
+        return None
+    if decision_type in {"human_gate", "delivered_package_handoff"} and _non_empty_text(
+        action.get("work_unit_id")
+    ) is not None:
+        return action
+    if (
+        decision_type == "bundle_stage_finalize"
+        and _non_empty_text(action.get("work_unit_id")) is not None
+        and _non_empty_text(action.get("action_type")) == "continue_bundle_stage"
+    ):
+        return action
+    if decision_type == "route_back_same_line" and (
+        _stage_kernel_owner_answer_recorded_without_next_action(payload)
+        or _stage_kernel_readiness_stable_typed_blocker_answer(payload)
+        or _stage_kernel_readiness_answer_without_followup(payload)
+        or _domain_transition_matches_current_control_blocker(payload=payload, action=action)
+    ):
+        return action
+    if decision_type == "publication_gate_blocker" and _domain_transition_matches_current_control_blocker(
+        payload=payload,
+        action=action,
+    ):
+        return action
+    return None
+
+
+def _same_eval_quality_followthrough_consumes_publication_repair(
+    *,
+    payload: Mapping[str, Any],
+    publication_repair_action: Mapping[str, Any] | None,
+) -> bool:
+    action = _mapping_copy(publication_repair_action)
+    if not action:
+        return False
+    action_eval = _non_empty_text(
+        _mapping_copy(action.get("owner_route_currentness_basis")).get("source_eval_id")
+    ) or _non_empty_text(action.get("source_eval_id")) or _non_empty_text(action.get("publication_eval_id"))
+    if action_eval is None:
+        action_eval = _publication_eval_source_eval_id(payload)
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    if action_work_unit is None:
+        return False
+    matched_same_work_unit_consumed: set[str] = set()
+    for key in ("quality_repair_batch_followthrough", "gate_clearing_batch_followthrough"):
+        followthrough = _mapping_copy(payload.get(key))
+        if _non_empty_text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
+            continue
+        followthrough_eval = _non_empty_text(followthrough.get("source_eval_id"))
+        if action_eval is not None and followthrough_eval != action_eval:
+            continue
+        if _non_empty_text(followthrough.get("work_unit_id")) != action_work_unit:
+            continue
+        if action_eval is not None:
+            return True
+        if followthrough_eval is not None:
+            matched_same_work_unit_consumed.add(key)
+    return matched_same_work_unit_consumed == {
+        "quality_repair_batch_followthrough",
+        "gate_clearing_batch_followthrough",
+    }
+
+
+def _publication_eval_source_eval_id(payload: Mapping[str, Any]) -> str | None:
+    publication_eval = _mapping_copy(payload.get("publication_eval"))
+    return (
+        _non_empty_text(publication_eval.get("eval_id"))
+        or _non_empty_text(publication_eval.get("publication_eval_id"))
+        or _non_empty_text(_mapping_copy(publication_eval.get("source_publication_eval")).get("eval_id"))
+        or _non_empty_text(
+            _mapping_copy(publication_eval.get("source_publication_eval")).get("publication_eval_id")
+        )
+    )
+
+
+def _specific_intervention_lane_blocks_domain_transition(payload: Mapping[str, Any]) -> bool:
+    if _runtime_health_blocks_domain_transition(payload):
+        return True
+    lane_id = _non_empty_text(_mapping_copy(payload.get("intervention_lane")).get("lane_id"))
+    if lane_id in {
+        "runtime_recovery_required",
+        "workspace_supervision_gap",
+        "quality_floor_blocker",
+        "completion_evidence_required",
+        "progress_continuation_required",
+        "manual_finishing",
+    }:
+        return True
+    return False
+
+
+def _runtime_health_blocks_domain_transition(payload: Mapping[str, Any]) -> bool:
+    runtime_health = _mapping_copy(payload.get("runtime_health_snapshot")) or _mapping_copy(
+        _mapping_copy(payload.get("opl_current_control_state_handoff")).get("runtime_health")
+    )
+    if _non_empty_text(runtime_health.get("attempt_state")) == "escalated":
+        return True
+    retry_budget = runtime_health.get("retry_budget_remaining")
+    if isinstance(retry_budget, int | float) and retry_budget <= 0:
+        return True
+    return "runtime_recovery_retry_budget_exhausted" in {
+        text
+        for item in runtime_health.get("blocking_reasons") or []
+        if (text := _non_empty_text(item)) is not None
+    }
+
+
+def _domain_transition_matches_current_control_blocker(
+    *,
+    payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    work_unit_id = _non_empty_text(action.get("work_unit_id"))
+    if work_unit_id is None:
+        return False
+    for surface in (
+        _mapping_copy(payload.get("current_work_unit")),
+        _mapping_copy(payload.get("current_execution_envelope")),
+        _mapping_copy(_mapping_copy(payload.get("opl_current_control_state_handoff")).get("typed_blocker")),
+    ):
+        if _non_empty_text(surface.get("work_unit_id")) != work_unit_id:
+            continue
+        if _non_empty_text(surface.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+            return True
+        if _non_empty_text(surface.get("state_kind")) == "typed_blocker":
+            return True
+        if _mapping_copy(surface.get("typed_blocker")):
+            return True
+    return False
 
 
 def _from_current_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from .progression import _domain_transition_route_repair
 from .shared import (
@@ -11,6 +11,7 @@ from .shared import (
     _route_repair_summary,
     _timestamp_is_newer,
 )
+from .status_text_labels import _ACTION_LABELS
 
 
 def progress_projection_respecting_current_domain_truth(
@@ -41,6 +42,10 @@ def progress_projection_respecting_current_domain_truth(
     if refreshed is not updated:
         updated = refreshed
         changed = True
+    refreshed = _progress_projection_with_route_lane_domain_transition(updated)
+    if refreshed is not updated:
+        updated = refreshed
+        changed = True
     if not changed:
         return payload
     if blockers_changed:
@@ -52,6 +57,92 @@ def progress_projection_respecting_current_domain_truth(
         if status_contract:
             status_contract["current_blockers"] = blockers[:8]
             updated["status_narration_contract"] = status_contract
+    return updated
+
+
+def progress_projection_with_canonical_domain_next_action(payload: dict[str, Any]) -> dict[str, Any]:
+    parked_next_action = _auto_runtime_parked_next_action(payload)
+    if parked_next_action is not None:
+        return _payload_with_next_system_action(payload, parked_next_action)
+    lane_next_action = _intervention_lane_next_action(payload)
+    if lane_next_action is not None:
+        return _payload_with_next_system_action(payload, lane_next_action)
+    specificity_next_action = _publication_gate_specificity_next_action(payload)
+    if specificity_next_action is not None:
+        return _payload_with_next_system_action(payload, specificity_next_action)
+    canonical_next_action = _canonical_next_action_for_domain_transition(
+        payload=payload,
+        route_summary=None,
+    )
+    current_next_action = _non_empty_text(payload.get("next_system_action"))
+    if canonical_next_action == current_next_action:
+        return payload
+    domain_transition = _mapping_copy(payload.get("domain_transition"))
+    controller_action = _non_empty_text(domain_transition.get("controller_action"))
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    runtime_surface = _mapping_copy(module_surfaces.get("runtime"))
+    runtime_next_action = _non_empty_text(runtime_surface.get("next_action_summary"))
+    if controller_action not in {"continue_bundle_stage", "complete_bundle_stage"} and runtime_next_action != canonical_next_action:
+        return payload
+    return _payload_with_next_system_action(payload, canonical_next_action)
+
+
+def _auto_runtime_parked_next_action(payload: Mapping[str, Any]) -> str | None:
+    if _non_empty_text(payload.get("current_stage")) != "auto_runtime_parked":
+        return None
+    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
+    if auto_parked.get("parked") is not True:
+        return None
+    return _non_empty_text(auto_parked.get("next_action_summary"))
+
+
+def _intervention_lane_next_action(payload: Mapping[str, Any]) -> str | None:
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    lane_id = _non_empty_text(intervention_lane.get("lane_id"))
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    runtime_surface = _mapping_copy(module_surfaces.get("runtime"))
+    runtime_next_action = _non_empty_text(runtime_surface.get("next_action_summary"))
+    if lane_id in {"quality_floor_blocker", "workspace_supervision_gap"} and runtime_next_action is not None:
+        return _non_empty_text(intervention_lane.get("route_summary")) or runtime_next_action
+    if lane_id not in {
+        "manual_finishing_fast_lane",
+        "runtime_recovery_required",
+        "workspace_supervision_gap",
+        "completion_evidence_required",
+        "progress_continuation_required",
+    }:
+        return None
+    return (
+        _non_empty_text(intervention_lane.get("route_summary"))
+        or _non_empty_text(intervention_lane.get("summary"))
+        or _non_empty_text(payload.get("next_system_action"))
+    )
+
+
+def _publication_gate_specificity_next_action(payload: Mapping[str, Any]) -> str | None:
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    if _non_empty_text(intervention_lane.get("lane_id")) != "publication_gate_specificity_required":
+        return None
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    runtime_surface = _mapping_copy(module_surfaces.get("runtime"))
+    runtime_next_action = _non_empty_text(runtime_surface.get("next_action_summary"))
+    if runtime_next_action is not None:
+        return runtime_next_action
+    return _non_empty_text(payload.get("next_system_action"))
+
+
+def _payload_with_next_system_action(payload: Mapping[str, Any], next_action: str) -> dict[str, Any]:
+    updated = dict(payload)
+    updated["next_system_action"] = next_action
+    user_visible = _mapping_copy(updated.get("user_visible_projection"))
+    if user_visible:
+        user_visible["next_system_action"] = next_action
+        user_visible["next_step"] = next_action
+        updated["user_visible_projection"] = user_visible
+    status_contract = _mapping_copy(updated.get("status_narration_contract"))
+    if status_contract:
+        status_contract["next_step"] = next_action
+        updated["status_narration_contract"] = status_contract
     return updated
 
 
@@ -113,6 +204,49 @@ def _progress_projection_suppressing_stale_opl_route(payload: dict[str, Any]) ->
     ):
         return payload
     return _progress_projection_refreshing_route_back(payload)
+
+
+def _progress_projection_with_route_lane_domain_transition(payload: dict[str, Any]) -> dict[str, Any]:
+    route_repair = _route_repair_from_intervention_lane(payload) or _domain_transition_route_repair(payload)
+    if not isinstance(route_repair, dict):
+        return payload
+    domain_transition = _mapping_copy(payload.get("domain_transition"))
+    if not domain_transition:
+        return payload
+    current_route_target = _non_empty_text(domain_transition.get("route_target"))
+    next_route_target = _non_empty_text(route_repair.get("route_target"))
+    if next_route_target is None or current_route_target == next_route_target:
+        return payload
+    updated = dict(payload)
+    updated["domain_transition"] = _domain_transition_with_route_repair(
+        domain_transition,
+        route_repair=route_repair,
+        route_summary=_route_repair_summary(route_repair),
+    )
+    return updated
+
+
+def _route_repair_from_intervention_lane(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    if _non_empty_text(intervention_lane.get("lane_id")) != "quality_floor_blocker":
+        return None
+    route_target = _non_empty_text(intervention_lane.get("route_target"))
+    work_unit_id = _non_empty_text(intervention_lane.get("work_unit_id"))
+    action_type = _non_empty_text(intervention_lane.get("action_type")) or _non_empty_text(
+        intervention_lane.get("recommended_action_id")
+    )
+    if route_target is None or work_unit_id is None or action_type is None:
+        return None
+    return {
+        "route_target": route_target,
+        "route_target_label": _non_empty_text(intervention_lane.get("route_target_label")),
+        "route_key_question": _non_empty_text(intervention_lane.get("route_key_question")) or work_unit_id,
+        "route_rationale": _non_empty_text(intervention_lane.get("route_rationale")),
+        "route_summary": _non_empty_text(intervention_lane.get("route_summary"))
+        or _non_empty_text(intervention_lane.get("summary")),
+        "work_unit_id": work_unit_id,
+        "action_type": action_type,
+    }
 
 
 def domain_truth_supersedes_ai_repair_lifecycle(
@@ -214,9 +348,20 @@ def _progress_projection_refreshing_route_back(payload: dict[str, Any]) -> dict[
     updated["ai_repair_lifecycle"] = None
     route_repair = _domain_transition_route_repair(updated)
     route_summary = _route_repair_summary(route_repair)
+    canonical_next_action = _canonical_next_action_for_domain_transition(
+        payload=updated,
+        route_summary=route_summary,
+    )
     if route_summary is not None:
-        updated["next_system_action"] = route_summary
+        updated["next_system_action"] = canonical_next_action
         domain_transition = _mapping_copy(updated.get("domain_transition"))
+        if isinstance(route_repair, dict):
+            domain_transition = _domain_transition_with_route_repair(
+                domain_transition,
+                route_repair=route_repair,
+                route_summary=route_summary,
+            )
+            updated["domain_transition"] = domain_transition
         owner = _non_empty_text(domain_transition.get("owner")) or _non_empty_text(
             domain_transition.get("route_target")
         )
@@ -229,8 +374,8 @@ def _progress_projection_refreshing_route_back(payload: dict[str, Any]) -> dict[
             updated["study_macro_state"] = macro_state
         user_visible = _mapping_copy(updated.get("user_visible_projection"))
         if user_visible:
-            user_visible["next_system_action"] = route_summary
-            user_visible["next_step"] = route_summary
+            user_visible["next_system_action"] = canonical_next_action
+            user_visible["next_step"] = canonical_next_action
             if owner is not None:
                 user_visible["next_owner"] = owner
             paper_progress = _mapping_copy(user_visible.get("paper_progress_state"))
@@ -240,7 +385,7 @@ def _progress_projection_refreshing_route_back(payload: dict[str, Any]) -> dict[
             updated["user_visible_projection"] = user_visible
         status_contract = _mapping_copy(updated.get("status_narration_contract"))
         if status_contract:
-            status_contract["next_step"] = route_summary
+            status_contract["next_step"] = canonical_next_action
             updated["status_narration_contract"] = status_contract
         for key in ("operator_verdict", "recovery_contract", "autonomy_contract"):
             surface = _mapping_copy(updated.get(key))
@@ -263,6 +408,14 @@ def _progress_projection_refreshing_route_back(payload: dict[str, Any]) -> dict[
                     if route_repair.get(lane_key) not in (None, "", [], {}):
                         surface[lane_key] = route_repair[lane_key]
             updated[key] = surface
+        operator_status = _mapping_copy(updated.get("operator_status_card"))
+        if operator_status:
+            no_op_suppression = _mapping_copy(operator_status.get("no_op_suppression"))
+            if no_op_suppression:
+                no_op_summary = _non_empty_text(no_op_suppression.get("operator_summary"))
+                if no_op_summary is not None:
+                    operator_status["current_focus"] = no_op_summary
+            updated["operator_status_card"] = operator_status
     intervention_lane = _mapping_copy(updated.get("intervention_lane"))
     if intervention_lane and isinstance(route_repair, dict):
         for lane_key in (
@@ -288,6 +441,58 @@ def _progress_projection_refreshing_route_back(payload: dict[str, Any]) -> dict[
         refs["opl_current_control_state_handoff_path"] = None
         updated["refs"] = refs
     return updated
+
+
+def _domain_transition_with_route_repair(
+    domain_transition: Mapping[str, Any],
+    *,
+    route_repair: Mapping[str, Any],
+    route_summary: str | None,
+) -> dict[str, Any]:
+    updated = dict(domain_transition)
+    route_target = _non_empty_text(route_repair.get("route_target"))
+    if route_target is not None:
+        updated["route_target"] = route_target
+        updated["owner"] = route_target
+    action_type = _non_empty_text(route_repair.get("action_type"))
+    if action_type is not None:
+        updated["controller_action"] = action_type
+    work_unit_id = _non_empty_text(route_repair.get("work_unit_id"))
+    if work_unit_id is not None:
+        next_work_unit = _mapping_copy(updated.get("next_work_unit"))
+        next_work_unit["unit_id"] = work_unit_id
+        if route_target is not None:
+            next_work_unit["lane"] = route_target
+        if route_summary is not None:
+            next_work_unit["summary"] = route_summary
+        updated["next_work_unit"] = next_work_unit
+    return updated
+
+
+def _canonical_next_action_for_domain_transition(
+    *,
+    payload: dict[str, Any],
+    route_summary: str | None,
+) -> str:
+    publication_state = _mapping_copy(payload.get("publication_supervisor_state"))
+    domain_transition = _mapping_copy(payload.get("domain_transition"))
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    runtime_surface = _mapping_copy(module_surfaces.get("runtime"))
+    current_required_action = (
+        _non_empty_text(publication_state.get("current_required_action"))
+        or _non_empty_text(domain_transition.get("controller_action"))
+    )
+    if current_required_action == "continue_bundle_stage":
+        return "继续当前投稿打包阶段。"
+    if current_required_action == "complete_bundle_stage":
+        return "完成当前投稿打包阶段。"
+    action_label = _ACTION_LABELS.get(current_required_action or "")
+    if action_label:
+        return action_label
+    runtime_next_action = _non_empty_text(runtime_surface.get("next_action_summary"))
+    if runtime_next_action in set(_ACTION_LABELS.values()):
+        return runtime_next_action
+    return route_summary or _non_empty_text(payload.get("next_system_action")) or "继续轮询研究状态。"
 
 
 def _handoff_is_live_provider_attempt(handoff: dict[str, Any]) -> bool:
@@ -322,5 +527,6 @@ def _submission_authority_sync_closed_for_eval(
 __all__ = [
     "_current_blockers_respecting_controller_closure",
     "domain_truth_supersedes_ai_repair_lifecycle",
+    "progress_projection_with_canonical_domain_next_action",
     "progress_projection_respecting_current_domain_truth",
 ]

@@ -63,6 +63,9 @@ def _serialize_managed_study_action(
     current_owner_action = _mapping(payload.get("current_executable_owner_action"))
     if current_owner_action:
         serialized["current_executable_owner_action"] = current_owner_action
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    if current_work_unit:
+        serialized["current_work_unit"] = current_work_unit
     current_execution_envelope = _mapping(payload.get("current_execution_envelope"))
     if current_execution_envelope:
         serialized["current_execution_envelope"] = current_execution_envelope
@@ -253,10 +256,12 @@ def _outer_loop_dispatch_blocked_by_explicit_wakeup_contract(
 
     user_pause_contract = stop_reason == "user_pause"
     reason_requires_wakeup = reason in _EXPLICIT_WAKEUP_REASONS
-    parked_requires_wakeup = (
-        auto_runtime_parked.get("awaiting_explicit_wakeup") is True
-        and parked_state in _EXPLICIT_WAKEUP_PARKED_STATES
-    )
+    parked_requires_wakeup = False
+    if auto_runtime_parked.get("awaiting_explicit_wakeup") is True:
+        if parked_state == "manual_hold":
+            parked_requires_wakeup = True
+        elif parked_state == "explicit_resume_pending":
+            parked_requires_wakeup = reason_requires_wakeup or user_pause_contract
     health_requires_wakeup = runtime_action == "await_explicit_resume" and (
         reason_requires_wakeup or parked_requires_wakeup or user_pause_contract
     )

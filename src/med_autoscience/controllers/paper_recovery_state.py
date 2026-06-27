@@ -779,6 +779,21 @@ def _supervisor_decision_for_state(
         paper_recovery_state=paper_recovery_state,
         diagnostic_report=diagnostic_report,
     )
+    if _text(projection.get("decision")) == "stop_with_stable_typed_blocker" and projection.get(
+        "opl_supervisor_decision_engine_readback_consumed"
+    ) is True:
+        return _supervisor_decision_for_projection(
+            {
+                **progress,
+                "paper_autonomy_supervisor_decision": {
+                    "decision": "opl_supervisor_decision_readback_required",
+                    "requires_opl_supervisor_decision_engine_readback": True,
+                },
+            },
+            paper_recovery_state=paper_recovery_state,
+            diagnostic_report=diagnostic_report,
+            materialize_recovery_action=True,
+        )
     return projection
 
 
@@ -1305,7 +1320,29 @@ def _current_typed_blocker(current_work_unit: Mapping[str, Any]) -> dict[str, An
     for key in ("owner", "action_type", "work_unit_id", "work_unit_fingerprint"):
         if key not in typed_blocker and _text(current_work_unit.get(key)) is not None:
             typed_blocker[key] = _text(current_work_unit.get(key))
+    if _current_work_unit_status(current_work_unit) == "blocked_current_work_unit" and _generic_unresolved_blocker(
+        typed_blocker=typed_blocker,
+        source=_text(state.get("source")),
+    ):
+        return {}
     return {key: value for key, value in typed_blocker.items() if value not in (None, "", [], {})}
+
+
+def _generic_unresolved_blocker(*, typed_blocker: Mapping[str, Any], source: str | None) -> bool:
+    if source != "blocked_current_work_unit":
+        return False
+    if _typed_blocker_reason(typed_blocker) != "current_work_unit_unresolved":
+        return False
+    identity_fields = (
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "blocker_id",
+        "latest_owner_answer_ref",
+        "typed_blocker_ref",
+    )
+    return not any(_text(typed_blocker.get(key)) is not None for key in identity_fields)
 
 
 def _typed_blocker_from_closeout(

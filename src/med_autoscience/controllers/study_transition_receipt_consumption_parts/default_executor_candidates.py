@@ -329,6 +329,9 @@ def _execution_from_stage_closeout(
         "source_fingerprint": _text(closeout.get("source_fingerprint"))
         or _text(route.get("source_fingerprint")),
         "idempotency_key": _text(closeout.get("idempotency_key")) or _text(route.get("idempotency_key")),
+        "route_identity_key": _text(closeout.get("route_identity_key")) or _text(route.get("route_identity_key")),
+        "attempt_idempotency_key": _text(closeout.get("attempt_idempotency_key"))
+        or _text(route.get("attempt_idempotency_key")),
         "dispatch_ref": dispatch_ref,
         "stage_packet_ref": stage_packet_ref,
         "stage_packet_refs": stage_packet_refs,

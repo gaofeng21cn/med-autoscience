@@ -638,6 +638,8 @@ def _managed_study_action_with_paper_recovery_state(
 ) -> dict[str, Any]:
     if _paper_recovery_is_unresolved_current_work_unit_fallback(recovery):
         return dict(action)
+    if _paper_recovery_is_no_current_machine_executable_obligation(recovery):
+        return dict(action)
     result = dict(action)
     result["paper_recovery_state"] = dict(recovery)
     supervisor_decision = _mapping(_mapping(recovery).get("supervisor_decision"))
@@ -830,6 +832,18 @@ def _paper_recovery_is_unresolved_current_work_unit_fallback(
     ) and (
         _text(obligation.get("work_unit_id")) is None
         and _text(obligation.get("work_unit_fingerprint")) is None
+    )
+
+
+def _paper_recovery_is_no_current_machine_executable_obligation(
+    recovery: Mapping[str, Any],
+) -> bool:
+    if _text(recovery.get("phase")) != "human_gate":
+        return False
+    return any(
+        isinstance(condition, Mapping)
+        and _text(condition.get("condition")) == "no_current_machine_executable_recovery_obligation"
+        for condition in recovery.get("conditions") or []
     )
 
 

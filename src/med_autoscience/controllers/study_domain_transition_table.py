@@ -167,7 +167,7 @@ def project_domain_transition(
             completion_receipt_consumption=human_gate_resume_receipt_consumption,
         )
 
-    if _requires_human_gate(controller_decision):
+    if _requires_human_gate(controller_decision) and _controller_decision_currently_blocks_progress(status):
         return _transition(
             study_id=study_id,
             decision_type="human_gate",
@@ -773,9 +773,41 @@ def _present_refs(*refs: object) -> list[str]:
 
 
 def _requires_human_gate(controller_decision: Mapping[str, Any]) -> bool:
-    return controller_decision.get("requires_human_confirmation") is True or bool(
-        controller_decision.get("family_human_gates")
+    if controller_decision.get("requires_human_confirmation") is True:
+        return True
+    return any(
+        isinstance(item, Mapping)
+        and (
+            _text(item.get("status")) in {"pending", "required", "blocked"}
+            or item.get("required") is True
+        )
+        for item in controller_decision.get("family_human_gates") or []
     )
+
+
+def _current_progress_requires_human_gate(status: Mapping[str, Any]) -> bool:
+    return any(
+        value is True
+        for value in (
+            status.get("needs_user_decision"),
+            status.get("needs_physician_decision"),
+            status.get("human_gate_required"),
+        )
+    )
+
+
+def _controller_decision_currently_blocks_progress(status: Mapping[str, Any]) -> bool:
+    decision = _text(status.get("decision"))
+    reason = _text(status.get("reason"))
+    quest_status = _text(status.get("quest_status"))
+    if decision in {"resume", "continue", "relaunch", "noop"} and quest_status in {"running", "active", "retrying"}:
+        return False
+    return decision in {"blocked", "pause", "stop"} or reason in {
+        "stop_loss",
+        "user_stop",
+        "publishability_stop_loss_recommended",
+        "quest_waiting_for_user",
+    }
 
 
 def _is_stop_loss(
@@ -784,6 +816,12 @@ def _is_stop_loss(
     controller_decision: Mapping[str, Any],
     status: Mapping[str, Any],
 ) -> bool:
+    if not _controller_decision_currently_blocks_progress(status):
+        return _text(macro_state.get("reason")) in {
+            "stop_loss",
+            "user_stop",
+            "publishability_stop_loss_recommended",
+        }
     candidates = {
         _text(macro_state.get("reason")),
         _text(controller_decision.get("decision_type")),

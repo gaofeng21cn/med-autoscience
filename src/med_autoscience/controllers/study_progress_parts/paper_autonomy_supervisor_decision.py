@@ -7,6 +7,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_r
     candidate_opl_transition_readback as _candidate_opl_transition_readback,
     provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
+from med_autoscience.controllers.paper_autonomy_supervisor_parts.policy_result_shape import (
+    POLICY_RECOMMENDATION_SEMANTICS,
+)
 
 
 EXECUTE_DECISION = "execute_current_owner_delta"
@@ -71,10 +74,12 @@ def supervisor_decision_for_projection(
     *,
     paper_recovery_state: Mapping[str, Any] | None = None,
     diagnostic_report: Mapping[str, Any] | None = None,
+    materialize_recovery_action: bool = False,
 ) -> dict[str, Any]:
     explicit = _explicit_supervisor_decision(
         payload,
         paper_recovery_state=paper_recovery_state,
+        materialize_recovery_action=materialize_recovery_action,
     )
     if explicit:
         return explicit
@@ -409,6 +414,7 @@ def _supervisor_decision_readback_required_projection(
             "legacy_decision_field_role": "policy_recommendation_label",
             "legacy_decision_field_is_authority": False,
             "decision_field_deprecated": True,
+            "decision_semantics": dict(POLICY_RECOMMENDATION_SEMANTICS),
             "read_model_can_build_supervisor_decision": False,
             "requires_explicit_supervisor_decision_projection": True,
             "requires_opl_supervisor_decision_engine_readback": True,
@@ -497,6 +503,7 @@ def _explicit_supervisor_decision(
     payload: Mapping[str, Any],
     *,
     paper_recovery_state: Mapping[str, Any] | None,
+    materialize_recovery_action: bool = False,
 ) -> dict[str, Any]:
     recovery = _mapping(paper_recovery_state) or _mapping(payload.get("paper_recovery_state"))
     fallback_readback_required: dict[str, Any] = {}
@@ -517,6 +524,7 @@ def _explicit_supervisor_decision(
             opl_readback,
             payload=payload,
             recovery=recovery,
+            materialize_recovery_action=materialize_recovery_action,
         )
     if fallback_readback_required:
         return fallback_readback_required
@@ -612,6 +620,7 @@ def _projection_from_opl_supervisor_decision_readback(
     *,
     payload: Mapping[str, Any],
     recovery: Mapping[str, Any],
+    materialize_recovery_action: bool = False,
 ) -> dict[str, Any]:
     obligation = _mapping(_mapping(recovery.get("current_authority")).get("obligation"))
     current_identity = _mapping(readback.get("current_identity"))
@@ -663,17 +672,28 @@ def _projection_from_opl_supervisor_decision_readback(
             "stage_run_id": current_identity.get("stage_run_id"),
         }
     )
+    policy_decision = (
+        _policy_decision_from_opl_supervisor_readback(decision_kind)
+        if materialize_recovery_action
+        else decision_kind
+    )
+    next_safe_action = _next_safe_action_from_opl_supervisor_readback(
+        policy_decision=policy_decision,
+        decision_kind=decision_kind,
+    )
+    provider_admission_pending = policy_decision == EXECUTE_DECISION
     return _clean_mapping(
         {
             "surface_kind": "paper_progress_policy_result_projection",
             "projection_role": "mas_paper_progress_policy_result_projection",
             "policy_result_role": "mas_paper_progress_policy_result_projection",
-            "decision": decision_kind,
+            "decision": policy_decision,
             "decision_authority": False,
             "legacy_decision_surface_kind": "paper_autonomy_supervisor_decision",
             "legacy_decision_field_role": "policy_recommendation_label",
             "legacy_decision_field_is_authority": False,
             "decision_field_deprecated": True,
+            "decision_semantics": dict(POLICY_RECOMMENDATION_SEMANTICS),
             "read_model_can_build_supervisor_decision": False,
             "requires_explicit_supervisor_decision_projection": False,
             "requires_opl_supervisor_decision_engine_readback": False,
@@ -685,17 +705,12 @@ def _projection_from_opl_supervisor_decision_readback(
             "mas_can_store_recovery_obligation": False,
             "mas_can_create_opl_command_event_or_outbox": False,
             "mas_can_authorize_provider_admission": False,
-            "provider_admission_pending": decision_kind == EXECUTE_DECISION,
+            "provider_admission_pending": provider_admission_pending,
             "request_projection_only": False,
             "paper_progress_classification": "none_until_mas_owner_result",
             "platform_repair_classification": "opl_supervisor_decision_readback_consumed",
-            "next_owner": "OPL Framework" if decision_kind == EXECUTE_DECISION else "MedAutoScience",
-            "next_safe_action": {
-                "kind": "admit_or_resume_stage_run"
-                if decision_kind == EXECUTE_DECISION
-                else "consume_opl_supervisor_decision_readback",
-                "provider_admission_allowed": decision_kind == EXECUTE_DECISION,
-            },
+            "next_owner": "OPL Framework" if provider_admission_pending else "MedAutoScience",
+            "next_safe_action": next_safe_action,
             "identity_match": True,
             "missing_evidence_refs": [],
             "evidence_refs": evidence_refs,
@@ -730,6 +745,29 @@ def _projection_from_opl_supervisor_decision_readback(
         },
         keep_empty_keys={"evidence_refs", "missing_evidence_refs", "observability_refs"},
     )
+
+
+def _policy_decision_from_opl_supervisor_readback(decision_kind: str | None) -> str | None:
+    if decision_kind in {None, "", EXECUTE_DECISION}:
+        return decision_kind
+    return "materialize_recovery_action"
+
+
+def _next_safe_action_from_opl_supervisor_readback(
+    *,
+    policy_decision: str | None,
+    decision_kind: str | None,
+) -> dict[str, Any]:
+    if policy_decision == EXECUTE_DECISION:
+        return {
+            "kind": "admit_or_resume_stage_run",
+            "provider_admission_allowed": True,
+        }
+    return {
+        "kind": "materialize_recovery_work_unit_or_receipt",
+        "provider_admission_allowed": False,
+        "opl_supervisor_decision_kind": decision_kind,
+    }
 
 
 def _dedupe_text(values: list[str | None]) -> list[str]:

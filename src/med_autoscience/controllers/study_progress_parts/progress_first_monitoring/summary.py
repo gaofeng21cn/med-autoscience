@@ -467,6 +467,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             state_kind = "receipt_consumed"
         else:
             state_kind = "running_provider_attempt" if running_provider_attempt else "observability_only"
+    elif state_kind == "running_provider_attempt" and running_provider_attempt is not True:
+        state_kind = "observability_only"
     summary_next_forced_delta = _next_forced_delta_from_current_work_unit(
         canonical_current_work_unit,
         fallback=next_forced_delta,

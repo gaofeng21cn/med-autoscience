@@ -313,11 +313,20 @@ def test_mas_action_catalog_exposes_scientific_capability_registry_as_public_mcp
     mcp_item = mcp_projection["scientific_capability_registry"]
 
     assert cli_item["surface_kind"] == "mas_scientific_capability_registry"
-    assert "scientific-capability-registry --mode <index|resolve|invoke>" in cli_item["command"]
+    assert (
+        "scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>"
+        in cli_item["command"]
+    )
     assert mcp_item["descriptor_only"] is False
     assert mcp_item["public_runtime"] is True
     assert mcp_item["input_schema"]["required"] == ["mode"]
-    assert mcp_item["input_schema"]["properties"]["mode"]["enum"] == ["index", "resolve", "invoke"]
+    assert mcp_item["input_schema"]["properties"]["mode"]["enum"] == [
+        "summary",
+        "inventory",
+        "index",
+        "resolve",
+        "invoke",
+    ]
     assert "scientific_capability_registry" in mcp_tools
     assert mcp_tools["scientific_capability_registry"]["metadata"][
         "action_catalog_projection"

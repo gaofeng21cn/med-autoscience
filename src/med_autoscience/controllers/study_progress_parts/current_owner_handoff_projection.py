@@ -327,13 +327,23 @@ def current_owner_handoff_next_action(
     work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
     route_target = _non_empty_text(transition.get("route_target")) or _non_empty_text(intervention_lane.get("route_target"))
     owner = _non_empty_text(transition.get("owner")) or route_target
-    if route_summary := (
-        _non_empty_text(intervention_lane.get("route_summary"))
-        or _non_empty_text(intervention_lane.get("summary"))
-    ):
-        return route_summary
+    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
+    stale_parked_lane = (
+        auto_parked.get("superseded_by_current_owner_action") is True
+        and _non_empty_text(intervention_lane.get("lane_id")) == "auto_runtime_parked"
+    )
+    if not stale_parked_lane:
+        if route_summary := (
+            _non_empty_text(intervention_lane.get("route_summary"))
+            or _non_empty_text(intervention_lane.get("summary"))
+        ):
+            return route_summary
     if work_unit_id is not None:
         owner_text = f"{owner} owner" if owner is not None else "当前 owner"
+        current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+        output_contract = _mapping_copy(current_work_unit.get("required_output_contract"))
+        if output_contract.get("owner_receipt_required") is True:
+            return f"等待 {owner_text} 处理 work unit {work_unit_id}，产出 owner receipt、typed blocker 或下一 owner handoff。"
         return f"等待 {owner_text} 处理 work unit {work_unit_id}。"
     return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
 
@@ -381,7 +391,8 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
         updated["status_narration_contract"] = status_contract
     operator_status = _mapping_copy(updated.get("operator_status_card"))
     if operator_status:
-        operator_status["current_focus"] = next_step
+        if not _operator_status_has_specific_focus(operator_status):
+            operator_status["current_focus"] = next_step
         updated["operator_status_card"] = operator_status
     if lane := apply_current_owner_handoff_intervention_lane(
         updated,
@@ -410,6 +421,14 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
             autonomy_contract["next_signal"] = next_step
             updated["autonomy_contract"] = autonomy_contract
     return updated
+
+
+def _operator_status_has_specific_focus(operator_status: Mapping[str, Any]) -> bool:
+    if _mapping_copy(operator_status.get("no_op_suppression")):
+        return True
+    return _non_empty_text(operator_status.get("handling_state")) in {
+        "publication_gate_specificity_required",
+    }
 
 
 def current_owner_handoff_summary(action: Mapping[str, Any]) -> str | None:

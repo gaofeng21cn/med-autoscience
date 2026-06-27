@@ -800,7 +800,7 @@ def refresh_handoff_with_terminal_closeout_candidates(
     preferred_actions = [
         dict(item)
         for item in candidates
-        if isinstance(item, Mapping) and _transition_request_candidate_can_anchor_terminal_probe(item)
+        if isinstance(item, Mapping) and _terminal_consumption_candidate_can_anchor_terminal_probe(item)
     ]
     if not preferred_actions:
         return dict(handoff)
@@ -811,6 +811,12 @@ def refresh_handoff_with_terminal_closeout_candidates(
         max_inspect_count=2,
         preferred_actions=preferred_actions,
     )
+    if not closeout:
+        closeout = _terminal_default_executor_closeout_for_preferred_actions(
+            profile=profile,
+            study_id=study_id,
+            preferred_actions=preferred_actions,
+        )
     if not closeout:
         return dict(handoff)
     if not any(
@@ -831,6 +837,58 @@ def refresh_handoff_with_terminal_closeout_candidates(
         "transition_request_candidates": preferred_actions,
     }
     return _apply_matching_terminal_closeout_to_handoff(refreshed)
+
+
+def _terminal_default_executor_closeout_for_preferred_actions(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    preferred_actions: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    study_root = _study_root_for_default_executor_candidates(profile=profile, study_id=study_id)
+    if study_root is None:
+        return None
+    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+        closeout = dict(execution)
+        closeout.setdefault("receipt_ref", receipt_ref)
+        closeout.setdefault("source", "mas_default_executor_closeout")
+        if any(_default_executor_closeout_can_consume_preferred_action(closeout, action) for action in preferred_actions):
+            return closeout
+    return None
+
+
+def _default_executor_closeout_can_consume_preferred_action(
+    closeout: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if not _terminal_closeout_matches_handoff_action(terminal=closeout, action=action):
+        return False
+    if (
+        provider_admission_opl_transition_readback(action)
+        and _non_empty_text(closeout.get("owner_receipt_ref")) is None
+    ):
+        return False
+    return True
+
+
+def _study_root_for_default_executor_candidates(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> Path | None:
+    candidates = [
+        profile.studies_root / study_id,
+        build_workspace_runtime_layout_for_profile(profile).workspace_root / "studies" / study_id,
+        profile.workspace_root / "studies" / study_id,
+    ]
+    for candidate in candidates:
+        try:
+            resolved = candidate.expanduser().resolve()
+        except OSError:
+            continue
+        if resolved.exists():
+            return resolved
+    return candidates[0].expanduser().resolve() if candidates else None
 
 
 def _current_control_provider_admission_candidates(
@@ -888,6 +946,12 @@ def _transition_request_candidate_can_anchor_terminal_probe(candidate: Mapping[s
             or _non_empty_text(_observability_mapping(candidate.get("source_refs")).get("attempt_idempotency_key"))
             is not None
         )
+    )
+
+
+def _terminal_consumption_candidate_can_anchor_terminal_probe(candidate: Mapping[str, Any]) -> bool:
+    return provider_admission_opl_transition_readback(candidate) or _transition_request_candidate_can_anchor_terminal_probe(
+        candidate
     )
 
 
@@ -1825,6 +1889,12 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         ):
             return projection
         if (
+            matching_provider_admissions
+            and any(provider_admission_opl_transition_readback(item) for item in matching_provider_admissions)
+            and not _terminal_closeout_has_domain_delta(terminal)
+        ):
+            return projection
+        if (
             (provider_admission_candidates or transition_request_candidates)
             and not matching_provider_admissions
             and not matching_transition_requests
@@ -1842,6 +1912,20 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
             if matching_transition_requests
             else None,
         )
+    else:
+        matching_consumed_action = _terminal_closeout_consumed_current_action_projection(
+            terminal=terminal,
+            projection=updated,
+        )
+        if matching_consumed_action is not None:
+            updated["provider_admission_pending_count"] = 0
+            updated["provider_admission_candidates"] = []
+            updated["transition_request_pending_count"] = 0
+            updated["transition_request_candidates"] = []
+            updated["provider_admission_terminal_closeout_consumed"] = _provider_admission_terminal_closeout_consumed(
+                terminal=terminal,
+                matching_provider_admission=matching_consumed_action,
+            )
     updated = _apply_terminal_closeout_next_owner(updated, terminal=terminal)
     return _apply_terminal_closeout_owner_answer_gate(updated)
 
@@ -1950,6 +2034,67 @@ def _terminal_matching_handoff_candidates(
         for item in candidates
         if _terminal_closeout_matches_handoff_action(terminal=terminal, action=item)
     ]
+
+
+def _terminal_closeout_consumed_current_action_projection(
+    *,
+    terminal: Mapping[str, Any],
+    projection: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _non_empty_text(terminal.get("owner_receipt_ref")) is None:
+        return None
+    for source in (
+        projection.get("current_work_unit"),
+        projection.get("current_execution_envelope"),
+        projection,
+    ):
+        action = _terminal_closeout_action_projection_from_source(source)
+        if action and _terminal_closeout_matches_handoff_action(terminal=terminal, action=action):
+            return action
+    return None
+
+
+def _terminal_closeout_action_projection_from_source(source: object) -> dict[str, Any]:
+    mapping = _observability_mapping(source)
+    if not mapping:
+        return {}
+    state = _observability_mapping(mapping.get("state"))
+    identity = _observability_mapping(mapping.get("provider_admission_identity"))
+    source_refs = _observability_mapping(mapping.get("source_refs"))
+    action = {
+        "status": _non_empty_text(mapping.get("status")) or "provider_admission_pending",
+        "study_id": _non_empty_text(mapping.get("study_id")),
+        "quest_id": _non_empty_text(mapping.get("quest_id")),
+        "action_type": _non_empty_text(mapping.get("action_type")) or _non_empty_text(state.get("action_type")),
+        "work_unit_id": _work_unit_identity(mapping.get("work_unit_id"))
+        or _work_unit_identity(mapping.get("next_work_unit"))
+        or _work_unit_identity(state.get("next_work_unit"))
+        or _work_unit_identity(state.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(mapping.get("work_unit_fingerprint"))
+        or _non_empty_text(mapping.get("action_fingerprint"))
+        or _non_empty_text(state.get("work_unit_fingerprint"))
+        or _non_empty_text(state.get("action_fingerprint")),
+        "action_fingerprint": _non_empty_text(mapping.get("action_fingerprint"))
+        or _non_empty_text(mapping.get("work_unit_fingerprint"))
+        or _non_empty_text(state.get("action_fingerprint"))
+        or _non_empty_text(state.get("work_unit_fingerprint")),
+        "route_identity_key": _non_empty_text(mapping.get("route_identity_key"))
+        or _non_empty_text(identity.get("route_identity_key"))
+        or _non_empty_text(source_refs.get("route_identity_key")),
+        "attempt_idempotency_key": _non_empty_text(mapping.get("attempt_idempotency_key"))
+        or _non_empty_text(identity.get("attempt_idempotency_key"))
+        or _non_empty_text(source_refs.get("attempt_idempotency_key")),
+        "idempotency_key": _non_empty_text(mapping.get("idempotency_key"))
+        or _non_empty_text(identity.get("idempotency_key"))
+        or _non_empty_text(source_refs.get("idempotency_key")),
+        "stage_packet_ref": _non_empty_text(mapping.get("stage_packet_ref"))
+        or _non_empty_text(source_refs.get("stage_packet_ref")),
+        "stage_packet_refs": _stage_ref_items(mapping.get("stage_packet_refs"))
+        or _stage_ref_items(source_refs.get("stage_packet_refs")),
+        "provider_admission_identity": identity,
+        "source_refs": source_refs,
+    }
+    return {key: value for key, value in action.items() if value not in (None, "", [], {})}
 
 
 def _provider_admission_terminal_closeout_consumed(
@@ -2542,6 +2687,8 @@ def _newer_typed_closeout_blocks_stale_current_control(
         return False
     if _terminal_closeout_has_domain_delta(typed_closeout):
         return False
+    if _handoff_has_complete_current_transition_readback(projection):
+        return False
     has_stale_provider_admission = (
         int(projection.get("provider_admission_pending_count") or 0) > 0
         or bool(_handoff_candidate_list(projection.get("provider_admission_candidates")))
@@ -2844,7 +2991,10 @@ def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
     if active_attempt_id is None and not _handoff_has_terminal_matching_pending_candidate(
         handoff=handoff,
         terminal=terminal,
-    ):
+    ) and _terminal_closeout_consumed_current_action_projection(
+        terminal=terminal,
+        projection=handoff,
+    ) is None:
         return False
     status = _non_empty_text(terminal.get("status"))
     if status in TERMINAL_STAGE_LOG_STATUSES:

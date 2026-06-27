@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from ..paper_autonomy_supervisor_decision import supervisor_decision_blocks_provider_admission
+from ..current_owner_handoff_projection import (
+    apply_current_owner_handoff_user_visible_status,
+    current_owner_handoff_next_action,
+)
 from ..shared import _mapping_copy, _non_empty_text
 
 
@@ -24,6 +28,22 @@ PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES = frozenset(
         "human_gate",
     }
 )
+PAPER_RECOVERY_STALE_PARK_CLEANUP_REASONS = frozenset(
+    {
+        "quest_already_running",
+        "managed_runtime_live",
+    }
+)
+PAPER_RECOVERY_PRESERVED_PARKED_REASONS = frozenset(
+    {
+        "blocked_turn_closeout_waiting_for_owner",
+        "completed_parked_auto_continue_no_new_message",
+        "parked_after_checkpoint_no_new_message",
+        "quest_stopped_requires_explicit_rerun",
+        "quest_stopped_requires_explicit_resume",
+        "quest_stopped_requires_explicit_relaunch",
+    }
+)
 
 
 def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
@@ -38,6 +58,69 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
     summary = paper_recovery_summary(phase=phase, next_safe_action=next_safe_action)
     if summary is None:
         return payload
+    observability_mode = _paper_recovery_observability_mode(
+        recovery,
+        next_safe_action=next_safe_action,
+        payload=payload,
+    )
+    if observability_mode is not None:
+        if observability_mode == "defer":
+            return payload
+        updated = dict(payload)
+        if _non_empty_text(updated.get("current_stage")) == "auto_runtime_parked":
+            updated["current_stage"] = "publication_supervision"
+        _clear_stale_parked_top_level_fields(updated, phase=phase, summary=summary)
+        updated["needs_user_decision"] = False
+        updated["user_decision_summary"] = None
+        updated["needs_physician_decision"] = False
+        updated["physician_decision_summary"] = None
+        next_action = current_owner_handoff_next_action(updated, user_visible={})
+        if next_action is not None:
+            updated["next_system_action"] = next_action
+            user_visible = _mapping_copy(updated.get("user_visible_projection"))
+            if user_visible:
+                user_visible["next_system_action"] = next_action
+                user_visible["next_step"] = next_action
+                user_visible["needs_user_decision"] = False
+                user_visible["needs_physician_decision"] = False
+                updated["user_visible_projection"] = user_visible
+            status_contract = _mapping_copy(updated.get("status_narration_contract"))
+            if status_contract:
+                status_contract["next_step"] = next_action
+                readiness = _mapping_copy(status_contract.get("readiness"))
+                if readiness:
+                    readiness["needs_physician_decision"] = False
+                    status_contract["readiness"] = readiness
+                updated["status_narration_contract"] = status_contract
+            operator_status = _mapping_copy(updated.get("operator_status_card"))
+            if operator_status:
+                operator_status["current_focus"] = next_action
+                updated["operator_status_card"] = operator_status
+            dashboard = _mapping_copy(updated.get("ai_first_operations_dashboard"))
+            dashboard_user_view = _mapping_copy(dashboard.get("user_view"))
+            if dashboard_user_view:
+                dashboard_user_view.update(
+                    {
+                        "current_stage": updated.get("current_stage"),
+                        "blockers": updated.get("current_blockers"),
+                        "next_step": next_action,
+                        "human_review_required": False,
+                    }
+                )
+                dashboard["user_view"] = dashboard_user_view
+                updated["ai_first_operations_dashboard"] = dashboard
+        supervision = _mapping_copy(updated.get("supervision"))
+        stale_active_run_id = _non_empty_text(supervision.get("stale_active_run_id"))
+        if (
+            _non_empty_text(supervision.get("active_run_id")) is None
+            and stale_active_run_id is not None
+            and not stale_active_run_id.startswith("opl-stage-attempt://")
+        ):
+            supervision["active_run_id"] = stale_active_run_id
+            supervision.pop("stale_active_run_id", None)
+            supervision.pop("liveness_suppressed_by", None)
+            updated["supervision"] = supervision
+        return apply_current_owner_handoff_user_visible_status(updated)
     updated = dict(payload)
     if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
         blockers = list(updated.get("current_blockers") or [])
@@ -63,7 +146,10 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
         )
     ):
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
-    if phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES:
+    defer_visible_projection = phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES and _specific_intervention_lane_has_priority(
+        updated
+    )
+    if phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES and not defer_visible_projection:
         updated = _apply_paper_recovery_authority_projection(
             updated,
             phase=phase,
@@ -71,6 +157,8 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             next_safe_action=next_safe_action,
             recovery=recovery,
         )
+    if defer_visible_projection:
+        return updated
     operator_status = _mapping_copy(updated.get("operator_status_card"))
     if operator_status:
         operator_status["paper_recovery_phase"] = phase
@@ -78,15 +166,19 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
             operator_status = _drop_stale_parked_fields(operator_status)
             operator_status["handling_state"] = f"paper_recovery_{phase}"
             operator_status["handling_state_label"] = _paper_recovery_lane_title(phase)
-        operator_status["current_focus"] = summary
-        operator_status["user_visible_verdict"] = summary
+        if (
+            _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action)
+            or phase == "owner_receipt_recorded"
+        ) and not _operator_card_has_specific_current_focus(operator_status):
+            operator_status["current_focus"] = summary
+            operator_status["user_visible_verdict"] = summary
         updated["operator_status_card"] = operator_status
     user_visible = _mapping_copy(updated.get("user_visible_projection"))
     if user_visible:
         user_visible["paper_recovery_phase"] = phase
-        user_visible["next_step"] = summary
         user_visible["why_not_progressing"] = phase
         if phase == "owner_receipt_recorded":
+            user_visible["next_step"] = summary
             user_visible["next_system_action"] = summary
             _clear_stale_route_fields(user_visible)
             paper_progress = _mapping_copy(user_visible.get("paper_progress_state"))
@@ -95,9 +187,14 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
                 user_visible["paper_progress_state"] = paper_progress
         if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
             user_visible["current_blockers"] = [phase]
+            user_visible["next_step"] = summary
             user_visible["next_system_action"] = summary
-            user_visible["needs_user_decision"] = phase == "human_gate"
-            user_visible["needs_physician_decision"] = phase == "human_gate"
+            requires_user_decision = _paper_recovery_requires_user_decision(
+                phase=phase,
+                next_safe_action=next_safe_action,
+            )
+            user_visible["needs_user_decision"] = requires_user_decision
+            user_visible["needs_physician_decision"] = requires_user_decision
         elif phase == "owner_receipt_recorded":
             user_visible["current_blockers"] = _blockers_without_stale_recovery_residue(
                 user_visible.get("current_blockers")
@@ -107,12 +204,101 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
     return updated
 
 
+def _paper_recovery_observability_mode(
+    recovery: Mapping[str, Any],
+    *,
+    next_safe_action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> str | None:
+    kind = _non_empty_text(next_safe_action.get("kind"))
+    if kind != "record_human_or_owner_gate":
+        return None
+    conditions = {
+        text
+        for item in recovery.get("conditions") or []
+        if isinstance(item, Mapping)
+        if (text := _non_empty_text(item.get("condition"))) is not None
+    }
+    if "no_current_machine_executable_recovery_obligation" not in conditions:
+        return None
+    owner = (_non_empty_text(next_safe_action.get("owner")) or "").lower()
+    if owner in {"user", "physician", "human"}:
+        return None
+    operator_status = _mapping_copy(payload.get("operator_status_card"))
+    if _operator_card_has_specific_current_focus(operator_status):
+        return "defer"
+    transition = _mapping_copy(payload.get("domain_transition"))
+    if _paper_recovery_has_live_supervision(payload) or _specific_intervention_lane_has_priority(payload):
+        return "defer"
+    if _non_empty_text(payload.get("current_stage")) != "auto_runtime_parked":
+        return "defer"
+    if _non_empty_text(transition.get("decision_type")) in {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "current_owner_handoff",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    } and _paper_recovery_can_cleanup_stale_park(payload):
+        return "cleanup"
+    return "defer"
+
+
+def _paper_recovery_has_live_supervision(payload: Mapping[str, Any]) -> bool:
+    supervision = _mapping_copy(payload.get("supervision"))
+    active_run_id = _non_empty_text(supervision.get("active_run_id")) or _non_empty_text(payload.get("active_run_id"))
+    if active_run_id is None:
+        return False
+    if active_run_id.startswith("opl-stage-attempt://"):
+        return False
+    return _non_empty_text(supervision.get("health_status")) in {"live", "running", "attempt_running", "provider_admitted"}
+
+
+def _paper_recovery_can_cleanup_stale_park(payload: Mapping[str, Any]) -> bool:
+    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
+    if auto_parked.get("parked") is not True:
+        return False
+    if auto_parked.get("auto_execution_complete") is True:
+        return False
+    if _non_empty_text(auto_parked.get("source_reason")) in PAPER_RECOVERY_PRESERVED_PARKED_REASONS:
+        return False
+    classification = _mapping_copy(auto_parked.get("runtime_failure_classification"))
+    if classification.get("requires_human_gate") is True:
+        return False
+    if _non_empty_text(auto_parked.get("source_reason")) in PAPER_RECOVERY_STALE_PARK_CLEANUP_REASONS:
+        return True
+    supervision = _mapping_copy(payload.get("supervision"))
+    return (
+        _non_empty_text(supervision.get("active_run_id")) is not None
+        and _non_empty_text(auto_parked.get("parked_state")) in {None, "waiting_user_decision"}
+        and _non_empty_text(auto_parked.get("source_reason")) is None
+    )
+
+
 def _phase_updates_current_blockers(*, phase: str, next_safe_action: Mapping[str, Any]) -> bool:
     if phase in PAPER_RECOVERY_BLOCKING_PHASES:
         return True
     if phase not in {"domain_blocked", "human_gate"}:
         return False
+    if not _paper_recovery_requires_user_decision(
+        phase=phase,
+        next_safe_action=next_safe_action,
+    ):
+        return False
     return _non_empty_text(next_safe_action.get("kind")) != "resolve_typed_blocker"
+
+
+def _paper_recovery_requires_user_decision(
+    *,
+    phase: str,
+    next_safe_action: Mapping[str, Any],
+) -> bool:
+    if phase != "human_gate":
+        return False
+    kind = _non_empty_text(next_safe_action.get("kind"))
+    owner = (_non_empty_text(next_safe_action.get("owner")) or "").lower()
+    if kind == "record_human_or_owner_gate" and owner not in {"user", "physician", "human"}:
+        return False
+    return True
 
 
 def _blockers_without_stale_recovery_residue(value: object) -> list[Any]:
@@ -135,6 +321,8 @@ def _apply_paper_recovery_authority_projection(
     next_safe_action: Mapping[str, Any],
     recovery: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if _specific_intervention_lane_has_priority(payload):
+        return dict(payload)
     updated = dict(payload)
     action_kind = _non_empty_text(next_safe_action.get("kind")) or "inspect_paper_recovery_state"
     lane_id = f"paper_recovery_{phase}"
@@ -154,10 +342,14 @@ def _apply_paper_recovery_authority_projection(
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
     if _non_empty_text(updated.get("current_stage")) == "auto_runtime_parked":
         updated["current_stage"] = "publication_supervision"
-    updated["next_step"] = summary
+    if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
+        updated["next_step"] = summary
     if phase == "owner_receipt_recorded":
         updated["next_system_action"] = summary
-    requires_user_decision = phase == "human_gate"
+    requires_user_decision = _paper_recovery_requires_user_decision(
+        phase=phase,
+        next_safe_action=next_safe_action,
+    )
     if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
         updated["current_blockers"] = [phase]
         updated["next_system_action"] = summary
@@ -425,6 +617,7 @@ def _clear_stale_parked_top_level_fields(
                 "resource_release_expected": False,
                 "awaiting_explicit_wakeup": False,
                 "auto_execution_complete": False,
+                "superseded_by_current_owner_action": True,
                 "superseded_by_paper_recovery_state": True,
                 "paper_recovery_phase": phase,
                 "summary": summary,
@@ -481,6 +674,49 @@ def _paper_recovery_intervention_lane(
         ):
             lane.pop(key, None)
     return {key: value for key, value in lane.items() if value not in (None, "", [], {})}
+
+
+def _specific_intervention_lane_has_priority(payload: Mapping[str, Any]) -> bool:
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    lane_id = _non_empty_text(intervention_lane.get("lane_id"))
+    if lane_id in {
+        "runtime_recovery_required",
+        "workspace_supervision_gap",
+        "quality_floor_blocker",
+        "completion_evidence_required",
+        "progress_continuation_required",
+        "current_owner_action_ready",
+        "publication_gate_specificity_required",
+    }:
+        return True
+    autonomy_contract = _mapping_copy(payload.get("autonomy_contract"))
+    restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
+    if (
+        _non_empty_text(autonomy_contract.get("autonomy_state")) == "autonomous_progress"
+        and _non_empty_text(restore_point.get("resume_mode")) is not None
+    ):
+        return True
+    runtime_health = _mapping_copy(payload.get("runtime_health_snapshot"))
+    if _non_empty_text(runtime_health.get("attempt_state")) != "escalated":
+        return False
+    try:
+        retry_budget_remaining = int(runtime_health.get("retry_budget_remaining"))
+    except (TypeError, ValueError):
+        return False
+    blocking_reasons = {
+        text
+        for item in runtime_health.get("blocking_reasons") or []
+        if (text := _non_empty_text(item)) is not None
+    }
+    return retry_budget_remaining <= 0 and "runtime_recovery_retry_budget_exhausted" in blocking_reasons
+
+
+def _operator_card_has_specific_current_focus(operator_status: Mapping[str, Any]) -> bool:
+    if _mapping_copy(operator_status.get("no_op_suppression")):
+        return True
+    return _non_empty_text(operator_status.get("handling_state")) in {
+        "publication_gate_specificity_required",
+    }
 
 
 def _clear_stale_route_fields(surface: dict[str, Any]) -> None:

@@ -79,7 +79,14 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     writer_state = _non_empty_text(macro_state.get("writer_state")) or "conflict"
     user_next = _non_empty_text(macro_state.get("user_next")) or "inspect"
     reason = _non_empty_text(macro_state.get("reason")) or "truth_conflict"
-    liveness_blocked_by_current_work_unit = _canonical_typed_blocker_blocks_liveness(payload)
+    owner_work_unit_supersedes_stale_park = _owner_work_unit_supersedes_stale_user_park(
+        payload,
+        macro_state,
+    )
+    liveness_blocked_by_current_work_unit = (
+        _canonical_typed_blocker_blocks_liveness(payload)
+        and not owner_work_unit_supersedes_stale_park
+    )
     canonical_typed_blocker = _canonical_typed_blocker(payload)
     if liveness_blocked_by_current_work_unit:
         writer_state = "queued"
@@ -280,7 +287,7 @@ def _top_level_writer_conflicts(payload: Mapping[str, Any], macro_state: Mapping
         or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
     )
     if active_run_id and writer_state != "live":
-        return not _current_owner_action_supersedes_stale_user_park(payload, macro_state)
+        return not _owner_work_unit_supersedes_stale_user_park(payload, macro_state)
     top_level_stage = _non_empty_text(payload.get("current_stage"))
     if top_level_stage in _ACTIVE_TOP_LEVEL_STAGES and writer_state not in {"live", "queued"}:
         return True
@@ -288,6 +295,8 @@ def _top_level_writer_conflicts(payload: Mapping[str, Any], macro_state: Mapping
 
 
 def _canonical_typed_blocker_blocks_liveness(payload: Mapping[str, Any]) -> bool:
+    if not _canonical_typed_blocker(payload):
+        return False
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
         return True
@@ -313,7 +322,30 @@ def _canonical_typed_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
         }
     for key in ("owner", "action_type", "work_unit_id", "work_unit_fingerprint"):
         typed_blocker.setdefault(key, _non_empty_text(current_work_unit.get(key)))
+    if _non_empty_text(current_work_unit.get("status")) == "blocked_current_work_unit" and _generic_unresolved_typed_blocker(
+        typed_blocker=typed_blocker,
+        source=_non_empty_text(state.get("source")),
+    ):
+        return {}
     return {key: value for key, value in typed_blocker.items() if value not in (None, "", [], {})}
+
+
+def _generic_unresolved_typed_blocker(*, typed_blocker: Mapping[str, Any], source: str | None) -> bool:
+    if source != "blocked_current_work_unit":
+        return False
+    if _canonical_typed_blocker_reason(typed_blocker) != "current_work_unit_unresolved":
+        return False
+    identity_fields = (
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "blocker_id",
+        "latest_owner_answer_ref",
+        "typed_blocker_ref",
+        "owner_receipt_ref",
+    )
+    return not any(_non_empty_text(typed_blocker.get(key)) is not None for key in identity_fields)
 
 
 def _canonical_typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
@@ -385,29 +417,48 @@ def _display_macro_state(
     return result
 
 
-def _current_owner_action_supersedes_stale_user_park(
+def _owner_work_unit_supersedes_stale_user_park(
     payload: Mapping[str, Any],
     macro_state: Mapping[str, Any],
 ) -> bool:
     if _non_empty_text(macro_state.get("writer_state")) != "queued":
         return False
-    action = _mapping_copy(payload.get("current_executable_owner_action"))
-    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
+    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
+    if auto_parked.get("superseded_by_current_owner_action") is not True:
         return False
-    if not (
+    action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if _non_empty_text(action.get("surface_kind")) == "current_executable_owner_action" and (
         _non_empty_text(action.get("next_owner"))
         or _non_empty_text(action.get("work_unit_id"))
         or _normalized_texts(action.get("allowed_actions"))
     ):
-        return False
-    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
-    if auto_parked.get("superseded_by_current_owner_action") is True:
         return True
+    if _macro_state_marks_owner_action_superseding_stale_park(macro_state):
+        return True
+    details = _mapping_copy(macro_state.get("details"))
+    if _non_empty_text(details.get("next_work_unit")) or _non_empty_text(details.get("route_owner")):
+        return _macro_state_marks_domain_redrive(macro_state) or current_owner_redrive_domain_transition(payload)
+    return False
+
+
+def _macro_state_marks_owner_action_superseding_stale_park(macro_state: Mapping[str, Any]) -> bool:
     for condition in macro_state.get("conditions") or []:
         if not isinstance(condition, Mapping):
             continue
         if (
             _non_empty_text(condition.get("type")) == "CurrentOwnerActionSupersedesStaleUserPark"
+            and _non_empty_text(condition.get("status")) == "true"
+        ):
+            return True
+    return False
+
+
+def _macro_state_marks_domain_redrive(macro_state: Mapping[str, Any]) -> bool:
+    for condition in macro_state.get("conditions") or []:
+        if not isinstance(condition, Mapping):
+            continue
+        if (
+            _non_empty_text(condition.get("type")) == "DomainTransitionRedrive"
             and _non_empty_text(condition.get("status")) == "true"
         ):
             return True

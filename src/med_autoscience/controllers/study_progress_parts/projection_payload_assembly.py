@@ -418,6 +418,7 @@ def assemble_study_progress_payload(
         study_root=study_root,
         generated_at=generated_at,
     )
+    payload = _sync_supervision_from_user_visible_projection(payload)
     return attach_artifact_first_mission_summary(payload)
 
 
@@ -427,7 +428,35 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     updated = _apply_paper_recovery_state_user_visible_status(updated)
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
+    updated = _sync_supervision_from_user_visible_projection(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
+
+
+def _sync_supervision_from_user_visible_projection(payload: dict[str, Any]) -> dict[str, Any]:
+    user_visible = _mapping_copy(payload.get("user_visible_projection"))
+    user_supervision = _mapping_copy(user_visible.get("supervision"))
+    supervision = _mapping_copy(payload.get("supervision"))
+    active_run_id = _non_empty_text(supervision.get("active_run_id")) or _non_empty_text(
+        user_supervision.get("active_run_id")
+    ) or _non_empty_text(supervision.get("stale_active_run_id"))
+    if active_run_id is None:
+        return payload
+    if _non_empty_text(payload.get("active_run_id")) is None and _non_empty_text(supervision.get("active_run_id")) == active_run_id:
+        updated = dict(payload)
+        updated["active_run_id"] = active_run_id
+        return updated
+    if _non_empty_text(supervision.get("active_run_id")) is not None:
+        return payload
+    stale_active_run_id = _non_empty_text(supervision.get("stale_active_run_id"))
+    if stale_active_run_id != active_run_id:
+        return payload
+    updated = dict(payload)
+    supervision["active_run_id"] = active_run_id
+    supervision.pop("stale_active_run_id", None)
+    supervision.pop("liveness_suppressed_by", None)
+    updated["active_run_id"] = active_run_id
+    updated["supervision"] = supervision
+    return updated
 
 
 def _apply_provider_admission_fields_with_terminal_probe(
@@ -441,11 +470,12 @@ def _apply_provider_admission_fields_with_terminal_probe(
     updated = dict(payload)
     if profile is not None:
         original_handoff = _mapping_copy(handoff)
+        terminal_consumption_candidates = _terminal_consumption_candidates_from_payload(updated)
         refreshed_handoff = refresh_handoff_with_terminal_closeout_candidates(
             profile=profile,
             study_id=study_id,
             handoff=handoff,
-            candidates=_transition_request_candidates_from_payload(updated),
+            candidates=terminal_consumption_candidates,
         )
         if refreshed_handoff and refreshed_handoff != dict(handoff):
             updated["opl_current_control_state_handoff"] = refreshed_handoff
@@ -455,7 +485,10 @@ def _apply_provider_admission_fields_with_terminal_probe(
             if consumed:
                 if not _terminal_consumption_matches_current_pending_identity(
                     consumed=consumed,
-                    payload=updated,
+                    payload={
+                        **updated,
+                        "provider_admission_candidates": terminal_consumption_candidates,
+                    },
                 ):
                     updated["opl_current_control_state_handoff"] = original_handoff
                     updated.pop("provider_admission_terminal_closeout_consumed", None)
@@ -475,13 +508,15 @@ def _apply_provider_admission_fields_with_terminal_probe(
         study_root=study_root,
     )
     updated.update(provider_fields)
-    if profile is None or int(updated.get("transition_request_pending_count") or 0) <= 0:
+    if (
+        profile is None
+        or (
+            int(updated.get("transition_request_pending_count") or 0) <= 0
+            and int(updated.get("provider_admission_pending_count") or 0) <= 0
+        )
+    ):
         return _payload_with_terminal_consumed_current_action_suppression(updated)
-    candidates = [
-        dict(item)
-        for item in updated.get("transition_request_candidates") or []
-        if isinstance(item, Mapping)
-    ]
+    candidates = _terminal_consumption_candidates_from_payload(updated)
     refreshed_handoff = refresh_handoff_with_terminal_closeout_candidates(
         profile=profile,
         study_id=study_id,
@@ -640,6 +675,17 @@ def _transition_request_candidates_from_payload(payload: Mapping[str, Any]) -> l
     ]
 
 
+def _terminal_consumption_candidates_from_payload(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for key in ("provider_admission_candidates", "transition_request_candidates"):
+        candidates.extend(
+            dict(item)
+            for item in payload.get(key) or []
+            if isinstance(item, Mapping)
+        )
+    return candidates
+
+
 def _provider_admission_candidate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     candidate_payload = dict(payload)
     for key in (
@@ -751,6 +797,20 @@ def _apply_current_work_unit_typed_blocker_user_visible_status(payload: dict[str
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
         return payload
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    operator_status = _mapping_copy(payload.get("operator_status_card"))
+    if _mapping_copy(operator_status.get("no_op_suppression")):
+        return payload
+    if _non_empty_text(intervention_lane.get("lane_id")) in {
+        "runtime_recovery_required",
+        "workspace_supervision_gap",
+        "quality_floor_blocker",
+        "completion_evidence_required",
+        "progress_continuation_required",
+        "current_owner_action_ready",
+        "manual_finishing_fast_lane",
+    }:
+        return payload
     typed_blocker = _current_work_unit_typed_blocker(current_work_unit)
     if not typed_blocker:
         return payload
@@ -860,7 +920,30 @@ def _current_work_unit_typed_blocker(current_work_unit: Mapping[str, Any]) -> di
         }
     for key in ("owner", "action_type", "work_unit_id", "work_unit_fingerprint"):
         typed_blocker.setdefault(key, _non_empty_text(current_work_unit.get(key)))
+    if _non_empty_text(current_work_unit.get("status")) == "blocked_current_work_unit" and _generic_unresolved_typed_blocker(
+        typed_blocker=typed_blocker,
+        source=_non_empty_text(state.get("source")),
+    ):
+        return {}
     return {key: value for key, value in typed_blocker.items() if value not in (None, "", [], {})}
+
+
+def _generic_unresolved_typed_blocker(*, typed_blocker: Mapping[str, Any], source: str | None) -> bool:
+    if source != "blocked_current_work_unit":
+        return False
+    if _typed_blocker_reason(typed_blocker) != "current_work_unit_unresolved":
+        return False
+    identity_fields = (
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "blocker_id",
+        "latest_owner_answer_ref",
+        "typed_blocker_ref",
+        "owner_receipt_ref",
+    )
+    return not any(_non_empty_text(typed_blocker.get(key)) is not None for key in identity_fields)
 
 
 def _typed_blocker_blockers(typed_blocker: Mapping[str, Any], *, reason: str) -> list[str]:
@@ -1266,7 +1349,10 @@ def build_projection_refs(
         "publication_eval_path": str(publication_eval_path),
         "controller_decision_path": str(controller_decision_path),
         "controller_confirmation_summary_path": (
-            str(controller_confirmation_summary_path) if controller_confirmation_summary is not None else None
+            str(controller_confirmation_summary_path)
+            if controller_confirmation_summary is not None
+            or controller_confirmation_summary_path.exists()
+            else None
         ),
         "controller_summary_path": (
             controller_module_surface["summary_ref"] if controller_module_surface is not None else None
