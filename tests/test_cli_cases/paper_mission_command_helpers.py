@@ -399,6 +399,101 @@ def _write_matching_domain_gate_closeout(
     return closeout_ref
 
 
+def _write_submission_milestone_package(
+    *,
+    workspace_root: Path,
+    study_id: str,
+    mission_id: str,
+    base_transaction: dict,
+    requested_outcome: str = "accepted_candidate",
+) -> Path:
+    package_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "sat-current"
+        / study_id
+    )
+    package_root.mkdir(parents=True)
+    candidate_manifest = {
+        "candidate_id": f"paper-mission-candidate::{study_id}::submission",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "requested_outcome": requested_outcome,
+        "candidate_manifest_ref": str(package_root / "candidate_manifest.json"),
+        "candidate_artifact_refs": [
+            str(package_root / "paper_facing_candidate_delta.json"),
+        ],
+        "source_readiness_refs": [f"source-readiness:{study_id}"],
+        "quality_auditor_requirement": {
+            "independent_auditor_required": True,
+            "owner": "MedAutoScience",
+        },
+        "artifact_authority_boundary": {
+            "artifact_authority_owner": "MedAutoScience",
+            "candidate_is_authority": False,
+            "can_update_current_package": False,
+            "can_write_paper_body": False,
+        },
+        "next_owner": "one-person-lab",
+        "resume_condition": "MAS consumes or routes the milestone package",
+        "paper_mission_transaction": base_transaction,
+    }
+    (package_root / "candidate_manifest.json").write_text(
+        json.dumps(candidate_manifest),
+        encoding="utf-8",
+    )
+    (package_root / "owner_blocker_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_owner_blocker_packet",
+                "status": "owner_blocker_candidate_ready",
+                "blocker_kind": "missing_opl_runtime_readback",
+                "study_id": study_id,
+                "mission_id": mission_id,
+                "next_owner": "one-person-lab",
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_manifest = {
+        "surface_kind": "paper_mission_foreground_candidate_package_manifest",
+        "schema_version": 1,
+        "mode": "non_authority_candidate_package",
+        "milestone_kind": "submission_milestone_candidate",
+        "requested_outcome": requested_outcome,
+        "study_id": study_id,
+        "mission_id": mission_id,
+        "counts_as_paper_progress": True,
+        "candidate_is_authority": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "can_claim_current_package": False,
+        "can_claim_owner_receipt_written": False,
+        "artifact_refs": {
+            "candidate_manifest": str(package_root / "candidate_manifest.json"),
+            "paper_facing_candidate_delta": str(
+                package_root / "paper_facing_candidate_delta.json"
+            ),
+        },
+        "paper_facing_candidate_delta_ref": str(
+            package_root / "paper_facing_candidate_delta.json"
+        ),
+        "owner_consumption_request_ref": str(
+            package_root / "owner_consumption_request.json"
+        ),
+        "owner_blocker_packet_ref": str(package_root / "owner_blocker_packet.json"),
+    }
+    package_manifest_path = package_root / "package_manifest.json"
+    package_manifest_path.write_text(json.dumps(package_manifest), encoding="utf-8")
+    return package_manifest_path
+
+
 __all__ = [
     "DM_CANARY_FIXTURE_ROOT",
     "FORBIDDEN_AUTHORITY_RELATIVE_PATHS",
@@ -409,4 +504,5 @@ __all__ = [
     "_write_matching_domain_gate_closeout",
     "_write_paper_source_fixture",
     "_write_profile_with_study",
+    "_write_submission_milestone_package",
 ]
