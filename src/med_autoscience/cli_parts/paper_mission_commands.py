@@ -593,6 +593,7 @@ def _build_paper_mission_drive_readback(
         ledger_root=ledger_root,
         source=source,
         opl_bin=opl_bin,
+        submit_opl_runtime=runtime_submit_requested,
         initial_package_readback=package_readback,
         initial_consume_readback=consume_readback,
         initial_handoff=handoff,
@@ -703,6 +704,7 @@ def _paper_mission_drive_followthrough(
     ledger_root: Path,
     source: str,
     opl_bin: str | Path | None,
+    submit_opl_runtime: bool,
     initial_package_readback: Mapping[str, Any],
     initial_consume_readback: Mapping[str, Any],
     initial_handoff: Mapping[str, Any],
@@ -762,7 +764,7 @@ def _paper_mission_drive_followthrough(
             handoff = _load_json_object(Path(handoff_ref)) if handoff_ref else {}
         submission = _opl_runtime_submission_readback(
             handoff=handoff,
-            submit_opl_runtime=True,
+            submit_opl_runtime=submit_opl_runtime,
             opl_bin=opl_bin,
         )
         consume_readback = _refresh_consume_readback_after_opl_submission(
@@ -1246,6 +1248,9 @@ def _refresh_consume_readback_after_opl_submission(
     )
     refreshed = dict(consume_readback)
     refreshed.update(_transaction_readback_output_fields(transaction_readback))
+    refreshed["stage_route_submission_source_transaction"] = _mapping(
+        consume_readback.get("paper_mission_transaction")
+    )
     refreshed["consume_candidate_status"] = (
         _consume_candidate_status_for_transaction_readback(
             transaction_readback=transaction_readback,
@@ -1744,6 +1749,27 @@ def _paper_mission_canonical_followthrough_identity(value: str | None) -> str | 
     if index < 0:
         return value
     return value[:index]
+
+
+def _canonicalize_followthrough_transaction_identity(
+    transaction: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(_mapping(transaction))
+    mission_id = _paper_mission_canonical_followthrough_identity(
+        _optional_text(payload.get("mission_id"))
+    )
+    if mission_id is not None:
+        payload["mission_id"] = mission_id
+    transaction_id = _paper_mission_canonical_followthrough_identity(
+        _optional_text(payload.get("transaction_id"))
+    )
+    if transaction_id is not None:
+        payload["transaction_id"] = transaction_id
+    route = dict(_mapping(payload.get("opl_route_command")))
+    if route and transaction_id is not None:
+        route["source_terminal_decision_ref"] = f"{transaction_id}#stage_terminal_decision"
+        payload["opl_route_command"] = route
+    return payload
 
 
 def _route_back_evidence_kind(ref: str | None) -> str | None:
@@ -2576,14 +2602,31 @@ def _followthrough_transaction_for_readback(
 ) -> dict[str, Any]:
     owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
     transaction = _first_mapping(
-        _mapping(owner_answer.get("paper_mission_transaction")),
-        _mapping(readback.get("paper_mission_transaction")),
+        _canonicalize_followthrough_transaction_identity(
+            _mapping(owner_answer.get("paper_mission_transaction"))
+        ),
+        _canonicalize_followthrough_transaction_identity(
+            _mapping(readback.get("stage_route_submission_source_transaction"))
+        ),
+        _canonicalize_followthrough_transaction_identity(
+            _mapping(readback.get("paper_mission_transaction"))
+        ),
     )
     decision = _mapping(transaction.get("stage_terminal_decision"))
-    if _optional_text(decision.get("decision_kind")) != "route_back":
+    decision_kind = _optional_text(decision.get("decision_kind"))
+    terminal_closeout_observed = _optional_text(
+        readback.get("opl_runtime_readback_status")
+    ) == "opl_runtime_terminal_readback_observed" or _optional_text(
+        _mapping(readback.get("opl_runtime_carrier_readback")).get("carrier_status")
+    ) == "opl_runtime_terminal_readback_observed"
+    if decision_kind != "route_back" and not (
+        decision_kind == "continue_same_stage" and terminal_closeout_observed
+    ):
         return {}
     study_id = _optional_text(transaction.get("study_id"))
-    mission_id = _optional_text(transaction.get("mission_id"))
+    mission_id = _paper_mission_canonical_followthrough_identity(
+        _optional_text(transaction.get("mission_id"))
+    )
     if study_id is None or mission_id is None:
         return {}
     target_stage = (
@@ -2606,8 +2649,9 @@ def _followthrough_transaction_for_readback(
         "decision_kind": "continue_same_stage",
         "status": "accepted_submission_milestone_candidate",
         "reason": (
-            "MAS mission executor consumed the terminal route-back as a fresh "
-            "paper-facing candidate and is continuing the same PaperMission stage."
+            "MAS mission executor consumed the terminal closeout/route-back as a "
+            "fresh paper-facing candidate and is continuing the same PaperMission "
+            "stage."
         ),
         "next_owner": "mission_executor",
         "next_work_unit": next_work_unit,

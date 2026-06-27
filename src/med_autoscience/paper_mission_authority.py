@@ -341,15 +341,19 @@ def _candidate_payload_from_submission_package(
         _text(package_sidecar_refs.get("owner_blocker_packet")),
         base_path=base_path,
     )
-    paper_mission_transaction = _first_mapping(
+    embedded_transaction = _first_mapping(
         _mapping(candidate_payload.get("paper_mission_transaction")),
         _transaction_from_sidecar_refs(sidecar_refs, base_path=base_path),
         _transaction_from_sidecar_refs(package_sidecar_refs, base_path=base_path),
-        _continuation_transaction_for_submission_package(
-            package=package,
-            candidate_payload=candidate_payload,
-            owner_blocker_packet=owner_blocker_packet,
-        ),
+    )
+    continuation_transaction = _continuation_transaction_for_submission_package(
+        package=package,
+        candidate_payload=candidate_payload,
+        owner_blocker_packet=owner_blocker_packet,
+    )
+    paper_mission_transaction = _submission_package_transaction_for_consume(
+        embedded_transaction=embedded_transaction,
+        continuation_transaction=continuation_transaction,
     )
     candidate_id = _first_text(
         candidate_payload.get("candidate_id"),
@@ -364,10 +368,12 @@ def _candidate_payload_from_submission_package(
     normalized = {
         **candidate_payload,
         "candidate_id": candidate_id,
-        "mission_id": _first_text(
-            candidate_payload.get("mission_id"),
-            package.get("mission_id"),
-            "unknown_mission",
+        "mission_id": _canonical_followthrough_identity(
+            _first_text(
+                candidate_payload.get("mission_id"),
+                package.get("mission_id"),
+                "unknown_mission",
+            )
         ),
         "study_id": _first_text(
             candidate_payload.get("study_id"),
@@ -435,11 +441,36 @@ def _candidate_payload_from_submission_package(
         },
     }
     if paper_mission_transaction:
-        normalized["paper_mission_transaction"] = paper_mission_transaction
+        normalized["paper_mission_transaction"] = dict(paper_mission_transaction)
     if manifest_input is not None:
         manifest_input["mode"] = "read_only_submission_milestone_package_manifest"
         manifest_input["source_surface_kind"] = package.get("surface_kind")
     return normalized
+
+
+def _submission_package_transaction_for_consume(
+    *,
+    embedded_transaction: Mapping[str, Any],
+    continuation_transaction: Mapping[str, Any],
+) -> dict[str, Any]:
+    embedded = _mapping(embedded_transaction)
+    continuation = _mapping(continuation_transaction)
+    embedded_decision = _text(
+        _mapping(embedded.get("stage_terminal_decision")).get("decision_kind")
+    )
+    if embedded_decision and embedded_decision != "route_back":
+        return embedded
+    return _first_mapping(continuation, embedded)
+
+
+def _canonical_followthrough_identity(value: str | None) -> str | None:
+    if value is None:
+        return None
+    marker = "::followthrough"
+    index = value.find(marker)
+    if index < 0:
+        return value
+    return value[:index]
 
 
 def _continuation_transaction_for_submission_package(
@@ -456,7 +487,9 @@ def _continuation_transaction_for_submission_package(
     }:
         return {}
     study_id = _first_text(candidate_payload.get("study_id"), package.get("study_id"))
-    mission_id = _first_text(candidate_payload.get("mission_id"), package.get("mission_id"))
+    mission_id = _canonical_followthrough_identity(
+        _first_text(candidate_payload.get("mission_id"), package.get("mission_id"))
+    )
     if study_id is None or mission_id is None:
         return {}
     current_decision = _mapping(

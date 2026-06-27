@@ -116,6 +116,38 @@ def test_semantic_progress_guard_ignores_followthrough_identity_wrappers() -> No
     assert second_guard["semantic_progress_observed"] is False
 
 
+def test_followthrough_transaction_uses_canonical_mission_identity() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    readback = _route_back_consume_readback(
+        mission_id="paper-mission::dm003::followthrough::followthrough",
+        transaction_ref="paper-mission-transaction::dm003::followthrough::followthrough",
+    )
+    readback["paper_mission_transaction"]["artifact_delta_refs"] = [
+        {
+            "ref_id": "existing-delta",
+            "ref_kind": "submission_milestone_candidate_artifact",
+            "uri": "artifact-delta::same",
+        }
+    ]
+    readback["paper_mission_transaction"]["paper_audit_pack_refs"] = {
+        family: [
+            {
+                "ref_id": f"{family}::same",
+                "ref_kind": "submission_milestone_candidate_ref",
+                "uri": f"audit-pack::{family}",
+            }
+        ]
+        for family in commands.PAPER_AUDIT_PACK_FAMILIES
+    }
+
+    transaction = commands._followthrough_transaction_for_readback(readback)
+
+    assert transaction["mission_id"] == "paper-mission::dm003"
+    assert "::followthrough::followthrough" not in transaction["transaction_id"]
+    route = transaction["opl_route_command"]
+    assert "::followthrough::followthrough" not in route["source_terminal_decision_ref"]
+
+
 def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     first = _route_back_consume_readback()
