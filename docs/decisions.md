@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-27：consumed gate replay currentness 以 work-unit/eval/action owner identity 为准
+
+- 决策：`consumed_transition_currentness.gate_replay_matches_dispatch` 判断 consumed gate replay 是否仍匹配当前 dispatch 时，不再把 replay route 的 `source_fingerprint` 与 materialized dispatch owner route 的 `source_fingerprint` 做硬相等要求。gate replay 路径必须以 `work_unit_id`、`work_unit_fingerprint`、`source_eval_id`、`next_owner` 和 `allowed_actions` 的同一性为准；普通 owner action 匹配仍保留 `source_fingerprint` 硬匹配。
+- 决策：body-omitted transition projection、replay projection 或 fallback projection 不能因为 source fingerprint 形状不同而替代已经 materialized 且同 work-unit / eval / action / owner 的 authorized dispatch。若 selector 因 source-fingerprint mismatch 回落到缺 OPL authorization 的 projection，这是 currentness arbitration bug，应修 MAS controller/read-model，而不是继续 OPL redrive 或手写 owner receipt。
+- 理由：consumed gate replay 的 route 是由 terminal / transition projection 合成的 currentness envelope，materialized dispatch 的 fingerprint 来自 owner-route carrier；二者可在同一 work unit、同一 eval、同一 action owner 下合法不同。把该 fingerprint 当硬门会误判 current dispatch stale，复发 `fallback projection selected / OPL authorization missing`，让 stage 在 route-back/domain-gate 附近循环。
+- 影响：这是 MAS dispatch/currentness 选择修复，只避免已授权 dispatch 被错误降级。它不写 Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package、runtime queue/provider attempt 或 paper body；也不声明 DM002/DM003 paper progress、provider running、runtime-ready、submission-ready 或 publication-ready。
+
 ## 2026-06-27：mission-first non-advancing route-back 自动升级口径
 
 - 决策：`route_back`、`domain_gate`、`paper_mission_stage_route_domain_gate_pending`、`owner_answer_shape=route_back_evidence_ref` 或 `non_advancing_apply` 反复出现时，默认不再继续 OPL redrive / tick / worker readiness 循环。MAS 必须先计算 `semantic_progress_signature`：study、PaperMissionRun、stage、current owner、action、work-unit id / fingerprint、route identity、attempt idempotency、required output surface 和 accepted answer shape；只有 owner receipt、stable typed blocker、human gate、route-back evidence、canonical paper/artifact delta、AI reviewer / publication gate delta、successor work unit 或 `CarryForwardRiskReceipt` 这类 semantic delta 才能改变签名推进状态。
