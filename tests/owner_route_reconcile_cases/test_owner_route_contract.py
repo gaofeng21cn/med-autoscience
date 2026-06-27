@@ -835,18 +835,6 @@ def test_registered_owner_route_decorator_keeps_missing_allowed_action_non_dispa
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is False
 
 
-def test_owner_route_legacy_scan_part_reexports_shared_contract() -> None:
-    shared = importlib.import_module("med_autoscience.runtime_control.owner_route")
-    legacy = importlib.import_module("med_autoscience.controllers.owner_route_reconcile_parts.owner_route")
-
-    assert legacy.ROUTED_ACTION_TYPES is shared.ROUTED_ACTION_TYPES
-    assert legacy.build_owner_route is shared.build_owner_route
-    assert legacy.decorate_actions is shared.decorate_actions
-    assert legacy.route_and_decorate_actions is shared.route_and_decorate_actions
-    assert legacy.owner_route_matches is shared.owner_route_matches
-    assert legacy.route_allows_action is shared.route_allows_action
-
-
 def test_owner_route_scan_consumer_and_executor_share_contract_import() -> None:
     shared = importlib.import_module("med_autoscience.runtime_control.owner_route")
     modules = [
