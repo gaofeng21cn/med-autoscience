@@ -278,7 +278,6 @@ def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
                 "status": "blocked",
                 "started_at": "2026-04-10T09:30:00+00:00",
                 "finished_at": "2026-04-10T09:30:01+00:00",
-                "duration_seconds": 1.25,
             },
         },
     )
@@ -330,10 +329,14 @@ def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
     ]
     assert quality_record["token_usage"]["status"] == "missing"
     assert gate_record["action_type"] == "run_gate_clearing_batch"
-    assert gate_record["duration"] == {"status": "present", "seconds": 1.25}
+    assert gate_record["duration"] == {
+        "status": "present",
+        "seconds": 1.0,
+        "source": "started_at_finished_at",
+    }
     assert gate_record["remaining_blockers"] == ["claim_evidence_consistency_failed"]
     assert "stage records 2" in runtime_efficiency["summary"]
-    assert result["deliverable_progress_delta"]["token_usage_total"] == 0
+    assert result["deliverable_progress_delta"]["token_usage_total"] is None
 
 
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:

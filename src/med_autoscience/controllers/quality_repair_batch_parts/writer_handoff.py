@@ -17,6 +17,9 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
 from med_autoscience.controllers.story_surface_work_units import is_story_surface_delta_write_work_unit
+from med_autoscience.controllers.quality_repair_batch_parts.repair_execution_gate import (
+    WRITER_HANDOFF_BLOCKERS,
+)
 
 
 BLOCKED_REASON = "manuscript_story_surface_delta_missing"
@@ -88,7 +91,7 @@ FORBIDDEN_MANUSCRIPT_TERMS = [
 
 
 def should_emit_writer_handoff(blocked_repair_reason: str | None) -> bool:
-    return blocked_repair_reason == BLOCKED_REASON
+    return blocked_repair_reason in WRITER_HANDOFF_BLOCKERS
 
 
 def build_writer_worker_handoff(

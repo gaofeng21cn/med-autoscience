@@ -931,6 +931,8 @@ def run_quality_repair_batch(
         evidence=repair_execution_evidence,
     )
     blocked_repair_reason = repair_execution_gate.blocked_repair_execution_reason(repair_execution_evidence)
+    if blocked_repair_reason is None:
+        blocked_repair_reason = repair_execution_gate.current_gate_repairable_blocked_reason(gate_clearing_result)
     if repair_execution_gate.upstream_blocker_overrides_repair_reason(upstream_blocked_reason):
         blocked_repair_reason = upstream_blocked_reason
     writer_worker_handoff = (

@@ -683,14 +683,21 @@ def _stage_log_delta_stats_text(stage_log: Mapping[str, Any]) -> str | None:
     if not deliverable and not paper and not platform:
         return None
     deliverable_count = int(deliverable.get("count") or 0)
-    deliverable_tokens = int(deliverable.get("token_usage_total") or 0)
+    deliverable_tokens = _token_usage_display(deliverable.get("token_usage_total"))
     platform_count = int(platform.get("count") or 0)
-    platform_tokens = int(platform.get("token_usage_total") or 0)
+    platform_tokens = _token_usage_display(platform.get("token_usage_total"))
     return (
         "分账统计: "
         f"deliverable_progress_delta={deliverable_count} (tokens={deliverable_tokens}); "
         f"platform_repair_delta={platform_count} (tokens={platform_tokens})"
     )
+
+
+def _token_usage_display(value: object) -> str:
+    try:
+        return str(int(value)) if value is not None else "unknown"
+    except (TypeError, ValueError):
+        return "unknown"
 
 
 def _research_pack_progress_text(stage_log: Mapping[str, Any]) -> str | None:

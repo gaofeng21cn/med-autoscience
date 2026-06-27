@@ -14,6 +14,28 @@ TOP_LEVEL_BLOCKERS = frozenset(
         "manuscript_story_surface_delta_missing",
     }
 )
+WRITER_HANDOFF_BLOCKERS = frozenset(
+    {
+        "baseline_characteristics_reporting_incomplete",
+        "claim_evidence_incomplete",
+        "claim_evidence_map_missing_or_incomplete",
+        "data_quality_reporting_incomplete",
+        "figure_semantics_sidecar_incomplete",
+        "forbidden_manuscript_terms_present",
+        "intro_methods_structure_incomplete",
+        "manuscript_story_surface_delta_missing",
+        "manuscript_voice_reporting_incomplete",
+        "medical_story_contract_missing",
+        "methods_structure_incomplete",
+        "phenotype_derivation_reporting_incomplete",
+        "prose_style_not_met",
+        "references_incomplete",
+        "review_ledger_incomplete",
+        "table_figure_catalog_incomplete",
+        "treatment_gap_reporting_incomplete",
+        "undefined_methodology_labels",
+    }
+)
 
 
 def selected_work_unit_id_from_gate_result(
@@ -64,6 +86,22 @@ def blocked_repair_execution_reason(repair_execution_evidence: Mapping[str, Any]
         text = _non_empty_text(blocker)
         if text in TOP_LEVEL_BLOCKERS:
             return text
+    for blocker in repair_execution_evidence.get("blockers") or ():
+        text = _non_empty_text(blocker)
+        if text in WRITER_HANDOFF_BLOCKERS:
+            return text
+    return None
+
+
+def current_gate_repairable_blocked_reason(gate_clearing_result: Mapping[str, Any]) -> str | None:
+    if _non_empty_text(gate_clearing_result.get("status")) != "blocked":
+        return None
+    gate_replay = gate_clearing_result.get("gate_replay")
+    gate_replay = gate_replay if isinstance(gate_replay, Mapping) else {}
+    for blocker in gate_replay.get("blockers") or ():
+        text = _non_empty_text(blocker)
+        if text in WRITER_HANDOFF_BLOCKERS:
+            return text
     return None
 
 
@@ -96,8 +134,10 @@ def _selected_work_unit_id_for_key(gate_clearing_result: Mapping[str, Any], *, k
 
 __all__ = [
     "blocked_repair_execution_reason",
+    "current_gate_repairable_blocked_reason",
     "merge_upstream_unit_result",
     "selected_work_unit_id_from_gate_result",
     "upstream_blocker_overrides_repair_reason",
     "upstream_unit_blocked_reason",
+    "WRITER_HANDOFF_BLOCKERS",
 ]

@@ -504,7 +504,7 @@ def _token_usage_total(
     stage_log: Mapping[str, Any],
     evidence: Mapping[str, Any],
     quality_repair: Mapping[str, Any],
-) -> int:
+) -> int | None:
     for value in (stage_log, evidence, quality_repair):
         token_usage = _mapping(value.get("token_usage")) or _mapping(value.get("usage"))
         total = _first_number(
@@ -524,7 +524,7 @@ def _token_usage_total(
         )
         if partial is not None:
             return partial
-    return 0
+    return None
 
 
 def _is_paper_progress_delta(

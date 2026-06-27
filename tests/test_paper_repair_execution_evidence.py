@@ -567,6 +567,53 @@ def test_quality_repair_batch_does_not_infer_story_delta_from_stale_manuscript_s
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"] == []
 
 
+def test_quality_repair_batch_routes_repairable_quality_blocker_to_writer_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    quality_module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "003-dpcc", quest_id="quest-003")
+    publication_eval = _write_blocked_publication_eval(study_root, quest_id="quest-003")
+    publication_eval["gaps"][0]["summary"] = "claim_evidence_incomplete"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_quality_summary(study_root)
+    source_eval = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(study_root / "paper" / "draft.md", {"text": "placeholder"})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+
+    monkeypatch.setattr(
+        quality_module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_: {
+            "ok": False,
+            "status": "blocked",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "selected_publication_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(source_eval),
+                "blockers": ["claim_evidence_incomplete"],
+            },
+        },
+    )
+
+    result = quality_module.run_quality_repair_batch(
+        profile=profile,
+        study_id="003-dpcc",
+        study_root=study_root,
+        quest_id="quest-003",
+        source="test-source",
+    )
+
+    assert result["status"] == "handoff_ready"
+    assert result["blocked_reason"] is None
+    assert result["writer_worker_handoff"]["next_executable_owner"] == "write"
+    assert result["writer_worker_handoff"]["typed_blocker_if_unresolved"] == "claim_evidence_incomplete"
+    assert result["writer_worker_handoff"]["owner_route"]["owner_reason"] == "claim_evidence_incomplete"
+
+
 def test_quality_repair_batch_does_not_infer_story_delta_from_unchanged_newer_surface(
     monkeypatch,
     tmp_path: Path,

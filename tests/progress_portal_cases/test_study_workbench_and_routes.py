@@ -93,13 +93,18 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
         "can_generate_action": False,
         "can_execute": False,
         "can_authorize_provider_admission": False,
-        "can_authorize_worker_attempt": False,
-        "requires_opl_current_control_readback": True,
-        "must_not_be_used_as_provider_admission": True,
-        "must_not_be_used_as_next_action_authority": True,
-        "must_not_be_used_as_publication_ready": True,
-        "must_not_be_used_as_paper_progress": True,
-    }
+            "can_authorize_worker_attempt": False,
+            "can_close_stage": False,
+            "can_generate_human_gate": False,
+            "can_generate_owner_receipt": False,
+            "can_generate_typed_blocker": False,
+            "requires_opl_current_control_readback": True,
+            "must_not_be_used_as_provider_admission": True,
+            "must_not_be_used_as_next_action_authority": True,
+            "must_not_be_used_as_publication_ready": True,
+            "must_not_be_used_as_paper_progress": True,
+            "must_not_be_used_as_stage_authority": True,
+        }
     assert payload["overview"]["next_system_action_boundary"] == overview_action_boundary
     tabs_by_id = {item["id"]: item for item in payload["tabs"]}
     assert tabs_by_id["route_map"] == {"id": "route_map", "label": "研究路线地图", "status": "available"}

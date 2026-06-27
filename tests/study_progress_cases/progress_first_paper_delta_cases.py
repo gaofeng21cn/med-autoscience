@@ -96,7 +96,7 @@ def test_paper_delta_with_missing_runtime_token_usage_reports_unknown_token_tota
         "sources": ["quality_repair_batch_followthrough"],
     }
     assert progress_delta["paper_progress_delta"] == progress_delta["deliverable_progress_delta"]
-    assert progress_delta["platform_repair_delta"] == {"count": 0, "token_usage_total": 0, "sources": []}
+    assert progress_delta["platform_repair_delta"] == {"count": 0, "token_usage_total": None, "sources": []}
 
 
 def test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delta() -> None:

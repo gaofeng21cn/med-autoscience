@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 from collections.abc import Mapping
+from datetime import datetime
 
 from med_autoscience.controllers import opl_runtime_refs, work_unit_ledger
 
@@ -472,11 +473,29 @@ def _stage_duration(record: Mapping[str, Any]) -> dict[str, Any]:
     seconds = _float_number(record.get("duration_seconds"))
     if seconds is not None:
         return {"status": "present", "seconds": seconds}
+    started_at = _parse_datetime(record.get("started_at"))
+    finished_at = _parse_datetime(record.get("finished_at"))
+    if started_at is not None and finished_at is not None:
+        return {
+            "status": "present",
+            "seconds": max((finished_at - started_at).total_seconds(), 0.0),
+            "source": "started_at_finished_at",
+        }
     return {
         "status": "missing",
         "seconds": None,
         "missing_duration_reason": "stage_record_has_no_duration",
     }
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def _text_list(value: object) -> list[str]:
