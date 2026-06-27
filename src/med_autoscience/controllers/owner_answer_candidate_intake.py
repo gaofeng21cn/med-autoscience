@@ -25,6 +25,18 @@ B002_PUBLICATION_EVAL_RECORD_ANSWER_SHAPES = (
 B003_GOVERNED_ANSWER_SHAPES = tuple(
     shape for shape in REQUIRED_GOVERNED_ANSWER_SHAPES if shape != "publication_eval_record_ref"
 )
+FORBIDDEN_NON_AUTHORITY_RESPONSE_REF_MARKERS = (
+    "paper_mission_candidate_package",
+    "paper_mission_consumption_ledger",
+    "paper_mission_one_shot_migration",
+    "candidate_manifest",
+    "mission_candidate_artifact_delta",
+    "owner_decision_packet",
+    "stage_terminal_decision",
+    "op-routes",
+    "opl_route_command",
+    "opl_route_handoff",
+)
 
 
 @dataclass(frozen=True)
@@ -314,6 +326,15 @@ def _validate_governed_response(
             "governed_response": dict(governed_response),
             "missing_fields": missing,
         }
+    forbidden_marker = _forbidden_non_authority_response_ref_marker(governed_response.get("ref", ""))
+    if forbidden_marker:
+        return {
+            "status": "governed_response_ref_not_authority_materialized",
+            "governed_answer_consumed": False,
+            "governed_response": dict(governed_response),
+            "forbidden_non_authority_ref_marker": forbidden_marker,
+            "required_ref_boundary": "MAS authority owner answer ref",
+        }
     if governed_response.get("study_id") != spec.study_id:
         return {
             "status": "governed_response_study_mismatch",
@@ -487,6 +508,7 @@ def _authority_boundary() -> dict[str, bool | str]:
         "owner": "med-autoscience",
         "surface_role": "package_candidate_intake_readback_only",
         "candidate_markdown_can_satisfy_owner_answer": False,
+        "candidate_or_ledger_ref_can_satisfy_governed_answer": False,
         "can_create_owner_receipt": False,
         "can_create_typed_blocker": False,
         "can_create_human_gate": False,
@@ -496,6 +518,14 @@ def _authority_boundary() -> dict[str, bool | str]:
         "can_write_publication_eval": False,
         "can_write_controller_decision": False,
     }
+
+
+def _forbidden_non_authority_response_ref_marker(ref: str) -> str | None:
+    normalized = str(ref or "").strip()
+    return next(
+        (marker for marker in FORBIDDEN_NON_AUTHORITY_RESPONSE_REF_MARKERS if marker in normalized),
+        None,
+    )
 
 
 __all__ = ["SUPPORTED_CANDIDATE_IDS", "intake_owner_answer_candidate"]

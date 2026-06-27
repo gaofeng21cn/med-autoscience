@@ -318,6 +318,37 @@ def test_current_targets_consume_matching_governed_refs_without_writing(tmp_path
     assert b003_result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
 
 
+def test_governed_response_rejects_candidate_or_handoff_refs_as_authority(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.controllers.owner_answer_candidate_intake import (
+        intake_owner_answer_candidate,
+    )
+
+    candidate = tmp_path / B003_1105_CANDIDATE
+    _write_candidate(candidate, sha_text="B003 1105 owner answer target\n")
+
+    result = intake_owner_answer_candidate(
+        candidate_id="B003-1105",
+        candidate_path=candidate,
+        expected_sha256=None,
+        governed_response_kind="typed_blocker_ref",
+        governed_response_ref=(
+            "ops/medautoscience/paper_mission_consumption_ledger/"
+            "b003/stage_terminal_decision.json#typed_blocker"
+        ),
+        governed_response_study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        governed_response_owner_surface="MAS paper recovery / publication gate governed owner answer",
+    )
+
+    assert result["status"] == "governed_response_ref_not_authority_materialized"
+    assert result["governed_answer_consumed"] is False
+    assert result["forbidden_non_authority_ref_marker"] == "paper_mission_consumption_ledger"
+    assert result["required_ref_boundary"] == "MAS authority owner answer ref"
+    assert result["authority_boundary"]["candidate_or_ledger_ref_can_satisfy_governed_answer"] is False
+    assert result["write_plan"]["written_files"] == []
+
+
 def test_b003_current_target_rejects_publication_eval_record_ref_without_writing(
     tmp_path: Path,
 ) -> None:
