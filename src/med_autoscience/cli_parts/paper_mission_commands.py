@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -64,6 +65,9 @@ PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
 PAPER_MISSION_CONTRACT_COMMIT = "a410db5c0c874187c8b1ddecee79c2e00c8fe691"
 PAPER_MISSION_START_OR_RESUME_TASK_KIND = "paper_mission/start_or_resume"
 YANG_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang")
+PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
+DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+PATH_OPL_BIN = "opl"
 PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
 )
@@ -73,6 +77,7 @@ PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH = (
 PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_consumption_ledger"
 )
+DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT = 2
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
@@ -166,7 +171,17 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     _add_common_args(drive_parser)
     drive_parser.add_argument("--run-id")
     drive_parser.add_argument("--output-root")
-    drive_parser.add_argument("--submit-opl-runtime", action="store_true")
+    drive_parser.add_argument(
+        "--submit-opl-runtime",
+        dest="submit_opl_runtime",
+        action="store_true",
+        default=None,
+    )
+    drive_parser.add_argument(
+        "--no-submit-opl-runtime",
+        dest="submit_opl_runtime",
+        action="store_false",
+    )
     drive_parser.add_argument("--opl-bin")
 
     start_parser = mission_subparsers.add_parser("start")
@@ -205,7 +220,7 @@ def handle_paper_mission_command(
         mission_id=getattr(args, "mission_id", None),
         candidate=getattr(args, "candidate", None),
         run_id=getattr(args, "run_id", None),
-        submit_opl_runtime=bool(getattr(args, "submit_opl_runtime", False)),
+        submit_opl_runtime=getattr(args, "submit_opl_runtime", None),
         opl_bin=getattr(args, "opl_bin", None),
         one_shot_migration=bool(getattr(args, "one_shot_migration", False)),
         study_progress_payload=getattr(args, "study_progress_payload", None),
@@ -232,7 +247,7 @@ def build_paper_mission_readback(
     mission_id: str | None = None,
     candidate: str | Path | None = None,
     run_id: str | None = None,
-    submit_opl_runtime: bool = False,
+    submit_opl_runtime: bool | None = None,
     opl_bin: str | Path | None = None,
     one_shot_migration: bool = False,
     study_progress_payload: str | Path | None = None,
@@ -240,6 +255,7 @@ def build_paper_mission_readback(
     output_root: str | Path | None = None,
     dry_run: bool = False,
     source: str = "unknown",
+    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     if one_shot_migration:
         return _build_one_shot_migration_cli_readback(
@@ -278,6 +294,8 @@ def build_paper_mission_readback(
             paper_mission_command=paper_mission_command,
             dry_run=dry_run,
             source=source,
+            enable_opl_live_probe=True,
+            opl_bin=opl_bin,
         )
         if materialized is not None:
             return materialized
@@ -321,6 +339,7 @@ def build_paper_mission_readback(
         mission=None,
         candidate=candidate_ref,
         authority_consume_readback=authority_consume_readback,
+        enable_opl_live_probe=enable_opl_live_probe,
     )
     candidate_mission_id = _candidate_mission_id_for_readback(
         selected_mission_id=selected_mission_id,
@@ -340,6 +359,7 @@ def build_paper_mission_readback(
             mission=None,
             candidate=candidate_ref,
             authority_consume_readback=authority_consume_readback,
+            enable_opl_live_probe=enable_opl_live_probe,
         )
     mission_candidate = _paper_mission_run_candidate(
         mission_id=candidate_mission_id,
@@ -429,7 +449,7 @@ def _build_paper_mission_drive_readback(
     study_id: str,
     output_root: str | Path | None,
     run_id: str | None,
-    submit_opl_runtime: bool,
+    submit_opl_runtime: bool | None,
     opl_bin: str | Path | None,
     source: str,
 ) -> dict[str, Any]:
@@ -457,6 +477,7 @@ def _build_paper_mission_drive_readback(
         candidate=candidate_ref,
         output_root=ledger_root,
         source=f"{source}:drive:consume-candidate",
+        enable_opl_live_probe=True,
     )
     handoff = _mapping(
         _mapping(consume_readback.get("consume_output_manifest")).get(
@@ -470,11 +491,41 @@ def _build_paper_mission_drive_readback(
             )
         )
         handoff = _load_json_object(Path(handoff_ref)) if handoff_ref else {}
+    runtime_submit_requested = submit_opl_runtime is not False
     opl_runtime_submission = _opl_runtime_submission_readback(
         handoff=handoff,
-        submit_opl_runtime=submit_opl_runtime,
+        submit_opl_runtime=runtime_submit_requested,
         opl_bin=opl_bin,
     )
+    consume_readback = _refresh_consume_readback_after_opl_submission(
+        consume_readback=consume_readback,
+        opl_runtime_submission=opl_runtime_submission,
+    )
+    handoff = _mapping(
+        _mapping(consume_readback.get("consume_output_manifest")).get(
+            "opl_route_handoff"
+        )
+    ) or handoff
+    followthrough = _paper_mission_drive_followthrough(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        root=root,
+        package_root=package_root,
+        ledger_root=ledger_root,
+        source=source,
+        opl_bin=opl_bin,
+        initial_package_readback=package_readback,
+        initial_consume_readback=consume_readback,
+        initial_handoff=handoff,
+        initial_opl_runtime_submission=opl_runtime_submission,
+    )
+    if followthrough["rounds"]:
+        final_round = _mapping(followthrough["rounds"][-1])
+        package_readback = _mapping(final_round.get("candidate_package_readback"))
+        consume_readback = _mapping(final_round.get("consume_readback"))
+        handoff = _mapping(final_round.get("opl_route_handoff"))
+        opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
     return {
         "surface_kind": "paper_mission_drive_readback",
         "schema_version": 1,
@@ -499,8 +550,23 @@ def _build_paper_mission_drive_readback(
         "consume_readback": consume_readback,
         "stage_terminal_decision": consume_readback["stage_terminal_decision"],
         "opl_route_command": consume_readback["opl_route_command"],
+        "opl_runtime_carrier": consume_readback["opl_runtime_carrier"],
+        "opl_runtime_carrier_readback": consume_readback[
+            "opl_runtime_carrier_readback"
+        ],
+        "opl_runtime_readback_status": consume_readback[
+            "opl_runtime_readback_status"
+        ],
+        "terminal_owner_gate": consume_readback.get("terminal_owner_gate"),
+        "terminal_owner_gate_authority_readback": consume_readback.get(
+            "terminal_owner_gate_authority_readback"
+        ),
+        "terminal_owner_gate_owner_answer_readback": consume_readback.get(
+            "terminal_owner_gate_owner_answer_readback"
+        ),
         "opl_route_handoff": handoff or None,
         "opl_runtime_submission": opl_runtime_submission,
+        "followthrough": followthrough,
         "transaction_state": consume_readback["transaction_state"],
         "consume_candidate_status": consume_readback["consume_candidate_status"],
         "next_owner_or_human_decision": consume_readback[
@@ -508,7 +574,7 @@ def _build_paper_mission_drive_readback(
         ],
         "mutation_policy": {
             "writes_authority": False,
-            "writes_runtime": submit_opl_runtime
+            "writes_runtime": runtime_submit_requested
             and opl_runtime_submission.get("status") == "submitted",
             "writes_yang_authority": False,
             "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(
@@ -527,10 +593,11 @@ def _build_paper_mission_drive_readback(
             "output_root": str(root),
             "candidate_package": package_readback["output_manifest"],
             "consumption_ledger": consume_readback.get("consume_output_manifest"),
+            "followthrough_round_count": followthrough["round_count"],
             "writes_authority": False,
             "writes_yang_authority": False,
             "writes_paper_body": False,
-            "writes_runtime": submit_opl_runtime
+            "writes_runtime": runtime_submit_requested
             and opl_runtime_submission.get("status") == "submitted",
         },
         "forbidden_authority_writes": list(CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES),
@@ -543,21 +610,261 @@ def _build_paper_mission_drive_readback(
     }
 
 
+def _paper_mission_drive_followthrough(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    root: Path,
+    package_root: Path,
+    ledger_root: Path,
+    source: str,
+    opl_bin: str | Path | None,
+    initial_package_readback: Mapping[str, Any],
+    initial_consume_readback: Mapping[str, Any],
+    initial_handoff: Mapping[str, Any],
+    initial_opl_runtime_submission: Mapping[str, Any],
+) -> dict[str, Any]:
+    rounds: list[dict[str, Any]] = []
+    current_package_readback = dict(initial_package_readback)
+    current_consume_readback = dict(initial_consume_readback)
+    current_handoff = dict(initial_handoff)
+    current_submission = dict(initial_opl_runtime_submission)
+    for index in range(DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT):
+        trigger = _paper_mission_followthrough_trigger(
+            consume_readback=current_consume_readback,
+            opl_runtime_submission=current_submission,
+        )
+        if trigger is None:
+            break
+        round_id = f"followthrough-{index + 1:02d}"
+        package_round_root = package_root / round_id
+        ledger_round_root = ledger_root / round_id
+        package_readback = _build_materialized_candidate_package_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            output_root=package_round_root,
+            source=f"{source}:drive:{round_id}:package-candidate",
+            source_readback_override=current_consume_readback,
+        )
+        candidate_ref = package_readback["output_manifest"]["package_manifest_ref"]
+        consume_readback = build_paper_mission_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command="consume-candidate",
+            candidate=candidate_ref,
+            output_root=ledger_round_root,
+            source=f"{source}:drive:{round_id}:consume-candidate",
+            enable_opl_live_probe=True,
+            opl_bin=opl_bin,
+        )
+        handoff = _mapping(
+            _mapping(consume_readback.get("consume_output_manifest")).get(
+                "opl_route_handoff"
+            )
+        )
+        if not handoff:
+            handoff_ref = _optional_text(
+                _mapping(consume_readback.get("consume_output_manifest")).get(
+                    "opl_route_handoff_ref"
+                )
+            )
+            handoff = _load_json_object(Path(handoff_ref)) if handoff_ref else {}
+        submission = _opl_runtime_submission_readback(
+            handoff=handoff,
+            submit_opl_runtime=True,
+            opl_bin=opl_bin,
+        )
+        consume_readback = _refresh_consume_readback_after_opl_submission(
+            consume_readback=consume_readback,
+            opl_runtime_submission=submission,
+        )
+        handoff = _mapping(
+            _mapping(consume_readback.get("consume_output_manifest")).get(
+                "opl_route_handoff"
+            )
+        ) or handoff
+        round_readback = {
+            "round": index + 1,
+            "round_id": round_id,
+            "trigger": trigger,
+            "output_root": str(root / round_id),
+            "candidate_package_readback": package_readback,
+            "consume_readback": consume_readback,
+            "opl_route_handoff": handoff or None,
+            "opl_runtime_submission": submission,
+            "drive_result": _paper_mission_drive_result(
+                consume_readback=consume_readback,
+                handoff=handoff,
+                opl_runtime_submission=submission,
+            ),
+        }
+        rounds.append(round_readback)
+        current_package_readback = package_readback
+        current_consume_readback = consume_readback
+        current_handoff = handoff
+        current_submission = submission
+    stop_reason = _paper_mission_followthrough_stop_reason(
+        consume_readback=current_consume_readback,
+        opl_runtime_submission=current_submission,
+        exhausted=len(rounds) >= DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT
+        and _paper_mission_followthrough_trigger(
+            consume_readback=current_consume_readback,
+            opl_runtime_submission=current_submission,
+        )
+        is not None,
+    )
+    return {
+        "surface_kind": "paper_mission_drive_followthrough_readback",
+        "schema_version": 1,
+        "attempted": bool(rounds),
+        "round_count": len(rounds),
+        "max_rounds": DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT,
+        "rounds": rounds,
+        "stop_reason": stop_reason,
+        "final_drive_result": _paper_mission_drive_result(
+            consume_readback=current_consume_readback,
+            handoff=current_handoff,
+            opl_runtime_submission=current_submission,
+        ),
+        "authority_boundary": {
+            "mas_authority_owner": "MedAutoScience",
+            "runtime_owner": "one-person-lab",
+            "writes_authority": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "writes_runtime_queue": bool(
+                [
+                    item
+                    for item in (
+                        [initial_opl_runtime_submission]
+                        + [round_item["opl_runtime_submission"] for round_item in rounds]
+                    )
+                    if _optional_text(_mapping(item).get("status"))
+                    in {"submitted", "idempotent_noop"}
+                ]
+            ),
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
+
+
+def _paper_mission_followthrough_trigger(
+    *,
+    consume_readback: Mapping[str, Any],
+    opl_runtime_submission: Mapping[str, Any],
+) -> str | None:
+    drive_result = _paper_mission_drive_result(
+        consume_readback=consume_readback,
+        handoff=_mapping(
+            _mapping(consume_readback.get("consume_output_manifest")).get(
+                "opl_route_handoff"
+            )
+        ),
+        opl_runtime_submission=opl_runtime_submission,
+    )
+    if drive_result.get("provider_attempt_running_observed") is True:
+        return None
+    decision = _mapping(consume_readback.get("stage_terminal_decision"))
+    next_decision = _mapping(consume_readback.get("next_owner_or_human_decision"))
+    terminal_gate = _mapping(consume_readback.get("terminal_owner_gate"))
+    owner_answer = _mapping(
+        consume_readback.get("terminal_owner_gate_owner_answer_readback")
+    )
+    owner_answer_decision = _mapping(owner_answer.get("stage_terminal_decision"))
+    terminal_route_back_observed = drive_result.get("terminal_closeout_observed") is True
+    owner_answer_route_back_observed = (
+        _optional_text(owner_answer.get("status")) == "route_back"
+        and _optional_text(owner_answer.get("owner_answer_shape"))
+        == "route_back_evidence_ref"
+        and _optional_text(owner_answer_decision.get("decision_kind")) == "route_back"
+    )
+    if not terminal_route_back_observed and not owner_answer_route_back_observed:
+        return None
+    if _optional_text(terminal_gate.get("gate_kind")) == "human_gate":
+        return None
+    if _optional_text(next_decision.get("human_decision_required")) == "true":
+        return None
+    decision_kind = _first_text(
+        owner_answer_decision.get("decision_kind"),
+        decision.get("decision_kind"),
+    )
+    if decision_kind != "route_back":
+        return None
+    if _first_text(
+        owner_answer_decision.get("next_owner"),
+        decision.get("next_owner"),
+        next_decision.get("next_owner"),
+    ) != "mission_executor":
+        return None
+    return (
+        "terminal_owner_answer_route_back_followthrough"
+        if owner_answer_route_back_observed
+        else "terminal_route_back_followthrough"
+    )
+
+
+def _paper_mission_followthrough_stop_reason(
+    *,
+    consume_readback: Mapping[str, Any],
+    opl_runtime_submission: Mapping[str, Any],
+    exhausted: bool,
+) -> str:
+    if exhausted:
+        return "followthrough_round_limit_reached"
+    trigger = _paper_mission_followthrough_trigger(
+        consume_readback=consume_readback,
+        opl_runtime_submission=opl_runtime_submission,
+    )
+    if trigger is not None:
+        return "followthrough_available"
+    drive_status = _paper_mission_drive_result(
+        consume_readback=consume_readback,
+        handoff=_mapping(
+            _mapping(consume_readback.get("consume_output_manifest")).get(
+                "opl_route_handoff"
+            )
+        ),
+        opl_runtime_submission=opl_runtime_submission,
+    ).get("status")
+    return _optional_text(drive_status) or "no_followthrough_needed"
+
+
 def _paper_mission_drive_output_roots(
     *,
     profile: Any,
     output_root: str | Path | None,
     run_id: str | None,
 ) -> dict[str, Path]:
-    selected_run_id = _optional_text(run_id) or "paper_mission_drive"
     if output_root is not None:
         root = Path(output_root).expanduser().resolve()
+        if _is_under_yang_workspace(root):
+            selected_run_id = _optional_text(run_id) or root.name or "paper_mission_drive"
+            workspace_root = _yang_workspace_root_for_path(root)
+            return {
+                "root": root,
+                "candidate_package": (
+                    workspace_root / PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH / selected_run_id
+                ),
+                "consumption_ledger": (
+                    workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH / selected_run_id
+                ),
+            }
+        selected_run_id = _optional_text(run_id) or "paper_mission_drive"
         return {
             "root": root,
             "candidate_package": root / "candidate_package",
             "consumption_ledger": root / "consumption_ledger",
         }
     else:
+        selected_run_id = _optional_text(run_id) or "paper_mission_drive"
         workspace_root = Path(profile.workspace_root).expanduser().resolve()
         return {
             "root": workspace_root / "ops" / "medautoscience",
@@ -568,6 +875,12 @@ def _paper_mission_drive_output_roots(
                 workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH / selected_run_id
             ),
         }
+
+
+def _yang_workspace_root_for_path(path: Path) -> Path:
+    normalized = path.expanduser().resolve()
+    relative = normalized.relative_to(YANG_WORKSPACE_ROOT)
+    return YANG_WORKSPACE_ROOT / relative.parts[0]
 
 
 def _opl_runtime_submission_readback(
@@ -655,6 +968,14 @@ def _opl_runtime_submission_readback(
     enqueue = _mapping(parsed.get("family_runtime_enqueue"))
     accepted = enqueue.get("accepted") is True
     idempotent_noop = enqueue.get("idempotent_noop") is True
+    tick_readback = (
+        _opl_runtime_tick_readback(
+            opl_bin=selected_opl_bin,
+            runtime_request=runtime_request,
+        )
+        if accepted or idempotent_noop
+        else {}
+    )
     return {
         "status": (
             "submitted"
@@ -676,12 +997,154 @@ def _opl_runtime_submission_readback(
         "exit_code": completed.returncode,
         "runtime_request_input": runtime_request,
         "enqueue_readback": enqueue or parsed,
+        **({"tick_readback": tick_readback} if tick_readback else {}),
+        "stage_route_followthrough_attempted": bool(tick_readback),
         **(
             {"stderr": completed.stderr.strip()}
             if completed.stderr.strip()
             else {}
         ),
     }
+
+
+def _opl_runtime_tick_readback(
+    *,
+    opl_bin: str,
+    runtime_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = _mapping(runtime_request.get("payload"))
+    transaction_ref = _optional_text(payload.get("paper_mission_transaction_ref"))
+    study_id = _optional_text(payload.get("study_id"))
+    command = [
+        opl_bin,
+        "family-runtime",
+        "tick",
+        "--source",
+        "mas-paper-mission-drive-followthrough",
+        "--hydrate",
+        "--limit",
+        "1",
+        "--domain",
+        "medautoscience",
+        "--task-kind",
+        "paper_mission/stage-route",
+    ]
+    if study_id is not None:
+        command.extend(["--study", study_id])
+    if transaction_ref is not None:
+        command.extend(["--payload-match", f"paper_mission_transaction_ref={transaction_ref}"])
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except OSError as exc:
+        return {
+            "status": "failed",
+            "reason": "opl_tick_exec_failed",
+            "error": str(exc),
+            "command_preview": _opl_command_preview(command),
+            "can_claim_stage_run_created": False,
+            "can_claim_provider_running": False,
+            "can_claim_paper_progress": False,
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "status": "timeout",
+            "reason": "opl_tick_timeout",
+            "error": str(exc),
+            "command_preview": _opl_command_preview(command),
+            "can_claim_stage_run_created": False,
+            "can_claim_provider_running": False,
+            "can_claim_paper_progress": False,
+        }
+    parsed = _parse_json_object(completed.stdout)
+    tick = _mapping(parsed.get("family_runtime_tick"))
+    dispatches = _mapping_list(tick.get("dispatches"))
+    return {
+        "status": "completed" if completed.returncode == 0 else "failed",
+        "exit_code": completed.returncode,
+        "command_preview": _opl_command_preview(command),
+        "tick_readback": tick or parsed,
+        "selected_count": tick.get("selected_count"),
+        "dispatch_count": len(dispatches),
+        "dispatch_statuses": [
+            _optional_text(dispatch.get("status")) for dispatch in dispatches
+        ],
+        "can_claim_stage_run_created": any(
+            _dispatch_started_stage_route_attempt(dispatch) for dispatch in dispatches
+        ),
+        "can_claim_provider_running": any(
+            _dispatch_reports_provider_running(dispatch) for dispatch in dispatches
+        ),
+        "can_claim_paper_progress": False,
+        **(
+            {"stderr": completed.stderr.strip()}
+            if completed.stderr.strip()
+            else {}
+        ),
+    }
+
+
+def _dispatch_started_stage_route_attempt(dispatch: Mapping[str, Any]) -> bool:
+    if _optional_text(dispatch.get("status")) == "running":
+        return True
+    stage_run = _mapping(dispatch.get("stage_run_request"))
+    return (
+        stage_run.get("stage_run_created") is True
+        or stage_run.get("provider_attempt_requested") is True
+    )
+
+
+def _dispatch_reports_provider_running(dispatch: Mapping[str, Any]) -> bool:
+    if _optional_text(dispatch.get("status")) == "running":
+        return True
+    stage_run = _mapping(dispatch.get("stage_run_request"))
+    return stage_run.get("provider_running") is True
+
+
+def _refresh_consume_readback_after_opl_submission(
+    *,
+    consume_readback: Mapping[str, Any],
+    opl_runtime_submission: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _optional_text(opl_runtime_submission.get("status")) not in {
+        "submitted",
+        "idempotent_noop",
+    }:
+        return dict(consume_readback)
+    transaction_readback = _paper_mission_transaction_readback(
+        mission_id=_optional_text(consume_readback.get("mission_id"))
+        or "paper-mission::unknown",
+        study_id=_optional_text(consume_readback.get("study_id")) or "unknown_study",
+        objective=_optional_text(consume_readback.get("objective"))
+        or "PaperMission runtime followthrough readback",
+        paper_mission_command="consume-candidate",
+        study_root=Path(_optional_text(consume_readback.get("study_root")) or "."),
+        mission=None,
+        candidate=_optional_text(consume_readback.get("candidate_ref")),
+        authority_consume_readback=_mapping(
+            consume_readback.get("authority_consume_readback")
+        ),
+        transaction_override=_mapping(consume_readback.get("paper_mission_transaction")),
+        transaction_source_override="paper_mission_consumption_ledger",
+        enable_opl_live_probe=True,
+        opl_bin=_optional_text(opl_runtime_submission.get("opl_bin")),
+    )
+    refreshed = dict(consume_readback)
+    refreshed.update(_transaction_readback_output_fields(transaction_readback))
+    refreshed["consume_candidate_status"] = (
+        _consume_candidate_status_for_transaction_readback(
+            transaction_readback=transaction_readback,
+            authority_consume_readback=_mapping(
+                consume_readback.get("authority_consume_readback")
+            ),
+        )
+    )
+    return refreshed
 
 
 def _resolve_opl_bin(opl_bin: str | Path | None) -> str | None:
@@ -691,7 +1154,19 @@ def _resolve_opl_bin(opl_bin: str | Path | None) -> str | None:
             return str(selected.resolve())
         resolved = shutil.which(str(opl_bin))
         return resolved
-    return shutil.which("opl")
+    configured = os.environ.get("OPL_BIN") or os.environ.get("OPL_FAMILY_RUNTIME_BIN")
+    if configured:
+        selected = Path(configured).expanduser()
+        if selected.exists():
+            return str(selected.resolve())
+        return shutil.which(configured)
+    path_candidate = shutil.which(PATH_OPL_BIN)
+    if path_candidate is not None:
+        return path_candidate
+    for candidate in (PACKAGED_OPL_BIN, DEV_OPL_BIN):
+        if candidate.exists():
+            return str(candidate.resolve())
+    return None
 
 
 def _opl_command_preview(command: list[str]) -> list[str]:
@@ -828,12 +1303,17 @@ def _paper_mission_drive_result(
     )
     route = _mapping(consume_readback.get("opl_route_command"))
     decision = _mapping(consume_readback.get("stage_terminal_decision"))
+    carrier_readback = _mapping(consume_readback.get("opl_runtime_carrier_readback"))
+    runtime_status = _optional_text(consume_readback.get("opl_runtime_readback_status"))
+    submission_status = _optional_text(opl_runtime_submission.get("status"))
+    status = _paper_mission_drive_result_status(
+        handoff_ready=handoff_ready,
+        submission_status=submission_status,
+        runtime_status=runtime_status,
+        carrier_readback=carrier_readback,
+    )
     return {
-        "status": (
-            "ready_for_opl_route_command"
-            if handoff_ready
-            else "waiting_for_owner_resolution"
-        ),
+        "status": status,
         "stage_terminal_decision": decision.get("decision_kind"),
         "route_command": route.get("command_kind"),
         "next_owner": _first_text(
@@ -844,11 +1324,39 @@ def _paper_mission_drive_result(
             ),
         ),
         "can_submit_to_opl_runtime": bool(handoff.get("can_submit_to_opl_runtime")),
-        "opl_runtime_submission_status": opl_runtime_submission.get("status"),
+        "opl_runtime_submission_status": submission_status,
+        "opl_runtime_readback_status": runtime_status,
+        "provider_attempt_running_observed": (
+            runtime_status == "opl_runtime_attempt_running_observed"
+        ),
+        "terminal_closeout_observed": (
+            runtime_status == "opl_runtime_terminal_readback_observed"
+        ),
         "can_claim_paper_progress": False,
         "can_claim_runtime_ready": False,
         "authority_materialized": False,
     }
+
+
+def _paper_mission_drive_result_status(
+    *,
+    handoff_ready: bool,
+    submission_status: str | None,
+    runtime_status: str | None,
+    carrier_readback: Mapping[str, Any],
+) -> str:
+    if runtime_status == "opl_runtime_attempt_running_observed":
+        return "opl_stage_route_running"
+    if runtime_status == "opl_runtime_terminal_readback_observed":
+        gate = _mapping(carrier_readback.get("terminal_closeout"))
+        if _optional_text(gate.get("gate_kind")) == "human_gate":
+            return "waiting_for_human_gate"
+        return "opl_terminal_closeout_observed"
+    if submission_status in {"submitted", "idempotent_noop"}:
+        return "submitted_to_opl_runtime"
+    if submission_status in {"not_configured", "failed", "timeout", "not_actionable"}:
+        return "opl_runtime_submission_failed"
+    return "waiting_for_owner_resolution" if not handoff_ready else "opl_runtime_submission_pending"
 
 
 def _consume_candidate_missing_readback(
@@ -961,7 +1469,11 @@ def paper_mission_domain_handler_dispatch_receipt(
                 study_id=study_id,
             )
         ),
-        submit_opl_runtime=bool(payload.get("submit_opl_runtime", False)),
+        submit_opl_runtime=(
+            bool(payload.get("submit_opl_runtime"))
+            if "submit_opl_runtime" in payload
+            else None
+        ),
         opl_bin=_optional_text(payload.get("opl_bin")),
         one_shot_migration=bool(payload.get("one_shot_migration", False)),
         study_progress_payload=_optional_text(payload.get("study_progress_payload")),
@@ -1042,6 +1554,8 @@ def _build_materialized_mission_readback_if_available(
     paper_mission_command: str,
     dry_run: bool,
     source: str,
+    enable_opl_live_probe: bool = False,
+    opl_bin: str | Path | None = None,
 ) -> dict[str, Any] | None:
     mission_path = _latest_materialized_mission_path(
         workspace_root=Path(profile.workspace_root),
@@ -1095,6 +1609,8 @@ def _build_materialized_mission_readback_if_available(
             else None
         ),
         authority_consume_readback=None,
+        enable_opl_live_probe=enable_opl_live_probe,
+        opl_bin=opl_bin,
     )
     if consumption_ledger_readback is not None:
         transaction_readback["next_owner_or_human_decision"] = (
@@ -1288,22 +1804,35 @@ def _build_materialized_candidate_package_readback(
     study_id: str,
     output_root: str | Path | None,
     source: str,
+    source_readback_override: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if output_root is None:
         raise ValueError("--output-root is required for package-candidate")
-    readback = _build_materialized_mission_readback_if_available(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        paper_mission_command="package-candidate",
-        dry_run=False,
-        source=source,
+    readback = (
+        _paper_mission_followthrough_source_readback(
+            readback=source_readback_override,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            source=source,
+        )
+        if source_readback_override is not None
+        else None
     )
     if readback is None:
-        raise ValueError(
-            "package-candidate requires a materialized PaperMissionRun under "
-            "ops/medautoscience/paper_mission_one_shot_migration"
+        readback = _build_materialized_mission_readback_if_available(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command="package-candidate",
+            dry_run=False,
+            source=source,
         )
+        if readback is None:
+            raise ValueError(
+                "package-candidate requires a materialized PaperMissionRun under "
+                "ops/medautoscience/paper_mission_one_shot_migration"
+            )
     mission = dict(readback["paper_mission_run"])
     candidate_manifest = (
         dict(readback["candidate_manifest"])
@@ -1415,6 +1944,249 @@ def _build_materialized_candidate_package_readback(
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         "output_manifest": output_manifest,
     }
+
+
+def _paper_mission_followthrough_source_readback(
+    *,
+    readback: Mapping[str, Any] | None,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    source: str,
+) -> dict[str, Any] | None:
+    source_readback = _mapping(readback)
+    if not source_readback:
+        return None
+    transaction = _followthrough_transaction_for_readback(source_readback)
+    if not transaction:
+        return None
+    resolved_study_id = _first_text(transaction.get("study_id"), study_id) or study_id
+    mission_id = (
+        _first_text(transaction.get("mission_id"), source_readback.get("mission_id"))
+        or f"paper-mission::{resolved_study_id}::followthrough"
+    )
+    objective = (
+        _first_text(
+            source_readback.get("objective"),
+            _mapping(transaction.get("stage_terminal_decision")).get("next_work_unit"),
+            _mapping(transaction.get("stage_terminal_decision")).get("repair_scope"),
+        )
+        or "PaperMission terminal route-back followthrough"
+    )
+    study_root = Path(getattr(profile, "studies_root")) / resolved_study_id
+    transaction_readback = _paper_mission_transaction_readback(
+        mission_id=mission_id,
+        study_id=resolved_study_id,
+        objective=objective,
+        paper_mission_command="package-candidate",
+        study_root=study_root,
+        mission=None,
+        transaction_override=transaction,
+        transaction_source_override="paper_mission_drive_followthrough",
+        authority_consume_readback=None,
+        enable_opl_live_probe=False,
+    )
+    candidate_manifest = _followthrough_candidate_manifest(
+        readback=source_readback,
+        transaction=transaction,
+        mission_id=mission_id,
+        study_id=resolved_study_id,
+    )
+    paper_mission_run = {
+        "schema_version": PAPER_MISSION_CONTRACT_VERSION,
+        "mission_id": mission_id,
+        "study_id": resolved_study_id,
+        "objective": objective,
+        "mission_state": "candidate_ready_for_consumption",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "terminal_route_back_followthrough_candidate",
+                "artifact_ref": (
+                    "paper-mission-followthrough://"
+                    f"{resolved_study_id}/{_slug(mission_id)}"
+                ),
+                "delta_kind": CONCRETE_NON_AUTHORITY_PAPER_DELTA_KIND,
+                "status": "candidate",
+            }
+        ],
+        "source_refs": _followthrough_source_refs(source_readback),
+        "paper_mission_transaction": transaction,
+        "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
+        "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "consume_result": {"status": "accepted"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+    }
+    return {
+        "surface_kind": "paper_mission_followthrough_materialized_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": "package-candidate",
+        "action_intent": _action_intent("package-candidate"),
+        "source": source,
+        "dry_run": False,
+        "profile": {
+            "profile_name": str(getattr(profile, "name", "")),
+            "profile_ref": str(profile_ref),
+        },
+        "requested_study_id": study_id,
+        "study_id": resolved_study_id,
+        "study_root": str(study_root),
+        "study_root_exists": study_root.exists(),
+        "mission_id": mission_id,
+        "objective": objective,
+        "mission_state": "candidate_ready_for_consumption",
+        "materialized_mission_ref": _optional_text(
+            source_readback.get("materialized_mission_ref")
+        )
+        or "paper_mission_drive_followthrough",
+        **_transaction_readback_output_fields(transaction_readback),
+        "candidate_manifest": candidate_manifest,
+        "paper_mission_run": paper_mission_run,
+        "paper_mission_transaction": transaction,
+        "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
+        "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "consume_candidate_status": "accepted_candidate",
+        "mutation_policy": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "writes_candidate_workspace": False,
+            "dry_run_only": True,
+            "forbidden_authority_writes": list(
+                CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES
+            ),
+        },
+        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
+        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+    }
+
+
+def _followthrough_transaction_for_readback(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
+    transaction = _first_mapping(
+        _mapping(owner_answer.get("paper_mission_transaction")),
+        _mapping(readback.get("paper_mission_transaction")),
+    )
+    decision = _mapping(transaction.get("stage_terminal_decision"))
+    if _optional_text(decision.get("decision_kind")) != "route_back":
+        return {}
+    study_id = _optional_text(transaction.get("study_id"))
+    mission_id = _optional_text(transaction.get("mission_id"))
+    if study_id is None or mission_id is None:
+        return {}
+    target_stage = (
+        _first_text(
+            decision.get("target_stage_id"),
+            decision.get("next_stage_id"),
+            transaction.get("stage_id"),
+        )
+        or "submission_milestone_candidate"
+    )
+    next_work_unit = (
+        _first_text(
+            decision.get("repair_scope"),
+            decision.get("target_stage_id"),
+            "continue paper-facing submission milestone work",
+        )
+        or "continue paper-facing submission milestone work"
+    )
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": (
+            "MAS mission executor consumed the terminal route-back as a fresh "
+            "paper-facing candidate and is continuing the same PaperMission stage."
+        ),
+        "next_owner": "mission_executor",
+        "next_work_unit": next_work_unit,
+        "source_route_back_evidence_ref": _optional_text(
+            decision.get("route_back_evidence_ref")
+        ),
+    }
+    stage_run_ref = f"paper-mission-followthrough://{study_id}/{_slug(mission_id)}"
+    return build_paper_mission_transaction(
+        mission_id=f"{mission_id}::followthrough",
+        study_id=study_id,
+        stage_id=target_stage,
+        stage_run_ref=stage_run_ref,
+        terminal_decision=terminal_decision,
+        artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
+        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+        idempotency_basis=f"terminal-route-back-followthrough::{_slug(mission_id)}",
+    )
+
+
+def _followthrough_candidate_manifest(
+    *,
+    readback: Mapping[str, Any],
+    transaction: Mapping[str, Any],
+    mission_id: str,
+    study_id: str,
+) -> dict[str, Any]:
+    decision = _mapping(transaction.get("stage_terminal_decision"))
+    return {
+        "candidate_id": f"paper-mission-followthrough::{study_id}::{_slug(mission_id)}",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "requested_outcome": "accepted_candidate",
+        "candidate_manifest_ref": _optional_text(readback.get("candidate_ref")),
+        "candidate_artifact_refs": [
+            _optional_text(ref.get("uri")) or _optional_text(ref.get("ref_id"))
+            for ref in _mapping_list(transaction.get("artifact_delta_refs"))
+            if _optional_text(ref.get("uri")) or _optional_text(ref.get("ref_id"))
+        ],
+        "source_readiness_refs": _text_list(readback.get("source_readiness_refs")),
+        "quality_auditor_requirement": {
+            "independent_auditor_required": True,
+            "owner": "MedAutoScience",
+            "requirement_ref": f"paper-mission-followthrough::{study_id}",
+        },
+        "artifact_authority_boundary": {
+            "artifact_authority_owner": "MedAutoScience",
+            "candidate_is_authority": False,
+            "can_update_current_package": False,
+            "can_write_paper_body": False,
+        },
+        "next_owner": _first_text(decision.get("next_owner"), "mission_executor"),
+        "resume_condition": _first_text(
+            decision.get("reason"),
+            "MAS consumes the followthrough candidate or routes it again.",
+        ),
+        "paper_mission_transaction": dict(transaction),
+    }
+
+
+def _followthrough_source_refs(readback: Mapping[str, Any]) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for key in (
+        "candidate_ref",
+        "materialized_mission_ref",
+        "opl_runtime_readback_status",
+    ):
+        value = _optional_text(readback.get(key))
+        if value is not None:
+            refs.append({"ref_id": key, "ref_kind": key, "uri": value})
+    consume_manifest = _mapping(readback.get("consume_output_manifest"))
+    for key in (
+        "output_root",
+        "opl_route_handoff_ref",
+        "paper_mission_transaction_ref",
+    ):
+        value = _optional_text(consume_manifest.get(key))
+        if value is not None:
+            refs.append({"ref_id": key, "ref_kind": key, "uri": value})
+    return refs
 
 
 def _materialized_mission_path_matches(
@@ -1886,12 +2658,20 @@ def _write_materialized_candidate_package_outputs(
         **owner_blocker_packet,
         "candidate_refs": owner_consumption_candidate_refs,
     }
+    _attach_candidate_manifest_to_next_command(
+        owner_blocker_packet_payload,
+        candidate_manifest_ref=str(outputs["package_manifest"]),
+    )
     owner_blocker_packet.clear()
     owner_blocker_packet.update(owner_blocker_packet_payload)
     owner_consumption_request_payload = {
         **owner_consumption_request,
         "candidate_refs": owner_consumption_candidate_refs,
     }
+    _attach_candidate_manifest_to_next_command(
+        owner_consumption_request_payload,
+        candidate_manifest_ref=str(outputs["package_manifest"]),
+    )
     owner_consumption_request.clear()
     owner_consumption_request.update(owner_consumption_request_payload)
     candidate_manifest_payload = {
@@ -2026,6 +2806,23 @@ def _write_materialized_candidate_package_outputs(
         ),
         "paper_facing_artifact_refs": paper_facing_artifact_refs,
     }
+
+
+def _attach_candidate_manifest_to_next_command(
+    payload: dict[str, Any],
+    *,
+    candidate_manifest_ref: str,
+) -> None:
+    command = payload.get("next_legal_command")
+    if not isinstance(command, dict):
+        return
+    argv = command.get("argv_template")
+    if not isinstance(argv, list):
+        return
+    command["argv_template"] = [
+        candidate_manifest_ref if item == "<package_manifest_ref>" else item
+        for item in argv
+    ]
 
 
 def _paper_facing_output_kinds(
@@ -2572,6 +3369,8 @@ def _paper_mission_transaction_readback(
     authority_consume_readback: dict[str, Any] | None = None,
     transaction_override: dict[str, Any] | None = None,
     transaction_source_override: str | None = None,
+    enable_opl_live_probe: bool = False,
+    opl_bin: str | Path | None = None,
 ) -> dict[str, Any]:
     transaction = _first_mapping(
         _mapping(transaction_override),
@@ -2627,7 +3426,8 @@ def _paper_mission_transaction_readback(
     readback = attach_opl_runtime_carrier_readback(
         readback=readback,
         study_root=study_root,
-        enable_opl_live_probe=False,
+        enable_opl_live_probe=enable_opl_live_probe,
+        opl_bin=opl_bin,
     )
     terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
     readback["terminal_owner_gate"] = terminal_owner_gate or None
@@ -2838,6 +3638,9 @@ def _transaction_readback_output_fields(
     transaction_readback: dict[str, Any],
 ) -> dict[str, Any]:
     return {
+        "paper_mission_transaction": transaction_readback[
+            "paper_mission_transaction"
+        ],
         "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
         "opl_route_command": transaction_readback["opl_route_command"],
         "opl_runtime_carrier": transaction_readback["opl_runtime_carrier"],

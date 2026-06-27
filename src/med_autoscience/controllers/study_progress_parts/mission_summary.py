@@ -181,6 +181,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     carrier_readback = paper_mission_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=_materialized_study_root(progress=progress),
+        enable_opl_live_probe=True,
     )
     terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
     if not terminal_owner_gate and consumption_ledger_readback:
@@ -384,12 +385,16 @@ def _materialized_mission_summary(
         study_id=study_id,
     )
     if consumption_ledger_readback:
+        ledger_transaction = _mapping(
+            consumption_ledger_readback["paper_mission_transaction"]
+        )
+        ledger_mission_id = _non_empty_text(ledger_transaction.get("mission_id"))
         mission["mission_state"] = _mission_state_for_consumption_ledger(
             consumption_ledger_readback
         )
-        mission["paper_mission_transaction"] = consumption_ledger_readback[
-            "paper_mission_transaction"
-        ]
+        if ledger_mission_id:
+            mission["mission_id"] = ledger_mission_id
+        mission["paper_mission_transaction"] = ledger_transaction
         mission["consume_result"] = _consume_result_for_consumption_ledger(
             consumption_ledger_readback
         )
@@ -459,6 +464,7 @@ def _materialized_mission_summary(
     carrier_readback = paper_mission_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=_materialized_study_root(progress=progress),
+        enable_opl_live_probe=True,
     )
     terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
     if not terminal_owner_gate and consumption_ledger_readback:

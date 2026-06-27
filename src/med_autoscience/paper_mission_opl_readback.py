@@ -34,12 +34,13 @@ def paper_mission_opl_runtime_carrier_readback(
     study_root: Path,
     opl_runtime_payload: Mapping[str, Any] | None = None,
     enable_opl_live_probe: bool = False,
+    opl_bin: str | Path | None = None,
 ) -> dict[str, Any]:
     live_probe = None
     live_probe_attempted = False
     if opl_runtime_payload is None and enable_opl_live_probe:
         live_probe_attempted = True
-        live_probe = _matching_opl_runtime_live_probe(carrier=carrier)
+        live_probe = _matching_opl_runtime_live_probe(carrier=carrier, opl_bin=opl_bin)
     running = None
     if live_probe is not None and live_probe[0] == "running":
         running = (live_probe[1], live_probe[2])
@@ -70,11 +71,13 @@ def paper_mission_opl_runtime_carrier_readback(
                 attempt_ref=attempt_ref,
             ),
         }
-    matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
+    matched = None
+    if live_probe is not None and live_probe[0] == "terminal":
+        matched = (live_probe[1], live_probe[2])
     if matched is None:
-        if live_probe is not None and live_probe[0] == "terminal":
-            matched = (live_probe[1], live_probe[2])
-        elif not live_probe_attempted:
+        matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
+    if matched is None:
+        if not live_probe_attempted:
             matched = _matching_opl_runtime_terminal_closeout(
                 carrier=carrier,
                 opl_runtime_payload=opl_runtime_payload,
@@ -125,6 +128,7 @@ def attach_opl_runtime_carrier_readback(
     readback: Mapping[str, Any],
     study_root: Path,
     enable_opl_live_probe: bool = False,
+    opl_bin: str | Path | None = None,
 ) -> dict[str, Any]:
     result = dict(readback)
     carrier = _mapping(result.get("opl_runtime_carrier"))
@@ -134,6 +138,7 @@ def attach_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=study_root,
         enable_opl_live_probe=enable_opl_live_probe,
+        opl_bin=opl_bin,
     )
     result["opl_runtime_carrier_readback"] = carrier_readback
     result["opl_runtime_readback_status"] = carrier_readback["carrier_status"]
@@ -246,6 +251,7 @@ def _matching_opl_runtime_terminal_closeout(
 def _matching_opl_runtime_live_probe(
     *,
     carrier: Mapping[str, Any],
+    opl_bin: str | Path | None = None,
 ) -> tuple[str, dict[str, Any], str] | None:
     if not _carrier_has_opl_route_identity(carrier):
         return None
@@ -263,7 +269,12 @@ def _matching_opl_runtime_live_probe(
         "--json",
     )
     terminal_match: tuple[dict[str, Any], str] | None = None
-    for candidate in _ranked_opl_bin_candidates():
+    inspect_args_prefix = (
+        "family-runtime",
+        "queue",
+        "inspect",
+    )
+    for candidate in _ranked_opl_live_probe_bin_candidates(opl_bin=opl_bin):
         if not candidate.exists():
             continue
         list_payload = _run_opl_json(
@@ -271,13 +282,6 @@ def _matching_opl_runtime_live_probe(
             list_args,
             timeout_seconds=_remaining_seconds(deadline),
         )
-        matched_running = _matching_opl_runtime_payload_running_attempt(
-            carrier=carrier,
-            payload=list_payload,
-        )
-        if matched_running is not None:
-            attempt, attempt_ref = matched_running
-            return "running", attempt, attempt_ref
         terminal_match = _matching_opl_runtime_payload_closeout(
             carrier=carrier,
             payload=list_payload,
@@ -285,6 +289,44 @@ def _matching_opl_runtime_live_probe(
         if terminal_match is not None:
             closeout, closeout_ref = terminal_match
             return "terminal", closeout, closeout_ref
+        matched_running = _matching_opl_runtime_payload_running_attempt(
+            carrier=carrier,
+            payload=list_payload,
+        )
+        for task in _ranked_opl_probe_tasks(
+            _matching_opl_tasks_from_list(
+                carrier=carrier,
+                payload=list_payload,
+            )
+        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
+            task_id = _text(task.get("task_id"))
+            if task_id is None:
+                continue
+            inspect_payload = _run_opl_json(
+                candidate,
+                (
+                    *inspect_args_prefix,
+                    task_id,
+                    "--json",
+                ),
+                timeout_seconds=_remaining_seconds(deadline),
+            )
+            matched_terminal = _matching_opl_runtime_payload_closeout(
+                carrier=carrier,
+                payload=inspect_payload,
+            )
+            if matched_terminal is not None:
+                closeout, closeout_ref = matched_terminal
+                return "terminal", closeout, closeout_ref
+            inspected_running = _matching_opl_runtime_payload_running_attempt(
+                carrier=carrier,
+                payload=inspect_payload,
+            )
+            if inspected_running is not None:
+                matched_running = inspected_running
+        if matched_running is not None:
+            attempt, attempt_ref = matched_running
+            return "running", attempt, attempt_ref
     return None
 
 
@@ -442,6 +484,26 @@ def _matching_opl_tasks_from_list(
     ]
 
 
+def _ranked_opl_probe_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(tasks, key=_opl_probe_task_rank)
+
+
+def _opl_probe_task_rank(task: Mapping[str, Any]) -> tuple[int, int, int, str]:
+    reason = _first_text(task.get("last_error"), task.get("dead_letter_reason"))
+    stale_rank = 1 if _non_current_closeout_reason(reason) else 0
+    status = _text(task.get("status"))
+    status_rank = {
+        "running": 0,
+        "queued": 1,
+        "blocked": 2,
+        "succeeded": 2,
+        "failed": 3,
+        "dead_letter": 4,
+    }.get(status or "", 5)
+    gate_rank = 0 if (reason or "").endswith("_domain_gate_pending") else 1
+    return stale_rank, status_rank, gate_rank, _text(task.get("task_id")) or ""
+
+
 def _matches_opl_task(
     *,
     carrier: Mapping[str, Any],
@@ -466,7 +528,11 @@ def _matches_opl_task(
     if command_kind is not None and _text(payload.get("command_kind")) != command_kind:
         return False
     route_target = _carrier_route_target(carrier)
-    if route_target is not None and _text(payload.get("route_target")) != route_target:
+    if (
+        route_target is not None
+        and not _payload_binds_route_identity(carrier=carrier, payload=payload)
+        and _text(payload.get("route_target")) != route_target
+    ):
         return False
     return True
 
@@ -507,7 +573,17 @@ def _opl_task_terminal_closeout(
     ):
         return None
     route_target = _carrier_route_target(carrier)
-    if route_target is not None:
+    if (
+        route_target is not None
+        and not _payload_binds_route_identity(
+            carrier=carrier,
+            payload=_mapping(task.get("payload")),
+        )
+        and not _payload_binds_route_identity(
+            carrier=carrier,
+            payload=_mapping(stage_attempt.get("workspace_locator")),
+        )
+    ):
         attempt_stage = _text(stage_attempt.get("stage_id"))
         control_stage = _text(_mapping(current_control.get("stage_run_currentness_identity")).get("stage_id"))
         if (attempt_stage or control_stage) not in {None, route_target}:
@@ -666,9 +742,13 @@ def _matches_opl_stage_attempt(
     stage_attempt: Mapping[str, Any],
 ) -> bool:
     route_target = _carrier_route_target(carrier)
-    if route_target is not None and _text(stage_attempt.get("stage_id")) != route_target:
-        return False
     locator = _mapping(stage_attempt.get("workspace_locator"))
+    if (
+        route_target is not None
+        and not _payload_binds_route_identity(carrier=carrier, payload=locator)
+        and _text(stage_attempt.get("stage_id")) != route_target
+    ):
+        return False
     if not locator:
         return True
     if _text(locator.get("study_id")) != _text(carrier.get("study_id")):
@@ -680,9 +760,28 @@ def _matches_opl_stage_attempt(
     command_kind = _carrier_command_kind(carrier)
     if command_kind is not None and _text(locator.get("command_kind")) != command_kind:
         return False
-    if route_target is not None and _text(locator.get("route_target")) != route_target:
+    if (
+        route_target is not None
+        and not _payload_binds_route_identity(carrier=carrier, payload=locator)
+        and _text(locator.get("route_target")) != route_target
+    ):
         return False
     return True
+
+
+def _payload_binds_route_identity(
+    *,
+    carrier: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    expected_transaction_ref = _text(carrier.get("paper_mission_transaction_ref"))
+    expected_route_ref = _text(carrier.get("opl_route_command_ref"))
+    if expected_transaction_ref is None or expected_route_ref is None:
+        return False
+    return (
+        _text(payload.get("paper_mission_transaction_ref")) == expected_transaction_ref
+        and _text(payload.get("opl_route_command_ref")) == expected_route_ref
+    )
 
 
 def _opl_task_closeout_ref(task: Mapping[str, Any]) -> str:
@@ -757,8 +856,16 @@ def _closeout_binds_route_identity(
         )
         if ref is not None
     }
-    route_ref = _text(carrier.get("opl_route_command_ref"))
-    return route_ref is not None and route_ref in refs
+    expected_refs = {
+        ref
+        for ref in (
+            _text(carrier.get("paper_mission_transaction_ref")),
+            _text(carrier.get("stage_terminal_decision_ref")),
+            _text(carrier.get("opl_route_command_ref")),
+        )
+        if ref is not None
+    }
+    return bool(refs.intersection(expected_refs))
 
 
 def _non_current_closeout_reason(value: object) -> bool:
@@ -879,7 +986,13 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
-def _ranked_opl_bin_candidates() -> list[Path]:
+def _ranked_opl_bin_candidates(opl_bin: str | Path | None = None) -> list[Path]:
+    if opl_bin is not None:
+        explicit = Path(opl_bin).expanduser()
+        if explicit.exists():
+            return [explicit]
+        resolved = shutil.which(str(opl_bin))
+        return [Path(resolved).expanduser()] if resolved is not None else [explicit]
     configured = os.environ.get("OPL_BIN") or os.environ.get("OPL_FAMILY_RUNTIME_BIN")
     if configured:
         return [Path(configured).expanduser()]
@@ -900,6 +1013,15 @@ def _ranked_opl_bin_candidates() -> list[Path]:
         seen.add(resolved)
         ranked.append(candidate)
     return ranked
+
+
+def _ranked_opl_live_probe_bin_candidates(
+    *, opl_bin: str | Path | None = None
+) -> list[Path]:
+    try:
+        return _ranked_opl_bin_candidates(opl_bin=opl_bin)
+    except TypeError:
+        return _ranked_opl_bin_candidates()
 
 
 def _run_opl_json(

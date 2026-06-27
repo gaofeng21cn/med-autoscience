@@ -448,31 +448,77 @@ def _continuation_transaction_for_submission_package(
     candidate_payload: Mapping[str, Any],
     owner_blocker_packet: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if _text(owner_blocker_packet.get("blocker_kind")) != "missing_opl_runtime_readback":
+    blocker_kind = _text(owner_blocker_packet.get("blocker_kind"))
+    if blocker_kind not in {
+        "missing_opl_runtime_readback",
+        "domain_gate",
+        "route_back_without_blocker",
+    }:
         return {}
     study_id = _first_text(candidate_payload.get("study_id"), package.get("study_id"))
     mission_id = _first_text(candidate_payload.get("mission_id"), package.get("mission_id"))
     if study_id is None or mission_id is None:
         return {}
-    stage_id = "submission_milestone_candidate"
+    current_decision = _mapping(
+        _first_mapping(
+            owner_blocker_packet.get("current_terminal_decision"),
+            package.get("current_terminal_decision"),
+        )
+    )
+    stage_id = (
+        _first_text(
+            current_decision.get("target_stage_id"),
+            current_decision.get("next_stage_id"),
+            _mapping(owner_blocker_packet.get("terminal_owner_gate")).get("work_unit_id"),
+        )
+        or "submission_milestone_candidate"
+    )
     stage_run_ref = f"paper-mission-package://{study_id}/{stage_id}"
+    reason = (
+        "Submission milestone candidate was consumed; missing OPL live "
+        "readback is preserved as runtime followthrough, not a paper blocker."
+    )
+    next_work_unit = (
+        "continue paper-facing submission milestone work and request OPL "
+        "route readback for the same PaperMissionTransaction"
+    )
+    if blocker_kind in {"domain_gate", "route_back_without_blocker"}:
+        reason = (
+            "MAS mission executor consumed route-back/domain-gate evidence as a "
+            "fresh paper-facing candidate and is continuing the PaperMission stage."
+        )
+        next_work_unit = (
+            _first_text(
+                current_decision.get("repair_scope"),
+                current_decision.get("reason"),
+                "continue paper-facing route-back repair work",
+            )
+            or "continue paper-facing route-back repair work"
+        )
     terminal_decision = {
         "decision_kind": "continue_same_stage",
         "status": "accepted_submission_milestone_candidate",
-        "reason": (
-            "Submission milestone candidate was consumed; missing OPL live "
-            "readback is preserved as runtime followthrough, not a paper blocker."
-        ),
+        "reason": reason,
         "next_owner": "mission_executor",
-        "next_work_unit": (
-            "continue paper-facing submission milestone work and request OPL "
-            "route readback for the same PaperMissionTransaction"
+        "next_work_unit": next_work_unit,
+        **(
+            {"source_route_back_evidence_ref": route_back_ref}
+            if (
+                route_back_ref := _first_text(
+                    _mapping(owner_blocker_packet.get("evidence_refs")).get(
+                        "route_back_evidence_ref"
+                    ),
+                    current_decision.get("route_back_evidence_ref"),
+                )
+            )
+            is not None
+            else {}
         ),
     }
     return build_paper_mission_transaction(
         mission_id=mission_id,
         study_id=study_id,
-        stage_id=stage_id or "submission_milestone_candidate",
+        stage_id=stage_id,
         stage_run_ref=stage_run_ref or f"paper-mission-package://{study_id}",
         terminal_decision=terminal_decision,
         artifact_delta_refs=_artifact_delta_refs_for_submission_package(

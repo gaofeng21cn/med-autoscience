@@ -19,6 +19,11 @@ DM_CANARY_FIXTURE_ROOT = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _disable_default_opl_live_probe(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPL_BIN", str(tmp_path / "missing-opl"))
+
+
 def _paper_mission_forbidden_write_guard() -> dict:
     return {
         "candidate_writes_authority": False,
@@ -1348,6 +1353,25 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
         "route_back_candidate_delta_consumption"
     )
     assert owner_consumption_request["next_owner"] == "mission_executor"
+    assert "mission_executor:" in owner_consumption_request["owner_question"]
+    assert "route_back_without_blocker" in owner_consumption_request["owner_question"]
+    assert owner_consumption_request["next_legal_action"] == (
+        "consume_candidate_or_return_owner_answer_shape"
+    )
+    assert (
+        output_manifest["package_manifest_ref"]
+        in owner_consumption_request["next_legal_command"]["argv_template"]
+    )
+    assert owner_consumption_request["requested_answer_shape"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert owner_consumption_request["evidence_refs"]["route_back_evidence_ref"] == (
+        "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
+    )
     assert owner_consumption_request["candidate_refs"]["mission_executor_handoff"] == (
         output_manifest["mission_executor_handoff_ref"]
     )
@@ -1365,6 +1389,24 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     ] is False
     assert owner_blocker_packet["status"] == "context_only"
     assert owner_blocker_packet["blocker_kind"] == "route_back_without_blocker"
+    assert "mission_executor:" in owner_blocker_packet["owner_question"]
+    assert owner_blocker_packet["next_legal_action"] == (
+        "consume_candidate_or_return_owner_answer_shape"
+    )
+    assert (
+        output_manifest["package_manifest_ref"]
+        in owner_blocker_packet["next_legal_command"]["argv_template"]
+    )
+    assert owner_blocker_packet["requested_answer_shape"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert owner_blocker_packet["evidence_refs"]["route_back_evidence_ref"] == (
+        "route-back:paper-mission-terminal-owner-gate:dm002:abc123"
+    )
     assert owner_blocker_packet["terminal_owner_gate_materialized"] is False
     assert owner_blocker_packet["authority_boundary"]["can_write_owner_receipt"] is False
     assert owner_blocker_packet["authority_boundary"]["can_write_typed_blocker"] is False
@@ -1587,6 +1629,21 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     assert owner_consumption_request["status"] == "owner_blocker_packet_required"
     assert owner_consumption_request["request_kind"] == "owner_blocker_resolution"
     assert owner_consumption_request["next_owner"] == "one-person-lab"
+    assert "one-person-lab:" in owner_consumption_request["owner_question"]
+    assert owner_consumption_request["next_legal_action"] == (
+        "provide_opl_terminal_readback_or_governed_owner_answer"
+    )
+    assert (
+        output_manifest["package_manifest_ref"]
+        in owner_consumption_request["next_legal_command"]["argv_template"]
+    )
+    assert owner_consumption_request["requested_answer_shape"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
     assert owner_consumption_request["candidate_refs"]["owner_blocker_packet"] == (
         output_manifest["owner_blocker_packet_ref"]
     )
@@ -1599,6 +1656,21 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
     assert owner_blocker_packet["surface_kind"] == "paper_mission_owner_blocker_packet"
     assert owner_blocker_packet["status"] == "owner_blocker_candidate_ready"
     assert owner_blocker_packet["blocker_kind"] == "missing_opl_runtime_readback"
+    assert "one-person-lab:" in owner_blocker_packet["owner_question"]
+    assert owner_blocker_packet["next_legal_action"] == (
+        "provide_opl_terminal_readback_or_governed_owner_answer"
+    )
+    assert (
+        output_manifest["package_manifest_ref"]
+        in owner_blocker_packet["next_legal_command"]["argv_template"]
+    )
+    assert owner_blocker_packet["requested_answer_shape"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
     assert owner_blocker_packet["current_terminal_decision"]["decision_kind"] == (
         "typed_blocker"
     )
@@ -1757,8 +1829,11 @@ def test_domain_handler_dispatch_drives_default_paper_mission_without_authority_
     result = payload["dispatch"]["result"]
     assert result["surface_kind"] == "paper_mission_drive_readback"
     assert result["paper_mission_command"] == "drive"
-    assert result["consume_candidate_status"] == "route_back"
-    assert result["drive_result"]["status"] == "ready_for_opl_route_command"
+    assert result["consume_candidate_status"] == "accepted_candidate"
+    assert result["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert result["opl_route_command"]["command_kind"] == "resume_stage"
+    assert result["drive_result"]["status"] == "opl_runtime_submission_failed"
+    assert result["drive_result"]["opl_runtime_submission_status"] == "not_configured"
     assert result["mutation_policy"]["writes_authority"] is False
     assert result["mutation_policy"]["writes_runtime"] is False
     assert result["mutation_policy"]["writes_yang_authority"] is False
@@ -3420,20 +3495,23 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
     assert exit_code == 0
     assert payload["surface_kind"] == "paper_mission_drive_readback"
     assert payload["action_intent"] == "paper_mission/drive"
-    assert payload["stage_terminal_decision"]["decision_kind"] == "route_back"
-    assert payload["opl_route_command"]["command_kind"] == "route_back"
-    assert payload["consume_candidate_status"] == "route_back"
-    assert payload["drive_result"] == {
-        "status": "ready_for_opl_route_command",
-        "stage_terminal_decision": "route_back",
-        "route_command": "route_back",
-        "next_owner": "mission_executor",
-        "can_submit_to_opl_runtime": True,
-        "opl_runtime_submission_status": "not_requested",
-        "can_claim_paper_progress": False,
-        "can_claim_runtime_ready": False,
-        "authority_materialized": False,
-    }
+    assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["drive_result"]["status"] == "opl_runtime_submission_failed"
+    assert payload["drive_result"]["stage_terminal_decision"] == "continue_same_stage"
+    assert payload["drive_result"]["route_command"] == "resume_stage"
+    assert payload["drive_result"]["next_owner"] == "mission_executor"
+    assert payload["drive_result"]["can_submit_to_opl_runtime"] is True
+    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_configured"
+    assert payload["drive_result"]["opl_runtime_readback_status"] == (
+        "waiting_for_opl_runtime_live_readback"
+    )
+    assert payload["drive_result"]["provider_attempt_running_observed"] is False
+    assert payload["drive_result"]["terminal_closeout_observed"] is False
+    assert payload["drive_result"]["can_claim_paper_progress"] is False
+    assert payload["drive_result"]["can_claim_runtime_ready"] is False
+    assert payload["drive_result"]["authority_materialized"] is False
     package_manifest = payload["candidate_package_readback"]["output_manifest"]
     consume_manifest = payload["consume_readback"]["consume_output_manifest"]
     assert package_manifest["mode"] == "non_authority_candidate_package"
@@ -3532,10 +3610,85 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
                 "import json, sys",
                 f"capture_path = {str(capture_path)!r}",
                 "args = sys.argv[1:]",
-                "payload = json.loads(args[args.index('--payload') + 1])",
-                "record = {'argv': args, 'payload': payload}",
-                "open(capture_path, 'w', encoding='utf-8').write(json.dumps(record))",
-                "print(json.dumps({'version':'g2','family_runtime_enqueue':{'surface_id':'opl_family_runtime_enqueue','accepted':True,'idempotent_noop':False,'task':{'task_id':'frt_test_drive','status':'queued','payload':payload}}}))",
+                "records = []",
+                "try:",
+                "    records = json.loads(open(capture_path, encoding='utf-8').read())",
+                "except Exception:",
+                "    records = []",
+                "def persist(record):",
+                "    records.append(record)",
+                "    open(capture_path, 'w', encoding='utf-8').write(json.dumps(records))",
+                "def running_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_running_readback',",
+                "        'status': 'running',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_test_drive',",
+                "        'provider_status': 'running',",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "def terminal_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_terminal_readback',",
+                "        'status': 'completed',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_owner_answer_terminal',",
+                "        'closeout_receipt_status': 'accepted_typed_closeout',",
+                "        'typed_blocker_ref': 'typed-blocker:domain-gate-pending',",
+                "        'blocked_reason': 'paper_mission_stage_route_domain_gate_pending',",
+                "        'domain_ready_verdict': 'domain_gate_pending',",
+                "        'closeout_refs': [payload.get('opl_route_command_ref'), payload.get('paper_mission_transaction_ref')],",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "def terminal_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_terminal_readback',",
+                "        'status': 'completed',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_owner_answer_terminal',",
+                "        'closeout_receipt_status': 'accepted_typed_closeout',",
+                "        'typed_blocker_ref': 'typed-blocker:domain-gate-pending',",
+                "        'blocked_reason': 'paper_mission_stage_route_domain_gate_pending',",
+                "        'domain_ready_verdict': 'domain_gate_pending',",
+                "        'closeout_refs': [payload.get('opl_route_command_ref'), payload.get('paper_mission_transaction_ref')],",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "if args[:2] == ['family-runtime', 'enqueue']:",
+                "    payload = json.loads(args[args.index('--payload') + 1])",
+                "    persist({'argv': args, 'payload': payload})",
+                "    print(json.dumps({'version':'g2','family_runtime_enqueue':{'surface_id':'opl_family_runtime_enqueue','accepted':True,'idempotent_noop':False,'task':{'task_id':'frt_test_drive','status':'queued','payload':payload}}}))",
+                "elif args[:2] == ['family-runtime', 'tick']:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'family_runtime_tick':{'selected_count':1,'dispatches':[{'status':'running','stage_run_request':{'stage_run_created':True,'provider_attempt_requested':True,'provider_running':True}}]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'list']:",
+                "    payload = records[0]['payload'] if records else {}",
+                "    task = {'task_id':'frt_test_drive','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':'running','payload':payload}",
+                "    print(json.dumps({'family_runtime_queue':{'tasks':[task]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'inspect']:",
+                "    payload = records[0]['payload'] if records else {}",
+                "    task = {'task_id':'frt_test_drive','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':'running','payload':payload}",
+                "    print(json.dumps({'family_runtime_task':{'task':task,'stage_attempts':[running_attempt(payload)]}}))",
+                "else:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'error':'unexpected_args','args':args}))",
             ]
         ),
         encoding="utf-8",
@@ -3548,7 +3701,6 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
             "drive",
             "--run-id",
             "20260624Tdrive",
-            "--submit-opl-runtime",
             "--opl-bin",
             str(fake_opl),
             "--profile",
@@ -3561,14 +3713,19 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     )
     payload = json.loads(capsys.readouterr().out)
     captured = json.loads(capture_path.read_text(encoding="utf-8"))
+    enqueue_record = captured[0]
+    tick_record = captured[1]
 
     assert exit_code == 0
-    assert captured["argv"][:3] == ["family-runtime", "enqueue", "--domain"]
-    assert "--task-kind" in captured["argv"]
-    assert captured["argv"][captured["argv"].index("--task-kind") + 1] == (
+    assert enqueue_record["argv"][:3] == ["family-runtime", "enqueue", "--domain"]
+    assert "--task-kind" in enqueue_record["argv"]
+    assert enqueue_record["argv"][enqueue_record["argv"].index("--task-kind") + 1] == (
         "paper_mission/stage-route"
     )
-    submitted_payload = captured["payload"]
+    assert tick_record["argv"][:2] == ["family-runtime", "tick"]
+    assert "--hydrate" in tick_record["argv"]
+    assert "--payload-match" in tick_record["argv"]
+    submitted_payload = enqueue_record["payload"]
     assert submitted_payload["surface_kind"] == (
         "opl_mas_paper_mission_route_runtime_request"
     )
@@ -3582,6 +3739,9 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     assert submitted_payload["authority_boundary"]["can_claim_paper_progress"] is False
     submission = payload["opl_runtime_submission"]
     assert submission["status"] == "submitted"
+    assert submission["stage_route_followthrough_attempted"] is True
+    assert submission["tick_readback"]["status"] == "completed"
+    assert submission["tick_readback"]["can_claim_provider_running"] is True
     assert submission["writes_runtime"] is True
     assert submission["writes_runtime_owner"] == "one-person-lab"
     assert submission["writes_mas_authority"] is False
@@ -3590,6 +3750,409 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     assert payload["mutation_policy"]["writes_runtime"] is True
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["drive_result"]["opl_runtime_submission_status"] == "submitted"
+    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    assert payload["drive_result"]["opl_runtime_readback_status"] == (
+        "opl_runtime_attempt_running_observed"
+    )
+    assert payload["drive_result"]["provider_attempt_running_observed"] is True
+    assert payload["opl_runtime_readback_status"] == "opl_runtime_attempt_running_observed"
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage_route(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260624Tdrivefollowthrough"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::gate-clearing::drive-followthrough"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="route_back",
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Drive DM002 route-back through MAS followthrough.",
+        "mission_state": "route_back",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm002::route-back",
+                "artifact_ref": "mission://dm002/route-back",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [],
+        "consume_result": {"status": "route_back"},
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "mission_executor",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "stage_terminal_decision": transaction["stage_terminal_decision"],
+            "opl_route_command": transaction["opl_route_command"],
+            "consume_candidate_status": "route_back",
+        },
+        "paper_mission_transaction": transaction,
+        "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    (mission_root / "candidate_manifest.json").write_text(
+        json.dumps(
+            {
+                "candidate_id": "pmc-dm002-followthrough",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "next_owner": "mission_executor",
+                "source_readiness_refs": ["source-readiness:dm002"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    capture_path = tmp_path / "opl-capture.json"
+    fake_opl = tmp_path / "fake-opl-followthrough.py"
+    fake_opl.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import json, sys",
+                f"capture_path = {str(capture_path)!r}",
+                "args = sys.argv[1:]",
+                "try:",
+                "    records = json.loads(open(capture_path, encoding='utf-8').read())",
+                "except Exception:",
+                "    records = []",
+                "def persist(record):",
+                "    records.append(record)",
+                "    open(capture_path, 'w', encoding='utf-8').write(json.dumps(records))",
+                "def payloads():",
+                "    return [r['payload'] for r in records if 'payload' in r]",
+                "def current_payload():",
+                "    ps = payloads()",
+                "    return ps[-1] if ps else {}",
+                "def terminal_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_terminal_readback',",
+                "        'status': 'completed',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_terminal_followthrough',",
+                "        'closeout_receipt_status': 'accepted_typed_closeout',",
+                "        'typed_blocker_ref': 'typed-blocker:domain-gate-pending',",
+                "        'blocked_reason': 'paper_mission_stage_route_domain_gate_pending',",
+                "        'domain_ready_verdict': 'domain_gate_pending',",
+                "        'closeout_refs': [payload.get('opl_route_command_ref'), payload.get('paper_mission_transaction_ref')],",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "def running_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_running_readback',",
+                "        'status': 'running',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_running_followthrough',",
+                "        'provider_status': 'running',",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "if args[:2] == ['family-runtime', 'enqueue']:",
+                "    payload = json.loads(args[args.index('--payload') + 1])",
+                "    persist({'argv': args, 'payload': payload})",
+                "    print(json.dumps({'version':'g2','family_runtime_enqueue':{'surface_id':'opl_family_runtime_enqueue','accepted':True,'idempotent_noop':False,'task':{'task_id':'frt_followthrough','status':'queued','payload':payload}}}))",
+                "elif args[:2] == ['family-runtime', 'tick']:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'family_runtime_tick':{'selected_count':1,'dispatches':[{'status':'running','stage_run_request':{'stage_run_created':True,'provider_attempt_requested':True,'provider_running':True}}]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'list']:",
+                "    payload = current_payload()",
+                "    ps = payloads()",
+                "    attempt = terminal_attempt(payload) if len(ps) == 1 else running_attempt(payload)",
+                "    task = {'task_id':'frt_followthrough','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':'running','payload':payload}",
+                "    print(json.dumps({'family_runtime_queue':{'tasks':[task], 'queue': {'total': 1}, 'stage_attempts':[attempt]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'inspect']:",
+                "    payload = current_payload()",
+                "    ps = payloads()",
+                "    attempt = terminal_attempt(payload) if len(ps) == 1 else running_attempt(payload)",
+                "    task = {'task_id':'frt_followthrough','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':'running','payload':payload}",
+                "    print(json.dumps({'family_runtime_task':{'task':task,'stage_attempts':[attempt]}}))",
+                "else:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'error':'unexpected_args','args':args}))",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_opl.chmod(0o755)
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "drive",
+            "--run-id",
+            "20260624Tdrivefollowthrough",
+            "--opl-bin",
+            str(fake_opl),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    captured = json.loads(capture_path.read_text(encoding="utf-8"))
+    enqueues = [record for record in captured if "payload" in record]
+
+    assert exit_code == 0
+    assert len(enqueues) == 2
+    assert payload["followthrough"]["attempted"] is True
+    assert payload["followthrough"]["round_count"] == 1
+    assert payload["followthrough"]["rounds"][0]["trigger"] == (
+        "terminal_owner_answer_route_back_followthrough"
+    )
+    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    assert payload["drive_result"]["terminal_closeout_observed"] is False
+    assert payload["drive_result"]["provider_attempt_running_observed"] is True
+    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert enqueues[0]["payload"]["paper_mission_transaction_ref"] != (
+        enqueues[1]["payload"]["paper_mission_transaction_ref"]
+    )
+    assert payload["output_manifest"]["followthrough_round_count"] == 1
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::owner-answer-followthrough"
+    route_back_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="route_back",
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Drive owner-answer route-back through MAS followthrough.",
+        "mission_state": "route_back",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::dm002::owner-answer",
+                "artifact_ref": "mission://dm002/owner-answer-route-back",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [
+            {
+                "ref_id": "legacy_truth_import_pack",
+                "ref_kind": "legacy_truth_import_pack",
+                "uri": "mission://dm002/import-pack",
+            }
+        ],
+        "authority_touchpoints": [],
+        "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+        "consume_result": {"status": "route_back"},
+        "claim_permissions": {
+            "can_claim_artifact_delta": True,
+            "can_claim_owner_handoff": True,
+            "can_claim_publication_ready": False,
+            "can_claim_current_package": False,
+            "can_claim_owner_receipt_written": False,
+        },
+        "paper_mission_transaction": route_back_transaction,
+        "one_shot_migration_readback": {
+            "required_output": {
+                "next_owner": "mission_executor",
+                "work_unit_id": "gate_clearing_claim_evidence_repair",
+            },
+            "consume_candidate_status": "route_back",
+        },
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    capture_path = tmp_path / "opl-owner-answer-capture.json"
+    fake_opl = tmp_path / "fake-opl-owner-answer.py"
+    fake_opl.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import json, sys",
+                f"capture_path = {str(capture_path)!r}",
+                "args = sys.argv[1:]",
+                "try:",
+                "    records = json.loads(open(capture_path, encoding='utf-8').read())",
+                "except Exception:",
+                "    records = []",
+                "def persist(record):",
+                "    records.append(record)",
+                "    open(capture_path, 'w', encoding='utf-8').write(json.dumps(records))",
+                "def payloads():",
+                "    return [r['payload'] for r in records if 'payload' in r]",
+                "def current_payload():",
+                "    ps = payloads()",
+                "    return ps[-1] if ps else {}",
+                "def running_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_running_readback',",
+                "        'status': 'running',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_owner_answer_followthrough',",
+                "        'provider_status': 'running',",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "def terminal_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_terminal_readback',",
+                "        'status': 'completed',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_owner_answer_terminal',",
+                "        'closeout_receipt_status': 'accepted_typed_closeout',",
+                "        'typed_blocker_ref': 'typed-blocker:domain-gate-pending',",
+                "        'blocked_reason': 'paper_mission_stage_route_domain_gate_pending',",
+                "        'domain_ready_verdict': 'domain_gate_pending',",
+                "        'closeout_refs': [payload.get('opl_route_command_ref'), payload.get('paper_mission_transaction_ref')],",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "        },",
+                "    }",
+                "if args[:2] == ['family-runtime', 'enqueue']:",
+                "    payload = json.loads(args[args.index('--payload') + 1])",
+                "    persist({'argv': args, 'payload': payload})",
+                "    print(json.dumps({'version':'g2','family_runtime_enqueue':{'surface_id':'opl_family_runtime_enqueue','accepted':True,'idempotent_noop':False,'task':{'task_id':'frt_owner_answer','status':'queued','payload':payload}}}))",
+                "elif args[:2] == ['family-runtime', 'tick']:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'family_runtime_tick':{'selected_count':1,'dispatches':[{'status':'running','stage_run_request':{'stage_run_created':True,'provider_attempt_requested':True,'provider_running':True}}]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'list']:",
+                "    payload = current_payload()",
+                "    ps = payloads()",
+                "    task_status = 'blocked' if len(ps) == 1 else 'running'",
+                "    attempts = [terminal_attempt(payload)] if len(ps) == 1 else [running_attempt(payload)]",
+                "    task = {'task_id':'frt_owner_answer','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':task_status,'payload':payload}",
+                "    print(json.dumps({'family_runtime_queue':{'tasks':[task], 'queue': {'total': 1}, 'stage_attempts':attempts}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'inspect']:",
+                "    payload = current_payload()",
+                "    ps = payloads()",
+                "    task_status = 'blocked' if len(ps) == 1 else 'running'",
+                "    attempts = [terminal_attempt(payload)] if len(ps) == 1 else [running_attempt(payload)]",
+                "    task = {'task_id':'frt_owner_answer','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':task_status,'payload':payload}",
+                "    print(json.dumps({'family_runtime_task':{'task':task,'stage_attempts':attempts}}))",
+                "else:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'error':'unexpected_args','args':args}))",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_opl.chmod(0o755)
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "drive",
+            "--run-id",
+            "20260624Towneranswerfollowthrough",
+            "--opl-bin",
+            str(fake_opl),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    captured = json.loads(capture_path.read_text(encoding="utf-8"))
+    enqueues = [record for record in captured if "payload" in record]
+
+    assert exit_code == 0
+    assert len(enqueues) >= 1
+    assert all(item["payload"]["command_kind"] == "resume_stage" for item in enqueues)
+    assert all(
+        "paper_mission_transaction_ref" in item["payload"] for item in enqueues
+    )
+    assert payload["followthrough"]["rounds"] == [] or payload["followthrough"][
+        "rounds"
+    ][0]["trigger"] == "terminal_owner_answer_route_back_followthrough"
+    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    assert payload["stage_terminal_decision"]["decision_kind"] == (
+        "continue_same_stage"
+    )
+    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["opl_runtime_readback_status"] == (
+        "opl_runtime_attempt_running_observed"
+    )
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -3970,6 +4533,35 @@ def test_paper_mission_output_guards_reject_wrong_non_authority_bucket() -> None
                 "ops/medautoscience/paper_mission_candidate_package/20260623"
             )
         )
+
+
+def test_paper_mission_drive_yang_output_root_uses_allowed_sibling_buckets(
+    tmp_path: Path,
+) -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+
+    class Profile:
+        workspace_root = tmp_path / "workspace"
+
+    roots = commands._paper_mission_drive_output_roots(
+        profile=Profile(),
+        output_root=Path(
+            "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+            "ops/medautoscience/paper_mission_drive/20260627Tdrive"
+        ),
+        run_id="20260627Tdrive",
+    )
+
+    commands._assert_safe_candidate_package_output_root(roots["candidate_package"])
+    commands._assert_safe_consumption_ledger_output_root(roots["consumption_ledger"])
+    assert roots["candidate_package"] == Path(
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+        "ops/medautoscience/paper_mission_candidate_package/20260627Tdrive"
+    )
+    assert roots["consumption_ledger"] == Path(
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
+        "ops/medautoscience/paper_mission_consumption_ledger/20260627Tdrive"
+    )
 
 
 def test_one_shot_migration_rejects_yang_authority_and_runtime_output_roots() -> None:

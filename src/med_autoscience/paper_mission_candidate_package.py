@@ -95,12 +95,33 @@ def paper_mission_owner_blocker_packet(
     route_command = _mapping(readback.get("opl_route_command"))
     terminal_owner_gate = _mapping(readback.get("terminal_owner_gate"))
     next_decision = _mapping(readback.get("next_owner_or_human_decision"))
+    next_owner = _first_text(
+        next_decision.get("next_owner"),
+        foreground_owner_decision_summary.get("next_owner"),
+        mission_executor_handoff.get("next_owner"),
+    )
     blocker_kind = _owner_blocker_kind(
         readback=readback,
         terminal_decision=terminal_decision,
         terminal_owner_gate=terminal_owner_gate,
     )
     is_owner_blocker = blocker_kind != "route_back_without_blocker"
+    blocked_reason = _first_text(
+        terminal_owner_gate.get("blocked_reason"),
+        terminal_decision.get("blocker_id"),
+        terminal_decision.get("reason"),
+        "owner_decision_required",
+    ) or "owner_decision_required"
+    required_owner_resolution = _required_owner_resolution(
+        blocker_kind=blocker_kind,
+        terminal_decision=terminal_decision,
+        next_owner=_first_text(
+            next_decision.get("next_owner"),
+            foreground_owner_decision_summary.get("next_owner"),
+            "mas_authority_kernel",
+        )
+        or "mas_authority_kernel",
+    )
     return {
         "surface_kind": "paper_mission_owner_blocker_packet",
         "schema_version": 1,
@@ -111,11 +132,7 @@ def paper_mission_owner_blocker_packet(
         "counts_as_paper_progress": False,
         "study_id": readback.get("study_id"),
         "mission_id": readback.get("mission_id"),
-        "next_owner": _first_text(
-            next_decision.get("next_owner"),
-            foreground_owner_decision_summary.get("next_owner"),
-            mission_executor_handoff.get("next_owner"),
-        ),
+        "next_owner": next_owner,
         "current_terminal_decision": {
             "decision_kind": terminal_decision.get("decision_kind"),
             "status": terminal_decision.get("status"),
@@ -133,16 +150,26 @@ def paper_mission_owner_blocker_packet(
             "opl_runtime_readback_status": readback.get("opl_runtime_readback_status"),
             "opl_runtime_carrier_readback": readback.get("opl_runtime_carrier_readback"),
         },
-        "required_owner_resolution": _required_owner_resolution(
+        "required_owner_resolution": required_owner_resolution,
+        "owner_question": _owner_question(
             blocker_kind=blocker_kind,
-            terminal_decision=terminal_decision,
-            next_owner=_first_text(
-                next_decision.get("next_owner"),
-                foreground_owner_decision_summary.get("next_owner"),
-                "mas_authority_kernel",
-            )
-            or "mas_authority_kernel",
+            next_owner=next_owner or "mission_executor",
+            blocked_reason=blocked_reason,
+            route_back_evidence_ref=_text(
+                terminal_decision.get("route_back_evidence_ref")
+            ),
         ),
+        "next_legal_action": _next_legal_action(blocker_kind=blocker_kind),
+        "next_legal_command": _next_legal_command(
+            study_id=_text(readback.get("study_id")),
+            candidate_manifest_ref=None,
+        ),
+        "evidence_refs": _owner_evidence_refs(
+            readback=readback,
+            terminal_decision=terminal_decision,
+            terminal_owner_gate=terminal_owner_gate,
+        ),
+        "requested_answer_shape": list(ACCEPTED_OWNER_ANSWER_SHAPES),
         "accepted_owner_answer_shapes": list(ACCEPTED_OWNER_ANSWER_SHAPES),
         "authority_boundary": _authority_boundary(),
         "forbidden_authority_writes": list(forbidden_authority_writes),
@@ -167,6 +194,15 @@ def paper_mission_owner_consumption_request(
         mission_executor_handoff=mission_executor_handoff,
         owner_blocker_packet=owner_blocker_packet,
     )
+    next_owner = _first_text(
+        mission_executor_handoff.get("next_owner"),
+        foreground_owner_decision_summary.get("next_owner"),
+        owner_decision_packet.get("next_owner"),
+        candidate_manifest.get("next_owner"),
+    )
+    owner_blocker_kind = _text(owner_blocker_packet.get("blocker_kind")) or (
+        "route_back_without_blocker"
+    )
     return {
         "surface_kind": "paper_mission_owner_consumption_request",
         "schema_version": 1,
@@ -177,12 +213,7 @@ def paper_mission_owner_consumption_request(
         "counts_as_paper_progress": False,
         "study_id": readback.get("study_id"),
         "mission_id": readback.get("mission_id"),
-        "next_owner": _first_text(
-            mission_executor_handoff.get("next_owner"),
-            foreground_owner_decision_summary.get("next_owner"),
-            owner_decision_packet.get("next_owner"),
-            candidate_manifest.get("next_owner"),
-        ),
+        "next_owner": next_owner,
         "candidate_refs": dict(candidate_refs),
         "owner_decision_packet_id": owner_decision_packet.get("packet_id"),
         "paper_facing_candidate_delta_status": paper_facing_candidate_delta.get("status"),
@@ -196,6 +227,37 @@ def paper_mission_owner_consumption_request(
         "remaining_owner_gap": foreground_owner_decision_summary.get(
             "remaining_owner_gap"
         ),
+        "owner_question": _owner_question(
+            blocker_kind=owner_blocker_kind,
+            next_owner=next_owner or "mission_executor",
+            blocked_reason=_first_text(
+                owner_blocker_packet.get("blocker_kind"),
+                _mapping(
+                    foreground_owner_decision_summary.get(
+                        "current_terminal_decision"
+                    )
+                ).get("reason"),
+                foreground_owner_decision_summary.get("blocked_reason"),
+                "owner_decision_required",
+            )
+            or "owner_decision_required",
+            route_back_evidence_ref=_text(
+                _mapping(owner_blocker_packet.get("evidence_refs")).get(
+                    "route_back_evidence_ref"
+                )
+            ),
+        ),
+        "next_legal_action": _next_legal_action(blocker_kind=owner_blocker_kind),
+        "next_legal_command": _next_legal_command(
+            study_id=_text(readback.get("study_id")),
+            candidate_manifest_ref=_text(candidate_refs.get("package_manifest")),
+        ),
+        "evidence_refs": _owner_evidence_refs(
+            readback=readback,
+            terminal_decision=_mapping(readback.get("stage_terminal_decision")),
+            terminal_owner_gate=_mapping(readback.get("terminal_owner_gate")),
+        ),
+        "requested_answer_shape": list(ACCEPTED_OWNER_ANSWER_SHAPES),
         "accepted_owner_answer_shapes": list(ACCEPTED_OWNER_ANSWER_SHAPES),
         "consume_path": {
             "surface": "MAS authority consume path",
@@ -276,6 +338,94 @@ def _required_owner_resolution(
         "No owner blocker is materialized in this package; owner review can consume "
         "the candidate bundle, route it back, block it, or ask a human question."
     )
+
+
+def _owner_question(
+    *,
+    blocker_kind: str,
+    next_owner: str,
+    blocked_reason: str,
+    route_back_evidence_ref: str | None,
+) -> str:
+    evidence_suffix = (
+        f" using route-back evidence `{route_back_evidence_ref}`"
+        if route_back_evidence_ref
+        else ""
+    )
+    if blocker_kind == "domain_gate":
+        return (
+            f"{next_owner}: should `{blocked_reason}` be resolved as a "
+            "domain_owner_receipt_ref, quality_gate_receipt_ref, typed_blocker_ref, "
+            f"human_gate_ref, or route_back_evidence_ref{evidence_suffix}?"
+        )
+    if blocker_kind == "missing_opl_runtime_readback":
+        return (
+            f"{next_owner}: can you provide matching OPL terminal readback for "
+            f"`{blocked_reason}`, or return one accepted owner answer shape?"
+        )
+    if blocker_kind == "typed_blocker_owner_resolution":
+        return (
+            f"{next_owner}: should `{blocked_reason}` be materialized as a governed "
+            "typed_blocker_ref, rejected with route_back_evidence_ref, or escalated "
+            "as human_gate_ref?"
+        )
+    return (
+        f"{next_owner}: should the candidate for `{blocked_reason}` be consumed, "
+        "routed back, blocked with a typed_blocker_ref, or escalated with a "
+        "human_gate_ref?"
+    )
+
+
+def _next_legal_action(*, blocker_kind: str) -> str:
+    if blocker_kind == "missing_opl_runtime_readback":
+        return "provide_opl_terminal_readback_or_governed_owner_answer"
+    if blocker_kind in {"domain_gate", "typed_blocker_owner_resolution"}:
+        return "return_governed_owner_answer_shape"
+    return "consume_candidate_or_return_owner_answer_shape"
+
+
+def _next_legal_command(
+    *,
+    study_id: str | None,
+    candidate_manifest_ref: str | None,
+) -> dict[str, Any]:
+    return {
+        "command_kind": "paper_mission/consume_candidate",
+        "argv_template": [
+            "medautosci",
+            "paper-mission",
+            "consume-candidate",
+            "--profile",
+            "<profile>",
+            "--study-id",
+            study_id or "<study_id>",
+            "--candidate",
+            candidate_manifest_ref or "<package_manifest_ref>",
+            "--output-root",
+            "<workspace>/ops/medautoscience/paper_mission_consumption_ledger/<run_id>",
+            "--format",
+            "json",
+        ],
+        "authority_materialized_by_this_command": False,
+        "requires_owner_answer_shape": list(ACCEPTED_OWNER_ANSWER_SHAPES),
+    }
+
+
+def _owner_evidence_refs(
+    *,
+    readback: Mapping[str, Any],
+    terminal_decision: Mapping[str, Any],
+    terminal_owner_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    refs: dict[str, Any] = {
+        "materialized_mission_ref": readback.get("materialized_mission_ref"),
+        "candidate_manifest_ref": readback.get("candidate_manifest_ref"),
+    }
+    if route_back_ref := _text(terminal_decision.get("route_back_evidence_ref")):
+        refs["route_back_evidence_ref"] = route_back_ref
+    if terminal_owner_gate:
+        refs["terminal_owner_gate"] = terminal_owner_gate
+    return {key: value for key, value in refs.items() if value}
 
 
 def _authority_boundary() -> dict[str, bool]:
