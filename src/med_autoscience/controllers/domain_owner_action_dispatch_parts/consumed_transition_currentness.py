@@ -16,8 +16,6 @@ def gate_replay_matches_dispatch(
         return False
     route_refs = _mapping(route.get("source_refs"))
     dispatch_refs = _mapping(dispatch_route.get("source_refs"))
-    if not _source_fingerprint_matches(dispatch_route=dispatch_route, route=route):
-        return False
     route_eval_id = _source_eval_id(route)
     dispatch_eval_id = _source_eval_id(dispatch_route)
     source_eval_matches = (
