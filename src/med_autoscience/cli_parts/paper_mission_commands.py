@@ -78,6 +78,8 @@ PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH = (
 PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_consumption_ledger"
 )
+PAPER_MISSION_ROUTE_BACK_BUDGET_LEDGER_FILENAME = "route_back_budget_ledger.json"
+PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS = 2
 DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT = 2
 OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS = 15
 NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS = (
@@ -544,6 +546,16 @@ def _build_paper_mission_drive_readback(
     root = output_roots["root"]
     package_root = output_roots["candidate_package"]
     ledger_root = output_roots["consumption_ledger"]
+    route_back_budget_ledger_ref = _paper_mission_route_back_budget_ledger_path(
+        profile=profile,
+        output_root=root,
+        ledger_root=ledger_root,
+        study_id=study_id,
+    )
+    route_back_budget_ledger = _load_paper_mission_route_back_budget_ledger(
+        ledger_ref=route_back_budget_ledger_ref,
+        study_id=study_id,
+    )
     package_readback = _build_materialized_candidate_package_readback(
         profile=profile,
         profile_ref=profile_ref,
@@ -589,6 +601,20 @@ def _build_paper_mission_drive_readback(
             "opl_route_handoff"
         )
     ) or handoff
+    initial_progress_guard = _paper_mission_semantic_progress_guard(
+        consume_readback=consume_readback,
+        handoff=handoff,
+        route_back_budget_ledger=route_back_budget_ledger,
+    )
+    route_back_budget_ledger = _record_paper_mission_route_back_budget_ledger(
+        ledger=route_back_budget_ledger,
+        ledger_ref=route_back_budget_ledger_ref,
+        progress_guard=initial_progress_guard,
+        consume_readback=consume_readback,
+        handoff=handoff,
+        trigger="drive-initial",
+        source=source,
+    )
     followthrough = _paper_mission_drive_followthrough(
         profile=profile,
         profile_ref=profile_ref,
@@ -603,6 +629,9 @@ def _build_paper_mission_drive_readback(
         initial_consume_readback=consume_readback,
         initial_handoff=handoff,
         initial_opl_runtime_submission=opl_runtime_submission,
+        initial_progress_guard=initial_progress_guard,
+        route_back_budget_ledger=route_back_budget_ledger,
+        route_back_budget_ledger_ref=route_back_budget_ledger_ref,
     )
     if followthrough["rounds"]:
         final_round = _mapping(followthrough["rounds"][-1])
@@ -665,6 +694,8 @@ def _build_paper_mission_drive_readback(
         "followthrough": followthrough,
         "semantic_progress_guard": followthrough["semantic_progress_guard"],
         "non_advancing_route_back": followthrough["non_advancing_route_back"],
+        "route_back_budget_ledger": followthrough["route_back_budget_ledger"],
+        "route_back_budget_ledger_ref": followthrough["route_back_budget_ledger_ref"],
         "mas_owned_executor_delta": mas_executor_delta,
         "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
             "mas_owned_executor_stage"
@@ -698,6 +729,9 @@ def _build_paper_mission_drive_readback(
             "output_root": str(root),
             "candidate_package": package_readback["output_manifest"],
             "consumption_ledger": consume_readback.get("consume_output_manifest"),
+            "route_back_budget_ledger_ref": followthrough[
+                "route_back_budget_ledger_ref"
+            ],
             "followthrough_round_count": followthrough["round_count"],
             "writes_authority": False,
             "writes_yang_authority": False,
@@ -726,18 +760,22 @@ def _paper_mission_drive_followthrough(
     initial_consume_readback: Mapping[str, Any],
     initial_handoff: Mapping[str, Any],
     initial_opl_runtime_submission: Mapping[str, Any],
+    initial_progress_guard: Mapping[str, Any],
+    route_back_budget_ledger: Mapping[str, Any],
+    route_back_budget_ledger_ref: Path,
 ) -> dict[str, Any]:
     rounds: list[dict[str, Any]] = []
     current_package_readback = dict(initial_package_readback)
     current_consume_readback = dict(initial_consume_readback)
     current_handoff = dict(initial_handoff)
     current_submission = dict(initial_opl_runtime_submission)
-    current_progress_guard = _paper_mission_semantic_progress_guard(
-        consume_readback=current_consume_readback,
-        handoff=current_handoff,
-    )
+    current_progress_guard = dict(initial_progress_guard)
+    current_route_back_budget_ledger = dict(route_back_budget_ledger)
     non_advancing_route_back: dict[str, Any] | None = None
     for index in range(DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT):
+        if _paper_mission_route_back_budget_exhausted(current_progress_guard):
+            non_advancing_route_back = current_progress_guard
+            break
         trigger = _paper_mission_followthrough_trigger(
             consume_readback=current_consume_readback,
             opl_runtime_submission=current_submission,
@@ -797,6 +835,16 @@ def _paper_mission_drive_followthrough(
             consume_readback=consume_readback,
             handoff=handoff,
             previous_guard=current_progress_guard,
+            route_back_budget_ledger=current_route_back_budget_ledger,
+        )
+        current_route_back_budget_ledger = _record_paper_mission_route_back_budget_ledger(
+            ledger=current_route_back_budget_ledger,
+            ledger_ref=route_back_budget_ledger_ref,
+            progress_guard=next_progress_guard,
+            consume_readback=consume_readback,
+            handoff=handoff,
+            trigger=round_id,
+            source=source,
         )
         round_readback = {
             "round": index + 1,
@@ -820,7 +868,7 @@ def _paper_mission_drive_followthrough(
         current_handoff = handoff
         current_submission = submission
         current_progress_guard = next_progress_guard
-        if next_progress_guard.get("status") == "non_advancing_route_back":
+        if _paper_mission_route_back_budget_exhausted(next_progress_guard):
             non_advancing_route_back = next_progress_guard
             break
     mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
@@ -860,6 +908,8 @@ def _paper_mission_drive_followthrough(
         "stop_reason": stop_reason,
         "semantic_progress_guard": current_progress_guard,
         "non_advancing_route_back": non_advancing_route_back,
+        "route_back_budget_ledger": current_route_back_budget_ledger,
+        "route_back_budget_ledger_ref": str(route_back_budget_ledger_ref),
         "mas_owned_executor_delta": mas_executor_delta,
         "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
             "mas_owned_executor_stage"
@@ -1604,6 +1654,7 @@ def _paper_mission_semantic_progress_guard(
     consume_readback: Mapping[str, Any],
     handoff: Mapping[str, Any],
     previous_guard: Mapping[str, Any] | None = None,
+    route_back_budget_ledger: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     signature_payload = _paper_mission_semantic_progress_signature_payload(
         consume_readback=consume_readback,
@@ -1618,9 +1669,16 @@ def _paper_mission_semantic_progress_guard(
         consume_readback=consume_readback,
         handoff=handoff,
     )
+    budget_status = _paper_mission_route_back_budget_status(
+        signature=signature,
+        signature_payload=signature_payload,
+        ledger=route_back_budget_ledger,
+        has_required_delta=has_required_delta,
+    )
     status = (
         "semantic_progress_observed"
-        if semantic_progress_observed or has_required_delta
+        if (semantic_progress_observed and not budget_status["budget_exhausted"])
+        or has_required_delta
         else "non_advancing_route_back"
     )
     result = {
@@ -1636,6 +1694,7 @@ def _paper_mission_semantic_progress_guard(
         ),
         "semantic_progress_observed": semantic_progress_observed,
         "required_executor_delta_present": has_required_delta,
+        "route_back_budget": budget_status,
         "required_executor_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
         "can_claim_paper_progress": False,
         "can_claim_submission_ready": False,
@@ -1693,6 +1752,219 @@ def _paper_mission_mas_owned_executor_stage_packet(
             "can_claim_runtime_ready": False,
         },
     }
+
+
+def _paper_mission_route_back_budget_ledger_path(
+    *,
+    profile: Any,
+    output_root: Path,
+    ledger_root: Path,
+    study_id: str,
+) -> Path:
+    workspace_root = (
+        _yang_workspace_root_for_path(output_root)
+        if _is_under_yang_workspace(output_root)
+        else None
+    )
+    profile_workspace_root = Path(profile.workspace_root).expanduser().resolve()
+    resolved_ledger_root = ledger_root.expanduser().resolve()
+    if workspace_root is not None:
+        root = workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH
+    elif _is_relative_to(resolved_ledger_root, profile_workspace_root):
+        root = profile_workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH
+    else:
+        root = resolved_ledger_root.parent
+    return (
+        root
+        / "_route_back_budget"
+        / study_id
+        / PAPER_MISSION_ROUTE_BACK_BUDGET_LEDGER_FILENAME
+    )
+
+
+def _load_paper_mission_route_back_budget_ledger(
+    *,
+    ledger_ref: Path,
+    study_id: str,
+) -> dict[str, Any]:
+    if not ledger_ref.exists():
+        return _empty_paper_mission_route_back_budget_ledger(study_id=study_id)
+    payload = _load_json_object(ledger_ref)
+    if (
+        payload.get("surface_kind")
+        != "paper_mission_route_back_budget_ledger"
+        or _optional_text(payload.get("study_id")) != study_id
+    ):
+        return _empty_paper_mission_route_back_budget_ledger(study_id=study_id)
+    signatures = _mapping(payload.get("signatures"))
+    return {
+        "surface_kind": "paper_mission_route_back_budget_ledger",
+        "schema_version": 1,
+        "study_id": study_id,
+        "budget_kind": "synonymous_route_back_cross_run_budget",
+        "max_opl_redrives": PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS,
+        "signatures": signatures,
+        "authority_boundary": _paper_mission_route_back_budget_authority_boundary(),
+    }
+
+
+def _empty_paper_mission_route_back_budget_ledger(*, study_id: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_mission_route_back_budget_ledger",
+        "schema_version": 1,
+        "study_id": study_id,
+        "budget_kind": "synonymous_route_back_cross_run_budget",
+        "max_opl_redrives": PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS,
+        "signatures": {},
+        "authority_boundary": _paper_mission_route_back_budget_authority_boundary(),
+    }
+
+
+def _paper_mission_route_back_budget_authority_boundary() -> dict[str, Any]:
+    return {
+        "ledger_is_authority": False,
+        "counts_as_paper_progress": False,
+        "counts_as_runtime_truth": False,
+        "writes_authority": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_paper_body": False,
+        "writes_owner_receipt": False,
+        "writes_typed_blocker": False,
+        "writes_human_gate": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "can_claim_runtime_ready": False,
+    }
+
+
+def _paper_mission_route_back_budget_status(
+    *,
+    signature: str,
+    signature_payload: Mapping[str, Any],
+    ledger: Mapping[str, Any] | None,
+    has_required_delta: bool,
+) -> dict[str, Any]:
+    eligible_route_back = _paper_mission_signature_is_route_back_to_mission_executor(
+        signature_payload
+    )
+    entry = _mapping(_mapping(ledger).get("signatures")).get(signature)
+    observed_count = int(entry.get("observed_count") or 0) if entry else 0
+    next_observed_count = (
+        observed_count + 1
+        if eligible_route_back and not has_required_delta
+        else observed_count
+    )
+    budget_exhausted = (
+        eligible_route_back
+        and not has_required_delta
+        and next_observed_count
+        >= PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS
+    )
+    next_mode = (
+        "mas_mission_executor_fallback"
+        if budget_exhausted
+        else "opl_targeted_redrive_allowed"
+    )
+    return {
+        "surface_kind": "paper_mission_route_back_budget_status",
+        "schema_version": 1,
+        "budget_kind": "synonymous_route_back_cross_run_budget",
+        "signature": signature,
+        "signature_payload": dict(signature_payload),
+        "eligible_route_back": eligible_route_back,
+        "previous_observed_count": observed_count,
+        "next_observed_count": next_observed_count,
+        "max_opl_redrives": PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS,
+        "opl_redrive_budget_remaining": max(
+            PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS
+            - next_observed_count,
+            0,
+        ),
+        "budget_exhausted": budget_exhausted,
+        "next_mode": next_mode,
+        "required_next_owner": (
+            "mission_executor" if budget_exhausted else "one-person-lab"
+        ),
+        "stop_same_semantic_redrive": budget_exhausted,
+        "authority_boundary": _paper_mission_route_back_budget_authority_boundary(),
+    }
+
+
+def _paper_mission_signature_is_route_back_to_mission_executor(
+    signature_payload: Mapping[str, Any],
+) -> bool:
+    route_back_identity = _mapping(signature_payload.get("route_back_identity"))
+    return (
+        _optional_text(route_back_identity.get("decision_kind")) == "route_back"
+        and _optional_text(route_back_identity.get("next_owner")) == "mission_executor"
+    )
+
+
+def _record_paper_mission_route_back_budget_ledger(
+    *,
+    ledger: Mapping[str, Any],
+    ledger_ref: Path,
+    progress_guard: Mapping[str, Any],
+    consume_readback: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    trigger: str,
+    source: str,
+) -> dict[str, Any]:
+    budget = _mapping(progress_guard.get("route_back_budget"))
+    signature = _optional_text(progress_guard.get("signature"))
+    if (
+        signature is None
+        or not budget
+        or budget.get("eligible_route_back") is not True
+    ):
+        return dict(ledger)
+    updated = dict(ledger)
+    signatures = dict(_mapping(updated.get("signatures")))
+    previous = _mapping(signatures.get(signature))
+    observed_count = int(budget.get("next_observed_count") or 0)
+    signatures[signature] = {
+        "signature": signature,
+        "signature_payload": _mapping(progress_guard.get("signature_payload")),
+        "observed_count": observed_count,
+        "budget_exhausted": budget.get("budget_exhausted") is True,
+        "next_mode": _optional_text(budget.get("next_mode")),
+        "last_trigger": trigger,
+        "last_source": source,
+        "last_candidate_ref": _first_text(
+            consume_readback.get("candidate_ref"),
+            handoff.get("candidate_ref"),
+        ),
+        "last_paper_mission_transaction_ref": _first_text(
+            handoff.get("paper_mission_transaction_ref"),
+            _mapping(consume_readback.get("paper_mission_transaction")).get(
+                "transaction_id"
+            ),
+        ),
+        "first_observed_count": int(previous.get("first_observed_count") or 1),
+    }
+    updated.update(
+        {
+            "signatures": signatures,
+            "signature_count": len(signatures),
+            "latest_signature": signature,
+            "latest_budget_status": dict(budget),
+        }
+    )
+    ledger_ref.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(updated, ensure_ascii=False, indent=2) + "\n"
+    ledger_ref.write_text(text, encoding="utf-8")
+    updated["source_ref"] = str(ledger_ref)
+    updated["file_sha256"] = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return updated
+
+
+def _paper_mission_route_back_budget_exhausted(
+    progress_guard: Mapping[str, Any],
+) -> bool:
+    return _mapping(progress_guard.get("route_back_budget")).get(
+        "budget_exhausted"
+    ) is True
 
 
 def _paper_mission_semantic_progress_signature_payload(
@@ -4985,6 +5257,14 @@ def _first_text(*values: object) -> str | None:
         if text is not None:
             return text
     return None
+
+
+def _is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
 
 
 def _optional_text(value: object) -> str | None:

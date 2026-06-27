@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 
 def test_opl_tick_followthrough_timeout_is_bounded(monkeypatch) -> None:
@@ -266,6 +267,61 @@ def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None
     assert result["status"] == "mas_owned_executor_delta_ready"
     assert result["can_claim_paper_progress"] is False
     assert result["can_claim_runtime_ready"] is False
+
+
+def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path) -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    ledger_ref = tmp_path / "ledger" / "study" / "route_back_budget_ledger.json"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    first_readback = _route_back_consume_readback(candidate_ref="/tmp/run-01/package.json")
+    first_handoff = _route_back_handoff(candidate_ref="/tmp/run-01/package.json")
+    ledger = commands._load_paper_mission_route_back_budget_ledger(
+        ledger_ref=ledger_ref,
+        study_id=study_id,
+    )
+
+    first_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=first_readback,
+        handoff=first_handoff,
+        route_back_budget_ledger=ledger,
+    )
+    ledger = commands._record_paper_mission_route_back_budget_ledger(
+        ledger=ledger,
+        ledger_ref=ledger_ref,
+        progress_guard=first_guard,
+        consume_readback=first_readback,
+        handoff=first_handoff,
+        trigger="drive-initial",
+        source="pytest",
+    )
+    second_guard = commands._paper_mission_semantic_progress_guard(
+        consume_readback=_route_back_consume_readback(
+            candidate_ref="/tmp/run-02/package.json"
+        ),
+        handoff=_route_back_handoff(candidate_ref="/tmp/run-02/package.json"),
+        route_back_budget_ledger=ledger,
+    )
+
+    assert first_guard["status"] == "semantic_progress_observed"
+    assert first_guard["route_back_budget"]["next_mode"] == (
+        "opl_targeted_redrive_allowed"
+    )
+    assert first_guard["route_back_budget"]["opl_redrive_budget_remaining"] == 1
+    assert second_guard["status"] == "non_advancing_route_back"
+    assert second_guard["route_back_budget"]["budget_exhausted"] is True
+    assert second_guard["route_back_budget"]["next_mode"] == (
+        "mas_mission_executor_fallback"
+    )
+    assert second_guard["stop_same_semantic_redrive"] is True
+    assert ledger_ref.exists()
+    ledger_payload = json.loads(ledger_ref.read_text(encoding="utf-8"))
+    assert ledger_payload["surface_kind"] == "paper_mission_route_back_budget_ledger"
+    assert ledger_payload["latest_budget_status"]["next_mode"] == (
+        "opl_targeted_redrive_allowed"
+    )
+    assert ledger_payload["authority_boundary"]["writes_authority"] is False
+    assert ledger_payload["authority_boundary"]["writes_runtime"] is False
+    assert ledger_payload["authority_boundary"]["can_claim_publication_ready"] is False
 
 
 def _route_back_consume_readback(
