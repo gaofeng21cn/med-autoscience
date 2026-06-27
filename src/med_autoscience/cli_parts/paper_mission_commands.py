@@ -2356,6 +2356,9 @@ def _build_materialized_mission_readback_if_available(
         ),
     }
     validation = _validate_with_contract_if_available(mission)
+    projection_fields = _paper_mission_materialized_projection_fields(
+        transaction_readback=transaction_readback
+    )
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -2378,6 +2381,7 @@ def _build_materialized_mission_readback_if_available(
         "mission_state": mission["mission_state"],
         "materialized_mission_ref": str(mission_path),
         **_transaction_readback_output_fields(transaction_readback),
+        **projection_fields,
         **(
             {"candidate_manifest_ref": str(candidate_manifest_path)}
             if candidate_manifest_path.exists()
@@ -2447,6 +2451,37 @@ def _build_materialized_mission_readback_if_available(
             "authority_materialized": False,
         },
     }
+
+
+def _paper_mission_materialized_projection_fields(
+    *,
+    transaction_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+    decision = _mapping(transaction_readback.get("stage_terminal_decision"))
+    owner_answer = _mapping(
+        transaction_readback.get("terminal_owner_gate_owner_answer_readback")
+    )
+    next_decision = _mapping(transaction_readback.get("next_owner_or_human_decision"))
+    artifact_delta_refs = _mapping_list(transaction.get("artifact_delta_refs"))
+    return _compact_non_null_mapping(
+        {
+            "artifact_delta_refs": artifact_delta_refs or None,
+            "owner_answer_shape": _first_text(
+                owner_answer.get("owner_answer_shape"),
+                decision.get("owner_answer_shape"),
+                decision.get("decision_kind"),
+            ),
+            "paper_facing_delta_ref": _first_text(
+                owner_answer.get("paper_facing_delta_ref"),
+                decision.get("paper_facing_delta_ref"),
+            ),
+            "next_owner": _first_text(
+                next_decision.get("next_owner"),
+                decision.get("next_owner"),
+            ),
+        }
+    )
 
 
 def _latest_materialized_mission_path(

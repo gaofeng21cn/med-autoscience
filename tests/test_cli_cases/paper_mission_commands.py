@@ -2614,6 +2614,14 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     assert inspect_payload["paper_mission_current_transaction_source"] == (
         "paper_mission_consumption_ledger"
     )
+    assert inspect_payload["next_owner"] == "mission_executor"
+    assert inspect_payload["owner_answer_shape"] == "route_back_evidence_ref"
+    assert inspect_payload["artifact_delta_refs"] == (
+        inspect_payload["paper_mission_transaction"]["artifact_delta_refs"]
+    )
+    assert [Path(ref["uri"]).name for ref in inspect_payload["artifact_delta_refs"]] == [
+        "paper_facing_candidate_delta.json",
+    ]
     assert inspect_payload["paper_mission_run"]["consume_result"]["status"] == (
         "accepted"
     )
