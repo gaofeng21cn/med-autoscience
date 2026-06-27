@@ -198,17 +198,34 @@ def consume_paper_mission_candidate(candidate: Mapping[str, Any] | str | Path) -
             },
         }
 
+    consume_result = _consume_result("accepted_candidate")
+    submission_package = _mapping(payload.get("submission_milestone_package"))
+    canonical_delta_ref = _text(
+        submission_package.get("paper_facing_candidate_delta_ref")
+    )
+    if canonical_delta_ref is not None:
+        consume_result.update(
+            {
+                "canonical_paper_or_artifact_delta_ref": canonical_delta_ref,
+                "paper_facing_delta_ref": canonical_delta_ref,
+            }
+        )
     return {
         **base,
         "status": "accepted_candidate",
         "selected_outcome": "accepted_candidate",
-        "consume_result": _consume_result("accepted_candidate"),
+        "consume_result": consume_result,
         "accepted_candidate": {
             "candidate_id": base["candidate_id"],
             "mission_id": base["mission_id"],
             "study_id": base["study_id"],
             "candidate_manifest_ref": _text(payload.get("candidate_manifest_ref")),
             "candidate_artifact_refs": _text_list(payload.get("candidate_artifact_refs")),
+            **(
+                {"canonical_paper_or_artifact_delta_ref": canonical_delta_ref}
+                if canonical_delta_ref is not None
+                else {}
+            ),
             "authority_materialized": False,
         },
     }
@@ -441,6 +458,9 @@ def _candidate_payload_from_submission_package(
             ),
             "milestone_kind": package.get("milestone_kind"),
             "counts_as_paper_progress": bool(package.get("counts_as_paper_progress")),
+            "paper_facing_candidate_delta_ref": package.get(
+                "paper_facing_candidate_delta_ref"
+            ),
             "owner_consumption_request_ref": package.get(
                 "owner_consumption_request_ref"
             ),

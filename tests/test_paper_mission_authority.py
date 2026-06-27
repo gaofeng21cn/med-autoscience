@@ -95,6 +95,74 @@ def test_accepts_candidate_manifest_path_as_read_only_payload(tmp_path: Path) ->
     assert result["write_plan"]["written_files"] == []
 
 
+def test_submission_milestone_package_acceptance_exposes_canonical_paper_delta(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+
+    package_root = tmp_path / "package"
+    package_root.mkdir()
+    candidate_manifest = package_root / "candidate_manifest.json"
+    paper_delta = package_root / "paper_facing_candidate_delta.json"
+    candidate_manifest.write_text(
+        json.dumps(
+            _base_candidate(
+                candidate_manifest_ref=str(candidate_manifest),
+                candidate_artifact_refs=[str(paper_delta)],
+            )
+        ),
+        encoding="utf-8",
+    )
+    paper_delta.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_paper_facing_candidate_delta",
+                "candidate_is_authority": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_manifest = package_root / "package_manifest.json"
+    package_manifest.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_foreground_candidate_package_manifest",
+                "mode": "non_authority_candidate_package",
+                "milestone_kind": "submission_milestone_candidate",
+                "study_id": "study-001",
+                "mission_id": "mission-001",
+                "counts_as_paper_progress": True,
+                "candidate_is_authority": False,
+                "writes_authority": False,
+                "writes_runtime": False,
+                "writes_paper_body": False,
+                "can_claim_submission_ready": False,
+                "can_claim_publication_ready": False,
+                "artifact_refs": {
+                    "candidate_manifest": str(candidate_manifest),
+                    "paper_facing_candidate_delta": str(paper_delta),
+                },
+                "paper_facing_candidate_delta_ref": str(paper_delta),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = consume_paper_mission_candidate(package_manifest)
+
+    assert result["status"] == "accepted_candidate"
+    assert result["consume_result"]["status"] == "accepted"
+    assert result["consume_result"]["canonical_paper_or_artifact_delta_ref"] == str(
+        paper_delta
+    )
+    assert result["consume_result"]["paper_facing_delta_ref"] == str(paper_delta)
+    assert result["consume_result"]["authority_materialized"] is False
+    assert result["accepted_candidate"]["canonical_paper_or_artifact_delta_ref"] == str(
+        paper_delta
+    )
+    assert result["authority_boundary"]["can_write_owner_receipt"] is False
+
+
 def test_rejects_candidate_that_claims_publication_or_owner_authority() -> None:
     from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 

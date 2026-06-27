@@ -2909,6 +2909,69 @@ def test_paper_mission_consume_candidate_reports_repeated_route_back_as_non_adva
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_consume_candidate_counts_accepted_package_delta_as_semantic_progress(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::gate-clearing::accepted-package"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="route_back",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=transaction,
+    )
+
+    for ledger_id in ("accepted-first", "accepted-second"):
+        exit_code = cli.main(
+            [
+                "paper-mission",
+                "consume-candidate",
+                "--candidate",
+                str(package_path),
+                "--output-root",
+                str(
+                    workspace_root
+                    / "ops"
+                    / "medautoscience"
+                    / "paper_mission_consumption_ledger"
+                    / ledger_id
+                ),
+                "--profile",
+                str(profile_path),
+                "--study-id",
+                study_id,
+                "--format",
+                "json",
+            ]
+        )
+        assert exit_code == 0
+        payload = json.loads(capsys.readouterr().out)
+
+    paper_delta_ref = str(
+        package_path.parent / "paper_facing_candidate_delta.json"
+    )
+    assert "non_advancing_route_back" not in payload
+    assert "requires_mas_owned_executor_delta" not in payload
+    assert payload["authority_consume_readback"]["consume_result"][
+        "canonical_paper_or_artifact_delta_ref"
+    ] == paper_delta_ref
+    assert payload["authority_consume_readback"]["consume_result"][
+        "authority_materialized"
+    ] is False
+    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_auto_discovers_latest_package_manifest(
     tmp_path: Path,
     capsys,

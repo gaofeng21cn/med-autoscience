@@ -377,6 +377,8 @@ def build_paper_mission_readback(
             authority_consume_readback=authority_consume_readback,
             enable_opl_live_probe=enable_opl_live_probe,
         )
+    if authority_consume_readback is not None:
+        transaction_readback["authority_consume_readback"] = authority_consume_readback
     mission_candidate = _paper_mission_run_candidate(
         mission_id=candidate_mission_id,
         study_id=study_id,
@@ -512,6 +514,9 @@ def _paper_mission_semantic_progress_readback(
         or _mapping(transaction.get("opl_route_command")),
         "next_owner_or_human_decision": _mapping(
             readback.get("next_owner_or_human_decision")
+        ),
+        "authority_consume_readback": _mapping(
+            readback.get("authority_consume_readback")
         ),
         "terminal_owner_gate": _mapping(readback.get("terminal_owner_gate")),
         "terminal_owner_gate_owner_answer_readback": _mapping(
