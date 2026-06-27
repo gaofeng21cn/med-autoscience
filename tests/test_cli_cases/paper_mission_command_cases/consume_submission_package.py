@@ -683,3 +683,50 @@ def test_paper_mission_consume_candidate_route_back_owner_comes_from_terminal_de
     assert handoff["can_submit_to_opl_runtime"] is True
     assert handoff["can_claim_paper_progress"] is False
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_consume_candidate_typed_blocker_handoff_waits_for_authority(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = _write_profile_with_study(tmp_path)
+    candidate_path = _write_candidate_manifest(
+        tmp_path,
+        requested_outcome="typed_blocker_required",
+    )
+    output_root = tmp_path / "consumption-ledger"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(candidate_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-paper",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    output_manifest = payload["consume_output_manifest"]
+    assert output_manifest["route_handoff_status"] == (
+        "waiting_for_typed_blocker_authority"
+    )
+    assert output_manifest["route_command_kind"] == "resume_stage"
+    handoff = json.loads(
+        Path(output_manifest["opl_route_handoff_ref"]).read_text(encoding="utf-8")
+    )
+    assert handoff["handoff_status"] == "waiting_for_typed_blocker_authority"
+    assert handoff["can_submit_to_opl_runtime"] is False
+    assert handoff["can_claim_paper_progress"] is False
+    assert handoff["authority_boundary"]["can_write_typed_blocker"] is False
+    assert "typed blocker" in handoff["forbidden_authority_writes"]
+    _assert_forbidden_authority_untouched(tmp_path)
