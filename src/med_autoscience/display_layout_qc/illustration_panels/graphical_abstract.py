@@ -20,9 +20,10 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     issues.extend(_check_boxes_within_device(sidecar))
     layout_style = str(sidecar.metrics.get("layout_style") or "").strip()
     required_box_types = ["title", "panel_label", "card_box", "footer_pill"]
-    if layout_style in {"square_storyline", "reference_guided_flow"}:
+    reference_guided_styles = {"reference_guided_flow", "reference_guided_single_canvas"}
+    if layout_style in {"square_storyline", *reference_guided_styles}:
         required_box_types.append("visual_glyph")
-    if layout_style == "reference_guided_flow":
+    if layout_style in reference_guided_styles:
         required_box_types.append("evidence_cue")
     issues.extend(_check_required_box_types(all_boxes, required_box_types=tuple(required_box_types)))
 
@@ -55,7 +56,7 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="graphical_abstract_text_overlap", target="text"))
     issues.extend(_check_pairwise_non_overlap(visual_glyphs, rule_id="graphical_abstract_visual_glyph_overlap", target="visual_glyph"))
 
-    if layout_style in {"square_storyline", "reference_guided_flow"}:
+    if layout_style in {"square_storyline", *reference_guided_styles}:
         if len(visual_glyphs) < len(panel_boxes):
             issues.append(
                 _issue(
@@ -76,7 +77,7 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
                     observed={"count": len(arrow_boxes)},
                 )
             )
-        if layout_style == "reference_guided_flow" and len(evidence_cues) < len(panel_boxes):
+        if layout_style in reference_guided_styles and len(evidence_cues) < len(panel_boxes):
             issues.append(
                 _issue(
                     rule_id="graphical_abstract_evidence_cues_missing",

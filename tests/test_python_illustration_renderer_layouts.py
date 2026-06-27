@@ -105,73 +105,55 @@ def test_submission_graphical_abstract_reference_guided_flow_uses_wide_canvas(tm
         "quality_floor_policy": "brief_first_reference_guided_ai_candidate_not_single_template_reuse",
         "panels": [
             {
-                "panel_id": "brief",
+                "panel_id": "cohort",
                 "panel_label": "A",
-                "visual_role": "brief",
-                "evidence_cue": "Claim + evidence refs locked",
-                "title": "Figure brief",
-                "subtitle": "Core claim and evidence chain first",
+                "visual_role": "population",
+                "evidence_cue": "Locked cohort and endpoint refs",
+                "title": "Study cohort",
+                "subtitle": "Registry records mapped to auditable outcomes",
                 "rows": [
                     {
                         "cards": [
-                            {
-                                "card_id": "brief",
-                                "title": "Locked inputs",
-                                "value": "Brief",
-                                "detail": "refs only",
-                                "accent_role": "primary",
-                            }
+                            {"card_id": "cohort", "title": "Analytic set", "value": "15,120", "detail": "patients", "accent_role": "primary"}
                         ]
                     }
                 ],
             },
             {
-                "panel_id": "reference_style",
+                "panel_id": "model_signal",
                 "panel_label": "B",
-                "visual_role": "reference_style",
-                "evidence_cue": "Reference style + preserve list",
-                "title": "Reference style",
-                "subtitle": "Journal family and preserve list",
+                "visual_role": "model_signal",
+                "evidence_cue": "Validation statistic preserved",
+                "title": "Risk signal",
+                "subtitle": "Model separates low- and high-risk strata",
                 "rows": [
                     {
                         "cards": [
-                            {
-                                "card_id": "reference",
-                                "title": "Style brief",
-                                "value": "Target",
-                                "detail": "style ref",
-                                "accent_role": "contrast",
-                            }
+                            {"card_id": "model", "title": "Validation", "value": "C=0.86", "detail": "holdout", "accent_role": "contrast"}
                         ]
                     }
                 ],
             },
             {
-                "panel_id": "critic_gate",
+                "panel_id": "clinical_action",
                 "panel_label": "C",
-                "visual_role": "critic_gate",
-                "evidence_cue": "Visual critic before owner use",
-                "title": "Candidate gate",
-                "subtitle": "Visual critic before owner use",
+                "visual_role": "clinical_use",
+                "evidence_cue": "Owner gate before paper use",
+                "title": "Care action",
+                "subtitle": "High-risk group routed to closer follow-up",
                 "rows": [
                     {
                         "cards": [
-                            {
-                                "card_id": "gate",
-                                "title": "Required refs",
-                                "value": "Review",
-                                "detail": "gate",
-                                "accent_role": "secondary",
-                            }
+                            {"card_id": "action", "title": "Owner gate", "value": "Review", "detail": "refs", "accent_role": "secondary"}
                         ]
                     }
                 ],
             },
         ],
         "footer_pills": [
-            {"pill_id": "p1", "panel_id": "brief", "label": "Claim + evidence", "style_role": "primary"},
-            {"pill_id": "p2", "panel_id": "reference_style", "label": "Style + preserve", "style_role": "contrast"},
-            {"pill_id": "p3", "panel_id": "critic_gate", "label": "Critic + owner gate", "style_role": "secondary"},
+            {"pill_id": "p1", "panel_id": "cohort", "label": "Cohort + endpoint", "style_role": "primary"},
+            {"pill_id": "p2", "panel_id": "model_signal", "label": "Signal + validation", "style_role": "contrast"},
+            {"pill_id": "p3", "panel_id": "clinical_action", "label": "Decision + owner gate", "style_role": "secondary"},
         ],
     }
 
@@ -191,19 +173,27 @@ def test_submission_graphical_abstract_reference_guided_flow_uses_wide_canvas(tm
     evidence_cues = [box for box in sidecar["layout_boxes"] if box["box_type"] == "evidence_cue"]
     arrows = [box for box in sidecar["guide_boxes"] if box["box_type"] == "arrow_connector"]
 
-    assert sidecar["metrics"]["layout_style"] == "reference_guided_flow"
+    assert sidecar["metrics"]["layout_style"] == "reference_guided_single_canvas"
     assert sidecar["metrics"]["panel_count"] == 3
-    assert sidecar["metrics"]["visual_roles"] == ["brief", "reference_style", "critic_gate"]
-    assert sidecar["metrics"]["source_renderer"] == "mas_reference_guided_svg_preview"
+    assert sidecar["metrics"]["visual_roles"] == ["population", "model_signal", "clinical_use"]
+    assert sidecar["metrics"]["source_renderer"] == "mas_reference_guided_svg_preview.v2"
     assert sidecar["metrics"]["canvas_size_px"] == [1800, 1000]
+    assert set(sidecar["metrics"]["design_rules"]) >= {
+        "single_canvas",
+        "left_to_right_reading_order",
+        "minimal_text",
+        "large_online_readable_labels",
+        "soft_semantic_palette",
+    }
     assert _image_size(output_png_path) == (1800, 1000)
     assert len(panel_boxes) == 3
     assert len(visual_glyphs) == 3
     assert len(evidence_cues) == 3
     assert len(arrows) == 2
-    assert max(box["x1"] for box in panel_boxes) > 0.92
-    assert min(box["x0"] for box in panel_boxes) <= 0.06
-    assert min(box["y0"] for box in panel_boxes) > 0.18
+    assert max(box["x1"] for box in panel_boxes) > 0.90
+    assert min(box["x0"] for box in panel_boxes) >= 0.24
+    assert min(box["y0"] for box in panel_boxes) > 0.25
+    assert max(box["y1"] for box in panel_boxes) < 0.75
 
     qc_result = run_display_layout_qc(
         qc_profile="submission_graphical_abstract",

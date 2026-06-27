@@ -96,6 +96,12 @@ Rebuild boundary:
 - `design_shell_graphical_abstract_reporting_flow`: may_be_rebuilt_into_stronger_visual_systems_when_the_figure_brief_and_owner_gate_require_it
 - `r_ggplot2_evidence_figures`: raise_quality_through_theme_size_qc_critic_gate_references_and_source_preservation_not_wholesale_manual_redraw
 
+Template-library refactor decision:
+
+- `submission_graphical_abstract`: rebuilt as a single-canvas medical GA preview (`cohort -> risk signal -> care action`) with large online-readable labels, soft semantic colors, SVG source, and layout-QC sidecar. It is still a refs-only lower-bound example, not paper-specific publication authority.
+- `r_ggplot2_evidence_figures`: no wholesale visual redraw in this Gallery pass. Current R templates already share the publication theme/palette system; broad redraw would risk visual regression. Reuse work should continue through shared theme, legend, payload-normalization, and QC helpers with before/after screenshots.
+- `cohort_flow_figure` and `table1_baseline_characteristics`: remain reporting/table previews with their own authority boundaries; do not force them into the GA visual system.
+
 External learning sources:
 
 - `K-Dense-AI/scientific-agent-skills`

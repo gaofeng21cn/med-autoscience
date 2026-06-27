@@ -46,10 +46,54 @@ def svg_header(*, width: int, height: int) -> str:
     )
 
 
-def append_rect(parts: list[str], box: dict[str, float], *, fill: str, stroke: str, stroke_width: float, radius: float) -> None:
+def append_rect(
+    parts: list[str],
+    box: dict[str, float],
+    *,
+    fill: str,
+    stroke: str,
+    stroke_width: float,
+    radius: float,
+    opacity: float | None = None,
+) -> None:
+    opacity_attr = "" if opacity is None else f' opacity="{opacity:.3f}"'
     parts.append(
         f'<rect x="{box["x0"]:.2f}" y="{box["y0"]:.2f}" width="{box["w"]:.2f}" height="{box["h"]:.2f}" '
-        f'rx="{radius:.2f}" fill="{escape(fill)}" stroke="{escape(stroke)}" stroke-width="{stroke_width:.2f}"/>\n'
+        f'rx="{radius:.2f}" fill="{escape(fill)}" stroke="{escape(stroke)}" stroke-width="{stroke_width:.2f}"{opacity_attr}/>\n'
+    )
+
+
+def append_line(
+    parts: list[str],
+    *,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    color: str,
+    stroke_width: float,
+    dasharray: str = "",
+) -> None:
+    dash_attr = f' stroke-dasharray="{escape(dasharray)}"' if dasharray else ""
+    parts.append(
+        f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" '
+        f'stroke="{escape(color)}" stroke-width="{stroke_width:.2f}" stroke-linecap="round"{dash_attr}/>\n'
+    )
+
+
+def append_circle(
+    parts: list[str],
+    *,
+    cx: float,
+    cy: float,
+    r: float,
+    fill: str,
+    stroke: str = "none",
+    stroke_width: float = 0.0,
+) -> None:
+    parts.append(
+        f'<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="{escape(fill)}" '
+        f'stroke="{escape(stroke)}" stroke-width="{stroke_width:.2f}"/>\n'
     )
 
 

@@ -10,364 +10,348 @@
     {
       "box_id": "title",
       "box_type": "title",
-      "x0": 0.058,
-      "y0": 0.042,
-      "x1": 0.7380000000000001,
-      "y1": 0.10823999999999999
+      "x0": 0.07,
+      "y0": 0.104,
+      "x1": 0.6300000000000001,
+      "y1": 0.17312
     },
     {
       "box_id": "subtitle",
       "box_type": "subtitle",
-      "x0": 0.06,
-      "y0": 0.118,
-      "x1": 0.72,
-      "y1": 0.1468
+      "x0": 0.072,
+      "y0": 0.184,
+      "x1": 0.6320000000000001,
+      "y1": 0.21424
+    },
+    {
+      "box_id": "surface_badge",
+      "box_type": "surface_badge",
+      "x0": 0.79,
+      "y0": 0.122,
+      "x1": 0.845,
+      "y1": 0.172
     },
     {
       "box_id": "surface_label",
       "box_type": "surface_label",
-      "x0": 0.7619999999999999,
-      "y0": 0.07,
-      "x1": 0.952,
-      "y1": 0.0988
+      "x0": 0.855,
+      "y0": 0.141,
+      "x1": 0.97,
+      "y1": 0.18656
     },
     {
-      "box_id": "panel_label_brief",
+      "box_id": "panel_circle_cohort",
+      "box_type": "panel_circle",
+      "x0": 0.255,
+      "y0": 0.285,
+      "x1": 0.44333333333333336,
+      "y1": 0.74
+    },
+    {
+      "box_id": "panel_label_cohort",
       "box_type": "panel_label",
-      "x0": 0.07283333333333333,
-      "y0": 0.2383,
-      "x1": 0.10055333333333333,
-      "y1": 0.29657500000000003
+      "x0": 0.2653583333333333,
+      "y0": 0.30229,
+      "x1": 0.29360833333333336,
+      "y1": 0.364625
     },
     {
-      "box_id": "visual_glyph_brief",
+      "box_id": "visual_glyph_cohort",
       "box_type": "visual_glyph",
-      "x0": 0.11903333333333332,
-      "y0": 0.268825,
-      "x1": 0.2576333333333333,
-      "y1": 0.451975
+      "x0": 0.28513333333333335,
+      "y0": 0.31685,
+      "x1": 0.4132,
+      "y1": 0.5375250000000001
     },
     {
-      "box_id": "panel_title_brief",
+      "box_id": "panel_title_cohort",
       "box_type": "panel_title",
-      "x0": 0.08695,
-      "y0": 0.473925,
-      "x1": 0.2897166666666667,
-      "y1": 0.514245
+      "x0": 0.26159166666666667,
+      "y0": 0.59015,
+      "x1": 0.43674166666666664,
+      "y1": 0.62903
     },
     {
-      "box_id": "panel_subtitle_brief",
+      "box_id": "panel_subtitle_cohort",
       "box_type": "panel_subtitle",
-      "x0": 0.08695,
-      "y0": 0.52555,
-      "x1": 0.2897166666666667,
-      "y1": 0.5737899999999999
+      "x0": 0.26159166666666667,
+      "y0": 0.6342750000000001,
+      "x1": 0.43674166666666664,
+      "y1": 0.6798350000000001
     },
     {
-      "box_id": "evidence_cue_brief",
-      "box_type": "evidence_cue",
-      "x0": 0.1068375,
-      "y0": 0.60514,
-      "x1": 0.2855541666666666,
-      "y1": 0.62674
-    },
-    {
-      "box_id": "card_brief",
+      "box_id": "card_cohort",
       "box_type": "card_box",
-      "x0": 0.08695,
-      "y0": 0.646225,
-      "x1": 0.2897166666666667,
-      "y1": 0.7350249999999999
+      "x0": 0.263475,
+      "y0": 0.683125,
+      "x1": 0.4348583333333333,
+      "y1": 0.73545
     },
     {
-      "box_id": "card_title_brief",
-      "box_type": "card_title",
-      "x0": 0.099116,
-      "y0": 0.6675209999999999,
-      "x1": 0.17413966666666666,
-      "y1": 0.6905609999999999
-    },
-    {
-      "box_id": "card_value_brief",
+      "box_id": "card_value_cohort",
       "box_type": "card_value",
-      "x0": 0.18833333333333332,
-      "y0": 0.657297,
-      "x1": 0.26741233333333336,
-      "y1": 0.697617
+      "x0": 0.2754718333333333,
+      "y0": 0.6852875,
+      "x1": 0.32860066666666665,
+      "y1": 0.7198475000000001
     },
     {
-      "box_id": "card_detail_brief",
-      "box_type": "card_detail",
-      "x0": 0.18833333333333332,
-      "y0": 0.701933,
-      "x1": 0.26741233333333336,
-      "y1": 0.722093
+      "box_id": "evidence_cue_cohort",
+      "box_type": "evidence_cue",
+      "x0": 0.33716983333333334,
+      "y0": 0.691148,
+      "x1": 0.4228615,
+      "y1": 0.712748
     },
     {
-      "box_id": "panel_label_reference_style",
+      "box_id": "panel_circle_model_signal",
+      "box_type": "panel_circle",
+      "x0": 0.49833333333333335,
+      "y0": 0.285,
+      "x1": 0.6866666666666666,
+      "y1": 0.74
+    },
+    {
+      "box_id": "panel_label_model_signal",
       "box_type": "panel_label",
-      "x0": 0.3845,
-      "y0": 0.2383,
-      "x1": 0.41222,
-      "y1": 0.29657500000000003
+      "x0": 0.5086916666666667,
+      "y0": 0.30229,
+      "x1": 0.5369416666666667,
+      "y1": 0.364625
     },
     {
-      "box_id": "visual_glyph_reference_style",
+      "box_id": "visual_glyph_model_signal",
       "box_type": "visual_glyph",
-      "x0": 0.43069999999999997,
-      "y0": 0.268825,
-      "x1": 0.5693,
-      "y1": 0.451975
+      "x0": 0.5284666666666666,
+      "y0": 0.31685,
+      "x1": 0.6565333333333333,
+      "y1": 0.5375250000000001
     },
     {
-      "box_id": "panel_title_reference_style",
+      "box_id": "panel_title_model_signal",
       "box_type": "panel_title",
-      "x0": 0.3986166666666667,
-      "y0": 0.473925,
-      "x1": 0.6013833333333334,
-      "y1": 0.514245
+      "x0": 0.504925,
+      "y0": 0.59015,
+      "x1": 0.680075,
+      "y1": 0.62903
     },
     {
-      "box_id": "panel_subtitle_reference_style",
+      "box_id": "panel_subtitle_model_signal",
       "box_type": "panel_subtitle",
-      "x0": 0.3986166666666667,
-      "y0": 0.52555,
-      "x1": 0.6013833333333334,
-      "y1": 0.5737899999999999
+      "x0": 0.504925,
+      "y0": 0.6342750000000001,
+      "x1": 0.680075,
+      "y1": 0.6798350000000001
     },
     {
-      "box_id": "evidence_cue_reference_style",
-      "box_type": "evidence_cue",
-      "x0": 0.4185041666666667,
-      "y0": 0.60514,
-      "x1": 0.5972208333333333,
-      "y1": 0.62674
-    },
-    {
-      "box_id": "card_reference_style",
+      "box_id": "card_model_signal",
       "box_type": "card_box",
-      "x0": 0.3986166666666667,
-      "y0": 0.646225,
-      "x1": 0.6013833333333334,
-      "y1": 0.7350249999999999
+      "x0": 0.5068083333333333,
+      "y0": 0.683125,
+      "x1": 0.6781916666666666,
+      "y1": 0.73545
     },
     {
-      "box_id": "card_title_reference_style",
-      "box_type": "card_title",
-      "x0": 0.4107826666666667,
-      "y0": 0.6675209999999999,
-      "x1": 0.48580633333333334,
-      "y1": 0.6905609999999999
-    },
-    {
-      "box_id": "card_value_reference_style",
+      "box_id": "card_value_model_signal",
       "box_type": "card_value",
-      "x0": 0.5,
-      "y0": 0.657297,
-      "x1": 0.579079,
-      "y1": 0.697617
+      "x0": 0.5188051666666667,
+      "y0": 0.6852875,
+      "x1": 0.5719339999999999,
+      "y1": 0.7198475000000001
     },
     {
-      "box_id": "card_detail_reference_style",
-      "box_type": "card_detail",
-      "x0": 0.5,
-      "y0": 0.701933,
-      "x1": 0.579079,
-      "y1": 0.722093
+      "box_id": "evidence_cue_model_signal",
+      "box_type": "evidence_cue",
+      "x0": 0.5805031666666667,
+      "y0": 0.691148,
+      "x1": 0.6661948333333333,
+      "y1": 0.7313480000000001
     },
     {
-      "box_id": "panel_label_critic_gate",
+      "box_id": "panel_circle_clinical_action",
+      "box_type": "panel_circle",
+      "x0": 0.7416666666666667,
+      "y0": 0.285,
+      "x1": 0.93,
+      "y1": 0.74
+    },
+    {
+      "box_id": "panel_label_clinical_action",
       "box_type": "panel_label",
-      "x0": 0.6961666666666666,
-      "y0": 0.2383,
-      "x1": 0.7238866666666666,
-      "y1": 0.29657500000000003
+      "x0": 0.7520249999999999,
+      "y0": 0.30229,
+      "x1": 0.7802749999999999,
+      "y1": 0.364625
     },
     {
-      "box_id": "visual_glyph_critic_gate",
+      "box_id": "visual_glyph_clinical_action",
       "box_type": "visual_glyph",
-      "x0": 0.7423666666666666,
-      "y0": 0.268825,
-      "x1": 0.8809666666666667,
-      "y1": 0.451975
+      "x0": 0.7718,
+      "y0": 0.31685,
+      "x1": 0.8998666666666667,
+      "y1": 0.5375250000000001
     },
     {
-      "box_id": "panel_title_critic_gate",
+      "box_id": "panel_title_clinical_action",
       "box_type": "panel_title",
-      "x0": 0.7102833333333334,
-      "y0": 0.473925,
-      "x1": 0.91305,
-      "y1": 0.514245
+      "x0": 0.7482583333333334,
+      "y0": 0.59015,
+      "x1": 0.9234083333333333,
+      "y1": 0.62903
     },
     {
-      "box_id": "panel_subtitle_critic_gate",
+      "box_id": "panel_subtitle_clinical_action",
       "box_type": "panel_subtitle",
-      "x0": 0.7102833333333334,
-      "y0": 0.52555,
-      "x1": 0.91305,
-      "y1": 0.5737899999999999
+      "x0": 0.7482583333333334,
+      "y0": 0.6342750000000001,
+      "x1": 0.9234083333333333,
+      "y1": 0.6798350000000001
     },
     {
-      "box_id": "evidence_cue_critic_gate",
-      "box_type": "evidence_cue",
-      "x0": 0.7301708333333334,
-      "y0": 0.60514,
-      "x1": 0.9088875000000001,
-      "y1": 0.62674
-    },
-    {
-      "box_id": "card_critic_gate",
+      "box_id": "card_clinical_action",
       "box_type": "card_box",
-      "x0": 0.7102833333333334,
-      "y0": 0.646225,
-      "x1": 0.91305,
-      "y1": 0.7350249999999999
+      "x0": 0.7501416666666667,
+      "y0": 0.683125,
+      "x1": 0.921525,
+      "y1": 0.73545
     },
     {
-      "box_id": "card_title_critic_gate",
-      "box_type": "card_title",
-      "x0": 0.7224493333333333,
-      "y0": 0.6675209999999999,
-      "x1": 0.797473,
-      "y1": 0.6905609999999999
-    },
-    {
-      "box_id": "card_value_critic_gate",
+      "box_id": "card_value_clinical_action",
       "box_type": "card_value",
-      "x0": 0.8116666666666666,
-      "y0": 0.657297,
-      "x1": 0.8907456666666667,
-      "y1": 0.697617
+      "x0": 0.7621385,
+      "y0": 0.6852875,
+      "x1": 0.8152673333333335,
+      "y1": 0.7198475000000001
     },
     {
-      "box_id": "card_detail_critic_gate",
-      "box_type": "card_detail",
-      "x0": 0.8116666666666666,
-      "y0": 0.701933,
-      "x1": 0.8907456666666667,
-      "y1": 0.722093
+      "box_id": "evidence_cue_clinical_action",
+      "box_type": "evidence_cue",
+      "x0": 0.8238365,
+      "y0": 0.691148,
+      "x1": 0.9095281666666666,
+      "y1": 0.7313480000000001
     },
     {
       "box_id": "quality_band_label",
       "box_type": "quality_band_label",
-      "x0": 0.0725,
-      "y0": 0.82985,
-      "x1": 0.20299999999999999,
-      "y1": 0.85577
+      "x0": 0.08275,
+      "y0": 0.7715,
+      "x1": 0.22724999999999998,
+      "y1": 0.7974199999999999
     },
     {
       "box_id": "footer_pill_p1",
       "box_type": "footer_pill",
-      "x0": 0.06,
-      "y0": 0.835,
-      "x1": 0.3333333333333333,
-      "y1": 0.89
+      "x0": 0.285,
+      "y0": 0.754,
+      "x1": 0.4716666666666667,
+      "y1": 0.814
     },
     {
       "box_id": "footer_pill_text_p1",
       "box_type": "footer_pill_text",
-      "x0": 0.07913333333333333,
-      "y0": 0.8521,
-      "x1": 0.31146666666666667,
-      "y1": 0.87658
+      "x0": 0.29993333333333333,
+      "y0": 0.7752,
+      "x1": 0.4567333333333333,
+      "y1": 0.7982400000000001
     },
     {
       "box_id": "footer_pill_p2",
       "box_type": "footer_pill",
-      "x0": 0.36333333333333334,
-      "y0": 0.835,
-      "x1": 0.6366666666666667,
-      "y1": 0.89
+      "x0": 0.49166666666666664,
+      "y0": 0.754,
+      "x1": 0.6783333333333333,
+      "y1": 0.814
     },
     {
       "box_id": "footer_pill_text_p2",
       "box_type": "footer_pill_text",
-      "x0": 0.3824666666666667,
-      "y0": 0.8521,
-      "x1": 0.6148,
-      "y1": 0.87658
+      "x0": 0.5066,
+      "y0": 0.7752,
+      "x1": 0.6634,
+      "y1": 0.7982400000000001
     },
     {
       "box_id": "footer_pill_p3",
       "box_type": "footer_pill",
-      "x0": 0.6666666666666666,
-      "y0": 0.835,
-      "x1": 0.94,
-      "y1": 0.89
+      "x0": 0.6983333333333334,
+      "y0": 0.754,
+      "x1": 0.885,
+      "y1": 0.814
     },
     {
       "box_id": "footer_pill_text_p3",
       "box_type": "footer_pill_text",
-      "x0": 0.6858000000000001,
-      "y0": 0.8521,
-      "x1": 0.9181333333333334,
-      "y1": 0.87658
+      "x0": 0.7132666666666667,
+      "y0": 0.7752,
+      "x1": 0.8700666666666668,
+      "y1": 0.7982400000000001
     }
   ],
   "panel_boxes": [
     {
-      "box_id": "panel_brief",
+      "box_id": "panel_cohort",
       "box_type": "panel",
-      "x0": 0.06,
-      "y0": 0.205,
-      "x1": 0.31666666666666665,
-      "y1": 0.76
+      "x0": 0.255,
+      "y0": 0.285,
+      "x1": 0.44333333333333336,
+      "y1": 0.74
     },
     {
-      "box_id": "panel_reference_style",
+      "box_id": "panel_model_signal",
       "box_type": "panel",
-      "x0": 0.37166666666666665,
-      "y0": 0.205,
-      "x1": 0.6283333333333333,
-      "y1": 0.76
+      "x0": 0.49833333333333335,
+      "y0": 0.285,
+      "x1": 0.6866666666666666,
+      "y1": 0.74
     },
     {
-      "box_id": "panel_critic_gate",
+      "box_id": "panel_clinical_action",
       "box_type": "panel",
-      "x0": 0.6833333333333333,
-      "y0": 0.205,
-      "x1": 0.94,
-      "y1": 0.76
+      "x0": 0.7416666666666667,
+      "y0": 0.285,
+      "x1": 0.93,
+      "y1": 0.74
     }
   ],
   "guide_boxes": [
     {
       "box_id": "arrow_connector_1",
       "box_type": "arrow_connector",
-      "x0": 0.32866666666666666,
-      "y0": 0.4825,
-      "x1": 0.35966666666666663,
-      "y1": 0.5125
+      "x0": 0.45733333333333337,
+      "y0": 0.5216000000000001,
+      "x1": 0.4843333333333334,
+      "y1": 0.5616
     },
     {
       "box_id": "arrow_connector_2",
       "box_type": "arrow_connector",
-      "x0": 0.6403333333333333,
-      "y0": 0.4825,
-      "x1": 0.6713333333333332,
-      "y1": 0.5125
+      "x0": 0.7006666666666667,
+      "y0": 0.5216000000000001,
+      "x1": 0.7276666666666667,
+      "y1": 0.5616
     }
   ],
   "metrics": {
-    "layout_style": "reference_guided_flow",
+    "layout_style": "reference_guided_single_canvas",
     "panel_count": 3,
     "panels": [
       {
-        "panel_id": "brief",
+        "panel_id": "cohort",
         "panel_label": "A",
-        "visual_role": "brief",
-        "evidence_cue": "Claim + evidence refs locked",
-        "title": "Figure brief",
-        "subtitle": "Core claim and evidence chain before drawing",
+        "visual_role": "population",
+        "evidence_cue": "Cohort refs locked",
+        "title": "Study cohort",
+        "subtitle": "Registry records mapped to auditable outcomes",
         "rows": [
           {
             "cards": [
               {
-                "card_id": "brief",
-                "title": "Locked inputs",
-                "value": "Brief",
-                "evidence_token": "claim_refs",
-                "detail": "refs only",
+                "card_id": "cohort",
+                "title": "Analytic set",
+                "value": "15,120",
+                "evidence_token": "cohort_refs",
+                "detail": "patients",
                 "accent_role": "primary"
               }
             ]
@@ -375,21 +359,21 @@
         ]
       },
       {
-        "panel_id": "reference_style",
+        "panel_id": "model_signal",
         "panel_label": "B",
-        "visual_role": "reference_style",
-        "evidence_cue": "Reference style + preserve list",
-        "title": "Reference style",
-        "subtitle": "Journal family, layout cue, labels to preserve",
+        "visual_role": "model_signal",
+        "evidence_cue": "Validation refs locked",
+        "title": "Risk signal",
+        "subtitle": "Model separates low- and high-risk strata",
         "rows": [
           {
             "cards": [
               {
-                "card_id": "reference",
-                "title": "Style brief",
-                "value": "Target",
-                "evidence_token": "style_ref",
-                "detail": "preserve list",
+                "card_id": "model",
+                "title": "Validation",
+                "value": "C=0.86",
+                "evidence_token": "model_refs",
+                "detail": "temporal holdout",
                 "accent_role": "contrast"
               }
             ]
@@ -397,21 +381,21 @@
         ]
       },
       {
-        "panel_id": "critic_gate",
+        "panel_id": "clinical_action",
         "panel_label": "C",
-        "visual_role": "critic_gate",
-        "evidence_cue": "Visual critic before owner use",
-        "title": "Candidate gate",
-        "subtitle": "Readability, source preservation, owner review",
+        "visual_role": "clinical_use",
+        "evidence_cue": "Owner gate required",
+        "title": "Care action",
+        "subtitle": "High-risk group routed to closer follow-up",
         "rows": [
           {
             "cards": [
               {
-                "card_id": "gate",
-                "title": "Required refs",
+                "card_id": "action",
+                "title": "Owner gate",
                 "value": "Review",
-                "evidence_token": "critic_ref",
-                "detail": "owner gate",
+                "evidence_token": "owner_gate_ref",
+                "detail": "refs only",
                 "accent_role": "secondary"
               }
             ]
@@ -422,32 +406,39 @@
     "footer_pills": [
       {
         "pill_id": "p1",
-        "panel_id": "brief",
-        "label": "Claim + evidence",
+        "panel_id": "cohort",
+        "label": "Cohort + endpoint",
         "style_role": "primary"
       },
       {
         "pill_id": "p2",
-        "panel_id": "reference_style",
-        "label": "Style + preserve",
+        "panel_id": "model_signal",
+        "label": "Signal + validation",
         "style_role": "contrast"
       },
       {
         "pill_id": "p3",
-        "panel_id": "critic_gate",
-        "label": "Critic + owner gate",
+        "panel_id": "clinical_action",
+        "label": "Decision + owner gate",
         "style_role": "secondary"
       }
     ],
     "visual_roles": [
-      "brief",
-      "reference_style",
-      "critic_gate"
+      "population",
+      "model_signal",
+      "clinical_use"
     ],
-    "source_renderer": "mas_reference_guided_svg_preview",
+    "source_renderer": "mas_reference_guided_svg_preview.v2",
     "canvas_size_px": [
       1800,
       1000
+    ],
+    "design_rules": [
+      "single_canvas",
+      "left_to_right_reading_order",
+      "minimal_text",
+      "large_online_readable_labels",
+      "soft_semantic_palette"
     ]
   },
   "render_context": {
