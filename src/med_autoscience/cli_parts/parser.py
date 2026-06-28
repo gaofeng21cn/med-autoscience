@@ -284,16 +284,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     workspace_monolith_migrate_mode.add_argument("--dry-run", action="store_true")
     workspace_monolith_migrate_mode.add_argument("--apply", action="store_true")
 
-    legacy_ds_retire_parser = subparsers.add_parser("legacy-ds-retire")
-    legacy_ds_retire_parser.add_argument("--profile", required=True)
-    legacy_ds_retire_mode = legacy_ds_retire_parser.add_mutually_exclusive_group(required=True)
-    legacy_ds_retire_mode.add_argument("--dry-run", action="store_true")
-    legacy_ds_retire_mode.add_argument("--apply", action="store_true")
-    legacy_ds_retire_parser.add_argument("--archive-retention", action="store_true")
-    legacy_ds_retire_parser.add_argument("--archive-retention-apply", action="store_true")
-    legacy_ds_retire_parser.add_argument("--archive-retention-min-mb", type=int, default=16)
-    legacy_ds_retire_parser.add_argument("--archive-retention-cold-store-root", type=str)
-
     restore_index_detail_retention_parser = subparsers.add_parser("restore-index-detail-retention")
     restore_index_detail_retention_parser.add_argument("--root", required=True)
     restore_index_detail_retention_parser.add_argument("--cold-store-root", required=True)

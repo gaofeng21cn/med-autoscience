@@ -165,6 +165,18 @@ def test_public_help_prints_grouped_surface(capsys) -> None:
     assert "authority governance" in captured.out
 
 
+def test_legacy_ds_retire_is_not_runtime_public_surface() -> None:
+    public_surface = importlib.import_module("med_autoscience.cli_public_surface")
+
+    assert "legacy-ds-retire" not in public_surface.GROUPED_SUBCOMMANDS["runtime"]
+    try:
+        public_surface.normalize_public_command_argv(["runtime", "legacy-ds-retire", "--dry-run"])
+    except SystemExit as exc:
+        assert str(exc) == "Grouped command requires a supported subcommand under `runtime`."
+    else:
+        raise AssertionError("runtime legacy-ds-retire should fail closed")
+
+
 def test_foundry_status_exposes_series_spine(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

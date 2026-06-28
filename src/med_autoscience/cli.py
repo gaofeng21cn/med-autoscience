@@ -92,7 +92,6 @@ stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_a
 light_advisory_materializer = _LazyModuleProxy(lambda: _load_controller("light_advisory_materializer"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
-legacy_ds_retirement = _LazyModuleProxy(lambda: _load_controller("legacy_ds_retirement"))
 restore_index_detail_retention = _LazyModuleProxy(lambda: _load_controller("restore_index_detail_retention"))
 historical_body_retention = _LazyModuleProxy(lambda: _load_controller("historical_body_retention"))
 historical_directory_retention = _LazyModuleProxy(lambda: _load_controller("historical_directory_retention"))
@@ -626,7 +625,6 @@ def main(argv: list[str] | None = None) -> int:
     retention_result = handle_retention_command(
         args,
         parser=parser,
-        legacy_ds_retirement=legacy_ds_retirement,
         restore_index_detail_retention=restore_index_detail_retention,
         historical_body_retention=historical_body_retention,
         historical_directory_retention=historical_directory_retention,

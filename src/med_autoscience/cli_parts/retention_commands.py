@@ -9,7 +9,6 @@ def handle_retention_command(
     args: Any,
     *,
     parser: Any,
-    legacy_ds_retirement: Any,
     restore_index_detail_retention: Any,
     historical_body_retention: Any,
     historical_directory_retention: Any,
@@ -19,24 +18,6 @@ def handle_retention_command(
     cold_store_reference_audit: Any,
     semantic_cold_store_retention: Any,
 ) -> int | None:
-    if args.command == "legacy-ds-retire":
-        if bool(args.archive_retention_apply) and not bool(args.archive_retention):
-            parser.error("--archive-retention-apply requires --archive-retention")
-        if bool(args.archive_retention_apply) and not bool(args.apply):
-            parser.error("--archive-retention-apply requires --apply")
-        result = legacy_ds_retirement.run_legacy_ds_retirement(
-            profile_path=Path(args.profile),
-            apply=bool(args.apply),
-            archive_retention=bool(args.archive_retention),
-            archive_retention_apply=bool(args.archive_retention_apply),
-            archive_retention_min_mb=int(args.archive_retention_min_mb),
-            archive_retention_cold_store_root=Path(args.archive_retention_cold_store_root)
-            if args.archive_retention_cold_store_root
-            else None,
-        )
-        _print_json(result)
-        return 0
-
     if args.command == "restore-index-detail-retention":
         result = restore_index_detail_retention.run_restore_index_detail_retention(
             root=Path(args.root),
