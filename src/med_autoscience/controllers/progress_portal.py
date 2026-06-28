@@ -44,23 +44,16 @@ from med_autoscience.controllers.progress_portal_parts.payload_helpers import (
     _utc_now,
     _valid_user_visible_projection,
 )
-from med_autoscience.controllers.progress_portal_parts import read_model_materializer
 from med_autoscience.profiles import WorkspaceProfile
 
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_progress_portal"
-HOSTED_PACKAGE_SURFACE_KIND = "mas_progress_portal_hosted_package"
 BRAND = "Med Auto Science"
-PROGRESS_PORTAL_PAYLOAD_REF = read_model_materializer.PROGRESS_PORTAL_PAYLOAD_REF
-PROGRESS_PORTAL_HTML_REF = read_model_materializer.PROGRESS_PORTAL_HTML_REF
-PROGRESS_PORTAL_HOSTED_PACKAGE_REF = read_model_materializer.PROGRESS_PORTAL_HOSTED_PACKAGE_REF
-PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = (
-    read_model_materializer.PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE
-)
-PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = (
-    read_model_materializer.PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE
-)
+PROGRESS_PORTAL_PAYLOAD_REF = "runtime/artifacts/progress_portal/latest.json"
+PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
+PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "runtime/artifacts/progress_portal/studies/{study_id}/latest.json"
+PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = "ops/mas/progress/studies/{study_id}/index.html"
 
 
 def build_progress_portal_payload(
@@ -476,70 +469,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     return render_progress_portal_html_part(payload, brand_fallback=BRAND)
 
 
-def materialize_progress_portal(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str | None = None,
-    study_root: Path | None = None,
-    profile_ref: str | Path | None = None,
-    progress_payload: Mapping[str, Any] | None = None,
-    cockpit_payload: Mapping[str, Any] | None = None,
-    runtime_payload: Mapping[str, Any] | None = None,
-    package_payload: Mapping[str, Any] | None = None,
-    generated_at: str | None = None,
-    local_timezone: str | None = None,
-    entry_mode: str | None = None,
-    sync_runtime_summary: bool = True,
-    open_browser: bool = False,
-    auto_refresh_seconds: int | None = None,
-) -> dict[str, Any]:
-    return read_model_materializer.materialize_progress_portal(
-        profile=profile,
-        build_payload=build_progress_portal_payload,
-        render_html=render_progress_portal_html,
-        surface_kind=SURFACE_KIND,
-        hosted_package_surface_kind=HOSTED_PACKAGE_SURFACE_KIND,
-        study_id=study_id,
-        study_root=study_root,
-        profile_ref=profile_ref,
-        progress_payload=progress_payload,
-        cockpit_payload=cockpit_payload,
-        runtime_payload=runtime_payload,
-        package_payload=package_payload,
-        generated_at=generated_at,
-        local_timezone=local_timezone,
-        entry_mode=entry_mode,
-        sync_runtime_summary=sync_runtime_summary,
-        open_browser=open_browser,
-        auto_refresh_seconds=auto_refresh_seconds,
-    )
-
-
-def build_progress_portal_hosted_package(
-    *,
-    profile: WorkspaceProfile,
-    payload: Mapping[str, Any],
-    payload_path: Path,
-    html_path: Path,
-    hosted_package_path: Path,
-    profile_ref: str | Path | None = None,
-    study_pages: Mapping[str, Mapping[str, Any]] | None = None,
-) -> dict[str, Any]:
-    return read_model_materializer.build_progress_portal_hosted_package(
-        profile=profile,
-        payload=payload,
-        payload_path=payload_path,
-        html_path=html_path,
-        hosted_package_path=hosted_package_path,
-        hosted_package_surface_kind=HOSTED_PACKAGE_SURFACE_KIND,
-        profile_ref=profile_ref,
-        study_pages=study_pages,
-    )
-
-
 __all__ = [
     "build_progress_portal_payload",
-    "build_progress_portal_hosted_package",
     "render_progress_portal_html",
-    "materialize_progress_portal",
 ]
