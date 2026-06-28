@@ -86,6 +86,7 @@ PAPER_MISSION_START_OR_RESUME_TASK_KIND = "paper_mission/start_or_resume"
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
+PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION = "user-stage-log-v1"
 PAPER_MISSION_ROUTE_BACK_BUDGET_LEDGER_FILENAME = "route_back_budget_ledger.json"
 PAPER_MISSION_ROUTE_BACK_BUDGET_MAX_OPL_REDIRECTS = 2
 DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT = 2
@@ -1523,12 +1524,33 @@ def _opl_stage_route_runtime_request_from_handoff(
     dedupe_key = ":".join(
         [
             "paper-mission-route",
+            PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION,
             study_id,
             transaction_ref,
             command_kind,
         ]
     )
     progress_guard = _paper_mission_route_request_progress_guard(handoff=handoff)
+    user_stage_log = _paper_mission_stage_route_user_stage_log(
+        handoff=handoff,
+        progress_guard=progress_guard,
+    )
+    route_impact = {
+        "decision": command_kind,
+        "route_target": _first_text(handoff.get("route_target"), route.get("target")),
+        "domain_ready_verdict": "domain_gate_pending",
+        "progress_delta_classification": user_stage_log[
+            "progress_delta_classification"
+        ],
+        "deliverable_progress_delta": user_stage_log[
+            "deliverable_progress_delta"
+        ],
+        "platform_repair_delta": user_stage_log["platform_repair_delta"],
+        "next_forced_delta": user_stage_log["next_forced_delta"],
+        "remaining_blockers": list(user_stage_log["remaining_blockers"]),
+        "evidence_refs": list(user_stage_log["evidence_refs"]),
+        "user_stage_log": user_stage_log,
+    }
     payload = {
         "surface_kind": "opl_mas_paper_mission_route_runtime_request",
         "schema_version": 1,
@@ -1548,6 +1570,9 @@ def _opl_stage_route_runtime_request_from_handoff(
         "opl_route_handoff_record": dict(handoff),
         "semantic_progress_guard": progress_guard,
         "mas_owned_executor_stage": progress_guard.get("mas_owned_executor_stage"),
+        "domain_ready_verdict": "domain_gate_pending",
+        "route_impact": route_impact,
+        "user_stage_log": user_stage_log,
         "stage_run_request": {
             "request_status": "requested",
             "requested_by": "mas_paper_mission_route_handoff",
@@ -1587,6 +1612,107 @@ def _opl_stage_route_runtime_request_from_handoff(
         "priority": 100,
         "source": "mas-paper-mission-drive",
         "payload": payload,
+    }
+
+
+def _paper_mission_stage_route_user_stage_log(
+    *,
+    handoff: Mapping[str, Any],
+    progress_guard: Mapping[str, Any],
+) -> dict[str, Any]:
+    route = _mapping(handoff.get("opl_route_command"))
+    study_id = _optional_text(handoff.get("study_id")) or "unknown-study"
+    command_kind = _first_text(
+        handoff.get("route_command_kind"),
+        route.get("command_kind"),
+    ) or "paper_mission_stage_route"
+    route_target = _first_text(handoff.get("route_target"), route.get("target"))
+    candidate_ref = _optional_text(handoff.get("candidate_ref"))
+    transaction_ref = _optional_text(handoff.get("paper_mission_transaction_ref"))
+    route_back_ref = _first_text(
+        handoff.get("route_back_evidence_ref"),
+        _mapping(handoff.get("stage_terminal_decision")).get("route_back_evidence_ref"),
+        _mapping(handoff.get("terminal_owner_gate")).get("route_back_evidence_ref"),
+    )
+    evidence_refs = [
+        ref
+        for ref in (
+            candidate_ref,
+            transaction_ref,
+            _optional_text(handoff.get("opl_route_command_ref")),
+            route_back_ref,
+            _optional_text(handoff.get("source_ref")),
+        )
+        if ref is not None
+    ]
+    remaining_blockers = [
+        blocker
+        for blocker in (
+            _first_text(
+                handoff.get("blocked_reason"),
+                _mapping(handoff.get("stage_terminal_decision")).get("reason"),
+                _mapping(handoff.get("terminal_owner_gate")).get("blocked_reason"),
+                "paper_mission_stage_route_domain_gate_pending",
+            ),
+        )
+        if blocker is not None
+    ]
+    changed_surfaces = [ref for ref in (candidate_ref,) if ref is not None]
+    deliverable_delta_count = 1 if changed_surfaces else 0
+    return {
+        "surface_kind": "opl_user_stage_log",
+        "schema_version": 1,
+        "semantic_status": "provided_by_domain",
+        "semantic_source": "med_autoscience.paper_mission_stage_route",
+        "stage_name": f"PaperMission stage route for {study_id}",
+        "problem_summary": (
+            "MAS PaperMission produced or consumed a submission milestone "
+            "candidate, but the governed owner route remains at domain gate."
+        ),
+        "stage_goal": (
+            "Carry the PaperMission route command to OPL without claiming "
+            "submission readiness, publication readiness, owner receipt, "
+            "typed blocker, human gate, current package, or provider running."
+        ),
+        "progress_delta_classification": (
+            "deliverable_progress" if deliverable_delta_count else "typed_blocker"
+        ),
+        "deliverable_progress_delta": {
+            "delta_count": deliverable_delta_count,
+            "delta_refs": changed_surfaces,
+            "delta_summary": "non-authority paper-facing candidate refs routed",
+        },
+        "platform_repair_delta": {
+            "delta_count": 0,
+            "delta_refs": [],
+            "delta_summary": None,
+        },
+        "next_forced_delta": (
+            "domain_owner_answer_or_human_gate_or_non_synonymous_paper_delta"
+        ),
+        "stage_work_done": [
+            f"materialized {command_kind} request for {route_target or 'current stage'}",
+            "preserved MAS/OPL authority boundary",
+        ],
+        "changed_stage_surfaces": changed_surfaces,
+        "outcome": "domain_gate_pending",
+        "remaining_blockers": remaining_blockers,
+        "evidence_refs": evidence_refs,
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_paper_progress": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+            "can_claim_runtime_ready": False,
+        },
+        "semantic_progress_guard": {
+            "signature": _optional_text(progress_guard.get("signature")),
+            "status": _optional_text(progress_guard.get("status")),
+            "guard_kind": _optional_text(progress_guard.get("guard_kind")),
+        },
     }
 
 

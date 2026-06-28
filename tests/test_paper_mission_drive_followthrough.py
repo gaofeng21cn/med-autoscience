@@ -192,6 +192,13 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
         _route_back_handoff()
     )
 
+    assert runtime_request["dedupe_key"] == (
+        "paper-mission-route:"
+        f"{commands.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION}:"
+        "003-dpcc-primary-care-phenotype-treatment-gap:"
+        "paper-mission-transaction::dm003:"
+        "route_back"
+    )
     payload = runtime_request["payload"]
     guard = payload["semantic_progress_guard"]
     assert guard["guard_kind"] == "non_advancing_route_back_detection"
@@ -204,6 +211,33 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
         "paper-mission-transaction::dm003"
     )
     assert "typed_blocker_materialization" in guard["required_executor_outputs"]
+    user_stage_log = payload["route_impact"]["user_stage_log"]
+    assert payload["user_stage_log"] == user_stage_log
+    assert user_stage_log["surface_kind"] == "opl_user_stage_log"
+    assert user_stage_log["semantic_status"] == "provided_by_domain"
+    assert user_stage_log["progress_delta_classification"] == "deliverable_progress"
+    assert user_stage_log["deliverable_progress_delta"]["delta_count"] == 1
+    assert user_stage_log["platform_repair_delta"]["delta_count"] == 0
+    assert user_stage_log["next_forced_delta"] == (
+        "domain_owner_answer_or_human_gate_or_non_synonymous_paper_delta"
+    )
+    assert user_stage_log["stage_work_done"]
+    assert user_stage_log["changed_stage_surfaces"] == ["/tmp/package.json"]
+    assert user_stage_log["outcome"] == "domain_gate_pending"
+    assert user_stage_log["remaining_blockers"] == [
+        "paper_mission_stage_route_domain_gate_pending"
+    ]
+    assert user_stage_log["evidence_refs"] == [
+        "/tmp/package.json",
+        "paper-mission-transaction::dm003",
+        "/tmp/opl-route-command.json",
+    ]
+    assert user_stage_log["authority_boundary"]["can_claim_paper_progress"] is False
+    assert user_stage_log["authority_boundary"]["can_claim_submission_ready"] is False
+    assert payload["route_impact"]["domain_ready_verdict"] == "domain_gate_pending"
+    assert payload["route_impact"]["progress_delta_classification"] == (
+        "deliverable_progress"
+    )
 
 
 def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None:
