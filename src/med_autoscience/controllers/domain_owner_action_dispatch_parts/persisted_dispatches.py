@@ -258,7 +258,6 @@ def _explicit_request_requires_opl_blocker_projection(
 def _is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any]) -> bool:
     return (
         _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
-        and _text(dispatch.get("legacy_surface")) == "default_executor_dispatch_request"
         and dispatch.get("projection_only") is True
         and dispatch.get("owner_callable_carrier_projection_only") is True
     )

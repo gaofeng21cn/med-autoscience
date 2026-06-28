@@ -184,7 +184,7 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         **transition_authority_fields,
     }
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         **default_executor_policy(),
         "study_id": study_id,

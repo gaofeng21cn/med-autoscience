@@ -15,7 +15,6 @@ pytestmark = pytest.mark.meta
 def _projection(**overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         "surface": "mas_domain_progress_transition_request_projection",
-        "legacy_surface": "default_executor_dispatch_request",
         "projection_only": True,
         "owner_callable_carrier_projection_only": True,
         "dispatch_status": "transition_request_pending",

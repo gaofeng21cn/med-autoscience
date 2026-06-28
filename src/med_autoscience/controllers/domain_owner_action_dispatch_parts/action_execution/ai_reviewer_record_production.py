@@ -454,7 +454,7 @@ def build_ai_reviewer_record_worker_handoff(
         dispatch=dispatch_shell
     )
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         **default_executor_policy(),
         "study_id": study_id,

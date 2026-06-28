@@ -41,7 +41,8 @@ from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 TASK_KIND = "paper_mission/stage-outcome"
 DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_dispatches")
-REQUIRED_SURFACE = "default_executor_dispatch_request"
+REQUIRED_SURFACE = "mas_domain_progress_transition_request_projection"
+LEGACY_DEFAULT_EXECUTOR_SURFACE = "default_executor_dispatch_request"
 REQUIRED_EXECUTOR_KIND = "codex_cli_default"
 DEFAULT_NEXT_OWNER = "write"
 ALLOWED_NEXT_OWNERS = frozenset({*REQUEST_OWNER_BY_ACTION_TYPE.values(), "write/ai_reviewer"})
@@ -237,7 +238,7 @@ def default_executor_dispatch_tasks(
                 next_owner=next_owner,
                 currentness_basis=owner_route_basis,
                 idempotency_context={
-                    "kind": "default-executor-transition-request",
+                    "kind": "paper-mission-transition-request",
                     "source_fingerprint": source_fingerprint,
                     "dispatch_ref": dispatch_ref,
                 },
@@ -249,7 +250,7 @@ def default_executor_dispatch_tasks(
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
             task_kind=TASK_KIND,
             study_id=study_id,
-            reason="default_executor_owner_receipt_or_typed_closeout_pending",
+            reason="paper_mission_stage_outcome_owner_receipt_or_typed_closeout_pending",
             evidence_refs=source_refs,
             source_fingerprint=source_fingerprint,
             profile_name=profile.name,
@@ -268,7 +269,7 @@ def default_executor_dispatch_tasks(
                 "source": "mas-domain-handler-export",
                 "requires_approval": False,
                 "dedupe_key": (
-                    f"mas:{profile.name}:{study_id}:default-executor:"
+                    f"mas:{profile.name}:{study_id}:paper-mission-stage-outcome:"
                     f"{action_type}:{dispatch_authority}:{source_fingerprint}"
                 ),
                 "source_fingerprint": source_fingerprint,
@@ -348,9 +349,8 @@ def _transition_request_carrier_fields(
     return {
         "transition_request_status": "transition_request_pending",
         "carrier_status": "transition_request_pending",
-        "carrier_kind": "opl_domain_progress_transition_request_carrier",
-        "legacy_surface": REQUIRED_SURFACE,
-        "legacy_carrier_projection": True,
+        "carrier_kind": "paper_mission_domain_progress_transition_request",
+        "legacy_carrier_projection": False,
         "owner_callable_adapter_projection_only": True,
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
@@ -570,7 +570,7 @@ def retired_default_paper_dispatch_diagnostics(
         dispatch = _read_json_object(dispatch_path)
         if dispatch is None:
             continue
-        if _text(dispatch.get("surface")) != REQUIRED_SURFACE:
+        if _text(dispatch.get("surface")) != LEGACY_DEFAULT_EXECUTOR_SURFACE:
             continue
         if _dispatch_has_currentness_identity(dispatch):
             continue
@@ -592,7 +592,7 @@ def retired_default_paper_dispatch_diagnostics(
         "status": "projection_only_not_pending_family_task",
         "diagnostic_role": "retired_default_paper_dispatch",
         "replacement_task_kind": "paper_mission/start_or_resume",
-        "legacy_surface": REQUIRED_SURFACE,
+        "legacy_surface": LEGACY_DEFAULT_EXECUTOR_SURFACE,
         "retired_carrier_projection": True,
         "retired_dispatch_ref_count": len(refs),
         "refs": refs,
@@ -858,19 +858,19 @@ def _source_refs(
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = [
         {
-            "role": "default_executor_stage_packet",
+            "role": "paper_mission_stage_outcome_packet",
             "ref": dispatch_ref,
             "exists": True,
             "body_included": False,
         },
         {
-            "role": "default_executor_dispatch_request",
+            "role": "paper_mission_transition_request_projection",
             "ref": dispatch_ref,
             "exists": True,
             "body_included": False,
         },
         {
-            "role": "default_executor_latest_dispatch_request",
+            "role": "paper_mission_latest_transition_request_projection",
             "ref": latest_dispatch_ref,
             "exists": True,
             "body_included": False,

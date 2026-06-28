@@ -183,6 +183,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
     study_progress = workspace_root / "ops" / "medautoscience" / "bin" / "study-progress"
     study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
+    paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     retired_legacy_clean_migration = (
         workspace_root / "ops" / "medautoscience" / "bin" / "legacy-control-surface-clean-migration"
@@ -207,7 +208,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert study_progress.is_file()
     assert not progress_projection.exists()
     assert study_state_matrix.is_file()
-    assert domain_health_diagnostic.is_file()
+    assert paper_mission.is_file()
+    assert not domain_health_diagnostic.exists()
     assert not retired_legacy_clean_migration.exists()
     assert not study_runtime_status.exists()
     assert not watch_runtime.exists()
@@ -243,7 +245,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(enter_study, os.X_OK)
     assert os.access(study_progress, os.X_OK)
     assert os.access(study_state_matrix, os.X_OK)
-    assert os.access(domain_health_diagnostic, os.X_OK)
+    assert os.access(paper_mission, os.X_OK)
     assert os.access(maintain_runtime_storage, os.X_OK)
     assert os.access(storage_audit, os.X_OK)
     assert os.access(resolve_journal_shortlist, os.X_OK)
@@ -257,7 +259,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(publication_strategy_memory_inventory, os.X_OK)
     assert os.access(publication_strategy_memory_workbench, os.X_OK)
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
-    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
+    paper_mission_text = paper_mission.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
     bootstrap_text = bootstrap.read_text(encoding="utf-8")
@@ -287,12 +289,11 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in study_progress_text
     assert '--study-id "${study_id}"' in study_progress_text
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
-    assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
+    assert '--profile "${PROFILE_PATH}"' in paper_mission_text
+    assert 'run_medautosci paper-mission \\' in paper_mission_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
-    assert 'apply_args=(--request-opl-stage-attempts --dry-run)' in domain_health_diagnostic_text
-    assert '[[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]' in domain_health_diagnostic_text
-    assert '${apply_args[@]+"${apply_args[@]}"}' in domain_health_diagnostic_text
-    assert "--loop" not in domain_health_diagnostic_text
+    assert "domain-health-diagnostic" not in paper_mission_text
+    assert "--loop" not in paper_mission_text
     assert "legacy-control-surface-clean-migration" not in "\n".join(
         path.read_text(encoding="utf-8")
         for path in (workspace_root / "ops" / "medautoscience" / "bin").iterdir()
@@ -373,6 +374,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert ops_readme.is_file()
     ops_readme_text = ops_readme.read_text(encoding="utf-8")
     assert "OPL current_control_state refs-only handoff" in ops_readme_text
+    assert "bin/paper-mission inspect" in ops_readme_text
+    assert "bin/paper-mission drive" in ops_readme_text
     assert "domain-health-diagnostic" in ops_readme_text
     assert "medautosci runtime ensure-supervision --profile <profile>" not in ops_readme_text
     assert "medautosci runtime supervision-status --profile <profile>" not in ops_readme_text
@@ -421,11 +424,10 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "portfolio-memory-status" in workspace_rules_text
     assert "prepare-external-research" in workspace_rules_text
 
-    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
-    assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in domain_health_diagnostic_text
-    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
-    assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
-    assert "ops/med-deepscientist" not in domain_health_diagnostic_text
+    paper_mission_text = paper_mission.read_text(encoding="utf-8")
+    assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in paper_mission_text
+    assert 'run_medautosci paper-mission \\' in paper_mission_text
+    assert "ops/med-deepscientist" not in paper_mission_text
 
 
 def test_generated_study_progress_accepts_study_id_without_extra_args(tmp_path: Path) -> None:

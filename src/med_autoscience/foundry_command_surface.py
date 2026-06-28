@@ -280,11 +280,12 @@ def _interfaces() -> dict[str, dict[str, Any]]:
             "command": "medautosci runtime",
             "compatibility_command": "medautosci runtime",
             "points_to": [
-                "medautosci runtime domain-health-diagnostic",
+                "medautosci paper-mission inspect",
+                "medautosci paper-mission drive",
                 "medautosci runtime overlay-status",
                 "medautosci runtime maintain-storage",
             ],
-            "projection_role": "provider/runtime diagnostics and refs-only supervision",
+            "projection_role": "paper mission readback and OPL-hosted runtime diagnostics",
         },
         "vault": {
             "spine_object": "vault",

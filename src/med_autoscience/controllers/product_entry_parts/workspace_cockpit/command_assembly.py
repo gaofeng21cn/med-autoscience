@@ -9,8 +9,9 @@ from med_autoscience.controllers.product_entry_parts.shared_labels import _non_e
 from med_autoscience.controllers.product_entry_parts.shared import (
     _command,
     _command_prefix,
+    _json_surface_command,
+    _paper_mission_inspect_command,
     _profile_arg,
-    _quote_cli_arg,
     _study_selector,
 )
 
@@ -42,10 +43,8 @@ def workspace_commands(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None,
 ) -> dict[str, Any]:
-    supervisor_tick = (
-        f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --dry-run"
-    )
+    del profile
+    supervisor_tick = _json_surface_command(_paper_mission_inspect_command(profile_ref))
     return {
         "mainline_status": _command(profile_ref, "mainline-status"),
         "doctor": _command(profile_ref, "doctor", "--profile", _profile_arg(profile_ref)),
@@ -70,11 +69,8 @@ def user_loop_commands(
     profile_ref: str | Path | None,
 ) -> dict[str, Any]:
     profile_arg = _profile_arg(profile_ref)
-    prefix = _command_prefix(profile_ref)
-    refresh_supervision = (
-        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
-    )
+    del profile
+    refresh_supervision = _json_surface_command(_paper_mission_inspect_command(profile_ref))
     return {
         "mainline_status": _command(profile_ref, "mainline-status"),
         "phase_status_current": _command(profile_ref, "mainline-phase", "--phase current"),
@@ -108,7 +104,7 @@ def user_loop_commands(
 def diagnostic_supervision_command_policy(*, command: str) -> dict[str, object]:
     return {
         "command": command,
-        "surface_role": "runtime_diagnostic_refresh",
+        "surface_role": "paper_mission_readback_refresh",
         "dry_run": True,
         "diagnostic_only": True,
         "writes_authority": False,
@@ -118,7 +114,7 @@ def diagnostic_supervision_command_policy(*, command: str) -> dict[str, object]:
         "counts_as_paper_progress": False,
         "default_paper_mission_entry": False,
         "required_followthrough": (
-            "Use paper-mission inspect/start/resume or consume-candidate output "
-            "for the MAS paper loop; this command only refreshes runtime diagnostics."
+            "Use paper-mission drive or terminalize-stage for stage movement; "
+            "this command refreshes paper mission readback only."
         ),
     }

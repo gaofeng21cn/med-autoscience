@@ -151,34 +151,12 @@ def _render_study_progress_script() -> str:
     )
 
 
-def _render_domain_health_diagnostic_script(*, workspace_root: Path, runtime_quests_root: Path) -> str:
-    relative_runtime_root = runtime_quests_root.relative_to(workspace_root).as_posix()
+def _render_paper_mission_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        f'WORKSPACE_RUNTIME_ROOT="${{WORKSPACE_ROOT}}/{relative_runtime_root}"\n\n'
-        'apply_args=(--request-opl-stage-attempts --dry-run)\n'
-        'for arg in "$@"; do\n'
-        '  if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]; then\n'
-        '    apply_args=()\n'
-        "    break\n"
-        "  fi\n"
-        "done\n\n"
-        'run_medautosci runtime domain-health-diagnostic \\\n'
-        '  --profile "${PROFILE_PATH}" \\\n'
-        '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
-        '  ${apply_args[@]+"${apply_args[@]}"} \\\n'
-        '  "$@"\n'
-    )
-
-
-def _render_scan_domain_routes_script() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci owner-route-reconcile \\\n'
+        'run_medautosci paper-mission \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  "$@"\n'
     )

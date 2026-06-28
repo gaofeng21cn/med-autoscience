@@ -17,7 +17,7 @@ from tests.provider_admission_current_control_helpers import opl_transition_read
 
 def _dispatch(**overrides: object) -> dict[str, object]:
     payload = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "dispatch_status": "ready",
         "executor_kind": "codex_cli_default",
         "chat_completion_only_executor_forbidden": True,
@@ -82,7 +82,6 @@ def test_dispatch_contract_accepts_mas_foreground_owner_callable_adapter() -> No
 def _projection(**overrides: object) -> dict[str, object]:
     payload = _dispatch(
         surface="mas_domain_progress_transition_request_projection",
-        legacy_surface="default_executor_dispatch_request",
         projection_only=True,
         owner_callable_carrier_projection_only=True,
     )
@@ -390,8 +389,8 @@ def test_transition_request_projection_with_opl_authorization_is_owner_callable_
     assert domain_owner_action_dispatch._contract_guard(payload, apply=False) == (True, None)
     assert payload["surface"] == "mas_domain_progress_transition_request_projection"
     contract_payload = domain_owner_action_dispatch._dispatch_contract_payload(payload)
-    assert contract_payload["surface"] == "default_executor_dispatch_request"
-    assert contract_payload["legacy_surface"] == "default_executor_dispatch_request"
+    assert contract_payload["surface"] == "mas_domain_progress_transition_request_projection"
+    assert "legacy_surface" not in contract_payload
 
 
 def test_transition_request_projection_accepts_matching_opl_transition_readback() -> None:
@@ -642,7 +641,7 @@ def test_current_materialized_dispatches_select_mas_foreground_owner_callable() 
     transition_dispatch = _projection(study_id=study_id)
     foreground_dispatch = _dispatch(
         study_id=study_id,
-        surface="default_executor_dispatch_request",
+        surface="mas_domain_progress_transition_request_projection",
         target_runtime_owner="med-autoscience",
         mas_dispatch_authority=True,
         provider_admission_requires_opl_runtime_result=False,
@@ -680,7 +679,7 @@ def test_current_materialized_dispatches_apply_selects_mas_foreground_owner_call
     transition_dispatch = _projection(study_id=study_id)
     foreground_dispatch = _dispatch(
         study_id=study_id,
-        surface="default_executor_dispatch_request",
+        surface="mas_domain_progress_transition_request_projection",
         target_runtime_owner="med-autoscience",
         mas_dispatch_authority=True,
         provider_admission_requires_opl_runtime_result=False,

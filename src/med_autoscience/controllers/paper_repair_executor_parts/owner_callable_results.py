@@ -72,7 +72,7 @@ def writer_worker_handoff_ready(
 ) -> bool:
     handoff = _mapping(owner_result.get("writer_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "default_executor_dispatch_request"
+        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("next_executable_owner")) == "write"
         and _handoff_has_opl_proof(handoff, owner_result, opl_execution_authorization=opl_execution_authorization)
@@ -86,7 +86,7 @@ def ai_reviewer_record_worker_handoff_ready(
 ) -> bool:
     handoff = _mapping(owner_result.get("ai_reviewer_record_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "default_executor_dispatch_request"
+        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("dispatch_authority")) == "ai_reviewer_record_production_handoff"
         and _text(handoff.get("next_executable_owner")) == "ai_reviewer"
@@ -237,7 +237,7 @@ def _executions(owner_result: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 def _raw_writer_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
     handoff = _mapping(owner_result.get("writer_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "default_executor_dispatch_request"
+        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("next_executable_owner")) == "write"
     )
@@ -246,7 +246,7 @@ def _raw_writer_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
 def _raw_ai_reviewer_record_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
     handoff = _mapping(owner_result.get("ai_reviewer_record_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "default_executor_dispatch_request"
+        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("dispatch_authority")) == "ai_reviewer_record_production_handoff"
         and _text(handoff.get("next_executable_owner")) == "ai_reviewer"

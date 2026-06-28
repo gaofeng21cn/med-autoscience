@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from .default_executor_dispatch_tasks import TASK_KIND as PAPER_MISSION_STAGE_OUTCOME_TASK_KIND
-
-
 FORBIDDEN_PAYLOAD_FLAGS = (
     "domain_truth_write",
     "artifact_gate_override",
@@ -14,7 +11,6 @@ FORBIDDEN_PAYLOAD_FLAGS = (
     "memory_write_router_accept",
 )
 ALLOWED_TASK_KINDS = {
-    PAPER_MISSION_STAGE_OUTCOME_TASK_KIND: "default_executor_dispatch_request",
     "domain_route/reconcile-apply": "domain_route_owner_handoff",
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",

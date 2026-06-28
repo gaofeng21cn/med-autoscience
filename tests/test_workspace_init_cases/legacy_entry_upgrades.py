@@ -19,6 +19,7 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
     progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
     study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
+    paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
 
@@ -88,22 +89,21 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert not install_service.exists()
     assert not progress_projection.exists()
     assert study_state_matrix.is_file()
-    assert domain_health_diagnostic.is_file()
+    assert paper_mission.is_file()
+    assert not domain_health_diagnostic.exists()
 
     shared_text = shared.read_text(encoding="utf-8")
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
-    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
+    paper_mission_text = paper_mission.read_text(encoding="utf-8")
     assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/ops/medautoscience/.venv/bin/python3"' in shared_text
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
-    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
-    assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
-    assert 'apply_args=(--request-opl-stage-attempts --dry-run)' in domain_health_diagnostic_text
-    assert '[[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]' in domain_health_diagnostic_text
-    assert '${apply_args[@]+"${apply_args[@]}"}' in domain_health_diagnostic_text
-    assert '--loop' not in domain_health_diagnostic_text
+    assert 'run_medautosci paper-mission \\' in paper_mission_text
+    assert '--profile "${PROFILE_PATH}"' in paper_mission_text
+    assert 'domain-health-diagnostic' not in paper_mission_text
+    assert '--loop' not in paper_mission_text
 
 
 def test_init_workspace_upgrades_generated_workspace_wrappers_when_templates_change(tmp_path: Path) -> None:
@@ -267,6 +267,7 @@ def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags
     )
 
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+    paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     watch_runtime.write_text(
         "#!/usr/bin/env bash\n"
@@ -292,11 +293,11 @@ def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags
 
     assert str(watch_runtime) in result["removed_files"]
     assert not watch_runtime.exists()
-    assert domain_health_diagnostic.is_file()
-    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
-    assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
-    assert 'apply_args=(--request-opl-stage-attempts --dry-run)' in domain_health_diagnostic_text
-    assert '--loop' not in domain_health_diagnostic_text
+    assert paper_mission.is_file()
+    assert not domain_health_diagnostic.exists()
+    paper_mission_text = paper_mission.read_text(encoding="utf-8")
+    assert 'run_medautosci paper-mission \\' in paper_mission_text
+    assert '--loop' not in paper_mission_text
 
 
 def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_wrappers(tmp_path: Path) -> None:
@@ -454,7 +455,8 @@ def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_
         assert "supervisor-execute-dispatch" not in text
     assert "ops/medautoscience/bin/study-progress" in agents_text
     assert "ops/medautoscience/bin/progress-projection" not in agents_text
-    assert "ops/medautoscience/bin/domain-health-diagnostic" in agents_text
+    assert "ops/medautoscience/bin/paper-mission" in agents_text
+    assert "ops/medautoscience/bin/domain-health-diagnostic" not in agents_text
     assert "OPL current-control-state refs" in agents_text
     assert "OPL stage 控制面" in readme_text
     assert "MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口" in readme_text

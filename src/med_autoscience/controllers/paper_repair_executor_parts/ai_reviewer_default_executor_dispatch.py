@@ -52,7 +52,7 @@ def build(
         "owner_callable_requires_opl_authorization": True,
     }
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": schema_version,
         **default_executor_policy(),
         "study_id": study_id,

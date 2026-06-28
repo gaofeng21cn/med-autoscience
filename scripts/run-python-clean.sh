@@ -186,27 +186,12 @@ cli_apply_requires_analysis_extra() {
 
   local command="${3}"
   local subcommand="${4:-}"
-  local start_index=4
-  if [[ "${command}" == "runtime" ]]; then
-    command="${subcommand}"
-    start_index=5
-  elif [[ "${command}" == "sidecar" ]]; then
+  if [[ "${command}" == "sidecar" ]]; then
     if [[ "${subcommand}" == "dispatch" ]]; then
       return 0
     fi
     return 1
   fi
-
-  case "${command}" in
-    domain-route-reconcile|owner-route-reconcile|domain-owner-action-dispatch)
-      local arg
-      for arg in "${@:start_index}"; do
-        if [[ "${arg}" == "--apply" ]]; then
-          return 0
-        fi
-      done
-      ;;
-  esac
   return 1
 }
 

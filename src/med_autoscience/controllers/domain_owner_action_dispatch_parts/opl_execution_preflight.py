@@ -350,7 +350,7 @@ def _canonical_stage_packet_matches(
     packet: Mapping[str, Any],
     stage_packet_ref: str,
 ) -> bool:
-    if _text(packet.get("surface")) != "default_executor_dispatch_request":
+    if _text(packet.get("surface")) != "mas_domain_progress_transition_request_projection":
         return False
     if _text(packet.get("dispatch_status")) != "ready":
         return False

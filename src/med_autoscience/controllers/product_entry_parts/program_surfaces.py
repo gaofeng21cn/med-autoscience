@@ -140,7 +140,7 @@ def _build_phase3_clearance_lane(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None,
 ) -> dict[str, Any]:
-    prefix = _command_prefix(profile_ref)
+    profile_root = profile.studies_root
     profile_arg = _profile_arg(profile_ref)
     doctor_command = _command(profile_ref, "doctor", "--profile", profile_arg)
     supervisor_service_command = _command(
@@ -150,10 +150,7 @@ def _build_phase3_clearance_lane(
         profile_arg,
         "--format json",
     )
-    refresh_supervision_command = (
-        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
-    )
+    refresh_supervision_command = _json_surface_command(_paper_mission_inspect_command(profile_ref))
     launch_study_command = _command(
         profile_ref,
         "launch-study",
@@ -215,8 +212,8 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS domain refs projection",
-                surface_kind="domain_health_diagnostic_refresh",
+                title="刷新 MAS paper mission readback",
+                surface_kind="paper_mission_readback_refresh",
                 command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_step(
@@ -239,11 +236,19 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="progress_projection.autonomous_runtime_notice",
-                command=f"{prefix} study progress --profile {profile_arg} --study-id <study_id> --format json",
+                command=_json_surface_command(
+                    _command(
+                        profile_ref,
+                        "study-progress",
+                        "--profile",
+                        profile_arg,
+                        "--study-id <study_id>",
+                    )
+                ),
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="domain_health_diagnostic",
-                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "domain_health_diagnostic" / "latest.json"),
+                surface_kind="paper_mission_readback",
+                command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="runtime_supervision_retired_provenance",
@@ -251,7 +256,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="controller_decisions",
-                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
+                ref=str(profile_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
             ),
         ],
         recommended_phase_command=(

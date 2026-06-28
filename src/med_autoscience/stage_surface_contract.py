@@ -175,9 +175,11 @@ FRESHNESS_EVALUATED_REFS = (
 )
 ALLOWED_OWNER_TOOLS = (
     "MAS controller-authorized CLI/MCP/product-entry domain handler surfaces",
+    "paper-mission inspect",
+    "paper-mission drive",
+    "paper-mission terminalize-stage",
     "stage-knowledge-packet",
     "stage-memory-closeout-route",
-    "owner-route-reconcile",
     "ai-reviewer-publication-eval",
     "publication-gate",
 )

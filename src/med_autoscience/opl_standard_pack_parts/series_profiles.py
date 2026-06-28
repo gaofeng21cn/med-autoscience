@@ -39,6 +39,7 @@ STANDARD_PUBLIC_PROJECTION_POLICY = {
     ],
     "active_public_projection_allows_non_opl_foundry_cli": False,
     "active_public_projection_allows_domain_owned_cli_as_standard_surface": False,
+    "active_public_projection_allows_forbidden_surface_roles": False,
     "active_public_projection_allows_retired_surface_aliases": False,
     "active_public_projection_allows_compatibility_aliases": False,
     "active_public_projection_allows_legacy_json_aliases": False,

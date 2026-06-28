@@ -41,7 +41,6 @@ def _transition_request_projection(dispatch: dict[str, object]) -> dict[str, obj
     return {
         **dispatch,
         "surface": "mas_domain_progress_transition_request_projection",
-        "legacy_surface": "default_executor_dispatch_request",
         "projection_only": True,
         "owner_callable_carrier_projection_only": True,
         "dispatch_status": "transition_request_pending",
@@ -148,7 +147,7 @@ def test_provider_hosted_exact_stage_packet_selects_dispatch_despite_blocking_pr
         "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,
@@ -399,7 +398,7 @@ def test_provider_hosted_projection_executes_canonical_stage_packet_contract(
         "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,
@@ -555,7 +554,7 @@ def test_provider_hosted_projection_without_carrier_refs_binds_canonical_stage_p
         "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,
@@ -715,7 +714,7 @@ def test_provider_hosted_projection_with_stale_carrier_identity_binds_exact_stag
         "idempotency_key": f"paper-recovery::{study_id}::{action_type}::{fingerprint}",
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,
@@ -850,7 +849,7 @@ def test_transition_projection_without_exact_stage_packet_remains_non_executable
         / "default_executor_dispatches"
     )
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "study_id": study_id,
         "quest_id": study_id,
         "action_type": action_type,

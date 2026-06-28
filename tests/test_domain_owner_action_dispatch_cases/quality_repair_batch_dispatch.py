@@ -193,7 +193,7 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
             "blocked_reason": None,
             "next_owner": "write",
             "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
+                "surface": "mas_domain_progress_transition_request_projection",
                 "dispatch_status": "ready",
                 "next_executable_owner": "write",
                     "required_output_surface": (

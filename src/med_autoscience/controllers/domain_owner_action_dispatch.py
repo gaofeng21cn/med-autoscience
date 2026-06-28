@@ -38,6 +38,7 @@ from .domain_action_request_materializer import (
     FORBIDDEN_SURFACES,
     current_owner_callable_adapters as transition_request_projection_producer,
 )
+from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 from .opl_execution_boundary import (
     typed_blocker as opl_execution_authorization_typed_blocker,
@@ -218,8 +219,11 @@ def _resolve_study_ids(
 
 
 def _contract_guard(dispatch: Mapping[str, Any], *, apply: bool) -> tuple[bool, str | None]:
-    if _is_domain_progress_transition_request_projection(dispatch):
-        if not _has_trusted_opl_execution_authorization(dispatch):
+    if _is_domain_progress_transition_request_surface(dispatch):
+        if (
+            not _is_mas_foreground_owner_callable_adapter(dispatch)
+            and not _has_trusted_opl_execution_authorization(dispatch)
+        ):
             return False, "opl_execution_authorization_required"
         return _legacy_stage_packet_contract_guard(dispatch, apply=apply)
     if _text(dispatch.get("legacy_surface")) == "default_executor_dispatch_request":
@@ -251,7 +255,6 @@ def _legacy_stage_packet_contract_guard(dispatch: Mapping[str, Any], *, apply: b
 def _dispatch_contract_payload(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(dispatch)
     if _is_domain_progress_transition_request_projection(payload):
-        payload["surface"] = "default_executor_dispatch_request"
         if _text(payload.get("dispatch_status")) == "transition_request_pending":
             payload["dispatch_status"] = "ready"
     return payload
@@ -259,11 +262,18 @@ def _dispatch_contract_payload(dispatch: Mapping[str, Any]) -> dict[str, Any]:
 
 def _is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any]) -> bool:
     return (
-        _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
-        and _text(dispatch.get("legacy_surface")) == "default_executor_dispatch_request"
+        _is_domain_progress_transition_request_surface(dispatch)
         and dispatch.get("projection_only") is True
         and dispatch.get("owner_callable_carrier_projection_only") is True
     )
+
+
+def _is_domain_progress_transition_request_surface(dispatch: Mapping[str, Any]) -> bool:
+    return _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
+
+
+def _is_mas_foreground_owner_callable_adapter(dispatch: Mapping[str, Any]) -> bool:
+    return _text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter"
 
 
 def _has_trusted_opl_execution_authorization(dispatch: Mapping[str, Any]) -> bool:
@@ -1137,6 +1147,13 @@ def _dispatch_execution_payload(
         )
     if execution_status := _text(execution_payload.get("execution_status")):
         execution_payload["status"] = execution_status
+    _attach_writer_stage_log_aliases(
+        study_id=study_id,
+        action_type=action_type,
+        dispatch_path=dispatch_path,
+        dispatch=dispatch,
+        execution_payload=execution_payload,
+    )
     execution_identity = _execution_owner_identity(
         dispatch=dispatch,
         current_route=current_route,
@@ -1164,6 +1181,35 @@ def _dispatch_execution_payload(
             execution=execution_payload,
         )
     return execution_payload
+
+
+def _attach_writer_stage_log_aliases(
+    *,
+    study_id: str,
+    action_type: str,
+    dispatch_path: Path,
+    dispatch: Mapping[str, Any],
+    execution_payload: dict[str, Any],
+) -> None:
+    if _text(execution_payload.get("execution_status")) != "handoff_ready":
+        return
+    if not _mapping(execution_payload.get("writer_worker_handoff")):
+        return
+    if _mapping(execution_payload.get("paper_stage_log")):
+        paper_stage_log = _mapping(execution_payload.get("paper_stage_log"))
+    else:
+        paper_stage_log = paper_stage_log_for_default_executor_execution(
+            study_id=study_id,
+            action_type=action_type,
+            next_executable_owner=_text(execution_payload.get("next_executable_owner")),
+            required_output_surface=_text(execution_payload.get("required_output_surface")),
+            dispatch_path=dispatch_path,
+            dispatch=dispatch,
+            execution=execution_payload,
+        )
+        execution_payload["paper_stage_log"] = paper_stage_log
+    execution_payload.setdefault("user_stage_log", paper_stage_log)
+    execution_payload.setdefault("stage_log_summary", paper_stage_log)
 
 
 def _canonical_provider_hosted_dispatch(

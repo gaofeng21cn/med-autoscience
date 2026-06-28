@@ -40,7 +40,7 @@ def preserved_quality_repair_writer_handoff_dispatch(
     )
     if not payload:
         return None
-    if _text(payload.get("surface")) != "default_executor_dispatch_request":
+    if _text(payload.get("surface")) != "mas_domain_progress_transition_request_projection":
         return None
     if _text(payload.get("dispatch_status")) != "ready":
         return None

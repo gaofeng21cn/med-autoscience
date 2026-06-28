@@ -345,6 +345,7 @@
   "standard_public_projection_policy": {
     "active_public_projection_allows_compatibility_aliases": false,
     "active_public_projection_allows_domain_owned_cli_as_standard_surface": false,
+    "active_public_projection_allows_forbidden_surface_roles": false,
     "active_public_projection_allows_legacy_json_aliases": false,
     "active_public_projection_allows_non_opl_foundry_cli": false,
     "active_public_projection_allows_retired_surface_aliases": false,

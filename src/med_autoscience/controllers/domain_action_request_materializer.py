@@ -949,7 +949,7 @@ def _default_executor_dispatch_payload(
         required_output_surface=required_output_surface,
     )
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": SCHEMA_VERSION,
         "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,
         "adapter_status": "intent_materialized",

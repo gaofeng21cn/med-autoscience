@@ -50,6 +50,38 @@ def _json_surface_command(command: str) -> str:
     return f"{command} --format json"
 
 
+def _paper_mission_inspect_command(
+    profile_ref: str | Path | None,
+    *,
+    study_id: str | None = None,
+) -> str:
+    parts = [
+        _command(profile_ref, "paper-mission"),
+        "inspect",
+        "--profile",
+        _profile_arg(profile_ref),
+    ]
+    if study_id is not None:
+        parts.append(_study_selector(study_id=study_id))
+    return " ".join(parts)
+
+
+def _paper_mission_drive_command(
+    profile_ref: str | Path | None,
+    *,
+    study_id: str | None = None,
+) -> str:
+    parts = [
+        _command(profile_ref, "paper-mission"),
+        "drive",
+        "--profile",
+        _profile_arg(profile_ref),
+    ]
+    if study_id is not None:
+        parts.append(_study_selector(study_id=study_id))
+    return " ".join(parts)
+
+
 def _study_selector(*, study_id: str | None = None, study_root: Path | None = None) -> str:
     if study_id is not None:
         return f"--study-id {_quote_cli_arg(study_id)}"

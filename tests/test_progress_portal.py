@@ -768,9 +768,8 @@ def test_progress_portal_projects_outer_supervision_slo_conditions() -> None:
             "surface_kind": "outer_supervision_slo",
             "state": "due",
             "recommended_command": (
-                "uv run python -m med_autoscience.cli owner-route-reconcile "
-                "--profile /workspace/profile.toml --studies 001-risk "
-                "--developer-supervisor-mode external_observe"
+                "uv run python -m med_autoscience.cli paper-mission inspect "
+                "--profile /workspace/profile.toml --study-id 001-risk --format json"
             ),
         },
     }

@@ -28,7 +28,7 @@ def _prepare_fake_runner(tmp_path: Path) -> tuple[Path, Path]:
     return runner_tmp, sync_log
 
 
-def test_clean_python_runner_auto_enables_analysis_extra_for_owner_apply(tmp_path: Path) -> None:
+def test_clean_python_runner_auto_enables_analysis_extra_for_sidecar_dispatch(tmp_path: Path) -> None:
     runner_tmp, sync_log = _prepare_fake_runner(tmp_path)
 
     result = subprocess.run(
@@ -36,15 +36,10 @@ def test_clean_python_runner_auto_enables_analysis_extra_for_owner_apply(tmp_pat
             str(REPO_ROOT / "scripts/run-python-clean.sh"),
             "-m",
             "med_autoscience.cli",
-            "runtime",
-            "owner-route-reconcile",
-            "--profile",
-            "profile.toml",
-            "--studies",
-            "DM002",
-            "--mode",
-            "developer_apply_safe",
-            "--apply",
+            "sidecar",
+            "dispatch",
+            "--task",
+            "task.json",
         ],
         cwd=REPO_ROOT,
         env={
@@ -65,7 +60,7 @@ def test_clean_python_runner_auto_enables_analysis_extra_for_owner_apply(tmp_pat
     assert (runner_tmp / "uv-sync.analysis.done").is_file()
 
 
-def test_clean_python_runner_keeps_domain_route_dry_run_light(tmp_path: Path) -> None:
+def test_clean_python_runner_keeps_paper_mission_readback_light(tmp_path: Path) -> None:
     runner_tmp, sync_log = _prepare_fake_runner(tmp_path)
 
     result = subprocess.run(
@@ -73,15 +68,12 @@ def test_clean_python_runner_keeps_domain_route_dry_run_light(tmp_path: Path) ->
             str(REPO_ROOT / "scripts/run-python-clean.sh"),
             "-m",
             "med_autoscience.cli",
-            "runtime",
-            "owner-route-reconcile",
+            "paper-mission",
+            "inspect",
             "--profile",
             "profile.toml",
-            "--studies",
+            "--study-id",
             "DM002",
-            "--mode",
-            "developer_apply_safe",
-            "--dry-run",
         ],
         cwd=REPO_ROOT,
         env={

@@ -96,21 +96,15 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         "summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
         "reason_summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
         "primary_step_id": "refresh_supervision",
-        "primary_surface_kind": "domain_health_diagnostic_refresh",
+        "primary_surface_kind": "paper_mission_readback_refresh",
         "primary_command": (
-            "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-            + str(profile.runtime_root)
-            + " --profile "
-            + str(profile_ref.resolve())
-            + " --request-opl-stage-attempts --dry-run"
+            "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
         ),
     }
     assert result["recommended_command"].endswith(
-        "domain-health-diagnostic --runtime-root "
-        + str(profile.runtime_root)
-        + " --profile "
+        "paper-mission inspect --profile "
         + str(profile_ref.resolve())
-        + " --request-opl-stage-attempts --dry-run"
+        + " --study-id 001-risk --format json"
     )
     assert result["recommended_commands"][0]["step_id"] == "refresh_supervision"
     assert "--request-opl-owner-route-reconcile" not in result["recommended_command"]

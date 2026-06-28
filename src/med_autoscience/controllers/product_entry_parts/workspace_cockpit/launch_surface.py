@@ -11,9 +11,11 @@ from med_autoscience.controllers.product_entry_parts.shared import (
     _append_human_status_lines,
     _command,
     _command_prefix,
+    _json_surface_command,
     _non_empty_text,
+    _paper_mission_drive_command,
+    _paper_mission_inspect_command,
     _profile_arg,
-    _quote_cli_arg,
     _recovery_action_mode_label,
     _resolve_study,
     _runtime_decision_label,
@@ -116,14 +118,11 @@ def launch_study(
             f"{_study_selector(study_id=resolved_study_id)} --format json"
         ),
         "cockpit": _command(profile_ref, "workspace-cockpit", "--profile", _profile_arg(profile_ref)),
-        "owner_route_handoff": (
-            f"{_command_prefix(profile_ref)} owner-route-reconcile "
-            f"--profile {_profile_arg(profile_ref)} {_study_selector(study_id=resolved_study_id)} "
-            "--developer-supervisor-mode external_observe"
+        "owner_route_handoff": _json_surface_command(
+            _paper_mission_drive_command(profile_ref, study_id=resolved_study_id)
         ),
-        "diagnostic_tick": (
-            f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {_profile_arg(profile_ref)}"
+        "diagnostic_tick": _json_surface_command(
+            _paper_mission_inspect_command(profile_ref, study_id=resolved_study_id)
         ),
     }
     return {

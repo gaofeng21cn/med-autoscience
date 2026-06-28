@@ -449,45 +449,6 @@ def _apply_dispatch_action(
             study_id=study_id,
             task=task,
         )
-    if action_type == "default_executor_dispatch_request":
-        payload = _mapping(task.get("payload"))
-        transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
-        if transition_request:
-            receipt["opl_attempt_admission_requested"] = False
-            receipt["opl_attempt_admission_status"] = "not_requested"
-            receipt["opl_domain_progress_transition_runtime_intake_requested"] = True
-            receipt["opl_domain_progress_transition_runtime_intake_status"] = "requested"
-            receipt["dispatch"]["execution_policy"] = (
-                "opl_domain_progress_transition_runtime_intake_required"
-            )
-            receipt["dispatch"]["result"] = {
-                "surface": "default_executor_transition_request_intake",
-                "status": "opl_domain_progress_transition_runtime_intake_requested",
-                "study_id": study_id,
-                "next_owner": _text(payload.get("next_executable_owner")) or "write",
-                "dispatch_ref": _text(payload.get("dispatch_ref")),
-                "authority_boundary": "mas_domain_progress_transition_request_only",
-                "provider_admission_requires_opl_runtime_result": True,
-                "mas_can_authorize_provider_admission": False,
-                "mas_can_create_opl_event": False,
-                "mas_can_create_opl_outbox_record": False,
-                "mas_can_create_opl_stage_run": False,
-                "opl_domain_progress_transition_request": transition_request,
-            }
-            return receipt
-        receipt["opl_attempt_admission_requested"] = False
-        receipt["opl_attempt_admission_status"] = "not_requested"
-        receipt["dispatch"]["result"] = {
-            "surface": "default_executor_dispatch_request_blocker",
-            "status": "opl_domain_progress_transition_request_required",
-            "study_id": study_id,
-            "next_owner": _text(payload.get("next_executable_owner")) or "write",
-            "dispatch_ref": _text(payload.get("dispatch_ref")),
-            "authority_boundary": "mas_default_executor_dispatch_request_only",
-            "provider_admission_requires_opl_runtime_result": True,
-            "mas_can_authorize_provider_admission": False,
-        }
-        return receipt
     return receipt
 
 

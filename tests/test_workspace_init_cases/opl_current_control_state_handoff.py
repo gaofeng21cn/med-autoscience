@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import os
 from pathlib import Path
 
 
@@ -38,11 +37,12 @@ def test_init_workspace_omits_retired_local_runtime_control_wrappers(tmp_path: P
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
     assert not (workspace_root / "ops" / "medautoscience" / "supervisor").exists()
     scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile"
-    assert scan_domain_routes.is_file()
-    assert os.access(scan_domain_routes, os.X_OK)
-    scan_domain_routes_text = scan_domain_routes.read_text(encoding="utf-8")
-    assert "run_medautosci owner-route-reconcile" in scan_domain_routes_text
-    assert '--profile "${PROFILE_PATH}"' in scan_domain_routes_text
+    paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
+    assert not scan_domain_routes.exists()
+    assert paper_mission.is_file()
+    paper_mission_text = paper_mission.read_text(encoding="utf-8")
+    assert "run_medautosci paper-mission" in paper_mission_text
+    assert '--profile "${PROFILE_PATH}"' in paper_mission_text
 
 
 def test_init_workspace_does_not_render_workspace_local_scheduler_templates(tmp_path: Path) -> None:

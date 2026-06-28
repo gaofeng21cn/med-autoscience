@@ -19,21 +19,19 @@ def _build_automation_surface(
     product_entry_status: Mapping[str, Any],
 ) -> dict[str, Any]:
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS automation entry surface."
-    refresh_command = (
-        f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --dry-run"
-    )
+    del profile
+    refresh_command = _json_surface_command(_paper_mission_inspect_command(profile_ref))
     domain_health_refresh = _build_shared_automation_descriptor(
-        automation_id="mas_domain_health_diagnostic_refresh_loop",
-        title="MAS domain health diagnostic refresh",
+        automation_id="mas_paper_mission_readback_refresh_loop",
+        title="MAS paper mission readback refresh",
         owner="one-person-lab",
         trigger_kind="interval",
-        target_surface_kind="domain_health_diagnostic_refresh",
-        summary="由 OPL current_control_state 触发 MAS domain diagnostic refresh，保持 owner handoff 和 attention queue refs 为最新状态。",
+        target_surface_kind="paper_mission_readback_refresh",
+        summary="由 OPL current_control_state 触发 MAS paper-mission readback refresh，保持 paper mission、owner handoff 和 attention queue refs 为最新状态。",
         readiness_status="automation_ready",
         gate_policy="publication_gated",
         output_expectation=[
-            "refresh domain health diagnostic",
+            "refresh paper mission readback",
             "update workspace attention queue",
             "preserve controller decision lineage",
         ],

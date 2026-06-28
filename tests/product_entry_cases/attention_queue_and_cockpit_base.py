@@ -468,33 +468,21 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "summary": "OPL current_control_state refs-only handoff 未就绪。",
                     "reason_summary": "OPL current_control_state refs-only handoff 未就绪。",
                     "primary_step_id": "refresh_supervision",
-                    "primary_surface_kind": "domain_health_diagnostic_refresh",
+                    "primary_surface_kind": "paper_mission_readback_refresh",
                     "primary_command": (
-                        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-                        + str(profile.runtime_root)
-                        + " --profile "
-                        + str(profile_ref.resolve())
-                        + " --request-opl-stage-attempts --dry-run"
+                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                     ),
                 },
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-                    + str(profile.runtime_root)
-                    + " --profile "
-                    + str(profile_ref.resolve())
-                    + " --request-opl-stage-attempts --dry-run"
+                    "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                 ),
                 "recommended_commands": [
                     {
                         "step_id": "refresh_supervision",
                         "title": "刷新 OPL current_control_state refs-only handoff",
-                        "surface_kind": "domain_health_diagnostic_refresh",
+                        "surface_kind": "paper_mission_readback_refresh",
                         "command": (
-                            "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-                            + str(profile.runtime_root)
-                            + " --profile "
-                            + str(profile_ref.resolve())
-                            + " --request-opl-stage-attempts --dry-run"
+                            "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                         ),
                     }
                 ],
@@ -508,13 +496,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                         {
                             "step_id": "refresh_supervision",
                             "title": "刷新 OPL current_control_state refs-only handoff",
-                            "surface_kind": "domain_health_diagnostic_refresh",
+                            "surface_kind": "paper_mission_readback_refresh",
                             "command": (
-                                "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-                                + str(profile.runtime_root)
-                                + " --profile "
-                                + str(profile_ref.resolve())
-                                + " --request-opl-stage-attempts --dry-run"
+                                "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                             ),
                         }
                     ],

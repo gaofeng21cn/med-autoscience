@@ -166,7 +166,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "return_to_ai_reviewer_workflow",
     ]
     handoff = execution["ai_reviewer_record_worker_handoff"]
-    assert handoff["surface"] == "default_executor_dispatch_request"
+    assert handoff["surface"] == "mas_domain_progress_transition_request_projection"
     assert handoff["dispatch_status"] == "ready"
     assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert handoff["next_executable_owner"] == "ai_reviewer"

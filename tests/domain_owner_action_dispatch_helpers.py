@@ -70,7 +70,7 @@ def dispatch(
     )
     authorization = opl_execution_authorization(study_id=study_id, action_type=action_type)
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "executor_kind": "codex_cli_default",
         "executor_name": "Codex CLI",

@@ -28,11 +28,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                         + " --format json"
                     ),
                     (
-                        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-                        + str(profile.runtime_root)
-                        + " --profile "
-                        + str(profile_ref.resolve())
-                        + " --request-opl-stage-attempts --dry-run"
+                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                     ),
                 ],
             },
@@ -76,13 +72,9 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 {
                     "step_id": "refresh_supervision",
                     "title": "刷新 MAS domain refs projection",
-                    "surface_kind": "domain_health_diagnostic_refresh",
+                    "surface_kind": "paper_mission_readback_refresh",
                     "command": (
-                    "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
-                    + str(profile.runtime_root)
-                    + " --profile "
-                    + str(profile_ref.resolve())
-                    + " --request-opl-stage-attempts --dry-run"
+                    "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                 ),
             },
             {
@@ -362,7 +354,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
     assert payload["family_orchestration"]["event_envelope_surface"] == {
         "ref_kind": "workspace_locator",
         "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-        "label": "domain health diagnostic event companion",
+        "label": "paper mission readback event companion",
     }
     assert payload["family_orchestration"]["checkpoint_lineage_surface"] == {
         "ref_kind": "workspace_locator",

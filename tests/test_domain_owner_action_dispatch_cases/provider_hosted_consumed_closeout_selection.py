@@ -145,7 +145,7 @@ def _dispatch(
     immutable_path: Path,
 ) -> dict[str, object]:
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,

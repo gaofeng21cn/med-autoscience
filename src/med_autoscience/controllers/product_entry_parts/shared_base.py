@@ -112,6 +112,8 @@ from .command_surfaces import (
     _command,
     _command_prefix,
     _json_surface_command,
+    _paper_mission_drive_command,
+    _paper_mission_inspect_command,
     _profile_arg,
     _profile_command_prefix,
     _quote_cli_arg,
@@ -598,7 +600,6 @@ def _build_product_entry_guardrails(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None,
 ) -> dict[str, Any]:
-    prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
     progress_command = _command(
         profile_ref,
@@ -607,10 +608,8 @@ def _build_product_entry_guardrails(
         profile_arg,
         "--study-id <study_id>",
     )
-    refresh_command = (
-        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
-    )
+    del profile
+    refresh_command = _json_surface_command(_paper_mission_inspect_command(profile_ref))
     build_guardrails = _controller_override("_build_shared_product_entry_guardrails", _build_shared_product_entry_guardrails)
     return build_guardrails(
         summary=(
@@ -621,7 +620,7 @@ def _build_product_entry_guardrails(
             _build_shared_guardrail_class(
                 guardrail_id="workspace_supervision_gap",
                 trigger="workspace-cockpit attention queue / study-progress supervisor freshness",
-                symptom="OPL scheduler replacement projection 未在线，或 MAS domain runtime freshness stale/missing。",
+                symptom="OPL substrate readback 或 MAS paper mission readback stale/missing。",
                 recommended_command=refresh_command,
             ),
             _build_shared_guardrail_class(

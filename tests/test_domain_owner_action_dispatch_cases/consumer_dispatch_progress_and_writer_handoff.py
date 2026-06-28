@@ -293,7 +293,7 @@ def test_execute_dispatch_reports_per_study_no_private_owner_callable_accounting
             "status": "handoff_ready",
             "blocked_reason": None,
             "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
+                "surface": "mas_domain_progress_transition_request_projection",
                 "dispatch_status": "ready",
                 "next_executable_owner": "write",
                 "required_output_surface": (

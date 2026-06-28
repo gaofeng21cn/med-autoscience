@@ -23,10 +23,9 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_forward_script,
     _render_bootstrap_script,
     _render_medautosci_shared,
+    _render_paper_mission_script,
     _render_profile_optional_forward_script,
     _render_study_progress_script,
-    _render_scan_domain_routes_script,
-    _render_domain_health_diagnostic_script,
     _render_workspace_root_forward_script,
 )
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
@@ -273,7 +272,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "4. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "5. 通过 OPL stage 控制面提交或恢复正式研究流程；MAS workspace 只暴露 domain authority refs 与只读进度投影。\n\n"
         "6. 如需查看 stage attempt、provider、terminal/log stream、retry/dead-letter 或 App/workbench drilldown，读取 OPL current_control_state；MAS 不生成私有 runtime console、workspace workbench 或 runtime read model。\n\n"
-        "7. 如需检查 MAS domain health，运行 `medautosci runtime domain-health-diagnostic --runtime-root <runtime_root>`；stage/runtime lifecycle 只读 OPL current_control_state refs-only handoff。\n\n"
+        "7. 如需检查论文任务状态，运行 `ops/medautoscience/bin/paper-mission inspect --study-id <study_id>` 或 `ops/medautoscience/bin/study-progress <study_id>`；stage/runtime lifecycle 只读 OPL current_control_state refs-only handoff。\n\n"
         "8. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
         "9. 优先维护 `memory/portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
         "10. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
@@ -305,7 +304,7 @@ def _render_workspace_rules() -> str:
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
         "- 一旦检测到 live managed runtime，前台必须立即进入 supervisor-only 监管态。\n"
-        "- live managed runtime 的默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载；MAS 只暴露 `ops/medautoscience/bin/domain-health-diagnostic` 这种 one-shot domain diagnostic 入口；`local` 已物理退役为 tombstone/provenance-only。Hermes gateway cron 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter。\n"
+        "- live managed runtime 的默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载；MAS workspace 只暴露 `ops/medautoscience/bin/paper-mission`、`ops/medautoscience/bin/study-progress` 和 refs-only study readback；`local` 已物理退役为 tombstone/provenance-only。Hermes gateway cron 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter。\n"
         "- 不得直接写入 runtime-owned 的 study / quest / paper surface；如需人工接管，先显式暂停 runtime。\n"
         "- 只要 `publication_supervisor_state.bundle_tasks_downstream_only = true`，就把 bundle/build/proofing 视为硬阻断，不得抢跑。\n"
         f"- {automation_ready_summary}\n"
@@ -550,13 +549,8 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic",
-            content=_render_domain_health_diagnostic_script(workspace_root=workspace_root, runtime_quests_root=layout.quests_root),
-            executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile",
-            content=_render_scan_domain_routes_script(),
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission",
+            content=_render_paper_mission_script(),
             executable=True,
         ),
         RenderedFile(
