@@ -649,6 +649,10 @@ def _build_paper_mission_drive_readback(
         source=f"{source}:drive:consume-candidate",
         enable_opl_live_probe=True,
     )
+    consume_readback = _attach_stage_closure_ledger_to_drive_readback(
+        profile=profile,
+        consume_readback=consume_readback,
+    )
     handoff = _mapping(
         _mapping(consume_readback.get("consume_output_manifest")).get(
             "opl_route_handoff"
@@ -666,6 +670,20 @@ def _build_paper_mission_drive_readback(
         readback=consume_readback,
         handoff=handoff,
     )
+    stage_closure_output_manifest = None
+    if stage_closure_decision_missing(initial_stage_closure_decision):
+        consume_readback, stage_closure_output_manifest = (
+            _materialize_stage_closure_for_drive_readback(
+                profile=profile,
+                study_id=study_id,
+                consume_readback=consume_readback,
+                source=f"{source}:drive:stage-closure-terminalizer",
+            )
+        )
+        initial_stage_closure_decision = stage_closure_decision_projection(
+            readback=consume_readback,
+            handoff=handoff,
+        )
     initial_progress_guard = _paper_mission_semantic_progress_guard(
         consume_readback=consume_readback,
         handoff=handoff,
@@ -701,6 +719,10 @@ def _build_paper_mission_drive_readback(
             consume_readback=consume_readback,
             opl_runtime_submission=opl_runtime_submission,
         )
+        consume_readback = _attach_stage_closure_ledger_to_drive_readback(
+            profile=profile,
+            consume_readback=consume_readback,
+        )
         handoff = _mapping(
             _mapping(consume_readback.get("consume_output_manifest")).get(
                 "opl_route_handoff"
@@ -730,6 +752,9 @@ def _build_paper_mission_drive_readback(
         consume_readback = _mapping(final_round.get("consume_readback"))
         handoff = _mapping(final_round.get("opl_route_handoff"))
         opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
+        stage_closure_output_manifest = _mapping(
+            final_round.get("stage_closure_output_manifest")
+        ) or stage_closure_output_manifest
     stage_closure_decision = stage_closure_decision_projection(
         readback=consume_readback,
         handoff=handoff,
@@ -831,6 +856,11 @@ def _build_paper_mission_drive_readback(
             "output_root": str(root),
             "candidate_package": package_readback["output_manifest"],
             "consumption_ledger": consume_readback.get("consume_output_manifest"),
+            **(
+                {"stage_closure": stage_closure_output_manifest}
+                if stage_closure_output_manifest
+                else {}
+            ),
             "route_back_budget_ledger_ref": followthrough[
                 "route_back_budget_ledger_ref"
             ],
@@ -844,6 +874,59 @@ def _build_paper_mission_drive_readback(
         "forbidden_authority_writes": list(CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         "drive_result": drive_result,
+    }
+
+
+def _materialize_stage_closure_for_drive_readback(
+    *,
+    profile: Any,
+    study_id: str,
+    consume_readback: Mapping[str, Any],
+    source: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    decision = _terminalize_stage_closure_from_readback(consume_readback)
+    root = _stage_closure_terminalizer_output_root(
+        profile=profile,
+        output_root=None,
+    )
+    _assert_safe_stage_closure_output_root(root)
+    output_manifest = write_paper_mission_stage_closure_decision(
+        output_root=root,
+        study_id=study_id,
+        decision=decision,
+        source_readback=consume_readback,
+        source=source,
+        forbidden_authority_writes=STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+    refreshed = _attach_stage_closure_ledger_to_drive_readback(
+        profile=profile,
+        consume_readback=consume_readback,
+    )
+    return refreshed, output_manifest
+
+
+def _attach_stage_closure_ledger_to_drive_readback(
+    *,
+    profile: Any,
+    consume_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    transaction = _mapping(consume_readback.get("paper_mission_transaction"))
+    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=str(consume_readback.get("study_id") or transaction.get("study_id") or ""),
+        transaction_ref=_optional_text(transaction.get("transaction_id")),
+    )
+    if stage_closure_ledger_readback is None:
+        return dict(consume_readback)
+    return {
+        **dict(consume_readback),
+        "stage_closure_decision": stage_closure_ledger_readback,
+        "stage_closure_decision_ref": stage_closure_ledger_readback.get("decision_ref"),
+        "stage_closure_outcome": _mapping(
+            stage_closure_ledger_readback.get("outcome")
+        ).get("kind"),
+        "paper_mission_stage_closure_ledger_readback": stage_closure_ledger_readback,
     }
 
 
@@ -914,6 +997,24 @@ def _paper_mission_drive_followthrough(
             enable_opl_live_probe=True,
             opl_bin=opl_bin,
         )
+        consume_readback = _attach_stage_closure_ledger_to_drive_readback(
+            profile=profile,
+            consume_readback=consume_readback,
+        )
+        stage_closure_output_manifest = None
+        stage_closure_decision = stage_closure_decision_projection(
+            readback=consume_readback,
+            handoff={},
+        )
+        if stage_closure_decision_missing(stage_closure_decision):
+            consume_readback, stage_closure_output_manifest = (
+                _materialize_stage_closure_for_drive_readback(
+                    profile=profile,
+                    study_id=study_id,
+                    consume_readback=consume_readback,
+                    source=f"{source}:drive:{round_id}:stage-closure-terminalizer",
+                )
+            )
         handoff = _mapping(
             _mapping(consume_readback.get("consume_output_manifest")).get(
                 "opl_route_handoff"
@@ -934,6 +1035,10 @@ def _paper_mission_drive_followthrough(
         consume_readback = _refresh_consume_readback_after_opl_submission(
             consume_readback=consume_readback,
             opl_runtime_submission=submission,
+        )
+        consume_readback = _attach_stage_closure_ledger_to_drive_readback(
+            profile=profile,
+            consume_readback=consume_readback,
         )
         handoff = _mapping(
             _mapping(consume_readback.get("consume_output_manifest")).get(
@@ -969,6 +1074,11 @@ def _paper_mission_drive_followthrough(
             "consume_readback": consume_readback,
             "opl_route_handoff": handoff or None,
             "opl_runtime_submission": submission,
+            **(
+                {"stage_closure_output_manifest": stage_closure_output_manifest}
+                if stage_closure_output_manifest
+                else {}
+            ),
             "stage_closure_decision": stage_closure_decision,
             "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
             "stage_closure_outcome": _mapping(
@@ -1166,8 +1276,12 @@ def _build_stage_closure_terminalizer_readback(
         decision = _terminalize_stage_closure_from_readback(source_readback)
         terminalizer_status = "terminalizer_outcome_materialized"
     output_manifest = None
-    if output_root is not None and not dry_run:
-        root = Path(output_root)
+    resolved_output_root = _stage_closure_terminalizer_output_root(
+        profile=profile,
+        output_root=output_root,
+    )
+    if not dry_run:
+        root = resolved_output_root
         _assert_safe_stage_closure_output_root(root)
         output_manifest = write_paper_mission_stage_closure_decision(
             output_root=root,
@@ -1190,7 +1304,7 @@ def _build_stage_closure_terminalizer_readback(
         "paper_mission_command": "terminalize-stage",
         "action_intent": _action_intent("terminalize-stage"),
         "source": source,
-        "dry_run": bool(dry_run or output_root is None),
+        "dry_run": bool(dry_run),
         "profile": {
             "profile_name": str(getattr(profile, "name", "")),
             "profile_ref": str(profile_ref),
@@ -1221,6 +1335,21 @@ def _build_stage_closure_terminalizer_readback(
         "required_next_owner": _mapping(decision.get("outcome")).get("next_owner"),
         "required_next_action": _mapping(decision.get("outcome")).get("next_action"),
     }
+
+
+def _stage_closure_terminalizer_output_root(
+    *,
+    profile: Any,
+    output_root: str | Path | None,
+) -> Path:
+    if output_root is not None:
+        return Path(output_root).expanduser().resolve()
+    workspace_root = Path(profile.workspace_root).expanduser().resolve()
+    return (
+        workspace_root
+        / PAPER_MISSION_STAGE_CLOSURE_RELPATH
+        / "paper_mission_terminalize_stage"
+    )
 
 
 def _terminalize_stage_closure_from_readback(

@@ -25,4 +25,6 @@ ALLOWED_TASK_KINDS = {
     "status/read": "status_read",
     "notification/receipt": "notification_receipt",
 }
-RETIRED_DIAGNOSTIC_TASK_KINDS: dict[str, str] = {}
+RETIRED_DIAGNOSTIC_TASK_KINDS: dict[str, str] = {
+    "domain_owner/default-executor-dispatch": "legacy_default_executor_dispatch_tombstoned",
+}

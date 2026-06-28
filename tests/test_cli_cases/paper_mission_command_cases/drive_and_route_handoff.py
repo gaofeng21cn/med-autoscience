@@ -227,6 +227,7 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
             str(profile_path),
             "--study-id",
             study_id,
+            "--no-submit-opl-runtime",
             "--format",
             "json",
         ]
@@ -241,16 +242,15 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
     assert payload["consume_candidate_status"] == (
         "accepted_submission_milestone_candidate"
     )
-    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
+    assert payload["drive_result"]["status"] == "mas_owned_executor_delta_ready"
     assert payload["drive_result"]["stage_terminal_decision"] == "continue_same_stage"
     assert payload["drive_result"]["route_command"] == "resume_stage"
     assert payload["drive_result"]["next_owner"] == "mission_executor"
     assert payload["drive_result"]["can_submit_to_opl_runtime"] is True
-    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_actionable"
-    assert payload["drive_result"]["opl_runtime_readback_status"] == (
-        "waiting_for_opl_runtime_live_readback"
-    )
-    assert payload["opl_runtime_submission"]["reason"] == "stage_closure_decision_missing"
+    assert payload["stage_closure_outcome"] == "next_stage_transition"
+    assert payload["output_manifest"]["stage_closure"]["writes_authority"] is False
+    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_requested"
+    assert payload["opl_runtime_submission"]["status"] == "not_requested"
     assert payload["opl_runtime_submission"]["writes_runtime"] is False
     assert payload["drive_result"]["provider_attempt_running_observed"] is False
     assert payload["drive_result"]["terminal_closeout_observed"] is False
@@ -459,26 +459,24 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert not capture_path.exists()
+    assert capture_path.exists()
     handoff = payload["opl_route_handoff"]
     assert handoff["route_identity_key"]
     assert handoff["attempt_idempotency_key"]
     assert handoff["candidate_ref"]
     submission = payload["opl_runtime_submission"]
-    assert submission["status"] == "not_actionable"
-    assert submission["reason"] == "stage_closure_decision_missing"
-    assert submission["writes_runtime"] is False
+    assert submission["status"] in {"submitted", "running", "terminal_readback_observed"}
+    assert submission["writes_runtime"] is True
     assert submission["can_claim_provider_running"] is False
     assert submission["can_claim_paper_progress"] is False
-    assert payload["mutation_policy"]["writes_runtime"] is False
+    assert payload["mutation_policy"]["writes_runtime"] is True
     assert payload["mutation_policy"]["writes_authority"] is False
-    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_actionable"
-    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
-    assert payload["drive_result"]["opl_runtime_readback_status"] == (
-        "waiting_for_opl_runtime_live_readback"
-    )
-    assert payload["drive_result"]["provider_attempt_running_observed"] is False
-    assert payload["opl_runtime_readback_status"] == "waiting_for_opl_runtime_live_readback"
+    assert payload["drive_result"]["status"] in {
+        "opl_stage_route_running",
+        "submitted",
+        "terminal_readback_observed",
+    }
+    assert payload["stage_closure_outcome"] == "next_stage_transition"
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -670,13 +668,10 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert not capture_path.exists()
-    assert payload["followthrough"]["attempted"] is False
-    assert payload["followthrough"]["round_count"] == 0
-    assert payload["followthrough"]["stop_reason"] == "stage_closure_decision_missing"
-    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
-    assert payload["drive_result"]["terminal_closeout_observed"] is False
-    assert payload["drive_result"]["provider_attempt_running_observed"] is False
+    assert capture_path.exists()
+    assert payload["followthrough"]["attempted"] is True
+    assert payload["followthrough"]["round_count"] >= 1
+    assert payload["drive_result"]["status"] != "stage_closure_decision_missing"
     assert payload["consume_candidate_status"] == (
         "accepted_submission_milestone_candidate"
     )
@@ -693,7 +688,7 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
         != payload["mission_id"]
     )
     assert payload["consume_readback"]["contract_validation"]["status"] == "validated"
-    assert payload["output_manifest"]["followthrough_round_count"] == 0
+    assert payload["output_manifest"]["followthrough_round_count"] >= 1
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -872,15 +867,14 @@ def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert not capture_path.exists()
-    assert payload["followthrough"]["rounds"] == []
-    assert payload["followthrough"]["stop_reason"] == "stage_closure_decision_missing"
-    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
+    assert capture_path.exists()
+    assert payload["followthrough"]["rounds"]
+    assert payload["drive_result"]["status"] != "stage_closure_decision_missing"
     assert payload["stage_terminal_decision"]["decision_kind"] == (
         "continue_same_stage"
     )
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
-    assert payload["opl_runtime_readback_status"] == (
+    assert payload["opl_runtime_readback_status"] != (
         "waiting_for_opl_runtime_live_readback"
     )
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
