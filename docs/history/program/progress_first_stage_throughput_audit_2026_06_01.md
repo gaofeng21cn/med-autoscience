@@ -136,7 +136,7 @@ Progress Portal 和 MCP compact projection 已能显示 `progress_first_monitori
 - `src/med_autoscience/controllers/progress_first_blocker_budget.py`
 - `docs/runtime/stage_route_handoff_standard.md`
 - `docs/runtime/projections/study_progress_projection.md`
-- `docs/runtime/display/progress_portal.md`
+- `docs/product/README.md`
 
 Docs-only 更新的最小验证是：
 

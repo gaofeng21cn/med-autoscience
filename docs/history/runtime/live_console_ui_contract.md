@@ -4,7 +4,7 @@ Status: `retired provenance`
 Owner: `MedAutoScience documentation`
 Purpose: `retired_console_display_provenance`
 State: `history_pointer`
-Machine boundary: 本文是人读退役记录。当前机器真相归 OPL `current_control_state` / provider attempt projection、MAS Progress Portal payload、owner receipt、typed blocker 和相关 contracts；本文不定义 active CLI、read model、HTML artifact、terminal owner 或 soak runner。
+Machine boundary: 本文是人读退役记录。当前机器真相归 OPL `current_control_state` / provider attempt projection、MAS refs-only projection、owner receipt、typed blocker 和相关 contracts；本文不定义 active CLI、read model、HTML artifact、terminal owner 或 soak runner。
 
 ## Current Boundary
 

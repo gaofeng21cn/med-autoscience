@@ -6,13 +6,13 @@ Date: `2026-05-08`
 Former contract ID: `live-console-parity`
 Purpose: `retired_live_console_clean_room_parity_provenance`
 State: `history_pointer`
-Machine boundary: 本文是人读历史记录，不定义 active contract、CLI、read model、HTML artifact、terminal owner、soak runner 或 focused lane。当前机器真相归 OPL `current_control_state` / provider attempt projection、MAS Progress Portal payload、owner receipt、typed blocker 和相关 contracts。
+Machine boundary: 本文是人读历史记录，不定义 active contract、CLI、read model、HTML artifact、terminal owner、soak runner 或 focused lane。当前机器真相归 OPL `current_control_state` / provider attempt projection、MAS refs-only projection、owner receipt、typed blocker 和相关 contracts。
 
 Lifecycle note: MAS 私有 Live Console、runtime conversation read model 和 Portal/Console combined soak 已物理退役；不得恢复 module、CLI、contract lane、artifact path 或 compatibility alias。本文下方保留 2026-05-08 clean-room parity 计划的历史脉络；所有 “当前”“目标”“已落地” 等表述都按当时记录解释，不能写回 active docs/contracts/tests。
 
 Current boundary:
 
-- MAS active display surface 是 [Progress Portal](../../runtime/display/progress_portal.md)。
+- MAS active display input 是 [study progress projection](../../runtime/projections/study_progress_projection.md) 与 [product/workbench boundary](../../product/README.md)；用户可见 workbench/display 由 OPL hosted surface 承载。
 - Runtime session、run、terminal/log tail、event stream、attempt state 和 operator drilldown 归 OPL runtime/workbench layer。
 - MAS 只暴露 domain progress、route/decision、owner receipt、typed blocker、artifact/source refs 和 OPL handoff。
 - 不保留 `live-console`、`runtime_conversation` 或 `portal_console_soak` alias / wrapper / facade。

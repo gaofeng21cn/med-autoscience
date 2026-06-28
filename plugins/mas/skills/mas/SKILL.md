@@ -127,7 +127,8 @@ medautosci paper-mission terminalize-stage \
 - `docs/runtime/control/controllers.md`
 - `docs/runtime/contracts/runtime_boundary.md`
 - `docs/runtime/domain_authority_refs_index_guard.md`
-- `docs/runtime/display/progress_portal.md`
+- `docs/runtime/projections/study_progress_projection.md`
+- `docs/product/README.md`
 - `docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md`
 
 ## 典型任务
