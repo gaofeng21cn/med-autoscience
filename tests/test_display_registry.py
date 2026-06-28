@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from med_autoscience import display_registry
+from med_autoscience.display_source_contract import TABLE_INPUT_FILENAME_BY_SCHEMA_ID
 from med_autoscience.display_pack_paths import core_medical_display_template_root
 
 
@@ -191,6 +192,7 @@ def test_live_publication_table_shells_are_available_for_publication_surface_rea
     assert spec.input_schema_id == expected_input_schema_id
     assert spec.table_qc_profile == expected_qc_profile
     assert spec.required_exports == ("md",)
+    assert expected_input_schema_id in TABLE_INPUT_FILENAME_BY_SCHEMA_ID
     assert {
         item.shell_id
         for item in display_registry.list_table_shell_specs()

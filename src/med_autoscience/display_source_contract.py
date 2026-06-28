@@ -35,4 +35,6 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
 
 TABLE_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "baseline_characteristics_schema_v1": "baseline_characteristics_schema.json",
+    "time_to_event_performance_summary_v1": "time_to_event_performance_summary.json",
+    "clinical_interpretation_summary_v1": "clinical_interpretation_summary.json",
 }
