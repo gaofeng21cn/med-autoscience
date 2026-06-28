@@ -1303,11 +1303,6 @@ def dispatch_domain_owner_actions(
         if (
             not selected_dispatches
             and consumer_payload is None
-            and not persisted_dispatches.has_current_consumer_dispatches(
-                study_id=study_id,
-                action_types=resolved_action_types,
-                consumer_latest_path=_consumer_latest_path(profile),
-            )
         ):
             selected_dispatches = (
                 persisted_dispatches.current_materialized_dispatches_for_current_route(

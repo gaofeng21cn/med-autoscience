@@ -418,21 +418,23 @@ def _default_executor_dispatch(
         },
         owner_route=owner_route,
     )
-    record_only_handoff = (
-        ai_reviewer_record_handoff.ai_reviewer_record_production_handoff_dispatch(
-            profile=profile,
-            action=action,
-            action_type=action_type,
-            study_id=study_id,
-            dispatch_path=dispatch_path,
-            owner_route=owner_route,
-            source_action_ref=_source_action_ref,
+    is_mas_foreground_owner_callable = _mas_foreground_owner_callable_action(action)
+    if not is_mas_foreground_owner_callable:
+        record_only_handoff = (
+            ai_reviewer_record_handoff.ai_reviewer_record_production_handoff_dispatch(
+                profile=profile,
+                action=action,
+                action_type=action_type,
+                study_id=study_id,
+                dispatch_path=dispatch_path,
+                owner_route=owner_route,
+                source_action_ref=_source_action_ref,
+            )
+            if owner_route_allows_action
+            else None
         )
-        if owner_route_allows_action
-        else None
-    )
-    if record_only_handoff is not None:
-        return record_only_handoff
+        if record_only_handoff is not None:
+            return record_only_handoff
     closeout_admission = _progress_first_closeout_admission(
         scan_payload=scan_payload,
         study_id=study_id,
@@ -511,7 +513,7 @@ def _default_executor_dispatch(
         dispatch=dispatch_shell
     )
     execution_ready_dispatch_requested = developer_mode_payload.get("dry_run_executor_dispatch") is True
-    if _mas_foreground_owner_callable_action(action):
+    if is_mas_foreground_owner_callable:
         return _mas_foreground_owner_callable_dispatch_payload(
             profile=profile,
             action=action,
@@ -604,11 +606,9 @@ def _default_executor_dispatch(
 
 def _mas_foreground_owner_callable_action(action: Mapping[str, Any]) -> bool:
     target_surface = _mapping(action.get("target_surface"))
-    if _text(target_surface.get("ref_kind")) != "mas_owner_callable":
+    if _text(target_surface.get("ref_kind")) != "mas_owner_callable" and _paper_recovery_owner_callable_surface(action) is None:
         return False
-    if _text(target_surface.get("owner_callable_surface")) is None and _text(
-        action.get("owner_callable_surface")
-    ) is None:
+    if _owner_callable_surface(action) is None:
         return False
     for key in (
         "provider_admission_pending",
@@ -621,6 +621,39 @@ def _mas_foreground_owner_callable_action(action: Mapping[str, Any]) -> bool:
         if action.get(key) is True:
             return False
     return True
+
+
+def _owner_callable_surface(action: Mapping[str, Any]) -> str | None:
+    target_surface = _mapping(action.get("target_surface"))
+    return (
+        _text(action.get("owner_callable_surface"))
+        or _text(target_surface.get("owner_callable_surface"))
+        or _paper_recovery_owner_callable_surface(action)
+    )
+
+
+def _paper_recovery_owner_callable_surface(action: Mapping[str, Any]) -> str | None:
+    for container_key in (
+        "next_safe_action",
+        "paper_autonomy_supervisor_decision",
+        "paper_progress_policy_result_projection",
+        "supervisor_decision",
+    ):
+        if surface := _owner_callable_surface_from_next_safe_action(_mapping(action.get(container_key))):
+            return surface
+    supervisor = _mapping(action.get("paper_autonomy_supervisor_decision"))
+    if surface := _owner_callable_surface_from_next_safe_action(
+        _mapping(supervisor.get("paper_progress_policy_result_projection"))
+    ):
+        return surface
+    return None
+
+
+def _owner_callable_surface_from_next_safe_action(payload: Mapping[str, Any]) -> str | None:
+    next_safe_action = _mapping(payload.get("next_safe_action")) or payload
+    source_action = _mapping(next_safe_action.get("source_next_safe_action"))
+    owner_callable = _mapping(source_action.get("owner_callable"))
+    return _text(owner_callable.get("callable_surface"))
 
 
 def _mas_foreground_owner_callable_dispatch_payload(
@@ -688,8 +721,7 @@ def _mas_foreground_owner_callable_dispatch_payload(
             "provider_attempt_or_lease_required": False,
             "opl_transition_runtime_required": False,
             "opl_transition_runtime_required_for_durable_carrier": False,
-            "owner_callable_surface": _text(action.get("owner_callable_surface"))
-            or _text(_mapping(action.get("target_surface")).get("owner_callable_surface")),
+            "owner_callable_surface": _owner_callable_surface(action),
             "dispatch_authority": "paper_mission_current_mas_owner_callable",
             "consumer_mutation_scope": "mas_foreground_owner_callable_projection_only",
             "prompt_contract": prompt,
