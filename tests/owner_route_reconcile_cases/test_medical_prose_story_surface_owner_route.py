@@ -66,7 +66,7 @@ def test_domain_transition_routes_analysis_campaign_medical_prose_write_repair_t
     assert action["executable_work_unit"] == "medical_prose_write_repair"
     assert action["route_target"] == "write"
     assert action["original_route_target"] == "analysis-campaign"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
 
 
 def test_scan_routes_medical_prose_write_repair_despite_stale_opl_owner_lifecycle(
@@ -87,8 +87,8 @@ def test_scan_routes_medical_prose_write_repair_despite_stale_opl_owner_lifecycl
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",

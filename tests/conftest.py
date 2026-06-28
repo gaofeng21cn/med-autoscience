@@ -17,7 +17,7 @@ NESTED_CASE_COLLECTION_IGNORE_GLOBS = (
     "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
     "domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_*.py",
     "test_cli_cases/ai_reviewer_publication_eval_command_cases/test_*.py",
-    "test_cli_cases/owner_route_handoff_command_cases/test_*.py",
+    "test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_*.py",
     "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
 )
 
@@ -86,7 +86,6 @@ SOAK_OR_GOLDEN_FILES = {
 }
 
 WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
-    "tests/test_cli_cases/owner_route_handoff_command.py",
     "tests/test_submission_minimal.py",
     "tests/test_submission_minimal_display_surface.py",
     "tests/test_study_delivery_sync.py",

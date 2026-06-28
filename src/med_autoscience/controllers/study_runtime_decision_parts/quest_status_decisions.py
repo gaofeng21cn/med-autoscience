@@ -52,13 +52,20 @@ from med_autoscience.controllers.study_runtime_types import (
 )
 from med_autoscience.runtime_protocol import quest_state
 
-_OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS = frozenset(
+_OPL_STAGE_ATTEMPT_ADMISSION_CLASSIFICATIONS = frozenset(
     {
         "blocked_closeout_owner_redrive",
         "controller_work_unit_pending_redrive",
         "pending_user_message_redrive",
     }
 )
+
+
+def _set_opl_stage_attempt_admission_required(result: ProgressProjectionStatus) -> None:
+    result.set_decision(
+        StudyRuntimeDecision.HANDOFF_REQUIRED,
+        StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED,
+    )
 
 
 def _stopped_runtime_redrive_reason(result: ProgressProjectionStatus) -> StudyRuntimeReason:
@@ -73,7 +80,7 @@ def _stopped_runtime_redrive_reason(result: ProgressProjectionStatus) -> StudyRu
             return StudyRuntimeReason(reason_code)
         except ValueError:
             pass
-    return StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+    return StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED
 
 
 def _apply_live_quest_status_decision(
@@ -304,10 +311,7 @@ def _apply_live_quest_status_decision(
             running_quest=True,
         )
     else:
-        result.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
-        )
+        _set_opl_stage_attempt_admission_required(result)
     return finalize_result()
 
 
@@ -382,11 +386,8 @@ def _apply_resumable_quest_status_decision(
         if isinstance(interaction_arbitration, dict)
         else ""
     )
-    if action == "resume" and classification in _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS:
-        result.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
-        )
+    if action == "resume" and classification in _OPL_STAGE_ATTEMPT_ADMISSION_CLASSIFICATIONS:
+        _set_opl_stage_attempt_admission_required(result)
         return finalize_result()
     if (
         (submission_metadata_only_manual_finish or bundle_only_manual_finish)
@@ -445,11 +446,8 @@ def _set_stopped_resume_or_blocked_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
         )
-    elif resume_reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE:
-        result.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            resume_reason,
-        )
+    elif resume_reason is StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED:
+        _set_opl_stage_attempt_admission_required(result)
     elif execution.get("auto_resume") is True:
         result.set_decision(
             StudyRuntimeDecision.RESUME,
@@ -513,10 +511,7 @@ def _apply_stopped_or_failed_quest_status_decision(
         )
         return finalize_result()
     if stopped_runtime_redrive:
-        result.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
-        )
+        _set_opl_stage_attempt_admission_required(result)
         return finalize_result()
     if (
         isinstance(stopped_recovery_context, dict)
@@ -528,11 +523,8 @@ def _apply_stopped_or_failed_quest_status_decision(
             if isinstance(interaction_arbitration, dict)
             else ""
         )
-        if classification in _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS:
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
-            )
+        if classification in _OPL_STAGE_ATTEMPT_ADMISSION_CLASSIFICATIONS:
+            _set_opl_stage_attempt_admission_required(result)
             return finalize_result()
         post_clear_continuation = _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report)
         _set_stopped_resume_or_blocked_decision(
@@ -556,12 +548,12 @@ def _apply_stopped_or_failed_quest_status_decision(
             resume_reason = {
                 "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 "domain_transition_runtime_redrive": _domain_transition_runtime_redrive_reason(result)
-                or StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+                or StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED,
                 "premature_completion_request": (
                     StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                 ),
                 "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
-                "controller_work_unit_pending_redrive": StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+                "controller_work_unit_pending_redrive": StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED,
             }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
             blocked_reason = (
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED
@@ -622,17 +614,14 @@ def _apply_waiting_for_user_status_decision(
     if isinstance(interaction_arbitration, dict):
         classification = str(interaction_arbitration.get("classification") or "").strip()
         action = str(interaction_arbitration.get("action") or "").strip()
-        if classification in _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS:
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
-            )
+        if classification in _OPL_STAGE_ATTEMPT_ADMISSION_CLASSIFICATIONS:
+            _set_opl_stage_attempt_admission_required(result)
             return finalize_result()
         if action == "resume":
             resume_reason = {
                 "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 "domain_transition_runtime_redrive": _domain_transition_runtime_redrive_reason(result)
-                or StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+                or StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED,
                 "premature_completion_request": (
                     StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                 ),
@@ -644,8 +633,8 @@ def _apply_waiting_for_user_status_decision(
             }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
             result.set_decision(
                 (
-                    StudyRuntimeDecision.BLOCKED
-                    if resume_reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+                    StudyRuntimeDecision.HANDOFF_REQUIRED
+                    if resume_reason is StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED
                     else StudyRuntimeDecision.RESUME
                 ),
                 resume_reason,

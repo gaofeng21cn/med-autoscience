@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.test_domain_health_diagnostic_cases import shared as _shared
-from tests.test_domain_health_diagnostic_cases.work_unit_dispatch_cases_cases.control_plane_dispatch_shared import (
+from tests.test_domain_health_diagnostic_cases.work_unit_dispatch_cases_cases.authority_dispatch_shared import (
     _authority_snapshot,
 )
 
@@ -58,9 +58,11 @@ def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_
     )
 
     assert result["managed_study_auto_recoveries"] == []
-    assert result["managed_study_actions"][0]["decision"] == "blocked"
+    assert result["managed_study_actions"][0]["decision"] == "handoff_required"
     assert result["managed_study_actions"][0]["reason"] == "resume_request_failed"
-    assert result["managed_study_actions"][0]["authority_snapshot"]["route_authorization"][
+    recovery_block = result["managed_study_actions"][0]["authority_dispatch_runtime_recovery_block"]
+    assert recovery_block["outcome"] == "authority_runtime_recovery_blocked"
+    assert recovery_block["authority_snapshot"]["route_authorization"][
         "runtime_recovery_allowed"
     ] is False
 
@@ -162,6 +164,6 @@ def test_watch_runtime_blocks_retry_budget_exhausted_even_if_snapshot_was_marked
 
     assert dispatch_calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
-    assert "runtime_recovery_retry_budget_exhausted" in wakeup_latest["control_plane_blocking_reasons"]
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "authority_dispatch_blocked"
+    assert "runtime_recovery_retry_budget_exhausted" in wakeup_latest["authority_blocking_reasons"]

@@ -23,16 +23,16 @@ def _missing_reference_context_request() -> dict[str, object]:
     }
 
 
-def test_should_refresh_startup_hydration_while_blocked_accepts_ai_reviewer_reference_context_gap() -> None:
+def test_should_refresh_startup_hydration_for_runtime_hold_accepts_ai_reviewer_reference_context_gap() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
     assert (
-        module.should_refresh_startup_hydration_while_blocked(
+        module.should_refresh_startup_hydration_for_runtime_hold(
             {
-                "decision": "blocked",
+                "decision": "handoff_required",
                 "quest_exists": True,
                 "quest_status": "active",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "ai_reviewer_request": _missing_reference_context_request(),
             }
         )
@@ -40,7 +40,7 @@ def test_should_refresh_startup_hydration_while_blocked_accepts_ai_reviewer_refe
     )
 
 
-def test_should_refresh_startup_hydration_while_blocked_reads_ai_reviewer_reference_context_gap(
+def test_should_refresh_startup_hydration_for_runtime_hold_reads_ai_reviewer_reference_context_gap(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
@@ -53,12 +53,12 @@ def test_should_refresh_startup_hydration_while_blocked_reads_ai_reviewer_refere
     )
 
     assert (
-        module.should_refresh_startup_hydration_while_blocked(
+        module.should_refresh_startup_hydration_for_runtime_hold(
             {
-                "decision": "blocked",
+                "decision": "handoff_required",
                 "quest_exists": True,
                 "quest_status": "active",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "study_root": str(study_root),
             }
         )
@@ -88,12 +88,12 @@ def test_should_refresh_startup_hydration_ignores_migrated_ai_reviewer_request_t
     )
 
     assert (
-        module.should_refresh_startup_hydration_while_blocked(
+        module.should_refresh_startup_hydration_for_runtime_hold(
             {
-                "decision": "blocked",
+                "decision": "handoff_required",
                 "quest_exists": True,
                 "quest_status": "active",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "study_root": str(study_root),
             }
         )

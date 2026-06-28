@@ -30,7 +30,7 @@ def test_scan_routes_publication_gate_blocker_to_gate_clearing_despite_external_
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "publication_gate_blocker",
@@ -147,7 +147,7 @@ def test_gate_recheck_only_ai_reviewer_readiness_preempts_stale_write_routeback(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "publication_gate_blocker",
@@ -468,7 +468,7 @@ def test_executed_blocked_gate_replay_routes_publication_surface_back_to_write_o
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "publication_gate_blocker",
@@ -642,7 +642,7 @@ def test_executed_gate_replay_submission_refresh_preempts_stale_story_surface_bl
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",
@@ -863,7 +863,7 @@ def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",

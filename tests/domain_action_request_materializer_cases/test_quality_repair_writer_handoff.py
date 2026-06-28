@@ -207,12 +207,12 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         "truth_epoch": source_eval_id,
         "runtime_health_epoch": "runtime-health::003::write-current",
         "work_unit_fingerprint": "sha256:medical-prose-currentness-recheck",
-        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "failure_signature": "opl_stage_attempt_admission_required",
         "route_epoch": source_eval_id,
         "source_fingerprint": "truth-source::003::medical-prose-currentness-recheck",
         "current_owner": "mas_controller",
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "allowed_actions": ["run_quality_repair_batch"],
         "blocked_actions": ["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
@@ -223,7 +223,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
             "work_unit_fingerprint": "sha256:medical-prose-currentness-recheck",
             "runtime_health_epoch": "runtime-health::003::write-current",
             "study_truth_epoch": source_eval_id,
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
         },
     }
     required_output_surface = (
@@ -238,7 +238,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         "owner": "write",
         "request_owner": "write",
         "recommended_owner": "write",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "required_output_surface": required_output_surface,
         "owner_route": route,
         "next_work_unit": "medical_prose_currentness_recheck",
@@ -298,7 +298,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == "medical_prose_currentness_recheck"
     assert dispatch["owner_route_ref"]["source_refs"]["bridged_from_owner_reason"] == (
-        "quest_waiting_opl_runtime_owner_route"
+        "opl_stage_attempt_admission_required"
     )
     assert prompt_contract["medical_claim_authoring_allowed"] is True
     assert prompt_contract["allowed_write_surfaces"] == [
@@ -393,18 +393,18 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         "route_epoch": "truth-event-000035-d649b1535a6bc2aa",
         "runtime_health_epoch": "runtime-health-event-006513-a0659016cafcf7e2",
         "work_unit_fingerprint": work_unit_fingerprint,
-        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "failure_signature": "opl_stage_attempt_admission_required",
         "trace_id": "owner-route-trace::dm002::current-reviewer-record-consumption",
         "source_fingerprint": "truth-snapshot::023fed00f609d4d2ab1283f7",
         "current_owner": "mas_controller",
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "allowed_actions": ["run_quality_repair_batch"],
         "blocked_actions": ["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
         "idempotency_key": "owner-route::dm002::current-reviewer-record-consumption",
         "source_refs": {
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
             "runtime_health_epoch": "runtime-health-event-006513-a0659016cafcf7e2",
             "source_eval_id": source_eval_id,
             "study_truth_epoch": "truth-event-000035-d649b1535a6bc2aa",
@@ -427,7 +427,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         "owner": "write",
         "request_owner": "write",
         "recommended_owner": "write",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "route_target": "write",
         "required_output_surface": (
             "canonical manuscript story-surface delta or "
@@ -499,7 +499,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     assert source_refs["source_eval_id"] == source_eval_id
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
     assert source_refs["materialized_from_action_type"] == "run_quality_repair_batch"
-    assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert source_refs["bridged_from_owner_reason"] == "opl_stage_attempt_admission_required"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
     assert prompt_contract["medical_claim_authoring_allowed"] is True
     assert prompt_contract["allowed_write_surfaces"] == [

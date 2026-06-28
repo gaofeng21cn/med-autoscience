@@ -357,15 +357,15 @@ def test_scan_projects_current_ai_reviewer_record_materialization_controller_rou
     assert action["owner"] == "write"
     assert action["request_owner"] == "write"
     assert action["recommended_owner"] == "write"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["next_work_unit"] == work_unit_id
     assert action["executable_work_unit"] == work_unit_id
     assert action["route_target"] == "write"
     assert action["original_route_target"] == "controller"
     assert action["domain_transition_decision_type"] == "route_back_same_line"
     assert study["next_owner"] == "write"
-    assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert study["why_not_applied"] == "quest_waiting_opl_runtime_owner_route"
+    assert study["blocked_reason"] == "opl_stage_attempt_admission_required"
+    assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
     assert study["external_supervisor_required"] is False
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
@@ -620,7 +620,7 @@ def test_scan_story_surface_blocker_overrides_stale_ai_reviewer_lifecycle(monkey
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",

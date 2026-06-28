@@ -48,16 +48,7 @@ def admission_blocked_condition(
     ]
     diagnostic_pending_count = int(diagnostic.get("provider_admission_pending_count") or 0)
     if explicit_pending_count <= 0 and not explicit_pending_candidates and diagnostic_pending_count <= 0:
-        if diagnostic.get("will_start_llm") is False and _text(diagnostic.get("action_class")) == "observe_only":
-            return {
-                "condition": "provider_admission_pending_without_startable_dispatch",
-                "reason": "dhd_report_observe_only",
-            }
-        if diagnostic.get("will_start_llm") is False and int(diagnostic.get("codex_dispatch_count") or 0) == 0:
-            return {
-                "condition": "provider_admission_pending_without_startable_dispatch",
-                "reason": "dhd_report_no_codex_dispatch",
-            }
+        return None
     return None
 
 

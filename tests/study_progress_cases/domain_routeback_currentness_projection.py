@@ -185,8 +185,8 @@ def test_current_opl_stage_attempt_surfaces_without_claiming_strict_live(
             "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
             "runtime_binding_exists": True,
             "study_completion_contract": {},
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "active_run_id": None,
             "runtime_liveness_status": "live",
             "runtime_liveness_audit": {

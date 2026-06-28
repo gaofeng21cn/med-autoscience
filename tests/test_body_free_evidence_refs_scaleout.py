@@ -260,7 +260,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     payload = module.build_domain_dispatch_evidence_record_payload(
         task_kind="domain_route/reconcile-apply",
         study_id="DM002",
-        reason="quest_waiting_opl_runtime_owner_route",
+        reason="opl_stage_attempt_admission_required",
         evidence_refs=[
             "studies/DM002/artifacts/supervision/owner_route_handoff/latest.json",
             {"ref": "studies/DM002/artifacts/controller_decisions/latest.json"},

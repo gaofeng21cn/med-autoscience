@@ -263,8 +263,8 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
     def has_unresolved_contract_for(self, study_id: str) -> bool:
         return self.startup_data_readiness_report.has_unresolved_contract_for(study_id)
 
-    def should_refresh_startup_hydration_while_blocked(self) -> bool:
-        return study_runtime_protocol.should_refresh_startup_hydration_while_blocked(self.to_dict())
+    def should_refresh_startup_hydration_for_runtime_hold(self) -> bool:
+        return study_runtime_protocol.should_refresh_startup_hydration_for_runtime_hold(self.to_dict())
 
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)

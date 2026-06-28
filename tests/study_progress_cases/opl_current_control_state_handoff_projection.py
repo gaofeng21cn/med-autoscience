@@ -867,7 +867,7 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
                         }
                     ],
                     "next_owner": "finalize",
-                    "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                    "blocked_reason": "opl_stage_attempt_admission_required",
                 }
             ],
         },
@@ -989,8 +989,8 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
             "quest_id": quest_id,
             "quest_root": str(profile.runtime_root / quest_id),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "active_run_id": None,
             "runtime_health_snapshot": {
                 "runtime_health_epoch": "runtime-health-event-after-gate-closeout",
@@ -1232,8 +1232,8 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
             "quest_id": quest_id,
             "quest_root": str(profile.runtime_root / quest_id),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "active_run_id": None,
             "runtime_health_snapshot": {
                 "runtime_health_epoch": "runtime-health-after-anti-loop-closeout",

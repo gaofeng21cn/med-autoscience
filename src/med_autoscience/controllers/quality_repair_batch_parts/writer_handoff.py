@@ -23,7 +23,7 @@ from med_autoscience.controllers.quality_repair_batch_parts.repair_execution_gat
 
 
 BLOCKED_REASON = "manuscript_story_surface_delta_missing"
-RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
+OPL_STAGE_ATTEMPT_ADMISSION_REASON = "opl_stage_attempt_admission_required"
 NEXT_OWNER = "write"
 REQUIRED_OUTPUT = (
     "canonical manuscript story-surface delta or "
@@ -391,7 +391,7 @@ def _current_route_can_bridge_to_story_surface_handoff(
     blocked_repair_reason: str,
     authority_route_context: Mapping[str, Any],
 ) -> bool:
-    if route_reason != RUNTIME_OWNER_ROUTE_REASON or blocked_repair_reason != BLOCKED_REASON:
+    if route_reason != OPL_STAGE_ATTEMPT_ADMISSION_REASON or blocked_repair_reason != BLOCKED_REASON:
         return False
     if not _controller_context_requires_story_surface_delta(
         authority_route_context=authority_route_context,

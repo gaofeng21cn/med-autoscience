@@ -23,7 +23,7 @@ def test_default_executor_consumed_receipt_exposes_canonical_work_unit_identity(
         "runtime_health_epoch": "runtime-health-after-execution",
         "work_unit_fingerprint": work_unit_fingerprint,
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
             "owner_route_currentness_basis": {
@@ -32,7 +32,7 @@ def test_default_executor_consumed_receipt_exposes_canonical_work_unit_identity(
                 "source_eval_id": "publication-eval::dm002::ai-reviewer-routeback",
                 "work_unit_fingerprint": work_unit_fingerprint,
                 "work_unit_id": work_unit_id,
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
             },
             "study_truth_epoch": "truth-event-000017-bac190eb1c889a78",
             "runtime_health_epoch": "runtime-health-after-execution",

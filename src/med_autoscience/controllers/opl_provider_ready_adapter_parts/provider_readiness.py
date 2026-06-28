@@ -208,7 +208,10 @@ def build_forbidden_write_guard_proof(
         "proof_refs": [
             {
                 "ref_kind": "python_symbol",
-                "ref": "med_autoscience.controllers.owner_route_handoff.dispatch_family_domain_handler_task",
+                "ref": (
+                    "med_autoscience.controllers.owner_route_handoff_parts."
+                    "dispatch_orchestration.dispatch_family_domain_handler_task"
+                ),
                 "role": "dispatch_guard",
             },
             {

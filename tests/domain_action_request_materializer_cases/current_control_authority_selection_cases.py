@@ -376,10 +376,10 @@ def test_owner_receipt_recorded_preempts_stale_owner_route_observability_action(
         "quest_id": quest_id,
         "truth_epoch": study_id,
         "work_unit_fingerprint": stale_route_fingerprint,
-        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "failure_signature": "opl_stage_attempt_admission_required",
         "current_owner": "mas_controller",
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "blocked_actions": ["run_gate_clearing_batch"],
         "source_refs": {
@@ -401,7 +401,7 @@ def test_owner_receipt_recorded_preempts_stale_owner_route_observability_action(
                 "truth_epoch": study_id,
             }
         },
-        "idempotency_key": "owner-route::dm003::write::quest_waiting_opl_runtime_owner_route",
+        "idempotency_key": "owner-route::dm003::write::opl_stage_attempt_admission_required",
     }
     stale_action = {
         "study_id": study_id,
@@ -409,19 +409,19 @@ def test_owner_receipt_recorded_preempts_stale_owner_route_observability_action(
         "action_type": "run_quality_repair_batch",
         "action_id": (
             "supervisor-action::003-dpcc-primary-care-phenotype-treatment-gap::"
-            "run_quality_repair_batch::quest_waiting_opl_runtime_owner_route"
+            "run_quality_repair_batch::opl_stage_attempt_admission_required"
         ),
         "authority": "observability_only",
         "owner": "write",
         "request_owner": "write",
         "recommended_owner": "write",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "next_work_unit": "medical_prose_write_repair",
         "work_unit_fingerprint": stale_route_fingerprint,
         "owner_route": owner_route,
         "handoff_packet": {
             "authority": "observability_only",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "next_executable_owner": "write",
             "work_unit_id": "medical_prose_write_repair",
             "work_unit_fingerprint": stale_route_fingerprint,

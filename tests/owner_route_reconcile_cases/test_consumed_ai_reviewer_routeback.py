@@ -214,8 +214,8 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "domain_transition": domain_transition,
@@ -256,7 +256,7 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
             "state": "blocked",
             "authority": "external_supervisor",
             "auto_apply_allowed": True,
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
             "next_owner": "external_supervisor",
             "external_supervisor_required": True,
             "top_action": {
@@ -290,9 +290,9 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
     assert study["action_queue"][0]["owner"] == "write"
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
-    assert study["owner_route"]["owner_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert study["why_not_applied"] == "quest_waiting_opl_runtime_owner_route"
+    assert study["owner_route"]["owner_reason"] == "opl_stage_attempt_admission_required"
+    assert study["blocked_reason"] == "opl_stage_attempt_admission_required"
+    assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
 
 
 def test_consumed_ai_reviewer_receipt_routes_finalize_gate_replay_to_gate_clearing(
@@ -362,8 +362,8 @@ def test_consumed_ai_reviewer_receipt_routes_finalize_gate_replay_to_gate_cleari
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "domain_transition": domain_transition,
@@ -396,7 +396,7 @@ def test_consumed_ai_reviewer_receipt_routes_finalize_gate_replay_to_gate_cleari
             "state": "blocked",
             "authority": "external_supervisor",
             "auto_apply_allowed": True,
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
             "next_owner": "external_supervisor",
             "external_supervisor_required": True,
         },
@@ -503,8 +503,8 @@ def test_consumed_ai_reviewer_receipt_routes_dpcc_publication_gate_lane_to_gate_
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "domain_transition": domain_transition,
@@ -620,8 +620,8 @@ def test_consumed_ai_reviewer_receipt_clears_stale_analysis_reviewer_lifecycle_i
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "domain_transition": domain_transition,

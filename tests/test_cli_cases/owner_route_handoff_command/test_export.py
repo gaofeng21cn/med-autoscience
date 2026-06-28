@@ -645,6 +645,11 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
             "source": "mas-domain-handler-export",
             "requires_approval": False,
             "dedupe_key": dedupe_key,
+            "default_paper_mission_entry": False,
+            "paper_mission_default_role": "diagnostic_or_explicit_owner_handoff",
+            "can_select_next_paper_stage": False,
+            "can_authorize_provider_admission": False,
+            "counts_as_paper_progress": False,
             "payload": {
                 "profile": str(profile_path),
                 "study_id": study_id,

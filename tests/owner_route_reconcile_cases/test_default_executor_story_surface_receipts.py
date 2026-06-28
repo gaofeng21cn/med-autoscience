@@ -307,7 +307,7 @@ def test_default_executor_nonconsumable_closeout_reports_missing_story_surface_d
             "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
         ),
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
             "study_truth_epoch": "truth-event-000024-daa5883571a64a07",
@@ -316,7 +316,7 @@ def test_default_executor_nonconsumable_closeout_reports_missing_story_surface_d
                 "domain-transition::route_back_same_line::"
                 "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
             ),
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
         },
     }
     _write_json(
@@ -391,7 +391,7 @@ def test_default_executor_zero_execution_blocked_closeout_does_not_consume_owner
             "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
         ),
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
             "owner_route_currentness_basis": {
@@ -402,7 +402,7 @@ def test_default_executor_zero_execution_blocked_closeout_does_not_consume_owner
                     "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
                 ),
                 "work_unit_id": "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
             },
             "study_truth_epoch": "truth-event-000024-daa5883571a64a07",
             "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
@@ -411,7 +411,7 @@ def test_default_executor_zero_execution_blocked_closeout_does_not_consume_owner
                 "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
             ),
             "work_unit_id": "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
         },
     }
     _write_json(

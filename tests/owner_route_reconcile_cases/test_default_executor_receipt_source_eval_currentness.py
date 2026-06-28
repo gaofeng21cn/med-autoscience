@@ -184,13 +184,13 @@ def test_default_executor_receipt_consumes_when_only_diagnostic_owner_reason_cha
     execution_route = {
         **current_route,
         "idempotency_key": "owner-route::dm003::old-reason-key",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
-        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
+        "failure_signature": "opl_stage_attempt_admission_required",
         "source_refs": {
             **current_route["source_refs"],
             "owner_route_currentness_basis": {
                 **current_route["source_refs"]["owner_route_currentness_basis"],
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
             },
         },
     }

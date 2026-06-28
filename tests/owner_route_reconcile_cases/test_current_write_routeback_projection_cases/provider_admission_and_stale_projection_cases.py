@@ -286,8 +286,8 @@ def test_scan_projects_current_write_routeback_despite_stale_progress_active_run
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "runtime_liveness_audit": {
             "active_run_id": None,
@@ -369,13 +369,13 @@ def test_scan_projects_current_write_routeback_despite_stale_progress_active_run
     assert [item["action_type"] for item in result["action_queue"]] == ["run_quality_repair_batch"]
     action = study["action_queue"][0]
     assert action["owner"] == "write"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["next_work_unit"] == "dm002_same_line_publication_paper_repair"
     assert study["active_run_id"] is None
     assert study["owner_route"]["active_run_id"] is None
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
-    assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert study["blocked_reason"] == "opl_stage_attempt_admission_required"
     assert study["next_owner"] == "write"
     assert [action["action_type"] for action in seen_preferred_actions] == ["run_quality_repair_batch"]
     assert seen_preferred_actions[0]["next_work_unit"] == "dm002_same_line_publication_paper_repair"
@@ -497,7 +497,7 @@ def test_fresh_ai_reviewer_write_routeback_supersedes_stale_reviewer_redrive(
     assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
     action = study["action_queue"][0]
     assert action["owner"] == "write"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["next_work_unit"] == "medical_prose_write_repair"
     assert action["work_unit_fingerprint"] == "domain-transition::route_back_same_line::medical_prose_write_repair"
     assert study["next_owner"] == "write"

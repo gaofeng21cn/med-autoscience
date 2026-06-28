@@ -36,6 +36,7 @@ def test_mainline_status_cli_projects_unified_enhancement_program(capsys) -> Non
     assert [item["boundary_id"] for item in program["module_boundary_audit"]["boundaries"]] == [
         "study_truth",
         "runtime_authority_refs",
+        "opl_progress_spine",
         "quality_truth",
         "delivery_truth",
         "maintainability_truth",

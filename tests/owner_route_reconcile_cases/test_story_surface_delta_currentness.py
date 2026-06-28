@@ -228,8 +228,8 @@ def test_dm003_analysis_lane_story_work_unit_handoff_keeps_write_owner_ahead_of_
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "domain_transition": {
             "decision_type": "ai_reviewer_re_eval",
@@ -447,8 +447,8 @@ def test_dm003_quality_batch_writer_handoff_stays_current_without_publication_ev
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
             "domain_transition": {
                 "study_id": study_id,
@@ -659,8 +659,8 @@ def test_dm003_quality_batch_writer_handoff_preempts_consumed_finalize_gate_repl
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
             "domain_transition": {
                 "study_id": study_id,

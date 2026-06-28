@@ -965,7 +965,7 @@ def _writer_handoff_owner_action_preempts_fresh_progress(
         return False
     if _text(owner_route.get("owner_reason")) not in {
         "manuscript_story_surface_delta_missing",
-        "quest_waiting_opl_runtime_owner_route",
+        "opl_stage_attempt_admission_required",
     }:
         return False
     return current_action_authority.action_allowed_by_owner_route(action, owner_route)

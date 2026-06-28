@@ -202,8 +202,8 @@ def test_pending_ai_reviewer_recheck_request_preempts_consumed_write_routeback(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": stale_latest,
         "study_truth_snapshot": {

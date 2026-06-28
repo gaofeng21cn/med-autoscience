@@ -407,8 +407,8 @@ def test_runtime_report_preserves_opl_stage_attempt_admission_action() -> None:
         managed_study_actions=[
             {
                 "study_id": study_id,
-                "decision": "blocked",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "decision": "handoff_required",
+                "reason": "opl_stage_attempt_admission_required",
                 "resume_postcondition": {
                     "status": "opl_stage_attempt_admission_required",
                 },
@@ -439,8 +439,8 @@ def test_runtime_report_preserves_opl_stage_attempt_admission_action() -> None:
 
     action = result["managed_study_actions"][0]
     assert action["paper_recovery_state"]["phase"] == "domain_blocked"
-    assert action["decision"] == "blocked"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["decision"] == "handoff_required"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"] == {
         "status": "opl_stage_attempt_admission_required",
     }

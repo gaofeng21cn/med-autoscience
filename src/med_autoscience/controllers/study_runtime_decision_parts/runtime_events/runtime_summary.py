@@ -320,7 +320,7 @@ def _should_materialize_opl_runtime_owner_handoff_from_status(
         handoff_context = "live"
     elif _opl_runtime_recovery_projection_needed(status_payload, refs=refs):
         handoff_context = "recovering"
-    elif reason == "quest_waiting_opl_runtime_owner_route":
+    elif reason == "opl_stage_attempt_admission_required":
         handoff_context = "blocked"
     elif _opl_runtime_drop_detection_needed(status_payload, strict_live=strict_live):
         handoff_context = "degraded"

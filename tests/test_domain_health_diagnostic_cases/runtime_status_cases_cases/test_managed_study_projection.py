@@ -136,8 +136,8 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
 
     action = result["managed_study_actions"][0]
     assert action["study_id"] == "001-risk"
-    assert action["decision"] == "blocked"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["decision"] == "handoff_required"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
 
@@ -370,8 +370,8 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_managed_stud
 
     action = result["managed_study_actions"][0]
     assert action["study_id"] == "001-risk"
-    assert action["decision"] == "blocked"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["decision"] == "handoff_required"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
 
 def test_domain_health_diagnostic_uses_typed_surface_attributes_for_read_only_managed_study_actions(
     tmp_path: Path,

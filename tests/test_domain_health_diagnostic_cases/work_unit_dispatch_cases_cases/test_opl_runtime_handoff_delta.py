@@ -348,7 +348,7 @@ def test_watch_runtime_closes_opl_runtime_handoff_when_default_executor_closeout
         **make_progress_projection_payload(
             study_id=study_id,
             decision="blocked",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
             include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
@@ -534,7 +534,7 @@ def test_watch_runtime_closes_opl_runtime_handoff_when_ai_reviewer_request_becom
         **make_progress_projection_payload(
             study_id="003-dpcc",
             decision="blocked",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
             include_authority_snapshot=True,
         ),
         "study_root": str(study_root),

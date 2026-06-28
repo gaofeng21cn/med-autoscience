@@ -150,16 +150,16 @@ def test_run_domain_health_diagnostic_for_runtime_rechecks_managed_study_immedia
     assert calls[:2] == [("status", "001-risk"), ("status", "001-risk")]
     assert {study_id for _, study_id in calls} == {"001-risk"}
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
-    assert result["managed_study_actions"][0]["decision"] == "blocked"
-    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["decision"] == "handoff_required"
+    assert result["managed_study_actions"][0]["reason"] == "opl_stage_attempt_admission_required"
     assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert result["managed_study_auto_recoveries"] == [
         {
             "study_id": "001-risk",
-            "preflight_decision": "blocked",
-            "preflight_reason": "quest_waiting_opl_runtime_owner_route",
-            "applied_decision": "blocked",
-            "applied_reason": "quest_waiting_opl_runtime_owner_route",
+            "preflight_decision": "handoff_required",
+            "preflight_reason": "opl_stage_attempt_admission_required",
+            "applied_decision": "handoff_required",
+            "applied_reason": "opl_stage_attempt_admission_required",
             "source": "domain_health_diagnostic_controller_reroute",
         }
     ]

@@ -426,15 +426,15 @@ def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(
     )
     route.update(
         {
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "opl_stage_attempt_admission_required",
+            "failure_signature": "opl_stage_attempt_admission_required",
             "source_refs": {
                 "owner_route_currentness_basis": {
                     "truth_epoch": route["truth_epoch"],
                     "runtime_health_epoch": route["runtime_health_epoch"],
                     "work_unit_fingerprint": route["work_unit_fingerprint"],
                     "work_unit_id": "current_manuscript_repair",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 },
                 "study_macro_state": {
                     "writer_state": "queued",

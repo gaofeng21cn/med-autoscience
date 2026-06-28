@@ -675,7 +675,7 @@ def test_next_forced_delta_maps_current_handoff_owner_route_action_to_quality_re
             "opl_current_control_state_handoff": {
                 "owner_route": {
                     "next_owner": "write",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                     "source_fingerprint": "truth-snapshot::current",
                     "source_refs": {
                         "work_unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",

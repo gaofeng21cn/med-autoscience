@@ -104,7 +104,7 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
         study_id=study_id,
         quest_id=quest_id,
         next_owner="write",
-        owner_reason="quest_waiting_opl_runtime_owner_route",
+        owner_reason="opl_stage_attempt_admission_required",
         allowed_actions=["run_quality_repair_batch"],
     )
     route.update(
@@ -121,13 +121,13 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
                 "runtime_health_epoch": "runtime-health-event-006239",
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
                 "owner_route_currentness_basis": {
                     "work_unit_id": work_unit_id,
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "truth_epoch": "truth-event-000022",
                     "runtime_health_epoch": "runtime-health-event-006239",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 },
             },
         }
@@ -145,7 +145,7 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
                     "action_type": "run_quality_repair_batch",
                     "owner": "write",
                     "request_owner": "write",
-                    "reason": "quest_waiting_opl_runtime_owner_route",
+                    "reason": "opl_stage_attempt_admission_required",
                     "next_work_unit": work_unit_id,
                     "controller_work_unit_id": work_unit_id,
                     "executable_work_unit": work_unit_id,
@@ -176,7 +176,7 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
-    assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert source_refs["bridged_from_owner_reason"] == "opl_stage_attempt_admission_required"
     assert source_refs["bridged_from_idempotency_key"] == route["idempotency_key"]
     assert source_refs["work_unit_id"] == work_unit_id
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
@@ -385,7 +385,7 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
         study_id=study_id,
         quest_id=quest_id,
         next_owner="write",
-        owner_reason="quest_waiting_opl_runtime_owner_route",
+        owner_reason="opl_stage_attempt_admission_required",
         allowed_actions=["run_quality_repair_batch"],
     )
     route.update(
@@ -402,13 +402,13 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
                 "runtime_health_epoch": "runtime-health-event-dm003-current-input-reviewer-record",
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
                 "owner_route_currentness_basis": {
                     "work_unit_id": work_unit_id,
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "truth_epoch": "truth-event-dm003-current-input-reviewer-record",
                     "runtime_health_epoch": "runtime-health-event-dm003-current-input-reviewer-record",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 },
             },
         }
@@ -426,7 +426,7 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
                     "action_type": "run_quality_repair_batch",
                     "owner": "write",
                     "request_owner": "write",
-                    "reason": "quest_waiting_opl_runtime_owner_route",
+                    "reason": "opl_stage_attempt_admission_required",
                     "next_work_unit": work_unit_id,
                     "controller_work_unit_id": work_unit_id,
                     "executable_work_unit": work_unit_id,
@@ -466,7 +466,7 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
     assert source_refs["source_eval_id"] == eval_id
     assert source_refs["materialized_work_unit_id"] == "medical_prose_write_repair"
     assert source_refs["materialized_from_action_type"] == "run_quality_repair_batch"
-    assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert source_refs["bridged_from_owner_reason"] == "opl_stage_attempt_admission_required"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
 
 

@@ -102,7 +102,7 @@ def test_opl_runtime_refs_suppress_non_running_opl_stage_attempt() -> None:
         {
             "quest_status": "active",
             "runtime_liveness_status": "live",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "opl_current_control_state": {
                 "status": "blocked",
                 "running_provider_attempt": False,

@@ -115,7 +115,7 @@ def _domain_transition_runtime_redrive_reason(status: ProgressProjectionStatus) 
     try:
         reason = StudyRuntimeReason(reason_code)
     except ValueError:
-        reason = StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+        reason = StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED
     return reason
 
 
@@ -290,9 +290,9 @@ def _apply_domain_transition_redrive_decision(
                 else StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME
             ),
         )
-    elif reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE:
+    elif reason is StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED:
         status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeDecision.HANDOFF_REQUIRED,
             reason,
         )
     elif execution.get("auto_resume") is True:

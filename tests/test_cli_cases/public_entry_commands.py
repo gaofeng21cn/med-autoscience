@@ -472,6 +472,7 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
         apply: bool,
         profile=None,
         study_ids=(),
+        diagnostic_scope: str = "full",
         request_opl_stage_attempts: bool = False,
         request_opl_owner_route_reconcile: bool = False,
         persist_diagnostic_reports: bool = False,
@@ -480,6 +481,7 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
         called["apply"] = apply
         called["profile"] = profile
         called["study_ids"] = study_ids
+        called["diagnostic_scope"] = diagnostic_scope
         called["request_opl_stage_attempts"] = request_opl_stage_attempts
         called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         called["persist_diagnostic_reports"] = persist_diagnostic_reports
@@ -495,6 +497,7 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
     assert called["apply"] is True
     assert called["profile"] is None
     assert called["study_ids"] == ()
+    assert called["diagnostic_scope"] == "full"
     assert called["request_opl_stage_attempts"] is False
     assert called["request_opl_owner_route_reconcile"] is False
     assert called["persist_diagnostic_reports"] is True
@@ -518,6 +521,7 @@ def test_domain_health_diagnostic_profile_only_uses_profile_runtime_root(
         apply: bool,
         profile=None,
         study_ids=(),
+        diagnostic_scope: str = "full",
         request_opl_stage_attempts: bool = False,
         request_opl_owner_route_reconcile: bool = False,
         persist_diagnostic_reports: bool = False,
@@ -526,6 +530,7 @@ def test_domain_health_diagnostic_profile_only_uses_profile_runtime_root(
         called["apply"] = apply
         called["profile"] = profile
         called["study_ids"] = study_ids
+        called["diagnostic_scope"] = diagnostic_scope
         called["request_opl_stage_attempts"] = request_opl_stage_attempts
         called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         called["persist_diagnostic_reports"] = persist_diagnostic_reports
@@ -561,6 +566,7 @@ def test_domain_health_diagnostic_profile_only_uses_profile_runtime_root(
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",
     )
+    assert called["diagnostic_scope"] == "full"
     assert called["request_opl_stage_attempts"] is True
     assert called["request_opl_owner_route_reconcile"] is True
     assert called["persist_diagnostic_reports"] is True
@@ -584,6 +590,7 @@ def test_domain_health_diagnostic_focused_stage_attempt_probe_allows_studies_wit
         apply: bool,
         profile=None,
         study_ids=(),
+        diagnostic_scope: str = "full",
         request_opl_stage_attempts: bool = False,
         request_opl_owner_route_reconcile: bool = False,
         persist_diagnostic_reports: bool = False,
@@ -592,6 +599,7 @@ def test_domain_health_diagnostic_focused_stage_attempt_probe_allows_studies_wit
         called["apply"] = apply
         called["profile"] = profile
         called["study_ids"] = study_ids
+        called["diagnostic_scope"] = diagnostic_scope
         called["request_opl_stage_attempts"] = request_opl_stage_attempts
         called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         called["persist_diagnostic_reports"] = persist_diagnostic_reports
@@ -626,6 +634,7 @@ def test_domain_health_diagnostic_focused_stage_attempt_probe_allows_studies_wit
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",
     )
+    assert called["diagnostic_scope"] == "full"
     assert called["request_opl_stage_attempts"] is True
     assert called["request_opl_owner_route_reconcile"] is False
     assert called["persist_diagnostic_reports"] is False
@@ -862,6 +871,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
         apply: bool,
         profile=None,
         study_ids=(),
+        diagnostic_scope: str = "full",
         request_opl_stage_attempts: bool = False,
         request_opl_owner_route_reconcile: bool = False,
         persist_diagnostic_reports: bool = False,
@@ -870,6 +880,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
         called["apply"] = apply
         called["profile"] = profile
         called["study_ids"] = study_ids
+        called["diagnostic_scope"] = diagnostic_scope
         called["request_opl_stage_attempts"] = request_opl_stage_attempts
         called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         called["persist_diagnostic_reports"] = persist_diagnostic_reports

@@ -31,8 +31,8 @@ def test_execute_quality_repair_batch_allows_current_nonterminal_stall_after_saf
     route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
     route.update(
         {
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "source_fingerprint": "truth-snapshot::dm002-current-write-route",
             "work_unit_fingerprint": work_unit_fingerprint,
             "idempotency_key": "owner-route::dm002::write::quest-waiting-opl-runtime-owner-route",
@@ -44,7 +44,7 @@ def test_execute_quality_repair_batch_allows_current_nonterminal_stall_after_saf
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "truth_epoch": "truth-event-000024",
                     "runtime_health_epoch": "runtime-health-event-006388",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 },
             },
             "source_refs": {
@@ -57,7 +57,7 @@ def test_execute_quality_repair_batch_allows_current_nonterminal_stall_after_saf
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "truth_epoch": "truth-event-000024",
                     "runtime_health_epoch": "runtime-health-event-006388",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 },
             },
         }
@@ -196,8 +196,8 @@ def test_execute_quality_repair_batch_escalates_after_two_same_auto_failures(
     route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
     route.update(
         {
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "work_unit_fingerprint": work_unit_fingerprint,
             "source_refs": {
                 "work_unit_id": work_unit_id,

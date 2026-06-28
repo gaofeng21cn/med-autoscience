@@ -113,8 +113,8 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
             "quest_exists": True,
             "quest_status": "active",
             "study_completion_contract": {},
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "publication_supervisor_state": {
                 "supervisor_phase": "publishability_gate_blocked",
                 "phase_owner": "publication_gate",

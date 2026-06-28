@@ -497,8 +497,8 @@ def test_redrive_projection_prefers_explicit_handoff_owner_over_stale_terminal_l
             "quest_status": "waiting_for_user",
             "next_owner": "external_supervisor",
             "external_supervisor_required": True,
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
-            "why_not_applied": ["quest_waiting_opl_runtime_owner_route"],
+            "blocked_reason": "opl_stage_attempt_admission_required",
+            "why_not_applied": ["opl_stage_attempt_admission_required"],
             "action_queue": [],
             "latest_terminal_stage_log": {
                 "surface_kind": "mas_latest_terminal_stage_log_projection",
@@ -541,11 +541,11 @@ def test_redrive_projection_prefers_explicit_handoff_owner_over_stale_terminal_l
 
     assert "external_supervisor owner" in result["next_system_action"]
     assert "request_opl_handoff_hydration" in result["next_system_action"]
-    assert "quest_waiting_opl_runtime_owner_route" in result["next_system_action"]
+    assert "opl_stage_attempt_admission_required" in result["next_system_action"]
     assert "return_to_ai_reviewer_workflow" not in result["next_system_action"]
     assert result["user_visible_projection"]["next_owner"] == "external_supervisor"
     assert result["intervention_lane"]["route_target"] == "external_supervisor"
-    assert result["intervention_lane"]["route_key_question"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["intervention_lane"]["route_key_question"] == "opl_stage_attempt_admission_required"
     assert result["operator_verdict"]["route_target"] == "external_supervisor"
     assert result["recovery_contract"]["route_target"] == "external_supervisor"
     assert result["autonomy_contract"]["next_signal"] == result["next_system_action"]
@@ -608,8 +608,8 @@ def test_redrive_projection_ignores_handoff_older_than_current_controller_truth(
             "quest_status": "waiting_for_user",
             "next_owner": "external_supervisor",
             "external_supervisor_required": True,
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
-            "why_not_applied": ["quest_waiting_opl_runtime_owner_route"],
+            "blocked_reason": "opl_stage_attempt_admission_required",
+            "why_not_applied": ["opl_stage_attempt_admission_required"],
             "action_queue": [],
         },
         "intervention_lane": {

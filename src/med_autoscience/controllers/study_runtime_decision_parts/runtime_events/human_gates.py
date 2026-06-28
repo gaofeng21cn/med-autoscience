@@ -338,7 +338,7 @@ def _set_running_quest_recovery_decision(
     execution: dict[str, object],
 ) -> None:
     interaction_arbitration = status.extras.get("interaction_arbitration")
-    generic_opl_owner_route_redrive = (
+    opl_stage_attempt_admission_required = (
         isinstance(interaction_arbitration, dict)
         and str(interaction_arbitration.get("classification") or "").strip()
         in {
@@ -370,10 +370,14 @@ def _set_running_quest_recovery_decision(
         )
     elif execution.get("auto_resume") is True:
         status.set_decision(
-            StudyRuntimeDecision.BLOCKED if generic_opl_owner_route_redrive else StudyRuntimeDecision.RESUME,
             (
-                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
-                if generic_opl_owner_route_redrive
+                StudyRuntimeDecision.HANDOFF_REQUIRED
+                if opl_stage_attempt_admission_required
+                else StudyRuntimeDecision.RESUME
+            ),
+            (
+                StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED
+                if opl_stage_attempt_admission_required
                 else StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION
             ),
         )

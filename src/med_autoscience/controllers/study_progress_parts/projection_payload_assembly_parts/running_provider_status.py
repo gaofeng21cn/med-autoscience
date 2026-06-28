@@ -22,7 +22,7 @@ RUNNING_PROVIDER_SUPERSEDED_BLOCKERS = frozenset(
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "provider_admission_current_control_state_required",
-        "quest_waiting_opl_runtime_owner_route",
+        "opl_stage_attempt_admission_required",
         "repair_progress_ai_reviewer_recheck_required",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",

@@ -382,7 +382,7 @@ def _record_runtime_recovery_lifecycle_if_required(status: ProgressProjectionSta
     decision = status.decision.value if status.decision is not None else ""
     if reason not in {
         StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION.value,
-        StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value,
+        StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED.value,
         StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED.value,
         StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED.value,
     }:
@@ -461,8 +461,8 @@ def _record_runtime_health_dominance(
             and (runtime_liveness is None or runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE)
         ):
             status.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+                StudyRuntimeDecision.HANDOFF_REQUIRED,
+                StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED,
             )
             _record_runtime_recovery_lifecycle_if_required(status)
         runtime_health_snapshot = _derive_runtime_health_snapshot_for_status(

@@ -283,8 +283,8 @@ def test_runtime_report_managed_action_uses_running_current_work_unit_over_stale
         managed_study_actions=[
             {
                 "study_id": study_id,
-                "decision": "blocked",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "decision": "handoff_required",
+                "reason": "opl_stage_attempt_admission_required",
                 "runtime_health_snapshot": {
                     "attempt_state": "live",
                     "worker_liveness_state": {
@@ -307,7 +307,7 @@ def test_runtime_report_managed_action_uses_running_current_work_unit_over_stale
                 "surface_kind": "mas_opl_runtime_owner_handoff",
                 "study_id": study_id,
                 "status": "handoff_required",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "typed_blocker": {"blocker_type": "opl_runtime_owner_handoff_required"},
             }
         ],
@@ -479,8 +479,8 @@ def test_runtime_report_consumes_progress_currentness_opl_live_readback_candidat
         managed_study_actions=[
             {
                 "study_id": study_id,
-                "decision": "blocked",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "decision": "handoff_required",
+                "reason": "opl_stage_attempt_admission_required",
             }
         ],
         managed_study_auto_recoveries=[],

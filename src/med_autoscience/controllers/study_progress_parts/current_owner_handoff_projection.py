@@ -227,7 +227,7 @@ def _string_items(value: object) -> list[str]:
 
 def _external_supervisor_action(handoff: Mapping[str, Any]) -> str:
     for item in handoff.get("why_not_applied") or []:
-        if _non_empty_text(item) == "quest_waiting_opl_runtime_owner_route":
+        if _non_empty_text(item) == "opl_stage_attempt_admission_required":
             return "request_opl_handoff_hydration"
     return "supervise_opl_runtime_owner_route"
 

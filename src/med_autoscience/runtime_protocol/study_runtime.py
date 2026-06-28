@@ -454,19 +454,24 @@ def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) ->
     )
 
 
-def should_refresh_startup_hydration_while_blocked(status: dict[str, Any]) -> bool:
-    if status.get("decision") != "blocked" or not bool(status.get("quest_exists")):
+def should_refresh_startup_hydration_for_runtime_hold(status: dict[str, Any]) -> bool:
+    if not bool(status.get("quest_exists")):
         return False
+    decision = str(status.get("decision") or "").strip()
     quest_status = str(status.get("quest_status") or "").strip()
     reason = str(status.get("reason") or "").strip()
-    if quest_status in {"created", "idle", "paused"} and reason in {
+    if decision == "blocked" and quest_status in {"created", "idle", "paused"} and reason in {
         "startup_boundary_not_ready_for_resume",
         "runtime_reentry_not_ready_for_resume",
         "quest_paused_but_auto_resume_disabled",
         "quest_initialized_but_auto_resume_disabled",
     }:
         return True
-    if reason != "quest_waiting_opl_runtime_owner_route" or quest_status not in {"active", "running", "paused"}:
+    if (
+        decision != "handoff_required"
+        or reason != "opl_stage_attempt_admission_required"
+        or quest_status not in {"active", "running", "paused"}
+    ):
         return False
     return _ai_reviewer_stage_knowledge_requires_reference_context_refresh(status)
 

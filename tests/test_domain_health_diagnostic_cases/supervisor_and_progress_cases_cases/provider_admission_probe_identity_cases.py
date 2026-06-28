@@ -581,7 +581,7 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
             **make_progress_projection_payload(
                 study_id=dm003,
                 decision="blocked",
-                reason="quest_waiting_opl_runtime_owner_route",
+                reason="opl_stage_attempt_admission_required",
             ),
             "study_root": str(dm003_root),
             "quest_id": dm003,

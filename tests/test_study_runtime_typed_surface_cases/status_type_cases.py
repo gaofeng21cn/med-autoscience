@@ -743,21 +743,21 @@ def test_progress_projection_detects_blocked_hydration_refresh_candidate() -> No
         )
     )
 
-    assert status.should_refresh_startup_hydration_while_blocked() is True
+    assert status.should_refresh_startup_hydration_for_runtime_hold() is True
 
     status.set_decision("blocked", "workspace_contract_not_ready")
 
-    assert status.should_refresh_startup_hydration_while_blocked() is False
+    assert status.should_refresh_startup_hydration_for_runtime_hold() is False
 
 
 def test_progress_projection_detects_owner_route_ai_reviewer_reference_context_hydration_gap() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     status = module.ProgressProjectionStatus.from_payload(
-        make_status_payload(
-            execution={"quest_id": "quest-001", "auto_resume": False},
-            quest_status="active",
-            decision="blocked",
-            reason="quest_waiting_opl_runtime_owner_route",
+            make_status_payload(
+                execution={"quest_id": "quest-001", "auto_resume": False},
+                quest_status="active",
+                decision="handoff_required",
+                reason="opl_stage_attempt_admission_required",
             ai_reviewer_request={
                 "input_contract": {
                     "all_required_refs_present": False,
@@ -777,7 +777,7 @@ def test_progress_projection_detects_owner_route_ai_reviewer_reference_context_h
         )
     )
 
-    assert status.should_refresh_startup_hydration_while_blocked() is True
+    assert status.should_refresh_startup_hydration_for_runtime_hold() is True
 
 
 def test_runtime_binding_and_daemon_step_enums_remain_progress_projection_owned() -> None:

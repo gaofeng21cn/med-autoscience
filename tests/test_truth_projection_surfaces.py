@@ -112,7 +112,7 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
         {
             "study_id": "002-dm-china-us-mortality-attribution",
             "quest_status": "waiting_for_user",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "active_run_id": None,
             "domain_transition": {
                 "decision_type": "route_back_same_line",

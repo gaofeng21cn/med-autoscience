@@ -55,8 +55,8 @@ def test_domain_health_diagnostic_provider_admission_scope_skips_quest_and_owner
             "study_root": str(study_root),
             "quest_id": study_id,
             "quest_root": str(profile.runtime_root / study_id),
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "current_work_unit": {
                 "status": "executable_owner_action",
                 "action_type": "run_quality_repair_batch",

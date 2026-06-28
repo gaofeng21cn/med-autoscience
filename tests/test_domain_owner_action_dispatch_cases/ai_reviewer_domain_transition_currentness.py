@@ -141,8 +141,8 @@ def test_refresh_controller_decision_routes_finalize_gate_replay_to_gate_clearin
     status_payload = {
         "study_id": study_id,
         "quest_id": study_id,
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "quest_status": "waiting_for_user",
         "domain_transition": {
             "decision_type": "route_back_same_line",
@@ -246,8 +246,8 @@ def test_refresh_controller_decision_rejects_gate_replay_with_stale_write_action
     status_payload = {
         "study_id": study_id,
         "quest_id": study_id,
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "quest_status": "waiting_for_user",
         "domain_transition": {
             "decision_type": "route_back_same_line",

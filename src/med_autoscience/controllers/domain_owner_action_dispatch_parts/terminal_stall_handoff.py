@@ -73,7 +73,7 @@ def owner_handoff_allowed(
             or _mapping(_mapping(current_study).get("domain_transition")).get("next_work_unit")
         )
         return (
-            _text(owner_route.get("failure_signature")) == "quest_waiting_opl_runtime_owner_route"
+            _text(owner_route.get("failure_signature")) == "opl_stage_attempt_admission_required"
             and next_work_unit_id == "medical_prose_write_repair"
         )
     if action_type == "run_gate_clearing_batch":

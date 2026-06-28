@@ -652,7 +652,7 @@ def _is_runtime_to_story_surface_bridge(
     return (
         original_owner_reason
         in {
-            "quest_waiting_opl_runtime_owner_route",
+            "opl_stage_attempt_admission_required",
             *AI_REVIEWER_RECORD_OWNER_REASONS,
             *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
         }
@@ -671,7 +671,7 @@ def _is_publication_owner_materialization_bridge(
     return (
         original_owner_reason
         in {
-            "quest_waiting_opl_runtime_owner_route",
+            "opl_stage_attempt_admission_required",
             *AI_REVIEWER_RECORD_OWNER_REASONS,
             *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
         }

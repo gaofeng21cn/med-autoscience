@@ -49,7 +49,7 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
             "source_refs": {
                 "work_unit_id": "dm002_current_manuscript_reporting_consistency_write_repair",
                 "work_unit_fingerprint": "truth-snapshot::previous-quality-repair",
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
             },
         }
     )

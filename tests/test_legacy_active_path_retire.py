@@ -262,7 +262,7 @@ def test_allowed_legacy_reference_classes_are_claim_limited() -> None:
 def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers import owner_route_handoff
+    from med_autoscience.controllers.owner_route_handoff_parts import domain_handler_export
 
     profile = make_profile(tmp_path)
     write_study(
@@ -271,7 +271,7 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
         quest_id="002-dm-china-us-mortality-attribution",
     )
 
-    export = owner_route_handoff.export_family_domain_handler(
+    export = domain_handler_export.export_family_domain_handler(
         profile=profile,
         profile_ref=tmp_path / "profile.toml",
     )

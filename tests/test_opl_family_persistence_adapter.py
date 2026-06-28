@@ -395,7 +395,8 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert by_slot["agent/quality_gates"]["surface_class"] == "quality"
     assert by_slot["agent/quality_gates"]["default_for_new_surfaces"] is True
     assert by_slot["contracts/runtime/domain-handler"]["repo_paths"] == [
-        "src/med_autoscience/controllers/owner_route_handoff.py",
+        "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
+        "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
         "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
     ]
     assert by_slot["contracts/runtime/projection_builders"]["surface_class"] == "projection"

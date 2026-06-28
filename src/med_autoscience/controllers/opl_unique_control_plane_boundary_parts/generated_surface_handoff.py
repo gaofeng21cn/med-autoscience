@@ -47,7 +47,6 @@ def build_generated_surface_handoff(
             {
                 "surface_id": "domain_handler",
                 "current_paths": [
-                    "src/med_autoscience/controllers/owner_route_handoff.py",
                     (
                         "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "domain_handler_export.py"

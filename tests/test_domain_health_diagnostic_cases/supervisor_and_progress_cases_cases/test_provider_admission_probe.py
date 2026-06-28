@@ -485,7 +485,7 @@ def test_runtime_owner_handoff_preserves_dm003_provider_admission_pending_identi
             "study_id": study_id,
             "quest_id": study_id,
             "quest_root": str(quest_root),
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [candidate],
             "active_run_id": None,
@@ -565,7 +565,7 @@ def test_runtime_dry_run_handoff_preserves_dm003_current_control_provider_admiss
         **make_progress_projection_payload(
             study_id=study_id,
             decision="blocked",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
         ),
         "study_root": str(study_root),
         "quest_id": study_id,

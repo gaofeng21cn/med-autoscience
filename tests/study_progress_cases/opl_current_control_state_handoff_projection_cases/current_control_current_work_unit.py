@@ -107,8 +107,8 @@ def test_study_handoff_preserves_current_control_current_work_unit(
             "quest_id": quest_id,
             "quest_root": str(profile.runtime_root / quest_id),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "active_run_id": None,
             "runtime_health_snapshot": {
                 "runtime_health_epoch": "runtime-health-event-after-closeout",

@@ -15,7 +15,6 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     publication_gate,
     runtime_health_kernel,
-    owner_route_handoff,
     owner_route_reconcile,
     domain_health_diagnostic_outer_loop_dispatch,
     domain_health_diagnostic_recovery_policy,
@@ -29,6 +28,9 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.domain_health_diagnostic_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
 )
+from med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export import (
+    export_family_domain_handler,
+)
 from med_autoscience.controllers.owner_callable_adapter_projection import domain_progress_transition_requests
 from med_autoscience.controllers.domain_health_diagnostic_parts.autonomy_repair import (
     apply_ready_ai_doctor_repair,
@@ -40,10 +42,10 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.apply_readback_s
     attach_apply_readback_summary,
     capture_apply_readback_snapshot,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.control_plane_gate import (
-    CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
-    apply_control_plane_dispatch_block,
-    runtime_recovery_blocked_by_control_plane,
+from med_autoscience.controllers.domain_health_diagnostic_parts.authority_dispatch_gate import (
+    AUTHORITY_DISPATCH_BLOCKED_SUMMARY,
+    apply_authority_dispatch_block,
+    runtime_recovery_blocked_by_authority,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.fingerprints import build_fingerprint
 from med_autoscience.controllers.domain_health_diagnostic_parts.gate_specificity import (
@@ -430,8 +432,8 @@ def _request_opl_stage_attempt(
     provider_admission_identity = provider_admission_candidates[0] if provider_admission_candidates else None
     return {
         **status_payload,
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "status": "opl_stage_attempt_admission_required",
         "source": source,
         "runtime_owner": "one-person-lab",
@@ -779,7 +781,7 @@ def run_domain_health_diagnostic_for_runtime(
             report=report,
             profile=profile,
             study_ids=study_ids,
-            export_family_domain_handler=owner_route_handoff.export_family_domain_handler,
+            export_family_domain_handler=export_family_domain_handler,
         )
     if (
         scope.materializes_provider_admission_current_control

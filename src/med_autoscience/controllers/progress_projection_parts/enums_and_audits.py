@@ -57,6 +57,7 @@ def _absent_study_completion_state() -> StudyCompletionState:
 class StudyRuntimeDecision(StrEnum):
     LIGHTWEIGHT = "lightweight"
     BLOCKED = "blocked"
+    HANDOFF_REQUIRED = "handoff_required"
     CREATE_AND_START = "create_and_start"
     CREATE_ONLY = "create_only"
     RESUME = "resume"
@@ -116,7 +117,7 @@ class StudyRuntimeReason(StrEnum):
     QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
     QUEST_WAITING_ON_INVALID_BLOCKING = "quest_waiting_on_invalid_blocking"
     QUEST_WAITING_USER_MESSAGE_REDRIVE = "quest_waiting_user_message_redrive"
-    QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE = "quest_waiting_opl_runtime_owner_route"
+    OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED = "opl_stage_attempt_admission_required"
     DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL = "domain_transition_ai_reviewer_re_eval"
     DOMAIN_TRANSITION_PUBLICATION_GATE_BLOCKER = "domain_transition_publication_gate_blocker"
     QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR = (

@@ -249,12 +249,12 @@ def test_execute_quality_repair_batch_restores_work_unit_from_owner_route_source
             False,
         ),
         (
-            "quest_waiting_opl_runtime_owner_route",
+            "opl_stage_attempt_admission_required",
             "owner-route::dm003::write::quest-waiting-opl-runtime-owner-route",
             False,
         ),
         (
-            "quest_waiting_opl_runtime_owner_route",
+            "opl_stage_attempt_admission_required",
             "owner-route::dm003::write::quest-waiting-opl-runtime-owner-route-string-work-unit",
             True,
         ),
@@ -398,8 +398,8 @@ def test_execute_quality_repair_batch_uses_current_terminal_stall_when_dispatch_
     route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
     route.update(
         {
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "work_unit_fingerprint": "truth-snapshot::dm003-medical-prose",
             "idempotency_key": "owner-route::dm003::write::quest-waiting-opl-runtime-owner-route",
         }
@@ -525,13 +525,13 @@ def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_
     route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
     route.update(
         {
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
             "idempotency_key": "owner-route::dm002::write::current-publication-hardening",
             "owner_reason_contract": {
                 "registered": True,
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "owner": "write",
                 "allowed_actions": ["run_quality_repair_batch"],
                 "required_output": (
@@ -551,7 +551,7 @@ def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_
                     "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
                     "truth_epoch": "truth-event-000017",
                     "runtime_health_epoch": "runtime-health-event-006191",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 }
             },
         }

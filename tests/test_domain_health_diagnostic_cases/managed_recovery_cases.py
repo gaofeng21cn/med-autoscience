@@ -52,8 +52,8 @@ def test_watch_runtime_records_opl_stage_attempt_handoff_without_mas_recovery(tm
     assert result["managed_study_auto_recoveries"] == []
     action = result["managed_study_actions"][0]
     assert action["study_id"] == "001-risk"
-    assert action["decision"] == "blocked"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["decision"] == "handoff_required"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
 
@@ -124,8 +124,8 @@ def test_watch_runtime_isolates_managed_study_projection_errors(tmp_path: Path, 
     actions = {action["study_id"]: action for action in result["managed_study_actions"]}
     assert actions["001-retired"]["decision"] == "blocked"
     assert actions["001-retired"]["reason"] == "study_projection_contract_error"
-    assert actions["002-live"]["decision"] == "blocked"
-    assert actions["002-live"]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert actions["002-live"]["decision"] == "handoff_required"
+    assert actions["002-live"]["reason"] == "opl_stage_attempt_admission_required"
     assert actions["002-live"]["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert outer_loop_calls == ["002-live"]
 
@@ -177,8 +177,8 @@ def test_watch_runtime_managed_recovery_records_opl_provider_handoff_blocker(tmp
 
     assert result["managed_study_auto_recoveries"] == []
     action = result["managed_study_actions"][0]
-    assert action["decision"] == "blocked"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["decision"] == "handoff_required"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["typed_blocker"] == {
         "blocker_type": "opl_stage_attempt_admission_required",

@@ -303,7 +303,7 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
         study_id=study_id,
         quest_id=quest_id,
         next_owner="write",
-        owner_reason="quest_waiting_opl_runtime_owner_route",
+        owner_reason="opl_stage_attempt_admission_required",
         allowed_actions=["run_quality_repair_batch"],
     )
     stale_route = _owner_route(

@@ -205,8 +205,8 @@ def test_domain_health_diagnostic_outer_loop_request_preserves_finalize_gate_rep
         "quest_id": study_id,
         "study_root": str(study_root),
         "quest_root": str(profile.runtime_root / study_id),
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "quest_status": "waiting_for_user",
         "domain_transition": {
             "decision_type": "route_back_same_line",

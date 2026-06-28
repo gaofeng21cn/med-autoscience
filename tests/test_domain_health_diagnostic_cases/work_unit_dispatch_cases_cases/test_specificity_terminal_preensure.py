@@ -305,6 +305,6 @@ def test_watch_runtime_applies_specificity_action_override_by_study_root(
     assert result["managed_study_actions"][0]["reason"] == "needs_specificity"
     assert result["managed_study_actions"][0]["work_unit_id"] == "gate_needs_specificity"
     assert result["managed_study_actions"][1]["study_id"] == "002-risk"
-    assert result["managed_study_actions"][1]["decision"] == "blocked"
-    assert result["managed_study_actions"][1]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][1]["decision"] == "handoff_required"
+    assert result["managed_study_actions"][1]["reason"] == "opl_stage_attempt_admission_required"
     assert result["managed_study_actions"][1]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"

@@ -468,7 +468,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
         study_id=study_id,
         quest_id=quest_id,
         next_owner="write",
-        owner_reason="quest_waiting_opl_runtime_owner_route",
+        owner_reason="opl_stage_attempt_admission_required",
         allowed_actions=["run_quality_repair_batch"],
     )
     route.update(
@@ -497,7 +497,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
                     "action_type": "run_quality_repair_batch",
                     "owner": "write",
                     "request_owner": "write",
-                    "reason": "quest_waiting_opl_runtime_owner_route",
+                    "reason": "opl_stage_attempt_admission_required",
                     "next_work_unit": work_unit_id,
                     "controller_work_unit_id": work_unit_id,
                     "executable_work_unit": work_unit_id,
@@ -535,7 +535,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
     assert source_refs["materialized_work_unit_id"] == "publication_gate_replay"
     assert source_refs["materialized_from_action_type"] == "run_quality_repair_batch"
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_publication_owner_bridge"
-    assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert source_refs["bridged_from_owner_reason"] == "opl_stage_attempt_admission_required"
     assert source_refs["bridged_from_idempotency_key"] == route["idempotency_key"]
     assert dispatch["source_action_ref"]["controller_work_unit_id"] == work_unit_id
     assert dispatch["source_action_ref"]["materialization_decision"] == "publication_gate_replay"
@@ -565,7 +565,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
         study_id=study_id,
         quest_id=quest_id,
         next_owner="write",
-        owner_reason="quest_waiting_opl_runtime_owner_route",
+        owner_reason="opl_stage_attempt_admission_required",
         allowed_actions=["run_quality_repair_batch"],
     )
     route.update(
@@ -609,7 +609,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
                     "action_type": "run_quality_repair_batch",
                     "owner": "write",
                     "request_owner": "write",
-                    "reason": "quest_waiting_opl_runtime_owner_route",
+                    "reason": "opl_stage_attempt_admission_required",
                     "next_work_unit": work_unit_id,
                     "controller_work_unit_id": work_unit_id,
                     "owner_route": route,

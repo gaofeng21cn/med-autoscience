@@ -25,8 +25,8 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
         lambda **kwargs: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "typed_blocker": {
                 "blocker_type": "opl_provider_admission_required",
                 "reason": "mas_private_runtime_transport_retired",
