@@ -270,6 +270,122 @@ def test_ai_reviewer_payload_guard_refreshes_target_metadata_before_record_paylo
     assert not (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").exists()
 
 
+def test_ai_reviewer_payload_guard_prefers_stable_medical_prose_review_over_legacy_request_ref(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / study_id
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    stable_prose_review = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    legacy_prose_review = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_prose_review.json"
+    )
+    current_record_ref = str(
+        (
+            study_root
+            / "artifacts"
+            / "publication_eval"
+            / "ai_reviewer_responses"
+            / "20260628T193408Z_publication_eval_record.json"
+        ).resolve()
+    )
+    for path in (request_path, stable_prose_review, legacy_prose_review):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface": "domain_action_request",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "request_owner": "ai_reviewer",
+                "input_contract": {
+                    "required_refs": {
+                        "medical_prose_review": {"path": str(legacy_prose_review.resolve())},
+                    }
+                },
+                "request_lifecycle": {
+                    "state": "requested",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                    "stale_record_ref": current_record_ref,
+                    "required_currentness_refs": [str(stable_prose_review.resolve())],
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module.study_progress_projection,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "study_root": str(study_root),
+            "current_work_unit": {
+                "status": "executable_owner_action",
+                "owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review",
+            },
+        },
+    )
+
+    result = module.plan_ai_reviewer_publication_eval_record_materialization(
+        profile=profile,
+        study_id=study_id,
+        study_root=None,
+        entry_mode="owner_consumption_payload_guard",
+        source="cli",
+        record={
+            "surface": "ai_reviewer_record_payload_authoring_target",
+            "stale_record_ref": current_record_ref,
+            "required_currentness_refs": [str(stable_prose_review.resolve())],
+            "required_input_refs": {"medical_prose_review": str(stable_prose_review.resolve())},
+            "record_payload": {
+                "eval_id": "publication-eval::003::current",
+                "reviewer_operating_system": {
+                    "input_bundle": {
+                        "medical_prose_review": str(stable_prose_review.resolve()),
+                    }
+                },
+            },
+        },
+        expected_owner="ai_reviewer",
+        expected_action_type="return_to_ai_reviewer_workflow",
+        expected_work_unit_id="ai_reviewer_medical_prose_quality_review",
+        expected_work_unit_fingerprint="domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review",
+    )
+
+    assert result["status"] == "dry_run"
+    assert result["payload_guard"]["matched"] is True
+    assert result["payload_guard"]["mismatches"] == []
+    assert result["payload_guard"]["record_payload_mismatches"] == []
+    assert result["required_input_refs"]["medical_prose_review"] == str(stable_prose_review.resolve())
+    assert result["payload_target_metadata_refresh"]["current_metadata"]["required_input_refs"][
+        "medical_prose_review"
+    ] == str(stable_prose_review.resolve())
+    assert str(legacy_prose_review.resolve()) not in json.dumps(
+        result["payload_target_metadata_refresh"]["current_metadata"]
+    )
+    assert result["written_files"] == []
+
+
 def test_ai_reviewer_record_dry_run_rejects_schema_invalid_authoring_target(
     monkeypatch,
     tmp_path: Path,

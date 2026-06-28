@@ -15,6 +15,9 @@ from med_autoscience.medical_prose_review import stable_medical_prose_review_pat
 from . import ai_reviewer_publication_eval_workflow, domain_status_projection, paper_authority_migration
 from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
 from .domain_action_request_lifecycle import read_ai_reviewer_request, stable_ai_reviewer_request_path
+from .domain_action_request_lifecycle_parts.ai_reviewer_input_contract import (
+    input_contract_with_normalized_refs,
+)
 from .study_progress_parts import projection as study_progress_projection
 from .study_runtime_resolution import _execution_payload, _resolve_study
 
@@ -269,13 +272,31 @@ def _record_payload_missing_blocker(
     }
 
 
+def _request_with_normalized_input_refs(
+    *,
+    study_root: Path,
+    request: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not request:
+        return {}
+    normalized = dict(request)
+    normalized["input_contract"] = input_contract_with_normalized_refs(
+        normalized,
+        study_root=study_root,
+    )
+    return normalized
+
+
 def _refs_from_record_and_request(
     *,
     study_root: Path,
     record_payload: Mapping[str, Any],
 ) -> tuple[dict[str, str | None], dict[str, str | None]]:
     request_path = stable_ai_reviewer_request_path(study_root=study_root)
-    request = _read_json_object(request_path) if request_path.exists() else {}
+    request = _request_with_normalized_input_refs(
+        study_root=study_root,
+        request=_read_json_object(request_path) if request_path.exists() else {},
+    )
     required_refs = ai_reviewer_request_refs.required_refs(request)
     optional_refs = ai_reviewer_request_refs.optional_refs(request)
     input_bundle = _mapping(_mapping(record_payload.get("reviewer_operating_system")).get("input_bundle"))
@@ -548,7 +569,10 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     )
     resolved_study_root = _resolved_study_root(status_payload)
     resolved_study_id = _optional_text(status_payload.get("study_id")) or resolved_study_root.name
-    request = read_ai_reviewer_request(study_root=resolved_study_root) or {}
+    request = _request_with_normalized_input_refs(
+        study_root=resolved_study_root,
+        request=read_ai_reviewer_request(study_root=resolved_study_root) or {},
+    )
     lifecycle = _mapping(request.get("request_lifecycle"))
     request_required_currentness_refs = [
         str(item).strip()
