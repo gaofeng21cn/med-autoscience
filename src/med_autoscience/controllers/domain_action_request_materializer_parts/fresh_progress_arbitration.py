@@ -362,7 +362,7 @@ def _scan_action_is_writer_story_surface_handoff(action: object) -> bool:
     if owner != "write":
         return False
     reason = _text(payload.get("reason")) or _text(_mapping(payload.get("handoff_packet")).get("reason"))
-    return reason in {"manuscript_story_surface_delta_missing", "quest_waiting_opl_runtime_owner_route"}
+    return reason in {"manuscript_story_surface_delta_missing", "opl_stage_attempt_admission_required"}
 
 
 def _owner_route_is_writer_story_surface_route(owner_route: Mapping[str, Any]) -> bool:
@@ -370,7 +370,7 @@ def _owner_route_is_writer_story_surface_route(owner_route: Mapping[str, Any]) -
     if _text(route.get("next_owner")) != "write":
         return False
     reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
-    if reason not in {"manuscript_story_surface_delta_missing", "quest_waiting_opl_runtime_owner_route"}:
+    if reason not in {"manuscript_story_surface_delta_missing", "opl_stage_attempt_admission_required"}:
         return False
     return "run_quality_repair_batch" in {
         text for item in route.get("allowed_actions") or [] if (text := _text(item)) is not None

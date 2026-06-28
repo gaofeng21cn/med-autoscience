@@ -110,7 +110,7 @@ def _reason_for_route(controller_route: Mapping[str, Any]) -> str:
         return "manuscript_story_surface_delta_missing"
     if _text(controller_route.get("authorization_basis")) == "gate_replay_route_back":
         return "publication_gate_route_back_write_required"
-    return "quest_waiting_opl_runtime_owner_route"
+    return "opl_stage_attempt_admission_required"
 
 
 def _required_output_surface(work_unit_id: str) -> str:

@@ -320,7 +320,7 @@ def test_study_state_matrix_consumes_paper_review_default_executor_closeout(
                 "source_eval_id": source_eval_id,
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
             },
             "artifact_delta": {
                 "status": "already_materialized_for_stage_packet",

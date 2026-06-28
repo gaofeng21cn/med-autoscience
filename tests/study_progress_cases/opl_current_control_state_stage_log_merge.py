@@ -75,8 +75,8 @@ def test_study_progress_merges_live_stage_log_when_handoff_study_entry_lacks_it(
             "quest_id": "quest-001",
             "quest_root": str(profile.managed_runtime_home / "quests" / "quest-001"),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "runtime_liveness_audit": {
                 "status": "live",
                 "source": "opl_current_control_state_provider_attempt",
@@ -635,8 +635,8 @@ def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_runn
             "quest_id": "quest-001",
             "quest_root": str(profile.managed_runtime_home / "quests" / "quest-001"),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "runtime_liveness_audit": {
                 "status": "live",
                 "source": "opl_current_control_state_provider_attempt",

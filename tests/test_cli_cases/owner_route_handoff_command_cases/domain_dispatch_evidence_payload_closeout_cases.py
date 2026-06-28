@@ -161,7 +161,7 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
             "domain_blocker": {
                 "surface_kind": "mas_domain_typed_blocker",
                 "blocker_kind": "owner_route_blocked",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "next_owner": "external_supervisor",
                 "provider_completion_is_domain_completion": False,
             },
@@ -208,7 +208,7 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
             "studies": [
                 {
                     "study_id": study_id,
-                    "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                    "blocked_reason": "opl_stage_attempt_admission_required",
                     "domain_transition": {
                         "decision_type": "route_back_same_line",
                         "route_target": "write",
@@ -221,7 +221,7 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
                     },
                     "owner_route": {
                         "next_owner": "external_supervisor",
-                        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                        "owner_reason": "opl_stage_attempt_admission_required",
                     },
                 }
             ]

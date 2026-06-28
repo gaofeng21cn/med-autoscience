@@ -281,7 +281,7 @@ def test_domain_handler_export_uses_mtime_for_legacy_dispatch_without_generated_
         owner_route=_owner_route(
             study_id=study_id,
             next_owner="write",
-            owner_reason="quest_waiting_opl_runtime_owner_route",
+            owner_reason="opl_stage_attempt_admission_required",
             action_type="run_quality_repair_batch",
             work_unit_id="medical_prose_currentness_recheck",
             work_unit_fingerprint="dm003::write::current",

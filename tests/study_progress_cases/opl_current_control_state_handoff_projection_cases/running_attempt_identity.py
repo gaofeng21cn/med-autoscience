@@ -448,8 +448,8 @@ def test_study_progress_keeps_unbound_live_attempt_as_observability_only(
             "quest_id": "quest-001",
             "quest_root": str(profile.managed_runtime_home / "quests" / "quest-001"),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "runtime_health_snapshot": {
                 "health_status": "queued",
                 "runtime_liveness_status": "queued",

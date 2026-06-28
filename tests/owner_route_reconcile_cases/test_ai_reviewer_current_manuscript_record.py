@@ -148,8 +148,8 @@ def test_current_ai_reviewer_response_record_drives_write_route_without_latest_m
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": old_eval,
         "study_truth_snapshot": {
@@ -309,8 +309,8 @@ def test_current_manuscript_stale_ai_reviewer_request_supersedes_write_route(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "study_truth_snapshot": {
@@ -489,8 +489,8 @@ def test_quality_repair_digest_mismatch_routes_to_current_manuscript_ai_reviewer
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "study_truth_snapshot": {
@@ -845,8 +845,8 @@ def test_record_production_domain_transition_survives_opl_admission_wait(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "domain_transition": {

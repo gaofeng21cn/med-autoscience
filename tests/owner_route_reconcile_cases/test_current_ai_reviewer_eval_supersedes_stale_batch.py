@@ -132,8 +132,8 @@ def test_current_ai_reviewer_eval_supersedes_stale_quality_batch_digest_mismatch
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "active",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": publication_eval,
         "study_truth_snapshot": {

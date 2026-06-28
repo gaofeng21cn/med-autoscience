@@ -9,7 +9,7 @@ from typing import Any
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 
 OPL_OWNER_ROUTE_HANDOFF_SOURCE = "owner_route_reconcile_opl_owner_route_handoff"
-OPL_RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
+OPL_STAGE_ATTEMPT_ADMISSION_REASON = "opl_stage_attempt_admission_required"
 OWNER_ROUTE_ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/**",
     "artifacts/autonomy/repair_lifecycle/latest.json",
@@ -216,7 +216,7 @@ def apply_result(
 
 
 __all__ = [
-    "OPL_RUNTIME_OWNER_ROUTE_REASON",
+    "OPL_STAGE_ATTEMPT_ADMISSION_REASON",
     "OPL_OWNER_ROUTE_HANDOFF_SOURCE",
     "apply_result",
     "authority_boundary",

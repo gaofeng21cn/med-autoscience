@@ -325,7 +325,7 @@ def test_auto_runtime_parking_does_not_park_callable_owner_redrive() -> None:
     projection = _projection(
         {
             "decision": "resume",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "quest_status": "waiting_for_user",
             "continuation_state": {
                 "quest_status": "waiting_for_user",
@@ -351,7 +351,7 @@ def test_auto_runtime_parking_does_not_park_callable_owner_redrive() -> None:
     assert projection["parked_state"] is None
     assert projection["parked_owner"] is None
     assert projection["awaiting_explicit_wakeup"] is False
-    assert projection["source_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert projection["source_reason"] == "opl_stage_attempt_admission_required"
 
 
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:

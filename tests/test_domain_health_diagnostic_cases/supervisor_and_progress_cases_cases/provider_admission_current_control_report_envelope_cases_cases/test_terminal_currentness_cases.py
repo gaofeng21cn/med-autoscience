@@ -210,8 +210,8 @@ def test_runtime_report_marks_provider_admission_pending_not_blocked() -> None:
         managed_study_actions=[
             {
                 "study_id": study_id,
-                "decision": "blocked",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "decision": "handoff_required",
+                "reason": "opl_stage_attempt_admission_required",
             }
         ],
         managed_study_auto_recoveries=[],

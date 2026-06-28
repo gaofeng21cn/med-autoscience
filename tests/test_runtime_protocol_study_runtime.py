@@ -954,11 +954,11 @@ def test_startup_contract_validation_rejects_unknown_status() -> None:
         )
 
 
-def test_should_refresh_startup_hydration_while_blocked_accepts_allowed_blocked_states() -> None:
+def test_should_refresh_startup_hydration_for_runtime_hold_accepts_allowed_blocked_states() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
     assert (
-        module.should_refresh_startup_hydration_while_blocked(
+        module.should_refresh_startup_hydration_for_runtime_hold(
             {
                 "decision": "blocked",
                 "quest_exists": True,
@@ -979,7 +979,7 @@ def test_should_refresh_startup_hydration_while_blocked_accepts_allowed_blocked_
         {"decision": "blocked", "quest_exists": True, "quest_status": "paused", "reason": "other_reason"},
     ],
 )
-def test_should_refresh_startup_hydration_while_blocked_rejects_other_states(status: dict[str, object]) -> None:
+def test_should_refresh_startup_hydration_for_runtime_hold_rejects_other_states(status: dict[str, object]) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
-    assert module.should_refresh_startup_hydration_while_blocked(status) is False
+    assert module.should_refresh_startup_hydration_for_runtime_hold(status) is False

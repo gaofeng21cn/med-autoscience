@@ -50,7 +50,7 @@ def test_decorate_action_uses_control_surfaces_for_external_supervisor() -> None
         quest_id=None,
         action={
             "action_type": "request_opl_stage_attempt",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "authority": "external_supervisor",
         },
         request_allowed_write_surfaces=["paper/draft.md"],
@@ -60,7 +60,7 @@ def test_decorate_action_uses_control_surfaces_for_external_supervisor() -> None
 
     handoff = result["handoff_packet"]
     assert result["action_id"] == (
-        "supervisor-action::dm003::request_opl_stage_attempt::quest_waiting_opl_runtime_owner_route"
+        "supervisor-action::dm003::request_opl_stage_attempt::opl_stage_attempt_admission_required"
     )
     assert handoff["authority"] == "external_supervisor"
     assert handoff["recommended_owner"] == "external_engineering_agent"

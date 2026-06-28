@@ -38,7 +38,7 @@ _RUNTIME_RECOVERY_REASONS = {
     "runtime_recovery_retry_budget_exhausted",
     "runtime_recovery_not_authorized_stage_attempt_blocker",
     "runtime_recovery_retry_budget_terminal_blocker",
-    "quest_waiting_opl_runtime_owner_route",
+    "opl_stage_attempt_admission_required",
 }
 
 _CURRENT_OWNER_ROUTE_REASONS = {

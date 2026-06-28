@@ -33,11 +33,11 @@ def _current_write_route() -> dict[str, object]:
             "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
         ),
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
             "owner_route_currentness_basis": {
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006254-fresh",
                 "work_unit_fingerprint": (
@@ -523,7 +523,7 @@ def test_default_executor_stage_closeout_embedded_currentness_consumes_story_sur
         ),
         "source_refs": {
             "owner_route_currentness_basis": {
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
                 "work_unit_fingerprint": (
@@ -566,7 +566,7 @@ def test_default_executor_stage_closeout_embedded_currentness_consumes_story_sur
                     "domain-transition::route_back_same_line::"
                     "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
                 ),
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
             },
@@ -849,7 +849,7 @@ def test_scan_keeps_owner_route_and_typed_blocker_after_blocked_story_surface_cl
     )
     current_route = before_closeout["studies"][0]["action_queue"][0]["owner_route"]
     assert current_route["next_owner"] == "write"
-    assert current_route["owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert current_route["owner_reason"] == "opl_stage_attempt_admission_required"
     _write_json(
         study_root
         / "artifacts"
@@ -869,7 +869,7 @@ def test_scan_keeps_owner_route_and_typed_blocker_after_blocked_story_surface_cl
             "owner_route_basis": {
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
             },
@@ -919,7 +919,7 @@ def test_scan_keeps_owner_route_and_typed_blocker_after_blocked_story_surface_cl
     assert receipt["execution_status"] == "blocked"
     assert receipt["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert study["owner_route"]["next_owner"] == "write"
-    assert study["owner_route"]["owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert study["owner_route"]["owner_reason"] == "opl_stage_attempt_admission_required"
     assert study["owner_route"]["currentness_contract"]["missing_required_fields"] == []
     assert study["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert study["next_owner"] == "write"

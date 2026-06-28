@@ -85,7 +85,7 @@
         "attempt_state": "escalated",
         "retry_budget_remaining": 0,
         "blocking_reasons": [
-          "quest_waiting_opl_runtime_owner_route"
+          "opl_stage_attempt_admission_required"
         ]
       },
       "current_work_unit": {

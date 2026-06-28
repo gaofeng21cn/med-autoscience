@@ -199,9 +199,9 @@ def test_launch_study_explicit_wakeup_releases_paused_runtime_gate(
 
     assert after["runtime_status"]["product_entry_launch_policy"]["explicit_user_wakeup_recorded"] is True
     assert after["runtime_status"]["reason"] != "quest_user_paused_requires_explicit_wakeup"
-    assert after["runtime_status"]["decision"] in {"resume", "blocked"}
-    if after["runtime_status"]["decision"] == "blocked":
-        assert after["runtime_status"]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert after["runtime_status"]["decision"] in {"resume", "handoff_required"}
+    if after["runtime_status"]["decision"] == "handoff_required":
+        assert after["runtime_status"]["reason"] == "opl_stage_attempt_admission_required"
 
 
 def test_launch_study_rejects_unsupported_entry_mode_before_runtime_projection(
@@ -251,8 +251,8 @@ def test_launch_study_uses_formal_runtime_entry_mode_for_opl_handoff(
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
         }
 
     monkeypatch.setattr(launch_surface.domain_status_projection, "progress_projection", fake_progress_projection)

@@ -813,8 +813,8 @@ def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: P
         "source_fingerprint": "truth-source::dm003::medical-prose",
         "current_owner": "mas_controller",
         "next_owner": "write",
-        "failure_signature": "quest_waiting_opl_runtime_owner_route",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "failure_signature": "opl_stage_attempt_admission_required",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "blocked_actions": [],
         "idempotency_key": "owner-route::dm003::medical-prose",
@@ -823,7 +823,7 @@ def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: P
             "work_unit_id": "medical_prose_write_repair",
             "runtime_health_epoch": "runtime-health-event-dm003-medical-prose",
             "study_truth_epoch": "truth-event-dm003-medical-prose",
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
         },
     }
     handoff = writer_handoff.build_writer_worker_handoff(

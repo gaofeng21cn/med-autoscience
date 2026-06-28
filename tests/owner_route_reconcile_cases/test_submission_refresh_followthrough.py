@@ -66,7 +66,7 @@ def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",
@@ -274,7 +274,7 @@ def test_consumed_publication_gate_specificity_with_blocked_gate_routes_to_final
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",
@@ -504,7 +504,7 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",
@@ -745,7 +745,7 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "domain_transition": {
             "study_id": study_id,
             "decision_type": "route_back_same_line",

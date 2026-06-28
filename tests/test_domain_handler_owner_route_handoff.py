@@ -300,7 +300,7 @@ def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_run
                 "quest_id": study_id,
                 "runtime_state_path": str(runtime_state_path),
                 "source": "owner_route_reconcile_opl_runtime_handoff",
-                "reason": "quest_waiting_opl_runtime_owner_route",
+                "reason": "opl_stage_attempt_admission_required",
                 "repair_kind": "controller_work_unit_pending_redrive",
                 "authority_boundary": {
                     "mas_writes_generic_runtime_queue": False,
@@ -324,7 +324,7 @@ def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_run
         if task["task_kind"] == "domain_route/reconcile-apply"
         and task["dedupe_key"] == (
             "mas:diabetes:002-dm-china-us-mortality-attribution:"
-            "owner-route-handoff:quest_waiting_opl_runtime_owner_route"
+            "owner-route-handoff:opl_stage_attempt_admission_required"
         )
     ]
     assert len(tasks) == 1

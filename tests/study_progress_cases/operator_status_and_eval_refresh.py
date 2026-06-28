@@ -273,7 +273,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
             "runtime_liveness_status": "live",
             "worker_running": True,
             "active_run_id": "stale-run-from-before-failed-status",
-            "runtime_reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_reason": "opl_stage_attempt_admission_required",
             "summary": (
                 "live worker 已超过 meaningful artifact delta 活动窗口；监管心跳新鲜只能证明监控新鲜，"
                 "不能证明论文正常推进。"

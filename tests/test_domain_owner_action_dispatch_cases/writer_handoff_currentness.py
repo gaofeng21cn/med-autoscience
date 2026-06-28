@@ -32,14 +32,14 @@ def test_quality_repair_writer_handoff_bridges_runtime_owner_route_currentness(t
             "runtime_health_epoch": "runtime-health-dm003-write-route",
             "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
             "source_fingerprint": "truth-source::dm003::medical-prose",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "source_refs": {
                 "source_eval_id": source_eval_id,
                 "work_unit_id": "medical_prose_write_repair",
                 "runtime_health_epoch": "runtime-health-dm003-write-route",
                 "study_truth_epoch": source_eval_id,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
             },
         }
     )
@@ -80,7 +80,7 @@ def test_quality_repair_writer_handoff_bridges_runtime_owner_route_currentness(t
         "runtime_health_epoch": "runtime-health-dm003-write-route",
     }
     assert handoff["owner_route"]["source_refs"]["bridged_from_owner_reason"] == (
-        "quest_waiting_opl_runtime_owner_route"
+        "opl_stage_attempt_admission_required"
     )
     assert handoff["owner_route"]["source_refs"]["blocked_reason"] == (
         "manuscript_story_surface_delta_missing"
@@ -113,8 +113,8 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
             "runtime_health_epoch": "runtime-health-event-006244",
             "work_unit_fingerprint": work_unit_fingerprint,
             "source_fingerprint": "truth-snapshot::dm002-current",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "idempotency_key": "owner-route::dm002::runtime-handoff",
             "source_refs": {
                 "study_truth_epoch": "truth-event-000022",
@@ -122,7 +122,7 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
                 "source_eval_id": "publication-eval::dm002::current",
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
             },
         }
     )
@@ -137,7 +137,7 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
             "source_refs": {
                 **runtime_route["source_refs"],
                 "blocked_reason": "manuscript_story_surface_delta_missing",
-                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
                 "bridged_from_idempotency_key": runtime_route["idempotency_key"],
                 "bridge_authority": "quality_repair_batch_writer_handoff_currentness_bridge",
             },
@@ -261,7 +261,7 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
                             "action_type": "run_quality_repair_batch",
                             "owner": "write",
                             "request_owner": "write",
-                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "reason": "opl_stage_attempt_admission_required",
                             "next_work_unit": work_unit_id,
                             "controller_work_unit_id": work_unit_id,
                             "owner_route": runtime_route,
@@ -425,21 +425,21 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
             "runtime_health_epoch": "runtime-health-event-006239",
             "work_unit_fingerprint": work_unit_fingerprint,
             "source_fingerprint": "truth-snapshot::dm002-current",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "idempotency_key": "owner-route::dm002::runtime-handoff",
             "source_refs": {
                 "study_truth_epoch": "truth-event-000022",
                 "runtime_health_epoch": "runtime-health-event-006239",
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
                 "owner_route_currentness_basis": {
                     "work_unit_id": work_unit_id,
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "truth_epoch": "truth-event-000022",
                     "runtime_health_epoch": "runtime-health-event-006239",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 },
             },
         }
@@ -453,7 +453,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
             "source_refs": {
                 **runtime_route["source_refs"],
                 "blocked_reason": "manuscript_story_surface_delta_missing",
-                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
                 "bridged_from_idempotency_key": runtime_route["idempotency_key"],
                 "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
             },
@@ -526,7 +526,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
                             "action_type": "run_quality_repair_batch",
                             "owner": "write",
                             "request_owner": "write",
-                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "reason": "opl_stage_attempt_admission_required",
                             "next_work_unit": work_unit_id,
                             "controller_work_unit_id": work_unit_id,
                             "owner_route": runtime_route,

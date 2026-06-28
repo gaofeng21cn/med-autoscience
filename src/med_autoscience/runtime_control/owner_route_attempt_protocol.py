@@ -544,7 +544,7 @@ _REASON_REGISTRY = {
         "DM003:domain_transition_publication_gate_blocker"
     ),
     "run_gate_clearing_batch": _gate_clearing_entry("tests:legacy_action_reason_gate_clearing"),
-    "quest_waiting_opl_runtime_owner_route": _write_entry("DM002:runtime_redrive_route_back"),
+    "opl_stage_attempt_admission_required": _write_entry("DM002:runtime_redrive_route_back"),
     "controller_decision_route_back": _entry(
         owner="owner_route_next_owner",
         allowed_actions=["run_quality_repair_batch", "return_to_ai_reviewer_workflow"],

@@ -248,7 +248,7 @@ def test_dispatch_repeat_suppression_blocks_repeated_progress_first_owner_action
     repeat_suppression = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
     route = {
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "work_unit_fingerprint": "publication-blockers::same-source",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {"work_unit_id": "same-source-work-unit"},

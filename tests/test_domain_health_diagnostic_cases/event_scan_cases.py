@@ -115,7 +115,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
 
     assert first["managed_study_actions"][0]["study_id"] == "001-risk"
     assert second["managed_study_actions"][0]["study_id"] == "001-risk"
-    assert first["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert first["managed_study_actions"][0]["reason"] == "opl_stage_attempt_admission_required"
     assert first["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert first["managed_study_outer_loop_dispatches"] == []
     assert second["managed_study_outer_loop_dispatches"] == []
@@ -508,7 +508,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_a
     payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
 
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
-    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["reason"] == "opl_stage_attempt_admission_required"
     assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert result["managed_study_outer_loop_dispatches"] == []
     assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").exists()
@@ -611,7 +611,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_quality_re_review(
 
     payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
 
-    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["reason"] == "opl_stage_attempt_admission_required"
     assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert result["managed_study_outer_loop_dispatches"] == []
     assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").exists()

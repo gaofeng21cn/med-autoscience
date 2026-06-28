@@ -26,8 +26,8 @@ def test_execute_quality_repair_batch_uses_live_provider_attempt_dispatch_route_
     route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
     route.update(
         {
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "opl_stage_attempt_admission_required",
+            "failure_signature": "opl_stage_attempt_admission_required",
             "work_unit_fingerprint": (
                 "domain-transition::route_back_same_line::"
                 "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"

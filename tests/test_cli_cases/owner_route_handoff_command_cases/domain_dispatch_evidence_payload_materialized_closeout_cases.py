@@ -66,7 +66,7 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
                     "dispatch_path": str(workspace_root / dispatch_ref),
                     "current_owner_route": {
                         "next_owner": "write",
-                        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                        "owner_reason": "opl_stage_attempt_admission_required",
                         "work_unit_fingerprint": owner_route_basis["work_unit_fingerprint"],
                         "truth_epoch": owner_route_basis["truth_epoch"],
                         "runtime_health_epoch": owner_route_basis["runtime_health_epoch"],
@@ -203,7 +203,7 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
         "action_type": "run_quality_repair_batch",
         "idempotency_key": (
             "owner-route::002-dm-china-us-mortality-attribution::truth-event-000024-daa5883571a64a07::"
-            "write::quest_waiting_opl_runtime_owner_route::cafda975370666b3"
+            "write::opl_stage_attempt_admission_required::cafda975370666b3"
         ),
         "action_fingerprint": "paper_progress_stall:93efc669895ecdf9",
         "refs": {
@@ -213,7 +213,7 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
         },
         "owner_route": {
             "next_owner": "write",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "source_fingerprint": "truth-snapshot::b59ccabc79e7f6773fd2e783",
         },
     }
@@ -251,7 +251,7 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
                     "action_fingerprint": dispatch_packet["action_fingerprint"],
                     "current_owner_route": {
                         "next_owner": "write",
-                        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                        "owner_reason": "opl_stage_attempt_admission_required",
                     },
                     "execution_observation": {
                         "execution_status": "blocked",

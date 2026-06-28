@@ -91,21 +91,21 @@ def _relay_controller_decision_authorization_if_required(
     status: ProgressProjectionStatus,
     context: Any,
 ) -> dict[str, Any] | None:
-    opl_runtime_owner_route_handoff = (
-        status.decision is StudyRuntimeDecision.BLOCKED
-        and status.reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+    opl_stage_attempt_admission_handoff = (
+        status.decision is StudyRuntimeDecision.HANDOFF_REQUIRED
+        and status.reason is StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED
     )
     if (
         status.quest_status not in _LIVE_QUEST_STATUSES
         and status.decision not in {StudyRuntimeDecision.RESUME, StudyRuntimeDecision.RELAUNCH_STOPPED}
-        and not opl_runtime_owner_route_handoff
+        and not opl_stage_attempt_admission_handoff
     ):
         return None
     if status.decision not in {
         StudyRuntimeDecision.NOOP,
         StudyRuntimeDecision.RESUME,
         StudyRuntimeDecision.RELAUNCH_STOPPED,
-    } and not opl_runtime_owner_route_handoff:
+    } and not opl_stage_attempt_admission_handoff:
         return None
     authorization_context = _load_controller_decision_authorization_context(study_root=context.study_root)
     if not _controller_decision_authorizes_runtime(authorization_context):

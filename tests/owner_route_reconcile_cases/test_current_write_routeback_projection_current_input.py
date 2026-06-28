@@ -70,8 +70,8 @@ def test_current_input_ai_reviewer_record_consumption_route_preserves_eval_curre
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "active_run_id": None,
         "publication_eval": {"eval_id": eval_id, "assessment_provenance": {"owner": "ai_reviewer"}},
         "domain_transition": {

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 
-AUTO_REDRIVE_BLOCKED_REASON = "domain_transition_auto_redrive_blocked"
+AUTO_REDRIVE_HALTED_REASON = "domain_transition_auto_redrive_halted"
 CURRENT_ROUTE_MISSING_REASON = "domain_transition_current_controller_route_missing"
 TERMINAL_OR_HANDOFF_DECISION_TYPES = frozenset(
     {
@@ -36,7 +36,7 @@ REASON_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": "domain_transition_ai_reviewer_re_eval",
     "bundle_stage_finalize": "domain_transition_bundle_stage_finalize",
     "publication_gate_blocker": "domain_transition_publication_gate_blocker",
-    "route_back_same_line": "quest_waiting_opl_runtime_owner_route",
+    "route_back_same_line": "opl_stage_attempt_admission_required",
 }
 
 
@@ -65,8 +65,8 @@ def redrive_block_payload(status: Mapping[str, Any]) -> dict[str, Any] | None:
     next_work_unit = _mapping(transition.get("next_work_unit"))
     typed_blocker = _mapping(transition.get("typed_blocker"))
     return {
-        "dispatch_status": "blocked",
-        "reason": AUTO_REDRIVE_BLOCKED_REASON,
+        "dispatch_status": "halted",
+        "reason": AUTO_REDRIVE_HALTED_REASON,
         "domain_transition_decision_type": decision,
         "domain_transition_route_target": _text(transition.get("route_target")),
         "domain_transition_controller_action": _text(transition.get("controller_action")),
@@ -113,7 +113,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
-    "AUTO_REDRIVE_BLOCKED_REASON",
+    "AUTO_REDRIVE_HALTED_REASON",
     "CURRENT_ROUTE_MISSING_REASON",
     "ACTION_TYPE_BY_DECISION_TYPE",
     "REASON_BY_DECISION_TYPE",

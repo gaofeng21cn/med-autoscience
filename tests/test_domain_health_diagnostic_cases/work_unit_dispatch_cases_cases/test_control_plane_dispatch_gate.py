@@ -173,7 +173,7 @@ def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dis
         **make_progress_projection_payload(
             study_id="001-risk",
             decision="resume",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -288,7 +288,7 @@ def test_watch_runtime_downstream_bundle_gate_allows_ai_reviewer_recheck_dispatc
         **make_progress_projection_payload(
             study_id="003-dpcc",
             decision="resume",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
         ),
         "study_root": str(study_root),
         "quest_id": "quest-003",
@@ -411,7 +411,7 @@ def test_watch_runtime_downstream_bundle_gate_allows_ai_reviewer_current_analysi
         **make_progress_projection_payload(
             study_id="002-dm",
             decision="resume",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
         ),
         "study_root": str(study_root),
         "quest_id": "quest-002",
@@ -534,7 +534,7 @@ def test_watch_runtime_stale_opl_handoff_allows_current_ai_reviewer_inputs_recor
         **make_progress_projection_payload(
             study_id="002-dm",
             decision="resume",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
         ),
         "study_root": str(study_root),
         "quest_id": "quest-002",
@@ -654,7 +654,7 @@ def test_watch_domain_route_only_runtime_block_allows_managed_submission_refresh
         **make_progress_projection_payload(
             study_id="003-dpcc",
             decision="resume",
-            reason="quest_waiting_opl_runtime_owner_route",
+            reason="opl_stage_attempt_admission_required",
         ),
         "study_root": str(study_root),
         "quest_id": "quest-003",

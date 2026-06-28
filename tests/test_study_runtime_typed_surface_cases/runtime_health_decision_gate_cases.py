@@ -333,8 +333,8 @@ def test_runtime_health_recovery_decision_requires_both_observability_and_route_
         recorded_at="2026-06-01T09:00:00+00:00",
     )
 
-    assert status.decision is typed_surface.StudyRuntimeDecision.BLOCKED
-    assert status.reason is typed_surface.StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+    assert status.decision is typed_surface.StudyRuntimeDecision.HANDOFF_REQUIRED
+    assert status.reason is typed_surface.StudyRuntimeReason.OPL_STAGE_ATTEMPT_ADMISSION_REQUIRED
     gate = status.extras["runtime_health_decision_gate"]
     assert gate["decision_authorized"] is True
     assert gate["decision_source"] == "opl_runtime_readback"

@@ -299,8 +299,8 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
     ]
     assert calls[4:] in ([], [("currentness", "001-risk")])
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
-    assert result["managed_study_actions"][0]["decision"] == "blocked"
-    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["decision"] == "handoff_required"
+    assert result["managed_study_actions"][0]["reason"] == "opl_stage_attempt_admission_required"
     assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert handoff["status"] == "handoff_required"
     assert handoff["runtime_owner"] == "one-person-lab"

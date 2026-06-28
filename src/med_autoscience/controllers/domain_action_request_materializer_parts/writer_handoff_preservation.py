@@ -230,8 +230,8 @@ def _writer_handoff_dispatch_from_current_action(
         and action_reason == "manuscript_story_surface_delta_missing"
     )
     runtime_owner_story_surface_route = (
-        route_reason == "quest_waiting_opl_runtime_owner_route"
-        and action_reason == "quest_waiting_opl_runtime_owner_route"
+        route_reason == "opl_stage_attempt_admission_required"
+        and action_reason == "opl_stage_attempt_admission_required"
         and _requires_manuscript_story_surface_delta(required_output_surface)
     )
     if not (story_surface_route or runtime_owner_story_surface_route):
@@ -360,7 +360,7 @@ def _writer_handoff_request_bridges_current_route(
     if _text(normalized_handoff.get("owner_reason")) != "manuscript_story_surface_delta_missing":
         return False
     current_reason = _text(normalized_current.get("owner_reason"))
-    if current_reason not in {"quest_waiting_opl_runtime_owner_route", "manuscript_story_surface_delta_missing"}:
+    if current_reason not in {"opl_stage_attempt_admission_required", "manuscript_story_surface_delta_missing"}:
         return False
     if _text(normalized_handoff.get("next_owner")) != _text(normalized_current.get("next_owner")):
         return False
@@ -398,7 +398,7 @@ def _writer_handoff_route_bridges_current_route(
     if _text(normalized_handoff.get("owner_reason")) != "manuscript_story_surface_delta_missing":
         return False
     current_reason = _text(normalized_current.get("owner_reason"))
-    if current_reason not in {"quest_waiting_opl_runtime_owner_route", "manuscript_story_surface_delta_missing"}:
+    if current_reason not in {"opl_stage_attempt_admission_required", "manuscript_story_surface_delta_missing"}:
         return False
     if _text(normalized_handoff.get("next_owner")) != _text(normalized_current.get("next_owner")):
         return False
@@ -437,7 +437,7 @@ def _current_action_matches_writer_handoff(
     if not (
         action_reason == "manuscript_story_surface_delta_missing"
         or (
-            action_reason == "quest_waiting_opl_runtime_owner_route"
+            action_reason == "opl_stage_attempt_admission_required"
             and _requires_manuscript_story_surface_delta(_required_output_surface(action))
         )
     ):

@@ -313,7 +313,7 @@ def test_current_work_unit_projects_nested_guarded_apply_delta_over_stale_handof
             "owner": "write",
             "next_work_unit": "return_to_ai_reviewer_workflow",
         },
-        blocked_reason="quest_waiting_opl_runtime_owner_route",
+        blocked_reason="opl_stage_attempt_admission_required",
         next_owner="write",
     )
 

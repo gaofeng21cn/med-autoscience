@@ -198,9 +198,9 @@ def _progress_projection_suppressing_stale_opl_route(payload: dict[str, Any]) ->
     if not domain_truth_supersedes_opl_runtime_owner_route(payload.get("latest_events"), baseline=baseline):
         return payload
     if (
-        _non_empty_text(handoff.get("blocked_reason")) != "quest_waiting_opl_runtime_owner_route"
-        and _non_empty_text(lifecycle.get("blocked_reason")) != "quest_waiting_opl_runtime_owner_route"
-        and _non_empty_text(intervention_lane.get("route_key_question")) != "quest_waiting_opl_runtime_owner_route"
+        _non_empty_text(handoff.get("blocked_reason")) != "opl_stage_attempt_admission_required"
+        and _non_empty_text(lifecycle.get("blocked_reason")) != "opl_stage_attempt_admission_required"
+        and _non_empty_text(intervention_lane.get("route_key_question")) != "opl_stage_attempt_admission_required"
     ):
         return payload
     return _progress_projection_refreshing_route_back(payload)
@@ -255,7 +255,7 @@ def domain_truth_supersedes_ai_repair_lifecycle(
     latest_events: object,
 ) -> bool:
     lifecycle = dict(lifecycle_payload or {})
-    if _non_empty_text(lifecycle.get("blocked_reason")) != "quest_waiting_opl_runtime_owner_route":
+    if _non_empty_text(lifecycle.get("blocked_reason")) != "opl_stage_attempt_admission_required":
         return False
     if (
         _non_empty_text(lifecycle.get("next_owner")) != "external_supervisor"
@@ -305,11 +305,11 @@ def _route_waits_for_opl_runtime_owner(route: dict[str, Any]) -> bool:
         if _non_empty_text(item) is not None
     }
     return (
-        _non_empty_text(route.get("blocked_reason")) == "quest_waiting_opl_runtime_owner_route"
-        or _non_empty_text(route.get("route_key_question")) == "quest_waiting_opl_runtime_owner_route"
-        or _non_empty_text(owner_route.get("owner_reason")) == "quest_waiting_opl_runtime_owner_route"
-        or _non_empty_text(owner_route.get("failure_signature")) == "quest_waiting_opl_runtime_owner_route"
-        or "quest_waiting_opl_runtime_owner_route" in why_not_applied
+        _non_empty_text(route.get("blocked_reason")) == "opl_stage_attempt_admission_required"
+        or _non_empty_text(route.get("route_key_question")) == "opl_stage_attempt_admission_required"
+        or _non_empty_text(owner_route.get("owner_reason")) == "opl_stage_attempt_admission_required"
+        or _non_empty_text(owner_route.get("failure_signature")) == "opl_stage_attempt_admission_required"
+        or "opl_stage_attempt_admission_required" in why_not_applied
     )
 
 

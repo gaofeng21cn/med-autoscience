@@ -28,7 +28,7 @@ def ai_reviewer_lifecycle_resolved(
         return ai_reviewer_assessment.get("missing") is not True
     if blocked_reason == ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON:
         return _consumed_ai_reviewer_route_back(status) and _current_ai_reviewer_present(ai_reviewer_assessment)
-    if blocked_reason == opl_owner_route_handoff.OPL_RUNTIME_OWNER_ROUTE_REASON:
+    if blocked_reason == opl_owner_route_handoff.OPL_STAGE_ATTEMPT_ADMISSION_REASON:
         return (
             _consumed_ai_reviewer_route_back(status)
             and _text(lifecycle.get("next_owner")) == "external_supervisor"
@@ -50,7 +50,7 @@ def ai_reviewer_lifecycle_superseded_by_consumed_route_back(
     status: Mapping[str, Any] | None = None,
 ) -> bool:
     return (
-        _text(lifecycle.get("blocked_reason")) == opl_owner_route_handoff.OPL_RUNTIME_OWNER_ROUTE_REASON
+        _text(lifecycle.get("blocked_reason")) == opl_owner_route_handoff.OPL_STAGE_ATTEMPT_ADMISSION_REASON
         and _consumed_ai_reviewer_route_back(status)
         and _text(lifecycle.get("next_owner")) == "external_supervisor"
         and lifecycle.get("external_supervisor_required") is True

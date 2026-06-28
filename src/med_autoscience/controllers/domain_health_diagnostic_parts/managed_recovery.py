@@ -30,12 +30,8 @@ def recovery_failure_payload(
 ) -> dict[str, Any]:
     payload = dict(preflight_payload)
     preflight_decision = str(payload.get("decision") or "").strip()
-    failure_reason = (
-        "create_request_failed"
-        if preflight_decision == "create_and_start"
-        else "resume_request_failed"
-    )
-    payload["decision"] = "blocked"
+    failure_reason = "create_request_failed" if preflight_decision == "create_and_start" else "resume_request_failed"
+    payload["decision"] = "handoff_required"
     payload["reason"] = failure_reason
     payload["runtime_execution_error"] = str(error)
     return payload
@@ -183,7 +179,7 @@ def _auto_recovery_action_payload(
     if control_plane_recovery_block is not None:
         return {
             **_managed_study_status_payload(preflight_payload),
-            "decision": "blocked",
+            "decision": "handoff_required",
             "reason": "resume_request_failed",
             "control_plane_runtime_recovery_block": control_plane_recovery_block,
         }, False

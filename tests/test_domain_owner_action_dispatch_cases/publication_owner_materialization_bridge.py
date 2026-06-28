@@ -200,8 +200,8 @@ def test_execute_dispatch_accepts_publication_owner_materialization_bridge(
             "runtime_health_epoch": "runtime-health-event-006315",
             "source_fingerprint": "truth-snapshot::dm002-current",
             "work_unit_fingerprint": work_unit_fingerprint,
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "idempotency_key": "owner-route::dm002::write-current",
             "source_refs": {
                 "study_truth_epoch": "truth-event-000024",
@@ -218,7 +218,7 @@ def test_execute_dispatch_accepts_publication_owner_materialization_bridge(
         {
             "blocked_reason": "current_package_freshness_required",
             "bridge_authority": "domain_action_request_materializer_publication_owner_bridge",
-            "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
             "bridged_from_idempotency_key": current_route["idempotency_key"],
             "materialized_from_action_type": "run_quality_repair_batch",
             "materialized_work_unit_id": "current_package_freshness_required",
@@ -331,8 +331,8 @@ def test_terminal_stall_accepts_current_publication_owner_materialization_bridge
             "runtime_health_epoch": "runtime-health-event-006315",
             "source_fingerprint": "truth-snapshot::dm002-current",
             "work_unit_fingerprint": work_unit_fingerprint,
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "idempotency_key": "owner-route::dm002::write-current",
             "source_refs": {
                 "study_truth_epoch": "truth-event-000024",
@@ -349,7 +349,7 @@ def test_terminal_stall_accepts_current_publication_owner_materialization_bridge
         {
             "blocked_reason": "current_package_freshness_required",
             "bridge_authority": "domain_action_request_materializer_publication_owner_bridge",
-            "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
             "bridged_from_idempotency_key": current_route["idempotency_key"],
             "materialized_from_action_type": "run_quality_repair_batch",
             "materialized_work_unit_id": "current_package_freshness_required",
@@ -473,8 +473,8 @@ def test_terminal_stall_rejects_gate_clearing_without_publication_owner_bridge(
             "runtime_health_epoch": "runtime-health-event-006315",
             "source_fingerprint": "truth-snapshot::dm002-current",
             "work_unit_fingerprint": "domain-transition::route_back_same_line::write-repair",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "idempotency_key": "owner-route::dm002::write-current",
             "source_refs": {
                 "study_truth_epoch": "truth-event-000024",
@@ -589,8 +589,8 @@ def test_execute_dispatch_accepts_publication_gate_replay_materialization_bridge
             "runtime_health_epoch": "runtime-health-event-006315",
             "source_fingerprint": "truth-snapshot::dm002-current",
             "work_unit_fingerprint": work_unit_fingerprint,
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "idempotency_key": "owner-route::dm002::write-current",
             "source_refs": {
                 "study_truth_epoch": "truth-event-000024",
@@ -607,7 +607,7 @@ def test_execute_dispatch_accepts_publication_gate_replay_materialization_bridge
         {
             "blocked_reason": "publication_owner_materialization_required",
             "bridge_authority": "domain_action_request_materializer_publication_owner_bridge",
-            "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
             "bridged_from_idempotency_key": current_route["idempotency_key"],
             "materialized_from_action_type": "run_quality_repair_batch",
             "materialized_work_unit_id": "publication_gate_replay",

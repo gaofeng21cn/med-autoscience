@@ -7,7 +7,6 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     GATE_CLEARING_ACTION_TYPE,
     GATE_CLEARING_OWNER,
     DPCC_PUBLICATION_GATE_REPLAY_AFTER_CURRENT_AI_REVIEWER_RECORD_REASON,
-    OPL_RUNTIME_OWNER_ROUTE_REASON,
     OPL_STAGE_ATTEMPT_ADMISSION_REASON,
     OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_PRODUCTION_HANDOFF,
@@ -546,8 +545,8 @@ def _registered_write_routeback_transport_wait_observed(
     return (
         text(owner_route.get("next_owner")) == "external_supervisor"
         and (
-            text(study_scan.get("blocked_reason")) == OPL_RUNTIME_OWNER_ROUTE_REASON
-            or text(owner_route.get("owner_reason")) == OPL_RUNTIME_OWNER_ROUTE_REASON
+            text(study_scan.get("blocked_reason")) == OPL_STAGE_ATTEMPT_ADMISSION_REASON
+            or text(owner_route.get("owner_reason")) == OPL_STAGE_ATTEMPT_ADMISSION_REASON
         )
         and owner_reason_contract.get("registered") is True
         and text(owner_reason_contract.get("owner")) == WRITE_OWNER

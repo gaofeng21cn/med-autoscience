@@ -47,7 +47,7 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
             "studies": [
                 {
                     "study_id": study_id,
-                    "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                    "blocked_reason": "opl_stage_attempt_admission_required",
                     "domain_transition": {
                         "decision_type": "route_back_same_line",
                         "route_target": "write",
@@ -68,18 +68,18 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
                     },
                     "owner_route": {
                         "next_owner": "external_supervisor",
-                        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                        "owner_reason": "opl_stage_attempt_admission_required",
                         "allowed_actions": [],
                         "source_refs": {
                             "work_unit_id": (
                                 "dm002_current_manuscript_methods_model_reporting_and_package_"
                                 "currentness_write_pass"
                             ),
-                            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                            "blocked_reason": "opl_stage_attempt_admission_required",
                         },
                         "owner_reason_contract": {
                             "registered": True,
-                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "reason": "opl_stage_attempt_admission_required",
                             "owner": "write",
                             "allowed_actions": ["run_quality_repair_batch"],
                         },
@@ -119,12 +119,12 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
         detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback",
     )
     assert payload["owner_route_next_owner"] == "external_supervisor"
-    assert payload["owner_route_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert payload["owner_route_owner_reason"] == "opl_stage_attempt_admission_required"
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
     assert record_payload["domain_source_fingerprint"] == domain_source
     assert dispatch_ref in record_payload["evidence_refs"]
-    assert "owner-route-reconcile:blocked_reason=quest_waiting_opl_runtime_owner_route" in record_payload[
+    assert "owner-route-reconcile:blocked_reason=opl_stage_attempt_admission_required" in record_payload[
         "evidence_refs"
     ]
     assert "owner-route-reconcile:owner_route_next_owner=external_supervisor" in record_payload[

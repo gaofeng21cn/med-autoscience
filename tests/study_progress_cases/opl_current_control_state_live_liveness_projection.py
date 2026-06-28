@@ -169,8 +169,8 @@ def test_read_study_progress_passes_live_provider_probe_policy(monkeypatch, tmp_
             "quest_status": "active",
             "runtime_binding_path": str(profile.studies_root / "001-risk" / "runtime_binding.yaml"),
             "runtime_binding_exists": True,
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
         }
 
     monkeypatch.setattr(domain_status_projection, "progress_projection", fake_progress_projection)

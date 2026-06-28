@@ -241,7 +241,7 @@ def test_watch_runtime_does_not_hold_recovery_for_plain_opl_runtime_handoff(
             "study_id": "001-risk",
             "quest_id": "001-risk",
             "status": "handoff_required",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "runtime_owner": "one-person-lab",
             "domain_owner": "med-autoscience",
             "mas_runtime_read_model_retired": True,
@@ -308,8 +308,8 @@ def test_watch_runtime_does_not_hold_recovery_for_plain_opl_runtime_handoff(
     assert result["managed_study_auto_recoveries"] == []
     action = result["managed_study_actions"][0]
     assert action["study_id"] == "001-risk"
-    assert action["decision"] == "blocked"
-    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["decision"] == "handoff_required"
+    assert action["reason"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert not (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").exists()

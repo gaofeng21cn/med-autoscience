@@ -25,11 +25,11 @@ def test_default_executor_receipt_consumes_same_work_unit_after_runtime_health_t
             "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
         ),
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
             "owner_route_currentness_basis": {
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006254-fresh",
                 "work_unit_fingerprint": (
@@ -122,11 +122,11 @@ def test_default_executor_receipt_rejects_different_work_unit_after_runtime_heal
         "runtime_health_epoch": "runtime-health-event-006254-fresh",
         "work_unit_fingerprint": "domain-transition::route_back_same_line::current-work-unit",
         "next_owner": "write",
-        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "opl_stage_attempt_admission_required",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
             "owner_route_currentness_basis": {
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006254-fresh",
                 "work_unit_fingerprint": "domain-transition::route_back_same_line::current-work-unit",

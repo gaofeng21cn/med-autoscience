@@ -42,7 +42,7 @@ def action_from_controller_route(controller_route: Mapping[str, Any]) -> dict[st
             "owner": "write",
             "request_owner": "write",
             "recommended_owner": "write",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "summary": "The current controller decision routes this study to the write owner.",
             "required_output_surface": _write_required_output_surface(work_unit_id),
             "next_work_unit": work_unit_id,

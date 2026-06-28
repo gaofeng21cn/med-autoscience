@@ -60,7 +60,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
         study_id=study_id,
         quest_id=quest_id,
         next_owner="write",
-        owner_reason="quest_waiting_opl_runtime_owner_route",
+        owner_reason="opl_stage_attempt_admission_required",
         allowed_actions=["run_quality_repair_batch"],
     )
     current_route.update(
@@ -84,7 +84,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
             "source_refs": {
                 **current_route["source_refs"],
                 "blocked_reason": "manuscript_story_surface_delta_missing",
-                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
                 "bridged_from_idempotency_key": current_route["idempotency_key"],
                 "bridge_authority": "quality_repair_batch_writer_handoff_currentness_bridge",
             },
@@ -178,7 +178,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
                             "quest_id": quest_id,
                             "action_type": "run_quality_repair_batch",
                             "owner": "write",
-                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "reason": "opl_stage_attempt_admission_required",
                             "required_output_surface": "artifacts/controller/quality_repair_batch/latest.json",
                             "next_work_unit": {
                                 "unit_id": work_unit_id,

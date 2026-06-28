@@ -356,7 +356,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_ignores_stale_pu
             "quest_status": "paused",
             "runtime_liveness_status": "none",
             "active_run_id": None,
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "opl_stage_attempt_admission_required",
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )

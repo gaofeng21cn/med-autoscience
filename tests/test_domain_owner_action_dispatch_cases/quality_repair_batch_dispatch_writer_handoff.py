@@ -100,8 +100,8 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
             "route_epoch": "truth-event-000022",
             "runtime_health_epoch": "runtime-health-event-006239",
             "source_fingerprint": "truth-snapshot::dm002-current",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "opl_stage_attempt_admission_required",
+            "owner_reason": "opl_stage_attempt_admission_required",
             "work_unit_fingerprint": f"domain-transition::route_back_same_line::{original_work_unit_id}",
             "idempotency_key": "owner-route::dm002::runtime-handoff",
             "source_refs": {
@@ -109,7 +109,7 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
                 "runtime_health_epoch": "runtime-health-event-006239",
                 "work_unit_id": original_work_unit_id,
                 "work_unit_fingerprint": f"domain-transition::route_back_same_line::{original_work_unit_id}",
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
             },
         }
     )
@@ -123,7 +123,7 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
                 **runtime_route["source_refs"],
                 "materialized_work_unit_id": materialized_work_unit_id,
                 "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
-                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_owner_reason": "opl_stage_attempt_admission_required",
                 "bridged_from_idempotency_key": runtime_route["idempotency_key"],
                 "blocked_reason": "manuscript_story_surface_delta_missing",
                 "source_eval_id": "publication-eval::dm002::current",
@@ -197,7 +197,7 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
                             "action_type": "run_quality_repair_batch",
                             "owner": "write",
                             "request_owner": "write",
-                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "reason": "opl_stage_attempt_admission_required",
                             "next_work_unit": original_work_unit_id,
                             "controller_work_unit_id": original_work_unit_id,
                             "owner_route": runtime_route,

@@ -673,9 +673,8 @@ def _managed_study_action_with_paper_recovery_state(
 def _is_opl_stage_attempt_admission_action(action: Mapping[str, Any]) -> bool:
     resume_postcondition = _mapping(action.get("resume_postcondition"))
     return (
-        _text(action.get("decision")) == "blocked"
-        and _text(action.get("reason")) == "quest_waiting_opl_runtime_owner_route"
-        and resume_postcondition.get("status") == "opl_stage_attempt_admission_required"
+        resume_postcondition.get("status") == "opl_stage_attempt_admission_required"
+        and _text(action.get("reason")) == "opl_stage_attempt_admission_required"
     )
 
 

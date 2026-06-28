@@ -377,8 +377,8 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
             "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
             "current_owner": "mas_controller",
             "next_owner": "write",
-            "owner_reason": "quest_waiting_opl_runtime_owner_route",
-            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "opl_stage_attempt_admission_required",
+            "failure_signature": "opl_stage_attempt_admission_required",
             "allowed_actions": ["run_quality_repair_batch"],
             "idempotency_key": "owner-route::dm002::write::current-publication-hardening",
             "source_refs": {
@@ -387,7 +387,7 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
                     "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
                     "truth_epoch": "truth-event-000017",
                     "runtime_health_epoch": "runtime-health-event-006191",
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                 }
             },
         }
@@ -752,8 +752,8 @@ def test_default_executor_attempt_envelope_preallocates_closeout_first_contract(
                 "work_unit_fingerprint": "work-unit::methods-reporting",
                 "current_owner": "mas_controller",
                 "next_owner": "write",
-                "owner_reason": "quest_waiting_opl_runtime_owner_route",
-                "failure_signature": "quest_waiting_opl_runtime_owner_route",
+                "owner_reason": "opl_stage_attempt_admission_required",
+                "failure_signature": "opl_stage_attempt_admission_required",
                 "allowed_actions": ["run_quality_repair_batch"],
                 "idempotency_key": "owner-route::dm002::methods-reporting",
                 "source_refs": {

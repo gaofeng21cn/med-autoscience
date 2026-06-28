@@ -55,7 +55,7 @@ def finalize_status_projection_shell(
         quest_id=quest_id,
         recorded_at=router._utc_now(),
     )
-    if not status.should_refresh_startup_hydration_while_blocked():
+    if not status.should_refresh_startup_hydration_for_runtime_hold():
         status.extras.pop("runtime_escalation_ref", None)
     else:
         runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)

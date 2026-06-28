@@ -337,7 +337,7 @@ def _status_payload(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "reason": "opl_stage_attempt_admission_required",
         "runtime_health_snapshot": {
             "runtime_health_epoch": runtime_epoch,
             "canonical_runtime_action": "external_supervisor_required",

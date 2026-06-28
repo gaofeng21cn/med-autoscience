@@ -430,8 +430,8 @@ def _request_opl_stage_attempt(
     provider_admission_identity = provider_admission_candidates[0] if provider_admission_candidates else None
     return {
         **status_payload,
-        "decision": "blocked",
-        "reason": "quest_waiting_opl_runtime_owner_route",
+        "decision": "handoff_required",
+        "reason": "opl_stage_attempt_admission_required",
         "status": "opl_stage_attempt_admission_required",
         "source": source,
         "runtime_owner": "one-person-lab",

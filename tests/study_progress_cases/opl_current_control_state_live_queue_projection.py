@@ -53,8 +53,8 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
             "quest_id": "quest-001",
             "quest_root": str(profile.managed_runtime_home / "quests" / "quest-001"),
             "quest_status": "active",
-            "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "decision": "handoff_required",
+            "reason": "opl_stage_attempt_admission_required",
             "runtime_liveness_audit": {
                 "status": "live",
                 "source": "opl_current_control_state_provider_attempt",

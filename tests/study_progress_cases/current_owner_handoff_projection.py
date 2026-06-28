@@ -624,7 +624,7 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
         "等待 external_supervisor owner 执行 request_opl_handoff_hydration，"
-        "关闭 quest_waiting_opl_runtime_owner_route 或产出 typed blocker。"
+        "关闭 opl_stage_attempt_admission_required 或产出 typed blocker。"
     )
     status_payload = {
         "study_id": "001-risk",
@@ -669,12 +669,12 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
                 "generated_at": "2026-05-30T03:44:25+00:00",
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
-                "why_not_applied": ["quest_waiting_opl_runtime_owner_route"],
+                "blocked_reason": "opl_stage_attempt_admission_required",
+                "why_not_applied": ["opl_stage_attempt_admission_required"],
             },
             "ai_repair_lifecycle": {
                 "surface": "ai_repair_lifecycle",
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "blocked_reason": "opl_stage_attempt_admission_required",
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
                 "last_apply_attempt_at": "2026-05-30T05:57:59+00:00",
@@ -682,14 +682,14 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
             "intervention_lane": {
                 "lane_id": "quality_floor_blocker",
                 "route_target": "external_supervisor",
-                "route_key_question": "quest_waiting_opl_runtime_owner_route",
+                "route_key_question": "opl_stage_attempt_admission_required",
                 "summary": stale_next_step,
                 "handoff_source": "opl_current_control_state.next_owner",
             },
             "operator_verdict": {
                 "summary": stale_next_step,
                 "route_target": "external_supervisor",
-                "route_key_question": "quest_waiting_opl_runtime_owner_route",
+                "route_key_question": "opl_stage_attempt_admission_required",
             },
             "user_visible_projection": {
                 "surface_kind": "study_progress_user_visible_projection",
@@ -740,7 +740,7 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
         "等待 external_supervisor owner 执行 request_opl_handoff_hydration，"
-        "关闭 quest_waiting_opl_runtime_owner_route 或产出 typed blocker。"
+        "关闭 opl_stage_attempt_admission_required 或产出 typed blocker。"
     )
     status_payload = {
         "study_id": "001-risk",
@@ -786,7 +786,7 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
             "intervention_lane": {
                 "lane_id": "quality_floor_blocker",
                 "route_target": "external_supervisor",
-                "route_key_question": "quest_waiting_opl_runtime_owner_route",
+                "route_key_question": "opl_stage_attempt_admission_required",
                 "summary": stale_next_step,
                 "handoff_source": "opl_current_control_state.next_owner",
             },
@@ -821,7 +821,7 @@ def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
         "等待 external_supervisor owner 执行 request_opl_handoff_hydration，"
-        "关闭 quest_waiting_opl_runtime_owner_route 或产出 typed blocker。"
+        "关闭 opl_stage_attempt_admission_required 或产出 typed blocker。"
     )
     status_payload = {
         "study_id": "001-risk",
@@ -862,10 +862,10 @@ def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_
                 "generated_at": "2026-05-30T07:09:29+00:00",
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
-                "why_not_applied": ["quest_waiting_opl_runtime_owner_route"],
+                "blocked_reason": "opl_stage_attempt_admission_required",
+                "why_not_applied": ["opl_stage_attempt_admission_required"],
                 "owner_route": {
-                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "owner_reason": "opl_stage_attempt_admission_required",
                     "source_refs": {
                         "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                     },
@@ -874,7 +874,7 @@ def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_
             "intervention_lane": {
                 "lane_id": "quality_floor_blocker",
                 "route_target": "external_supervisor",
-                "route_key_question": "quest_waiting_opl_runtime_owner_route",
+                "route_key_question": "opl_stage_attempt_admission_required",
                 "summary": stale_next_step,
                 "handoff_source": "opl_current_control_state.next_owner",
             },
@@ -993,7 +993,7 @@ def test_stale_opl_handoff_refresh_uses_route_target_when_owner_missing(tmp_path
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
         "等待 external_supervisor owner 执行 request_opl_handoff_hydration，"
-        "关闭 quest_waiting_opl_runtime_owner_route 或产出 typed blocker。"
+        "关闭 opl_stage_attempt_admission_required 或产出 typed blocker。"
     )
     status_payload = {
         "study_id": "001-risk",
@@ -1028,13 +1028,13 @@ def test_stale_opl_handoff_refresh_uses_route_target_when_owner_missing(tmp_path
                 "generated_at": "2026-05-30T09:33:57+00:00",
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
-                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
-                "why_not_applied": ["quest_waiting_opl_runtime_owner_route"],
+                "blocked_reason": "opl_stage_attempt_admission_required",
+                "why_not_applied": ["opl_stage_attempt_admission_required"],
             },
             "intervention_lane": {
                 "lane_id": "quality_floor_blocker",
                 "route_target": "external_supervisor",
-                "route_key_question": "quest_waiting_opl_runtime_owner_route",
+                "route_key_question": "opl_stage_attempt_admission_required",
                 "summary": stale_next_step,
                 "handoff_source": "opl_current_control_state.next_owner",
             },

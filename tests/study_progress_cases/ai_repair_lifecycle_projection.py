@@ -164,7 +164,7 @@ def test_study_progress_suppresses_opl_handoff_lifecycle_after_newer_owner_truth
             "quest_id": "quest-001",
             "state": "blocked",
             "top_action": {"action_type": "controller_repair", "repair_kind": "bounded_work_unit_redrive"},
-            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "blocked_reason": "opl_stage_attempt_admission_required",
             "next_owner": "external_supervisor",
             "external_supervisor_required": True,
             "last_apply_attempt_at": "2026-04-10T09:08:30+00:00",
