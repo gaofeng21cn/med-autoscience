@@ -97,7 +97,7 @@ def test_helper_shapes_are_single_source_for_existing_runtime_consumers() -> Non
         "med_autoscience.controllers.opl_domain_progress_transition_contract"
     )
     readback = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     boundaries = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries"

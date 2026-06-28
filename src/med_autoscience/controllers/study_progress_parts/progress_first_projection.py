@@ -8,7 +8,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_output_target_surface_for_action_type,
     request_owner_for_action_type,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
 )
 from med_autoscience.controllers.ai_reviewer_record_work_units import (

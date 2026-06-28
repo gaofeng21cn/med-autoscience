@@ -9,7 +9,7 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (

@@ -141,7 +141,6 @@ def build_category_specs(
             "contracts/runtime/mas-runtime-live-tail-work-orders.json",
             "contracts/runtime/mas-root-cause-depth-gate.json",
             "src/med_autoscience/controllers/study_outer_loop.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/domain_status_projection.py",
@@ -451,8 +450,8 @@ def build_category_specs(
             "src/med_autoscience/cli.py",
             "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/authority_dispatch_gate.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_cli.py",
@@ -473,7 +472,6 @@ def build_category_specs(
             "tests/test_autonomy_state_surface.py",
             "tests/test_study_delivery_sync.py",
             "tests/test_truth_projection_surfaces.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
         ),
         prefix_paths=(
             "src/med_autoscience/controllers/control_plane_",
@@ -538,24 +536,20 @@ def build_category_specs(
             "contracts/paper_progress_transition_runtime_completion_audit.json",
             "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
             "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_actions.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_identity.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan_support.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+            "src/med_autoscience/controllers/opl_transition_readback.py",
             "src/med_autoscience/controllers/paper_recovery_state_parts/provider_admission_state.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_same_tick_cases.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
             "tests/test_paper_recovery_provider_admission_state.py",
+            "tests/test_provider_admission_current_control.py",
             "tests/test_provider_admission_current_control_arbiter.py",
         ),
         prefix_paths=(),
@@ -563,13 +557,9 @@ def build_category_specs(
             (
                 f"{pytest_clean_runner} "
                 "tests/test_paper_progress_policy_adapter.py "
+                "tests/test_provider_admission_current_control.py "
                 "tests/test_provider_admission_current_control_arbiter.py "
-                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-                "provider_admission_current_control_cases.py "
-                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-                "provider_admission_current_control_same_tick_cases.py "
-                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-                "test_obligation_actuator_outcomes.py -q"
+                "-q"
             ),
             (
                 f"{pytest_clean_runner} "

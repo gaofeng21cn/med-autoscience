@@ -763,7 +763,7 @@ def _stage_run_identity_refs(progress: Mapping[str, Any], recovery: Mapping[str,
 def _opl_transition_readback_refs(candidate: Mapping[str, Any]) -> list[str]:
     if not candidate:
         return []
-    from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+    from med_autoscience.controllers.opl_transition_readback import (
         candidate_opl_transition_readback,
     )
 

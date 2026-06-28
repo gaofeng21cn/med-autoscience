@@ -87,7 +87,7 @@ def _legacy_result() -> dict[str, object]:
 
 def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     contract = importlib.import_module(
         "med_autoscience.controllers.opl_domain_progress_transition_contract"
@@ -168,7 +168,7 @@ def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() 
 
 def test_replay_ready_complete_transaction_is_consumable_readback_projection() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     replay_audit = opl_transition_replay_audit_readback(
         STUDY_ID,
@@ -210,7 +210,7 @@ def test_replay_ready_complete_transaction_is_consumable_readback_projection() -
 
 def test_live_readback_accepts_read_model_projection_metadata_core_shape() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     readback = _live_readback()
     readback["projection_metadata"] = {
@@ -251,7 +251,7 @@ def test_live_readback_accepts_read_model_projection_metadata_core_shape() -> No
 
 def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_without_provider_admission() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     readback = _non_advancing_live_readback()
     candidate = {
@@ -274,7 +274,7 @@ def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_withou
 
 def test_exactly_one_outcome_rejects_mixed_provider_and_non_advancing_flags() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     readback = _live_readback()
     readback["exactly_one_outcome"] = {
@@ -293,7 +293,7 @@ def test_exactly_one_outcome_rejects_mixed_provider_and_non_advancing_flags() ->
 
 def test_opl_transition_readback_exposes_source_claimability() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     contract = importlib.import_module(
         "med_autoscience.controllers.opl_domain_progress_transition_contract"
@@ -353,7 +353,7 @@ def test_opl_transition_readback_exposes_source_claimability() -> None:
 
 def test_provider_admission_readback_must_match_current_transition_identity() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     trusted = _live_readback()
     matching_candidate = {
@@ -410,7 +410,7 @@ def test_provider_admission_readback_must_match_current_transition_identity() ->
 
 def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     weak_readback = {
         "runtime_owner": "one-person-lab",
@@ -433,7 +433,7 @@ def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
 
 def test_complete_command_event_outbox_log_is_not_rebuilt_by_mas_consumer() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
     aggregate_identity = {
@@ -498,7 +498,7 @@ def test_complete_command_event_outbox_log_is_not_rebuilt_by_mas_consumer() -> N
 
 def test_mas_consumer_rejects_prebuilt_opl_live_readback_in_log_entries() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
     trusted = _live_readback()
@@ -530,7 +530,7 @@ def test_mas_consumer_rejects_prebuilt_opl_live_readback_in_log_entries() -> Non
 
 def test_mas_consumer_no_longer_exposes_command_event_log_extractors() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     assert not hasattr(module, "opl_transition_readback_from_log_entries")
     assert not hasattr(module, "opl_transition_readback_from_log_file")
@@ -538,7 +538,7 @@ def test_mas_consumer_no_longer_exposes_command_event_log_extractors() -> None:
 
 def test_mas_consumer_does_not_trust_generic_result_container() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
     trusted = _live_readback()
@@ -556,7 +556,7 @@ def test_mas_consumer_does_not_trust_generic_result_container() -> None:
 
 def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     identity = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"

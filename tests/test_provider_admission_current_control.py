@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.test_provider_admission_current_control_cases.current_identity_cases import *  # noqa: F403,F401
-from tests.test_provider_admission_current_control_cases.diagnostic_surface_cases import *  # noqa: F403,F401
 from tests.test_provider_admission_current_control_cases.owner_gate_route_back_cases import *  # noqa: F403,F401
 from tests.test_provider_admission_current_control_cases.queue_candidate_cases import *  # noqa: F403,F401
 from tests.test_provider_admission_current_control_cases.provider_admission_report_identity_cases import *  # noqa: F403,F401
-from tests.test_domain_health_diagnostic_cases.shared import dump_json
+
+
+def dump_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_current_control_provider_admission_rejects_queue_without_current_identity(

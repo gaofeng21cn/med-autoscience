@@ -25,7 +25,7 @@ def _assert_clean_opl_transition_request(result: dict) -> None:
         "med_autoscience.controllers.opl_domain_progress_transition_contract"
     )
     readback_contract = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback"
+        "med_autoscience.controllers.opl_transition_readback"
     )
     request = result["opl_domain_progress_transition_request"]
     assert request["surface_kind"] == "mas_domain_progress_transition_request"

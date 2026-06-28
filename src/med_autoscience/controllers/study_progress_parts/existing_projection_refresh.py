@@ -9,7 +9,7 @@ from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_reso
     paper_recovery_successor_consumed_by_gate_followthrough,
 )
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index

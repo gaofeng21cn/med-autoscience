@@ -16,7 +16,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     provider_admission_authority_transport_fields,
     provider_admission_candidate_with_authority_boundaries,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (

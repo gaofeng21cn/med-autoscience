@@ -1249,7 +1249,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
 
     handoff = result["opl_current_control_state_handoff"]
     current_work_unit = result["current_work_unit"]
-    assert handoff["latest_terminal_stage_log"]["source_path"] == str(latest_execution_path)
+    assert handoff["latest_terminal_stage_log"]["source_path"] == str(anti_loop_closeout_path)
     assert handoff["latest_typed_default_executor_closeout"]["source_path"] == str(
         anti_loop_closeout_path
     )

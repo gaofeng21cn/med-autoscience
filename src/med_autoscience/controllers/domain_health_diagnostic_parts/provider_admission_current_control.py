@@ -26,7 +26,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
     provider_admission_current_control_study,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )

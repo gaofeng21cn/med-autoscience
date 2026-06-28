@@ -12,7 +12,7 @@ from tests import conftest as tests_conftest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 132
+AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 10
 NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
 TEST_LANE_MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
 
@@ -43,42 +43,6 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_runtime_health_and_maintenance_guards.py",
         "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_workbench_and_capability_guards.py",
     },
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py": {
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases_cases/test_materialized_closeout_cases.py",
-    },
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_report_envelope_cases.py": {
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_report_envelope_cases_cases/test_terminal_currentness_cases.py",
-    },
-    "tests/test_domain_health_diagnostic.py": {
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_lifecycle.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_runtime_recovery.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_supervisor_only.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_runtime_protocol_and_efficiency.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_publication_gate_handoff.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_controller_dedup_and_blockers.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_managed_study_projection.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_alias_and_family_companion.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_focused_scope.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_private_surface_retirement_boundary.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_gate.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_runtime_recovery.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_opl_runtime_handoff_delta.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_dispatch.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_terminal_preensure.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_user_pause_outer_loop_block.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py",
-    },
 }
 
 NESTED_CASE_REEXPORT_SURFACES = {
@@ -98,69 +62,13 @@ NESTED_CASE_REEXPORT_SURFACES = {
             "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards.py"
         ]
     ),
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py": (
-        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py"
-        ]
-    ),
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_report_envelope_cases.py": (
-        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_report_envelope_cases.py"
-        ]
-    ),
-    "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py": {
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_lifecycle.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_runtime_recovery.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_supervisor_only.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_runtime_protocol_and_efficiency.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_publication_gate_handoff.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_controller_dedup_and_blockers.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_managed_study_projection.py",
-    },
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py": {
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_alias_and_family_companion.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_focused_scope.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_private_surface_retirement_boundary.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
-    },
-    "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py": {
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_gate.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_runtime_recovery.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_opl_runtime_handoff_delta.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_dispatch.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_terminal_preensure.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_user_pause_outer_loop_block.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py",
-    },
 }
 
-AGGREGATE_ENTRYPOINT_REEXPORT_SURFACES = {
-    "tests/test_domain_health_diagnostic.py": {
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py",
-    },
-}
+AGGREGATE_ENTRYPOINT_REEXPORT_SURFACES: dict[str, set[str]] = {}
 
 REPRESENTATIVE_NESTED_CASES = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py": (
         "test_workspace_cockpit_markdown_prefers_human_facing_labels"
-    ),
-    "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_runtime_activity_projection.py": (
-        "test_watch_runtime_projects_live_worker_stale_artifact_delta_as_recovering"
-    ),
-    "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py": (
-        "test_work_unit_dedupe_accepts_closed_attempt_result"
     ),
 }
 
@@ -353,7 +261,6 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
         "domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_*.py",
         "test_cli_cases/ai_reviewer_publication_eval_command_cases/test_*.py",
         "test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_*.py",
-        "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
     }
     assert tests_conftest.collect_ignore_glob == list(
         tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
@@ -477,14 +384,12 @@ def test_nested_case_modules_are_not_default_collection_surfaces() -> None:
 def test_aggregate_collection_surfaces_still_collect_nested_cases() -> None:
     collected_ids = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-        "tests/test_domain_health_diagnostic.py",
     )
     collected_output = "\n".join(collected_ids)
 
     for test_name in REPRESENTATIVE_NESTED_CASES.values():
         assert f"::{test_name}" in collected_output
     assert "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py::" in collected_output
-    assert "tests/test_domain_health_diagnostic.py::" in collected_output
     assert "cockpit_status_and_entry_status_focus_cases/test_" not in collected_output
     assert "_cases_cases/test_" not in collected_output
 
@@ -493,7 +398,6 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
     direct_result = _collect_only(*REPRESENTATIVE_NESTED_CASES)
     aggregate_collected_ids = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-        "tests/test_domain_health_diagnostic.py",
     )
     aggregate_output = "\n".join(aggregate_collected_ids)
 
@@ -507,7 +411,6 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
 def test_aggregate_collection_surfaces_keep_collection_count_above_known_coverage_floor() -> None:
     collected_lines = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-        "tests/test_domain_health_diagnostic.py",
     )
 
     assert len(collected_lines) >= AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR

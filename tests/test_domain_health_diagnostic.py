@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from .test_domain_health_diagnostic_cases import shared as _shared
+from pathlib import Path
 
-globals().update({
-    name: value
-    for name, value in vars(_shared).items()
-    if not name.startswith('__')
-})
+from med_autoscience.controllers import domain_health_diagnostic as dhd
 
-from .test_domain_health_diagnostic_cases.event_scan_cases import *  # noqa: F403,F401
-from .test_domain_health_diagnostic_cases.runtime_status_cases import *  # noqa: F403,F401
-from .test_domain_health_diagnostic_cases.managed_recovery_cases import *  # noqa: F403,F401
-from .test_domain_health_diagnostic_cases.supervisor_and_progress_cases import *  # noqa: F403,F401
-from .test_domain_health_diagnostic_cases.alert_and_summary_cases import *  # noqa: F403,F401
-from .test_domain_health_diagnostic_cases.cli_cases import *  # noqa: F403,F401
-from .test_domain_health_diagnostic_cases.work_unit_dispatch_cases import *  # noqa: F403,F401
+
+def test_domain_health_diagnostic_entrypoints_are_retired() -> None:
+    quest = dhd.run_domain_health_diagnostic_for_quest(quest_root=Path("/tmp/quest"), apply=True)
+    runtime = dhd.run_domain_health_diagnostic_for_runtime(runtime_root=Path("/tmp/runtime"), apply=True)
+
+    assert quest["status"] == "retired"
+    assert runtime["status"] == "retired"
+    assert quest["dhd_is_control_plane"] is False
+    assert runtime["apply_supported"] is False

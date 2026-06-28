@@ -59,7 +59,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_log_readback import (

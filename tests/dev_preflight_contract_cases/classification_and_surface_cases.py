@@ -54,13 +54,11 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/domain_status_projection.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "tests/test_profiles.py",
             "tests/test_opl_runtime_contract.py",
             "tests/test_runtime_root_cause_depth_gate.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_protocol_study_runtime.py",
-            "tests/test_domain_health_diagnostic.py",
         ]
     )
 
@@ -276,7 +274,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/authority_dispatch_gate.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress_parts/projection.py",
             "src/med_autoscience/controllers/study_progress_parts/projection_quality_surfaces.py",
@@ -289,7 +286,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_workspace_authority_migration_audit.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
         ]
     )
 
@@ -383,30 +379,20 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
             "docs/runtime/designs/" + "paper_progress_" + "transition_kernel_target.md",
             "docs/status.md",
             "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/obligation_actuator.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_actions.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_arbiter.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control_identity.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py",
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan_support.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_transition_request.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+            "src/med_autoscience/controllers/opl_transition_readback.py",
             "src/med_autoscience/controllers/paper_recovery_state_parts/provider_admission_state.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
-            (
-                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-                "provider_admission_current_control_same_tick_cases.py"
-            ),
-            (
-                "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-                "test_obligation_actuator_outcomes.py"
-            ),
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
             "tests/test_paper_recovery_provider_admission_state.py",
+            "tests/test_provider_admission_current_control.py",
             "tests/test_provider_admission_current_control_arbiter.py",
         ]
     )
@@ -421,13 +407,9 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert (
         "scripts/run-pytest-clean.sh "
         "tests/test_paper_progress_policy_adapter.py "
+        "tests/test_provider_admission_current_control.py "
         "tests/test_provider_admission_current_control_arbiter.py "
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "provider_admission_current_control_cases.py "
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "provider_admission_current_control_same_tick_cases.py "
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "test_obligation_actuator_outcomes.py -q"
+        "-q"
     ) in planned_commands
     assert (
         "scripts/run-pytest-clean.sh "

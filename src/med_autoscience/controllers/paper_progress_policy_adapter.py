@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import opl_domain_progress_transition_contract as transition_contract
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts.currentness_identity import (

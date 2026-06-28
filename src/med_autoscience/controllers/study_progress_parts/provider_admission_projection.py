@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     non_advancing_apply_opl_transition_readback as _non_advancing_apply_opl_transition_readback,
     provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )

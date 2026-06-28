@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers import paper_progress_policy_adapter
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (

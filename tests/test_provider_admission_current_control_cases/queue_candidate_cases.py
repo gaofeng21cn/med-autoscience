@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
-from tests.test_domain_health_diagnostic_cases.shared import dump_json
+
+def dump_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_survives_readiness_blocker(

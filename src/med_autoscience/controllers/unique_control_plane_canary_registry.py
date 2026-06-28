@@ -161,7 +161,7 @@ REGISTRY: dict[str, Any] = {
             target_studies=["DM003"],
             mas_fixture_refs=[
                 "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
-                "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py",
+                "tests/test_current_control_executable_handoff_cases/provider_readback_cases.py",
             ],
             opl_transport_fixture_refs=[
                 "opl:agent-lab/transport/owner-route-precedence",

@@ -15,7 +15,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
 )
 

@@ -23,7 +23,7 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
     supervisor_decision_for_projection as _supervisor_decision_for_projection,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
     opl_transition_readback_source_claimability as _opl_transition_readback_source_claimability,
     provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,

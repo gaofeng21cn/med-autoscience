@@ -21,7 +21,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     legacy_owner_callable_adapter_diagnostics,
     with_owner_callable_adapter_projection,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (

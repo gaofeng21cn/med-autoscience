@@ -7,13 +7,16 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import autonomy_ai_doctor
+from med_autoscience.controllers.autonomy_repair_readback import (
+    read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
     non_advancing_apply_opl_transition_readback,
@@ -104,12 +107,7 @@ TERMINAL_STAGE_LOG_STATUSES = frozenset(
 
 
 def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
-    try:
-        from med_autoscience.controllers.domain_health_diagnostic_parts import autonomy_repair
-
-        return autonomy_repair.read_ai_repair_lifecycle(study_root=study_root)
-    except Exception:
-        return None
+    return _read_ai_repair_lifecycle(study_root=study_root)
 
 
 def current_status_suppresses_ai_repair_lifecycle(status_payload: Mapping[str, Any]) -> bool:

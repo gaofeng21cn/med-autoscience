@@ -15,7 +15,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     mapping as _mapping,
     text_items as _text_items,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )

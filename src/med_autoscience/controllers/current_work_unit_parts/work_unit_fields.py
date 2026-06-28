@@ -10,7 +10,7 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
     text as _text,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     has_provider_admission_opl_transition_readback as _has_opl_transition_readback,
 )
 

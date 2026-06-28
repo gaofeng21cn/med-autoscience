@@ -35,7 +35,7 @@ from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUT
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )

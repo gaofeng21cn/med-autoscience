@@ -7,7 +7,7 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     action_type as _action_type,
     work_unit_id as _work_unit_id,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.opl_transition_readback import (
+from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
 )
 from med_autoscience.controllers.current_work_unit_parts.primitives import (

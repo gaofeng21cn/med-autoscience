@@ -627,25 +627,20 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "test_obligation_actuator_postcondition.py::_assert_exactly_one_dhd_apply_outcome#"
-        "consumed_obligation_readback_identity"
+        "tests/test_opl_transition_readback_contract.py::"
+        "test_provider_admission_readback_must_match_current_transition_identity"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "test_obligation_actuator_outcomes.py::"
-        "test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as_closed_outcome#"
-        "consumed_obligation_readback_identity"
+        "tests/test_provider_admission_current_control_arbiter.py::"
+        "test_provider_admission_consumes_bound_opl_transition_readback"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "test_obligation_actuator_outcomes.py::"
-        "test_domain_health_diagnostic_apply_rejects_read_model_human_gate_and_route_back_refs"
+        "tests/test_provider_admission_current_control.py::"
+        "test_non_advancing_apply_readback_stays_typed_blocker_projection"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/"
-        "test_obligation_actuator_outcomes.py::"
-        "test_domain_health_diagnostic_apply_accepts_owner_gate_authority_payload_refs"
+        "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py::"
+        "test_runtime_report_preserves_human_gate_authority_payload"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py::"

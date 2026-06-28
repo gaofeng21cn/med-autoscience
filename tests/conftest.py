@@ -15,7 +15,6 @@ NESTED_CASE_COLLECTION_IGNORE_GLOBS = (
     "domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_*.py",
     "test_cli_cases/ai_reviewer_publication_eval_command_cases/test_*.py",
     "test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_*.py",
-    "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
 )
 
 collect_ignore_glob = list(NESTED_CASE_COLLECTION_IGNORE_GLOBS)
