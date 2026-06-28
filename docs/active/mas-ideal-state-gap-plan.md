@@ -280,6 +280,20 @@ MAS PaperMissionTransaction
 
 `StageTerminalDecisionPromotionGate + TransactionIdentityGate` 已从“近期先做”变成 repo/source/control-plane 已落地项。下一步不再继续扩写 read-model 或新增平台预检，而是进入 production live soak / owner-consumption evidence lane：选择 DM002/DM003 或下一条真实 paper line 跑同一 identity 的 `drive -> OPL intake -> StageRun/provider -> typed closeout -> MAS consume -> next owner answer`，并用 owner receipt、stable typed blocker、human gate、route-back evidence、paper/artifact delta 或 strict running proof 证明 live lane。缺这些 live evidence 时，只能报 `partial_live_tail_open`，不能把本轮 repo hardening 写成 runtime-ready 或 paper progress。
 
+### 2026-06-28 OPL readback parity 与 handoff 完成度口径
+
+Stage Closure Terminalizer 的 `contract / reducer / delivery split` 已按 repo/source/control-plane 功能面落地。当前 active plan 不再要求为 OPL readback parity 新建 MAS 平台；最低 contract 是消费或要求 OPL StageRun / closeout / attempt ledger 提供以下字段：`identity`、`attempt_idempotency_key`、duration observed-or-missing、token/cost observed-or-missing 和 `terminal_reason`。缺字段时只能形成 observability / stale-readback / cross-identity gap，不能用 checkpoint、provider completed、queue blocked、0 值或估算值补齐。
+
+完成度/验收分账固定为三层：
+
+| layer | 当前完成度读法 | Fresh evidence | 禁止替代 |
+| --- | --- | --- | --- |
+| `current_package_handoff` | repo split 已落地；live handoff 仍 open。 | `delivery-inspect`、`paper-mission inspect`、`study progress` 或 workspace manifest 证明 current source signature 已刷新到 `manuscript/current_package` / zip，且 `package_kind=current_package`、known blockers、`can_submit=false unless gate passed` 明确。 | checkpoint、candidate package、inspection package、focused tests、queue state、read-model freshness。 |
+| `degraded_or_pre_submission_handoff` | terminalizer runbook 已定义；live package / handoff evidence 仍按 paper line 单独验证。 | repair budget exhausted 后产生 degraded / pre-submission handoff ref，携带 known blockers、next owner、resume condition 和 `can_submit=false`，并证明同义 repair loop 停止。 | durable final、submission-ready、quality gate passed、human approval complete。 |
+| `submission_ready` | gate 清理仍 open。 | publication gate passed 或 MAS authority snapshot 明确授权 `bundle_build_allowed=true` / final package build，且 final manifest 可追踪 owner / gate evidence。 | current mirror、degraded handoff、checkpoint、tests、queue empty、provider completion。 |
+
+因此当前 plan status 是 `done_for_repo_contract_reducer_delivery_split` + `partial_live_current_package_handoff_open` + `submission_ready_gate_open`。后续 completion audit 必须逐层报告，不得把某一层的 evidence 升级成另一层完成。
+
 ## 下一轮 Agent prompt
 
 - Write scope: MAS active truth owner、current status summary、owner-route/read-model
