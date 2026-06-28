@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -20,6 +19,16 @@ from med_autoscience.controllers.quality_repair_batch_parts import repair_execut
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
+from med_autoscience.controllers.quality_repair_batch_parts.paths import (
+    EVAL_HYGIENE_QUALITY_SUMMARY_RELATIVE_PATH,
+    LEGACY_QUALITY_SUMMARY_RELATIVE_PATH,
+    STABLE_QUALITY_REPAIR_BATCH_RELATIVE_PATH,
+    quality_summary_path as _quality_summary_path,
+    read_json_object as _read_json_object,
+    read_quality_summary as _read_quality_summary,
+    stable_quality_repair_batch_path,
+    write_json as _write_json,
+)
 from med_autoscience.controllers.claim_evidence_alignment_work_units import (
     CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS,
 )
@@ -36,9 +45,6 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 
 SCHEMA_VERSION = 1
-STABLE_QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
-EVAL_HYGIENE_QUALITY_SUMMARY_RELATIVE_PATH = Path("artifacts/eval_hygiene/evaluation_summary/latest.json")
-LEGACY_QUALITY_SUMMARY_RELATIVE_PATH = Path("artifacts/evaluation_summary/latest.json")
 _QUALITY_REPAIR_CLOSURE_STATES = frozenset({"quality_repair_required"})
 _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_blocker"})
 _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
@@ -48,10 +54,6 @@ _QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS = upstream_route_context.quality_rep
     PUBLICATION_WORK_UNIT_REPAIR_IDS
 )
 domain_status_projection = lazy_controller_module("domain_status_projection")
-
-
-def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
-    return Path(study_root).expanduser().resolve() / STABLE_QUALITY_REPAIR_BATCH_RELATIVE_PATH
 
 
 def story_surface_delta_blocker_supersedes_lifecycle(
@@ -65,20 +67,6 @@ def story_surface_delta_blocker_supersedes_lifecycle(
         lifecycle=lifecycle,
         batch_path=stable_quality_repair_batch_path(study_root=resolved_study_root),
     )
-
-
-def _read_json_object(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    payload = json.loads(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict):
-        return {}
-    return payload
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _materialize_writer_worker_handoff(handoff: Mapping[str, Any] | None) -> str | None:
@@ -110,18 +98,6 @@ def _materialize_writer_worker_handoff(handoff: Mapping[str, Any] | None) -> str
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
-
-
-def _quality_summary_path(*, study_root: Path) -> Path:
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    canonical_path = resolved_study_root / EVAL_HYGIENE_QUALITY_SUMMARY_RELATIVE_PATH
-    if canonical_path.exists():
-        return canonical_path
-    return resolved_study_root / LEGACY_QUALITY_SUMMARY_RELATIVE_PATH
-
-
-def _read_quality_summary(*, study_root: Path) -> dict[str, Any]:
-    return _read_json_object(_quality_summary_path(study_root=study_root))
 
 
 def _effective_quality_summary(

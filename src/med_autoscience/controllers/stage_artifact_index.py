@@ -38,6 +38,12 @@ from med_autoscience.controllers.stage_artifact_index_parts.legacy_taxonomy impo
     legacy_taxonomy_migration as _legacy_taxonomy_migration,
     legacy_taxonomy_migration_stage_read_model as _legacy_taxonomy_migration_stage_read_model,
 )
+from med_autoscience.controllers.stage_artifact_index_parts.text_helpers import (
+    mapping_items as _mapping_items,
+    required_text as _required_text,
+    text_list as _text_list,
+    text_or_none as _text,
+)
 ALLOWED_ARTIFACT_STATUSES = (
     "missing",
     "missing_manifest_or_receipt",
@@ -967,40 +973,6 @@ def _next_owner_action(stage: Mapping[str, Any]) -> dict[str, Any]:
         "can_authorize_quality_verdict": False,
         "can_authorize_submission_readiness": False,
     }
-
-
-def _mapping_items(value: object) -> tuple[Mapping[str, Any], ...]:
-    if not isinstance(value, list | tuple):
-        return ()
-    return tuple(item for item in value if isinstance(item, Mapping))
-
-
-def _required_text(value: object, field: str) -> str:
-    text = _text(value)
-    if text is None:
-        raise ValueError(f"missing required text field: {field}")
-    return text
-
-
-def _text(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    return text or None
-
-
-def _text_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    result: list[str] = []
-    for item in value:
-        text = _text(item)
-        if text is not None:
-            result.append(text)
-    return result
 
 
 __all__ = [
