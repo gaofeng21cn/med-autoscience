@@ -41,7 +41,6 @@ STUDY_ACTIVE_LOCATOR_TAILS = {
 
 OPS_ACTIVE_ROOTS = {
     "medautoscience": "canonical_mas_workspace_ops_entry",
-    "mas": "progress_portal_container",
     "data_assets": "workspace_data_asset_ops",
 }
 
@@ -56,13 +55,10 @@ OPS_ACTIVE_MEDAUTOSCIENCE_CHILDREN = {
     "lightweight_collaboration.md": "workspace_collaboration_notes",
 }
 
-OPS_ACTIVE_MAS_CHILDREN = {
-    "progress": "progress_portal_static_html_projection",
-}
-
 OPS_LEGACY_ARCHIVE_ROOTS = {
     "deepscientist",
     "framework_refs",
+    "mas",
     "med-deepscientist",
     "med-the study team",
     "studies",
@@ -100,15 +96,6 @@ OPS_MEDAUTOSCIENCE_ACTIVE_BIN_ENTRIES = {
     "external-research-status",
     "export-submission",
     "sync-delivery",
-}
-
-OPS_MAS_LEGACY_CHILDREN = {
-    "README.md",
-    "behavior_equivalence_gate.yaml",
-    "bin",
-    "config.env",
-    "config.env.example",
-    "live-console",
 }
 
 OPS_LEGACY_SUFFIXES = (
@@ -267,14 +254,6 @@ def ops_visual_cleanup_plan(
                         target_root=target_root / "medautoscience",
                     )
                 )
-            if name == "mas" and entry.is_dir():
-                actions.extend(
-                    _ops_mas_child_actions(
-                        workspace_root=workspace_root,
-                        mas_root=entry,
-                        target_root=target_root / "mas",
-                    )
-                )
             continue
         if name in OPS_LEGACY_ARCHIVE_ROOTS or _is_legacy_backup_name(name):
             actions.append(
@@ -422,48 +401,6 @@ def _ops_medautoscience_bin_actions(
                 role="unclassified_medautoscience_wrapper",
                 decision="blocked_unclassified_ops_root",
                 blocker_id=f"unclassified_ops_root_entry_medautoscience_bin_{blocker_slug(name)}",
-            )
-        )
-    return actions
-
-
-def _ops_mas_child_actions(
-    *,
-    workspace_root: Path,
-    mas_root: Path,
-    target_root: Path,
-) -> list[dict[str, Any]]:
-    actions: list[dict[str, Any]] = []
-    for entry in sorted(mas_root.iterdir(), key=lambda path: path.name):
-        name = entry.name
-        if name in OPS_ACTIVE_MAS_CHILDREN:
-            actions.append(
-                _ops_action(
-                    workspace_root=workspace_root,
-                    source=entry,
-                    role=OPS_ACTIVE_MAS_CHILDREN[name],
-                    decision="keep_active_ops_child",
-                )
-            )
-            continue
-        if name in OPS_MAS_LEGACY_CHILDREN or _is_legacy_backup_name(name) or name == ".DS_Store":
-            actions.append(
-                _ops_action(
-                    workspace_root=workspace_root,
-                    source=entry,
-                    role="legacy_mas_bridge_surface_not_current_entry",
-                    decision="archive",
-                    target=target_root / name,
-                )
-            )
-            continue
-        actions.append(
-            _ops_action(
-                workspace_root=workspace_root,
-                source=entry,
-                role="unclassified_ops_root_entry",
-                decision="blocked_unclassified_ops_root",
-                blocker_id=f"unclassified_ops_root_entry_mas_{blocker_slug(name)}",
             )
         )
     return actions

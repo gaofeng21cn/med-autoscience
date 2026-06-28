@@ -77,7 +77,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["current_program_phase"]["single_project_boundary"]["land_now"] == [
         "MAS functional monolith completion landed",
         "MAS domain owner receipts and progress truth surfaces are the default research authority",
-        "MAS Progress Portal is the default visual status surface",
+        "OPL hosted workbench consumes MAS refs-only progress projections as the default visual status surface",
         "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
         "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
     ]
@@ -421,7 +421,7 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
     assert current_payload["phase"]["single_project_boundary"]["land_now"] == [
         "MAS functional monolith completion landed",
         "MAS domain owner receipts and progress truth surfaces are the default research authority",
-        "MAS Progress Portal is the default visual status surface",
+        "OPL hosted workbench consumes MAS refs-only progress projections as the default visual status surface",
         "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
         "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
     ]
@@ -553,6 +553,6 @@ def test_platform_target_uses_shared_builder(monkeypatch) -> None:
         "repo-tracked product-entry shell and family orchestration companions",
         "controller-owned runtime/progress/recovery truth",
         "CLI/MCP/controller entry surfaces that already support real work",
-        "MAS-owned Progress Portal and OPL handoff refs",
+        "MAS refs-only progress projections and OPL hosted workbench handoff refs",
     ]
     assert len(captured["landing_sequence"]) == 9

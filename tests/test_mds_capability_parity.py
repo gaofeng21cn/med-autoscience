@@ -77,7 +77,7 @@ EXPECTED_RUNTIME_CONTINUITY_USER_SURFACES = [
     "study_progress",
     "workspace_cockpit",
     "product_entry_status",
-    "progress_portal",
+    "opl_hosted_workbench",
     "mcp_study_progress",
     "opl_handoff",
 ]
@@ -418,7 +418,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         "retired_physical_no_alias_mas_surface"
     )
     assert by_surface["progress_visibility"]["mas_behavior"]["combined_portal_runtime_soak_keys"] is False
-    assert "mas_progress_portal_route_decision_trail" in by_surface["progress_visibility"]["mas_contract"]
+    assert "OPL hosted workbench consumes MAS payload refs" in by_surface["progress_visibility"]["mas_contract"]
     assert "runtime truth" in by_surface["progress_visibility"]["mas_contract"]
     assert by_surface["progress_visibility"]["paper_progress_degradation"]["classification"] == "diagnostic_degrading"
     assert by_surface["progress_visibility"]["paper_progress_degradation"]["affects_automatic_paper_production"] is False
@@ -512,7 +512,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         assert item["recommended_operator_action"] in {
             "use_mas_default",
             "use_mas_with_latency_awareness",
-            "use_progress_portal",
+            "use_opl_hosted_workbench",
             "use_explicit_archive_import_ref_only",
             "retired_no_active_replacement",
             "retired_no_active_replacement",

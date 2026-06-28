@@ -238,7 +238,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "repo-tracked product-entry shell and family orchestration companions",
         "controller-owned runtime/progress/recovery truth",
         "CLI/MCP/controller entry surfaces that already support real work",
-        "MAS-owned Progress Portal and OPL handoff refs",
+        "MAS refs-only progress projections and OPL hosted workbench handoff refs",
     ]
     assert phase5["not_yet"] == [
         "mature hosted standalone medical frontend",

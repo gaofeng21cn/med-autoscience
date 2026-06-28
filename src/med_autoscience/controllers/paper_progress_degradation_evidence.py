@@ -11,8 +11,8 @@ from med_autoscience.profiles import WorkspaceProfile
 SURFACE = "paper_progress_degradation_evidence"
 SCHEMA_VERSION = 1
 READ_MODEL = "paper_progress_degradation_evidence_read_model"
-PROGRESS_PROJECTION_PAYLOAD_REF = Path("runtime/artifacts/progress_portal/latest.json")
-PROGRESS_PROJECTION_HTML_REF = Path("ops/mas/progress/index.html")
+PROGRESS_PROJECTION_PAYLOAD_REF = Path("artifacts/runtime/study_progress/latest.json")
+OPL_CURRENT_CONTROL_REF = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")
 
 READ_ONLY_CONTRACT = {
     "mode": "read_only_degradation_evidence",
@@ -29,7 +29,7 @@ READ_ONLY_CONTRACT = {
         "read_publication_gate_projection",
         "read_ai_reviewer_handoff_projection",
         "read_writer_handoff_projection",
-        "read_progress_portal_refs",
+        "read_progress_projection_refs",
         "summarize_safe_reconcile_dry_run",
     ],
     "prohibited_actions": [
@@ -100,12 +100,12 @@ def build_profile_progress_degradation_evidence(
         )
         for study in studies
     ]
-    portal_refs = _progress_portal_refs(profile.workspace_root)
+    progress_refs = _progress_projection_refs(profile.workspace_root)
     safe_reconcile = _safe_reconcile_dry_run_evidence(reconcile)
     monitor_evidence = _monitor_evidence(monitor)
     blockers = [
         dict(blocker)
-        for source in [*study_items, portal_refs, safe_reconcile, monitor_evidence]
+        for source in [*study_items, progress_refs, safe_reconcile, monitor_evidence]
         for blocker in _sequence(source.get("blockers"))
         if isinstance(blocker, Mapping)
     ]
@@ -119,7 +119,7 @@ def build_profile_progress_degradation_evidence(
         "workspace_root": str(profile.workspace_root),
         "study_count": len(study_items),
         "studies": study_items,
-        "progress_portal_refs": portal_refs,
+        "progress_projection_refs": progress_refs,
         "safe_reconcile_dry_run": safe_reconcile,
         "real_workspace_soak_monitor": monitor_evidence,
         "summary": {
@@ -132,7 +132,7 @@ def build_profile_progress_degradation_evidence(
             "publication_handoff_clear_count": sum(
                 item["publication_handoff_clarity"]["status"] == "clear" for item in study_items
             ),
-            "progress_portal_refs_readable": portal_refs["status"] == "readable",
+            "progress_projection_refs_readable": progress_refs["status"] == "readable",
             "safe_reconcile_has_next_action": bool(safe_reconcile.get("next_action")),
             "blocker_count": len(blockers),
             "writes_performed": False,
@@ -440,17 +440,17 @@ def _writer_handoff_clarity(
     }
 
 
-def _progress_portal_refs(workspace_root: Path) -> dict[str, Any]:
+def _progress_projection_refs(workspace_root: Path) -> dict[str, Any]:
     refs = [
         _ref_status(
-            label="progress_portal_payload",
+            label="study_progress_projection",
             path=workspace_root / PROGRESS_PROJECTION_PAYLOAD_REF,
             kind="json",
         ),
         _ref_status(
-            label="progress_portal_html",
-            path=workspace_root / PROGRESS_PROJECTION_HTML_REF,
-            kind="text",
+            label="opl_current_control_state",
+            path=workspace_root / OPL_CURRENT_CONTROL_REF,
+            kind="json",
         ),
     ]
     unreadable = [ref for ref in refs if ref["readable"] is not True]
@@ -458,9 +458,9 @@ def _progress_portal_refs(workspace_root: Path) -> dict[str, Any]:
     if unreadable:
         blockers.append(
             {
-                "kind": "progress_portal_refs",
-                "reason": "progress_portal_refs_unreadable",
-                "next_action": "materialize_progress_portal_read_models",
+                "kind": "progress_projection_refs",
+                "reason": "progress_projection_refs_unreadable",
+                "next_action": "materialize_study_progress_and_opl_current_control_refs",
                 "missing_or_unreadable_refs": [ref["label"] for ref in unreadable],
             }
         )

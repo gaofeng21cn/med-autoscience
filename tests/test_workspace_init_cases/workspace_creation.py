@@ -32,7 +32,7 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert str(workspace_root / "runtime" / "archives") in result["created_directories"]
     assert str(workspace_root / "runtime" / "restore_index") in result["created_directories"]
     assert str(workspace_root / "runtime" / "artifacts") in result["created_directories"]
-    assert str(workspace_root / "runtime" / "artifacts" / "progress_portal") in result["created_directories"]
+    assert str(workspace_root / "runtime" / "artifacts" / "progress_portal") not in result["created_directories"]
     for layer_name in DATASET_LAYER_NAMES:
         assert str(workspace_root / "data" / "datasets" / layer_name) in result["created_directories"]
     for registry_dir in DATA_ASSET_REGISTRY_DIRS:
@@ -140,7 +140,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "runtime" / "archives").is_dir()
     assert (workspace_root / "runtime" / "restore_index").is_dir()
     assert (workspace_root / "runtime" / "artifacts").is_dir()
-    assert (workspace_root / "runtime" / "artifacts" / "progress_portal").is_dir()
+    assert not (workspace_root / "runtime" / "artifacts" / "progress_portal").exists()
     assert not (workspace_root / "ops" / "mas" / "progress").exists()
     assert not (workspace_root / "ops" / "med-deepscientist").exists()
     assert not (workspace_root / ".codex" / "skills" / "opl-scholarskills").exists()
@@ -357,7 +357,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "install-watch-runtime-service" not in root_readme_text
     assert "watch-runtime-service-status" not in root_readme_text
     assert "uninstall-watch-runtime-service" not in root_readme_text
-    assert "ops/mas/progress/" in root_readme_text
+    assert "ops/mas/progress/" not in root_readme_text
+    assert "OPL hosted workbench" in root_readme_text
     assert "ops/mas/config.env" not in root_readme_text
     assert "ops/med-deepscientist" not in root_readme_text
     assert "memory/portfolio/research_memory/" in root_readme_text

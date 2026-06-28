@@ -198,7 +198,6 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         layout.archives_root,
         layout.restore_index_root,
         layout.runtime_artifacts_root,
-        layout.runtime_artifacts_root / "progress_portal",
         layout.startup_briefs_root,
         layout.startup_payloads_root,
     ]
@@ -279,7 +278,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `runtime/` 保存运行态，`runtime/artifacts/` 保存 SQLite refs index 与维护 ledger，`ops/medautoscience/` 是唯一 MAS workspace ops 入口。\n"
-        "- `ops/mas/progress/` 只保留 Progress Portal 静态只读投影，不提供运行控制入口。\n"
+        "- OPL hosted workbench / App 负责用户可见展示；MAS workspace 只提供 `study-progress`、`paper-mission` 和 refs-only projection JSON。\n"
         "- 不要直接通过外部后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
         "- 如果需要启动、查看或停止 runtime，必须走 OPL stage/runtime 控制面；MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口。\n"
     )

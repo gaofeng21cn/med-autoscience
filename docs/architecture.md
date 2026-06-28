@@ -71,7 +71,7 @@ OPL 对 `PaperMissionRun` 的职责只到 runtime envelope、StageRun / attempt 
 
 MAS 在 stage-led OPL framework 下的可调用路线保持 direct skill 等价：直接通过 MAS app skill 调用，或通过 OPL stage/queue/handoff 调用，最终都回到同一套 MAS-owned stage entry、controller、ledger、review、route decision 与 artifact surface。OPL 持有 framework-level attempt/receipt/projection metadata；医学 research memory、evidence ledger、review ledger、publication verdict 和 current package authority 留在 MAS。
 
-`MAS Progress Portal` 是这组投影面向用户的 landed read-model / display materializer：默认生成 `ops/mas/progress/index.html` 静态快照和 OPL handoff refs，不再提供 repo-local HTTP service、action endpoint 或运行控制面。Portal 由 MAS 持有 domain-owned payload / HTML，消费 `study-progress`、`workspace-cockpit` 和 durable truth refs。OPL App 需要统一进度看板、长期托管、跨域唤醒或统一状态面时，消费 MAS payload refs、HTML refs 和现有 MAS projection，并把结果索引为 OPL stage-runtime dashboard / runtime status；study truth、publication judgment 和 evidence ledger 继续由 MAS 持有。最佳集成形态见 [Progress Portal OPL App Integration](./references/integration/progress_portal_opl_app_integration.md)。
+用户可见进度展示归 OPL hosted workbench / App shell 承载。MAS 不再维护 repo-local Progress Portal materializer、静态 HTML 入口、HTTP service、action endpoint 或运行控制面；MAS 只输出 `study-progress`、`paper-mission`、current-control handoff refs、owner receipt / typed blocker refs 和 body-free projection JSON。OPL App 需要统一进度看板、长期托管、跨域唤醒或统一状态面时，消费这些 MAS refs 并索引为 OPL stage-runtime dashboard / runtime status；study truth、publication judgment 和 evidence ledger 继续由 MAS 持有。
 
 ## Foundry Agent series profile
 

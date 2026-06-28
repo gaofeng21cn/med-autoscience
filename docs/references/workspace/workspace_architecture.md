@@ -319,8 +319,8 @@ wrapper 不应继续硬编码：
   - 显式指定外部共享 `MedAutoScience` repo
 - `ops/medautoscience/bin/*`
   - 唯一 MAS workspace ops 入口，承载 bootstrap、profile、diagnostic、storage maintenance、progress projection 和 domain authority refs helper
-- `ops/mas/progress/`
-  - Progress Portal 静态只读投影；`ops/mas` 不再承载 runtime launcher config、behavior gate、doctor/status/stop wrapper 或 supervision 控制面
+- OPL hosted workbench / App display
+  - 消费 MAS `study-progress`、`paper-mission` 与 refs-only projection；`ops/mas` 不再承载 runtime launcher config、static display、behavior gate、doctor/status/stop wrapper 或 supervision 控制面
 
 当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `source_provenance`、`historical_fixture_ref` 或 `explicit_archive_import_ref` 这类 read-only reference 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 的 profile runtime ref 是 `opl_runtime_ref=opl_hosted_stage_runtime`，对应 engine id 是 `opl-hosted-stage-runtime`；默认 generic runtime owner / topology 归 OPL provider-backed stage runtime，`mas_runtime_core` 只作为 retired provenance / delegated MAS domain adapter / diagnostic context；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只保留 tombstone/provenance refs，Hermes 只承担非默认 executor adapter、proof lane、diagnostic 或历史参考。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。旧 `ops/mas/behavior_equivalence_gate.yaml` 已降为 retired behavior gate contract；新 workspace 不再生成该 artifact，`workspace_contracts` 对 MAS-first `runtime/` workspace 返回 read-only retired gate payload。旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。行为等价审计若仍需读取旧 gate，只能服务 audit-level provenance，不得把外部 MDS 恢复成默认运行依赖。
 ## 当前实现下的最小可运行 workspace 契约
@@ -499,7 +499,7 @@ wrapper 不应继续做：
 
 - `ops/medautoscience/bin/*` 只从 profile 取 runtime 路径
 - 不再在 wrapper 或 workspace scaffold 中散落硬编码 `ops/med-deepscientist/runtime/quests`
-- 新 workspace 只保留 `ops/medautoscience/` 受控入口与 `ops/mas/progress/` 静态只读投影，不复制旧 `ops/mas` launcher/config/gate/doctor/status/stop bridge
+- 新 workspace 只保留 `ops/medautoscience/` 受控入口，不生成 `ops/mas` launcher/config/gate/doctor/status/stop bridge 或 repo-local static display；用户可见 display 由 OPL hosted workbench 消费 MAS refs-only projection
 
 ### Phase 2.5: 行为等价门
 

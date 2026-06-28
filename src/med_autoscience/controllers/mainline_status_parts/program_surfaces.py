@@ -141,14 +141,14 @@ def build_platform_target() -> dict[str, Any]:
                 title="Functional monolith completion",
                 status="completed",
                 phase_id="phase_5_stage_runtime_platform_maturation",
-                summary="MAS 默认 CLI/MCP/product-entry/workspace helper/Progress Portal/OPL handoff 都不要求外部 MDS repo、daemon 或 WebUI。",
+                summary="MAS 默认 CLI/MCP/product-entry/workspace helper/OPL hosted workbench handoff 都不要求外部 MDS repo、daemon 或 WebUI。",
             ),
             _build_shared_program_sequence_step(
                 step_id="optional_hosted_frontend_packaging",
                 title="Optional hosted frontend packaging",
                 status="pending",
                 phase_id="phase_5_stage_runtime_platform_maturation",
-                summary="后续可把 MAS Progress Portal / OPL dashboard 打包成 hosted frontend，但不得重解释 MAS study truth。",
+                summary="后续可把 OPL dashboard / hosted frontend 消费 MAS refs-only projection，但不得重解释 MAS study truth。",
             ),
             _build_shared_program_sequence_step(
                 step_id="future_upstream_source_intake_review",
@@ -181,7 +181,7 @@ def build_platform_target() -> dict[str, Any]:
             "repo-tracked product-entry shell and family orchestration companions",
             "controller-owned runtime/progress/recovery truth",
             "CLI/MCP/controller entry surfaces that already support real work",
-            "MAS-owned Progress Portal and OPL handoff refs",
+            "MAS refs-only progress projections and OPL hosted workbench handoff refs",
         ],
         not_yet=[
             "mature hosted standalone medical frontend",

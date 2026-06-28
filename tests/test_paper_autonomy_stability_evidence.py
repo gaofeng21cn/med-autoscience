@@ -61,13 +61,12 @@ def _ready_matrix_payload(study_id: str) -> dict[str, object]:
 
 def _write_display_refs(workspace: Path) -> None:
     _write_json(
-        workspace / "runtime" / "artifacts" / "progress_portal" / "latest.json",
-        {"surface_kind": "mas_progress_portal", "study": {"study_id": "001-active"}},
+        workspace / "artifacts" / "runtime" / "study_progress" / "latest.json",
+        {"surface_kind": "study_progress_projection", "study": {"study_id": "001-active"}},
     )
-    (workspace / "ops" / "mas" / "progress").mkdir(parents=True, exist_ok=True)
-    (workspace / "ops" / "mas" / "progress" / "index.html").write_text(
-        "<!doctype html><title>Med Auto Science</title>\n",
-        encoding="utf-8",
+    _write_json(
+        workspace / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {"surface_kind": "opl_current_control_state_handoff", "studies": []},
     )
 
 
@@ -249,7 +248,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     assert evidence["read_only_contract"]["can_write_current_package"] is False
     assert evidence["summary"]["writes_performed"] is False
     profile = evidence["profiles"][0]
-    assert profile["progress_portal_refs"]["status"] == "readable"
+    assert profile["progress_projection_refs"]["status"] == "readable"
     assert profile["safe_reconcile_dry_run"]["next_action"] == "continue_read_only_monitoring"
     study = profile["studies"][0]
     assert study["status_progress_readability"]["status"] == "readable"

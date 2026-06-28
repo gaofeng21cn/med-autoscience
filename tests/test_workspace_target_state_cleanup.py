@@ -326,11 +326,8 @@ def test_workspace_target_state_cleanup_visual_clean_archives_ops_residue(tmp_pa
     assert ops_decisions["ops/medautoscience/python_pycache"] == "archive"
     assert ops_decisions["ops/medautoscience/bin/legacy-control-surface-clean-migration"] == "archive"
     assert ops_decisions["ops/medautoscience/config.env.bak-20260504T124135Z"] == "archive"
-    assert ops_decisions["ops/mas"] == "keep_active_ops_root"
-    assert ops_decisions["ops/mas/progress"] == "keep_active_ops_child"
-    assert ops_decisions["ops/mas/bin"] == "archive"
-    assert ops_decisions["ops/mas/config.env"] == "archive"
-    assert ops_decisions["ops/mas/behavior_equivalence_gate.yaml"] == "archive"
+    assert ops_decisions["ops/mas"] == "archive"
+    assert "ops/mas/progress" not in ops_decisions
     assert ops_decisions["ops/deepscientist"] == "archive"
     assert ops_decisions["ops/framework_refs"] == "archive"
     assert ops_decisions["ops/med-deepscientist.TOMBSTONE.json"] == "archive"
@@ -349,23 +346,23 @@ def test_workspace_target_state_cleanup_visual_clean_archives_ops_residue(tmp_pa
     assert (archive_root / "mas" / "bin" / "status").is_file()
     assert (archive_root / "mas" / "config.env").is_file()
     assert (archive_root / "mas" / "behavior_equivalence_gate.yaml").is_file()
+    assert (archive_root / "mas" / "progress" / "index.html").is_file()
     assert (archive_root / "deepscientist" / "README.md").is_file()
     assert (archive_root / "framework_refs" / "_repo_compare" / "fixture.py").is_file()
     assert (archive_root / "med-deepscientist.TOMBSTONE.json").is_file()
     assert not (profile.workspace_root / "ops" / "medautoscience" / "logs").exists()
     assert not (profile.workspace_root / "ops" / "medautoscience" / "python_pycache").exists()
     assert not (profile.workspace_root / "ops" / "medautoscience" / "bin" / "legacy-control-surface-clean-migration").exists()
-    assert not (profile.workspace_root / "ops" / "mas" / "bin").exists()
+    assert not (profile.workspace_root / "ops" / "mas").exists()
     assert not (profile.workspace_root / "ops" / "deepscientist").exists()
     assert not (profile.workspace_root / "ops" / "framework_refs").exists()
     assert (profile.workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh").is_file()
-    assert (profile.workspace_root / "ops" / "mas" / "progress" / "index.html").is_file()
     assert result["validation"]["ops_visual_clean_enabled"] is True
     assert result["validation"]["legacy_ops_current_truth"] is False
     target_map = {(item["source"], item["target"]) for item in result["target_path_map"]}
     assert (
-        "ops/mas/bin",
-        f"archive/legacy_ops_surfaces/{result['archive_stamp']}/mas/bin",
+        "ops/mas",
+        f"archive/legacy_ops_surfaces/{result['archive_stamp']}/mas",
     ) in target_map
 
 

@@ -310,9 +310,9 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "TUI and Web visual status",
         "classification": "rewrite_in_mas",
         "mds_source_surface": "TUI/Web status dashboard",
-        "mas_target_owner": "Progress Portal",
+        "mas_target_owner": "OPL hosted workbench consuming MAS refs",
         "mds_final_role": "explicit_archive_import_ref_only",
-        "cutover_contract": "MAS Progress Portal is the default visual status surface; old MDS WebUI is diagnostic only.",
+        "cutover_contract": "OPL hosted workbench consumes MAS refs-only progress projections as the default visual status surface; old MDS WebUI is diagnostic only.",
         "owner_boundary": "Visual status consumes MAS progress payloads and cannot reinterpret study truth.",
     },
     {

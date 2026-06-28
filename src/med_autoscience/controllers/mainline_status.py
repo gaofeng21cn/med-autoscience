@@ -103,7 +103,7 @@ def _single_project_boundary() -> dict[str, Any]:
         "land_now": [
             "MAS functional monolith completion landed",
             "MAS domain owner receipts and progress truth surfaces are the default research authority",
-            "MAS Progress Portal is the default visual status surface",
+            "OPL hosted workbench consumes MAS refs-only progress projections as the default visual status surface",
             "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
             "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
         ],
