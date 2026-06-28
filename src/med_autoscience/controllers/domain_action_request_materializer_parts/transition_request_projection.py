@@ -22,9 +22,13 @@ def domain_progress_transition_request_projection(dispatches: list[dict[str, Any
         record["projection_source"] = "domain_action_request_materializer"
         record["legacy_owner_callable_adapter_readback"] = False
         record["domain_intent_producer"] = "med_autoscience.paper_progress_policy_adapter"
-        record["durable_carrier_owner"] = TARGET_RUNTIME_OWNER
-        record["opl_transition_runtime_required_for_durable_carrier"] = True
-        _apply_transition_projection_boundary(record)
+        if _is_mas_foreground_owner_callable_record(record):
+            record["durable_carrier_owner"] = "med-autoscience"
+            _apply_mas_foreground_projection_boundary(record)
+        else:
+            record["durable_carrier_owner"] = TARGET_RUNTIME_OWNER
+            record["opl_transition_runtime_required_for_durable_carrier"] = True
+            _apply_transition_projection_boundary(record)
     return records
 
 
@@ -112,20 +116,34 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
             "stage_transition_authority_boundary",
         ],
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
+        "provider_admission_requires_opl_runtime_result": (
+            False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True
+        ),
         "provider_completion_is_domain_completion": False,
-        "projection_only": True,
-        "owner_callable_adapter_diagnostic_only": True,
-        "owner_callable_adapter_readiness_authority": False,
-        "owner_callable_adapter_can_create_success_outcome": False,
-        "owner_callable_carrier_projection_only": True,
+        "projection_only": False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True,
+        "owner_callable_adapter_diagnostic_only": (
+            False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True
+        ),
+        "owner_callable_adapter_readiness_authority": (
+            True if _is_mas_foreground_owner_callable_dispatch(dispatch) else False
+        ),
+        "owner_callable_adapter_can_create_success_outcome": (
+            True if _is_mas_foreground_owner_callable_dispatch(dispatch) else False
+        ),
+        "owner_callable_carrier_projection_only": (
+            False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True
+        ),
         "mas_private_attempt_loop_forbidden": True,
-        "mas_dispatch_authority": False,
+        "mas_dispatch_authority": (
+            True if _is_mas_foreground_owner_callable_dispatch(dispatch) else False
+        ),
         "mas_creates_owner_callable_carrier": False,
         "mas_creates_opl_outbox": False,
         "mas_creates_opl_event": False,
         "mas_creates_opl_stage_run": False,
         "target_runtime_owner": _text(dispatch.get("target_runtime_owner")) or TARGET_RUNTIME_OWNER,
+        "owner_callable_surface": _text(dispatch.get("owner_callable_surface")),
+        "owner_callable_execution_mode": _text(dispatch.get("owner_callable_execution_mode")),
         "dispatch_status": _text(dispatch.get("dispatch_status")) or "transition_request_pending",
         "blocked_reason": _text(dispatch.get("blocked_reason")),
         "evidence_gap_decision_summary": _mapping(dispatch.get("evidence_gap_decision_summary")) or None,
@@ -150,6 +168,14 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
     ):
         return {}
     return {key: value for key, value in record.items() if value is not None}
+
+
+def _is_mas_foreground_owner_callable_dispatch(dispatch: Mapping[str, Any]) -> bool:
+    return _text(dispatch.get("owner_callable_execution_mode")) == "mas_foreground"
+
+
+def _is_mas_foreground_owner_callable_record(record: Mapping[str, Any]) -> bool:
+    return _text(record.get("owner_callable_execution_mode")) == "mas_foreground"
 
 
 def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -690,6 +716,40 @@ def _apply_transition_projection_boundary(payload: dict[str, Any]) -> dict[str, 
     payload["opl_transition_runtime_postcondition"] = _opl_transition_runtime_postcondition()
     authority_boundary = dict(_mapping(payload.get("authority_boundary")))
     authority_boundary.update(_mas_transition_projection_authority_boundary())
+    payload["authority_boundary"] = authority_boundary
+    return payload
+
+
+def _apply_mas_foreground_projection_boundary(payload: dict[str, Any]) -> dict[str, Any]:
+    payload["provider_admission_pending"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = False
+    payload["provider_completion_is_domain_completion"] = False
+    payload["projection_only"] = False
+    payload["owner_callable_adapter_diagnostic_only"] = False
+    payload["owner_callable_adapter_readiness_authority"] = True
+    payload["owner_callable_adapter_can_create_success_outcome"] = True
+    payload["owner_callable_carrier_projection_only"] = False
+    payload["mas_dispatch_authority"] = True
+    payload["mas_creates_owner_callable_carrier"] = False
+    payload["mas_creates_opl_outbox"] = False
+    payload["mas_creates_opl_event"] = False
+    payload["mas_creates_opl_stage_run"] = False
+    payload["target_runtime_owner"] = "med-autoscience"
+    payload["opl_transition_runtime_required_for_durable_carrier"] = False
+    authority_boundary = dict(_mapping(payload.get("authority_boundary")))
+    authority_boundary.update(
+        {
+            "surface": "mas_foreground_owner_callable_authority_boundary",
+            "mas_dispatch_authority": True,
+            "target_runtime_owner": "med-autoscience",
+            "owner_callable_surface_required": True,
+            "owner_callable_surface": _text(payload.get("owner_callable_surface")),
+            "mas_creates_opl_outbox": False,
+            "mas_creates_opl_event": False,
+            "mas_creates_opl_stage_run": False,
+            "opl_transition_runtime_required_for_durable_carrier": False,
+        }
+    )
     payload["authority_boundary"] = authority_boundary
     return payload
 

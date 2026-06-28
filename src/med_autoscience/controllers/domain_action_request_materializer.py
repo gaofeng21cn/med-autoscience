@@ -64,6 +64,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
 from med_autoscience.controllers.paper_mission_owner_surface import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_control.owner_callable_registry import owner_callable_for_action
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
@@ -605,10 +606,23 @@ def _default_executor_dispatch(
 
 
 def _mas_foreground_owner_callable_action(action: Mapping[str, Any]) -> bool:
-    target_surface = _mapping(action.get("target_surface"))
-    if _text(target_surface.get("ref_kind")) != "mas_owner_callable" and _paper_recovery_owner_callable_surface(action) is None:
+    if _ai_reviewer_record_production_action(action):
         return False
-    if _owner_callable_surface(action) is None:
+    target_surface = _mapping(action.get("target_surface"))
+    owner_callable_surface = _owner_callable_surface(action)
+    if owner_callable_surface is None:
+        return False
+    ref_kind = _text(target_surface.get("ref_kind"))
+    current_owner_action = (
+        _text(action.get("authority")) == "study_progress.current_executable_owner_action"
+        or _text(action.get("source_surface")) == "current_executable_owner_action"
+        or _text(action.get("source")) == "current_executable_owner_action"
+    )
+    if (
+        ref_kind != "mas_owner_callable"
+        and not (ref_kind == "paper_recovery_successor_owner_action" and current_owner_action)
+        and _paper_recovery_owner_callable_surface(action) is None
+    ):
         return False
     for key in (
         "provider_admission_pending",
@@ -623,12 +637,39 @@ def _mas_foreground_owner_callable_action(action: Mapping[str, Any]) -> bool:
     return True
 
 
+def _ai_reviewer_record_production_action(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    work_unit_id = (
+        _text(action.get("work_unit_id"))
+        or _text(action.get("next_work_unit"))
+        or _text(action.get("controller_work_unit_id"))
+        or _text(action.get("reason"))
+    )
+    return work_unit_id in ai_reviewer_record_handoff.AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+
+
 def _owner_callable_surface(action: Mapping[str, Any]) -> str | None:
     target_surface = _mapping(action.get("target_surface"))
+    registered_callable = (
+        owner_callable_for_action(_text(action.get("action_type")) or "")
+        if _registry_owner_callable_fallback_allowed(action)
+        else None
+    )
     return (
         _text(action.get("owner_callable_surface"))
         or _text(target_surface.get("owner_callable_surface"))
         or _paper_recovery_owner_callable_surface(action)
+        or _text(_mapping(registered_callable).get("callable_surface"))
+    )
+
+
+def _registry_owner_callable_fallback_allowed(action: Mapping[str, Any]) -> bool:
+    target_surface = _mapping(action.get("target_surface"))
+    return _text(target_surface.get("ref_kind")) == "paper_recovery_successor_owner_action" and (
+        _text(action.get("authority")) == "study_progress.current_executable_owner_action"
+        or _text(action.get("source_surface")) == "current_executable_owner_action"
+        or _text(action.get("source")) == "current_executable_owner_action"
     )
 
 
@@ -690,7 +731,15 @@ def _mas_foreground_owner_callable_dispatch_payload(
         owner_route=owner_route,
         idempotency_key=idempotency_key,
         repeat_key=repeat_key,
-        dispatch_status="ready",
+        dispatch_status=(
+            "ready"
+            if (
+                developer_mode_payload.get("dry_run_executor_dispatch") is True
+                or developer_mode_payload.get("safe_actions_enabled") is True
+            )
+            and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
+            else "dry_run"
+        ),
         blocked_reason=None,
         repeat_guard={"repeat_suppressed": False, "why_not_applied": None},
         typed_closeout_contract=typed_closeout_contract,
@@ -731,7 +780,7 @@ def _mas_foreground_owner_callable_dispatch_payload(
 
 
 def _with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
-    if _text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter":
+    if _text(dispatch.get("owner_callable_execution_mode")) == "mas_foreground":
         return dict(dispatch)
     payload = dict(dispatch)
     transition_request = _mapping(payload.get("opl_domain_progress_transition_request"))
@@ -872,7 +921,11 @@ def _with_owner_route_currentness_basis(
 
 
 def _has_opl_execution_proof(payload: Mapping[str, Any]) -> bool:
-    if any(has_opl_transition_readback(item) for item in _iter_payloads(payload)):
+    if any(
+        has_opl_transition_readback(item)
+        for item in _iter_payloads(payload)
+        if _text(item.get("surface_kind")) != "mas_domain_progress_transition_request"
+    ):
         return True
     return any(
         first_trusted_opl_execution_authorization(
