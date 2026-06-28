@@ -57,7 +57,7 @@ def build_outer_supervision_slo_projection(
         blocked_reasons=blocked_reasons,
         missing_reasons=missing_reasons,
     )
-    recommended_command = _recommended_reconcile_command(
+    recommended_command = _recommended_readback_command(
         state=state,
         blocked_reasons=blocked_reasons,
         profile_ref=profile_ref,
@@ -111,6 +111,7 @@ def build_outer_supervision_slo_projection(
         "fresh_after_seconds": fresh_after_seconds,
         "stale_after_seconds": stale_after_seconds,
         "recommended_command": recommended_command,
+        "canonical_one_shot_paper_mission_readback_command": recommended_command,
         "canonical_one_shot_reconcile_domain_routes_command": recommended_command,
         "action_class": action_cost["action_class"],
         "will_start_llm": action_cost["will_start_llm"],
@@ -189,7 +190,7 @@ def _slo_state(
     return "stale", missing_reasons
 
 
-def _recommended_reconcile_command(
+def _recommended_readback_command(
     *,
     state: str,
     blocked_reasons: list[str],
@@ -198,18 +199,22 @@ def _recommended_reconcile_command(
 ) -> str | None:
     if blocked_reasons or state not in {"due", "stale", "missing"}:
         return None
-    return reconcile_domain_routes_command(profile_ref=profile_ref, study_id=study_id)
+    return paper_mission_readback_command(profile_ref=profile_ref, study_id=study_id)
 
 
-def reconcile_domain_routes_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
+def paper_mission_readback_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
     command = (
-        "uv run python -m med_autoscience.cli owner-route-reconcile "
+        "uv run python -m med_autoscience.cli paper-mission inspect "
         f"--profile {_quote(str(profile_ref) if profile_ref is not None else '<profile>')}"
     )
     resolved_study_id = _text(study_id)
     if resolved_study_id is not None:
-        command = f"{command} --studies {_quote(resolved_study_id)}"
-    return f"{command} --developer-supervisor-mode developer_apply_safe"
+        command = f"{command} --study-id {_quote(resolved_study_id)}"
+    return f"{command} --format json"
+
+
+def reconcile_domain_routes_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
+    return paper_mission_readback_command(profile_ref=profile_ref, study_id=study_id)
 
 
 def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
@@ -354,5 +359,6 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_outer_supervision_slo_projection",
+    "paper_mission_readback_command",
     "reconcile_domain_routes_command",
 ]

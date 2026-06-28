@@ -76,8 +76,8 @@ def _recovery_contract(
         steps = [
             _recovery_step(
                 step_id="refresh_supervision",
-                title="检查 OPL runtime manager current-control/stage-attempt",
-                surface_kind="domain_health_diagnostic_refresh",
+                title="读取 MAS paper-mission 当前 readback",
+                surface_kind="paper_mission_readback_refresh",
                 command=commands["refresh_supervision"],
             ),
             _recovery_step(

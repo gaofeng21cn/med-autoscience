@@ -504,7 +504,10 @@ def _alert_item(text: str) -> dict[str, str | None]:
         purpose = "提示监管心跳不能单独证明论文实际推进。"
         text = "进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"
         expected = "worker liveness 或 meaningful artifact delta 应恢复为 fresh，或给出稳定 blocked_reason。"
-        recommended_command = "uv run python -m med_autoscience.cli owner-route-reconcile --profile <profile>"
+        recommended_command = (
+            "uv run python -m med_autoscience.cli paper-mission inspect "
+            "--profile <profile> --format json"
+        )
     elif _is_parked_study_alert(text):
         source = "workspace_cockpit.inactive_study_projection"
         purpose = "说明 parked/manual-hold study 不应被自动唤醒。"

@@ -325,6 +325,8 @@ def _text_list(value: object) -> list[str]:
 def _delta_tokens(*, total_tokens: int | None, triggered: bool) -> int | None:
     if triggered:
         return total_tokens
+    if total_tokens is None:
+        return None
     return 0
 
 

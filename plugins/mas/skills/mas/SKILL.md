@@ -9,7 +9,7 @@ Series: OPL Foundry Agent
 Agent id: mas
 Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff
 Executable command surface: `medautosci foundry status|inspect|interfaces|validate|doctor|peers --format json`
-Runtime controller tick: `medautosci runtime domain-health-diagnostic`
+Paper mission readback/control surface: `medautosci paper-mission inspect|drive|terminalize-stage`
 OPL series command surface: `opl foundry agents inspect mas --json`
 
 当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 app skill。
@@ -37,8 +37,10 @@ OPL series command surface: `opl foundry agents inspect mas --json`
 - `medautosci runtime overlay-status --profile <profile>`
 - `medautosci runtime install-overlay --profile <profile>`
 - `medautosci doctor backend-audit --profile <profile> --refresh`
-- `medautosci runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --dry-run`
-- `medautosci runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply`
+- `medautosci paper-mission inspect --profile <profile> --study-id <study_id> --format json`
+- `medautosci paper-mission drive --profile <profile> --study-id <study_id>`
+- `medautosci paper-mission terminalize-stage --profile <profile> --study-id <study_id> --stage-packet <stage_packet.json>`
+- `medautosci study progress --profile <profile> --study-id <study_id> --format json`
 - `medautosci domain-handler export --profile <profile> --format json`
 - `medautosci domain-handler dispatch --task <task.json> --format json`
 - plugin-local MCP launcher: `plugins/mas/bin/medautosci-mcp`
@@ -64,30 +66,27 @@ ScholarSkills 产物默认只是 refs-only candidate、materialized package refs
 
 ## OPL terminal attempt / next work unit 快速入口
 
-当 OPL terminal attempt 已完成，但 MAS study progress 仍停在 queued、handoff、stale current-control 或旧 work unit 时，不要先找 `--format` 参数，也不要只跑 read-only `study progress` 期待它消费 closeout。`study progress --format json` 只读当前投影；消费 OPL terminal attempt closeout、刷新 current-control 并推导唯一 next work unit 的入口是 `runtime domain-health-diagnostic`。
+当 OPL terminal attempt 已完成，但 MAS study progress 仍停在 queued、handoff、stale current-control 或旧 work unit 时，不要先找旧 DHD/owner-route 入口。`study progress --format json` 是只读投影；当前主路是先读 `paper-mission inspect`，再由 `paper-mission terminalize-stage` 或 `paper-mission drive` 消费 StageOutcome / owner receipt / typed blocker / route-back evidence，并让 OPL 接力下一 stage。
 
 稳定用法：
 
 ```bash
-medautosci runtime domain-health-diagnostic \
+medautosci paper-mission inspect \
   --profile <profile> \
-  --studies <study_id>... \
-  --request-opl-stage-attempts \
-  --request-opl-owner-route-reconcile \
-  --apply
+  --study-id <study_id> \
+  --format json
 ```
 
-这个命令没有 `--format` 参数，输出固定为 JSON。只读探针用同一个入口去掉 owner-route reconcile 并改成 `--dry-run`：
+Stage 已有 terminal packet / closeout 时，走 StageOutcome 消费入口：
 
 ```bash
-medautosci runtime domain-health-diagnostic \
+medautosci paper-mission terminalize-stage \
   --profile <profile> \
-  --studies <study_id>... \
-  --request-opl-stage-attempts \
-  --dry-run
+  --study-id <study_id> \
+  --stage-packet <stage_packet.json>
 ```
 
-执行后再用 `medautosci study progress --profile <profile> --study-id <study_id> --format json` 读取 `current_stage`、`current_work_unit`、`current_executable_owner_action`、typed blocker 和 next owner。`--request-opl-owner-route-reconcile --apply` 只允许用于明确的 developer-supervisor exact lane；默认监督、automation 或不确定 current fingerprint 时先 dry-run。
+执行后再用 `medautosci study progress --profile <profile> --study-id <study_id> --format json` 读取 `current_stage`、`current_work_unit`、`current_executable_owner_action`、typed blocker 和 next owner。`runtime domain-health-diagnostic`、`owner-route-reconcile` 与旧 default-executor dispatch 只允许作为显式 diagnostic / tombstone / migration provenance；默认监督、automation 或不确定 current fingerprint 时不得把它们作为推进入口。
 
 ## Domain runtime 护栏
 

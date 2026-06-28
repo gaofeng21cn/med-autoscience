@@ -23,7 +23,7 @@ def _legacy_tombstone() -> dict[str, object]:
 def test_old_dhd_owner_route_dispatch_recovery_path_is_not_default_mainline() -> None:
     tombstone = _legacy_tombstone()
 
-    assert tombstone["classification"] == "diagnostics_migration_provenance_only"
+    assert tombstone["classification"] == "retired_diagnostics_migration_provenance_only"
     assert tombstone["default_caller"] is False
     assert tombstone["default_product_mainline_claim_allowed"] is False
     assert tombstone["default_domain_handler_mainline_claim_allowed"] is False
@@ -90,6 +90,8 @@ def test_old_path_forbidden_claims_include_progress_and_dm_completion() -> None:
     }
     assert tombstone["authority_boundary"] == {
         "read_only": True,
+        "retired_tombstone": True,
+        "active_public_projection_alias_allowed": False,
         "history_provenance_only": True,
         "diagnostics_only": True,
         "migration_input_only": True,
@@ -143,6 +145,7 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
             "ordinary_schedulable": False,
             "active_caller_class": "diagnostic_only",
             "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+            "active_public_projection_alias_allowed": False,
         },
     }
     assert proof["physical_reference_deletion_required_for_default_retirement"] is False
@@ -490,8 +493,10 @@ def test_plugin_skill_ordinary_path_does_not_use_legacy_default_paper_mainline()
     ordinary_path_line = next(
         line for line in skill_text.splitlines() if line.startswith("Ordinary path:")
     )
-    runtime_tick_line = next(
-        line for line in skill_text.splitlines() if line.startswith("Runtime controller tick:")
+    runtime_control_line = next(
+        line
+        for line in skill_text.splitlines()
+        if line.startswith("Paper mission readback/control surface:")
     )
 
     assert ordinary_path_line == (
@@ -501,4 +506,5 @@ def test_plugin_skill_ordinary_path_does_not_use_legacy_default_paper_mainline()
     assert "default-executor-dispatch" not in ordinary_path_line
     assert "PaperRecovery" not in ordinary_path_line
 
-    assert "domain-health-diagnostic" in runtime_tick_line
+    assert "paper-mission inspect" in runtime_control_line
+    assert "domain-health-diagnostic" not in runtime_control_line

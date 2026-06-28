@@ -600,7 +600,10 @@ def _dispatch_pre_execution_block(
 ) -> dict[str, Any] | None:
     if not guard_ok:
         if guard_reason == "opl_execution_authorization_required":
-            return _opl_execution_authorization_block_fields()
+            return _blocked_dispatch_carrier(
+                dispatch=dispatch,
+                block=_opl_execution_authorization_block_fields(),
+            )
         return {
             "execution_status": "blocked",
             "blocked_reason": guard_reason,
@@ -707,10 +710,7 @@ def _block_transition_request_without_opl_readback(
         current_study=current_study,
     ):
         return dict(execution)
-    return {
-        **dict(execution),
-        **_opl_execution_authorization_block_fields(),
-    }
+    return _blocked_dispatch_carrier(dispatch=dispatch, block=execution)
 
 
 def _blocked_dispatch_carrier(
@@ -730,7 +730,9 @@ def _blocked_dispatch_carrier(
     ):
         if key in dispatch:
             carrier[key] = dispatch[key]
-    for payload in _iter_transition_payloads(dispatch):
+        if key in block and key not in carrier:
+            carrier[key] = block[key]
+    for payload in _iter_transition_payloads(dispatch, block):
         for key in (
             "ai_reviewer_record_production_request",
             "ai_reviewer_record_worker_handoff",
@@ -746,13 +748,17 @@ def _blocked_dispatch_carrier(
         if actions := _text_items(source_action.get("next_required_actions")):
             carrier["next_required_actions"] = actions
     if "next_required_actions" not in carrier:
-        production_request = _mapping(dispatch.get("ai_reviewer_record_production_request"))
+        production_request = _mapping(carrier.get("ai_reviewer_record_production_request"))
         if request_kind := _text(production_request.get("request_kind")):
             carrier["next_required_actions"] = [
                 request_kind,
                 "rematerialize_ai_reviewer_request",
                 "return_to_ai_reviewer_workflow",
             ]
+    if "next_required_actions" not in carrier:
+        prose_request = _mapping(carrier.get("ai_reviewer_medical_prose_review_production_request"))
+        if request_kind := _text(prose_request.get("request_kind")):
+            carrier["next_required_actions"] = [request_kind]
     return {
         **carrier,
         **dict(block),

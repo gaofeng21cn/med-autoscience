@@ -67,8 +67,8 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
                 "hard_coded_study_allowlist_required": False,
             },
             "same_tick_actions": [
-                "runtime domain-health-diagnostic --request-opl-stage-attempts --dry-run",
-                "owner-route-reconcile --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
+                "paper-mission inspect --format json",
+                "paper-mission terminalize-stage when a bound StageOutcome packet is present",
                 "OPL DomainProgressTransitionRuntime intake/readback",
                 "OPL-authorized MAS owner-callable adapter or stable typed blocker",
             ],

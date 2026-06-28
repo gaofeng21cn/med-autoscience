@@ -36,8 +36,8 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
         "hard_coded_study_allowlist_required": False,
     }
     assert payload["developer_supervisor"]["same_tick_actions"] == [
-        "runtime domain-health-diagnostic --request-opl-stage-attempts --dry-run",
-        "owner-route-reconcile --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
+        "paper-mission inspect --format json",
+        "paper-mission terminalize-stage when a bound StageOutcome packet is present",
         "OPL DomainProgressTransitionRuntime intake/readback",
         "OPL-authorized MAS owner-callable adapter or stable typed blocker",
     ]

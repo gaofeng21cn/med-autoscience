@@ -11,6 +11,7 @@ from med_autoscience.controllers.opl_execution_boundary import (
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
 from .stage_outcome import STAGE_OUTCOME_TASK_KIND
+from . import opl_owner_callable_proof
 
 def block_if_missing_authorization(
     *,
@@ -56,6 +57,8 @@ def _authorized(
     if owner_route_basis == "live_provider_attempt_dispatch":
         live_attempt = _mapping(current_study.get("opl_provider_attempt")) or current_study
         return first_trusted_opl_execution_authorization(live_attempt) is not None
+    if opl_owner_callable_proof.trusted_owner_callable_opl_proof(dispatch) is not None:
+        return True
     if first_trusted_opl_execution_authorization(
         dispatch.get("opl_execution_authorization"),
         dispatch.get("opl_provider_attempt"),

@@ -20,6 +20,10 @@ def progress_projection_respecting_current_domain_truth(
     publication_eval_payload: dict[str, Any] | None,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
+    controller_closure_active = _submission_authority_sync_closed_for_eval(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
     blockers = _current_blockers_respecting_controller_closure(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -46,9 +50,22 @@ def progress_projection_respecting_current_domain_truth(
     if refreshed is not updated:
         updated = refreshed
         changed = True
-    if not changed:
+    nested_blockers_need_sync = (
+        (
+            controller_closure_active
+            or _mapping_copy(updated.get("status_narration_contract")).get("current_blockers")
+            == blockers[:8]
+        )
+        and (
+            _mapping_copy(updated.get("user_visible_projection")).get("current_blockers")
+            != blockers
+            or _mapping_copy(updated.get("status_narration_contract")).get("current_blockers")
+            != blockers[:8]
+        )
+    )
+    if not changed and not nested_blockers_need_sync:
         return payload
-    if blockers_changed:
+    if blockers_changed or nested_blockers_need_sync:
         user_visible = _mapping_copy(updated.get("user_visible_projection"))
         if user_visible:
             user_visible["current_blockers"] = blockers

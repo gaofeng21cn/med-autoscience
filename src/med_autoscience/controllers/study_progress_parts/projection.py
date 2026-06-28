@@ -203,6 +203,11 @@ def build_study_progress_projection(
             ),
             study_root=study_root,
         )
+        refreshed_existing = _progress_projection_respecting_current_domain_truth(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            payload=refreshed_existing,
+        )
         return attach_artifact_first_mission_summary(refreshed_existing)
 
     resolved_study_id = study_id

@@ -665,7 +665,7 @@ def _build_product_entry_guardrails(
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
                 command=refresh_command,
-                surface_kind="domain_health_diagnostic_refresh",
+                surface_kind="paper_mission_readback_refresh",
             ),
             _build_shared_product_entry_program_step(
                 step_id="inspect_study_progress",

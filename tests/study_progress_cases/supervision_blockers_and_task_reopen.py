@@ -98,7 +98,9 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         "primary_step_id": "refresh_supervision",
         "primary_surface_kind": "paper_mission_readback_refresh",
         "primary_command": (
-            "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
+            "uv run python -m med_autoscience.cli paper-mission inspect --profile "
+            + str(profile_ref.resolve())
+            + " --study-id 001-risk --format json"
         ),
     }
     assert result["recommended_command"].endswith(
