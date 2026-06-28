@@ -19,9 +19,9 @@ def assert_storage_refs_only_adapter_boundary(
     )} == {
         "surface_kind": "mas_runtime_storage_refs_only_adapter_boundary",
         "report_mode": report_mode,
-        "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
+        "authority_boundary": "opl_storage_substrate_mas_refs_only_projection_no_generic_cleanup_policy_owner",
         "classification": "domain_authority_refs",
-        "migration_class": "refs_only_domain_adapter",
+        "migration_class": "opl_storage_substrate_mas_refs_projection",
         "body_policy": "workspace_refs_sizes_receipts_blockers_only",
         "generic_cleanup_policy_owner": "one-person-lab",
     }

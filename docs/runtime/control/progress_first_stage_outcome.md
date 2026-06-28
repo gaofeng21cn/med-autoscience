@@ -394,7 +394,7 @@ When validating a docs-only change in this repo, use documentation review plus g
   - Source-of-truth surfaces read: `agent/stages/stage_route_contract.yaml`, `contracts/stage_control_plane.json`, progress-first controller/projection tests.
   - Explicit non-write surfaces: no live study truth, runtime-owned state, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, `paper/submission_minimal/`, `manuscript/current_package/`, or submission package was edited.
 - Artifact-first rule landed:
-  - Stage artifact refs / `stage_artifact_index` are the MVP progress core and are projected into study progress, Progress Portal, and OPL domain-pack workbench descriptors.
+  - Stage artifact refs / `stage_artifact_index` are the MVP progress core and are projected into `study_progress` refs consumed by OPL hosted workbench descriptors.
   - typed closeout / read-model / currentness / evidence-tail / provider liveness are enhancement, audit, or scheduling layers.
   - OPL App / workbench surfaces display refs-only stage artifacts and cannot write MAS truth, publication readiness, quality verdict, paper body, or package outputs.
   - 2026-06-03 stage-native contract follow-through: `stage_artifact_index` now projects stage folder contract, manifest requirements, receipt requirements, and fail-closed artifact classification. 2026-06-03 physical kernel follow-through: MAS now declares and consumes the OPL physical Stage Folder Kernel locator from `contracts/mas-paper-study-stage-pack.json`, reading `current.json`, stage `latest`, attempt `manifest.json`, receipt file, manifest hash refs, lineage refs, and conformance refs from `OPL_STATE_DIR/runtime-state/domains/med-autoscience/deliverables/mas-paper-study/<study_id>/paper-study`. Legacy declared refs can still seed migration / historical projection, but missing OPL physical manifest, receipt, hash, or pointer keeps the artifact out of current progress.
@@ -421,7 +421,7 @@ When validating a docs-only change in this repo, use documentation review plus g
 - Scope:
   - Updated docs: `docs/active/mas-ideal-state-gap-plan.md`, `docs/active/stage_surface_standardization_program.md`, `docs/runtime/control/progress_first_stage_outcome.md`.
   - Updated contract: `contracts/stage_artifact_kernel_adoption.json`.
-  - Updated source/projection: state index kernel, semantic receipt validator, promotion audit helper, lineage / retention drilldown, study progress `stage_kernel_projection`, Progress Portal / Workbench `stage_operating_layer`.
+  - Updated source/projection: state index kernel, semantic receipt validator, promotion audit helper, lineage / retention drilldown, study progress `stage_kernel_projection`, and OPL-hosted workbench `stage_operating_layer` projection.
   - Explicit non-write surfaces: no live study truth, runtime-owned state, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, `paper/submission_minimal/`, `manuscript/current_package/`, memory body, artifact body, submission package, or OPL `current.json` was edited.
 - Operating-layer rule landed:
   - `stage_artifact_index` remains a rebuildable derived locator projection.

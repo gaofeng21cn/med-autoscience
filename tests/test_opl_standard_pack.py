@@ -842,7 +842,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
             "must_not_emit": "generic_runtime_verdict",
         },
         "runtime_storage_maintenance": {
-            "boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
+            "boundary": "opl_storage_substrate_mas_refs_only_projection_no_generic_cleanup_policy_owner",
             "must_not_emit": "generic_cleanup_policy",
         },
     }
@@ -856,6 +856,13 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert expected["must_not_emit"] in provenance_boundary["must_not_emit"]
         assert "paper_closure_verdict" in provenance_boundary["must_not_emit"]
     storage_adapter = inventory["runtime_storage_maintenance"]
+    assert storage_adapter["owner"] == "one-person-lab"
+    assert storage_adapter["migration_class"] == (
+        "opl_storage_substrate_mas_refs_projection"
+    )
+    assert storage_adapter["current_ref_status"] == (
+        "opl_owned_storage_substrate_mas_refs_only_projection"
+    )
     assert (
         "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
         in storage_adapter["code_paths"]

@@ -265,8 +265,8 @@ def validate_progress_portal_study_workbench_overview_action_projection(
     violations: list[dict[str, str]] = []
     if surface.get("current_disposition") != "read_only_workbench_projection":
         violations.append(_violation(surface_id, "workbench_projection_not_read_only_projection"))
-    if surface.get("retained_mas_role") != "body_free_workbench_read_model_projection":
-        violations.append(_violation(surface_id, "workbench_projection_retained_role_not_body_free"))
+    if surface.get("retained_mas_role") != "refs_only_source_projection_for_opl_hosted_workbench":
+        violations.append(_violation(surface_id, "workbench_projection_retained_role_not_refs_only_source"))
     if surface.get("replacement_surface") != (
         "OPL Workbench Shell owns operator action transport; MAS only publishes inert "
         "current_owner_delta and DomainProgressTransitionRuntime readback refs"

@@ -18,7 +18,7 @@ Machine boundary: 本文是人读 runtime contract support。可执行 runtime t
 | Domain entry / authority | `MedAutoScience` | study truth、stage semantics、publication route、source readiness、quality gate、artifact/package authority、publication-route memory decision、owner receipt、typed blocker、safe action refs。 |
 | Generic runtime substrate | `OPL provider-backed stage runtime` / Temporal | stage attempt、queue、wakeup、retry/dead-letter、resume、human-gate transport、provider query、worker residency、generic transition runner、operator projection。 |
 | Generated / hosted surfaces | OPL generated shell + MAS domain handler target | CLI/MCP/Skill/product-entry/status/workbench descriptor、allowlisted task dispatch、refs-only projection。 |
-| Product projection | Progress Portal / `study-progress` / OPL App workbench | 只读展示 runtime status、owner route、blocker、freshness 和 drilldown refs；不裁决 publication readiness。 |
+| Product projection | `study-progress` / OPL App workbench / hosted generated workbench | 只读展示 runtime status、owner route、blocker、freshness 和 drilldown refs；不裁决 publication readiness。 |
 
 `Codex CLI` 是当前第一公民 executor。其他 executor adapter 只能通过 OPL 显式接入，且只保证接入、生命周期、回执与审计边界，不承诺行为效果等价。
 
@@ -142,7 +142,7 @@ Agent 调用接口时遵守以下顺序：
 
 ## Frontend / Product Projection Contract
 
-Product-entry、workspace cockpit、Progress Portal 和 OPL App workbench 只能做 projection / drilldown / handoff：
+Product-entry、workspace cockpit 和 OPL App / hosted workbench 只能消费 MAS refs-only projection 做 projection / drilldown / handoff：
 
 - `study-progress` 负责用户可读阶段摘要、当前任务摘要、progress freshness、当前阻塞、下一步、`intervention_lane`、`recommended_command(s)` 和 `recovery_contract`。
 - `workspace-cockpit` / `launch-study` / `product-entry-status` 消费 `study-progress.recovery_contract`、`recommended_command` 和 `intervention_lane`，不得各自再猜恢复路径。

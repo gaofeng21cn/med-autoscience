@@ -73,11 +73,12 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
         ],
     },
     "runtime_storage_maintenance": {
+        "migration_class": "opl_storage_substrate_mas_refs_projection",
         "domain_ref_consumer_refs": [
             "runtime grouped storage audit commands read workspace storage refs",
             "workspace storage reports expose sizes and cleanup receipts only",
         ],
-        "retirement_gate_status": "storage_refs_until_opl_cleanup_policy_parity",
+        "retirement_gate_status": "mas_refs_projection_until_opl_storage_substrate_readback",
         "delete_or_tombstone_after": [
             "opl_cleanup_policy_consumes_storage_refs",
             "opl_artifact_lifecycle_storage_audit_shell_parity_proven",
@@ -133,7 +134,7 @@ def _domain_authority_refs_retirement_gate(module_id: str, current_ref_status: s
     return {
         "module_id": module_id,
         "classification": "domain_authority_refs",
-        "migration_class": "refs_only_domain_adapter",
+        "migration_class": str(gate.get("migration_class") or "refs_only_domain_adapter"),
         "current_ref_status": current_ref_status,
         "domain_ref_consumer_count": len(gate["domain_ref_consumer_refs"]),
         "domain_ref_consumer_refs": list(gate["domain_ref_consumer_refs"]),
@@ -280,21 +281,24 @@ _FUNCTIONAL_MODULE_INVENTORY = (
     },
     {
         "module_id": "runtime_storage_maintenance",
-        "owner": "med-autoscience",
+        "owner": "one-person-lab",
         "classification": "domain_authority_refs",
-        "migration_class": "refs_only_domain_adapter",
+        "migration_class": "opl_storage_substrate_mas_refs_projection",
         "code_paths": [
             "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
         ],
         "domain_ref_consumers": ["runtime grouped storage audit commands", "workspace storage reports"],
-        "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+        "current_ref_status": "opl_owned_storage_substrate_mas_refs_only_projection",
         "migration_action": "declare_storage_audit_refs_and_consume_opl_lifecycle_cleanup_policy",
-        "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
+        "retention_reason": (
+            "OPL owns runtime storage maintenance; MAS may expose study/workspace refs, typed blockers, "
+            "and artifact authority receipt refs only."
+        ),
         "opl_expected_primitives": ["opl_artifact_lifecycle_storage_audit_shell", "opl_restore_retention_receipt_shell", "opl_runtime_lifecycle_cleanup_policy"],
         "mas_domain_authority_refs": ["artifact_authority", "workspace_artifact_refs"],
-        "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
+        "authority_boundary": "opl_storage_substrate_mas_refs_only_projection_no_generic_cleanup_policy_owner",
         "provenance_boundary": {
-            "surface_role": "workspace_storage_ref_report_and_artifact_authority_receipt_adapter",
+            "surface_role": "mas_refs_only_source_projection_for_opl_storage_substrate",
             "history_role": "storage_maintenance_provenance",
             "body_policy": "workspace_refs_sizes_receipts_blockers_only",
             "may_emit": [

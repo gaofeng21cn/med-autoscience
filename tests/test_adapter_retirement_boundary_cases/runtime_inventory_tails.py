@@ -472,7 +472,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     ]
     assert workbench_projection["current_disposition"] == "read_only_workbench_projection"
     assert workbench_projection["retained_mas_role"] == (
-        "body_free_workbench_read_model_projection"
+        "refs_only_source_projection_for_opl_hosted_workbench"
     )
     assert workbench_projection["projection_boundary"] == {
         "can_authorize_provider_admission": False,

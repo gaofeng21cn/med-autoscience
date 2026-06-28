@@ -157,7 +157,7 @@ managed runtime execution 的正式条件是：
 - `MedDeepScientist` 作为 frozen archive / historical fixture / explicit archive import reference 的显式边界
 - default MAS operation 不依赖 external `med-deepscientist` repo / runtime root
 - external MDS 只作为显式 backend audit、historical fixture / explicit archive import reference、historical fixture 和 source provenance target
-- optional hosted runtime / workspace truth packaging 已由 MAS Progress Portal 承接：`artifacts/runtime/progress_portal/hosted_package.json` 只打包 MAS-owned read-model payload、HTML 入口、source refs、conditions 和 OPL handoff refs，不消费 MDS WebUI 或 external MDS runtime root
+- 旧 optional hosted runtime / workspace truth packaging 只保留为 Progress Portal `hosted_package` provenance；当前托管展示由 OPL App / hosted workbench 消费 MAS refs-only projection、source refs、conditions 和 OPL handoff refs，不消费 MDS WebUI 或 external MDS runtime root
 
 这份 contract 还没有完成的是：
 

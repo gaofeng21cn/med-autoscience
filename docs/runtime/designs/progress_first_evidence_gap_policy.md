@@ -37,7 +37,7 @@ Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-ga
 - Domain action materializer: action/request/transition projection 携带 evidence gap summary；hard/human gate 变成 blocked dispatch；soft/assumption/backlog/tail 不改变当前 action dispatch。
 - OPL / Product Entry / MCP ABI: `contracts/evidence-gap-consumption-abi.json` 和 `med_autoscience.evidence_gap_abi` 固定 `EvidenceCondition`、`EvidenceBudget`、`HardGateRegistry`、`SoftGapLedger`、`AssumptionLedger`、`WorkbenchGapView` 六个消费面；action catalog、product-entry manifest、skill catalog 和 MCP tool metadata 只携带同一 ABI ref，不生成第二真相源。
 - Stage / default executor policy: `contracts/stage_control_plane.json`、`stage_throughput_contracts` 和 `owner_callable_action_policy` 的 missing-evidence 口径统一为 `classify_with_evidence_gap_decision_then_progress_first`；普通 evidence gap 不再直接 fallback 到 typed blocker。
-- Workbench: Progress Portal study workbench 生成 `evidence_gap_view`，按 hard gate、soft gap、assumption、observability backlog 和 evidence tail 展示 read-only ledger / budget；它不能执行 action、写 domain truth 或授权 publication / submission。
+- Workbench: OPL-hosted study workbench 消费 MAS refs-only `evidence_gap_view` projection，按 hard gate、soft gap、assumption、observability backlog 和 evidence tail 展示 read-only ledger / budget；它不能执行 action、写 domain truth 或授权 publication / submission。
 - Machine contracts: `contracts/evidence-gap-decision-policy.json`、`contracts/evidence-gap-consumption-abi.json`、schema、examples。
 
 ## Claim Boundary

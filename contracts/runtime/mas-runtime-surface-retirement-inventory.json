@@ -1679,7 +1679,7 @@
         "requires_opl_current_control_readback": true
       },
       "replacement_surface": "OPL Workbench Shell owns operator action transport; MAS only publishes inert current_owner_delta and DomainProgressTransitionRuntime readback refs",
-      "retained_mas_role": "body_free_workbench_read_model_projection",
+      "retained_mas_role": "refs_only_source_projection_for_opl_hosted_workbench",
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
         "completion_claim_requires_live_owner_or_opl_readback": true,

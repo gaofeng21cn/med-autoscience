@@ -185,7 +185,7 @@
         "can_emit_generic_owner_verdict": false,
         "can_emit_paper_closure_verdict": false,
         "classification": "domain_authority_refs",
-        "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+        "current_ref_status": "opl_owned_storage_substrate_mas_refs_only_projection",
         "delete_or_tombstone_after": [
           "opl_cleanup_policy_consumes_storage_refs",
           "opl_artifact_lifecycle_storage_audit_shell_parity_proven",
@@ -198,14 +198,14 @@
           "workspace storage reports expose sizes and cleanup receipts only"
         ],
         "generic_owner_claim_allowed": false,
-        "migration_class": "refs_only_domain_adapter",
+        "migration_class": "opl_storage_substrate_mas_refs_projection",
         "module_id": "runtime_storage_maintenance",
         "must_not_emit": [
           "generic_cleanup_policy",
           "restore_ready_verdict",
           "paper_closure_verdict"
         ],
-        "retirement_gate_status": "storage_refs_until_opl_cleanup_policy_parity"
+        "retirement_gate_status": "mas_refs_projection_until_opl_storage_substrate_readback"
       },
       {
         "can_emit_generic_owner_verdict": false,
@@ -710,12 +710,12 @@
         }
       },
       {
-        "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
+        "authority_boundary": "opl_storage_substrate_mas_refs_only_projection_no_generic_cleanup_policy_owner",
         "classification": "domain_authority_refs",
         "code_paths": [
           "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
         ],
-        "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+        "current_ref_status": "opl_owned_storage_substrate_mas_refs_only_projection",
         "domain_ref_consumers": [
           "runtime grouped storage audit commands",
           "workspace storage reports"
@@ -761,14 +761,14 @@
           "workspace_artifact_refs"
         ],
         "migration_action": "declare_storage_audit_refs_and_consume_opl_lifecycle_cleanup_policy",
-        "migration_class": "refs_only_domain_adapter",
+        "migration_class": "opl_storage_substrate_mas_refs_projection",
         "module_id": "runtime_storage_maintenance",
         "opl_expected_primitives": [
           "opl_artifact_lifecycle_storage_audit_shell",
           "opl_restore_retention_receipt_shell",
           "opl_runtime_lifecycle_cleanup_policy"
         ],
-        "owner": "med-autoscience",
+        "owner": "one-person-lab",
         "proof_refs": [
           "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
           "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"
@@ -791,14 +791,14 @@
             "publication_ready_verdict",
             "artifact_mutation_authorization"
           ],
-          "surface_role": "workspace_storage_ref_report_and_artifact_authority_receipt_adapter"
+          "surface_role": "mas_refs_only_source_projection_for_opl_storage_substrate"
         },
-        "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
+        "retention_reason": "OPL owns runtime storage maintenance; MAS may expose study/workspace refs, typed blockers, and artifact authority receipt refs only.",
         "retirement_gate": {
           "can_emit_generic_owner_verdict": false,
           "can_emit_paper_closure_verdict": false,
           "classification": "domain_authority_refs",
-          "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+          "current_ref_status": "opl_owned_storage_substrate_mas_refs_only_projection",
           "delete_or_tombstone_after": [
             "opl_cleanup_policy_consumes_storage_refs",
             "opl_artifact_lifecycle_storage_audit_shell_parity_proven",
@@ -811,14 +811,14 @@
             "workspace storage reports expose sizes and cleanup receipts only"
           ],
           "generic_owner_claim_allowed": false,
-          "migration_class": "refs_only_domain_adapter",
+          "migration_class": "opl_storage_substrate_mas_refs_projection",
           "module_id": "runtime_storage_maintenance",
           "must_not_emit": [
             "generic_cleanup_policy",
             "restore_ready_verdict",
             "paper_closure_verdict"
           ],
-          "retirement_gate_status": "storage_refs_until_opl_cleanup_policy_parity"
+          "retirement_gate_status": "mas_refs_projection_until_opl_storage_substrate_readback"
         }
       },
       {
