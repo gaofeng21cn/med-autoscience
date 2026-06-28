@@ -8,6 +8,7 @@ import pytest
 from med_autoscience.controllers.stage_closure_terminalizer import (
     ALLOWED_OUTCOME_KINDS,
     classify_stage_closure_blockers,
+    stage_closure_decision_projection,
     terminalize_stage_closure,
 )
 
@@ -140,15 +141,77 @@ def test_same_signature_without_semantic_delta_terminalizes_to_typed_blocker() -
     assert second["outcome"]["blocker_type"] == "same_signature_without_semantic_delta"
 
 
+def test_route_back_checkpoint_blockers_do_not_become_unclassified() -> None:
+    decision = terminalize_stage_closure(
+        study_id="003-dm-china-us-mortality-attribution",
+        stage_id="submission_milestone_candidate",
+        work_unit_id="route-back-checkpoint",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [
+                "accepted_submission_milestone_candidate",
+                "paper_mission_stage_route_domain_gate_pending",
+                "MAS mission executor consumed route-back/domain-gate evidence as a fresh paper-facing candidate and is continuing the PaperMission stage.",
+            ],
+        },
+    )
+
+    assert decision["blocker_taxonomy"]["unknown"] == []
+    assert decision["blocker_taxonomy"]["route_back_checkpoint"] == [
+        "accepted_submission_milestone_candidate",
+        "paper_mission_stage_route_domain_gate_pending",
+        "MAS mission executor consumed route-back/domain-gate evidence as a fresh paper-facing candidate and is continuing the PaperMission stage.",
+    ]
+    outcome = decision["outcome"]
+    assert outcome["kind"] == "next_stage_transition"
+    assert outcome["transition_kind"] == "route_back_candidate_checkpoint"
+    assert outcome["next_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+
+
+def test_legacy_unclassified_checkpoint_decision_projects_as_route_back_checkpoint() -> None:
+    projection = stage_closure_decision_projection(
+        readback={
+            "stage_closure_decision": {
+                "surface_kind": "mas_stage_closure_decision",
+                "outcome": {
+                    "kind": "typed_blocker",
+                    "blocker_type": "unclassified_stage_closure_blocker",
+                    "next_action": "materialize_typed_blocker_or_route_redesign",
+                },
+                "known_blockers": [
+                    "accepted_submission_milestone_candidate",
+                    (
+                        "MAS mission executor consumed route-back/domain-gate evidence "
+                        "as a fresh paper-facing candidate and is continuing the "
+                        "PaperMission stage."
+                    ),
+                    "paper_mission_stage_route_domain_gate_pending",
+                ],
+            }
+        }
+    )
+
+    assert projection["outcome_kind"] == "next_stage_transition"
+    assert projection["outcome"]["kind"] == "next_stage_transition"
+    assert projection["outcome"]["transition_kind"] == "route_back_candidate_checkpoint"
+    assert "blocker_type" not in projection["outcome"]
+
+
 def test_blocker_taxonomy_keeps_submission_authority_separate_from_mirror_sync() -> None:
     classes = classify_stage_closure_blockers(
         [
             "authority_snapshot_missing",
             "delivery_manifest_source_changed",
             "reviewer_first_concerns_unresolved",
+            "paper_mission_stage_route_domain_gate_pending",
         ]
     )
 
     assert classes["submission_authority"] == ["authority_snapshot_missing"]
     assert classes["mirror_sync"] == ["delivery_manifest_source_changed"]
     assert classes["quality_repairable"] == ["reviewer_first_concerns_unresolved"]
+    assert classes["route_back_checkpoint"] == [
+        "paper_mission_stage_route_domain_gate_pending"
+    ]

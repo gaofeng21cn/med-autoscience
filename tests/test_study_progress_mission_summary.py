@@ -100,6 +100,9 @@ def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_
     assert payload["current_objective"]["next_owner"] == "mission_executor"
     assert payload["paper_mission_run"]["mission_state"] == "consumed"
     assert payload["paper_mission_run"]["consume_result"]["status"] == "accepted"
+    assert "accepted_submission_milestone_candidate" in payload["paper_mission_run"][
+        "stage_closure_readback"
+    ]["known_blockers"]
     assert payload["artifact_first_mission_summary"]["read_model_source"] == {
         "source_kind": "paper_mission_consumption_ledger",
         "consumption_ledger_ref": str(
@@ -427,8 +430,69 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert payload["artifact_first_mission_summary"]["stage_closure_decision"] == (
         payload["stage_closure_decision"]
     )
+    stage_closure_readback = payload["artifact_first_mission_summary"][
+        "paper_mission_run"
+    ]["stage_closure_readback"]
+    assert stage_closure_readback["projection_status"] == (
+        "stage_closure_decision_missing"
+    )
+    assert stage_closure_readback["outcome"]["kind"] == (
+        "stage_closure_decision_missing"
+    )
+    assert stage_closure_readback["outcome_kind"] == (
+        "stage_closure_decision_missing"
+    )
+    assert "not_consumed" in stage_closure_readback["known_blockers"]
     assert payload["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
     assert payload["next_owner_or_human_decision"]["next_owner"] == "ai_reviewer"
     assert payload["platform_diagnostics"]["counts_as_paper_progress"] is False
+
+
+def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    paper_mission_run = {
+        "mission_id": "paper-mission::dm003",
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+    }
+    updated = module._paper_mission_run_with_stage_closure_readback(
+        paper_mission_run=paper_mission_run,
+        stage_closure_decision={
+            "projection_status": "terminalizer_outcome_observed",
+            "decision_ref": "stage-closure::dm003",
+            "outcome": {
+                "kind": "typed_blocker",
+                "next_action": "materialize_typed_blocker_or_route_redesign",
+            },
+            "outcome_kind": "typed_blocker",
+            "repair_budget": {
+                "repair_budget_max": 3,
+                "repair_attempt_count": 3,
+                "repair_budget_status": "exhausted",
+            },
+            "package_kind": "degraded_handoff_package",
+            "known_blockers": ["claim_evidence_consistency_failed"],
+        },
+    )
+
+    assert updated["mission_id"] == paper_mission_run["mission_id"]
+    assert updated["stage_closure_readback"] == {
+        "projection_status": "terminalizer_outcome_observed",
+        "decision_ref": "stage-closure::dm003",
+        "outcome": {
+            "kind": "typed_blocker",
+            "next_action": "materialize_typed_blocker_or_route_redesign",
+        },
+        "outcome_kind": "typed_blocker",
+        "repair_budget": {
+            "repair_budget_max": 3,
+            "repair_attempt_count": 3,
+            "repair_budget_status": "exhausted",
+        },
+        "package_kind": "degraded_handoff_package",
+        "known_blockers": ["claim_evidence_consistency_failed"],
+    }

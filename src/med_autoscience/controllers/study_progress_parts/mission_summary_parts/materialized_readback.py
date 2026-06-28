@@ -345,6 +345,10 @@ def _materialized_mission_summary(
         },
         consumption_ledger_readback=consumption_ledger_readback,
     )
+    paper_mission_run = _summary_helpers()._paper_mission_run_with_stage_closure_readback(
+        paper_mission_run=paper_mission_run,
+        stage_closure_decision=stage_closure_decision,
+    )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,

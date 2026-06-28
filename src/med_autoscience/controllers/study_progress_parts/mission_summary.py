@@ -336,6 +336,10 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "can_authorize_provider_admission": False,
         },
     }
+    summary["paper_mission_run"] = _paper_mission_run_with_stage_closure_readback(
+        paper_mission_run=summary["paper_mission_run"],
+        stage_closure_decision=summary["stage_closure_decision"],
+    )
     summary["status"] = mission_state
     return summary
 
@@ -645,6 +649,35 @@ def _paper_mission_run_payload(
         next_owner_or_human_decision=next_owner_or_human_decision,
     )
     return PaperMissionRun.from_payload(mission).to_dict()
+
+
+def _paper_mission_run_with_stage_closure_readback(
+    *,
+    paper_mission_run: Mapping[str, Any],
+    stage_closure_decision: Mapping[str, Any],
+) -> dict[str, Any]:
+    decision = _mapping(stage_closure_decision)
+    stage_closure_readback = _compact(
+        {
+            "projection_status": _non_empty_text(decision.get("projection_status")),
+            "decision_ref": _non_empty_text(decision.get("decision_ref")),
+            "outcome": _mapping(decision.get("outcome")) or None,
+            "outcome_kind": _non_empty_text(decision.get("outcome_kind")),
+            "repair_budget": _mapping(decision.get("repair_budget")) or None,
+            "package_kind": _non_empty_text(decision.get("package_kind")),
+            "known_blockers": _text_list(decision.get("known_blockers")),
+        }
+    )
+    if not stage_closure_readback:
+        return dict(paper_mission_run)
+    return {
+        **dict(paper_mission_run),
+        "stage_closure_readback": stage_closure_readback,
+        "stage_closure_decision": decision,
+        "stage_closure_decision_ref": stage_closure_readback.get("decision_ref"),
+        "stage_closure_outcome": stage_closure_readback.get("outcome_kind")
+        or _mapping(stage_closure_readback.get("outcome")).get("kind"),
+    }
 
 
 def _normalize_paper_mission_run_payload(

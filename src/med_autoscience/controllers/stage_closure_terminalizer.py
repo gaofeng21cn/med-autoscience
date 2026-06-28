@@ -69,6 +69,13 @@ HARD_AUTHORITY_BLOCKERS = frozenset(
     }
 )
 
+ROUTE_BACK_CHECKPOINT_BLOCKERS = frozenset(
+    {
+        "accepted_submission_milestone_candidate",
+        "paper_mission_stage_route_domain_gate_pending",
+    }
+)
+
 FORBIDDEN_INTERPRETATIONS = [
     "provider_completion_is_domain_ready",
     "candidate_is_submission_ready",
@@ -177,6 +184,7 @@ def classify_stage_closure_blockers(blockers: Sequence[str] | None) -> dict[str,
         "mirror_sync": [],
         "submission_authority": [],
         "hard_authority": [],
+        "route_back_checkpoint": [],
         "unknown": [],
     }
     for blocker in _unique_texts(blockers or []):
@@ -188,6 +196,8 @@ def classify_stage_closure_blockers(blockers: Sequence[str] | None) -> dict[str,
             result["submission_authority"].append(blocker)
         elif blocker in HARD_AUTHORITY_BLOCKERS:
             result["hard_authority"].append(blocker)
+        elif _is_route_back_checkpoint_blocker(blocker):
+            result["route_back_checkpoint"].append(blocker)
         else:
             result["unknown"].append(blocker)
     return result
@@ -261,7 +271,9 @@ def _normalize_stage_closure_decision(
     fallback_ref: str | None,
 ) -> dict[str, Any]:
     outcome = _mapping(payload.get("outcome"))
-    outcome_kind = _stage_closure_outcome_kind(payload)
+    blockers = _texts(payload.get("known_blockers"))
+    outcome = _normalize_legacy_checkpoint_outcome(outcome=outcome, blockers=blockers)
+    outcome_kind = _first_text(outcome.get("kind"), _stage_closure_outcome_kind(payload))
     return _compact(
         {
             **dict(payload),
@@ -279,7 +291,7 @@ def _normalize_stage_closure_decision(
             )
             or None,
             "package_kind": _text(payload.get("package_kind")),
-            "known_blockers": _texts(payload.get("known_blockers")),
+            "known_blockers": blockers,
             "projection_status": "terminalizer_outcome_observed",
             "target_ref": "docs/runtime/designs/stage_closure_terminalizer_target.md",
         }
@@ -430,6 +442,7 @@ def _select_outcome(
     submission_authority_blockers = list(classes.get("submission_authority") or [])
     quality_blockers = list(classes.get("quality_repairable") or [])
     hard_authority_blockers = list(classes.get("hard_authority") or [])
+    route_back_checkpoint_blockers = list(classes.get("route_back_checkpoint") or [])
     unknown_blockers = list(classes.get("unknown") or [])
     budget_status = _text(repair_budget.get("repair_budget_status"))
 
@@ -440,6 +453,22 @@ def _select_outcome(
             next_owner="MedAutoScience",
             resume_condition="resolve hard authority boundary before stage closure can proceed",
         )
+    if route_back_checkpoint_blockers and not hard_authority_blockers:
+        return {
+            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
+            "transition_kind": "route_back_candidate_checkpoint",
+            "next_owner": "MedAutoScience",
+            "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+            "package_kind": _text(delivery.get("package_kind")),
+            "can_submit": False,
+            "requires_bundle_build_allowed": False,
+            "known_blockers": blockers,
+            "resume_condition": (
+                "route-back candidate checkpoint must be consumed into owner "
+                "receipt, typed blocker, human gate, or next stage transition"
+            ),
+            "authority_materialized": False,
+        }
     if unknown_blockers and not (quality_blockers or mirror_blockers or submission_authority_blockers):
         return _typed_blocker_outcome(
             blocker_type="unclassified_stage_closure_blocker",
@@ -550,6 +579,41 @@ def _human_gate_outcome(
         "known_blockers": _unique_texts(blockers),
         "resume_condition": resume_condition,
         "authority_materialized": False,
+    }
+
+
+def _is_route_back_checkpoint_blocker(blocker: str) -> bool:
+    return (
+        blocker in ROUTE_BACK_CHECKPOINT_BLOCKERS
+        or "MAS mission executor consumed route-back" in blocker
+    )
+
+
+def _normalize_legacy_checkpoint_outcome(
+    *,
+    outcome: Mapping[str, Any],
+    blockers: Sequence[str],
+) -> dict[str, Any]:
+    if _text(outcome.get("blocker_type")) != "unclassified_stage_closure_blocker":
+        return dict(outcome)
+    classes = classify_stage_closure_blockers(blockers)
+    route_back_blockers = classes.get("route_back_checkpoint") or []
+    unknown_blockers = classes.get("unknown") or []
+    if not route_back_blockers or unknown_blockers:
+        return dict(outcome)
+    return {
+        **dict(outcome),
+        "kind": OUTCOME_NEXT_STAGE_TRANSITION,
+        "transition_kind": "route_back_candidate_checkpoint",
+        "blocker_type": None,
+        "next_owner": "MedAutoScience",
+        "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+        "requires_bundle_build_allowed": False,
+        "can_submit": False,
+        "resume_condition": (
+            "route-back candidate checkpoint must be consumed into owner "
+            "receipt, typed blocker, human gate, or next stage transition"
+        ),
     }
 
 
