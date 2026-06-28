@@ -94,6 +94,39 @@ def _current_owner_route_back_blocks_mechanical_projection(payload: dict[str, ob
     return _current_medical_prose_route_back(payload)
 
 
+def _current_ai_reviewer_eval_has_currentness_trace(payload: dict[str, object]) -> bool:
+    eval_id = str(payload.get("eval_id") or "").strip()
+    if not eval_id:
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    currentness = reviewer_os.get("currentness_checks")
+    if not isinstance(currentness, dict):
+        return False
+    source_eval = currentness.get("source_eval")
+    if not isinstance(source_eval, dict):
+        return False
+    if str(source_eval.get("status") or "").strip() != "current":
+        return False
+    if str(source_eval.get("eval_id") or "").strip() != eval_id:
+        return False
+    current_manuscript = currentness.get("current_manuscript")
+    if isinstance(current_manuscript, dict):
+        if str(current_manuscript.get("status") or "").strip() == "current" and str(
+            current_manuscript.get("manuscript_ref") or ""
+        ).strip() and str(current_manuscript.get("manuscript_digest") or "").strip():
+            return True
+    medical_prose = currentness.get("medical_prose_review")
+    if isinstance(medical_prose, dict):
+        return (
+            str(medical_prose.get("status") or "").strip() == "current"
+            and bool(str(medical_prose.get("manuscript_ref") or "").strip())
+            and bool(str(medical_prose.get("manuscript_digest") or "").strip())
+        )
+    return False
+
+
 def _publication_eval_verdict(payload: dict[str, object]) -> str | None:
     verdict = payload.get("verdict")
     if not isinstance(verdict, dict):
@@ -181,6 +214,9 @@ def _current_ai_reviewer_publication_eval_ref(
             eval_id = str(payload.get("eval_id") or "").strip()
             return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
         return None
+    if gate_status == "blocked" and _current_ai_reviewer_eval_has_currentness_trace(payload):
+        eval_id = str(payload.get("eval_id") or "").strip()
+        return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
     if (
         gate_status == "clear"
         and gate_required_action in {

@@ -71,6 +71,15 @@ def _valid_reviewer_operating_system(study_root: Path, quest_root: Path, *, eval
                 "status": "fresh",
                 "source_eval_id": eval_id,
             },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
         },
         "future_facing_limitations_plan": [
             {
@@ -377,6 +386,79 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
     assert refreshed_publication_eval["assessment_provenance"]["ai_reviewer_required"] is False
     assert refreshed_publication_eval["reviewer_operating_system"]["contract_id"] == "medical_publication_ai_reviewer_os_v1"
     assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:45:00+00:00"
+
+
+def test_blocked_gate_projection_does_not_overwrite_current_ai_reviewer_eval(
+    tmp_path: Path,
+) -> None:
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    study_root = tmp_path / "study"
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    _write_study_charter_and_controller_summary(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    eval_id = "publication-eval::001-risk::quest-001::ai-reviewer-current"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": eval_id,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-12T09:45:00+00:00",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "source_refs": [str(study_root / "paper" / "draft.md")],
+                "ai_reviewer_required": False,
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "needs_revision",
+                "summary": "AI reviewer found publication blockers.",
+                "stop_loss_pressure": "none",
+            },
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "blocked",
+                    "summary": "Medical prose still needs revision.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                }
+            },
+            "gaps": [],
+            "recommended_actions": [
+                {
+                    "action_id": "ai-reviewer-routeback",
+                    "action_type": "route_back_same_line",
+                    "route_target": "write",
+                    "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::current-inputs",
+                }
+            ],
+            "reviewer_operating_system": _valid_reviewer_operating_system(study_root, quest_root, eval_id=eval_id),
+        },
+    )
+
+    result = decision_module._materialize_publication_eval_from_gate_report(
+        study_root=study_root,
+        study_id="001-risk",
+        quest_root=quest_root,
+        quest_id="quest-001",
+        publication_gate_report={
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-12T09:50:00+00:00",
+            "status": "blocked",
+            "blockers": ["reviewer_first_concerns_unresolved"],
+            "current_required_action": "return_to_publishability_gate",
+            "supervisor_phase": "publishability_gate_blocked",
+            "paper_root": str(study_root / "paper"),
+        },
+    )
+    refreshed_publication_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))
+
+    assert result == {"eval_id": eval_id, "artifact_path": str(publication_eval_path)}
+    assert refreshed_publication_eval["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert refreshed_publication_eval["eval_id"] == eval_id
 
 
 __all__ = [name for name in globals() if name.startswith("test_")]
