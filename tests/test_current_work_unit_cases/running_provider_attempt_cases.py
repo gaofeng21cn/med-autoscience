@@ -674,3 +674,64 @@ def test_paper_recovery_successor_projects_consume_readback_diagnostic_boundary(
     assert "paper_progress" in work_unit["state"]["forbidden_claims"]
     assert work_unit["state"]["provider_admission_pending"] is False
     assert work_unit["state"]["transition_request_pending"] is True
+
+
+def test_paper_recovery_direct_owner_callable_projects_schedulable_mas_owner_action() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "analysis_claim_evidence_repair"
+    fingerprint = "publication-blockers::5d99b7c4019bd601"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "paper_recovery_state": {
+                "phase": "owner_action_ready",
+                "next_safe_action": {
+                    "kind": "run_mas_owner_callable",
+                    "owner": "analysis-campaign",
+                    "provider_admission_allowed": False,
+                    "owner_callable": {
+                        "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                        "action_type": "run_quality_repair_batch",
+                    },
+                    "owner_route_currentness_basis": {
+                        "truth_epoch": "truth-event-000035",
+                        "runtime_health_epoch": "runtime-health-event-006980",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                        "action_fingerprint": fingerprint,
+                    },
+                },
+                "current_authority": {
+                    "obligation": {
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": fingerprint,
+                    },
+                },
+            },
+        }
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "analysis-campaign"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
+    assert work_unit["state"]["active_caller_class"] == "mas_owner_callable"
+    assert work_unit["state"]["paper_mission_default_role"] == "direct_mas_owner_callable"
+    assert work_unit["state"]["ordinary_schedulable"] is True
+    assert work_unit["state"]["provider_admission_pending"] is False
+    assert work_unit["state"]["transition_request_pending"] is False
+    assert work_unit["state"]["provider_attempt_or_lease_required"] is False
+    assert work_unit["state"]["provider_admission_requires_opl_runtime_result"] is False
+    assert work_unit["state"]["opl_transition_runtime_required"] is False
+    assert work_unit["state"]["can_authorize_provider_admission"] is False
+    assert work_unit["state"]["can_select_next_paper_stage"] is False
+    assert work_unit["state"]["counts_as_paper_progress"] is False
+    assert "publication_ready" in work_unit["state"]["forbidden_claims"]

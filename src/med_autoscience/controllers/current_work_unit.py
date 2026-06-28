@@ -685,6 +685,15 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
         return None
     source_surface = _text(successor.get("source_surface")) or _text(successor.get("source"))
     provider_admission_required = next_action_kind != "run_mas_owner_callable"
+    mas_owner_callable = next_action_kind == "run_mas_owner_callable"
+    active_caller_class = "mas_owner_callable" if mas_owner_callable else "consume_readback_diagnostic_only"
+    paper_mission_default_role = (
+        "direct_mas_owner_callable"
+        if mas_owner_callable
+        else "consume_readback_diagnostic_or_explicit_owner_handoff"
+    )
+    replacement_task_kind = None if mas_owner_callable else "paper_mission/start_or_resume"
+    diagnostic_role = None if mas_owner_callable else "paper_recovery_successor_consume_readback"
     currentness_basis = normalize_currentness_sources(
         _mapping(successor.get("owner_route_currentness_basis")),
         _mapping(successor.get("currentness_basis")),
@@ -726,14 +735,14 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
             "provider_admission_requires_opl_runtime_result": provider_admission_required,
             "opl_transition_runtime_required": provider_admission_required,
             "default_paper_mission_entry": False,
-            "ordinary_schedulable": False,
-            "active_caller_class": "consume_readback_diagnostic_only",
-            "paper_mission_default_role": "consume_readback_diagnostic_or_explicit_owner_handoff",
+            "ordinary_schedulable": mas_owner_callable,
+            "active_caller_class": active_caller_class,
+            "paper_mission_default_role": paper_mission_default_role,
             "can_select_next_paper_stage": False,
             "can_authorize_provider_admission": False,
             "counts_as_paper_progress": False,
-            "replacement_task_kind": "paper_mission/start_or_resume",
-            "diagnostic_role": "paper_recovery_successor_consume_readback",
+            "replacement_task_kind": replacement_task_kind,
+            "diagnostic_role": diagnostic_role,
             "forbidden_claims": [
                 "ordinary_task_admission",
                 "paper_progress",
@@ -751,7 +760,7 @@ def _paper_recovery_successor_action(progress: Mapping[str, Any]) -> dict[str, A
                 "opl_transition_runtime_required": provider_admission_required,
                 "source_surface": source_surface,
                 "owner_callable_surface": owner_callable_surface,
-                "active_caller_class": "consume_readback_diagnostic_only",
+                "active_caller_class": active_caller_class,
                 "can_select_next_paper_stage": False,
                 "counts_as_paper_progress": False,
             },
