@@ -21,7 +21,7 @@ def latest_paper_mission_consumption_route_handoff(
     )
     if not ledger_root.exists():
         return None
-    candidates: list[tuple[float, str, str, dict[str, Any]]] = []
+    candidates: list[tuple[int, float, str, str, dict[str, Any]]] = []
     for handoff_ref in ledger_root.glob(f"**/{study_id}/opl_route_handoff.json"):
         try:
             payload = json.loads(handoff_ref.read_text(encoding="utf-8"))
@@ -42,6 +42,9 @@ def latest_paper_mission_consumption_route_handoff(
             mtime = 0.0
         candidates.append(
             (
+                _candidate_external_delta_priority(
+                    text(handoff.get("candidate_ref")),
+                ),
                 mtime,
                 _paper_mission_handoff_timestamp_key(handoff_ref),
                 str(handoff_ref),
@@ -50,7 +53,7 @@ def latest_paper_mission_consumption_route_handoff(
         )
     if not candidates:
         return None
-    return max(candidates, key=lambda item: (item[0], item[1], item[2]))[3]
+    return max(candidates, key=lambda item: (item[0], item[1], item[2], item[3]))[4]
 
 
 def paper_mission_handoff_stage_packet_refs(
@@ -76,6 +79,23 @@ def _paper_mission_handoff_timestamp_key(handoff_ref: Path) -> str:
         if match:
             return match.group(0)
     return ""
+
+
+def _candidate_external_delta_priority(candidate_ref: str | None) -> int:
+    if not candidate_ref:
+        return 0
+    try:
+        payload = json.loads(Path(candidate_ref).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return 0
+    manifest = mapping(payload)
+    delta = mapping(manifest.get("paper_facing_candidate_delta"))
+    return int(
+        bool(
+            text(manifest.get("adopted_external_paper_delta_ref"))
+            or text(delta.get("adopted_external_paper_delta_ref"))
+        )
+    )
 
 
 def _valid_paper_mission_consumption_route_handoff(

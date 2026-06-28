@@ -100,6 +100,47 @@ def test_consumption_route_handoff_prefers_newest_mtime_over_run_id(
     )
 
 
+def test_consumption_currentness_prefers_external_delta_over_later_drive_noop(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    external_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260628T034633Z_repair_execution_delta",
+        transaction_ref="paper-mission-transaction::dm003::followthrough-02",
+        fingerprint="fingerprint::dm003::repair-delta",
+        external_delta_ref="/workspace/studies/dm003/artifacts/controller/repair_execution_evidence/latest.json",
+    )
+    later_noop_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="paper_mission_drive/followthrough-02",
+        transaction_ref="paper-mission-transaction::dm003::followthrough-02",
+        fingerprint="fingerprint::dm003::repair-delta",
+    )
+    os.utime(external_record, (2_000_000_000, 2_000_000_000))
+    os.utime(external_record.parent / "opl_route_handoff.json", (2_000_000_000, 2_000_000_000))
+    os.utime(later_noop_record, (3_000_000_000, 3_000_000_000))
+    os.utime(
+        later_noop_record.parent / "opl_route_handoff.json",
+        (3_000_000_000, 3_000_000_000),
+    )
+
+    readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+    handoff = latest_paper_mission_consumption_route_handoff(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+
+    assert readback["source_ref"] == str(external_record)
+    assert handoff["source_ref"] == str(external_record.parent / "opl_route_handoff.json")
+
+
 def test_consumption_ledger_timestamp_keys_accept_z_run_ids(tmp_path: Path) -> None:
     z_run_path = (
         tmp_path
@@ -224,6 +265,7 @@ def _write_ledger(
     run_id: str,
     transaction_ref: str,
     fingerprint: str,
+    external_delta_ref: str | None = None,
 ) -> Path:
     ledger_root = (
         workspace_root
@@ -289,6 +331,14 @@ def _write_ledger(
     }
     (ledger_root / "consume_record.json").write_text(
         json.dumps(consume_record),
+        encoding="utf-8",
+    )
+    (ledger_root / "package_manifest.json").write_text(
+        json.dumps(
+            {
+                "adopted_external_paper_delta_ref": external_delta_ref,
+            }
+        ),
         encoding="utf-8",
     )
     (ledger_root / "consume_readback.json").write_text(
