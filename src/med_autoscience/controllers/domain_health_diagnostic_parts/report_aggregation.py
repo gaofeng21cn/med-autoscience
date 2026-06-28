@@ -585,6 +585,9 @@ def _managed_study_action_with_currentness(
             result["reason"] = currentness_reason or action_reason or state_kind
         result["running_provider_attempt"] = False
     if state_kind == "executable_owner_action":
+        if _direct_mas_owner_callable_ready(current_work_unit) and not _execution_gate_blocked(result):
+            result["decision"] = "owner_action_ready"
+            result["reason"] = "current_executable_owner_action_ready"
         result["running_provider_attempt"] = False
     return result
 
@@ -597,6 +600,18 @@ def _terminal_controller_work_unit_reason(action: Mapping[str, Any]) -> str | No
         _text(action.get("reason"))
         or _text(lifecycle.get("block_reason"))
         or _text(lifecycle.get("lifecycle_state"))
+    )
+
+
+def _execution_gate_blocked(action: Mapping[str, Any]) -> bool:
+    return _mapping(action.get("execution_gate")).get("blocked") is True
+
+
+def _direct_mas_owner_callable_ready(current_work_unit: Mapping[str, Any]) -> bool:
+    state = _mapping(current_work_unit.get("state"))
+    return (
+        _text(state.get("active_caller_class")) == "mas_owner_callable"
+        and state.get("ordinary_schedulable") is True
     )
 
 
@@ -788,6 +803,9 @@ def _managed_study_action_with_provider_admission_state(
             "running_provider_attempt": result.get("running_provider_attempt") is True,
         },
     )
+    result["decision"] = "pending_provider_admission"
+    result["reason"] = "provider_admission_pending"
+    result["running_provider_attempt"] = result.get("running_provider_attempt") is True
     return result
 
 

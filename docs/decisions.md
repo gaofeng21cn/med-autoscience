@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-28：DHD 顶层不得把 direct MAS owner callable 误标为 blocked
+
+- 决策：当 `current_work_unit.status=executable_owner_action` 且 state 明确为 `active_caller_class=mas_owner_callable`、`ordinary_schedulable=true` 时，`domain-health-diagnostic` 的 managed study action 必须把 operator-facing `decision` 投影为 `owner_action_ready` / `reason=current_executable_owner_action_ready`，而不是沿用旧的 `blocked`、`resume_request_failed` 或 `quest_waiting_opl_runtime_owner_route`。该状态只表示当前 stage 有可执行 MAS owner callable；仍固定 `running_provider_attempt=false`，不得声明 paper progress、provider running、runtime-ready、submission-ready 或 publication-ready。
+- 决策：真正的 hard execution gate 仍优先，例如 `execution_gate.blocked=true` 的 developer/user gate 继续保留 blocked；request-only OPL carrier、transition request、provider admission candidate、typed blocker 和 running proof 继续按各自 surface 投影，不得被 direct callable 规则覆盖。
+- 决策：同 identity 的 OPL runtime readback 已证明 provider admission pending 时，DHD managed action 应投影 `decision=pending_provider_admission` / `reason=provider_admission_pending`，并显式 `running_provider_attempt=false`，避免把“已经交给 provider admission / 等 terminal owner receipt 或 typed blocker”误读成 hard blocked。
+- 理由：DM002/DM003 的第一层修复已经让 `current_work_unit` 正确显示 direct MAS owner callable 可调度，但 DHD 聚合层仍把同一 action 输出为 `decision=blocked`，用户侧看到的就是“明明修复 stage 可执行，为什么 gate blocked”。根因不是论文内容缺口，也不是卡住天数或 token 统计，而是 DHD operator-facing read model 没有消费 canonical current work unit 的可执行语义，旧 runtime recovery / OPL handoff label 继续盖住当前 owner action。
+- 影响：这是 DHD read-model / operator decision 修复，只改变可执行下一步的展示与自动推进分类；不写 Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker authority file、human gate、current package、runtime queue/provider attempt 或 paper body。论文进度仍必须由 owner callable 执行后的 fresh owner receipt、quality repair artifact delta、gate replay result、stable typed blocker、human gate 或 route-back evidence 证明。
+
 ## 2026-06-28：direct MAS owner callable 不得降级成 diagnostic-only current work unit
 
 - 决策：当 `paper_recovery_state.phase=owner_action_ready` 且 `next_safe_action.kind=run_mas_owner_callable`，并且同一 current identity 有 `owner_callable.callable_surface` 时，`current_work_unit` 必须投影为可执行 MAS owner callable：`active_caller_class=mas_owner_callable`、`paper_mission_default_role=direct_mas_owner_callable`、`ordinary_schedulable=true`。该路径仍固定 `provider_admission_pending=false`、`transition_request_pending=false`、`provider_attempt_or_lease_required=false`、`can_authorize_provider_admission=false`、`can_select_next_paper_stage=false`、`counts_as_paper_progress=false`。
