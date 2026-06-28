@@ -373,6 +373,26 @@ def _live_input_currentness(
     }
 
 
+def _generic_live_ref_currentness(
+    *,
+    study_root: Path,
+    surface: str,
+    ref: object,
+) -> dict[str, Any] | None:
+    text_ref = _text(ref)
+    if not text_ref:
+        return None
+    path = _resolve_ref(study_root=study_root, ref=text_ref)
+    if not path.exists():
+        return None
+    return {
+        "status": "current",
+        "ref": text_ref,
+        "digest": _sha256_file(path),
+        "authority_source_signature": f"ai_reviewer_workflow_live_input:{surface}",
+    }
+
+
 def _publication_quality_readiness(
     *,
     study_root: Path,
@@ -817,6 +837,17 @@ def _currentness_checks(
             surface="claim_evidence_map",
         ),
     }
+    for surface, ref in ref_bundle.items():
+        if surface in checks:
+            continue
+        if surface in {"owner_route_currentness_basis"}:
+            continue
+        if generic_check := _generic_live_ref_currentness(
+            study_root=study_root,
+            surface=surface,
+            ref=ref,
+        ):
+            checks[surface] = generic_check
     current_manuscript = _current_manuscript_currentness(
         study_root=study_root,
         record_payload=record_payload,
