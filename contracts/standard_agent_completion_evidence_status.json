@@ -95,13 +95,14 @@
         "tests/standard_agent_purity_helpers.py",
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_cli_cases/public_entry_commands.py",
-        "docs/history/runtime/legacy_ds_retire_public_cli_retirement_2026_06_28.md"
+        "src/med_autoscience/cli_public_surface.py"
       ],
       "observed_refs": [
         "contracts/runtime/legacy-active-path-tombstones.json",
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_cli_cases/public_entry_commands.py",
-        "docs/history/runtime/legacy_ds_retire_public_cli_retirement_2026_06_28.md",
+        "tests/test_cli_cases/public_entry_commands.py::test_runtime_legacy_ds_retire_public_surface_is_retired",
+        "src/med_autoscience/cli_public_surface.py#GROUPED_SUBCOMMANDS",
         "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-apply-2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396",
         "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-dry-run-2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
       ],
