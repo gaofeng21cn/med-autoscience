@@ -226,12 +226,13 @@ def test_default_dispatch_ignores_owner_request_superseded_by_current_transition
     )
 
     assert result["execution_count"] == 1
-    assert result["executed_count"] == 1
-    assert result["executions"][0]["action_type"] == "run_gate_clearing_batch"
-    assert result["executions"][0]["owner_route_basis"] in {
-        "owner_request",
-        "consumed_transition_gate_replay",
-    }
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_gate_clearing_batch"
+    assert execution["owner_route_basis"] == "consumed_transition_gate_replay"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
+    assert execution["typed_blocker"]["work_unit_id"] == current_work_unit
 
 
 def test_default_dispatch_current_stage_handoff_supersedes_consumed_transition_gate_replay(

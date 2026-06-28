@@ -287,12 +287,24 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
     assert execution["mas_creates_opl_outbox"] is False
     assert execution["mas_creates_opl_event"] is False
     assert execution["mas_creates_opl_stage_run"] is False
-    assert execution["typed_blocker"] == {
+    typed_blocker = execution["typed_blocker"]
+    assert {
+        key: typed_blocker[key]
+        for key in (
+            "blocker_id",
+            "owner",
+            "write_permitted",
+            "required_input",
+        )
+    } == {
         "blocker_id": "opl_execution_authorization_required",
         "owner": "one-person-lab",
         "write_permitted": False,
         "required_input": "OPL provider attempt, active lease, and execution authorization decision",
     }
+    assert typed_blocker["work_unit_id"] == work_unit_id
+    assert typed_blocker["work_unit_fingerprint"] == fingerprint
+    assert typed_blocker["action_fingerprint"] == fingerprint
     boundary = execution["owner_callable_adapter_boundary"]
     assert boundary["surface_role"] == "mas_owner_callable_adapter_receipt_projection"
     assert boundary["mas_role"] == "owner_callable_adapter_and_authority_result_validator"

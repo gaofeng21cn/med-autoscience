@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from med_autoscience.cli_parts import paper_mission_commands as commands
 from tests.test_cli_cases.shared import write_profile
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
@@ -477,6 +478,7 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     expected_dedupe_key = ":".join(
         [
             "paper-mission-route",
+            commands.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION,
             study_id,
             handoff["request_idempotency_key"],
             "resume_stage",

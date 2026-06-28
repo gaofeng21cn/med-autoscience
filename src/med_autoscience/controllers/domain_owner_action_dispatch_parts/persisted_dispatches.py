@@ -792,7 +792,13 @@ def _consumed_transition_current_dispatches_only(
     current: list[dict[str, Any]] = []
     for dispatch in dispatches:
         action_type = _text(dispatch.get("action_type")) or ""
-        if _is_ready_mas_foreground_owner_callable(dispatch):
+        if _is_ready_mas_foreground_owner_callable(dispatch) and (
+            scan_route_currentness.matching_consumed_transition_route(
+                current_study=current_study,
+                dispatch=dispatch,
+            )
+            is not None
+        ):
             current.append(dispatch)
             continue
         if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
