@@ -29,7 +29,7 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
         include_current_medical_publication_surface_report=True,
     )
     study_root = tmp_path / "studies" / "002-early-residual-risk"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = quest_root / "paper"
     journal_slug = "rheumatology-international"
 
     dump_json(
@@ -152,7 +152,7 @@ def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: P
     assert report["status"] == "blocked"
     assert "unmanaged_submission_surface_present" in report["blockers"]
     assert report["unmanaged_submission_surface_roots"] == [
-        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+        str((quest_root / "paper" / "submission_pituitary").resolve())
     ]
 def test_build_gate_report_accepts_archived_reference_only_legacy_submission_surface(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -174,7 +174,7 @@ def test_build_gate_report_accepts_archived_reference_only_legacy_submission_sur
     assert report["blockers"] == []
     assert report["unmanaged_submission_surface_roots"] == []
     assert report["archived_submission_surface_roots"] == [
-        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+        str((quest_root / "paper" / "submission_pituitary").resolve())
     ]
 def test_build_gate_report_blocks_archived_reference_only_surface_when_target_manifest_is_outside_current_paper(
     tmp_path: Path,
@@ -198,9 +198,6 @@ def test_build_gate_report_blocks_archived_reference_only_surface_when_target_ma
     )
     archived_manifest_path = (
         quest_root
-        / ".ds"
-        / "worktrees"
-        / "paper-run-1"
         / "paper"
         / "submission_pituitary"
         / "submission_manifest.json"
@@ -216,7 +213,7 @@ def test_build_gate_report_blocks_archived_reference_only_surface_when_target_ma
     assert "unmanaged_submission_surface_present" in report["blockers"]
     assert report["archived_submission_surface_roots"] == []
     assert report["unmanaged_submission_surface_roots"] == [
-        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+        str((quest_root / "paper" / "submission_pituitary").resolve())
     ]
 def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -798,7 +795,7 @@ def test_build_gate_report_falls_back_to_same_study_surface_report_when_paper_ro
         include_main_result=False,
     )
     study_root = tmp_path / "studies" / "002-early-residual-risk"
-    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
     drifted_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-2" / "paper"
     drifted_paper_root.mkdir(parents=True, exist_ok=True)
     surface_report_path = (
@@ -813,20 +810,20 @@ def test_build_gate_report_falls_back_to_same_study_surface_report_when_paper_ro
             "blockers": [],
         },
     )
-    anchor_path = worktree_paper_root / "paper_bundle_manifest.json"
+    anchor_path = projected_paper_root / "paper_bundle_manifest.json"
     fresh_time = anchor_path.stat().st_mtime + 10
     os.utime(surface_report_path, (fresh_time, fresh_time))
 
     state = module.build_gate_state(quest_root)
     report = module.build_gate_report(state)
 
-    assert state.paper_root == worktree_paper_root.resolve()
+    assert state.paper_root == projected_paper_root.resolve()
     assert report["medical_publication_surface_report_path"] == str(surface_report_path)
     assert report["medical_publication_surface_status"] == "clear"
     assert report["medical_publication_surface_current"] is True
     assert "missing_current_medical_publication_surface_report" not in report["blockers"]
     assert "medical_publication_surface_blocked" not in report["blockers"]
-def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_currentness_when_projected_mirror_is_newer(
+def test_build_gate_report_marks_surface_stale_when_projected_manifest_is_newer(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -835,7 +832,6 @@ def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_curren
         include_submission_minimal=True,
         include_main_result=False,
     )
-    authoritative_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     projected_paper_root = quest_root / "paper"
     analysis_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-1" / "paper"
     analysis_paper_root.mkdir(parents=True, exist_ok=True)
@@ -865,16 +861,14 @@ def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_curren
     dump_json(
         surface_report_path,
         {
-            "paper_root": str(authoritative_paper_root.resolve()),
+            "paper_root": str(projected_paper_root.resolve()),
             "status": "clear",
             "blockers": [],
         },
     )
 
-    authoritative_manifest_path = authoritative_paper_root / "paper_bundle_manifest.json"
     projected_manifest_path = projected_paper_root / "paper_bundle_manifest.json"
-    base_time = authoritative_manifest_path.stat().st_mtime + 10
-    os.utime(authoritative_manifest_path, (base_time, base_time))
+    base_time = projected_manifest_path.stat().st_mtime + 10
     os.utime(surface_report_path, (base_time + 10, base_time + 10))
     os.utime(projected_manifest_path, (base_time + 20, base_time + 20))
 
@@ -882,10 +876,10 @@ def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_curren
     report = module.build_gate_report(state)
 
     assert state.paper_bundle_manifest_path == projected_manifest_path
-    assert state.paper_root == authoritative_paper_root.resolve()
+    assert state.paper_root == projected_paper_root.resolve()
     assert report["medical_publication_surface_report_path"] == str(surface_report_path)
-    assert report["medical_publication_surface_current"] is True
-    assert "missing_current_medical_publication_surface_report" not in report["blockers"]
+    assert report["medical_publication_surface_current"] is False
+    assert "missing_current_medical_publication_surface_report" in report["blockers"]
 
 
 def test_publication_gate_intervention_allows_bounded_submission_hardening_finalize() -> None:

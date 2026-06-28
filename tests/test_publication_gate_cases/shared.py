@@ -4,18 +4,38 @@ import importlib
 import json
 import os
 from pathlib import Path
-import shutil
+import shutil as _shutil
 from textwrap import dedent
+
+
+class _ShutilProxy:
+    SameFileError = _shutil.SameFileError
+
+    def __getattr__(self, name: str):
+        return getattr(_shutil, name)
+
+    def copy2(self, src, dst, *args, **kwargs):
+        try:
+            if os.path.samefile(src, dst):
+                return dst
+        except (FileNotFoundError, OSError):
+            pass
+        return _shutil.copy2(src, dst, *args, **kwargs)
+
+
+shutil = _ShutilProxy()
 
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _mirror_legacy_paper_write_to_projected_surface(path)
 
 
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+    _mirror_legacy_paper_write_to_projected_surface(path)
 
 
 def make_quest(
@@ -82,28 +102,38 @@ def make_quest(
             "active_run_id": "run-1" if include_main_result else None,
         },
     )
+    dump_json(
+        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
+        {
+            "quest_id": quest_id,
+            "status": runtime_status,
+            "active_run_id": "run-1" if include_main_result else None,
+        },
+    )
     if include_main_result:
-        dump_json(
-            worktree_root / "experiments" / "main" / "run-1" / "RESULT.json",
-            {
-                "quest_id": "002-early-residual-risk",
-                "run_id": "run-1",
-                "worktree_root": str(worktree_root),
-                "metric_contract": {
-                    "required_non_scalar_deliverables": [],
-                },
-                "metrics_summary": {
-                    "roc_auc": 0.81,
-                    "average_precision": 0.45,
-                    "brier_score": 0.11,
-                    "calibration_intercept": 0.02,
-                    "calibration_slope": 1.01,
-                },
-                "baseline_comparisons": {"items": []},
-                "results_summary": "summary",
-                "conclusion": "conclusion",
+        main_result = {
+            "quest_id": "002-early-residual-risk",
+            "run_id": "run-1",
+            "worktree_root": str(worktree_root),
+            "metric_contract": {
+                "required_non_scalar_deliverables": [],
             },
-        )
+            "metrics_summary": {
+                "roc_auc": 0.81,
+                "average_precision": 0.45,
+                "brier_score": 0.11,
+                "calibration_intercept": 0.02,
+                "calibration_slope": 1.01,
+            },
+            "baseline_comparisons": {"items": []},
+            "results_summary": "summary",
+            "conclusion": "conclusion",
+        }
+        legacy_main_result_path = worktree_root / "experiments" / "main" / "run-1" / "RESULT.json"
+        canonical_main_result_path = quest_root / "artifacts" / "results" / "main_result.json"
+        dump_json(legacy_main_result_path, main_result)
+        canonical_main_result_path.parent.mkdir(parents=True, exist_ok=True)
+        os.link(legacy_main_result_path, canonical_main_result_path)
     dump_json(
         worktree_root / "paper" / "paper_bundle_manifest.json",
         {
@@ -194,8 +224,48 @@ def make_quest(
             target = worktree_root / "paper" / relpath
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(body, encoding="utf-8")
-
+            _mirror_legacy_paper_write_to_projected_surface(target)
+    _write_projected_paper_surface(quest_root=quest_root, worktree_root=worktree_root)
     return quest_root
+
+
+def _legacy_paper_projected_path(path: Path) -> Path | None:
+    parts = path.parts
+    try:
+        ds_index = parts.index(".ds")
+    except ValueError:
+        return None
+    if parts[ds_index + 1 : ds_index + 4] != ("worktrees", "paper-run-1", "paper"):
+        return None
+    quest_root = Path(*parts[:ds_index])
+    relpath = Path(*parts[ds_index + 4 :])
+    return quest_root / "paper" / relpath
+
+
+def _mirror_legacy_paper_write_to_projected_surface(path: Path) -> None:
+    target = _legacy_paper_projected_path(path)
+    if target is None:
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if os.path.samefile(path, target):
+            return
+    except (FileNotFoundError, OSError):
+        pass
+    _shutil.copy2(path, target)
+
+
+def _write_projected_paper_surface(*, quest_root: Path, worktree_root: Path) -> None:
+    projected_paper_root = quest_root / "paper"
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    for source in sorted((worktree_root / "paper").rglob("*")):
+        if not source.is_file():
+            continue
+        target = projected_paper_root / source.relative_to(worktree_root / "paper")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            target.unlink()
+        os.link(source, target)
 
 
 def _write_submission_authority_text_inputs(worktree_root: Path) -> None:
@@ -312,13 +382,6 @@ def write_journal_requirements_snapshot(study_root: Path) -> None:
         study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.md",
         "# Requirements\n",
     )
-
-
-
-
-
-
-
 
 
 

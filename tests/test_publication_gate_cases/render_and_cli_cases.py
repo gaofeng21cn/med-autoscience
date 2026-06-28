@@ -8,10 +8,10 @@ globals().update({
     if not name.startswith('__')
 })
 
-def test_build_gate_report_prefers_runtime_paper_worktree_over_stale_projected_mirror(tmp_path: Path) -> None:
+def test_build_gate_report_uses_projected_paper_surface_over_legacy_runtime_worktree(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
-    current_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     projected_paper_root = quest_root / "paper"
     idea_worktree_root = quest_root / ".ds" / "worktrees" / "idea-run-1"
 
@@ -33,9 +33,9 @@ def test_build_gate_report_prefers_runtime_paper_worktree_over_stale_projected_m
         },
     )
     dump_json(
-        current_paper_root / "paper_line_state.json",
+        legacy_paper_root / "paper_line_state.json",
         {
-            "paper_root": str(current_paper_root.resolve()),
+            "paper_root": str(legacy_paper_root.resolve()),
             "paper_branch": "paper/run-1",
         },
     )
@@ -65,7 +65,7 @@ def test_build_gate_report_prefers_runtime_paper_worktree_over_stale_projected_m
     dump_json(
         quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:33Z.json",
         {
-            "paper_root": str(current_paper_root.resolve()),
+            "paper_root": str(projected_paper_root.resolve()),
             "status": "clear",
             "blockers": [],
         },
@@ -74,8 +74,8 @@ def test_build_gate_report_prefers_runtime_paper_worktree_over_stale_projected_m
     state = module.build_gate_state(quest_root)
     report = module.build_gate_report(state)
 
-    assert state.paper_bundle_manifest_path == current_paper_root / "paper_bundle_manifest.json"
-    assert report["paper_root"] == str(current_paper_root.resolve())
+    assert state.paper_bundle_manifest_path == projected_paper_root / "paper_bundle_manifest.json"
+    assert report["paper_root"] == str(projected_paper_root.resolve())
     assert report["medical_publication_surface_status"] == "clear"
     assert "medical_publication_surface_blocked" not in report["blockers"]
 def test_build_gate_report_allows_clinical_cohort_wording_without_internal_labels(tmp_path: Path) -> None:

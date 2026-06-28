@@ -39,12 +39,14 @@ def test_schema_contract_tracks_current_data_geometry_input_shapes() -> None:
     assert "tsne_requires_Rtsne_backend" in dimensionality_reduction.additional_constraints
     assert "umap_requires_uwot_backend" in dimensionality_reduction.additional_constraints
     assert data_geometry_class.template_ids == (
+        _full_id("alluvial_transition"),
         _full_id("pca_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
         _full_id("umap_scatter_grouped"),
         _full_id("omics_volcano_panel"),
     )
     assert data_geometry_class.input_schema_ids == (
+        "alluvial_transition_inputs_v1",
         "dimensionality_reduction_inputs_v1",
         "omics_volcano_panel_inputs_v1",
     )

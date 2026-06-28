@@ -53,16 +53,16 @@ def test_build_gate_state_reads_authoritative_paper_line_state_when_projected_ma
     report = module.build_gate_report(state)
 
     assert state.paper_bundle_manifest_path == projected_manifest
-    assert state.paper_root == authoritative_paper_root.resolve()
-    assert state.paper_line_state_path == (authoritative_paper_root / "paper_line_state.json").resolve()
+    assert state.paper_root == projected_paper_root.resolve()
+    assert state.paper_line_state_path == (projected_paper_root / "paper_line_state.json").resolve()
     assert state.paper_line_state == {
-        "paper_root": str(authoritative_paper_root.resolve()),
-        "paper_branch": "paper/main",
-        "open_supplementary_count": 0,
-        "recommended_action": "continue_bundle_stage",
-        "blocking_reasons": [],
+        "paper_root": str(analysis_paper_root.resolve()),
+        "paper_branch": "analysis/paper-line-paper-main-outline-001-run/analysis-faea0014-live-submission-package-projection-recovery",
+        "open_supplementary_count": 1,
+        "recommended_action": "complete_required_supplementary",
+        "blocking_reasons": ["analysis mirror still thinks a slice is open"],
     }
-    assert report["paper_line_open_supplementary_count"] == 0
+    assert report["paper_line_open_supplementary_count"] == 1
     assert "paper_line_required_supplementary_pending" not in report["blockers"]
 def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
     tmp_path: Path,
@@ -152,14 +152,7 @@ def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor
         include_main_result=False,
         runtime_status="running",
     )
-    paper_bundle_manifest_path = (
-        quest_root
-        / ".ds"
-        / "worktrees"
-        / "paper-run-1"
-        / "paper"
-        / "paper_bundle_manifest.json"
-    )
+    paper_bundle_manifest_path = quest_root / "paper" / "paper_bundle_manifest.json"
     paper_bundle_manifest_path.unlink()
 
     state = module.build_gate_state(quest_root)

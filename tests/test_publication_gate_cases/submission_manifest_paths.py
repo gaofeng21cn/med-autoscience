@@ -30,8 +30,7 @@ def test_build_gate_report_resolves_v2_submission_manifest_source_markdown_root(
             ],
         },
     )
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
-    paper_root = worktree_root / "paper"
+    paper_root = quest_root / "paper"
     legacy_manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
     v2_manifest_path = paper_root / "submission_minimal" / "audit" / "submission_manifest.json"
     payload = json.loads(legacy_manifest_path.read_text(encoding="utf-8"))

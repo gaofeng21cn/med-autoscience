@@ -35,7 +35,7 @@ def test_build_gate_report_exposes_authority_handshake_signatures_and_gate_finge
         include_main_result=False,
         include_current_medical_publication_surface_report=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = quest_root / "paper"
     authority = module.submission_minimal.describe_submission_minimal_authority(paper_root=paper_root)
     manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -68,7 +68,7 @@ def test_build_gate_report_includes_blocking_artifact_refs_for_stale_authority(
         include_main_result=False,
         include_current_medical_publication_surface_report=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = quest_root / "paper"
     manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["source_signature"] = "stale-source-signature"
@@ -108,26 +108,20 @@ def test_build_gate_report_uses_authoritative_source_markdown_path_for_submissio
             ],
         },
     )
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
-    worktree_paper_root = worktree_root / "paper"
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     projected_paper_root = quest_root / "paper"
-    projected_paper_root.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(
-        worktree_paper_root / "paper_bundle_manifest.json",
-        projected_paper_root / "paper_bundle_manifest.json",
-    )
     dump_json(
         projected_paper_root / "paper_line_state.json",
         {
             "schema_version": 1,
-            "paper_root": str(worktree_paper_root),
+            "paper_root": str(projected_paper_root),
         },
     )
 
-    submission_manifest_path = worktree_paper_root / "submission_minimal" / "submission_manifest.json"
+    submission_manifest_path = projected_paper_root / "submission_minimal" / "submission_manifest.json"
     payload = json.loads(submission_manifest_path.read_text(encoding="utf-8"))
     payload["manuscript"]["source_markdown_path"] = "paper/submission_minimal/manuscript_submission.md"
-    submission_manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    dump_json(submission_manifest_path, payload)
     write_text(worktree_paper_root / "submission_minimal" / "manuscript_submission.md", "# authoritative\n")
     write_text(projected_paper_root / "submission_minimal" / "manuscript_submission.md", "# projected copy\n")
 
@@ -162,9 +156,9 @@ def test_build_gate_report_uses_authoritative_source_markdown_path_for_submissio
     report = module.build_gate_report(state)
 
     assert report["paper_bundle_manifest_path"] == str(projected_paper_root / "paper_bundle_manifest.json")
-    assert captured["source_markdown_path"] == worktree_paper_root / "submission_minimal" / "manuscript_submission.md"
-    assert captured["docx_path"] == worktree_paper_root / "submission_minimal" / "manuscript.docx"
-    assert captured["pdf_path"] == worktree_paper_root / "submission_minimal" / "paper.pdf"
+    assert captured["source_markdown_path"] == projected_paper_root / "submission_minimal" / "manuscript_submission.md"
+    assert captured["docx_path"] == projected_paper_root / "submission_minimal" / "manuscript.docx"
+    assert captured["pdf_path"] == projected_paper_root / "submission_minimal" / "paper.pdf"
 
 
 def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path: Path) -> None:
@@ -755,22 +749,19 @@ def test_build_gate_report_unlocks_write_stage_when_latest_clear_gate_is_current
     assert report["prebundle_display_floor_pending"] is True
     assert report["prebundle_display_floor_gap"] == 3
     assert report["prebundle_display_advisories"] == ["submission_grade_active_figure_floor_unmet"]
-def test_build_gate_state_prefers_authoritative_worktree_paper_root_when_bundle_manifest_is_projected(
+def test_build_gate_state_uses_projected_paper_root_when_bundle_manifest_is_projected(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
-    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     projected_paper_root = quest_root / "paper"
-    projected_paper_root.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(worktree_paper_root / "paper_bundle_manifest.json", projected_paper_root / "paper_bundle_manifest.json")
     projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
     projected_stat = projected_manifest.stat()
     os.utime(projected_manifest, (projected_stat.st_atime, projected_stat.st_mtime + 60))
 
     state = module.build_gate_state(quest_root)
 
-    assert state.paper_root == worktree_paper_root.resolve()
+    assert state.paper_root == projected_paper_root.resolve()
 
 
 def test_build_gate_state_uses_newer_bound_study_paper_authority(tmp_path: Path) -> None:
@@ -809,7 +800,7 @@ def test_build_gate_state_uses_newer_bound_study_paper_authority(tmp_path: Path)
     assert state.submission_minimal_manifest_path == study_paper_root.resolve() / "submission_minimal" / "submission_manifest.json"
 
 
-def test_build_gate_state_prefers_paper_line_authority_root_when_no_main_result_exists(
+def test_build_gate_state_uses_projected_paper_root_when_no_main_result_exists(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -819,14 +810,11 @@ def test_build_gate_state_prefers_paper_line_authority_root_when_no_main_result_
         include_main_result=False,
         runtime_status="waiting_for_user",
     )
-    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     projected_paper_root = quest_root / "paper"
-    projected_paper_root.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(worktree_paper_root / "paper_bundle_manifest.json", projected_paper_root / "paper_bundle_manifest.json")
     dump_json(
         projected_paper_root / "paper_line_state.json",
         {
-            "paper_root": str(worktree_paper_root.resolve()),
+            "paper_root": str(projected_paper_root.resolve()),
             "paper_branch": "paper/main",
         },
     )
@@ -836,8 +824,8 @@ def test_build_gate_state_prefers_paper_line_authority_root_when_no_main_result_
 
     state = module.build_gate_state(quest_root)
 
-    assert state.paper_root == worktree_paper_root.resolve()
-def test_build_gate_state_prefers_paper_line_authority_root_over_run_worktree_paper(
+    assert state.paper_root == projected_paper_root.resolve()
+def test_build_gate_state_uses_projected_paper_root_over_run_worktree_paper(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -881,15 +869,15 @@ def test_build_gate_state_prefers_paper_line_authority_root_over_run_worktree_pa
     dump_json(
         projected_paper_root / "paper_line_state.json",
         {
-            "paper_root": str((paper_worktree_root / "paper").resolve()),
+            "paper_root": str(projected_paper_root.resolve()),
             "paper_branch": "paper/main",
         },
     )
 
     state = module.build_gate_state(quest_root)
 
-    assert state.paper_root == (paper_worktree_root / "paper").resolve()
-def test_build_gate_state_prefers_bundle_authority_worktree_when_projected_line_state_switches_to_analysis_slice(
+    assert state.paper_root == projected_paper_root.resolve()
+def test_build_gate_state_uses_projected_bundle_when_projected_line_state_switches_to_analysis_slice(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -899,13 +887,10 @@ def test_build_gate_state_prefers_bundle_authority_worktree_when_projected_line_
         include_main_result=False,
         runtime_status="waiting_for_user",
     )
-    authoritative_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     analysis_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-1" / "paper"
     projected_paper_root = quest_root / "paper"
     projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
 
-    projected_paper_root.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(authoritative_paper_root / "paper_bundle_manifest.json", projected_manifest)
     dump_json(
         projected_paper_root / "paper_line_state.json",
         {
@@ -921,8 +906,8 @@ def test_build_gate_state_prefers_bundle_authority_worktree_when_projected_line_
     state = module.build_gate_state(quest_root)
 
     assert state.paper_bundle_manifest_path == projected_manifest
-    assert state.paper_root == authoritative_paper_root.resolve()
-    assert state.submission_minimal_manifest_path == authoritative_paper_root / "submission_minimal" / "submission_manifest.json"
+    assert state.paper_root == projected_paper_root.resolve()
+    assert state.submission_minimal_manifest_path == projected_paper_root / "submission_minimal" / "submission_manifest.json"
     assert state.submission_minimal_docx_present is True
     assert state.submission_minimal_pdf_present is True
 
