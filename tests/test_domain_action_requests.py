@@ -14,6 +14,9 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     project_ai_reviewer_request_lifecycle,
     read_ai_reviewer_request,
 )
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_input_contract import (
+    normalized_required_inputs,
+)
 
 
 def test_publication_gate_specificity_request_packet_names_required_target_types() -> None:
@@ -152,6 +155,79 @@ def test_ai_reviewer_default_input_refs_fall_back_to_paper_medical_prose_review(
     refs = default_ai_reviewer_request_input_refs(study_root=study_root)
 
     assert refs["medical_prose_review"]["relative_path"] == "paper/medical_prose_review.json"
+    assert refs["medical_prose_review"]["present"] is True
+    assert refs["medical_prose_review"]["valid"] is True
+
+
+def test_ai_reviewer_default_input_refs_prefer_stable_medical_prose_review_over_stage_copy(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "003-nf"
+    stable_review = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    stage_review = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_prose_review.json"
+    )
+    stable_review.parent.mkdir(parents=True)
+    stable_review.write_text('{"schema":"stable","verdict":"revise"}\n', encoding="utf-8")
+    stage_review.parent.mkdir(parents=True)
+    stage_review.write_text('{"schema":"legacy","verdict":"clear"}\n', encoding="utf-8")
+
+    refs = default_ai_reviewer_request_input_refs(study_root=study_root)
+
+    assert refs["medical_prose_review"]["relative_path"] == "artifacts/publication_eval/medical_prose_review.json"
+    assert refs["medical_prose_review"]["path"] == str(stable_review.resolve())
+    assert refs["medical_prose_review"]["present"] is True
+    assert refs["medical_prose_review"]["valid"] is True
+
+
+def test_ai_reviewer_normalized_input_refs_prefer_stable_medical_prose_review_over_stage_copy(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "003-nf"
+    stable_review = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    stage_review = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_prose_review.json"
+    )
+    stable_review.parent.mkdir(parents=True)
+    stable_review.write_text('{"schema":"stable","verdict":"revise"}\n', encoding="utf-8")
+    stage_review.parent.mkdir(parents=True)
+    stage_review.write_text('{"schema":"legacy","verdict":"clear"}\n', encoding="utf-8")
+    packet = {
+        "input_contract": {
+            "required_refs": {
+                "medical_prose_review": {
+                    "surface": "medical_prose_review",
+                    "relative_path": (
+                        "artifacts/stage_outputs/_body_authority/paper_authority_cutover/"
+                        "current_body/paper/medical_prose_review.json"
+                    ),
+                    "path": str(stage_review),
+                    "required": True,
+                    "present": True,
+                    "valid": True,
+                }
+            }
+        }
+    }
+
+    refs = normalized_required_inputs(packet, study_root=study_root)
+
+    assert refs["medical_prose_review"]["relative_path"] == "artifacts/publication_eval/medical_prose_review.json"
+    assert refs["medical_prose_review"]["path"] == str(stable_review.resolve())
     assert refs["medical_prose_review"]["present"] is True
     assert refs["medical_prose_review"]["valid"] is True
 

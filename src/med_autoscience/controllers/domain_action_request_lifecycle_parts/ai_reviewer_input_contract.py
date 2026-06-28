@@ -40,9 +40,8 @@ def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[st
         study_root=resolved_study_root,
         candidates=AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES,
     )
-    medical_prose_review_relative_path = _first_existing_relative_path(
+    medical_prose_review_relative_path = _medical_prose_review_relative_path(
         study_root=resolved_study_root,
-        candidates=AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES,
     )
     return {
         "manuscript": _ref_payload(
@@ -206,6 +205,16 @@ def _first_existing_relative_path(*, study_root: Path, candidates: tuple[Path, .
     return candidates[0]
 
 
+def _medical_prose_review_relative_path(*, study_root: Path) -> Path:
+    stable_eval_surface = AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES[0]
+    if (study_root / stable_eval_surface).exists():
+        return stable_eval_surface
+    return _first_existing_relative_path(
+        study_root=study_root,
+        candidates=AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES[1:],
+    )
+
+
 def _resolve_authority_ref(*, study_root: Path, relative_path: Path) -> Path:
     staged = study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH / relative_path
     if staged.exists():
@@ -255,6 +264,10 @@ def _normalize_medical_prose_review_ref(
     study_root: Path,
     ref: Mapping[str, Any],
 ) -> dict[str, Any]:
+    existing_payload = _existing_medical_prose_review_ref_payload(study_root=study_root)
+    if existing_payload is not None:
+        return existing_payload
+
     payload = dict(ref)
     existing_targets = [path for path in _candidate_ref_paths(study_root=study_root, ref=payload) if path.exists()]
     if existing_targets:
@@ -275,9 +288,6 @@ def _normalize_medical_prose_review_ref(
             payload["relative_path"] = relative_path
         return payload
 
-    existing_payload = _existing_medical_prose_review_ref_payload(study_root=study_root)
-    if existing_payload is not None:
-        return existing_payload
     return payload
 
 
