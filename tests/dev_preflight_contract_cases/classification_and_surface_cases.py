@@ -273,7 +273,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/mcp_server.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/provider_admission_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress_parts/projection.py",
             "src/med_autoscience/controllers/study_progress_parts/projection_quality_surfaces.py",
@@ -303,7 +302,9 @@ def test_classify_changed_files_matches_cli_parser_surface() -> None:
     assert result.matched_categories == ("cli_parser_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_runtime_lifecycle_payload_retention.py -q",
+        "scripts/run-pytest-clean.sh "
+        "tests/test_study_runtime_execution_evidence_adoption_cases/"
+        "test_standard_agent_purity_boundary.py -q",
     ]
 
 
@@ -342,26 +343,6 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     assert module.plan_commands_for_categories(result.matched_categories) == [
         "scripts/run-pytest-clean.sh tests/test_study_interventions.py "
         "tests/test_cli_cases/domain_action_request_materializer_command.py -q",
-    ]
-
-
-def test_classify_changed_files_matches_runtime_lifecycle_payload_retention_surface() -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight_contract")
-
-    result = module.classify_changed_files(
-        [
-            "src/med_autoscience/cli_parts/retention_commands.py",
-            "src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py",
-            "tests/test_runtime_lifecycle_payload_retention.py",
-        ]
-    )
-
-    assert result.matched_categories == (
-        "runtime_lifecycle_payload_retention_surface",
-    )
-    assert result.unclassified_changes == ()
-    assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_runtime_lifecycle_payload_retention.py -q",
     ]
 
 

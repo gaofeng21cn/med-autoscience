@@ -444,10 +444,9 @@ def build_category_specs(
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/control_intent.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance.py",
             "src/med_autoscience/cli.py",
             "src/med_autoscience/mcp_server.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
+            "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
             "src/med_autoscience/controllers/provider_admission_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/study_outer_loop_work_units.py",
@@ -464,7 +463,6 @@ def build_category_specs(
             "tests/test_workspace_authority_migration_audit.py",
             "tests/test_mcp_server.py",
             "tests/test_runtime_protocol_paper_artifacts.py",
-            "tests/test_runtime_storage_maintenance.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
             "tests/test_autonomy_state_surface.py",
@@ -511,19 +509,9 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_runtime_lifecycle_payload_retention.py -q",
-        ),
-    ),
-    spec_type(
-        category_id="runtime_lifecycle_payload_retention_surface",
-        exact_paths=(
-            "src/med_autoscience/cli_parts/retention_commands.py",
-            "src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py",
-            "tests/test_runtime_lifecycle_payload_retention.py",
-        ),
-        prefix_paths=(),
-        commands=(
-            f"{pytest_clean_runner} tests/test_runtime_lifecycle_payload_retention.py -q",
+            f"{pytest_clean_runner} "
+            "tests/test_study_runtime_execution_evidence_adoption_cases/"
+            "test_standard_agent_purity_boundary.py -q",
         ),
     ),
     spec_type(

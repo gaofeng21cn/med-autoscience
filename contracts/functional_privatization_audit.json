@@ -713,10 +713,7 @@
         "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
         "classification": "domain_authority_refs",
         "code_paths": [
-          "src/med_autoscience/controllers/runtime_storage_maintenance.py",
-          "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
-          "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-          "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+          "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
         ],
         "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
         "domain_ref_consumers": [
@@ -728,11 +725,10 @@
           "does_not_claim_opl_default_caller": true,
           "does_not_claim_physical_delete": true,
           "does_not_touch_publication_or_package_authority": true,
-          "domain_refs_entry_role": "workspace_storage_refs_and_runtime_audit_entry",
-          "domain_refs_entry_shell": "src/med_autoscience/controllers/runtime_storage_maintenance.py",
+          "domain_refs_entry_role": "retired_storage_adapter_provenance_only",
+          "domain_refs_entry_shell": null,
           "extracted_paths": [
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+            "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
           ],
           "live_report_boundary_payload": {
             "body_policy": "workspace_refs_sizes_receipts_blockers_only",
@@ -754,8 +750,11 @@
             ],
             "surface_kind": "mas_runtime_storage_refs_only_adapter_boundary"
           },
-          "scope": "workspace_study_orphan_runtime_storage_reports_emit_refs_only_boundary",
-          "status": "runtime_storage_live_report_boundary_payload_landed"
+          "retired_physical_modules": [
+            "legacy_mas_storage_maintenance_python_namespace"
+          ],
+          "scope": "restore_and_cold_store_helpers_moved_to_neutral_controller_module",
+          "status": "runtime_storage_physical_modules_retired"
         },
         "mas_domain_authority_refs": [
           "artifact_authority",

@@ -857,15 +857,15 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert "paper_closure_verdict" in provenance_boundary["must_not_emit"]
     storage_adapter = inventory["runtime_storage_maintenance"]
     assert (
-        "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+        "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
         in storage_adapter["code_paths"]
     )
-    assert (
-        "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py"
-        in storage_adapter["code_paths"]
-    )
+    assert not any("runtime_storage_maintenance" in path for path in storage_adapter["code_paths"])
     storage_thinning = storage_adapter["latest_thinning_evidence"]
-    assert storage_thinning["status"] == "runtime_storage_live_report_boundary_payload_landed"
+    assert storage_thinning["status"] == "runtime_storage_physical_modules_retired"
+    assert storage_thinning["retired_physical_modules"] == [
+        "legacy_mas_storage_maintenance_python_namespace"
+    ]
     live_boundary = storage_thinning["live_report_boundary_payload"]
     assert live_boundary["surface_kind"] == "mas_runtime_storage_refs_only_adapter_boundary"
     assert live_boundary["report_modes"] == [

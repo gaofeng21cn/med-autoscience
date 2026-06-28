@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction_helpers import (
+from med_autoscience.controllers.restore_proof_compaction_helpers import (
     write_json,
 )
 

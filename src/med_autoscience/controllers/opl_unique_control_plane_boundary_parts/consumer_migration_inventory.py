@@ -284,10 +284,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
         "code_paths": [
-            "src/med_autoscience/controllers/runtime_storage_maintenance.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py",
+            "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
         ],
         "domain_ref_consumers": ["runtime grouped storage audit commands", "workspace storage reports"],
         "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
@@ -317,14 +314,14 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "generic_owner_claim_allowed": False,
         },
         "latest_thinning_evidence": {
-            "status": "runtime_storage_live_report_boundary_payload_landed",
-            "scope": "workspace_study_orphan_runtime_storage_reports_emit_refs_only_boundary",
+            "status": "runtime_storage_physical_modules_retired",
+            "scope": "restore_and_cold_store_helpers_moved_to_neutral_controller_module",
             "extracted_paths": [
-                "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-                "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py",
+                "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
             ],
-            "domain_refs_entry_shell": "src/med_autoscience/controllers/runtime_storage_maintenance.py",
-            "domain_refs_entry_role": "workspace_storage_refs_and_runtime_audit_entry",
+            "retired_physical_modules": ["legacy_mas_storage_maintenance_python_namespace"],
+            "domain_refs_entry_shell": None,
+            "domain_refs_entry_role": "retired_storage_adapter_provenance_only",
             "live_report_boundary_payload": {
                 "surface_kind": "mas_runtime_storage_refs_only_adapter_boundary",
                 "report_modes": [

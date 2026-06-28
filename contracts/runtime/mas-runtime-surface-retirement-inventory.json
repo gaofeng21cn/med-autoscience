@@ -280,8 +280,8 @@
         "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs",
-        "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_domain_authority_refs_index_is_refs_only_no_body_and_no_worker_outbox",
-        "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed",
+        "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
@@ -1881,10 +1881,10 @@
       },
       "surface_id": "runtime_lifecycle_payload_retention",
       "verified_by": [
-        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization",
-        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_apply_requires_opl_authorization",
-        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_payload_retention_externalizes_large_payload_columns",
-        "tests/test_runtime_lifecycle_payload_retention.py::test_runtime_lifecycle_sqlite_sidecar_repair_removes_stale_sidecars_after_immutable_integrity_ok"
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_lifecycle_payload_retention_requires_bound_opl_authorization",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_lifecycle_payload_retention_rejects_mas_cleanup_authority_regression",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_lifecycle_payload_retention_requires_bound_opl_authorization",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_lifecycle_payload_retention_rejects_mas_cleanup_authority_regression"
       ]
     },
     {
@@ -2031,13 +2031,13 @@
       },
       "surface_id": "runtime_storage_maintenance",
       "verified_by": [
-        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup",
-        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_physical_path_without_opl_authorization_blocks_before_backend",
-        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_compaction_git.py::test_quest_runtime_storage_authorization_scope_mismatch_blocks_physical_apply",
-        "tests/test_runtime_storage_maintenance_cases/test_archive_report_retention.py::test_archive_retention_moves_verified_archive_body_to_cold_object",
-        "tests/test_runtime_storage_maintenance_cases/test_archive_report_retention.py::test_report_retention_bundles_old_timestamped_reports_and_keeps_latest",
-        "tests/test_runtime_storage_maintenance_cases/test_attempt_evidence_capsule.py::test_attempt_evidence_capsule_plan_writes_manifest_without_mutating_raw",
-        "tests/test_runtime_storage_root_git_retirement.py::test_audit_workspace_storage_git_only_retires_workspace_root_git_with_restore_bundle",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_storage_maintenance_requires_opl_authorized_physical_apply",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_storage_maintenance_rejects_mas_storage_authority_regression",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_storage_maintenance_rejects_mas_storage_authority_regression",
+        "tests/test_historical_body_retention.py::test_historical_body_retention_replaces_runtime_storage_maintenance_report_body",
+        "tests/test_retention_surface_housekeeping.py::test_retention_surface_housekeeping_removes_known_misplaced_receipts",
+        "tests/test_semantic_cold_store_retention.py::test_semantic_cold_store_retention_plans_replacement_without_body",
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_storage_maintenance_requires_opl_authorized_physical_apply",
         "tests/test_workspace_init_cases/workspace_creation.py::test_init_workspace_materializes_profile_and_runtime_entrypoints",
         "tests/test_stage_artifact_kernel_adoption_contract.py::test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in"
       ]

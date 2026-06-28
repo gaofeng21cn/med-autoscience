@@ -615,8 +615,8 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::"
-        "test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies"
+        "tests/test_opl_state_index_kernel.py::"
+        "test_state_index_kernel_rows_are_refs_only_and_rebuildable"
     ) in physical_gate["observed_refs"]
     assert (
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
@@ -696,12 +696,12 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "default_executor_carrier_tail_false_completion_guard"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_runtime_lifecycle_payload_retention.py::"
-        "test_runtime_lifecycle_payload_retention_apply_requires_opl_authorization"
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::"
+        "test_runtime_lifecycle_payload_retention_requires_bound_opl_authorization"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_runtime_storage_maintenance_cases/runtime_storage_maintenance_basics.py::"
-        "test_workspace_storage_apply_without_opl_authorization_blocks_before_physical_cleanup"
+        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::"
+        "test_runtime_storage_maintenance_requires_opl_authorized_physical_apply"
     ) in physical_gate["observed_refs"]
     assert "inventory_entry_updated" in physical_gate["false_completion_boundary"]
     assert "active_caller_exists_as_retention_reason" in physical_gate["false_completion_boundary"]

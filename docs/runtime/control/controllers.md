@@ -53,8 +53,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `src/med_autoscience/controllers/study_runtime_completion.py`
 - `src/med_autoscience/controllers/study_runtime_resolution.py`
 - `src/med_autoscience/controllers/study_runtime_execution_parts/`
-- `src/med_autoscience/controllers/runtime_storage_maintenance.py`
-- `src/med_autoscience/controllers/runtime_lifecycle_payload_retention.py`
+- `src/med_autoscience/controllers/restore_proof_compaction_helpers.py`
 - `src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py`
 - `src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
@@ -82,8 +81,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `tests/test_progress_projection_evidence_adoption.py`
 - `tests/test_study_runtime_execution_control_intent_cases/`
 - `tests/test_study_runtime_execution_evidence_adoption_cases/`
-- `tests/test_runtime_storage_maintenance.py`
-- `tests/test_runtime_lifecycle_payload_retention.py`
+- `tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py`
 - `tests/test_cli_cases/owner_route_handoff_command/test_export.py`
 - `tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py`
 - `tests/test_delivery_inspector.py`
@@ -100,8 +98,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 当前源码形态是：
 
 - functional / structural gates 已按 standard OPL Agent source shape 关闭，controller 代码按 domain handler target、authority function、owner receipt / typed blocker producer 或 refs-only projection input 读取。
-- `runtime_lifecycle_payload_retention` 只保留为 OPL-authorized maintenance callable adapter：dry-run 可生成 body-free retention/sidecar 计划，apply 必须消费 `opl_runtime_lifecycle_maintenance_authorization` proof，并绑定 operation、maintenance surface、DB path、authorized outcome 和 authorization ref；缺 proof 时返回 `opl_runtime_lifecycle_maintenance_authorization_required` typed blocker 形状，不打开 SQLite mutation、DB compact 或 WAL/SHM 删除路径。
-- `runtime_storage_maintenance` 同样只保留为 OPL-authorized storage maintenance callable adapter：`workspace-storage-audit --apply` 与 `maintain-runtime-storage` / direct quest physical maintenance 必须通过 `--opl-maintenance-authorization <json>` 消费 `opl_runtime_storage_maintenance_authorization` proof，并绑定 operation、maintenance surface、workspace/quest scope、authorized outcome 和 authorization ref；缺 proof 或 scope 错配时返回 `opl_runtime_storage_maintenance_authorization_required` typed blocker，不进入 cache/git cleanup、backend runtime maintenance、oversized JSONL slimming、restore-proof compaction、retention apply 或 semantic raw migration。dry-run、source-retained restore-proof canary、`--refs-only-state-index-only` 与 planned retention/capsule projection 不需要授权，但也不得被解释为 runtime currentness、provider admission、paper progress 或 publication readiness。
+- MAS-local storage/lifecycle physical Python adapters 已退役；保留的源码只剩中性 restore/cold-store helper 和 runtime retirement boundary contract。旧 storage/lifecycle surface id 仅作为 retirement inventory 中的历史对象，不再对应可 import 的 MAS controller 模块或 compat test。
 - `runtime_lifecycle_payload_retention` 和 `runtime_storage_maintenance` 的 live-readiness 尾项分别由 `opl_runtime_lifecycle_maintenance_tail_readback` 与 `opl_runtime_storage_maintenance_tail_readback` 承接。前者关闭 runtime-ready 前必须看到 OPL RuntimeLifecycleCleanup / RetentionPolicy live readback、no-active lifecycle maintenance adapter caller scan、no-forbidden-write proof、replacement parity 和 tombstone/provenance；后者关闭 runtime-ready 前必须看到 OPL RuntimeStorageMaintenance / RestoreRetentionShell / StateIndex live readback、no-active storage maintenance adapter caller scan、no-forbidden-write proof、replacement parity 和 tombstone/provenance。OPL maintenance authorization、apply gate、dry-run/projection、restore canary、refs-only index projection、archive/report retention plan、attempt evidence capsule plan、semantic retention plan、workspace-root git retirement receipt、SQLite sidecar repair receipt、cold payload externalization receipt、maintenance receipt 和 focused tests 都不能满足 live takeover、physical delete 或 production readiness；但 live proof 缺失不再阻塞 repo-source 旧模块 / alias / wrapper / compat shim 删除。
 - `study_runtime_execution.py`、`study_runtime_transport.py` 和旧 router transport helper 只能作为 retired provenance / migration input / tombstone 语境出现；当前测试约束它们不得重新变成 importable MAS 私有 runtime 控制面。
 - former wrapper / private runtime surface 的 repo-source 物理删除只在 active caller migrated/deleted、replacement parity、no-forbidden-write proof、focused/meta/default verification 与 tombstone/provenance proof 同时成立时执行；MAS owner receipt、stable typed blocker、human gate、route-back 或 OPL live readback 只用于 runtime readiness、paper-line progress、provider running proof 或 production readiness，不再作为源码删除前置。

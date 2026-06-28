@@ -1617,10 +1617,10 @@
           "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
           "classification": "domain_authority_refs",
           "code_paths": [
-            "src/med_autoscience/controllers/runtime_storage_maintenance.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+            "legacy_mas_storage_maintenance_python_namespace",
+            "legacy_mas_storage_maintenance_python_namespace",
+            "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
+            "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
           ],
           "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
           "domain_ref_consumers": [
@@ -1633,10 +1633,10 @@
             "does_not_claim_physical_delete": true,
             "does_not_touch_publication_or_package_authority": true,
             "domain_refs_entry_role": "workspace_storage_refs_and_runtime_audit_entry",
-            "domain_refs_entry_shell": "src/med_autoscience/controllers/runtime_storage_maintenance.py",
+            "domain_refs_entry_shell": "legacy_mas_storage_maintenance_python_namespace",
             "extracted_paths": [
-              "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-              "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+              "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
+              "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
             ],
             "live_report_boundary_payload": {
               "body_policy": "workspace_refs_sizes_receipts_blockers_only",

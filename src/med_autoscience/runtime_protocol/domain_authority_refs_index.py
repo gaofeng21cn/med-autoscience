@@ -128,7 +128,7 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "repo_replacement_parity_refs": [
                 "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py",
                 "src/med_autoscience/controllers/opl_state_index_kernel.py",
-                "tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py::test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies",
+                "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
                 "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
             ],
             "required_opl_readback_ref": (
