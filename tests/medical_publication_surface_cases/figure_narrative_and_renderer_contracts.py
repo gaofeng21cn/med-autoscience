@@ -336,7 +336,7 @@ def test_build_report_accepts_required_display_catalog_coverage_for_supplementar
             "paper_role": "supplementary",
             "manuscript_status": "locked_supplementary_evidence",
             "template_id": "cohort_flow_figure",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "input_schema_id": "cohort_flow_shell_inputs_v1",
             "qc_profile": "publication_illustration_flow",
             "qc_result": {

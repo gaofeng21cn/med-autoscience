@@ -17,7 +17,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         {
             "figure_id": "F1",
             "template_id": "cohort_flow_figure",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "input_schema_id": "cohort_flow_shell_inputs_v1",
             "qc_profile": "publication_illustration_flow",
             "qc_result": {
@@ -39,9 +39,9 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         },
         {
             "figure_id": "F2",
-            "template_id": "time_to_event_discrimination_calibration_panel",
+            "template_id": "time_dependent_roc_horizon",
             "renderer_family": "r_ggplot2",
-            "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+            "input_schema_id": "binary_prediction_curve_inputs_v1",
             "qc_profile": "publication_evidence_curve",
             "qc_result": {
                 "status": "pass",
@@ -58,15 +58,15 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         },
         {
             "figure_id": "F3",
-            "template_id": "time_to_event_risk_group_summary",
+            "template_id": "risk_layering_monotonic_bars",
             "renderer_family": "r_ggplot2",
-            "input_schema_id": "time_to_event_grouped_inputs_v1",
-            "qc_profile": "publication_survival_curve",
+            "input_schema_id": "risk_layering_monotonic_inputs_v1",
+            "qc_profile": "publication_risk_layering_bars",
             "qc_result": {
                 "status": "pass",
                 "checked_at": "2026-04-03T10:00:00+00:00",
                 "engine_id": "display_layout_qc_v1",
-                "qc_profile": "publication_survival_curve",
+                "qc_profile": "publication_risk_layering_bars",
                 "layout_sidecar_path": "paper/figures/generated/F3.layout.json",
                 "issues": [],
             },
@@ -169,7 +169,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "recommendation_boundary": "No clinical recommendation is proposed from the cohort flow shell.",
             "renderer_contract": {
                 "figure_semantics": "illustration",
-                "renderer_family": "python",
+                "renderer_family": "r_ggplot2",
                 "template_id": "cohort_flow_figure",
                 "selection_rationale": "The cohort flow shell is rendered from the audited illustration pipeline.",
                 "layout_qc_profile": "publication_illustration_flow",
@@ -193,7 +193,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "renderer_contract": {
                 "figure_semantics": "evidence",
                 "renderer_family": "r_ggplot2",
-                "template_id": "time_to_event_discrimination_calibration_panel",
+                "template_id": "time_dependent_roc_horizon",
                 "selection_rationale": "The validation panel stays on the audited direct-migration template.",
                 "layout_qc_profile": "publication_evidence_curve",
                 "required_exports": ["png", "pdf"],
@@ -222,9 +222,9 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "renderer_contract": {
                 "figure_semantics": "evidence",
                 "renderer_family": "r_ggplot2",
-                "template_id": "time_to_event_risk_group_summary",
+                "template_id": "risk_layering_monotonic_bars",
                 "selection_rationale": "The manuscript requires the audited two-panel tertile summary rather than a grouped KM default.",
-                "layout_qc_profile": "publication_survival_curve",
+                "layout_qc_profile": "publication_risk_layering_bars",
                 "required_exports": ["png", "pdf"],
                 **evidence_renderer_display_to_claim_fields(
                     figure_id="F3",

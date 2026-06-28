@@ -164,13 +164,32 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
     assert spec.required_exports
 
 
-def test_table3_clinical_interpretation_shell_is_available_for_publication_surface_readback() -> None:
-    spec = display_registry.get_table_shell_spec("table3_clinical_interpretation_summary")
+@pytest.mark.parametrize(
+    ("table_id", "expected_input_schema_id", "expected_qc_profile"),
+    [
+        (
+            "table2_time_to_event_performance_summary",
+            "time_to_event_performance_summary_v1",
+            "publication_table_performance",
+        ),
+        (
+            "table3_clinical_interpretation_summary",
+            "clinical_interpretation_summary_v1",
+            "publication_table_interpretation",
+        ),
+    ],
+)
+def test_live_publication_table_shells_are_available_for_publication_surface_readback(
+    table_id: str,
+    expected_input_schema_id: str,
+    expected_qc_profile: str,
+) -> None:
+    spec = display_registry.get_table_shell_spec(table_id)
 
-    assert spec.shell_id == _full_id("table3_clinical_interpretation_summary")
-    assert display_registry.is_table_shell(_full_id("table3_clinical_interpretation_summary"))
-    assert spec.input_schema_id == "clinical_interpretation_summary_v1"
-    assert spec.table_qc_profile == "publication_table_interpretation"
+    assert spec.shell_id == _full_id(table_id)
+    assert display_registry.is_table_shell(_full_id(table_id))
+    assert spec.input_schema_id == expected_input_schema_id
+    assert spec.table_qc_profile == expected_qc_profile
     assert spec.required_exports == ("md",)
     assert {
         item.shell_id

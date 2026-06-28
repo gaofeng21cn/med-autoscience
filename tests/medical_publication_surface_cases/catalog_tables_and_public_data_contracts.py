@@ -358,16 +358,16 @@ def test_validate_figure_catalog_blocks_readability_failures() -> None:
             "figures": [
                 {
                     "figure_id": "F3",
-                    "template_id": "time_to_event_risk_group_summary",
-                    "renderer_family": "python",
+                    "template_id": "risk_layering_monotonic_bars",
+                    "renderer_family": "r_ggplot2",
                     "paper_role": "main_text",
-                    "input_schema_id": "time_to_event_grouped_inputs_v1",
-                    "qc_profile": "publication_survival_curve",
+                    "input_schema_id": "risk_layering_monotonic_inputs_v1",
+                    "qc_profile": "publication_risk_layering_bars",
                     "qc_result": {
                         "status": "fail",
                         "checked_at": "2026-04-04T00:00:00+00:00",
                         "engine_id": "display_layout_qc_v1",
-                        "qc_profile": "publication_survival_curve",
+                        "qc_profile": "publication_risk_layering_bars",
                         "layout_sidecar_path": "paper/figures/generated/F3.layout.json",
                         "audit_classes": ["readability"],
                         "issues": [
@@ -462,7 +462,7 @@ def test_validate_figure_semantics_manifest_blocks_story_role_drift_for_setup_sh
         "recommendation_boundary": "No treatment recommendation is made from this setup figure.",
         "renderer_contract": {
             "figure_semantics": "illustration",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "template_id": full_id("cohort_flow_figure"),
             "selection_rationale": "The registered cohort-flow shell preserves the audited study-setup surface.",
             "layout_qc_profile": "publication_illustration_flow",
@@ -511,7 +511,7 @@ def test_validate_figure_semantics_manifest_accepts_setup_story_role_alias() -> 
         "recommendation_boundary": "No treatment recommendation is made from this setup figure.",
         "renderer_contract": {
             "figure_semantics": "illustration",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
             "template_id": full_id("cohort_flow_figure"),
             "selection_rationale": "The registered cohort-flow shell preserves the audited study-setup surface.",
             "layout_qc_profile": "publication_illustration_flow",
@@ -530,7 +530,7 @@ def test_validate_figure_catalog_allows_supplementary_cohort_flow_shell() -> Non
     base_payload = {
         "figure_id": "S1",
         "template_id": "cohort_flow_figure",
-        "renderer_family": "python",
+        "renderer_family": "r_ggplot2",
         "input_schema_id": "cohort_flow_shell_inputs_v1",
         "qc_profile": "publication_illustration_flow",
         "qc_result": {
@@ -658,34 +658,22 @@ def test_validate_table_catalog_rejects_missing_md_export_for_second_stage_table
     assert "md" in errors[0]
 
 
-def test_validate_table_catalog_accepts_csv_and_md_anchor_generic_tables() -> None:
+def test_validate_table_catalog_accepts_csv_and_md_baseline_table_shell() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
     errors = module.validate_table_catalog(
         {
             "tables": [
                 {
-                    "table_id": "T2",
-                    "table_shell_id": "performance_summary_table_generic",
+                    "table_id": "T1",
+                    "table_shell_id": "table1_baseline_characteristics",
                     "paper_role": "main_text",
-                    "input_schema_id": "performance_summary_table_generic_v1",
-                    "qc_profile": "publication_table_performance",
+                    "input_schema_id": "baseline_characteristics_schema_v1",
+                    "qc_profile": "publication_table_baseline",
                     "qc_result": {"status": "pass", "issues": []},
                     "asset_paths": [
-                        "paper/tables/T2_performance_summary.csv",
-                        "paper/tables/T2_performance_summary.md",
-                    ],
-                },
-                {
-                    "table_id": "T3",
-                    "table_shell_id": "grouped_risk_event_summary_table",
-                    "paper_role": "main_text",
-                    "input_schema_id": "grouped_risk_event_summary_table_v1",
-                    "qc_profile": "publication_table_interpretation",
-                    "qc_result": {"status": "pass", "issues": []},
-                    "asset_paths": [
-                        "paper/tables/T3_grouped_risk_summary.csv",
-                        "paper/tables/T3_grouped_risk_summary.md",
+                        "paper/tables/T1_baseline_characteristics.csv",
+                        "paper/tables/T1_baseline_characteristics.md",
                     ],
                 },
             ]
@@ -695,20 +683,20 @@ def test_validate_table_catalog_accepts_csv_and_md_anchor_generic_tables() -> No
     assert errors == []
 
 
-def test_validate_table_catalog_rejects_missing_csv_for_anchor_generic_tables() -> None:
+def test_validate_table_catalog_rejects_missing_csv_for_baseline_table_shell() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
     errors = module.validate_table_catalog(
         {
             "tables": [
                 {
-                    "table_id": "T2",
-                    "table_shell_id": "performance_summary_table_generic",
+                    "table_id": "T1",
+                    "table_shell_id": "table1_baseline_characteristics",
                     "paper_role": "main_text",
-                    "input_schema_id": "performance_summary_table_generic_v1",
-                    "qc_profile": "publication_table_performance",
+                    "input_schema_id": "baseline_characteristics_schema_v1",
+                    "qc_profile": "publication_table_baseline",
                     "qc_result": {"status": "pass", "issues": []},
-                    "asset_paths": ["paper/tables/T2_performance_summary.md"],
+                    "asset_paths": ["paper/tables/T1_baseline_characteristics.md"],
                 }
             ]
         }

@@ -138,7 +138,16 @@ _TABLE3_CLINICAL_INTERPRETATION_SPEC = TableShellSpec(
     table_qc_profile="publication_table_interpretation",
     required_exports=("md",),
 )
+_TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC = TableShellSpec(
+    shell_id=_full_id("table2_time_to_event_performance_summary"),
+    display_name="Time-to-event Performance Summary Table",
+    paper_family_ids=("B",),
+    input_schema_id="time_to_event_performance_summary_v1",
+    table_qc_profile="publication_table_performance",
+    required_exports=("md",),
+)
 _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID = {
+    _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC.shell_id: _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC,
     _TABLE3_CLINICAL_INTERPRETATION_SPEC.shell_id: _TABLE3_CLINICAL_INTERPRETATION_SPEC,
 }
 
