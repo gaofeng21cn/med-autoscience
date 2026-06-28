@@ -40,6 +40,9 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_identity_guard_cases.py",
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_payload_currentness_guard_cases.py",
     },
+    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py": {
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases_cases/test_materialized_closeout_cases.py",
+    },
     "tests/test_domain_health_diagnostic.py": {
         "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
         "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair_lifecycle.py",
@@ -86,6 +89,11 @@ NESTED_CASE_REEXPORT_SURFACES = {
     ),
     "tests/test_cli_cases/ai_reviewer_publication_eval_command.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/test_cli_cases/ai_reviewer_publication_eval_command.py"]
+    ),
+    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py": (
+        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py"
+        ]
     ),
     "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py": {
         "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
