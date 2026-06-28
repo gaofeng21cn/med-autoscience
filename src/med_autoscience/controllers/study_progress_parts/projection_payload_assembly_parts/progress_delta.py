@@ -44,8 +44,11 @@ def progress_delta_metrics(
     platform_triggered = _platform_repair_triggered(
         opl_current_control_state_handoff=opl_current_control_state_handoff
     )
-    paper_tokens = _delta_tokens(total_tokens=total_tokens, triggered=paper_triggered and not platform_triggered)
-    platform_tokens = _delta_tokens(total_tokens=total_tokens, triggered=platform_triggered)
+    paper_tokens = total_tokens if paper_triggered else 0
+    platform_tokens = total_tokens if platform_triggered else _inactive_platform_tokens(
+        total_tokens=total_tokens,
+        paper_triggered=paper_triggered,
+    )
     deliverable_delta = {
         "count": 1 if paper_triggered else 0,
         "token_usage_total": paper_tokens,
@@ -319,7 +322,7 @@ def _text_list(value: object) -> list[str]:
     return [text for item in value if (text := _non_empty_text(item)) is not None]
 
 
-def _delta_tokens(*, total_tokens: int | None, triggered: bool) -> int | None:
-    if triggered:
-        return total_tokens
-    return 0 if total_tokens is not None else None
+def _inactive_platform_tokens(*, total_tokens: int | None, paper_triggered: bool) -> int | None:
+    if paper_triggered and total_tokens is None:
+        return None
+    return 0

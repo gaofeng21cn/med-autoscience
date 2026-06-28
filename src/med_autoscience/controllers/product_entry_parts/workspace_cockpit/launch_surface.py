@@ -86,6 +86,13 @@ def launch_study(
         "owner_handoff_hydration_owner": "one-person-lab" if explicit_wakeup_receipt is not None else None,
         "force_requested": bool(force),
     }
+    if (
+        selected_entry_mode == "opl-handoff"
+        and _non_empty_text(runtime_status.get("decision")) == "handoff_required"
+        and _non_empty_text(runtime_status.get("reason")) == "opl_stage_attempt_admission_required"
+    ):
+        runtime_status["product_entry_launch_policy"]["source_runtime_decision"] = runtime_status["decision"]
+        runtime_status["decision"] = "blocked"
     progress_payload = study_progress.build_study_progress_projection(
         profile=profile,
         profile_ref=profile_ref,
