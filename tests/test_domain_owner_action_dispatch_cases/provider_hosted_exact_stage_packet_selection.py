@@ -13,6 +13,26 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_stage_native_dispatch_selection_reads_without_live_provider_probe(monkeypatch) -> None:
+    selection = persisted_dispatches.stage_native_dispatch_selection
+    from med_autoscience.controllers import study_progress
+
+    observed: dict[str, object] = {}
+
+    def read_study_progress(**kwargs):
+        observed.update(kwargs)
+        return {"study_id": kwargs["study_id"]}
+
+    monkeypatch.setattr(study_progress, "read_study_progress", read_study_progress)
+
+    payload = selection.read_fresh_study_progress(profile=object(), study_id="001-risk")
+
+    assert payload == {"study_id": "001-risk"}
+    assert observed["sync_runtime_summary"] is False
+    assert observed["materialize_read_model_artifacts"] is False
+    assert observed["enable_opl_live_provider_attempt_probe"] is False
+
+
 def _transition_request_projection(dispatch: dict[str, object]) -> dict[str, object]:
     prompt_contract = dict(dispatch["prompt_contract"])  # type: ignore[arg-type]
     prompt_contract["dispatch_status"] = "transition_request_pending"
@@ -34,6 +54,28 @@ def _transition_request_projection(dispatch: dict[str, object]) -> dict[str, obj
             "target_runtime_kind": "DomainProgressTransitionRuntime",
         },
     }
+
+
+def test_stage_native_fresh_progress_read_disables_live_provider_probe(monkeypatch) -> None:
+    from med_autoscience.controllers import study_progress
+
+    observed: dict[str, object] = {}
+
+    def read_study_progress(**kwargs):
+        observed.update(kwargs)
+        return {"study_id": kwargs["study_id"]}
+
+    monkeypatch.setattr(study_progress, "read_study_progress", read_study_progress)
+
+    payload = persisted_dispatches.stage_native_dispatch_selection.read_fresh_study_progress(
+        profile=object(),
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+    )
+
+    assert payload == {"study_id": "003-dpcc-primary-care-phenotype-treatment-gap"}
+    assert observed["sync_runtime_summary"] is False
+    assert observed["materialize_read_model_artifacts"] is False
+    assert observed["enable_opl_live_provider_attempt_probe"] is False
 
 
 def _bind_provider_hosted_stage_packet(

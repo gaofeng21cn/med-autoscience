@@ -227,6 +227,7 @@ def read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> di
             study_id=study_id,
             sync_runtime_summary=False,
             materialize_read_model_artifacts=False,
+            enable_opl_live_provider_attempt_probe=False,
         )
     except Exception:
         return {}
