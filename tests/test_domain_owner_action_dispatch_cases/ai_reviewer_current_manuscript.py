@@ -196,6 +196,33 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "required_currentness_refs",
         "record_payload",
     ]
+    record_contract = production_request["publication_eval_record_contract"]
+    assert record_contract["runtime_context_refs_required_exact_keys"] == [
+        "main_result_ref",
+        "runtime_escalation_ref",
+    ]
+    assert record_contract["delivery_context_refs_required_exact_keys"] == [
+        "paper_root_ref",
+        "submission_minimal_ref",
+    ]
+    assert record_contract["gap_gate_kind_allowed_values"] == [
+        "artifact_mutation_authority_gate",
+        "forbidden_write_guard",
+        "human_or_expert_gate",
+        "publication_gate",
+        "source_readiness_gate",
+    ]
+    assert record_contract["unexpected_ref_keys_forbidden"] is True
+    payload_contract_shape = handoff["prompt_contract"]["ai_reviewer_record_production_request"][
+        "owner_callable_payload_contract"
+    ]["publication_eval_record_contract_shape"]
+    assert payload_contract_shape["runtime_context_refs_required_exact_keys"] == [
+        "main_result_ref",
+        "runtime_escalation_ref",
+    ]
+    assert payload_contract_shape["gap_gate_kind_allowed_values"] == record_contract[
+        "gap_gate_kind_allowed_values"
+    ]
     assert handoff["prompt_contract"]["execution_steps"] == [
         "Read owner_callable_payload_ref, refresh its guard-consumed metadata fields from ai_reviewer_record_production_request, and fill record_payload with the AI reviewer publication eval record.",
         "Run owner_callable_command exactly as rendered to let MAS rebuild the production reviewer_operating_system trace and write the record-only archive.",

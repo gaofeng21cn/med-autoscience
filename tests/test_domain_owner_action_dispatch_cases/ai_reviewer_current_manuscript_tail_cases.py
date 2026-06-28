@@ -12,6 +12,7 @@ from tests.domain_owner_action_dispatch_helpers import (
 )
 from tests.reviewer_os_fixture_helpers import (
     claim_evidence_map_payload,
+    current_manuscript_routeback_record,
     current_manuscript_routeback_reviewer_os,
     evidence_ledger_payload,
 )
@@ -277,9 +278,7 @@ def test_record_payload_authoring_target_refreshes_guard_metadata_from_current_r
     assert payload["stale_record_ref"] == current_record_ref
     assert payload["required_input_refs"]["medical_prose_review"] == str(current_prose_review.resolve())
     assert payload["required_currentness_refs"] == [str(current_prose_review.resolve())]
-    assert payload["record_payload"] == owner_record_payload
-    assert payload["record_payload"] is not None
-    assert payload["record_payload"]["reviewer_operating_system"]["input_bundle"]["medical_prose_review"] == old_prose_review
+    assert payload["record_payload"] is None
     assert payload["guard_consumed_metadata_fields"] == [
         "stale_record_ref",
         "required_input_refs",
@@ -296,6 +295,128 @@ def test_record_payload_authoring_target_refreshes_guard_metadata_from_current_r
     assert old_prose_review not in json.dumps(metadata_without_record_payload)
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+
+
+def test_record_payload_authoring_target_preserves_schema_valid_existing_record_payload(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.ai_reviewer_record_production"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    manuscript_ref = str((study_root / "paper" / "draft.md").resolve())
+    evidence_ref = str((study_root / "paper" / "evidence_ledger.json").resolve())
+    review_ref = str((study_root / "paper" / "review" / "review_ledger.json").resolve())
+    charter_ref = str((study_root / "artifacts" / "controller" / "study_charter.json").resolve())
+    for ref in (manuscript_ref, evidence_ref, review_ref, charter_ref):
+        Path(ref).parent.mkdir(parents=True, exist_ok=True)
+        Path(ref).write_text("{}", encoding="utf-8")
+    current_request = {
+        "surface": "supervisor_action_request",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "request_owner": "ai_reviewer",
+        "request_lifecycle": {
+            "state": "requested",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "stale_record_ref": "publication-eval::old",
+            "required_currentness_refs": [manuscript_ref],
+        },
+        "input_contract": {
+            "required_refs": {
+                "manuscript": {"path": manuscript_ref, "present": True, "valid": True}
+            }
+        },
+    }
+    production_request = module.build_ai_reviewer_record_production_request(
+        request=current_request,
+        required_refs={"manuscript": manuscript_ref},
+        stale_record_ref="publication-eval::old",
+        required_currentness_refs=[manuscript_ref],
+        request_kind="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    )
+    handoff = module.build_ai_reviewer_record_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        request=current_request,
+        dispatch={
+            "owner_route": _owner_route(
+                study_id=study_id,
+                action_type="return_to_ai_reviewer_workflow",
+                owner="ai_reviewer",
+            )
+        },
+        production_request=production_request,
+    )
+    payload_ref = Path(handoff["refs"]["owner_callable_payload_ref"])
+    owner_record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=Path(manuscript_ref),
+        manuscript_text="Current manuscript text.",
+        study_id=study_id,
+        quest_id=study_id,
+        eval_id="publication-eval::002::owner-authored-current",
+        emitted_at="2026-06-29T00:00:00Z",
+    )
+    owner_record_payload.update(
+        {
+            "charter_context_ref": {
+                "ref": charter_ref,
+                "charter_id": f"charter::{study_id}::v1",
+                "publication_objective": "Evaluate the current manuscript.",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str((study_root / "runtime_escalation.json").resolve()),
+                "main_result_ref": str((study_root / "artifacts" / "results" / "main_result.json").resolve()),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str((study_root / "paper").resolve()),
+                "submission_minimal_ref": str(
+                    (study_root / "paper" / "submission_minimal" / "submission_manifest.json").resolve()
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "Reviewer still requires current manuscript repair.",
+                "stop_loss_pressure": "watch",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "Current delivery package is stale.",
+                    "evidence_refs": [manuscript_ref],
+                    "gate_kind": "publication_gate",
+                }
+            ],
+        }
+    )
+    owner_record_payload["recommended_actions"][0]["route_key_question"] = (
+        "Can the manuscript be returned to write for current publication hardening?"
+    )
+    owner_record_payload["recommended_actions"][0]["route_rationale"] = (
+        "The AI reviewer found publication-readiness gaps in the current manuscript."
+    )
+    _write_json(
+        payload_ref,
+        {
+            "surface": "ai_reviewer_record_payload_authoring_target",
+            "schema_version": 1,
+            "study_id": study_id,
+            "record_payload": owner_record_payload,
+        },
+    )
+
+    module.materialize_ai_reviewer_record_worker_handoff(handoff=handoff)
+
+    payload = json.loads(payload_ref.read_text(encoding="utf-8"))
+    assert payload["record_payload"]["eval_id"] == "publication-eval::002::owner-authored-current"
+    assert payload["record_payload"]["gaps"][0]["gap_type"] == "delivery"
 
 
 def test_execute_dispatch_routes_claim_evidence_alignment_blocker_to_write_owner(

@@ -26,6 +26,14 @@ from med_autoscience.medical_prose_review import stable_medical_prose_review_pat
 from med_autoscience.policies.publication_critique import (
     FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS,
 )
+from med_autoscience.publication_eval_latest import canonicalize_ai_reviewer_publication_eval_record
+from med_autoscience.publication_eval_record_parts.validation import (
+    _ALLOWED_GAP_GATE_KINDS,
+    _ALLOWED_GAP_SEVERITIES,
+    _ALLOWED_GAP_TYPES,
+    _REQUIRED_DELIVERY_CONTEXT_REF_KEYS,
+    _REQUIRED_RUNTIME_CONTEXT_REF_KEYS,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import owner_route_attempt_protocol
@@ -68,6 +76,18 @@ RECORD_PRODUCTION_HANDOFF_REASONS = {
     "ai_reviewer_record_invalid",
     "ai_reviewer_record_incomplete",
 }
+
+
+def _publication_eval_record_contract_shape() -> dict[str, Any]:
+    return {
+        "runtime_context_refs_required_exact_keys": sorted(_REQUIRED_RUNTIME_CONTEXT_REF_KEYS),
+        "delivery_context_refs_required_exact_keys": sorted(_REQUIRED_DELIVERY_CONTEXT_REF_KEYS),
+        "gap_type_allowed_values": sorted(_ALLOWED_GAP_TYPES),
+        "gap_severity_allowed_values": sorted(_ALLOWED_GAP_SEVERITIES),
+        "gap_gate_kind_allowed_values": sorted(_ALLOWED_GAP_GATE_KINDS),
+        "unexpected_ref_keys_forbidden": True,
+        "unexpected_record_fields_forbidden": True,
+    }
 
 
 def _text(value: object) -> str | None:
@@ -212,6 +232,7 @@ def _production_request_with_owner_callable_payload_ref(
         "record_payload_must_consume_refs": list(result.get("required_currentness_refs") or []),
         "record_payload_ref_is_materialized_by_mas": True,
         "record_payload_body_is_not_prefilled_by_mas": True,
+        "publication_eval_record_contract_shape": _publication_eval_record_contract_shape(),
     }
     return result
 
@@ -223,6 +244,11 @@ def _record_payload_authoring_target(
     existing_target: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     existing_payload = _mapping(existing_target).get("record_payload")
+    if existing_payload:
+        try:
+            existing_payload = canonicalize_ai_reviewer_publication_eval_record(existing_payload).to_dict()
+        except (TypeError, ValueError):
+            existing_payload = None
     return {
         "surface": "ai_reviewer_record_payload_authoring_target",
         "schema_version": 1,
@@ -298,6 +324,7 @@ def build_ai_reviewer_record_production_request(
             ],
         },
         "publication_eval_record_contract": {
+            **_publication_eval_record_contract_shape(),
             "future_facing_limitations_plan_required_fields": list(
                 FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS
             ),
