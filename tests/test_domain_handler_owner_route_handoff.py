@@ -14,7 +14,9 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
     profile = make_profile(tmp_path)
 
     export = module.export_family_domain_handler(
@@ -43,7 +45,9 @@ def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: P
 
 
 def test_domain_handler_export_keeps_retired_dispatch_out_of_current_paper_queue(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-paper", quest_id="001-paper")
 
@@ -176,7 +180,9 @@ def test_domain_handler_export_uses_precomputed_progress_without_rebuilding_stud
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -252,7 +258,9 @@ def test_domain_handler_export_cli_passes_study_scope_to_export(tmp_path: Path, 
 
 
 def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -446,7 +454,9 @@ def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_run
 def test_domain_handler_export_uses_newer_opl_current_control_owner_route_over_stale_handoff(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+    )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)

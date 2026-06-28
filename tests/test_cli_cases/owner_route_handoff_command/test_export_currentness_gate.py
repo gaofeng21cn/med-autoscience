@@ -513,7 +513,7 @@ def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolu
     assert tasks == []
 
 
-def test_domain_handler_export_materializes_owner_gate_route_back_dispatch_under_stage_packet_blocker(
+def test_domain_handler_export_does_not_resurrect_default_executor_under_stage_packet_blocker(
     tmp_path: Path,
     capsys,
     monkeypatch,
@@ -634,22 +634,13 @@ def test_domain_handler_export_materializes_owner_gate_route_back_dispatch_under
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    tasks = [
+    retired_default_executor_tasks = [
         task
         for task in payload["pending_family_tasks"]
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
         and task.get("study_id") == study_id
     ]
-    assert len(tasks) == 1
-    task = tasks[0]
-    assert task["action_type"] == "run_quality_repair_batch"
-    assert task["work_unit_id"] == work_unit_id
-    assert task["work_unit_fingerprint"] == work_unit_fingerprint
-    assert task["payload"]["work_unit_id"] == work_unit_id
-    assert task["payload"]["work_unit_fingerprint"] == work_unit_fingerprint
-    assert task["payload"]["owner_route_currentness_basis"]["work_unit_fingerprint"] == (
-        work_unit_fingerprint
-    )
+    assert retired_default_executor_tasks == []
 
 
 def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:

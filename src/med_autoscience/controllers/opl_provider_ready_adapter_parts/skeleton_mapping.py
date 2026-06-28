@@ -197,7 +197,8 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="runtime_domain_handler",
             default_for_new_surfaces=False,
             repo_paths=[
-                "src/med_autoscience/controllers/owner_route_handoff.py",
+                "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
+                "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
                 "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
             ],
             mapping_explanation=(

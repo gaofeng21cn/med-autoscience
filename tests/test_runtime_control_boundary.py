@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_WATCH_HELPERS = (
     Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py"),
     Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_recovery.py"),
-    Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py"),
+    Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/authority_dispatch_gate.py"),
     Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/gate_specificity.py"),
 )
 FORBIDDEN_CONTROLLER_TARGETS = (

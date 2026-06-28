@@ -138,7 +138,6 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 quality_repair_batch = _lazy_controller_module("quality_repair_batch")
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
-owner_route_handoff = _lazy_controller_module("owner_route_handoff")
 domain_owner_action_dispatch = _lazy_controller_module("domain_owner_action_dispatch")
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
@@ -265,7 +264,6 @@ def main(argv: list[str] | None = None) -> int:
         load_profile=load_profile,
         load_json_object_file=_load_json_object_file,
         load_module=_load_module,
-        owner_route_handoff=owner_route_handoff,
         owner_route_reconcile=owner_route_reconcile,
     )
     if domain_handler_result is not None:

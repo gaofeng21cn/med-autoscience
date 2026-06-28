@@ -8,7 +8,7 @@ from med_autoscience.controllers import authority_route_gate, domain_health_diag
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 
 
-CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY = (
+AUTHORITY_DISPATCH_BLOCKED_SUMMARY = (
     "authority_snapshot 已阻断外环 dispatch；domain_health_diagnostic 只记录审计和 ledger。"
 )
 FAIL_CLOSED_BLOCKING_REASONS = frozenset(
@@ -140,7 +140,7 @@ def _authorized_dispatch_route(
     return gate if gate.get("authorized") is True else None
 
 
-def control_plane_dispatch_block(
+def authority_dispatch_block(
     *,
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
@@ -148,13 +148,13 @@ def control_plane_dispatch_block(
     snapshot = status_payload.get("authority_snapshot")
     if not isinstance(snapshot, Mapping):
         return {
-            "outcome": "control_plane_dispatch_blocked",
+            "outcome": "authority_dispatch_blocked",
             "reason": "authority_snapshot is missing; domain_health_diagnostic dispatch fails closed",
             "no_op_acknowledged": True,
             "dedupe_scope": "authority_snapshot_dispatch_gate",
-            "operator_summary": CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
+            "operator_summary": AUTHORITY_DISPATCH_BLOCKED_SUMMARY,
             "authority_snapshot": None,
-            "control_plane_blocking_reasons": ["authority_snapshot_missing"],
+            "authority_blocking_reasons": ["authority_snapshot_missing"],
         }
 
     gate = snapshot.get("dispatch_gate")
@@ -200,17 +200,17 @@ def control_plane_dispatch_block(
     if not dispatch_blocked:
         return None
     return {
-        "outcome": "control_plane_dispatch_blocked",
+        "outcome": "authority_dispatch_blocked",
         "reason": "authority_snapshot dispatch gate blocked domain_health_diagnostic outer-loop dispatch",
         "no_op_acknowledged": True,
         "dedupe_scope": "authority_snapshot_dispatch_gate",
-        "operator_summary": CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
+        "operator_summary": AUTHORITY_DISPATCH_BLOCKED_SUMMARY,
         "authority_snapshot": dict(snapshot),
-        "control_plane_blocking_reasons": blocking_reasons,
+        "authority_blocking_reasons": blocking_reasons,
     }
 
 
-def runtime_recovery_blocked_by_control_plane(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+def runtime_recovery_blocked_by_authority(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
     snapshot = status_payload.get("authority_snapshot")
     if not isinstance(snapshot, Mapping):
         return None
@@ -225,14 +225,14 @@ def runtime_recovery_blocked_by_control_plane(status_payload: Mapping[str, Any])
     if "runtime_recovery_not_authorized" not in blocking_reasons:
         blocking_reasons.append("runtime_recovery_not_authorized")
     return {
-        "outcome": "control_plane_runtime_recovery_blocked",
+        "outcome": "authority_runtime_recovery_blocked",
         "reason": "authority_snapshot route_authorization blocked runtime recovery",
         "authority_snapshot": dict(snapshot),
-        "control_plane_blocking_reasons": list(dict.fromkeys(blocking_reasons)),
+        "authority_blocking_reasons": list(dict.fromkeys(blocking_reasons)),
     }
 
 
-def apply_control_plane_dispatch_block(
+def apply_authority_dispatch_block(
     *,
     profile: Any | None = None,
     study_root: Path,
@@ -247,15 +247,15 @@ def apply_control_plane_dispatch_block(
     controller_decision_matches: Callable[..., bool] | None = None,
     materialize_non_dispatching_decision: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
-    control_plane_block = control_plane_dispatch_block(
+    authority_block = authority_dispatch_block(
         status_payload=status_payload,
         tick_request=tick_request,
     )
-    if control_plane_block is None:
+    if authority_block is None:
         return None
     blocked_audit = {
         **wakeup_audit,
-        **control_plane_block,
+        **authority_block,
         **domain_health_diagnostic_work_units.context_payload(
             tick_request,
             work_unit_dispatch_key=domain_health_diagnostic_work_units.dispatch_key(tick_request),
@@ -266,9 +266,9 @@ def apply_control_plane_dispatch_block(
         and controller_decision_matches is not None
         and materialize_non_dispatching_decision is not None
         and not controller_decision_matches(
-        study_root=study_root,
-        status_payload=status_payload,
-        tick_request=tick_request,
+            study_root=study_root,
+            status_payload=status_payload,
+            tick_request=tick_request,
         )
     ):
         decision_result = materialize_non_dispatching_decision(
@@ -297,7 +297,7 @@ def apply_control_plane_dispatch_block(
         study_root=study_root,
         status_payload=status_payload,
         tick_request=tick_request,
-        event_type="control_plane_dispatch_blocked",
+        event_type="authority_dispatch_blocked",
         wakeup_audit=blocked_audit,
         default_recorded_at=default_recorded_at,
     )
@@ -305,9 +305,9 @@ def apply_control_plane_dispatch_block(
 
 
 __all__ = [
-    "CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY",
+    "AUTHORITY_DISPATCH_BLOCKED_SUMMARY",
     "FAIL_CLOSED_BLOCKING_REASONS",
-    "apply_control_plane_dispatch_block",
-    "control_plane_dispatch_block",
-    "runtime_recovery_blocked_by_control_plane",
+    "apply_authority_dispatch_block",
+    "authority_dispatch_block",
+    "runtime_recovery_blocked_by_authority",
 ]

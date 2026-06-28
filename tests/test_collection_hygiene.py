@@ -29,9 +29,6 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
     },
-    "tests/test_cli_cases/owner_route_handoff_command.py": {
-        "tests/test_cli_cases/owner_route_handoff_command_cases/test_paper_recovery_successor_dispatch_cases.py",
-    },
     "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py": {
         "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_anti_loop_owner_gate_cases.py",
         "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_execution_dispatch_cases.py",
@@ -39,6 +36,12 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
     "tests/test_cli_cases/ai_reviewer_publication_eval_command.py": {
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_identity_guard_cases.py",
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_payload_currentness_guard_cases.py",
+    },
+    "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards.py": {
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_authority_and_execution_wire_guards.py",
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_owner_dispatch_and_obligation_guards.py",
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_runtime_health_and_maintenance_guards.py",
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_workbench_and_capability_guards.py",
     },
     "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py": {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases_cases/test_materialized_closeout_cases.py",
@@ -66,8 +69,8 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_private_surface_retirement_boundary.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_runtime_recovery.py",
+        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_gate.py",
+        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_runtime_recovery.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_opl_runtime_handoff_delta.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
@@ -82,9 +85,6 @@ NESTED_CASE_REEXPORT_SURFACES = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_entry_status_focus.py"]
     ),
-    "tests/test_cli_cases/owner_route_handoff_command.py": (
-        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/test_cli_cases/owner_route_handoff_command.py"]
-    ),
     "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
             "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py"
@@ -92,6 +92,11 @@ NESTED_CASE_REEXPORT_SURFACES = {
     ),
     "tests/test_cli_cases/ai_reviewer_publication_eval_command.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/test_cli_cases/ai_reviewer_publication_eval_command.py"]
+    ),
+    "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards.py": (
+        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
+            "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards.py"
+        ]
     ),
     "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
@@ -127,8 +132,8 @@ NESTED_CASE_REEXPORT_SURFACES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
     },
     "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py": {
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_runtime_recovery.py",
+        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_gate.py",
+        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_authority_dispatch_runtime_recovery.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_opl_runtime_handoff_delta.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
@@ -349,7 +354,7 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
         "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
         "domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_*.py",
         "test_cli_cases/ai_reviewer_publication_eval_command_cases/test_*.py",
-        "test_cli_cases/owner_route_handoff_command_cases/test_*.py",
+        "test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_*.py",
         "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
     }
     assert tests_conftest.collect_ignore_glob == list(

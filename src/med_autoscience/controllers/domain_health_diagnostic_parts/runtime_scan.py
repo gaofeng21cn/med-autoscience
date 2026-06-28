@@ -8,8 +8,8 @@ from med_autoscience.controllers import domain_health_diagnostic_outer_loop_disp
 from med_autoscience.controllers.domain_health_diagnostic_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.control_plane_gate import (
-    apply_control_plane_dispatch_block,
+from med_autoscience.controllers.domain_health_diagnostic_parts.authority_dispatch_gate import (
+    apply_authority_dispatch_block,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.gate_specificity import _specificity_terminal_status_payload
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
@@ -362,7 +362,7 @@ def run_domain_health_diagnostic_for_runtime(
                         blocked_reason = (
                             "outer-loop wakeup controller work unit failed closed after meaningful artifact delta cleared platform repair lock"
                         )
-                    blocked_wakeup_audit = apply_control_plane_dispatch_block(
+                    blocked_wakeup_audit = apply_authority_dispatch_block(
                         profile=profile,
                         study_root=study_root,
                         status_payload=status_payload,
@@ -603,7 +603,7 @@ def run_domain_health_diagnostic_for_runtime(
                         )
                 else:
                     work_unit_dispatch_key = domain_health_diagnostic_work_units.dispatch_key(tick_request)
-                    blocked_wakeup_audit = apply_control_plane_dispatch_block(
+                    blocked_wakeup_audit = apply_authority_dispatch_block(
                         profile=profile,
                         study_root=study_root,
                         status_payload=status_payload,

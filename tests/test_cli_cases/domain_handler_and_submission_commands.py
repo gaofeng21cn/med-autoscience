@@ -16,7 +16,6 @@ def test_cli_runtime_facing_controller_proxies_are_named_currentness_surfaces(mo
     proxy_targets = {
         "domain_status_projection": "domain_status_projection",
         "study_progress": "study_progress",
-        "owner_route_handoff": "owner_route_handoff",
         "gate_clearing_batch": "gate_clearing_batch",
         "quality_repair_batch": "quality_repair_batch",
         "runtime_health_kernel": "runtime_health_kernel",

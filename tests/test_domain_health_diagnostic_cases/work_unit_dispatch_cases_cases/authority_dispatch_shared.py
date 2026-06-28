@@ -29,7 +29,7 @@ def _domain_health_diagnostic_tick_request(study_root: Path, quest_root: Path) -
             }
         ],
         "reason": "Run bounded claim-evidence repair.",
-        "work_unit_fingerprint": "publication-blockers::control-plane",
+        "work_unit_fingerprint": "publication-blockers::authority-dispatch",
         "next_work_unit": {
             "unit_id": "analysis_claim_evidence_repair",
             "lane": "analysis-campaign",
@@ -58,6 +58,6 @@ def _authority_snapshot(*, state: str, blocking_reasons: list[str] | None = None
             "runtime_recovery_allowed": True,
         },
         "blocking_reasons": blocking_reasons or [],
-        "allowed_controller_actions": ["read_runtime_status", "reconcile_control_plane"],
+        "allowed_controller_actions": ["read_runtime_status", "reconcile_authority_dispatch"],
         "quality_gate_relaxation_allowed": False,
     }

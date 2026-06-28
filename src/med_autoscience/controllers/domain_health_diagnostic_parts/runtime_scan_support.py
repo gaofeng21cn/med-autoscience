@@ -10,8 +10,8 @@ from med_autoscience.controllers import (
     domain_health_diagnostic_work_units,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts import managed_recovery
-from med_autoscience.controllers.domain_health_diagnostic_parts.control_plane_gate import (
-    CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
+from med_autoscience.controllers.domain_health_diagnostic_parts.authority_dispatch_gate import (
+    AUTHORITY_DISPATCH_BLOCKED_SUMMARY,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _candidate_path,
@@ -114,7 +114,7 @@ def _serialize_no_op_suppression(
         "needs_specificity",
         "opl_runtime_handoff_required",
         "controller_work_unit_blocked",
-        "control_plane_dispatch_blocked",
+        "authority_dispatch_blocked",
         "explicit_wakeup_required",
         "non_dispatching_runtime_stop",
     }:
@@ -137,7 +137,7 @@ def _serialize_no_op_suppression(
         "opl_runtime_handoff_kind",
         "controller_work_unit_block",
         "authority_snapshot",
-        "control_plane_blocking_reasons",
+        "authority_blocking_reasons",
         "explicit_wakeup_contract",
         "controller_authorization_ref",
         "control_intent_lifecycle_ref",
@@ -153,8 +153,8 @@ def _serialize_no_op_suppression(
         payload["operator_summary"] = _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY
     elif outcome == "controller_work_unit_blocked":
         payload["operator_summary"] = "MAS controller work unit failed closed; supervisor/read-model surfaces must route the typed blocker to the next owner."
-    elif outcome == "control_plane_dispatch_blocked":
-        payload["operator_summary"] = CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY
+    elif outcome == "authority_dispatch_blocked":
+        payload["operator_summary"] = AUTHORITY_DISPATCH_BLOCKED_SUMMARY
     elif outcome == "explicit_wakeup_required":
         payload["operator_summary"] = "该 study 已进入用户暂停或手动停驻合同；继续监测，但等待显式唤醒前不派发自动 owner work。"
     elif outcome == "non_dispatching_runtime_stop":

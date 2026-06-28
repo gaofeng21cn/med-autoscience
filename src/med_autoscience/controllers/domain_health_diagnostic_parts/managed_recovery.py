@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import domain_health_diagnostic_recovery_policy
-from med_autoscience.controllers.domain_health_diagnostic_parts.control_plane_gate import runtime_recovery_blocked_by_control_plane
+from med_autoscience.controllers.domain_health_diagnostic_parts.authority_dispatch_gate import runtime_recovery_blocked_by_authority
 from med_autoscience.controllers.domain_health_diagnostic_parts.gate_specificity import _study_requests_gate_specificity_terminal
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _managed_study_status_payload,
@@ -165,7 +165,7 @@ def _auto_recovery_action_payload(
         study_root=study_root,
         status_payload=preflight_payload,
     )
-    control_plane_recovery_block = runtime_recovery_blocked_by_control_plane(
+    authority_recovery_block = runtime_recovery_blocked_by_authority(
         _managed_study_status_payload(preflight_payload)
     )
     if recovery_hold is not None:
@@ -176,12 +176,12 @@ def _auto_recovery_action_payload(
             )
         recovery_holds.append(recovery_hold)
         return preflight_payload, False
-    if control_plane_recovery_block is not None:
+    if authority_recovery_block is not None:
         return {
             **_managed_study_status_payload(preflight_payload),
             "decision": "handoff_required",
             "reason": "resume_request_failed",
-            "control_plane_runtime_recovery_block": control_plane_recovery_block,
+            "authority_dispatch_runtime_recovery_block": authority_recovery_block,
         }, False
     if not apply:
         return preflight_payload, False

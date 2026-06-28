@@ -80,6 +80,9 @@ def _serialize_managed_study_action(
     authority_snapshot = _authority_snapshot_summary(payload.get("authority_snapshot"))
     if authority_snapshot is not None:
         serialized["authority_snapshot"] = authority_snapshot
+    authority_recovery_block = _mapping(payload.get("authority_dispatch_runtime_recovery_block"))
+    if authority_recovery_block:
+        serialized["authority_dispatch_runtime_recovery_block"] = authority_recovery_block
     resume_postcondition = _resume_postcondition_summary(payload.get("resume_postcondition"))
     if resume_postcondition is not None:
         serialized["resume_postcondition"] = resume_postcondition

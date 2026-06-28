@@ -270,8 +270,9 @@ def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_assess(*, workspace_root: Path) -> dict:
+    def fake_assess(*, workspace_root: Path, persist_report: bool = False) -> dict:
         called["workspace_root"] = workspace_root
+        called["persist_report"] = persist_report
         return {"study_count": 1, "studies": [{"study_id": "002-early-risk", "status": "review_needed"}]}
 
     monkeypatch.setattr(cli.data_assets, "assess_data_asset_impact", fake_assess)
@@ -281,6 +282,7 @@ def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp
 
     assert exit_code == 0
     assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["persist_report"] is True
     assert '"review_needed"' in captured.out
 def test_diff_private_release_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")

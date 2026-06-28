@@ -323,8 +323,7 @@
       "paths": [
         "tests/test_test_lane_governance.py",
         "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_product_entry.py",
-        "tests/test_cli_cases/owner_route_handoff_command.py"
+        "tests/test_product_entry.py"
       ],
       "docs": [
         "docs/active/mas-ideal-state-gap-plan.md",
@@ -477,7 +476,6 @@
           },
           {
             "current_paths": [
-              "src/med_autoscience/controllers/owner_route_handoff.py",
               "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
               "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_functional_closure.py",
               "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
@@ -2197,7 +2195,6 @@
           "code_paths": [
             "src/med_autoscience/domain_entry.py",
             "src/med_autoscience/controllers/product_entry.py",
-            "src/med_autoscience/controllers/owner_route_handoff.py",
             "plugins/mas/skills/mas/SKILL.md"
           ],
           "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
@@ -2723,7 +2720,6 @@
       "paths": [
         "tests/test_test_lane_governance.py",
         "tests/product_entry_cases/action_catalog_parity.py",
-        "tests/test_cli_cases/owner_route_handoff_command.py",
         "tests/test_cli_cases/domain_handler_functional_closure_command.py",
         "tests/test_codex_plugin.py",
         "tests/test_codex_plugin_scaffold.py",

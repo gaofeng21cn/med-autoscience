@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.test_domain_health_diagnostic_cases import shared as _shared
-from tests.test_domain_health_diagnostic_cases.work_unit_dispatch_cases_cases.control_plane_dispatch_shared import (
+from tests.test_domain_health_diagnostic_cases.work_unit_dispatch_cases_cases.authority_dispatch_shared import (
     _authority_snapshot,
     _domain_health_diagnostic_tick_request,
 )
@@ -22,7 +22,7 @@ globals().update({
         ["study_truth_epoch_missing"],
     ],
 )
-def test_watch_runtime_control_plane_blocked_snapshot_suppresses_outer_loop_dispatch(
+def test_watch_runtime_authority_blocked_snapshot_suppresses_outer_loop_dispatch(
     tmp_path: Path,
     monkeypatch,
     blocking_reasons: list[str],
@@ -87,18 +87,18 @@ def test_watch_runtime_control_plane_blocked_snapshot_suppresses_outer_loop_disp
 
     assert calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "authority_dispatch_blocked"
     assert wakeup_latest["no_op_acknowledged"] is True
     assert wakeup_latest["authority_snapshot"]["dispatch_gate"]["blocking_reasons"] == blocking_reasons
-    assert wakeup_latest["control_plane_blocking_reasons"] == [
+    assert wakeup_latest["authority_blocking_reasons"] == [
         *blocking_reasons,
         "route_not_authorized",
     ]
-    assert [event["event_type"] for event in ledger_events] == ["control_plane_dispatch_blocked"]
+    assert [event["event_type"] for event in ledger_events] == ["authority_dispatch_blocked"]
 
 
-def test_watch_runtime_control_plane_open_snapshot_allows_outer_loop_dispatch(
+def test_watch_runtime_authority_dispatch_open_snapshot_allows_outer_loop_dispatch(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -241,7 +241,7 @@ def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dis
     assert result["managed_study_no_op_suppressions"] == []
     assert wakeup_latest["outcome"] == "dispatched"
     assert wakeup_latest["work_unit_dispatch_key"] == (
-        "publication-blockers::control-plane::analysis_claim_evidence_repair::run_quality_repair_batch"
+        "publication-blockers::authority-dispatch::analysis_claim_evidence_repair::run_quality_repair_batch"
     )
 
 
@@ -816,9 +816,9 @@ def test_watch_runtime_downstream_only_still_blocks_managed_submission_refresh_d
 
     assert calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "authority_dispatch_blocked"
     assert "publication_supervisor_state.bundle_tasks_downstream_only" in wakeup_latest[
-        "control_plane_blocking_reasons"
+        "authority_blocking_reasons"
     ]
 

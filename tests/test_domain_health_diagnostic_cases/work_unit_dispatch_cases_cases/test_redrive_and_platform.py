@@ -111,7 +111,7 @@ def test_watch_runtime_redrives_repeated_work_unit_until_attempt_closes(
     )
 
 
-def test_watch_runtime_blocks_outer_loop_dispatch_when_control_plane_dispatch_gate_is_closed(
+def test_watch_runtime_blocks_outer_loop_dispatch_when_authority_dispatch_gate_is_closed(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -201,14 +201,14 @@ def test_watch_runtime_blocks_outer_loop_dispatch_when_control_plane_dispatch_ga
 
     assert calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "authority_dispatch_blocked"
     assert wakeup_latest["authority_snapshot"]["dispatch_gate"]["state"] == "blocked"
-    assert wakeup_latest["control_plane_blocking_reasons"] == [
+    assert wakeup_latest["authority_blocking_reasons"] == [
         "runtime_health_epoch_missing",
         "route_not_authorized",
     ]
-    assert ledger_events[0]["event_type"] == "control_plane_dispatch_blocked"
+    assert ledger_events[0]["event_type"] == "authority_dispatch_blocked"
 
 
 def test_watch_runtime_blocks_outer_loop_dispatch_when_runtime_recovery_route_is_not_authorized(
@@ -295,9 +295,9 @@ def test_watch_runtime_blocks_outer_loop_dispatch_when_runtime_recovery_route_is
 
     assert calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["control_plane_blocking_reasons"] == ["runtime_recovery_not_authorized"]
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["authority_blocking_reasons"] == ["runtime_recovery_not_authorized"]
 
 
 def test_watch_runtime_escalates_after_bounded_work_unit_redrives(

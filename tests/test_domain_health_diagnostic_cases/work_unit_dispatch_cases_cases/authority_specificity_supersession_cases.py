@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.test_domain_health_diagnostic_cases import shared as _shared
-from tests.test_domain_health_diagnostic_cases.work_unit_dispatch_cases_cases.control_plane_dispatch_shared import (
+from tests.test_domain_health_diagnostic_cases.work_unit_dispatch_cases_cases.authority_dispatch_shared import (
     _authority_snapshot,
 )
 
@@ -12,7 +12,7 @@ globals().update({
 })
 
 
-def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
+def test_authority_blocked_request_supersedes_stale_specificity_decision(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -160,8 +160,8 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
 
     assert dispatch_calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
-    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "authority_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "authority_dispatch_blocked"
     assert wakeup_latest["controller_decision"]["dispatch_status"] == "recorded_non_dispatching"
     assert current_decision["decision_type"] == "bounded_analysis"
     assert current_decision["work_unit_fingerprint"] == "publication-blockers::specific"
