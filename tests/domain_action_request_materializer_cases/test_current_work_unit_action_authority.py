@@ -9,6 +9,27 @@ def _module():
     )
 
 
+def test_fresh_progress_current_action_reads_without_live_provider_probe(monkeypatch) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
+    )
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    observed: dict[str, object] = {}
+
+    def read_study_progress(**kwargs):
+        observed.update(kwargs)
+        return {"study_id": kwargs["study_id"]}
+
+    monkeypatch.setattr(study_progress, "read_study_progress", read_study_progress)
+
+    payload = module._read_fresh_study_progress(profile=object(), study_id="001-risk")
+
+    assert payload == {"study_id": "001-risk"}
+    assert observed["sync_runtime_summary"] is False
+    assert observed["materialize_read_model_artifacts"] is False
+    assert observed["enable_opl_live_provider_attempt_probe"] is False
+
+
 def test_canonical_current_work_unit_action_rejects_readiness_typed_blocker_identity() -> None:
     action = _module().canonical_current_work_unit_action(
         {
