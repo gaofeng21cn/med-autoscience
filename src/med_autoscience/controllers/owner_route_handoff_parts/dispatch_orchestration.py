@@ -10,7 +10,6 @@ import yaml
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
-from .. import domain_owner_action_dispatch
 from .. import opl_provider_ready_adapter
 from .. import paper_repair_executor
 from .. import publication_aftercare
@@ -153,7 +152,6 @@ def _owner_capability_fingerprint(*, action_type: str) -> str:
     owner_files = [
         Path(__file__),
         Path(paper_repair_executor.__file__ or ""),
-        Path(domain_owner_action_dispatch.__file__ or ""),
     ]
     payload = {
         "action_type": action_type,
@@ -260,23 +258,19 @@ def _execute_ai_reviewer_recheck(
     if profile is None:
         return None
     authorization = _opl_execution_authorization(task)
-    if not _trusted_opl_execution_authorization(authorization):
-        return {
-            "surface": "domain_owner_action_dispatch",
-            "accepted": False,
-            "execution_status": "blocked",
-            "typed_blocker": "opl_execution_authorization_required",
-            "blocked_reason": "opl_execution_authorization_required",
-            "retryable": False,
-            "authority_boundary": "mas_ai_reviewer_recheck_requires_opl_attempt_lease_or_receipt",
-        }
-    return domain_owner_action_dispatch.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,) if study_id else (),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
+    return {
+        "surface": "mas_ai_reviewer_stage_outcome_authority",
+        "accepted": False,
+        "execution_status": "blocked",
+        "typed_blocker": OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+        "blocked_reason": OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+        "retryable": False,
+        "authority_boundary": "mas_ai_reviewer_recheck_requires_paper_repair_executor_or_opl_stage_outcome",
+        "trusted_opl_execution_authorization_present": _trusted_opl_execution_authorization(
+            authorization
+        ),
+        "replacement_owner_path": "paper_autonomy/repair-recheck",
+    }
 
 
 def _execute_guarded_apply(

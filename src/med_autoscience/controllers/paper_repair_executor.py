@@ -10,12 +10,8 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers import (
     canonical_manuscript_package_loop,
-    domain_owner_action_dispatch,
     paper_repair_execution_evidence,
     quality_repair_batch,
-)
-from med_autoscience.controllers.domain_action_request_materializer_parts import (
-    transition_request_projection,
 )
 from med_autoscience.controllers.domain_action_request_lifecycle import (
     default_ai_reviewer_request_input_refs,
@@ -320,22 +316,15 @@ def _dispatch_ai_reviewer_callable(
             review_finding=None,
             typed_blocker="owner_callable_context_missing",
         )
-    owner_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-        consumer_payload=_ai_reviewer_owner_consumer_payload(
-            study_id=study_id,
-            quest_id=quest_id,
-            study_root=study_root,
-            work_unit=work_unit,
-            generated_at=generated_at,
-            control_plane_route_context=control_plane_route_context,
-            route_context=route_context,
-            opl_execution_authorization=opl_execution_authorization,
-        ),
+    owner_result = _ai_reviewer_owner_handoff_result(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        work_unit=work_unit,
+        generated_at=generated_at,
+        control_plane_route_context=control_plane_route_context,
+        route_context=route_context,
+        opl_execution_authorization=opl_execution_authorization,
     )
     return _owner_callable_result(
         generated_at=generated_at,
@@ -353,7 +342,7 @@ def _dispatch_ai_reviewer_callable(
     )
 
 
-def _ai_reviewer_owner_consumer_payload(
+def _ai_reviewer_owner_handoff_result(
     *,
     study_id: str,
     quest_id: str,
@@ -383,7 +372,7 @@ def _ai_reviewer_owner_consumer_payload(
         owner_route=owner_route,
     )
     dispatch_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches" / f"{action_type}.json"
-    dispatch = ai_reviewer_default_executor_dispatch.build(
+    handoff = ai_reviewer_default_executor_dispatch.build(
         study_id=study_id,
         quest_id=quest_id,
         work_unit=work_unit,
@@ -396,18 +385,19 @@ def _ai_reviewer_owner_consumer_payload(
         callable_surface=AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
         opl_execution_authorization=opl_execution_authorization,
     )
-    _write_json(dispatch_path, dispatch)
-    transition_requests = transition_request_projection.domain_progress_transition_request_projection(
-        [dispatch]
-    )
+    _write_json(dispatch_path, handoff)
     return {
-        "surface": "paper_repair_inline_consumer_payload",
+        "surface": "paper_repair_ai_reviewer_owner_handoff",
         "schema_version": SCHEMA_VERSION,
+        "status": "handoff_ready",
         "generated_at": generated_at,
-        "canonical_transition_request_surface": "domain_progress_transition_requests",
-        "owner_callable_adapters": [dispatch],
-        "domain_progress_transition_requests": transition_requests,
-        "domain_progress_transition_request_count": len(transition_requests),
+        "ai_reviewer_record_worker_handoff": handoff,
+        "request_packet_ref": _text(request.get("path")),
+        "repair_execution_evidence_path": str(
+            study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+        ),
+        "changed_artifact_refs": [],
+        "authority_boundary": _authority_boundary(),
     }
 
 

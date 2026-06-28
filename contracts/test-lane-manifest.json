@@ -2631,7 +2631,6 @@
         "tests/test_study_runtime_execution_evidence_adoption_cases/test_standard_agent_purity_boundary.py",
         "tests/owner_route_reconcile_cases/test_non_persistent_projection.py",
         "tests/owner_route_reconcile_cases/test_control_surface_artifact_delta.py",
-        "tests/test_domain_owner_action_dispatch.py",
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
         "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
