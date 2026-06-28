@@ -39,16 +39,16 @@ def _study_command_surfaces(
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
     selector = _study_selector(study_id=study_id)
+    paper_mission_inspect = (
+        f"{prefix} paper-mission inspect --profile {profile_arg} {selector}"
+    )
     return {
         "workspace_cockpit": f"{prefix} workspace cockpit --profile {profile_arg}",
         "study_progress": f"{prefix} study progress --profile {profile_arg} {selector}",
         "progress_projection": f"{prefix} study progress --profile {profile_arg} {selector} --format json",
         "quality_repair_batch": f"{prefix} study quality-repair-batch --profile {profile_arg} {selector}",
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
-        "refresh_supervision": (
-            f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
-        ),
+        "refresh_supervision": f"{paper_mission_inspect} --format json",
     }
 
 
