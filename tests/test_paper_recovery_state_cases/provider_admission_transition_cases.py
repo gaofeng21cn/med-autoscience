@@ -250,3 +250,499 @@ def test_runtime_report_keeps_observe_only_transition_request_pending_until_opl_
     assert action["provider_admission_state"]["status"] == "none"
     assert action["provider_admission_state"]["candidate_count"] == 0
     assert action["provider_admission_state"]["running_provider_attempt"] is False
+
+def test_observe_only_diagnostic_does_not_block_provider_admission() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
+                    "opl_domain_progress_transition_result": _opl_transition_result(),
+                }
+            ],
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 1,
+        },
+    )
+
+    assert state["phase"] == "admission_pending"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
+    assert state["next_safe_action"]["provider_admission_requires_opl_runtime_result"] is True
+    assert state["next_safe_action"]["requires_claimable_live_readback_source"] is True
+    assert state["next_safe_action"]["fresh_live_claim_allowed"] is False
+
+
+def test_executable_owner_action_without_candidate_is_owner_action_ready_not_admission_pending() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                owner="gate_clearing_batch",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 0,
+        },
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+
+
+def test_runtime_retry_exhausted_provider_admission_fails_closed() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                owner="gate_clearing_batch",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                    "opl_domain_progress_transition_request": _opl_transition_request(
+                        work_unit_id="publication_gate_replay",
+                        fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+                    ),
+                }
+            ],
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "retry_budget_remaining": 0,
+            },
+        }
+    )
+
+    assert state["phase"] == "admission_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "provider_admission_pending_without_startable_dispatch",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "authorize_opl_transport_recovery_or_stable_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_runtime_retry_exhausted_without_admission_candidate_keeps_owner_action_ready() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(
+                owner="gate_clearing_batch",
+                action_type="run_gate_clearing_batch",
+                work_unit_id="publication_gate_replay",
+                fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+            ),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+        }
+    )
+
+    assert state["phase"] == "owner_action_ready"
+    assert state["conditions"] == [{"condition": "current_owner_action_ready"}]
+    assert state["next_safe_action"]["kind"] == "materialize_mas_transition_request_or_owner_callable"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+
+
+def test_projection_contradiction_fails_closed() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+        }
+    )
+
+    assert state["phase"] == "projection_inconsistent"
+    assert state["current_authority"]["owner"] == "MedAutoScience"
+    assert state["next_safe_action"]["kind"] == "repair_projection_before_admission"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_matching_provider_admission_supersedes_stale_parked_projection() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "status": "provider_admission_pending",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "action_fingerprint": "publication-blockers::0915410f804b3697",
+                    "opl_domain_progress_transition_request": _opl_transition_request(),
+                    "opl_domain_progress_transition_result": _opl_transition_result(),
+                }
+            ],
+        }
+    )
+
+    assert state["phase"] == "admission_pending"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
+    assert state["current_authority"]["owner"] == "write"
+
+
+def test_current_work_unit_provider_admission_pending_supersedes_stale_parked_projection() -> None:
+    current_work_unit = _executable_work_unit(
+        owner="gate_clearing_batch",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+    )
+    current_work_unit["state"] = {
+        "state_kind": "executable_owner_action",
+        "provider_admission_pending": True,
+        "pending_provider_admission_evidence": {
+            "running_provider_attempt": False,
+            "provider_attempt_or_lease_required": False,
+        },
+        "opl_domain_progress_transition_request": _opl_transition_request(
+            work_unit_id="publication_gate_replay",
+            fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        ),
+        "opl_domain_progress_transition_result": _opl_transition_result(
+            work_unit_id="publication_gate_replay",
+            fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+            stage_run_id="stage-run-publication-gate-replay"
+        ),
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+        }
+    )
+
+    assert state["phase"] == "admission_pending"
+    assert state["conditions"] == [
+        {
+            "condition": "opl_provider_admission_readback_consumable",
+            "source_kind": "fixture_or_replay_readback",
+            "fresh_live_claim_allowed": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "consume_opl_provider_admission_readback"
+    assert state["next_safe_action"]["provider_admission_allowed"] is True
+    assert state["next_safe_action"]["mas_can_authorize_provider_admission"] is False
+    assert state["current_authority"]["owner"] == "gate_clearing_batch"
+
+
+def test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission() -> None:
+    current_work_unit = _executable_work_unit(
+        owner="gate_clearing_batch",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+    )
+    current_work_unit["state"] = {
+        "state_kind": "executable_owner_action",
+        "provider_admission_pending": True,
+        "opl_domain_progress_transition_request": _opl_transition_request(
+            work_unit_id="publication_gate_replay",
+            fingerprint="sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
+        ),
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 0,
+        },
+    )
+
+    assert state["phase"] == "projection_inconsistent"
+    assert state["conditions"] == [
+        {
+            "condition": "operator_card_contradicts_auto_runtime_parked",
+            "operator_handling_state": "explicit_resume_pending",
+            "auto_runtime_parked": False,
+        }
+    ]
+    assert state["next_safe_action"]["kind"] == "repair_projection_before_admission"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_provider_admission_without_study_identity_does_not_suppress_projection_contradiction() -> None:
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": _executable_work_unit(),
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "status": "provider_admission_pending",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                }
+            ],
+        }
+    )
+
+    assert state["phase"] == "projection_inconsistent"
+    assert state["conditions"][0]["condition"] == "operator_card_contradicts_auto_runtime_parked"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_accepted_closeout_typed_blocker_owns_recovery_before_admission_blocked() -> None:
+    fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
+    current_work_unit = _executable_work_unit(
+        owner="gate_clearing_batch",
+        action_type="run_gate_clearing_batch",
+        work_unit_id="publication_gate_replay",
+        fingerprint=fingerprint,
+    )
+    current_work_unit["state"] = {
+        "state_kind": "executable_owner_action",
+        "provider_admission_pending": False,
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "accepted_closeout_evidence": [
+                {
+                    "surface_kind": "stage_attempt_closeout_packet",
+                    "status": "blocked",
+                    "stage_closeout_status": "blocked",
+                    "stage_attempt_id": "sat_e1063d97901cc3d70424fc5c",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "typed_blocker_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "supervision/consumer/default_executor_execution/"
+                        "sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
+                    ),
+                    "typed_blocker": {},
+                    "paper_stage_log": {
+                        "outcome": "typed_blocker",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": ["opl_execution_authorization_required"],
+                    },
+                    "owner_result": {
+                        "status": "blocked",
+                        "blocked_reason": "opl_execution_authorization_required",
+                    },
+                    "closeout_refs": [
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "supervision/consumer/default_executor_execution/"
+                        "sat_e1063d97901cc3d70424fc5c.closeout.json"
+                    ],
+                }
+            ],
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "retry_budget_remaining": 0,
+            },
+        },
+        diagnostic_report={
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "codex_dispatch_count": 0,
+            "provider_admission_pending_count": 0,
+        },
+    )
+
+    assert state["phase"] == "domain_blocked"
+    assert state["conditions"] == [
+        {
+            "condition": "accepted_closeout_typed_blocker",
+            "blocker_type": "opl_execution_authorization_required",
+        }
+    ]
+    assert state["current_authority"]["owner"] == "one-person-lab"
+    assert state["current_authority"]["obligation"]["owner"] == "gate_clearing_batch"
+    assert state["next_safe_action"]["kind"] == "provide_opl_execution_authorization_or_human_gate"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+
+
+def test_provider_admission_without_current_obligation_fingerprint_does_not_suppress_projection_contradiction() -> None:
+    current_work_unit = _executable_work_unit()
+    current_work_unit.pop("work_unit_fingerprint")
+    current_work_unit.pop("action_fingerprint")
+    current_work_unit["currentness_basis"] = {
+        "truth_epoch": "truth::current",
+        "runtime_health_epoch": "runtime::current",
+        "work_unit_id": "medical_prose_write_repair",
+    }
+
+    state = _module().build_paper_recovery_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "medical_prose_write_repair",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "status": "provider_admission_pending",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                }
+            ],
+        }
+    )
+
+    assert state["phase"] == "projection_inconsistent"
+    assert state["conditions"][0]["condition"] == "operator_card_contradicts_auto_runtime_parked"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
