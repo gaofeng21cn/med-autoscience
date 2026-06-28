@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import owner_route as _owner_route
 from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
+from tests.domain_action_request_materializer_cases.test_paper_recovery_owner_callable_cases.test_anti_loop_owner_gate_cases import *  # noqa: F401,F403
 from tests.domain_action_request_materializer_cases.test_paper_recovery_owner_callable_cases.test_execution_dispatch_cases import *  # noqa: F401,F403
 from tests.study_runtime_test_helpers import make_profile, write_study
 

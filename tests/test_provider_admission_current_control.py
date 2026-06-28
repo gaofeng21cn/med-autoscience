@@ -8,6 +8,7 @@ from tests.test_provider_admission_current_control_cases.diagnostic_surface_case
 from tests.test_provider_admission_current_control_cases.owner_gate_route_back_cases import *  # noqa: F403,F401
 from tests.test_provider_admission_current_control_cases.queue_candidate_cases import *  # noqa: F403,F401
 from tests.test_provider_admission_current_control_cases.provider_admission_report_identity_cases import *  # noqa: F403,F401
+from tests.test_provider_admission_current_control_cases.transition_request_consume_only_cases import *  # noqa: F403,F401
 from tests.test_domain_health_diagnostic_cases.shared import dump_json
 
 

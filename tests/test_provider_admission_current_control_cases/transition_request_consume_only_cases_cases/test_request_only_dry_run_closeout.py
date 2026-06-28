@@ -3,12 +3,16 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+import pytest
+
 from tests.provider_admission_current_control_helpers import (
     provider_candidate as _provider_candidate,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
     current_control_provider_admission_candidates,
 )
+
+pytestmark = pytest.mark.contract
 
 
 def test_dry_run_materialized_transition_request_waits_for_opl_readback(

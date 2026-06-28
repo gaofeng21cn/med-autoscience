@@ -190,7 +190,9 @@ def _assert_attempt_ledger_authority_boundary(boundary: dict[str, object]) -> No
 
 
 from tests.test_runtime_health_kernel_cases.projection_reconcile import *  # noqa: F401,F403
+from tests.test_runtime_health_kernel_cases.test_explicit_resume_cases import *  # noqa: F401,F403
 from tests.test_runtime_health_kernel_cases.test_new_run_grace_cases import *  # noqa: F401,F403
+from tests.test_runtime_health_kernel_cases.test_reconcile_and_activity_timeout_cases import *  # noqa: F401,F403
 
 
 def test_runtime_health_kernel_no_longer_exposes_local_event_append_api() -> None:

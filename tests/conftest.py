@@ -15,8 +15,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 NESTED_CASE_COLLECTION_IGNORE_GLOBS = (
     "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
+    "domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_*.py",
+    "test_cli_cases/ai_reviewer_publication_eval_command_cases/test_*.py",
     "test_cli_cases/owner_route_handoff_command_cases/test_*.py",
     "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
+    "test_provider_admission_current_control_cases/*_cases_cases/test_*.py",
 )
 
 collect_ignore_glob = list(NESTED_CASE_COLLECTION_IGNORE_GLOBS)
