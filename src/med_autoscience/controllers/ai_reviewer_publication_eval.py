@@ -965,6 +965,17 @@ def materialize_ai_reviewer_publication_eval_record(
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
 
+    guard = plan_ai_reviewer_publication_eval_record_materialization(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        entry_mode=entry_mode,
+        source=source,
+        record=record,
+    )
+    if _optional_text(guard.get("status")) == "blocked":
+        return guard
+
     status_payload = _record_only_status_payload(
         profile=profile,
         study_id=study_id,
