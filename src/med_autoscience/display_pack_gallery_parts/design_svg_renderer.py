@@ -20,8 +20,8 @@ from med_autoscience.display_pack_gallery_parts.svg_primitives import (
 
 CANVAS_WIDTH = 1800
 CANVAS_HEIGHT = 1000
-GA_LAYOUT_STYLE = "reference_guided_single_canvas"
-GA_RENDERER_SOURCE = "mas_reference_guided_svg_preview.v2"
+GA_LAYOUT_STYLE = "reference_guided_flow"
+GA_RENDERER_SOURCE = "mas_reference_guided_svg_preview.v3"
 
 
 def render_submission_graphical_abstract_gallery_preview(
@@ -40,8 +40,8 @@ def render_submission_graphical_abstract_gallery_preview(
     )
     panels = [dict(item) for item in list(shell_payload.get("panels") or [])[:3]]
     footer_pills = [dict(item) for item in list(shell_payload.get("footer_pills") or [])]
-    title = str(shell_payload.get("title") or "Question to claim-ready figure").strip()
-    subtitle = str(shell_payload.get("caption") or "Brief-first, reference-guided, critic-gated graphical abstract workflow.").strip()
+    title = str(shell_payload.get("title") or "Submission graphical abstract").strip()
+    subtitle = str(shell_payload.get("caption") or "Reference-guided flow from source brief to review-ready candidate.").strip()
 
     layout_boxes: list[dict[str, Any]] = []
     guide_boxes: list[dict[str, Any]] = []
@@ -130,30 +130,16 @@ def _submission_colors(*, palette: dict[str, Any], style_roles: dict[str, Any]) 
 
 
 def _append_background(parts: list[str], *, width: int, height: int, colors: dict[str, str]) -> None:
-    append_rect(
-        parts,
-        {"x0": width * 0.035, "y0": height * 0.090, "w": width * 0.930, "h": height * 0.790},
-        fill=colors["paper"],
-        stroke=colors["grid"],
-        stroke_width=1.5,
-        radius=34,
-    )
-    append_rect(
-        parts,
-        {"x0": width * 0.070, "y0": height * 0.350, "w": width * 0.820, "h": height * 0.250},
-        fill=colors["ink_soft"],
-        stroke="none",
-        stroke_width=0,
-        radius=125,
-    )
+    band = {"x0": width * 0.070, "y0": height * 0.355, "w": width * 0.860, "h": height * 0.235}
+    append_rect(parts, band, fill=colors["ink_soft"], stroke="none", stroke_width=0, radius=band["h"] / 2.0)
     append_line(
         parts,
-        x1=width * 0.130,
+        x1=width * 0.120,
         y1=height * 0.475,
-        x2=width * 0.850,
+        x2=width * 0.880,
         y2=height * 0.475,
         color=colors["grid"],
-        stroke_width=7,
+        stroke_width=8,
     )
 
 
@@ -171,10 +157,10 @@ def _append_header(
         parts,
         layout_boxes,
         text=title,
-        x=width * 0.070,
-        y=height * 0.152,
-        max_width=width * 0.560,
-        font_size=48,
+        x=width * 0.058,
+        y=height * 0.088,
+        max_width=width * 0.680,
+        font_size=46,
         font_weight="700",
         color=colors["text"],
         box_id="title",
@@ -187,54 +173,42 @@ def _append_header(
         parts,
         layout_boxes,
         text=subtitle,
-        x=width * 0.072,
-        y=height * 0.205,
-        max_width=width * 0.560,
-        font_size=21,
+        x=width * 0.060,
+        y=height * 0.138,
+        max_width=width * 0.660,
+        font_size=20,
         font_weight="400",
         color=colors["muted"],
         box_id="subtitle",
         box_type="subtitle",
         width=width,
         height=height,
-        max_lines=2,
-    )
-    append_badge(
-        parts,
-        layout_boxes,
-        label="GA",
-        box={"x0": width * 0.790, "y0": height * 0.122, "w": width * 0.055, "h": height * 0.050},
-        fill=colors["neutral"],
-        text_color="#FFFFFF",
-        width=width,
-        height=height,
-        box_id="surface_badge",
-        box_type="surface_badge",
+        max_lines=1,
     )
     append_text(
         parts,
         layout_boxes,
-        text="single canvas - brief first - refs only",
-        x=width * 0.855,
-        y=height * 0.158,
-        max_width=width * 0.115,
-        font_size=17,
+        text="Reference-guided GA",
+        x=width * 0.762,
+        y=height * 0.090,
+        max_width=width * 0.190,
+        font_size=20,
         font_weight="700",
         color=colors["secondary"],
         box_id="surface_label",
         box_type="surface_label",
         width=width,
         height=height,
-        max_lines=2,
+        max_lines=1,
     )
 
 
 def _panel_boxes(*, width: int, height: int, count: int) -> list[dict[str, float]]:
-    margin_x = width * 0.255
+    margin_x = width * 0.060
     gap = width * 0.055
-    top = height * 0.285
-    panel_height = height * 0.455
-    panel_width = (width - margin_x - width * 0.070 - gap * float(max(0, count - 1))) / float(count)
+    top = height * 0.205
+    panel_height = height * 0.555
+    panel_width = (width - margin_x * 2.0 - gap * float(max(0, count - 1))) / float(count)
     return [
         {
             "x0": margin_x + index * (panel_width + gap),
@@ -249,15 +223,16 @@ def _panel_boxes(*, width: int, height: int, count: int) -> list[dict[str, float
 def _footer_boxes(*, width: int, height: int, pills: list[dict[str, Any]]) -> list[dict[str, float]]:
     if not pills:
         return []
-    x0 = width * 0.285
-    gap = width * 0.020
-    pill_width = (width * 0.600 - gap * float(len(pills) - 1)) / float(len(pills))
+    margin_x = width * 0.060
+    gap = width * 0.030
+    pill_width = (width - margin_x * 2.0 - gap * float(len(pills) - 1)) / float(len(pills))
+    y0 = height * 0.835
     return [
         {
-            "x0": x0 + index * (pill_width + gap),
-            "y0": height * 0.754,
+            "x0": margin_x + index * (pill_width + gap),
+            "y0": y0,
             "w": pill_width,
-            "h": height * 0.060,
+            "h": height * 0.055,
         }
         for index in range(len(pills))
     ]
@@ -309,21 +284,12 @@ def _append_workflow_node(
     width: int,
     height: int,
 ) -> None:
-    append_circle(
-        parts,
-        cx=panel_box["x0"] + panel_box["w"] * 0.500,
-        cy=panel_box["y0"] + panel_box["h"] * 0.320,
-        r=panel_box["w"] * 0.365,
-        fill=soft,
-        stroke=accent,
-        stroke_width=3.2,
-    )
-    layout_boxes.append(normalized_box(panel_box, width=width, height=height, box_id=f"panel_circle_{panel_id}", box_type="panel_circle"))
+    append_rect(parts, panel_box, fill=colors["paper"], stroke=accent, stroke_width=3, radius=28)
     append_badge(
         parts,
         layout_boxes,
         label=str(panel.get("panel_label") or chr(65 + index)),
-        box=relative_box(panel_box, 0.055, 0.038, 0.205, 0.175),
+        box=relative_box(panel_box, 0.050, 0.060, 0.158, 0.165),
         fill=accent,
         text_color="#FFFFFF",
         width=width,
@@ -331,17 +297,18 @@ def _append_workflow_node(
         box_id=f"panel_label_{panel_id}",
         box_type="panel_label",
     )
-    glyph_box = relative_box(panel_box, 0.160, 0.070, 0.840, 0.555)
+    glyph_box = relative_box(panel_box, 0.230, 0.115, 0.770, 0.445)
+    append_rect(parts, glyph_box, fill=soft, stroke=accent, stroke_width=2.5, radius=24)
     _append_glyph(parts, glyph_box, role=str(panel.get("visual_role") or ""), accent=accent, colors=colors)
     layout_boxes.append(normalized_box(glyph_box, width=width, height=height, box_id=f"visual_glyph_{panel_id}", box_type="visual_glyph"))
     append_text(
         parts,
         layout_boxes,
         text=str(panel.get("title") or ""),
-        x=panel_box["x0"] + panel_box["w"] * 0.035,
-        y=panel_box["y0"] + panel_box["h"] * 0.730,
-        max_width=panel_box["w"] * 0.930,
-        font_size=27,
+        x=panel_box["x0"] + panel_box["w"] * 0.105,
+        y=panel_box["y0"] + panel_box["h"] * 0.535,
+        max_width=panel_box["w"] * 0.790,
+        font_size=28,
         font_weight="700",
         color=colors["text"],
         box_id=f"panel_title_{panel_id}",
@@ -354,10 +321,10 @@ def _append_workflow_node(
         parts,
         layout_boxes,
         text=str(panel.get("subtitle") or ""),
-        x=panel_box["x0"] + panel_box["w"] * 0.035,
-        y=panel_box["y0"] + panel_box["h"] * 0.805,
-        max_width=panel_box["w"] * 0.930,
-        font_size=17,
+        x=panel_box["x0"] + panel_box["w"] * 0.105,
+        y=panel_box["y0"] + panel_box["h"] * 0.610,
+        max_width=panel_box["w"] * 0.790,
+        font_size=18,
         font_weight="400",
         color=colors["muted"],
         box_id=f"panel_subtitle_{panel_id}",
@@ -366,10 +333,51 @@ def _append_workflow_node(
         height=height,
         max_lines=2,
     )
-    _append_micro_callout(parts, layout_boxes, panel=panel, panel_box=panel_box, panel_id=panel_id, accent=accent, colors=colors, width=width, height=height)
+    _append_evidence_cue(parts, layout_boxes, panel=panel, panel_box=panel_box, panel_id=panel_id, accent=accent, colors=colors, width=width, height=height)
+    _append_card(parts, layout_boxes, panel=panel, panel_box=panel_box, panel_id=panel_id, accent=accent, colors=colors, width=width, height=height)
 
 
-def _append_micro_callout(
+def _append_evidence_cue(
+    parts: list[str],
+    layout_boxes: list[dict[str, Any]],
+    *,
+    panel: dict[str, Any],
+    panel_box: dict[str, float],
+    panel_id: str,
+    accent: str,
+    colors: dict[str, str],
+    width: int,
+    height: int,
+) -> None:
+    cue_box = relative_box(panel_box, 0.105, 0.700, 0.895, 0.775)
+    append_rect(parts, cue_box, fill=colors["ink_soft"], stroke=colors["grid"], stroke_width=1.5, radius=cue_box["h"] / 2.0)
+    append_circle(
+        parts,
+        cx=cue_box["x0"] + cue_box["h"] * 0.50,
+        cy=cue_box["y0"] + cue_box["h"] * 0.50,
+        r=cue_box["h"] * 0.20,
+        fill=accent,
+    )
+    cue = str(panel.get("evidence_cue") or panel.get("caption") or "Evidence refs locked").strip()
+    append_text(
+        parts,
+        layout_boxes,
+        text=cue,
+        x=cue_box["x0"] + cue_box["h"] * 0.86,
+        y=cue_box["y0"] + cue_box["h"] * 0.64,
+        max_width=cue_box["w"] - cue_box["h"] * 1.04,
+        font_size=15,
+        font_weight="700",
+        color=colors["text"],
+        box_id=f"evidence_cue_{panel_id}",
+        box_type="evidence_cue",
+        width=width,
+        height=height,
+        max_lines=1,
+    )
+
+
+def _append_card(
     parts: list[str],
     layout_boxes: list[dict[str, Any]],
     *,
@@ -382,17 +390,33 @@ def _append_micro_callout(
     height: int,
 ) -> None:
     card = _first_card(panel)
-    callout = relative_box(panel_box, 0.045, 0.875, 0.955, 0.990)
-    append_rect(parts, callout, fill="#FFFFFF", stroke=colors["grid"], stroke_width=1.6, radius=16)
-    layout_boxes.append(normalized_box(callout, width=width, height=height, box_id=f"card_{panel_id}", box_type="card_box"))
+    card_box = relative_box(panel_box, 0.105, 0.795, 0.895, 0.955)
+    append_rect(parts, card_box, fill="#FFFFFF", stroke=colors["grid"], stroke_width=2, radius=18)
+    layout_boxes.append(normalized_box(card_box, width=width, height=height, box_id=f"card_{panel_id}", box_type="card_box"))
     append_text(
         parts,
         layout_boxes,
-        text=str(card.get("value") or card.get("title") or ""),
-        x=callout["x0"] + callout["w"] * 0.070,
-        y=callout["y0"] + callout["h"] * 0.500,
-        max_width=callout["w"] * 0.310,
-        font_size=24,
+        text=str(card.get("title") or ""),
+        x=card_box["x0"] + card_box["w"] * 0.060,
+        y=card_box["y0"] + card_box["h"] * 0.420,
+        max_width=card_box["w"] * 0.370,
+        font_size=16,
+        font_weight="400",
+        color=colors["muted"],
+        box_id=f"card_title_{panel_id}",
+        box_type="card_title",
+        width=width,
+        height=height,
+        max_lines=1,
+    )
+    append_text(
+        parts,
+        layout_boxes,
+        text=str(card.get("value") or ""),
+        x=card_box["x0"] + card_box["w"] * 0.500,
+        y=card_box["y0"] + card_box["h"] * 0.440,
+        max_width=card_box["w"] * 0.390,
+        font_size=28,
         font_weight="700",
         color=accent,
         box_id=f"card_value_{panel_id}",
@@ -404,18 +428,18 @@ def _append_micro_callout(
     append_text(
         parts,
         layout_boxes,
-        text=str(panel.get("evidence_cue") or card.get("detail") or "refs locked"),
-        x=callout["x0"] + callout["w"] * 0.430,
-        y=callout["y0"] + callout["h"] * 0.440,
-        max_width=callout["w"] * 0.500,
-        font_size=15,
-        font_weight="700",
-        color=colors["text"],
-        box_id=f"evidence_cue_{panel_id}",
-        box_type="evidence_cue",
+        text=str(card.get("detail") or ""),
+        x=card_box["x0"] + card_box["w"] * 0.500,
+        y=card_box["y0"] + card_box["h"] * 0.785,
+        max_width=card_box["w"] * 0.390,
+        font_size=14,
+        font_weight="400",
+        color=colors["muted"],
+        box_id=f"card_detail_{panel_id}",
+        box_type="card_detail",
         width=width,
         height=height,
-        max_lines=2,
+        max_lines=1,
     )
 
 
@@ -428,18 +452,18 @@ def _append_quality_rail(
     width: int,
     height: int,
 ) -> None:
-    label_box = {"x0": width * 0.070, "y0": height * 0.758, "w": width * 0.170, "h": height * 0.050}
-    append_rect(parts, label_box, fill=colors["paper"], stroke=colors["grid"], stroke_width=1.5, radius=14)
+    band = {"x0": width * 0.050, "y0": height * 0.803, "w": width * 0.900, "h": height * 0.115}
+    append_rect(parts, band, fill=colors["light"], stroke=colors["grid"], stroke_width=2, radius=22)
     append_text(
         parts,
         layout_boxes,
-        text="Candidate quality gate",
-        x=label_box["x0"] + label_box["w"] * 0.075,
-        y=label_box["y0"] + label_box["h"] * 0.630,
-        max_width=label_box["w"] * 0.850,
+        text="Quality band",
+        x=band["x0"] + band["w"] * 0.025,
+        y=band["y0"] + band["h"] * 0.390,
+        max_width=band["w"] * 0.145,
         font_size=18,
         font_weight="700",
-        color=colors["muted"],
+        color=colors["text"],
         box_id="quality_band_label",
         box_type="quality_band_label",
         width=width,
@@ -452,16 +476,16 @@ def _append_quality_rail(
         style_role = str(pill.get("style_role") or "neutral").strip().lower()
         fill = colors.get(f"{style_role}_soft", colors["neutral_soft"])
         stroke = colors.get(style_role, colors["neutral"])
-        append_rect(parts, pill_box, fill=fill, stroke=stroke, stroke_width=1.7, radius=18)
+        append_rect(parts, pill_box, fill=fill, stroke=stroke, stroke_width=2, radius=18)
         layout_boxes.append(normalized_box(pill_box, width=width, height=height, box_id=f"footer_pill_{pill_id}", box_type="footer_pill"))
         append_text(
             parts,
             layout_boxes,
             text=str(pill.get("label") or ""),
-            x=pill_box["x0"] + pill_box["w"] * 0.080,
+            x=pill_box["x0"] + pill_box["w"] * 0.070,
             y=pill_box["y0"] + pill_box["h"] * 0.620,
-            max_width=pill_box["w"] * 0.840,
-            font_size=16,
+            max_width=pill_box["w"] * 0.850,
+            font_size=17,
             font_weight="700",
             color=colors["text"],
             box_id=f"footer_pill_text_{pill_id}",
@@ -594,11 +618,11 @@ def _write_layout(
                     "source_renderer": GA_RENDERER_SOURCE,
                     "canvas_size_px": [CANVAS_WIDTH, CANVAS_HEIGHT],
                     "design_rules": [
-                        "single_canvas",
+                        "three_panel_full_width",
                         "left_to_right_reading_order",
-                        "minimal_text",
-                        "large_online_readable_labels",
-                        "soft_semantic_palette",
+                        "stable_panel_boundaries",
+                        "evidence_cue_per_panel",
+                        "separate_quality_band",
                     ],
                 },
                 "render_context": render_context,

@@ -3,78 +3,87 @@
 <marker id="arrowhead" markerWidth="12" markerHeight="9" refX="10" refY="4.5" orient="auto"><path d="M0,0 L12,4.5 L0,9 Z" fill="#13293D"/></marker>
 </defs>
 <rect width="1800" height="1000" fill="#FFFFFF"/>
-<rect x="63.00" y="90.00" width="1674.00" height="790.00" rx="34.00" fill="#FBFDFE" stroke="#E6EDF2" stroke-width="1.50"/>
-<rect x="126.00" y="350.00" width="1476.00" height="250.00" rx="125.00" fill="#EEF5F7" stroke="none" stroke-width="0.00"/>
-<line x1="234.00" y1="475.00" x2="1530.00" y2="475.00" stroke="#E6EDF2" stroke-width="7.00" stroke-linecap="round"/>
-<text x="126.00" y="152.00" font-family="Arial, Helvetica, sans-serif" font-size="48.00" font-weight="700" fill="#13293D">Cohort signal to clinical risk action</text>
-<text x="129.60" y="205.00" font-family="Arial, Helvetica, sans-serif" font-size="21.00" font-weight="400" fill="#64748B">Synthetic medical graphical abstract preview with evidence refs and owner review gates.</text>
-<rect x="1422.00" y="122.00" width="99.00" height="50.00" rx="25.00" fill="#13293D" stroke="#13293D" stroke-width="0.00"/>
-<text x="1471.50" y="155.00" font-family="Arial, Helvetica, sans-serif" font-size="24.00" font-weight="700" fill="#FFFFFF" text-anchor="middle">GA</text>
-<text x="1539.00" y="158.00" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="700" fill="#8B3A3A">single canvas - brief</text>
-<text x="1539.00" y="179.08" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="700" fill="#8B3A3A">first - refs only</text>
-<circle cx="628.50" cy="430.60" r="123.73" fill="#DCEBF0" stroke="#245A6B" stroke-width="3.20"/>
-<rect x="477.64" y="302.29" width="50.85" height="62.33" rx="31.17" fill="#245A6B" stroke="#245A6B" stroke-width="0.00"/>
-<text x="503.07" y="343.43" font-family="Arial, Helvetica, sans-serif" font-size="29.92" font-weight="700" fill="#FFFFFF" text-anchor="middle">A</text>
-<circle cx="582.40" cy="400.71" r="11.03" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="582.40" y1="415.05" x2="582.40" y2="440.43" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="619.28" cy="385.26" r="11.03" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="619.28" y1="399.60" x2="619.28" y2="424.98" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="656.16" cy="400.71" r="11.03" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="656.16" y1="415.05" x2="656.16" y2="440.43" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="600.84" cy="444.84" r="11.03" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="600.84" y1="459.19" x2="600.84" y2="484.56" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="642.33" cy="449.25" r="11.03" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="642.33" y1="463.60" x2="642.33" y2="488.98" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<text x="470.87" y="617.15" font-family="Arial, Helvetica, sans-serif" font-size="27.00" font-weight="700" fill="#13293D">Study cohort</text>
-<text x="470.87" y="651.28" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="400" fill="#64748B">Registry records mapped to</text>
-<text x="470.87" y="672.36" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="400" fill="#64748B">auditable outcomes</text>
-<rect x="474.25" y="683.12" width="308.49" height="52.32" rx="16.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="1.60"/>
-<text x="495.85" y="709.29" font-family="Arial, Helvetica, sans-serif" font-size="24.00" font-weight="700" fill="#245A6B">15,120</text>
-<text x="606.91" y="706.15" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">Cohort refs locked</text>
-<circle cx="1066.50" cy="430.60" r="123.73" fill="#DCE8F4" stroke="#2166AC" stroke-width="3.20"/>
-<rect x="915.64" y="302.29" width="50.85" height="62.33" rx="31.17" fill="#2166AC" stroke="#2166AC" stroke-width="0.00"/>
-<text x="941.07" y="343.43" font-family="Arial, Helvetica, sans-serif" font-size="29.92" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
-<polyline points="992.73,466.91 1043.45,436.01 1089.55,400.71 1140.27,372.02" fill="none" stroke="#2166AC" stroke-width="5" stroke-linecap="round"/>
-<rect x="996.19" y="462.50" width="25.36" height="23.17" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
-<text x="1008.87" y="477.79" font-family="Arial, Helvetica, sans-serif" font-size="12.14" font-weight="700" fill="#2166AC" text-anchor="middle">X</text>
-<rect x="1053.82" y="462.50" width="25.36" height="23.17" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
-<text x="1066.50" y="477.79" font-family="Arial, Helvetica, sans-serif" font-size="12.14" font-weight="700" fill="#2166AC" text-anchor="middle">f</text>
-<rect x="1111.45" y="462.50" width="25.36" height="23.17" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
-<text x="1124.13" y="477.79" font-family="Arial, Helvetica, sans-serif" font-size="12.14" font-weight="700" fill="#2166AC" text-anchor="middle">Y</text>
-<text x="908.87" y="617.15" font-family="Arial, Helvetica, sans-serif" font-size="27.00" font-weight="700" fill="#13293D">Risk signal</text>
-<text x="908.87" y="651.28" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="400" fill="#64748B">Model separates low- and</text>
-<text x="908.87" y="672.36" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="400" fill="#64748B">high-risk strata</text>
-<rect x="912.25" y="683.12" width="308.49" height="52.32" rx="16.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="1.60"/>
-<text x="933.85" y="709.29" font-family="Arial, Helvetica, sans-serif" font-size="24.00" font-weight="700" fill="#2166AC">C=0.86</text>
-<text x="1044.91" y="706.15" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">Validation refs</text>
-<text x="1044.91" y="724.75" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">locked</text>
-<circle cx="1504.50" cy="430.60" r="123.73" fill="#F1DADA" stroke="#8B3A3A" stroke-width="3.20"/>
-<rect x="1353.64" y="302.29" width="50.85" height="62.33" rx="31.17" fill="#8B3A3A" stroke="#8B3A3A" stroke-width="0.00"/>
-<text x="1379.07" y="343.43" font-family="Arial, Helvetica, sans-serif" font-size="29.92" font-weight="700" fill="#FFFFFF" text-anchor="middle">C</text>
-<rect x="1423.82" y="449.25" width="57.63" height="32.00" rx="10.00" fill="#FFFFFF" stroke="#64748B" stroke-width="2.00"/>
-<rect x="1527.55" y="449.25" width="57.63" height="32.00" rx="10.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.40"/>
-<text x="1452.63" y="470.37" font-family="Arial, Helvetica, sans-serif" font-size="11.03" font-weight="700" fill="#64748B" text-anchor="middle">Low</text>
-<text x="1556.37" y="470.37" font-family="Arial, Helvetica, sans-serif" font-size="11.03" font-weight="700" fill="#8B3A3A" text-anchor="middle">High</text>
-<line x1="1504.50" y1="360.99" x2="1452.63" y2="448.15" stroke="#64748B" stroke-width="3.00" stroke-linecap="round"/>
-<line x1="1504.50" y1="360.99" x2="1556.37" y2="448.15" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="1504.50" cy="360.99" r="15.45" fill="#8B3A3A" stroke="none" stroke-width="0.00"/>
-<circle cx="1504.50" cy="400.71" r="9.93" fill="#64748B" stroke="none" stroke-width="0.00"/>
-<line x1="1504.50" y1="373.12" x2="1504.50" y2="390.78" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
-<text x="1346.87" y="617.15" font-family="Arial, Helvetica, sans-serif" font-size="27.00" font-weight="700" fill="#13293D">Care action</text>
-<text x="1346.87" y="651.28" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="400" fill="#64748B">High-risk group routed to closer</text>
-<text x="1346.87" y="672.36" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="400" fill="#64748B">follow-up</text>
-<rect x="1350.26" y="683.12" width="308.49" height="52.32" rx="16.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="1.60"/>
-<text x="1371.85" y="709.29" font-family="Arial, Helvetica, sans-serif" font-size="24.00" font-weight="700" fill="#8B3A3A">Review</text>
-<text x="1482.91" y="706.15" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">Owner gate</text>
-<text x="1482.91" y="724.75" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">required</text>
-<line x1="823.20" y1="541.60" x2="871.80" y2="541.60" stroke="#13293D" stroke-width="4.5" stroke-linecap="round" marker-end="url(#arrowhead)"/>
-<line x1="1261.20" y1="541.60" x2="1309.80" y2="541.60" stroke="#13293D" stroke-width="4.5" stroke-linecap="round" marker-end="url(#arrowhead)"/>
-<rect x="126.00" y="758.00" width="306.00" height="50.00" rx="14.00" fill="#FBFDFE" stroke="#E6EDF2" stroke-width="1.50"/>
-<text x="148.95" y="789.50" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="700" fill="#64748B">Candidate quality gate</text>
-<rect x="513.00" y="754.00" width="336.00" height="60.00" rx="18.00" fill="#DCEBF0" stroke="#245A6B" stroke-width="1.70"/>
-<text x="539.88" y="791.20" font-family="Arial, Helvetica, sans-serif" font-size="16.00" font-weight="700" fill="#13293D">Cohort + endpoint</text>
-<rect x="885.00" y="754.00" width="336.00" height="60.00" rx="18.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="1.70"/>
-<text x="911.88" y="791.20" font-family="Arial, Helvetica, sans-serif" font-size="16.00" font-weight="700" fill="#13293D">Signal + validation</text>
-<rect x="1257.00" y="754.00" width="336.00" height="60.00" rx="18.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="1.70"/>
-<text x="1283.88" y="791.20" font-family="Arial, Helvetica, sans-serif" font-size="16.00" font-weight="700" fill="#13293D">Decision + owner gate</text>
+<rect x="126.00" y="355.00" width="1548.00" height="235.00" rx="117.50" fill="#EEF5F7" stroke="none" stroke-width="0.00"/>
+<line x1="216.00" y1="475.00" x2="1584.00" y2="475.00" stroke="#E6EDF2" stroke-width="8.00" stroke-linecap="round"/>
+<text x="104.40" y="88.00" font-family="Arial, Helvetica, sans-serif" font-size="46.00" font-weight="700" fill="#13293D">Cohort signal to clinical risk action</text>
+<text x="108.00" y="138.00" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="400" fill="#64748B">Synthetic medical graphical abstract preview with evidence refs and owner review gates.</text>
+<text x="1371.60" y="90.00" font-family="Arial, Helvetica, sans-serif" font-size="20.00" font-weight="700" fill="#8B3A3A">Reference-guided GA</text>
+<rect x="108.00" y="205.00" width="462.00" height="555.00" rx="28.00" fill="#FBFDFE" stroke="#245A6B" stroke-width="3.00"/>
+<rect x="131.10" y="238.30" width="49.90" height="58.28" rx="29.14" fill="#245A6B" stroke="#245A6B" stroke-width="0.00"/>
+<text x="156.05" y="276.76" font-family="Arial, Helvetica, sans-serif" font-size="27.97" font-weight="700" fill="#FFFFFF" text-anchor="middle">A</text>
+<rect x="214.26" y="268.82" width="249.48" height="183.15" rx="24.00" fill="#DCEBF0" stroke="#245A6B" stroke-width="2.50"/>
+<circle cx="289.10" cy="338.42" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="289.10" y1="350.33" x2="289.10" y2="371.39" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
+<circle cx="329.02" cy="325.60" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="329.02" y1="337.51" x2="329.02" y2="358.57" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
+<circle cx="368.94" cy="338.42" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="368.94" y1="350.33" x2="368.94" y2="371.39" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
+<circle cx="309.06" cy="375.05" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="309.06" y1="386.96" x2="309.06" y2="408.02" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
+<circle cx="353.97" cy="378.71" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="353.97" y1="390.62" x2="353.97" y2="411.68" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
+<text x="156.51" y="501.93" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#13293D">Study cohort</text>
+<text x="156.51" y="543.55" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">Registry records mapped to auditable</text>
+<text x="156.51" y="565.87" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">outcomes</text>
+<rect x="156.51" y="593.50" width="364.98" height="41.63" rx="20.81" fill="#EEF5F7" stroke="#E6EDF2" stroke-width="1.50"/>
+<circle cx="177.32" cy="614.31" r="8.33" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<text x="192.31" y="620.14" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">Cohort refs locked</text>
+<rect x="156.51" y="646.23" width="364.98" height="88.80" rx="18.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="178.41" y="683.52" font-family="Arial, Helvetica, sans-serif" font-size="16.00" font-weight="400" fill="#64748B">Analytic set</text>
+<text x="339.00" y="685.30" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#245A6B">15,120</text>
+<text x="339.00" y="715.93" font-family="Arial, Helvetica, sans-serif" font-size="14.00" font-weight="400" fill="#64748B">patients</text>
+<rect x="669.00" y="205.00" width="462.00" height="555.00" rx="28.00" fill="#FBFDFE" stroke="#2166AC" stroke-width="3.00"/>
+<rect x="692.10" y="238.30" width="49.90" height="58.28" rx="29.14" fill="#2166AC" stroke="#2166AC" stroke-width="0.00"/>
+<text x="717.05" y="276.76" font-family="Arial, Helvetica, sans-serif" font-size="27.97" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+<rect x="775.26" y="268.82" width="249.48" height="183.15" rx="24.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.50"/>
+<polyline points="820.17,393.37 875.05,367.73 924.95,338.42 979.83,314.61" fill="none" stroke="#2166AC" stroke-width="5" stroke-linecap="round"/>
+<rect x="823.91" y="389.70" width="27.44" height="19.23" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
+<text x="837.63" y="402.40" font-family="Arial, Helvetica, sans-serif" font-size="10.07" font-weight="700" fill="#2166AC" text-anchor="middle">X</text>
+<rect x="886.28" y="389.70" width="27.44" height="19.23" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
+<text x="900.00" y="402.40" font-family="Arial, Helvetica, sans-serif" font-size="10.07" font-weight="700" fill="#2166AC" text-anchor="middle">f</text>
+<rect x="948.65" y="389.70" width="27.44" height="19.23" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
+<text x="962.37" y="402.40" font-family="Arial, Helvetica, sans-serif" font-size="10.07" font-weight="700" fill="#2166AC" text-anchor="middle">Y</text>
+<text x="717.51" y="501.93" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#13293D">Risk signal</text>
+<text x="717.51" y="543.55" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">Model separates low- and high-risk</text>
+<text x="717.51" y="565.87" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">strata</text>
+<rect x="717.51" y="593.50" width="364.98" height="41.63" rx="20.81" fill="#EEF5F7" stroke="#E6EDF2" stroke-width="1.50"/>
+<circle cx="738.32" cy="614.31" r="8.33" fill="#2166AC" stroke="none" stroke-width="0.00"/>
+<text x="753.31" y="620.14" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">Validation refs locked</text>
+<rect x="717.51" y="646.23" width="364.98" height="88.80" rx="18.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="739.41" y="683.52" font-family="Arial, Helvetica, sans-serif" font-size="16.00" font-weight="400" fill="#64748B">Validation</text>
+<text x="900.00" y="685.30" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#2166AC">C=0.86</text>
+<text x="900.00" y="715.93" font-family="Arial, Helvetica, sans-serif" font-size="14.00" font-weight="400" fill="#64748B">temporal holdout</text>
+<rect x="1230.00" y="205.00" width="462.00" height="555.00" rx="28.00" fill="#FBFDFE" stroke="#8B3A3A" stroke-width="3.00"/>
+<rect x="1253.10" y="238.30" width="49.90" height="58.28" rx="29.14" fill="#8B3A3A" stroke="#8B3A3A" stroke-width="0.00"/>
+<text x="1278.05" y="276.76" font-family="Arial, Helvetica, sans-serif" font-size="27.97" font-weight="700" fill="#FFFFFF" text-anchor="middle">C</text>
+<rect x="1336.26" y="268.82" width="249.48" height="183.15" rx="24.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="2.50"/>
+<rect x="1373.68" y="378.71" width="62.37" height="26.56" rx="10.00" fill="#FFFFFF" stroke="#64748B" stroke-width="2.00"/>
+<rect x="1485.95" y="378.71" width="62.37" height="26.56" rx="10.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.40"/>
+<text x="1404.87" y="396.24" font-family="Arial, Helvetica, sans-serif" font-size="9.16" font-weight="700" fill="#64748B" text-anchor="middle">Low</text>
+<text x="1517.13" y="396.24" font-family="Arial, Helvetica, sans-serif" font-size="9.16" font-weight="700" fill="#8B3A3A" text-anchor="middle">High</text>
+<line x1="1461.00" y1="305.45" x2="1404.87" y2="377.80" stroke="#64748B" stroke-width="3.00" stroke-linecap="round"/>
+<line x1="1461.00" y1="305.45" x2="1517.13" y2="377.80" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
+<circle cx="1461.00" cy="305.45" r="12.82" fill="#8B3A3A" stroke="none" stroke-width="0.00"/>
+<circle cx="1461.00" cy="338.42" r="8.24" fill="#64748B" stroke="none" stroke-width="0.00"/>
+<line x1="1461.00" y1="315.53" x2="1461.00" y2="330.18" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
+<text x="1278.51" y="501.93" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#13293D">Care action</text>
+<text x="1278.51" y="543.55" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">High-risk group routed to closer</text>
+<text x="1278.51" y="565.87" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">follow-up</text>
+<rect x="1278.51" y="593.50" width="364.98" height="41.63" rx="20.81" fill="#EEF5F7" stroke="#E6EDF2" stroke-width="1.50"/>
+<circle cx="1299.32" cy="614.31" r="8.33" fill="#8B3A3A" stroke="none" stroke-width="0.00"/>
+<text x="1314.31" y="620.14" font-family="Arial, Helvetica, sans-serif" font-size="15.00" font-weight="700" fill="#13293D">Owner gate required</text>
+<rect x="1278.51" y="646.23" width="364.98" height="88.80" rx="18.00" fill="#FFFFFF" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="1300.41" y="683.52" font-family="Arial, Helvetica, sans-serif" font-size="16.00" font-weight="400" fill="#64748B">Owner gate</text>
+<text x="1461.00" y="685.30" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#8B3A3A">Review</text>
+<text x="1461.00" y="715.93" font-family="Arial, Helvetica, sans-serif" font-size="14.00" font-weight="400" fill="#64748B">refs only</text>
+<line x1="595.20" y1="513.60" x2="643.80" y2="513.60" stroke="#13293D" stroke-width="4.5" stroke-linecap="round" marker-end="url(#arrowhead)"/>
+<line x1="1156.20" y1="513.60" x2="1204.80" y2="513.60" stroke="#13293D" stroke-width="4.5" stroke-linecap="round" marker-end="url(#arrowhead)"/>
+<rect x="90.00" y="803.00" width="1620.00" height="115.00" rx="22.00" fill="#EEF4F7" stroke="#E6EDF2" stroke-width="2.00"/>
+<text x="130.50" y="847.85" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="700" fill="#13293D">Quality band</text>
+<rect x="108.00" y="835.00" width="492.00" height="55.00" rx="18.00" fill="#DCEBF0" stroke="#245A6B" stroke-width="2.00"/>
+<text x="142.44" y="869.10" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="700" fill="#13293D">Cohort + endpoint</text>
+<rect x="654.00" y="835.00" width="492.00" height="55.00" rx="18.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.00"/>
+<text x="688.44" y="869.10" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="700" fill="#13293D">Signal + validation</text>
+<rect x="1200.00" y="835.00" width="492.00" height="55.00" rx="18.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="2.00"/>
+<text x="1234.44" y="869.10" font-family="Arial, Helvetica, sans-serif" font-size="17.00" font-weight="700" fill="#13293D">Decision + owner gate</text>
 </svg>

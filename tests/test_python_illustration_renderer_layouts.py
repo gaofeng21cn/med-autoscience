@@ -173,27 +173,27 @@ def test_submission_graphical_abstract_reference_guided_flow_uses_wide_canvas(tm
     evidence_cues = [box for box in sidecar["layout_boxes"] if box["box_type"] == "evidence_cue"]
     arrows = [box for box in sidecar["guide_boxes"] if box["box_type"] == "arrow_connector"]
 
-    assert sidecar["metrics"]["layout_style"] == "reference_guided_single_canvas"
+    assert sidecar["metrics"]["layout_style"] == "reference_guided_flow"
     assert sidecar["metrics"]["panel_count"] == 3
     assert sidecar["metrics"]["visual_roles"] == ["population", "model_signal", "clinical_use"]
-    assert sidecar["metrics"]["source_renderer"] == "mas_reference_guided_svg_preview.v2"
+    assert sidecar["metrics"]["source_renderer"] == "mas_reference_guided_svg_preview.v3"
     assert sidecar["metrics"]["canvas_size_px"] == [1800, 1000]
     assert set(sidecar["metrics"]["design_rules"]) >= {
-        "single_canvas",
+        "three_panel_full_width",
         "left_to_right_reading_order",
-        "minimal_text",
-        "large_online_readable_labels",
-        "soft_semantic_palette",
+        "stable_panel_boundaries",
+        "evidence_cue_per_panel",
+        "separate_quality_band",
     }
     assert _image_size(output_png_path) == (1800, 1000)
     assert len(panel_boxes) == 3
     assert len(visual_glyphs) == 3
     assert len(evidence_cues) == 3
     assert len(arrows) == 2
-    assert max(box["x1"] for box in panel_boxes) > 0.90
-    assert min(box["x0"] for box in panel_boxes) >= 0.24
-    assert min(box["y0"] for box in panel_boxes) > 0.25
-    assert max(box["y1"] for box in panel_boxes) < 0.75
+    assert max(box["x1"] for box in panel_boxes) > 0.92
+    assert min(box["x0"] for box in panel_boxes) <= 0.06
+    assert min(box["y0"] for box in panel_boxes) > 0.18
+    assert max(box["y1"] for box in panel_boxes) < 0.77
 
     qc_result = run_display_layout_qc(
         qc_profile="submission_graphical_abstract",
