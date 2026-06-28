@@ -162,6 +162,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert [item["boundary_id"] for item in payload["unified_enhancement_program"]["module_boundary_audit"]["boundaries"]] == [
         "study_truth",
         "runtime_authority_refs",
+        "opl_progress_spine",
         "quality_truth",
         "delivery_truth",
         "maintainability_truth",
@@ -259,8 +260,11 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
             ),
         },
         {
-            "surface_kind": "domain_health_diagnostic",
-            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+            "surface_kind": "paper_mission_readback",
+            "command": (
+                "uv run python -m med_autoscience.cli paper-mission inspect "
+                "--profile <profile> --study-id <study_id> --format json"
+            ),
         },
         {
             "surface_kind": "opl_runtime_owner_handoff",
@@ -494,6 +498,18 @@ def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
     assert captured["recommended_step_id"] == "mas_domain_refs_boundary"
     assert len(captured["clearance_targets"]) == 3
     assert len(captured["proof_surfaces"]) == 5
+    assert captured["clearance_loop"][2]["surface_kind"] == "paper_mission_readback_refresh"
+    assert captured["clearance_loop"][2]["command"] == (
+        "uv run python -m med_autoscience.cli paper-mission inspect "
+        "--profile <profile> --study-id <study_id> --format json"
+    )
+    assert captured["proof_surfaces"][2] == {
+        "surface_kind": "paper_mission_readback",
+        "command": (
+            "uv run python -m med_autoscience.cli paper-mission inspect "
+            "--profile <profile> --study-id <study_id> --format json"
+        ),
+    }
 
 
 def test_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:
