@@ -139,7 +139,7 @@ def test_ai_reviewer_payload_guard_refreshes_target_metadata_before_record_paylo
         / "paper"
         / "medical_prose_review.json"
     )
-    old_prose_review = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    old_prose_review = study_root / "paper" / "review" / "legacy_medical_prose_review.json"
     current_record_ref = str(
         (
             study_root
