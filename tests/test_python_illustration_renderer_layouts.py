@@ -176,14 +176,14 @@ def test_submission_graphical_abstract_reference_guided_flow_uses_wide_canvas(tm
     assert sidecar["metrics"]["layout_style"] == "reference_guided_flow"
     assert sidecar["metrics"]["panel_count"] == 3
     assert sidecar["metrics"]["visual_roles"] == ["population", "model_signal", "clinical_use"]
-    assert sidecar["metrics"]["source_renderer"] == "mas_reference_guided_svg_preview.v5"
+    assert sidecar["metrics"]["source_renderer"] == "mas_reference_guided_svg_preview.v6"
     assert sidecar["metrics"]["canvas_size_px"] == [1800, 1000]
     assert set(sidecar["metrics"]["design_rules"]) >= {
         "three_panel_full_width",
         "left_to_right_reading_order",
         "stable_panel_boundaries",
         "semantic_panel_glyphs",
-        "semantic_panel_microflows",
+        "text_first_semantic_callouts",
         "evidence_cue_per_panel",
         "separate_quality_band",
     }
