@@ -522,11 +522,10 @@ def _transaction_idempotency_matches_ref(
 def _canonical_followthrough_identity(value: str | None) -> str | None:
     if value is None:
         return None
-    marker = "::followthrough"
-    index = value.find(marker)
-    if index < 0:
+    duplicated = "::followthrough::followthrough"
+    if duplicated not in value:
         return value
-    return value[:index]
+    return value.replace(duplicated, "::followthrough", 1)
 
 
 def _continuation_transaction_for_submission_package(
