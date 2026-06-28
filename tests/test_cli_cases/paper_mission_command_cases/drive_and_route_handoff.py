@@ -473,6 +473,27 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     )
     assert submitted_payload["study_id"] == study_id
     assert submitted_payload["command_kind"] == "resume_stage"
+    handoff = payload["opl_route_handoff"]
+    expected_dedupe_key = ":".join(
+        [
+            "paper-mission-route",
+            study_id,
+            handoff["request_idempotency_key"],
+            "resume_stage",
+        ]
+    )
+    assert enqueue_record["argv"][enqueue_record["argv"].index("--dedupe-key") + 1] == (
+        expected_dedupe_key
+    )
+    assert submitted_payload["route_identity_key"] == handoff["route_identity_key"]
+    assert submitted_payload["attempt_idempotency_key"] == (
+        handoff["attempt_idempotency_key"]
+    )
+    assert submitted_payload["request_idempotency_key"] == (
+        handoff["request_idempotency_key"]
+    )
+    assert submitted_payload["idempotency_key"] == handoff["request_idempotency_key"]
+    assert submitted_payload["candidate_ref"] == handoff["candidate_ref"]
     assert submitted_payload["workspace_root"] == str(workspace_root.resolve())
     assert submitted_payload["domain_workspace_root"] == str(workspace_root.resolve())
     assert submitted_payload["authority_boundary"]["writes_opl_queue"] is True

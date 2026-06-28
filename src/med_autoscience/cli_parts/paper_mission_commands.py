@@ -1521,12 +1521,23 @@ def _opl_stage_route_runtime_request_from_handoff(
     workspace_root = _handoff_workspace_root(handoff)
     if workspace_root is None:
         return None
+    route_identity_key = _optional_text(handoff.get("route_identity_key"))
+    attempt_idempotency_key = _optional_text(handoff.get("attempt_idempotency_key"))
+    request_idempotency_key = _optional_text(handoff.get("request_idempotency_key"))
+    candidate_ref = _optional_text(handoff.get("candidate_ref"))
+    identity_basis = (
+        request_idempotency_key
+        or attempt_idempotency_key
+        or route_identity_key
+        or candidate_ref
+        or transaction_ref
+    )
     dedupe_key = ":".join(
         [
             "paper-mission-route",
             PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION,
             study_id,
-            transaction_ref,
+            identity_basis,
             command_kind,
         ]
     )
@@ -1558,9 +1569,13 @@ def _opl_stage_route_runtime_request_from_handoff(
         "runtime_request_kind": "mas_paper_mission_stage_route",
         "study_id": study_id,
         "mission_id": _optional_text(handoff.get("mission_id")),
-        "candidate_ref": _optional_text(handoff.get("candidate_ref")),
+        "candidate_ref": candidate_ref,
         "paper_mission_transaction_ref": transaction_ref,
         "opl_route_command_ref": _optional_text(handoff.get("opl_route_command_ref")),
+        "route_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
+        "request_idempotency_key": request_idempotency_key,
+        "idempotency_key": request_idempotency_key or attempt_idempotency_key,
         "command_kind": command_kind,
         "route_target": _first_text(handoff.get("route_target"), route.get("target")),
         "workspace_root": workspace_root,
