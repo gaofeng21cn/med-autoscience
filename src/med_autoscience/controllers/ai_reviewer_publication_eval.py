@@ -586,7 +586,21 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         required_refs=required_refs,
         required_currentness_refs=required_currentness_refs,
     )
-    status = "blocked" if False in (identity_guard.get("matched"), payload_guard.get("matched")) else "dry_run"
+    record_schema_guard = _record_schema_guard_result(
+        study_root=resolved_study_root,
+        record=record_payload,
+        enabled=payload_guard.get("matched") is True,
+    )
+    status = (
+        "blocked"
+        if False
+        in (
+            identity_guard.get("matched"),
+            payload_guard.get("matched"),
+            record_schema_guard.get("matched"),
+        )
+        else "dry_run"
+    )
     result = {
         "status": "dry_run",
         "dry_run": True,
@@ -611,6 +625,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         "expected_current_work_unit": expected_identity if any(expected_identity.values()) else None,
         "identity_guard": identity_guard,
         "payload_guard": payload_guard,
+        "record_schema_guard": record_schema_guard,
         "payload_target_metadata_refresh": payload_target_metadata_refresh,
         "request": {
             "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
@@ -667,11 +682,63 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         result["blocked_reason"] = (
             _optional_text(identity_guard.get("reason"))
             if identity_guard.get("matched") is False
-            else _optional_text(payload_guard.get("reason"))
+            else (
+                _optional_text(payload_guard.get("reason"))
+                if payload_guard.get("matched") is False
+                else _optional_text(record_schema_guard.get("reason"))
+            )
         ) or "current_owner_identity_guard_failed"
         result["publication_eval_surface"] = "not_written"
         result["publication_eval_record_surface"] = "not_written"
     return result
+
+
+def _record_schema_guard_result(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any] | None,
+    enabled: bool,
+) -> dict[str, Any]:
+    if not enabled:
+        return {
+            "enabled": False,
+            "matched": None,
+            "reason": None,
+            "error": None,
+        }
+    if record is None:
+        return {
+            "enabled": False,
+            "matched": None,
+            "reason": None,
+            "error": None,
+        }
+    record_payload = _payload_record(record)
+    if "schema_version" not in record_payload:
+        return {
+            "enabled": False,
+            "matched": None,
+            "reason": None,
+            "error": None,
+        }
+    try:
+        traced_record = _record_with_production_trace(study_root=study_root, record=dict(record))
+        canonicalize_ai_reviewer_publication_eval_record(
+            _normalize_publication_eval_record(traced_record)
+        )
+    except (TypeError, ValueError) as exc:
+        return {
+            "enabled": True,
+            "matched": False,
+            "reason": "record_payload_schema_invalid",
+            "error": str(exc),
+        }
+    return {
+        "enabled": True,
+        "matched": True,
+        "reason": None,
+        "error": None,
+    }
 
 
 def _identity_guard_result(
