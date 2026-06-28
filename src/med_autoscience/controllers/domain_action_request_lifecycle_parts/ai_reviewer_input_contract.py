@@ -216,6 +216,8 @@ def _medical_prose_review_relative_path(*, study_root: Path) -> Path:
 
 
 def _resolve_authority_ref(*, study_root: Path, relative_path: Path) -> Path:
+    if relative_path == Path("artifacts/publication_eval/medical_prose_review.json"):
+        return (study_root / relative_path).resolve()
     staged = study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH / relative_path
     if staged.exists():
         return staged.resolve()
@@ -249,6 +251,13 @@ def _candidate_ref_paths(*, study_root: Path, ref: Mapping[str, Any]) -> list[Pa
 
 
 def _existing_medical_prose_review_ref_payload(*, study_root: Path) -> dict[str, Any] | None:
+    stable_relative_path = Path("artifacts/publication_eval/medical_prose_review.json")
+    if (study_root / stable_relative_path).exists():
+        return _ref_payload(
+            study_root=study_root,
+            surface="medical_prose_review",
+            relative_path=stable_relative_path,
+        )
     for relative_path in AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES:
         if (study_root / relative_path).exists():
             return _ref_payload(

@@ -162,9 +162,9 @@ def test_ai_reviewer_default_input_refs_fall_back_to_paper_medical_prose_review(
 def test_ai_reviewer_default_input_refs_prefer_stable_medical_prose_review_over_stage_copy(
     tmp_path,
 ) -> None:
-    study_root = tmp_path / "workspace" / "studies" / "003-nf"
-    stable_review = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
-    stage_review = (
+    study_root = tmp_path / "workspace" / "studies" / "obesity-atlas"
+    paper_root = study_root / "paper"
+    stage_paper_root = (
         study_root
         / "artifacts"
         / "stage_outputs"
@@ -172,15 +172,26 @@ def test_ai_reviewer_default_input_refs_prefer_stable_medical_prose_review_over_
         / "paper_authority_cutover"
         / "current_body"
         / "paper"
-        / "medical_prose_review.json"
     )
+    stable_review = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    paper_root.mkdir(parents=True)
+    stage_paper_root.mkdir(parents=True)
     stable_review.parent.mkdir(parents=True)
-    stable_review.write_text('{"schema":"stable","verdict":"revise"}\n', encoding="utf-8")
-    stage_review.parent.mkdir(parents=True)
-    stage_review.write_text('{"schema":"legacy","verdict":"clear"}\n', encoding="utf-8")
+    (stage_paper_root / "draft.md").write_text("# Draft\n\nCurrent canonical manuscript.\n", encoding="utf-8")
+    (stage_paper_root / "medical_prose_review.json").write_text(
+        '{"schema_version":1,"surface":"legacy_stage_copy"}\n',
+        encoding="utf-8",
+    )
+    stable_review.write_text(
+        '{"schema_version":1,"surface":"medical_prose_review"}\n',
+        encoding="utf-8",
+    )
 
     refs = default_ai_reviewer_request_input_refs(study_root=study_root)
 
+    assert refs["manuscript"]["relative_path"] == (
+        "artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/draft.md"
+    )
     assert refs["medical_prose_review"]["relative_path"] == "artifacts/publication_eval/medical_prose_review.json"
     assert refs["medical_prose_review"]["path"] == str(stable_review.resolve())
     assert refs["medical_prose_review"]["present"] is True
