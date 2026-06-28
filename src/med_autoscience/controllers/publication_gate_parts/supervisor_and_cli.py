@@ -12,6 +12,7 @@ from typing import Any
 
 from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
 from med_autoscience.controllers.authority_route_context_call import call_with_authority_route_context
+from med_autoscience.controllers.authority_route_gate import authorize_authority_route
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from med_autoscience.journal_requirements import (
@@ -556,6 +557,35 @@ def _publication_gate_replay_delivery_route_context(
     }
 
 
+def _delivery_route_context_for_stale_sync(
+    *,
+    state: GateState,
+    report: dict[str, Any],
+    resolved_route_context: Mapping[str, Any] | None,
+) -> dict[str, Any] | Mapping[str, Any]:
+    if resolved_route_context is not None:
+        gate = authorize_authority_route("delivery_sync", resolved_route_context)
+        if bool(gate.get("authorized")):
+            return resolved_route_context
+        return {
+            "status": "skipped_controller_route_not_delivery_authorized",
+            "stage": "submission_minimal",
+            "reason": "current_controller_route_does_not_authorize_delivery_sync",
+            "authority_route_gate": gate,
+        }
+    delivery_route_context = _publication_gate_replay_delivery_route_context(
+        state=state,
+        report=report,
+    )
+    if delivery_route_context is not None:
+        return delivery_route_context
+    return {
+        "status": "skipped_delivery_route_context_missing",
+        "stage": "submission_minimal",
+        "reason": "publication_gate_replay_delivery_context_not_available",
+    }
+
+
 def run_controller(
     *,
     quest_root: Path,
@@ -605,17 +635,21 @@ def run_controller(
             "delivery_manifest_source_changed",
             "delivery_manifest_source_mismatch",
         }:
-            delivery_route_context = resolved_route_context or _publication_gate_replay_delivery_route_context(
+            delivery_route_context = _delivery_route_context_for_stale_sync(
                 state=state,
                 report=report,
+                resolved_route_context=resolved_route_context,
             )
-            study_delivery_stale_sync = call_with_authority_route_context(
-                study_delivery_sync.sync_study_delivery,
-                paper_root=state.paper_root,
-                stage="submission_minimal",
-                publication_profile=_stale_submission_delivery_sync_profile(state=state, report=report),
-                authority_route_context=delivery_route_context,
-            )
+            if str(delivery_route_context.get("status") or "").startswith("skipped_"):
+                study_delivery_stale_sync = dict(delivery_route_context)
+            else:
+                study_delivery_stale_sync = call_with_authority_route_context(
+                    study_delivery_sync.sync_study_delivery,
+                    paper_root=state.paper_root,
+                    stage="submission_minimal",
+                    publication_profile=_stale_submission_delivery_sync_profile(state=state, report=report),
+                    authority_route_context=delivery_route_context,
+                )
         else:
             study_delivery_stale_sync = call_with_authority_route_context(
                 study_delivery_sync.materialize_submission_delivery_stale_notice,
