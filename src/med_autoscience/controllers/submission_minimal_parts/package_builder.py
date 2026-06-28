@@ -160,11 +160,18 @@ def create_submission_minimal_package(
         blocked_authority_write_payload,
         resolve_authority_write_route_context,
     )
+    from med_autoscience.controllers.authority_write_route_context import with_study_authority_route_context
 
     paper_root = paper_root.resolve()
+    study_root = paper_authority_delivery_guard.study_root_for_paper_delivery(paper_root=paper_root)
+    provided_route_context = authority_route_context or route_context
+    write_route_context = with_study_authority_route_context(
+        study_root=study_root,
+        context=dict(provided_route_context) if provided_route_context is not None else None,
+    )
     resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="submission_materialize",
-        context=authority_route_context or route_context,
+        context=write_route_context,
         default_paths=[paper_root / "submission_minimal", paper_root / "references.bib"],
     )
     if not bool(authority_route_gate.get("authorized")):
@@ -173,7 +180,6 @@ def create_submission_minimal_package(
             paper_root=str(paper_root),
         )
     workspace_root = workspace_root_from_paper_root(paper_root)
-    study_root = paper_authority_delivery_guard.study_root_for_paper_delivery(paper_root=paper_root)
     clean_migration_blocker = paper_authority_delivery_guard.pending_clean_migration_blocker(
         study_root=study_root,
     )

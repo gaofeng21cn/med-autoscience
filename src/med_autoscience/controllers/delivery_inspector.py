@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.controllers import paper_authority_migration, study_delivery_sync
 from med_autoscience.controllers.submission_package_layout import (
     AUDIT_DIRNAME,
     REPRODUCIBILITY_DIRNAME,
@@ -195,6 +195,23 @@ def _study_owned_source_fallback(
     return paper_root, source_root.resolve()
 
 
+def _stage_native_authority_source_fallback(
+    *,
+    study_root: Path,
+    publication_profile: str,
+) -> tuple[Path, Path] | None:
+    paper_root = paper_authority_migration.stage_native_body_authority_root(
+        study_root=Path(study_root).expanduser().resolve()
+    ) / "paper"
+    source_root = study_delivery_sync.build_submission_source_root(
+        paper_root=paper_root,
+        publication_profile=publication_profile,
+    )
+    if not source_root.exists():
+        return None
+    return paper_root.resolve(), source_root.resolve()
+
+
 def _resolve_study_root(
     *,
     profile: WorkspaceProfile,
@@ -280,14 +297,28 @@ def inspect_study_delivery(
         "fallback_applied": False,
     }
     if not source_root.exists():
-        study_owned_source = _study_owned_source_fallback(
-            study_root=resolved_study_root,
-            publication_profile=resolved_publication_profile,
+        fallback_candidates = (
+            (
+                "stage_native_authority_source_fallback",
+                _stage_native_authority_source_fallback(
+                    study_root=resolved_study_root,
+                    publication_profile=resolved_publication_profile,
+                ),
+            ),
+            (
+                "study_owned_source_fallback",
+                _study_owned_source_fallback(
+                    study_root=resolved_study_root,
+                    publication_profile=resolved_publication_profile,
+                ),
+            ),
         )
-        if study_owned_source is not None:
-            fallback_paper_root, fallback_source_root = study_owned_source
+        for fallback_mode, fallback_source in fallback_candidates:
+            if fallback_source is None:
+                continue
+            fallback_paper_root, fallback_source_root = fallback_source
             source_resolution = {
-                "mode": "study_owned_source_fallback",
+                "mode": fallback_mode,
                 "reason": "recorded_controller_authorized_source_missing",
                 "recorded_paper_root": str(paper_root),
                 "recorded_source_root": str(source_root),
@@ -297,6 +328,7 @@ def inspect_study_delivery(
             }
             paper_root = fallback_paper_root
             source_root = fallback_source_root
+            break
     human_root = Path(
         str(surface_roles.get("human_facing_current_package_root") or manuscript_root / "current_package")
     ).expanduser().resolve()

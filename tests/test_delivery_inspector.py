@@ -124,6 +124,44 @@ def test_delivery_inspector_uses_study_owned_source_when_recorded_manifest_sourc
     }
 
 
+def test_delivery_inspector_uses_stage_native_authority_source_when_projected_source_is_missing(
+    tmp_path: Path,
+) -> None:
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    migration = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "repo"
+    study_root = workspace_root / "studies" / "003-stage-native"
+    paper_root = migration.stage_native_body_authority_root(study_root=study_root) / "paper"
+    source_root = paper_root / "submission_minimal"
+    human_root = study_root / "manuscript" / "current_package"
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=workspace_root)
+    write_text(study_root / "study.yaml", "study_id: 003-stage-native\n")
+    write_text(source_root / "manuscript.docx", "docx")
+    write_text(source_root / "paper.pdf", "%PDF-1.4\n")
+    dump_json(source_root / "audit" / "submission_manifest.json", {"schema_version": 1})
+    dump_json(
+        source_root / "reproducibility" / "source_signature.json",
+        {"schema_version": 1, "source_signature": "stage-native-signature"},
+    )
+    write_text(human_root / "manuscript.docx", "old docx")
+    write_text(human_root / "paper.pdf", "%PDF-1.4\n")
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert result["source_resolution"]["mode"] == "stage_native_authority_source_fallback"
+    assert result["source_resolution"]["fallback_paper_root"] == str(paper_root.resolve())
+    assert result["source_package"]["root"] == str(source_root.resolve())
+    assert result["source_package"]["layout_status"] == "v2"
+    assert result["source_signature"]["source_package"] == "stage-native-signature"
+    assert result["next_sync_command"].startswith("medautosci study delivery-sync")
+
+
 def test_delivery_inspector_marks_legacy_root_audit_files_without_mutation(tmp_path: Path) -> None:
     inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
     profiles = importlib.import_module("med_autoscience.profiles")

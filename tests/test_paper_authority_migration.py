@@ -424,6 +424,47 @@ def test_paper_authority_clean_migration_apply_is_idempotent_after_new_mas_autho
     assert report["post_apply"]["active_surface_count"] == 0
 
 
+def test_clean_migration_archives_reintroduced_root_body_without_overwriting_stage_native_body(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    stage_body_root = _stage_native_body_root(study_root)
+    write_text(stage_body_root / "paper" / "draft.md", "# Stage authority draft\n")
+    write_text(stage_body_root / "manuscript" / "current_package" / "manuscript_submission.md", "# Stage package\n")
+    write_text(study_root / "paper" / "draft.md", "# Reintroduced root draft\n")
+    write_text(study_root / "manuscript" / "current_package" / "manuscript_submission.md", "# Reintroduced package\n")
+    module.mark_cutover_new_mas_authority_established(
+        study_root=study_root,
+        publication_eval_ref=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        eval_id="publication-eval::stale",
+        recorded_at="2026-05-17T12:00:00+00:00",
+    )
+
+    report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    receipt = json.loads(_cutover_latest_path(study_root).read_text(encoding="utf-8"))
+    archived_paths = [Path(item["archive_path"]) for item in receipt["archived_surfaces"]]
+    assert report["mode"] == "apply"
+    assert receipt["status"] == "awaiting_new_mas_authority"
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "manuscript").exists()
+    assert (stage_body_root / "paper" / "draft.md").read_text(encoding="utf-8") == "# Stage authority draft\n"
+    assert (
+        stage_body_root / "manuscript" / "current_package" / "manuscript_submission.md"
+    ).read_text(encoding="utf-8") == "# Stage package\n"
+    assert any(path.match("*/active_surfaces/paper") for path in archived_paths)
+    assert any(path.match("*/active_surfaces/manuscript") for path in archived_paths)
+
+
 def test_pending_cutover_retains_new_mas_non_authoritative_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
     profile = make_profile(tmp_path)

@@ -64,6 +64,37 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_runtime_authority_snapshots(
+    study_root: Path,
+    *,
+    blocking_reasons: list[str] | None = None,
+) -> None:
+    _write_json(
+        study_root / "artifacts" / "truth" / "latest.json",
+        {
+            "surface": "study_truth_snapshot",
+            "study_id": study_root.name,
+            "truth_epoch": "truth-1",
+            "canonical_next_action": "resume_same_study_line",
+            "allowed_controller_actions": ["direct_study_execution", "direct_paper_line_write"],
+            "blocking_reasons": list(blocking_reasons or []),
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "surface": "runtime_health_snapshot",
+            "study_id": study_root.name,
+            "quest_id": study_root.name,
+            "runtime_health_epoch": "runtime-1",
+            "canonical_runtime_action": "external_supervisor_required",
+            "attempt_state": "escalated",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+    )
+
+
 def _snapshot(
     *,
     paper_write_allowed: bool = True,
@@ -240,6 +271,65 @@ def test_delivery_sync_without_snapshot_is_blocked_before_current_package_write(
     assert "authority_snapshot_missing" in result["authority_route_gate"]["blocking_reasons"]
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (study_root / "manuscript" / "current_package.zip").exists()
+
+
+def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.package_builder"
+    )
+    paper_root = make_paper_workspace(tmp_path)
+    _write_runtime_authority_snapshots(
+        paper_root.parent,
+        blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+    )
+
+    def write_placeholder_export(
+        *,
+        output_docx_path: Path | None = None,
+        output_pdf_path: Path | None = None,
+        **_: Any,
+    ) -> None:
+        output_path = output_docx_path or output_pdf_path
+        assert output_path is not None
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"test export placeholder")
+
+    monkeypatch.setattr(package_builder, "export_docx", write_placeholder_export)
+    monkeypatch.setattr(package_builder, "export_pdf", write_placeholder_export)
+
+    result = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["route_authorization_flag"] == "paper_write_allowed"
+    assert result["authority_route_gate"]["snapshot_ref"]["study_truth_epoch"] == "truth-1"
+    assert "authority_snapshot_missing" not in result["authority_route_gate"]["blocking_reasons"]
+    assert (paper_root / "submission_minimal" / "audit" / "submission_manifest.json").exists()
+
+
+def test_delivery_sync_derives_snapshot_but_preserves_bundle_gate(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    _write_runtime_authority_snapshots(
+        study_root,
+        blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+    )
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert result["status"] == "authority_route_blocked"
+    assert "authority_snapshot_missing" not in result["authority_route_gate"]["blocking_reasons"]
+    assert "bundle_build_allowed_false" in result["authority_route_gate"]["blocking_reasons"]
+    assert not (study_root / "manuscript" / "current_package").exists()
 
 
 def test_flat_progress_first_publication_gate_replay_route_context_is_explicit_without_snapshot() -> None:

@@ -225,6 +225,37 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
     }
 
 
+def _write_cutover_receipt(study_root: Path, *, status: str = "awaiting_new_mas_authority") -> Path:
+    path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "latest.json"
+    )
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration_receipt",
+            "status": status,
+            "study_id": study_root.name,
+            "study_root": str(study_root),
+            "authority_boundary": {
+                "quality_verdict_written": False,
+                "submission_package_regenerated": False,
+            },
+            "required_next_actions": [
+                "return_to_ai_reviewer_workflow",
+                "publication_gate",
+                "sync_study_delivery",
+            ],
+        },
+    )
+    return path
+
+
 def test_resolve_publication_eval_latest_ref_defaults_to_eval_owned_latest_surface(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -566,6 +597,54 @@ def test_ai_reviewer_publication_eval_controller_promotes_current_manuscript_rec
     record_ref = Path(result["publication_eval_record_ref"])
     archived = json.loads(record_ref.read_text(encoding="utf-8"))
     assert archived == latest
+
+
+def test_ai_reviewer_publication_eval_controller_closes_clean_migration_cutover(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    migration = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
+    cutover_path = _write_cutover_receipt(study_root)
+
+    monkeypatch.setattr(
+        controller.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        },
+    )
+
+    result = controller.materialize_ai_reviewer_publication_eval(
+        profile=SimpleNamespace(name="nfpitnet"),
+        study_id="001-risk",
+        study_root=None,
+        entry_mode=None,
+        record=payload,
+        source="pytest",
+    )
+
+    receipt = json.loads(cutover_path.read_text(encoding="utf-8"))
+    assert result["publication_eval_surface"] == "artifacts/publication_eval/latest.json"
+    assert result["paper_authority_cutover_status"] == "new_mas_authority_established"
+    assert result["paper_authority_cutover_ref"] == str(cutover_path)
+    assert receipt["status"] == "new_mas_authority_established"
+    assert receipt["new_mas_authority"] == {
+        "owner": "ai_reviewer",
+        "publication_eval_ref": result["artifact_path"],
+        "eval_id": payload["eval_id"],
+        "established_at": receipt["new_mas_authority"]["established_at"],
+    }
+    assert receipt["authority_boundary"]["quality_verdict_written"] is True
+    assert receipt["authority_boundary"]["submission_package_regenerated"] is False
+    assert receipt["required_next_actions"] == ["publication_gate", "sync_study_delivery"]
+    assert migration.new_mas_authority_eval_current(study_root=study_root) is True
 
 
 def test_ai_reviewer_publication_eval_record_controller_materializes_owner_record_only(

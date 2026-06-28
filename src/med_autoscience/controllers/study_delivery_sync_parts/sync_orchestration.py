@@ -9,6 +9,7 @@ from med_autoscience.controllers.authority_write_route import (
     blocked_authority_write_payload,
     resolve_authority_write_route_context,
 )
+from med_autoscience.controllers.authority_write_route_context import with_study_authority_route_context
 from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.publication_profiles import (
     GENERAL_MEDICAL_JOURNAL_PROFILE,
@@ -41,9 +42,14 @@ def sync_study_delivery(
     context = _resolve_delivery_context(paper_root.resolve())
     paper_root, worktree_root = context["paper_root"], context["worktree_root"]
     quest_id, study_id, study_root = context["quest_id"], context["study_id"], context["study_root"]
+    provided_route_context = authority_route_context or route_context
+    write_route_context = with_study_authority_route_context(
+        study_root=study_root,
+        context=dict(provided_route_context) if provided_route_context is not None else None,
+    )
     resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="delivery_sync",
-        context=authority_route_context or route_context,
+        context=write_route_context,
         default_paths=[study_root / "manuscript" / "current_package"],
     )
     if not bool(authority_route_gate.get("authorized")):

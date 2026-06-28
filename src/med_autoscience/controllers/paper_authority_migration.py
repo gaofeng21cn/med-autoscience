@@ -560,7 +560,12 @@ def _apply_study_cutover(*, profile: WorkspaceProfile, study_plan: Mapping[str, 
             destination = archive_root / relpath
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
-            raise FileExistsError(f"paper authority archive destination already exists: {destination}")
+            if str(item.get("candidate_action") or "") != "move_to_stage_native_body_authority":
+                raise FileExistsError(f"paper authority archive destination already exists: {destination}")
+            destination = archive_root / relpath
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.exists():
+                raise FileExistsError(f"paper authority archive destination already exists: {destination}")
         shutil.move(str(source), str(destination))
         archived.append({**dict(item), "archive_path": str(destination), "stage_native_path": str(destination)})
     receipt = _receipt_payload(

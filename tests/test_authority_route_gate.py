@@ -88,6 +88,30 @@ def test_route_gate_allows_open_snapshot_for_submission_materialize() -> None:
     assert gate["blocking_reasons"] == []
 
 
+def test_route_gate_allows_submission_materialize_when_only_downstream_bundle_gate_blocks() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    gate = module.authorize_authority_route(
+        "submission_materialize",
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=[
+                    "publication_supervisor_state.bundle_tasks_downstream_only",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+                paper_write_allowed=True,
+                bundle_build_allowed=False,
+                runtime_recovery_allowed=False,
+            ),
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["blocking_reasons"] == []
+
+
 def test_route_gate_allows_submission_notice_materialize_with_bundle_build_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 

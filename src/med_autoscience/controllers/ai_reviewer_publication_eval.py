@@ -12,7 +12,7 @@ from med_autoscience.publication_eval_latest import (
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 
-from . import ai_reviewer_publication_eval_workflow, domain_status_projection
+from . import ai_reviewer_publication_eval_workflow, domain_status_projection, paper_authority_migration
 from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
 from .domain_action_request_lifecycle import read_ai_reviewer_request, stable_ai_reviewer_request_path
 from .study_progress_parts import projection as study_progress_projection
@@ -844,6 +844,16 @@ def materialize_ai_reviewer_publication_eval(
         study_root=resolved_study_root,
         record=normalized_record,
     )
+    cutover_receipt = paper_authority_migration.mark_cutover_new_mas_authority_established(
+        study_root=resolved_study_root,
+        publication_eval_ref=materialized["artifact_path"],
+        eval_id=materialized["eval_id"],
+    )
+    cutover_ref = (
+        str(paper_authority_migration.paper_authority_cutover_latest_path(study_root=resolved_study_root))
+        if cutover_receipt is not None
+        else None
+    )
     record_path = _materialize_ai_reviewer_publication_eval_record(
         study_root=resolved_study_root,
         record=normalized_record,
@@ -866,4 +876,6 @@ def materialize_ai_reviewer_publication_eval(
         "publication_eval_record_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
         "assessment_owner": "ai_reviewer",
         "publication_eval_surface": "artifacts/publication_eval/latest.json",
+        "paper_authority_cutover_status": _optional_text((cutover_receipt or {}).get("status")),
+        "paper_authority_cutover_ref": cutover_ref,
     }

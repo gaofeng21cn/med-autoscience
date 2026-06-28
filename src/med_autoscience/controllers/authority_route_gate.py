@@ -57,6 +57,12 @@ _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
         "same_fingerprint_loop",
     }
 )
+_PAPER_WRITE_DISPATCH_BYPASS_REASONS = frozenset(
+    {
+        "publication_supervisor_state.bundle_tasks_downstream_only",
+        "runtime_recovery_retry_budget_exhausted",
+    }
+)
 
 _PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS = frozenset(
     {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
@@ -344,9 +350,11 @@ def _controller_route_can_bypass_dispatch_reasons(
     controller_route_gate: Mapping[str, Any],
     dispatch_gate_reasons: list[str],
 ) -> bool:
-    if not bool(controller_route_gate.get("authorized")):
-        return False
     if not dispatch_gate_reasons:
+        return False
+    if not bool(controller_route_gate.get("authorized")):
+        if action in {"paper_write", "submission_materialize"}:
+            return set(dispatch_gate_reasons) <= _PAPER_WRITE_DISPATCH_BYPASS_REASONS
         return False
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _UPSTREAM_QUALITY_AUTHORITY_DISPATCH_BYPASS_REASONS
