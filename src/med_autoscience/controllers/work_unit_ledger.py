@@ -118,6 +118,15 @@ def _non_empty_text(value: object) -> str | None:
     return text or None
 
 
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _non_empty_text(item)) is not None]
+
+
 def latest_active_accepted_writer(
     *,
     study_root: Path,
@@ -177,6 +186,13 @@ def lifecycle_summary(*, study_root: Path) -> dict[str, Any]:
                 break
         replay_events = [event for event in ordered if _non_empty_text(event.get("event_type")) == "gate_replayed"]
         specificity_events = [event for event in ordered if _non_empty_text(event.get("event_type")) == "needs_specificity"]
+        closeout_refs: list[str] = []
+        for event in ordered:
+            payload = event.get("payload")
+            if isinstance(payload, Mapping):
+                closeout_refs.extend(_text_list(payload.get("closeout_refs")))
+                if ref := _non_empty_text(payload.get("default_executor_execution_ref")):
+                    closeout_refs.append(ref)
         replay_count += len(replay_events)
         specificity_request_count += len(specificity_events)
         state_counts[latest_type] += 1
@@ -197,6 +213,7 @@ def lifecycle_summary(*, study_root: Path) -> dict[str, Any]:
                 "latest_gate_replayed_at": (
                     _non_empty_text(replay_events[-1].get("recorded_at")) if replay_events else None
                 ),
+                "closeout_refs": list(dict.fromkeys(closeout_refs)),
             }
         )
     return {

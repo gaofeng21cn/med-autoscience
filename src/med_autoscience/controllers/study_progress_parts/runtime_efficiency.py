@@ -155,7 +155,11 @@ def _gate_replay_telemetry(study_root: Path | None) -> dict[str, Any]:
     }
 
 
-def _token_usage_surface(telemetry: dict[str, Any] | None) -> dict[str, Any]:
+def _token_usage_surface(
+    telemetry: dict[str, Any] | None,
+    *,
+    stage_execution_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     raw = telemetry.get("token_usage") if isinstance(telemetry, dict) else None
     if isinstance(raw, dict) and raw:
         result = dict(raw)
@@ -163,6 +167,9 @@ def _token_usage_surface(telemetry: dict[str, Any] | None) -> dict[str, Any]:
         if "total_tokens" not in result:
             result["total_tokens"] = _token_usage_total(result)
         return result
+    stage_usage = _token_usage_from_stage_records(stage_execution_records or [])
+    if stage_usage is not None:
+        return stage_usage
     return {
         "status": "missing",
         "total_tokens": None,
@@ -199,6 +206,104 @@ def _number(value: object) -> int | None:
             return int(float(text))
         except ValueError:
             return None
+    return None
+
+
+def _token_usage_from_mapping(value: Mapping[str, Any]) -> dict[str, Any] | None:
+    total = _token_usage_total(value)
+    input_tokens = _number(value.get("input_tokens"))
+    output_tokens = _number(value.get("output_tokens"))
+    if total is None and input_tokens is None and output_tokens is None:
+        return None
+    result = dict(value)
+    result["status"] = _non_empty_text(result.get("status")) or "present"
+    result["total_tokens"] = total
+    if input_tokens is not None:
+        result["input_tokens"] = input_tokens
+    if output_tokens is not None:
+        result["output_tokens"] = output_tokens
+    return result
+
+
+def _token_usage_from_stage_records(records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    missing_with_source: dict[str, Any] | None = None
+    for record in records:
+        token_usage = _mapping_copy(record.get("token_usage"))
+        if not token_usage:
+            continue
+        if _token_usage_total(token_usage) is not None:
+            result = dict(token_usage)
+            result.setdefault("status", "present")
+            result.setdefault("source", "stage_execution_records")
+            result.setdefault("stage_record_source", _non_empty_text(record.get("source")))
+            return result
+        if missing_with_source is None and _non_empty_text(token_usage.get("source")):
+            missing_with_source = dict(token_usage)
+    if missing_with_source is None:
+        return None
+    missing_with_source.setdefault("status", "missing")
+    missing_with_source["total_tokens"] = None
+    missing_with_source.setdefault("source", "stage_execution_records")
+    return missing_with_source
+
+
+def _stage_log_token_usage(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    for key in ("paper_stage_log", "user_stage_log", "stage_log_summary"):
+        stage_log = _mapping_copy(payload.get(key))
+        token_usage = _mapping_copy(stage_log.get("token_usage"))
+        if usage := _token_usage_from_mapping(token_usage):
+            return usage
+    return None
+
+
+def _closeout_ref_path(*, study_root: Path, ref: str) -> Path | None:
+    text = ref.strip()
+    if not text:
+        return None
+    path = Path(text).expanduser()
+    if path.is_absolute():
+        return path if path.is_file() else None
+    candidates = [
+        study_root / path,
+        study_root.parent.parent / path,
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _token_usage_from_closeout_refs(*, study_root: Path, refs: list[str]) -> dict[str, Any] | None:
+    missing_reasons: list[str] = []
+    inspected_refs: list[str] = []
+    for ref in refs:
+        path = _closeout_ref_path(study_root=study_root, ref=ref)
+        if path is None:
+            continue
+        inspected_refs.append(str(path))
+        payload = _read_json_object(path)
+        if payload is None:
+            continue
+        token_usage = _stage_log_token_usage(payload)
+        if token_usage is not None:
+            token_usage.setdefault("source", "stage_closeout_user_stage_log")
+            token_usage.setdefault("source_ref", str(path))
+            return token_usage
+        for key in ("paper_stage_log", "user_stage_log", "stage_log_summary"):
+            stage_log = _mapping_copy(payload.get(key))
+            usage = _mapping_copy(stage_log.get("token_usage"))
+            if reason := _non_empty_text(usage.get("missing_token_usage_reason")):
+                missing_reasons.append(reason)
+    if inspected_refs:
+        return {
+            "status": "missing",
+            "total_tokens": None,
+            "missing_token_usage_reason": (
+                missing_reasons[0] if missing_reasons else "stage_closeout_has_no_token_usage"
+            ),
+            "source": "stage_closeout_user_stage_log",
+            "inspected_closeout_refs": inspected_refs[:5],
+        }
     return None
 
 
@@ -247,7 +352,11 @@ def _stage_execution_records(
         limit=12,
     )
     for record in result:
-        record["token_usage"] = _stage_token_usage(record, telemetry_status=telemetry_status)
+        record["token_usage"] = _stage_token_usage(
+            record,
+            telemetry_status=telemetry_status,
+            study_root=study_root,
+        )
         record["duration"] = _stage_duration(record)
     return result
 
@@ -384,12 +493,14 @@ def _work_unit_stage_records(*, study_root: Path) -> list[dict[str, Any]]:
                 "started_at": _non_empty_text(unit.get("first_recorded_at")),
                 "finished_at": _non_empty_text(unit.get("latest_recorded_at")),
                 "duration_seconds": None,
+                "event_count": _int_value(unit.get("event_count")),
                 "work_done": [f"Recorded lifecycle events: {', '.join(_text_list(unit.get('event_types')))}."],
                 "changed_artifact_refs": [],
                 "remaining_blockers": [],
                 "evidence_refs": [_non_empty_text(lifecycle.get("ledger_path"))]
                 if _non_empty_text(lifecycle.get("ledger_path"))
                 else [],
+                "closeout_refs": _text_list(unit.get("closeout_refs")),
             }
         )
     return records
@@ -458,10 +569,18 @@ def _dedupe_stage_records_preserving_order(records: list[dict[str, Any]]) -> lis
     return result
 
 
-def _stage_token_usage(record: Mapping[str, Any], *, telemetry_status: str) -> dict[str, Any]:
+def _stage_token_usage(
+    record: Mapping[str, Any],
+    *,
+    telemetry_status: str,
+    study_root: Path,
+) -> dict[str, Any]:
     token_usage = _mapping_copy(record.get("token_usage"))
     if token_usage:
         return token_usage
+    closeout_refs = _text_list(record.get("closeout_refs"))
+    if closeout_refs and (closeout_usage := _token_usage_from_closeout_refs(study_root=study_root, refs=closeout_refs)):
+        return closeout_usage
     return {
         "status": "missing" if telemetry_status == "missing" else "not_available",
         "total_tokens": None,
@@ -476,6 +595,14 @@ def _stage_duration(record: Mapping[str, Any]) -> dict[str, Any]:
     started_at = _parse_datetime(record.get("started_at"))
     finished_at = _parse_datetime(record.get("finished_at"))
     if started_at is not None and finished_at is not None:
+        if record.get("record_kind") == "work_unit_lifecycle":
+            return {
+                "status": "elapsed_window_only",
+                "seconds": max((finished_at - started_at).total_seconds(), 0.0),
+                "source": "lifecycle_first_latest_recorded_at",
+                "not_execution_duration": True,
+                "event_count": _int_value(record.get("event_count")),
+            }
         return {
             "status": "present",
             "seconds": max((finished_at - started_at).total_seconds(), 0.0),
@@ -542,7 +669,6 @@ def _latest_run_telemetry_surface(
         if evidence_index_path is not None and evidence_index_path.exists()
         else None
     )
-    token_usage = _token_usage_surface(telemetry)
     compacted_count = _int_value((telemetry or {}).get("compacted_tool_result_count"))
     full_detail_count = _int_value((telemetry or {}).get("full_detail_tool_call_count"))
     tool_result_bytes = _int_value((telemetry or {}).get("tool_result_bytes_total"))
@@ -564,6 +690,7 @@ def _latest_run_telemetry_surface(
         study_root=study_root,
         telemetry_status="present" if telemetry is not None else "missing",
     )
+    token_usage = _token_usage_surface(telemetry, stage_execution_records=stage_execution_records)
     if (
         telemetry is None
         and evidence_index is None

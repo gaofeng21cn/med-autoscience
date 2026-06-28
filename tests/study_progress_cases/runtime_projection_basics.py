@@ -339,6 +339,162 @@ def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
     assert result["deliverable_progress_delta"]["token_usage_total"] is None
 
 
+def test_study_progress_marks_work_unit_lifecycle_span_as_elapsed_window(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_publication_eval(study_root, quest_root)
+    identity = control_identity.ControlWorkUnitIdentity(
+        domain="publication-work-unit",
+        study_id="001-risk",
+        quest_id="quest-001",
+        lane="write",
+        unit_id="medical_prose_write_repair",
+        action_type="run_quality_repair_batch",
+        effective_blockers=("publication-blockers::prose",),
+        fingerprint_override="publication-blockers::prose",
+        idempotency_scope="work_unit",
+    )
+    work_unit_ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="dispatched",
+        payload={"source": "test"},
+        recorded_at="2026-04-01T00:00:00+00:00",
+    )
+    work_unit_ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={"source": "test"},
+        recorded_at="2026-04-10T00:00:00+00:00",
+    )
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    [record] = result["runtime_efficiency"]["stage_execution_records"]
+    assert record["record_kind"] == "work_unit_lifecycle"
+    assert record["duration"] == {
+        "status": "elapsed_window_only",
+        "seconds": 777600.0,
+        "source": "lifecycle_first_latest_recorded_at",
+        "not_execution_duration": True,
+        "event_count": 2,
+    }
+
+
+def test_study_progress_reads_stage_token_usage_from_closeout_refs_when_runner_telemetry_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    closeout_ref = (
+        "studies/001-risk/artifacts/supervision/consumer/default_executor_execution/"
+        "sat-001.closeout.json"
+    )
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        profile.workspace_root / closeout_ref,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "paper_stage_log": {
+                "token_usage": {
+                    "input_tokens": 1000,
+                    "output_tokens": 200,
+                    "total_tokens": 1200,
+                }
+            },
+        },
+    )
+    identity = control_identity.ControlWorkUnitIdentity(
+        domain="publication-work-unit",
+        study_id="001-risk",
+        quest_id="quest-001",
+        lane="write",
+        unit_id="medical_prose_write_repair",
+        action_type="run_quality_repair_batch",
+        effective_blockers=("publication-blockers::prose",),
+        fingerprint_override="publication-blockers::prose",
+        idempotency_scope="work_unit",
+    )
+    work_unit_ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={"closeout_refs": [closeout_ref]},
+        recorded_at="2026-04-10T00:00:00+00:00",
+    )
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    [record] = result["runtime_efficiency"]["stage_execution_records"]
+    assert record["token_usage"]["status"] == "present"
+    assert record["token_usage"]["total_tokens"] == 1200
+    assert record["token_usage"]["source"] == "stage_closeout_user_stage_log"
+    assert result["runtime_efficiency"]["token_usage"]["status"] == "present"
+    assert result["runtime_efficiency"]["token_usage"]["total_tokens"] == 1200
+    assert result["runtime_efficiency"]["token_usage"]["source"] == "stage_closeout_user_stage_log"
+
+
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
