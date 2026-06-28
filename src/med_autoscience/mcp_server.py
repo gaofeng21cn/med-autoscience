@@ -83,7 +83,6 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
-domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
@@ -448,21 +447,6 @@ def _call_overlay_status(arguments: dict[str, Any]) -> dict[str, Any]:
         result = overlay_installer.describe_medical_overlay(**doctor.overlay_request_from_profile(profile))
     else:
         result = overlay_installer.describe_medical_overlay(quest_root=Path(_require_string(arguments, "quest_root")))
-    return _tool_text_result(_json_text(result), structured=result)
-
-
-def _call_domain_health_diagnostic(arguments: dict[str, Any]) -> dict[str, Any]:
-    quest_root = arguments.get("quest_root")
-    runtime_root = arguments.get("runtime_root")
-    if bool(quest_root) == bool(runtime_root):
-        raise ValueError("Specify exactly one of quest_root or runtime_root")
-    if isinstance(quest_root, str):
-        result = domain_health_diagnostic.run_domain_health_diagnostic_for_quest(quest_root=Path(quest_root), apply=False)
-    else:
-        result = domain_health_diagnostic.run_domain_health_diagnostic_for_runtime(
-            runtime_root=Path(_require_string(arguments, "runtime_root")),
-            apply=False,
-        )
     return _tool_text_result(_json_text(result), structured=result)
 
 

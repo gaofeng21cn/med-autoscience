@@ -39,11 +39,7 @@ from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
 from med_autoscience.cli_parts.study_owner_gate_commands import handle_study_owner_gate_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
-from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
-from med_autoscience.cli_parts.domain_owner_action_dispatch_commands import (
-    handle_domain_owner_action_dispatch_command,
-)
 from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
 )
@@ -136,8 +132,6 @@ publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_a
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _lazy_controller_module("quality_repair_batch")
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
-domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
-domain_owner_action_dispatch = _lazy_controller_module("domain_owner_action_dispatch")
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
@@ -581,37 +575,6 @@ def main(argv: list[str] | None = None) -> int:
             "assessment_owner": "ai_reviewer",
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
-        return 0
-
-    domain_health_diagnostic_result = handle_domain_health_diagnostic_command(
-        args,
-        parser=parser,
-        domain_health_diagnostic=domain_health_diagnostic,
-        load_profile=load_profile,
-    )
-    if domain_health_diagnostic_result is not None:
-        return domain_health_diagnostic_result
-
-    domain_owner_action_dispatch_result = handle_domain_owner_action_dispatch_command(
-        args,
-        domain_owner_action_dispatch=domain_owner_action_dispatch,
-        load_profile=load_profile,
-    )
-    if domain_owner_action_dispatch_result is not None:
-        return domain_owner_action_dispatch_result
-
-    if args.command == "owner-route-reconcile":
-        profile = load_profile(args.profile)
-        explicit_study_ids = tuple(args.studies or ())
-        study_ids = explicit_study_ids or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
-        result = owner_route_reconcile.scan_domain_routes(
-            profile=profile,
-            study_ids=study_ids,
-            apply_safe_actions=bool(args.apply_safe_actions),
-            developer_supervisor_mode=args.developer_supervisor_mode,
-            retain_unscanned_studies=not bool(explicit_study_ids),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "workspace-monolith-migrate":

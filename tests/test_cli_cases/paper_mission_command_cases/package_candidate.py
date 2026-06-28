@@ -447,7 +447,7 @@ def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet
             "--one-shot-migration",
             "--study-progress-payload",
             str(DM_CANARY_FIXTURE_ROOT / "dm003_progress.json"),
-            "--domain-health-diagnostic-payload",
+            "--diagnostic-payload",
             str(DM_CANARY_FIXTURE_ROOT / "dhd_dry_run.json"),
             "--output-root",
             str(migration_root),

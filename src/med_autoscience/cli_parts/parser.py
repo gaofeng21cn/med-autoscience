@@ -153,37 +153,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     guarded_apply_proof_parser.add_argument("--profile", action="append", dest="profiles")
     guarded_apply_proof_parser.add_argument("--target-study", action="append", dest="target_studies")
 
-    domain_health_diagnostic_parser = subparsers.add_parser("domain-health-diagnostic")
-    domain_health_diagnostic_parser.add_argument("--quest-root", type=str)
-    domain_health_diagnostic_parser.add_argument("--runtime-root", type=str)
-    domain_health_diagnostic_parser.add_argument("--profile", type=str)
-    domain_health_diagnostic_parser.add_argument("--studies", nargs="+")
-    domain_health_diagnostic_parser.add_argument(
-        "--scope",
-        choices=("full", "currentness-only", "owner-route", "provider-admission"),
-        default="full",
-    )
-    domain_health_diagnostic_parser.add_argument("--request-opl-stage-attempts", action="store_true")
-    domain_health_diagnostic_parser.add_argument("--request-opl-owner-route-reconcile", action="store_true")
-    domain_health_diagnostic_parser.add_argument("--refresh-diagnostic-reports", action="store_true")
-    domain_health_diagnostic_apply = domain_health_diagnostic_parser.add_mutually_exclusive_group()
-    domain_health_diagnostic_apply.add_argument("--dry-run", action="store_true")
-    domain_health_diagnostic_apply.add_argument("--apply", action="store_true")
-
-    domain_owner_action_dispatch_parser = subparsers.add_parser("domain-owner-action-dispatch")
-    domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
-    domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")
-    domain_owner_action_dispatch_parser.add_argument("--study-id")
-    domain_owner_action_dispatch_parser.add_argument(
-        "--mode",
-        choices=("internal_only", "external_observe", "developer_apply_safe"),
-        default="external_observe",
-    )
-    domain_owner_action_dispatch_parser.add_argument("--action-type", action="append", dest="action_types")
-    domain_owner_action_dispatch_apply = domain_owner_action_dispatch_parser.add_mutually_exclusive_group()
-    domain_owner_action_dispatch_apply.add_argument("--dry-run", action="store_true")
-    domain_owner_action_dispatch_apply.add_argument("--apply", action="store_true")
-
     domain_handler_parser = subparsers.add_parser("domain-handler")
     domain_handler_subparsers = domain_handler_parser.add_subparsers(
         dest="domain_handler_command",
@@ -198,15 +167,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_handler_dispatch_parser = domain_handler_subparsers.add_parser("dispatch")
     domain_handler_dispatch_parser.add_argument("--task", required=True)
     domain_handler_dispatch_parser.add_argument("--format", choices=("json",), default="json")
-    owner_route_reconcile_parser = subparsers.add_parser("owner-route-reconcile")
-    owner_route_reconcile_parser.add_argument("--profile", required=True)
-    owner_route_reconcile_parser.add_argument("--studies", nargs="+")
-    owner_route_reconcile_parser.add_argument("--apply-safe-actions", action="store_true")
-    owner_route_reconcile_parser.add_argument(
-        "--developer-supervisor-mode",
-        choices=("internal_only", "external_observe", "developer_apply_safe"),
-    )
-
     study_owner_gate_decision_parser = subparsers.add_parser("study-owner-gate-decision")
     study_owner_gate_decision_parser.add_argument("--profile", required=True)
     study_owner_gate_decision_parser.add_argument("--study-id", required=True)

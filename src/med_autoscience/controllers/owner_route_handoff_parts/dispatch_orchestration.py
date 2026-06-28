@@ -132,11 +132,10 @@ def _profile_from_task(task: Mapping[str, Any]) -> tuple[WorkspaceProfile | None
 
 def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id: str | None) -> str:
     profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
-    study_part = f" --studies {study_id}" if study_id else ""
     if action_type == "domain_route_recover":
-        return f"uv run python -m med_autoscience.cli owner-route-reconcile{profile_part}{study_part}"
+        return f"uv run python -m med_autoscience.cli domain-handler export{profile_part} --format json"
     if action_type in {"safe_reconcile_dry_run", "domain_route_owner_handoff"}:
-        return f"uv run python -m med_autoscience.cli owner-route-reconcile{profile_part}{study_part} --developer-supervisor-mode external_observe"
+        return f"uv run python -m med_autoscience.cli domain-handler export{profile_part} --format json"
     if action_type == "study_progress_read":
         study_selector = f" --study-id {study_id}" if study_id else ""
         return f"uv run python -m med_autoscience.cli study progress{profile_part}{study_selector} --format json"

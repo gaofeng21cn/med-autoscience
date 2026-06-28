@@ -202,7 +202,7 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     _add_common_args(inspect_parser)
     inspect_parser.add_argument("--one-shot-migration", action="store_true")
     inspect_parser.add_argument("--study-progress-payload")
-    inspect_parser.add_argument("--domain-health-diagnostic-payload")
+    inspect_parser.add_argument("--diagnostic-payload", dest="domain_health_diagnostic_payload")
     inspect_parser.add_argument("--output-root")
 
     package_parser = mission_subparsers.add_parser("package-candidate")

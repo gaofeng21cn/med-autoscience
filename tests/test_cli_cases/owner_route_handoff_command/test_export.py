@@ -361,8 +361,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     family_handoff = payload["family_opl_current_control_state_handoff"]
     assert family_handoff["surface_kind"] == "family_opl_current_control_state_handoff"
     assert family_handoff["repair_command"] == (
-        f"medautosci owner-route-reconcile --profile {profile_path} "
-        "--developer-supervisor-mode developer_apply_safe"
+        f"medautosci domain-handler export --profile {profile_path} --format json"
     )
     assert "local_scheduler_tombstone_ref" not in family_handoff
     assert "consumer_migration" not in family_handoff

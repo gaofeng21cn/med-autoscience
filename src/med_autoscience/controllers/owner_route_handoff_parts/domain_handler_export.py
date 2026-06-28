@@ -233,9 +233,9 @@ def export_family_domain_handler(
                 "state": _aggregate_slo_state(studies),
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
-            "repair_command": f"medautosci owner-route-reconcile --profile {profile_ref} --developer-supervisor-mode developer_apply_safe",
+            "repair_command": f"medautosci domain-handler export --profile {profile_ref} --format json",
             "safe_reconcile_hint": (
-                "Use OPL provider/runtime manager wakeup plus medautosci domain-handler dispatch; "
+                "Use OPL provider/runtime manager wakeup plus medautosci domain-handler export/dispatch; "
                 "MAS default surfaces stay in standard OPL Agent shape."
             ),
             "standard_agent_purity": functional_closure["functional_consumer_boundary"][
