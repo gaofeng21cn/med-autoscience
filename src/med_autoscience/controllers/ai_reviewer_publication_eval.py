@@ -168,6 +168,33 @@ def _payload_target_current_metadata(
     }
 
 
+def _normalized_required_currentness_refs(
+    *,
+    request_refs: list[str],
+    required_refs: Mapping[str, str | None],
+) -> list[str]:
+    if not request_refs:
+        return [ref for ref in required_refs.values() if ref is not None]
+
+    replacement_refs = {
+        "artifacts/publication_eval/medical_prose_review.json": required_refs.get("medical_prose_review"),
+        "artifacts/reports/publishability_gate/latest.json": required_refs.get("publication_gate_projection"),
+    }
+    normalized: list[str] = []
+    for ref in request_refs:
+        replacement = next(
+            (
+                candidate
+                for suffix, candidate in replacement_refs.items()
+                if candidate is not None and ref.endswith(suffix)
+            ),
+            ref,
+        )
+        if replacement not in normalized:
+            normalized.append(replacement)
+    return normalized
+
+
 def _refresh_record_payload_target_metadata(
     *,
     record: Mapping[str, Any] | None,
@@ -633,9 +660,10 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     ]
     required_refs = ai_reviewer_request_refs.required_refs(request)
     optional_refs = ai_reviewer_request_refs.optional_refs(request)
-    required_currentness_refs = request_required_currentness_refs or [
-        ref for ref in required_refs.values() if ref is not None
-    ]
+    required_currentness_refs = _normalized_required_currentness_refs(
+        request_refs=request_required_currentness_refs,
+        required_refs=required_refs,
+    )
     expected_record_glob = str((resolved_study_root / AI_REVIEWER_RESPONSE_RECORD_DIR).resolve() / "*_publication_eval_record.json")
     current_work_unit = _compact_current_work_unit(status_payload)
     expected_identity = {
