@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-28：旧 DHD / owner-route / default-executor / workbench 面统一降为 retired diagnostic
+
+- 决策：当前默认论文入口只允许写成 `paper-mission` / `PaperMissionRun` / `PaperMissionTransaction` / `StageTerminalDecision` / Stage Closure Terminalizer，以及 OPL hosted substrate 承担的 StageRun、queue、attempt、retry/dead-letter、resume、current-control 和 workbench shell。旧 `domain-health-diagnostic`、`domain-owner-action-dispatch`、`owner-route-reconcile`、`domain_owner/default-executor-dispatch`、`default_executor_execution`、Progress Portal / MAS workbench / control-plane 只能作为 history、provenance、migration diagnostic、readback diagnostic 或 OPL-hosted projection detail 读取。
+- 决策：`docs/status.md`、`README.md`、`docs/README.md` 和 machine contracts 不得把上述旧面写成 product default mainline、domain-handler default route、current paper mission route、active public projection alias、provider admission authority、owner receipt producer、typed blocker authority、runtime-ready 证据或 paper progress 证据。需要追溯旧词时必须附带 replacement route、retired/tombstone 语义和 forbidden claim boundary。
+- 决策：`contracts/runtime/legacy-active-path-tombstones.json` 是旧默认控制面退役边界的机器 owner；旧 active alias / compatibility flag 必须表达为 `retired_tombstone`、`diagnostic_only`、`history_provenance_only` 或 fail-closed legacy task policy，不保留 `active_public_projection` compatibility alias。
+- 理由：近期文档和合同已把 PaperMission 与 StageOutcome 收为主线，但旧 DHD、owner-route、default-executor、Portal/workbench 决策仍散落在 current docs，容易被 operator 重新读成当前入口。当前任务是清理这些残留，不是恢复旧控制面。
+- 影响：这是 docs/contracts current-surface 收敛；不修改 `src/**`、`tests/**`、Yang runtime/study/paper artifacts、runtime generated files 或 display assets，不执行 live DHD apply / hydrate / tick / redrive，不写 owner receipt、typed blocker authority、human gate、publication eval、controller decisions、current package、OPL runtime state 或 paper body。
+
 ## 2026-06-28：DHD 顶层不得把 direct MAS owner callable 误标为 blocked
 
 - 决策：当 `current_work_unit.status=executable_owner_action` 且 state 明确为 `active_caller_class=mas_owner_callable`、`ordinary_schedulable=true` 时，`domain-health-diagnostic` 的 managed study action 必须把 operator-facing `decision` 投影为 `owner_action_ready` / `reason=current_executable_owner_action_ready`，而不是沿用旧的 `blocked`、`resume_request_failed` 或 `opl_stage_attempt_admission_required`。该状态只表示当前 stage 有可执行 MAS owner callable；仍固定 `running_provider_attempt=false`，不得声明 paper progress、provider running、runtime-ready、submission-ready 或 publication-ready。
@@ -206,10 +214,10 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：MAS 新增 `EvidenceGapDecision` 合同和核心 API，将 evidence gap 固定分为 `authority_gate`、`human_gate`、`proceed_with_assumption`、`soft_quality_gap`、`observability_backlog`、`evidence_tail` 六类。
 - 决策：新增 `contracts/evidence-gap-consumption-abi.json` 和 `med_autoscience.evidence_gap_abi`，把 `EvidenceCondition`、`EvidenceBudget`、`HardGateRegistry`、`SoftGapLedger`、`AssumptionLedger`、`WorkbenchGapView` 作为 OPL / Workbench / MCP / action-catalog 消费 ABI；这些面只投影 EvidenceGapDecision，不创建第二真相源。
 - 决策：typed blocker count 只允许来自 `authority_gate` 和 `human_gate` 这类 current action hard gate；soft quality、assumption、observability 和 evidence tail 进入对应 ledger/backlog，不阻断当前 owner action。
-- 决策：stage authority gate、default executor search discipline、product-entry/action-catalog/skill-catalog、MCP tool metadata 和 Progress Portal WorkbenchGapView 统一消费 `classify_with_evidence_gap_decision_then_progress_first`；普通 missing evidence 不再直接 fallback 为 typed blocker。
+- 决策：stage authority gate、product-entry/action-catalog/skill-catalog 和 MCP tool metadata 统一消费 `classify_with_evidence_gap_decision_then_progress_first`；default executor search discipline 与 Progress Portal WorkbenchGapView 只能作为 retired diagnostic / projection-only consumer 读取该分类，不创建当前 route。普通 missing evidence 不再直接 fallback 为 typed blocker。
 - 决策：所有 gap class 都携带 forbidden claim boundary，不能把 gap 记录、合同落地、focused tests 或 read-model projection 写成 paper progress、owner receipt、publication-ready、submission-ready、live-runtime-ready、provider-running 或 production-ready。
 - 理由：progress-first 需要让 AI 自主处理可后补的小缺口，同时保留 MAS/OPL authority、human decision、数据/隐私和不可逆操作的 fail-closed 边界。
-- 影响：`study_progress`、DHD runtime-scan fresh currentness read-model、`domain_action_request_materializer`、stage authority gate、default executor search discipline、Progress Portal workbench、product-entry/action-catalog/skill-catalog 和 MCP metadata 已消费该决策面；DHD 只携带同一 evidence-gap summary / ledger / typed-blocker-count 投影，不从 pending count 合成 hard gate。本变更不执行 live DHD apply、hydrate、tick、redrive、provider start，不写真实 study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。
+- 影响：`paper-mission` / `study_progress`、StageOutcome readback、`domain_action_request_materializer`、stage authority gate、product-entry/action-catalog/skill-catalog 和 MCP metadata 已消费该决策面；DHD runtime-scan、default executor search discipline 和 Progress Portal workbench 只保留 retired diagnostic / projection-only 消费语境，不从 pending count 合成 hard gate，也不成为当前 route。本变更不执行 live DHD apply、hydrate、tick、redrive、provider start，不写真实 study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker 或 human gate。
 
 ## 2026-06-20：DHD 顶层必须保留 request-only transition pending
 
@@ -1958,7 +1966,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-22：workspace helper wrappers 必须绑定当前扁平 MAS CLI 入口
 
-- 决策：workspace 初始化/升级不再生成 `ops/medautoscience/bin/study-runtime-status` 或 `ops/medautoscience/bin/watch-runtime`；新 helper 固定生成 `progress-projection` 与 `domain-health-diagnostic`，旧同名 wrapper 作为 retired workspace service entry 在 `init-workspace` 时删除。`ops/medautoscience/bin/progress-portal` 与 `ops/mas/bin/start-web` 不再生成；只保留 `progress-projection`、`domain-health-diagnostic` 和 domain-handler / owner-route refs 入口。
+- 决策：workspace 初始化/升级不再生成 `ops/medautoscience/bin/study-runtime-status` 或 `ops/medautoscience/bin/watch-runtime`；该历史决策当时把新 helper 收敛到 `progress-projection`、`domain-health-diagnostic` 和 domain-handler / owner-route refs，并删除旧同名 wrapper、`ops/medautoscience/bin/progress-portal` 与 `ops/mas/bin/start-web`。该入口口径已被 2026-06-28 PaperMission / StageOutcome default route 决策 supersede：DHD、domain-handler / owner-route refs 和 progress portal 只保留 diagnostic / provenance / read-only projection 语境。
 - 理由：DM003 supervisor fresh check 暴露出 workspace helper 仍生成 `run_medautosci study-runtime-status` / `workspace progress-portal`，而当前实际 CLI 公共面已收敛为 MAS domain refs projection、domain-handler handoff 和 OPL current_control_state。入口漂移会让前台监督误以为 MAS 仍有私有 runtime status / Portal workbench 面，进而退回手工命令或反复巡检。
 - 影响：这是 MAS workspace entry surface 修复，不改变 study truth、runtime ownership、publication quality verdict 或 paper/package authority。Grouped commands 可继续作为 CLI public alias 存在，但 workspace helper 生成物要绑定可验证的当前命令。
 
@@ -2775,7 +2783,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-16：OPL unique authority gate boundary 退役为 OPL current_control_state handoff 输入
 
-- 决策：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 不再是 MAS active CLI / MCP / product-entry / workspace 入口。旧 `opl_unique_control_plane_boundary` 只作为 tombstone/provenance 与 standard Agent purity guard 的 contract fixture；当前运行入口是 OPL `current_control_state` / provider attempt ledger 加 MAS `domain-health-diagnostic`、`owner-route-reconcile`、owner receipt、typed blocker 和 refs-only handoff。
+- 决策：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 不再是 MAS active CLI / MCP / product-entry / workspace 入口。旧 `opl_unique_control_plane_boundary` 只作为 tombstone/provenance 与 standard Agent purity guard 的 contract fixture；本条当时把 OPL `current_control_state` / provider attempt ledger 加 MAS `domain-health-diagnostic`、`owner-route-reconcile`、owner receipt、typed blocker 和 refs-only handoff 作为运行入口的口径，已被 2026-06-28 PaperMission / StageOutcome default route 决策 supersede。DHD 与 owner-route 现在只保留 legacy diagnostic / provenance 语境。
 - 理由：OPL 已提供 runtime manager / provider SLO / family queue / intake / attempt ledger replacement surface；MAS 长期应收窄为 medical research authority pack + thin program surface。继续把本机 LaunchAgent 写成默认 scheduler owner 会让 MAS 持有通用 cadence、job registry 和 scheduler lifecycle，和 OPL-led family framework 分层冲突。
 - 影响：`local` 已从公开 CLI manager choices 移除，只保留 tombstone/provenance refs；显式 Hermes 不再作为 status/remove/ensure cleanup adapter 暴露。workspace bootstrap 不安装 MAS local scheduler，也不生成 compatibility wrapper。`standard_agent_purity_guard.default_caller_count=0` 是当前退役门槛：默认 CLI、workspace bootstrap、product-entry、domain-handler 和 MCP 都不得再调用 local install path；local adapter 不允许 install、status、remove、trigger、loaded-state 或 install-proof 输出；Hermes adapter 不允许 install、refresh、trigger 或写 tick script。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
 

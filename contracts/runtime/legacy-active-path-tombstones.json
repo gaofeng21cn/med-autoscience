@@ -2,19 +2,20 @@
   "surface_kind": "mas_legacy_active_path_tombstone_contract",
   "version": "mas-legacy-active-path-tombstone-contract.v1",
   "target_domain_id": "medautoscience",
-  "status": "legacy_active_paths_tombstoned",
-  "default_active_path": "OPL/Temporal hosted autonomous runtime with Codex CLI as the default stage executor and MAS direct skill as a direct entry surface",
+  "status": "legacy_active_paths_retired_tombstoned",
+  "default_active_path": "PaperMission + StageTerminalDecision/StageOutcome on OPL/Temporal hosted substrate; MAS direct skill is only a direct entry to the same PaperMission owner surface",
   "tombstoned_surfaces": [
     {
       "surface_id": "dhd_owner_route_dispatch_paper_recovery_default_paper_mainline",
-      "classification": "diagnostics_migration_provenance_only",
+      "status": "retired_tombstone",
+      "classification": "retired_diagnostics_migration_provenance_only",
       "default_caller": false,
       "default_product_mainline_claim_allowed": false,
       "default_domain_handler_mainline_claim_allowed": false,
       "tombstone_ref": "docs/active/mas_executor_first_rearchitecture_program.md#phase-4-retire-old-way",
       "replacement_ref": "contracts/paper_mission_run_contract.json",
       "replacement_projection_ref": "study_progress.artifact_first_mission_summary.paper_mission_run",
-      "retained_context": "DHD, owner-route, dispatch, and PaperRecovery may be used only as diagnostics, migration input, provenance, or consume/readback evidence; they must not be the product/default domain-handler paper mission mainline.",
+      "retained_context": "DHD, owner-route, default-executor dispatch, default_executor_execution, PaperRecovery, Portal/workbench, and MAS control-plane wording may be used only as diagnostics, migration input, provenance, or consume/readback evidence; they must not be the product/default domain-handler paper mission mainline or an active public projection alias.",
       "legacy_surfaces": [
         "domain_health_diagnostic",
         "DHD",
@@ -22,9 +23,13 @@
         "owner_route",
         "domain-handler export",
         "default-executor dispatch",
+        "default_executor_execution",
         "dispatch",
         "PaperRecovery",
-        "paper_recovery_state"
+        "paper_recovery_state",
+        "Progress Portal",
+        "MAS workbench",
+        "MAS control-plane"
       ],
       "replacement_contract": {
         "contract_ref": "contracts/paper_mission_run_contract.json",
@@ -50,6 +55,8 @@
       },
       "authority_boundary": {
         "read_only": true,
+        "retired_tombstone": true,
+        "active_public_projection_alias_allowed": false,
         "history_provenance_only": true,
         "diagnostics_only": true,
         "migration_input_only": true,
@@ -80,6 +87,7 @@
     },
     {
       "surface_id": "hermes_scheduler_hosted_runtime",
+      "status": "retired_tombstone",
       "classification": "retired_no_default_caller",
       "default_caller": false,
       "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#hermes-scheduler-hosted-runtime",
@@ -88,6 +96,7 @@
     },
     {
       "surface_id": "hosted_runtime_binding_wording",
+      "status": "retired_tombstone",
       "classification": "tombstoned_wording",
       "default_caller": false,
       "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#hosted-runtime-binding-wording",
@@ -96,6 +105,7 @@
     },
     {
       "surface_id": "workspace_local_scheduler_as_online_target",
+      "status": "retired_tombstone",
       "classification": "tombstone_provenance_only",
       "default_caller": false,
       "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#workspace-local-scheduler",
@@ -124,7 +134,13 @@
       "supervisor-scan",
       "supervisor-consume",
       "supervisor-execute-dispatch",
-      "runtime_platform_repair"
+      "runtime_platform_repair",
+      "domain-health-diagnostic",
+      "domain_owner/default-executor-dispatch",
+      "default_executor_execution",
+      "progress_portal",
+      "progress-portal",
+      "workbench"
     ],
     "authority_boundary": {
       "read_only": true,
@@ -239,7 +255,8 @@
           "migration_diagnostic_only": true,
           "ordinary_schedulable": false,
           "active_caller_class": "diagnostic_only",
-          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
+          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+          "active_public_projection_alias_allowed": false
         }
       },
     "proof_scope": [
@@ -299,7 +316,7 @@
         "surface_id": "plugin_skill_ordinary_path",
         "source_ref": "plugins/mas/skills/mas/SKILL.md",
         "required_ordinary_path": "study -> stage -> domain owner receipt or typed blocker -> handoff",
-        "allowed_legacy_reference_class": "Runtime controller tick may name domain-health-diagnostic as diagnostic/control readback, not ordinary paper mission execution"
+        "allowed_legacy_reference_class": "Retired runtime controller references may name domain-health-diagnostic only as diagnostic/control readback, not ordinary paper mission execution"
       }
     ],
     "allowed_legacy_reference_classes": [
@@ -308,7 +325,8 @@
       "OPL StageRun ABI carrier",
       "migration diagnostic",
       "history provenance",
-      "legacy fixture"
+      "legacy fixture",
+      "retired workbench projection"
     ],
     "legacy_reference_rigor_policy": {
       "status": "active_claim_boundary",
@@ -324,6 +342,27 @@
         "can_claim_runtime_ready"
       ],
       "allowed_reference_claim_boundaries": [
+        {
+          "reference_class": "retired workbench projection",
+          "allowed_use": "display PaperMission, StageOutcome, owner receipt, typed blocker, human gate, route-back, or OPL hosted substrate refs without becoming a MAS-owned control plane",
+          "required_evidence": [
+            "paper_mission_or_stage_outcome_ref",
+            "read_only_projection_boundary",
+            "active_public_projection_alias_allowed_false"
+          ],
+          "forbidden_claims": [
+            "product_default_mainline",
+            "domain_handler_default_mainline",
+            "paper_progress",
+            "runtime_ready",
+            "provider_running",
+            "owner_receipt_written",
+            "typed_blocker_written"
+          ],
+          "can_select_next_paper_stage": false,
+          "counts_as_paper_progress": false,
+          "can_claim_runtime_ready": false
+        },
         {
           "reference_class": "runtime diagnostic",
           "allowed_use": "observe runtime-control, currentness, or fail-closed symptoms as platform diagnostics",
