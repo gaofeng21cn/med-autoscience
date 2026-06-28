@@ -41,7 +41,7 @@ def progress_section_explanations(
             "下一步",
             "study_progress.current_owner_delta",
             "展示 OPL/current_owner_delta 派生的只读下一步摘要，以及是否需要医生/PI 判断。",
-            "owner、action type、required delta、work unit 和 human gate 投影；legacy next_system_action 只作为 diagnostic input。",
+            "owner、action type、required delta、work unit 和 human gate 投影。",
             "如果没有 current_owner_delta，应显示等待 OPL/current_owner_delta readback。",
         ),
         _item(

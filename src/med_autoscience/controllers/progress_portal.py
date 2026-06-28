@@ -23,7 +23,6 @@ from med_autoscience.controllers.progress_portal_parts.html import (
     render_progress_portal_html as render_progress_portal_html_part,
 )
 from med_autoscience.controllers.progress_portal_parts.owner_delta_summary import (
-    legacy_next_action_diagnostic,
     owner_delta_read_only_summary,
 )
 from med_autoscience.controllers.progress_portal_parts.payload_helpers import (
@@ -174,10 +173,6 @@ def build_progress_portal_payload(
     if study_workbench:
         study_workbench = _study_workbench_with_mission_summary(study_workbench, mission_summary)
     owner_delta_summary = owner_delta_read_only_summary(_mapping(study_workbench.get("current_owner_delta")))
-    legacy_next_action = legacy_next_action_diagnostic(
-        user_visible.get("next_system_action"),
-        user_visible.get("user_next"),
-    )
     has_workspace_studies = bool(workspace_study_rows)
     has_workspace_alerts = bool(workspace_alerts["visible_items"])
     has_diagnostics = bool(workspace_alerts["suppressed_items"])
@@ -272,7 +267,6 @@ def build_progress_portal_payload(
             or owner_delta_summary["summary"]
             or "等待 artifact-first mission summary 生成论文产物下一步。",
             "next_system_action_role": "artifact_first_mission_summary",
-            "legacy_next_system_action_diagnostic": legacy_next_action,
             "needs_user_decision": bool(user_visible.get("needs_user_decision")),
             "decision_trace": _body_free_trace(user_visible.get("decision_trace")),
             "decision_trace_refs": _list_field(user_visible, "decision_trace_refs"),

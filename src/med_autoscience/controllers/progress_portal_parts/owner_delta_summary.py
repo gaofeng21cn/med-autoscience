@@ -76,45 +76,12 @@ def owner_delta_read_only_summary(projection: Mapping[str, Any] | None) -> dict[
     }
 
 
-def legacy_next_action_diagnostic(*values: object) -> dict[str, Any]:
-    texts = []
-    for value in values:
-        text = _non_empty_text(value)
-        if text is None or text in texts:
-            continue
-        texts.append(text)
-    return {
-        "surface_kind": "mas_progress_portal_legacy_next_action_diagnostic",
-        "status": "available" if texts else "missing",
-        "values": texts,
-        "role": "diagnostic_legacy_projection_input",
-        "projection_only": True,
-        "can_generate_action": False,
-        "can_execute": False,
-        "can_authorize_provider_admission": False,
-        "can_authorize_worker_attempt": False,
-        "can_generate_owner_receipt": False,
-        "can_generate_typed_blocker": False,
-        "can_generate_human_gate": False,
-        "can_close_stage": False,
-        "must_not_be_used_as_next_action_authority": True,
-        "must_not_be_used_as_provider_admission": True,
-        "must_not_be_used_as_paper_progress": True,
-        "must_not_be_used_as_publication_ready": True,
-        "must_not_be_used_as_stage_authority": True,
-    }
-
-
-def workbench_next_action_projection(
-    projection: Mapping[str, Any] | None,
-    *legacy_values: object,
-) -> dict[str, Any]:
+def owner_delta_workbench_projection(projection: Mapping[str, Any] | None) -> dict[str, Any]:
     summary = owner_delta_read_only_summary(projection)
     return {
         "user_next": summary["summary"],
         "user_next_role": "read_only_owner_delta_summary",
         "owner_delta_summary": summary,
-        "legacy_next_action_diagnostic": legacy_next_action_diagnostic(*legacy_values),
         "next_action_summary": summary["summary"],
         "next_action_summary_role": "read_only_drilldown_summary",
         "next_action_summary_is_controller_action": False,

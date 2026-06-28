@@ -93,14 +93,10 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
     else:
         study_workbench = _mapping(payload.get("study_workbench"))
         owner_delta_summary = _mapping(study_workbench.get("owner_delta_summary"))
-        legacy_next_action = _mapping(study_workbench.get("overview")).get("legacy_next_system_action_diagnostic")
         next_step_paragraphs = [
             str(owner_delta_summary.get("summary") or "等待 OPL/current_owner_delta readback 生成只读下一步摘要。"),
             gate_text(study),
         ]
-        legacy_values = _string_list(_mapping(legacy_next_action).get("values"))
-        if legacy_values:
-            next_step_paragraphs.append("legacy next_system_action 已降级为 diagnostic input，不作为控制面下一步。")
         delivery_paragraphs = [
             str(delivery.get("summary") or "交付投影缺失。"),
             display_text(delivery.get("status"), empty_text="交付状态未提供"),

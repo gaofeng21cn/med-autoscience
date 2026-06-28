@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .progress_first_operator import build_progress_first_operator_projection
-from .owner_delta_summary import workbench_next_action_projection as _workbench_next_action_projection
+from .owner_delta_summary import owner_delta_workbench_projection as _owner_delta_workbench_projection
 from .runtime_workbench_sections import build_paper_route_lens, paper_route_lens_summary
 from .runtime_workbench_sections.common import (
     dedupe_refs as _dedupe_refs,
@@ -144,13 +144,7 @@ def _workbench_study_row(
         row.get("runtime_health_status"),
         row.get("supervisor_tick_status"),
     )
-    next_action_projection = _workbench_next_action_projection(
-        row.get("current_owner_delta"),
-        row.get("next_system_action"),
-        row.get("operator_focus"),
-        row.get("user_next"),
-        row.get("next_action_summary"),
-    )
+    next_action_projection = _owner_delta_workbench_projection(row.get("current_owner_delta"))
     result = {
         "study_id": study_id,
         "display_title": _non_empty_text(row.get("display_title")) or _non_empty_text(row.get("title")) or study_id,
@@ -216,11 +210,7 @@ def _selected_workbench_study(
     stage_artifact_index = _stage_artifact_index_projection(progress)
     stage_operating_layer = _stage_operating_layer_projection(progress)
     current_owner_delta = _mapping(study_workbench.get("current_owner_delta"))
-    next_action_projection = _workbench_next_action_projection(
-        current_owner_delta,
-        user_visible.get("next_system_action"),
-        user_visible.get("user_next"),
-    )
+    next_action_projection = _owner_delta_workbench_projection(current_owner_delta)
     return {
         "study_id": study_id,
         "display_title": study_id,

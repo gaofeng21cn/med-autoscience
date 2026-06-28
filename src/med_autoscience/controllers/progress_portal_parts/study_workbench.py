@@ -16,7 +16,6 @@ from .progress_first_operator import (
     render_progress_first_operator_section,
 )
 from .owner_delta_summary import (
-    legacy_next_action_diagnostic as _legacy_next_action_diagnostic,
     owner_delta_read_only_summary as _owner_delta_read_only_summary,
 )
 from .source_refs import source_ref_allowed, source_refs
@@ -136,10 +135,6 @@ def build_study_workbench_payload(
         ),
         "owner_delta_summary": owner_delta_summary,
         "next_system_action": owner_delta_summary["summary"],
-        "legacy_next_system_action_diagnostic": _legacy_next_action_diagnostic(
-            user_visible.get("next_system_action"),
-            cockpit_study.get("next_system_action"),
-        ),
         "current_blockers": _string_list(user_visible.get("current_blockers")),
     }
     overview_action_boundary = _overview_action_boundary()

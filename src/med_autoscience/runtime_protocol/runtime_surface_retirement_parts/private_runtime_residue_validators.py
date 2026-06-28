@@ -282,8 +282,6 @@ def validate_progress_portal_study_workbench_overview_action_projection(
         "projection_only": True,
         "operator_intent_refs_are_inert": True,
         "requires_opl_current_control_readback": True,
-        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
-        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
         "must_not_be_used_as_provider_admission": True,
         "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_publication_ready": True,

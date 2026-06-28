@@ -175,7 +175,6 @@ def _ensure_workspace_has_selected_study(workspace_payload: dict[str, Any], deta
     if study_id is None:
         return
     detail_workbench = _mapping(detail_payload.get("study_workbench"))
-    detail_overview = _mapping(detail_workbench.get("overview"))
     owner_delta_summary = _mapping(detail_workbench.get("owner_delta_summary"))
     workspace = _mapping(workspace_payload.get("workspace"))
     studies = _mapping_list(workspace.get("studies"))
@@ -195,7 +194,6 @@ def _ensure_workspace_has_selected_study(workspace_payload: dict[str, Any], deta
             "progress_freshness_status": _mapping(detail_payload.get("freshness")).get("status"),
             "operator_focus": owner_delta_summary.get("summary"),
             "current_owner_delta": detail_workbench.get("current_owner_delta"),
-            "legacy_next_system_action_diagnostic": detail_overview.get("legacy_next_system_action_diagnostic"),
             "portal_href": study_detail_href(study_id),
         }
     )
@@ -380,7 +378,6 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
     current_stage = _non_empty_text(study.get("current_stage"))
     paper_stage = _non_empty_text(study.get("paper_stage"))
     owner_delta_summary = _mapping(study.get("owner_delta_summary"))
-    legacy_next_action = _mapping(study.get("legacy_next_system_action_diagnostic"))
     next_system_action = (
         _non_empty_text(owner_delta_summary.get("summary"))
         or "等待 OPL/current_owner_delta readback 生成只读下一步摘要。"
@@ -399,7 +396,6 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
             "paper_stage": paper_stage,
             "next_system_action": next_system_action,
             "next_system_action_role": "read_only_owner_delta_summary",
-            "legacy_next_system_action_diagnostic": legacy_next_action,
             "current_blockers": current_blockers,
             "needs_user_decision": False,
         },

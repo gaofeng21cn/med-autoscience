@@ -5,7 +5,7 @@ from html import escape
 from urllib.parse import quote
 from typing import Any
 
-from .owner_delta_summary import legacy_next_action_diagnostic, owner_delta_read_only_summary
+from .owner_delta_summary import owner_delta_read_only_summary
 from .status_display import display_text, status_chip, status_label
 
 
@@ -106,8 +106,6 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
         runtime_health = _mapping(item.get("runtime_health_snapshot"))
         opl_control = _mapping(item.get("opl_current_control_state")) or _mapping(item.get("current_control_state"))
         supervisor_state = _mapping(runtime_health.get("supervisor_state"))
-        intervention_lane = _mapping(item.get("intervention_lane"))
-        operator_status_card = _mapping(item.get("operator_status_card"))
         owner_delta_summary = owner_delta_read_only_summary(
             _mapping(item.get("current_owner_delta"))
             or _mapping(user_visible.get("current_owner_delta"))
@@ -151,14 +149,6 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
                 "progress_freshness_summary": _non_empty_text(progress_freshness.get("summary")),
                 "operator_focus": operator_focus,
                 "owner_delta_summary": owner_delta_summary,
-                "legacy_operator_focus_diagnostic": legacy_next_action_diagnostic(
-                    intervention_lane.get("title"),
-                    operator_status_card.get("user_visible_verdict"),
-                ),
-                "legacy_next_system_action_diagnostic": legacy_next_action_diagnostic(
-                    item.get("next_system_action"),
-                    user_visible.get("next_system_action"),
-                ),
                 "paper_route_lens": _mapping(item.get("paper_route_lens")),
             }
         )

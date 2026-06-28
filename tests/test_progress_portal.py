@@ -45,11 +45,7 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
         "stable_blocker"
     )
     assert payload["study"]["platform_diagnostics"]["counts_as_paper_progress"] is False
-    assert payload["study"]["legacy_next_system_action_diagnostic"]["values"] == [
-        "补充 subgroup 分析并更新 review ledger。",
-        "wait",
-    ]
-    assert payload["study"]["legacy_next_system_action_diagnostic"]["can_generate_action"] is False
+    assert "legacy_next_system_action_diagnostic" not in payload["study"]
     assert payload["freshness"]["status"] == "stale"
     assert payload["conditions"]["stale"] == ["progress_freshness"]
     assert "domain_route_tick" not in payload["conditions"]["missing"]
@@ -311,17 +307,13 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
         "owner=one-person-lab; action_type=resolve_activity_timeout; "
         "work_unit_id=dm002-activity-timeout"
     )
-    assert dm002["legacy_operator_focus_diagnostic"]["values"] == [
-        "优先处理 activity timeout",
-    ]
-    assert dm002["legacy_next_system_action_diagnostic"]["values"] == []
     dpcc003 = studies[2]
     assert dpcc003["active_run_id"] == "mas-run-003"
     assert dpcc003["paper_stage"] == "write"
     assert dpcc003["operator_focus"] is None
-    assert dpcc003["legacy_next_system_action_diagnostic"]["values"] == [
-        "观察自动运行推进。",
-    ]
+    for item in studies:
+        assert "legacy_operator_focus_diagnostic" not in item
+        assert "legacy_next_system_action_diagnostic" not in item
 
     legacy_owner_token = "_".join(("runtime", "supervisor"))
     legacy_payload = module.build_progress_portal_payload(
@@ -637,6 +629,10 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
         "quality_verdict",
         "runtime_authority",
         "artifact_authority",
+        "owner_receipt",
+        "typed_blocker",
+        "human_gate",
+        "stage_authority",
         "runtime_state",
         "runtime_sqlite",
         "terminal_commands",
@@ -677,10 +673,15 @@ def test_progress_portal_runtime_workbench_boundary_is_read_only_projection() ->
         "must_not_be_used_as_provider_admission": True,
         "must_not_be_used_as_publication_ready": True,
         "must_not_be_used_as_paper_progress": True,
+        "must_not_be_used_as_stage_authority": True,
         "can_execute_controller_action": False,
         "can_generate_next_action_authority": False,
         "can_authorize_provider_admission": False,
         "can_authorize_worker_attempt": False,
+        "can_generate_owner_receipt": False,
+        "can_generate_typed_blocker": False,
+        "can_generate_human_gate": False,
+        "can_close_stage": False,
         "can_transport_operator_action": False,
         "can_emit_runtime_command": False,
         "can_open_runtime_endpoint": False,
