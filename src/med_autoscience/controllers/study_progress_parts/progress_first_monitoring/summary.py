@@ -449,6 +449,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     if current_action_running_provider_attempt:
         state_kind = "running_provider_attempt"
+    elif receipt_consumed and transition_consumed_same_work_unit and not raw_typed_blocker:
+        state_kind = "receipt_consumed"
     elif owner_action_visible:
         state_kind = "executable_owner_action"
     else:
