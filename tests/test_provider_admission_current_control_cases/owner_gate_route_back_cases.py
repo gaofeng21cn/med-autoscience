@@ -9,7 +9,7 @@ def test_provider_admission_report_does_not_admit_owner_gate_route_back_without_
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

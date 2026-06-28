@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
+from med_autoscience.controllers.provider_admission_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_precedence import (

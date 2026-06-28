@@ -3,43 +3,43 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.provider_admission import (
     current_control_provider_admission_candidates,
     candidate_with_authority_boundaries,
     handoff_dispatch_path,
     handoff_work_unit_id,
     study_has_running_provider_attempt,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control import (
     materialize_provider_admission_current_control_state,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_identity import (
     closeout_evidence_with_identity as _closeout_evidence_with_identity,
     terminal_stage_closeout_evidence as _terminal_stage_closeout_evidence,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_scan import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_scan import (
     study_root_closeout_evidence as _study_root_closeout_evidence,
     with_candidate_root_closeout_scans as _with_candidate_root_closeout_scans,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_same_tick_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_same_tick_identity import (
     same_tick_candidate_matches_current_action as _same_tick_candidate_matches_current_action,
     same_tick_candidate_with_stage_run_identity as _same_tick_candidate_with_stage_run_identity,
     same_tick_progress_current_actions as _same_tick_progress_current_actions,
     same_tick_text_items as _same_tick_text_items,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_runtime_surfaces import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_runtime_surfaces import (
     sync_current_control_runtime_surfaces as _sync_current_control_runtime_surfaces,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
 from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_readback_filters import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_readback_filters import (
     filter_transition_requests_consumed_by_provider_readback as _filter_transition_requests_consumed_by_provider_readback,
     transition_request_only_candidates as _transition_request_only_candidates,
 )

@@ -100,7 +100,7 @@ def test_helper_shapes_are_single_source_for_existing_runtime_consumers() -> Non
         "med_autoscience.controllers.opl_transition_readback"
     )
     boundaries = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries"
     )
     projection = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"

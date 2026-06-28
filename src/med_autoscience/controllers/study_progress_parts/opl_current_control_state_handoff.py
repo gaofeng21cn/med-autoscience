@@ -10,7 +10,7 @@ from med_autoscience.controllers import autonomy_ai_doctor
 from med_autoscience.controllers.autonomy_repair_readback import (
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (

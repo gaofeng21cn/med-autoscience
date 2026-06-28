@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
+from med_autoscience.controllers.provider_admission_parts import provider_admission
 from med_autoscience.controllers.owner_route_reconcile_parts import current_owner_action_identity
 
 

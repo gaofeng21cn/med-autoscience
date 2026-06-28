@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from med_autoscience.agent_tool_arsenal import FORBIDDEN_DOMAIN_AUTHORITY
 from med_autoscience.authority_kernel_inventory_parts.schema import (
     OWNER,
     AuthorityKernelItem,
@@ -139,7 +138,6 @@ def inventory_items() -> tuple[AuthorityKernelItem, ...]:
             upcollect_target="OPL Capability Registry invokes advisory workers fail-open",
         ),
         _capability_item(),
-        _diagnostic_probe_item(),
     )
 
 
@@ -238,43 +236,6 @@ def _capability_item() -> AuthorityKernelItem:
             "publication, artifact, memory, or study truth authority."
         ),
         upcollect_target="OPL Capability Registry / Tool Arsenal runtime consumption",
-    )
-
-
-def _diagnostic_probe_item() -> AuthorityKernelItem:
-    return AuthorityKernelItem(
-        item_id="diagnostic_probe.domain_health_diagnostic",
-        category="diagnostic_probe",
-        owner=OWNER,
-        surface_ref="src/med_autoscience/controllers/domain_health_diagnostic.py",
-        active_caller_refs=(
-            "medautosci runtime domain-health-diagnostic --dry-run",
-            "src/med_autoscience/mcp_server.py::domain_health_diagnostic",
-            "docs/status.md#Accepted typed closeout currentness hardening",
-        ),
-        allowed_writes=(
-            "artifacts/runtime/domain_health_diagnostic/*.json",
-            "diagnostic projection refs",
-            "typed blocker candidates",
-        ),
-        forbidden_authority=tuple(FORBIDDEN_DOMAIN_AUTHORITY),
-        output_refs=(
-            "domain_health_diagnostic_ref",
-            "currentness_probe_ref",
-            "route_back_evidence_ref",
-            "typed_blocker_candidate_ref",
-        ),
-        cannot_lift_to_opl_reason=(
-            "The probe can diagnose currentness and owner-route gaps but cannot be a "
-            "generic runtime owner; MAS keeps the diagnostic boundary so probe output "
-            "does not become owner answer, publication verdict, or paper progress."
-        ),
-        retirement_gate=(
-            "Retire MAS-private diagnostic implementation only after OPL Route "
-            "Reconciler consumes the same MAS owner receipt / typed blocker refs and "
-            "focused parity tests prove no authority drift."
-        ),
-        upcollect_target="OPL Route Reconciler and Observability Plane",
     )
 
 

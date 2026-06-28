@@ -69,7 +69,6 @@
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
         "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
-        "tests/test_domain_health_diagnostic.py",
         "tests/test_study_progress.py",
         "tests/test_progress_portal.py",
         "tests/test_product_entry.py"
@@ -2636,7 +2635,6 @@
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
         "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
-        "tests/test_domain_health_diagnostic.py",
         "tests/test_paper_autonomy_stability_evidence.py",
         "tests/test_real_workspace_soak_monitor.py",
         "tests/test_study_progress.py",

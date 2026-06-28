@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.provider_admission import (
     provider_attempt_matches_identity,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts import (
+from med_autoscience.controllers.provider_admission_parts import (
     provider_admission_current_control_receipts as current_control_receipts,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_arbiter import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_arbiter import (
     _arbiter_decision,
     _candidates_not_covered_by_live_attempt,
     _matching_accepted_closeout,
@@ -20,7 +20,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     _stage_route_arbiter_decisions,
     _stage_route_arbiter_summary,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity import (
     accepted_closeout_receipts as _accepted_closeout_receipts,
     candidate_with_identity as _candidate_with_identity,
     candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
@@ -30,10 +30,10 @@ from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_request import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
     text_items as _text_items,
 )

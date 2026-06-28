@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import control_identity
-from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
+from med_autoscience.controllers.provider_admission_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
 )
 from med_autoscience.controllers.study_progress_parts.shared import (

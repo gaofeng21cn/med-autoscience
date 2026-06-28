@@ -5,13 +5,13 @@ from typing import Any, Mapping
 from med_autoscience.controllers import (
     opl_domain_progress_transition_contract as transition_contract,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     provider_admission_authority_boundary,
     provider_admission_candidate_with_authority_boundaries,
     stage_transition_authority_boundary,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
     text_items as _text_items,
 )

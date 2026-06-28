@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
 

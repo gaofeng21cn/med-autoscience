@@ -232,7 +232,7 @@ def test_provider_admission_projection_materialize_recovery_action_accepts_log_r
         "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
     )
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

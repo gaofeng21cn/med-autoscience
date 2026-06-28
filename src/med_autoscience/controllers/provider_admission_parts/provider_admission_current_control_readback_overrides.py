@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts import (
     provider_admission_current_control_receipts as current_control_receipts,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity import (
     accepted_closeout_receipts as _accepted_closeout_receipts,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
 )
 from med_autoscience.controllers.opl_transition_readback import (

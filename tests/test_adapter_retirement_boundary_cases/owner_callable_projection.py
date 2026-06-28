@@ -405,14 +405,14 @@ def test_materializer_canonical_projection_preserves_strong_identity_without_leg
 
 def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
     )
     source = (
         REPO_ROOT
         / "src"
         / "med_autoscience"
         / "controllers"
-        / "domain_health_diagnostic_parts"
+        / "provider_admission_parts"
         / "provider_admission_report.py"
     ).read_text(encoding="utf-8")
 
@@ -464,7 +464,7 @@ def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp
 
 def test_dhd_same_tick_blocker_summary_ignores_legacy_adapter_list() -> None:
     same_tick = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.developer_supervisor_same_tick"
+        "med_autoscience.controllers.provider_admission_parts.developer_supervisor_same_tick"
     )
     legacy_blocked = {
         "study_id": "study-1",
@@ -511,7 +511,7 @@ def test_dhd_dry_run_preview_does_not_consume_legacy_adapter_list_as_carrier() -
         / "src"
         / "med_autoscience"
         / "controllers"
-        / "domain_health_diagnostic_parts"
+        / "provider_admission_parts"
         / "runtime_dry_run_previews.py"
     ).read_text(encoding="utf-8")
 

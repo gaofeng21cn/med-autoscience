@@ -20,7 +20,7 @@
     "surface_kind": "real_paper_autonomy_live_supervisor_canary",
     "mode": "read_only_live_canary",
     "may_call_study_progress": true,
-    "may_call_domain_health_diagnostic_dry_run": true,
+    "may_call_legacy_diagnostic_reader": true,
     "may_apply_domain_health_diagnostic": false,
     "may_hydrate": false,
     "may_tick": false,

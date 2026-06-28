@@ -24,7 +24,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
 from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.opl_execution_boundary import (

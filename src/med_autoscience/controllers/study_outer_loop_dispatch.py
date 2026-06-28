@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_health_diagnostic_work_units
+from med_autoscience.controllers import study_outer_loop_work_units
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -36,7 +36,7 @@ def serialize_outer_loop_dispatch(
         "dispatch_status": _non_empty_text(outer_loop_result.get("dispatch_status")),
         "source": _non_empty_text(outer_loop_result.get("source")) or _non_empty_text(tick_request.get("source")),
     }
-    payload.update(domain_health_diagnostic_work_units.context_payload(tick_request))
+    payload.update(study_outer_loop_work_units.context_payload(tick_request))
     return payload
 
 
@@ -64,7 +64,7 @@ def attach_to_quest_report(
         "dispatch_status": _non_empty_text(dispatch_payload.get("dispatch_status")),
         "source": _non_empty_text(dispatch_payload.get("source")),
     }
-    report_dispatch.update(domain_health_diagnostic_work_units.context_payload(dispatch_payload))
+    report_dispatch.update(study_outer_loop_work_units.context_payload(dispatch_payload))
     quest_report["managed_study_outer_loop_dispatch"] = report_dispatch
     latest_report_path = _candidate_path(quest_report.get("latest_report_json")) or _candidate_path(
         quest_report.get("report_json")

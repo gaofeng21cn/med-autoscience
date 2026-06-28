@@ -8,29 +8,29 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
     is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.provider_admission import (
     provider_attempt_matches_identity,
     study_has_running_provider_attempt,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts import (
+from med_autoscience.controllers.provider_admission_parts import (
     provider_admission_current_control_receipts as current_control_receipts,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity import (
     accepted_closeout_receipts as _accepted_closeout_receipts,
     attempt_idempotency_key as _attempt_idempotency_key,
     missing_identity_fields as _missing_identity_fields,
     route_identity_key as _route_identity_key,
     weak_provider_admission_identity as _weak_provider_admission_identity,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_readback_overrides import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_readback_overrides import (
     provider_admission_readback_overrides_blocking_closeout,
     weak_identity_is_opl_authorization_stage_packet_gap,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
 )
 from med_autoscience.controllers.opl_transition_readback import (
@@ -38,7 +38,7 @@ from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
     required_opl_transition_readback_shape,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_actions import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions import (
     accepted_owner_gate_admission_matches_selected_dispatch_blocker,
 )
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (

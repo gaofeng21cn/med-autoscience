@@ -11,22 +11,22 @@ from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers i
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     currentness_identity,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
+from med_autoscience.controllers.provider_admission_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
     current_ai_reviewer_gate_replay_source_eval_id,
     is_current_ai_reviewer_gate_replay_fingerprint,
     study_currentness_basis,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_handoffs import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_handoffs import (
     handoff_dispatch_path,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     first_text as _first_text,
     mapping as _mapping,
     non_empty_text as _non_empty_text,
     text_items as _text_items,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_identity import (
     current_action_currentness_basis as _current_action_currentness_basis,
     current_work_unit_opl_authorization_required as _current_work_unit_opl_authorization_required,
     owner_route_currentness_basis_complete as _owner_route_currentness_basis_complete,

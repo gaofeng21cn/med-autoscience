@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
     non_empty_text as _non_empty_text,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission import (
     _study_current_action_for_provider_admission,
 )
 from med_autoscience.runtime_control import owner_route_attempt_protocol

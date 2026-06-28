@@ -9,7 +9,7 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request

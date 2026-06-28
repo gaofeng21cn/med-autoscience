@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_identity import (
     closeout_core_identity_matches_candidate as _closeout_core_identity_matches_candidate,
     closeout_evidence_with_identity as _closeout_evidence_with_identity,
     closeout_identity_matches_current as _closeout_identity_matches_current,

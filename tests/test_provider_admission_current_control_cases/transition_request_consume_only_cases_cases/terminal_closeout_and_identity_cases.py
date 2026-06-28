@@ -11,7 +11,7 @@ def test_provider_admission_current_control_consumes_terminal_closeout_currentne
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -133,7 +133,7 @@ def test_provider_admission_current_control_rejects_mismatched_opl_readback_iden
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -204,7 +204,7 @@ def test_provider_admission_current_control_keeps_same_tick_materialized_recover
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

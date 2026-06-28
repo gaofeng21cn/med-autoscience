@@ -539,7 +539,7 @@ def _controller_decision_latest_matches_outer_loop_request(
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
 ) -> bool:
-    decision_match = import_module("med_autoscience.controllers.domain_health_diagnostic_parts.decision_match")
+    decision_match = import_module("med_autoscience.controllers.provider_admission_parts.decision_match")
     return decision_match.controller_decision_latest_matches_outer_loop_request(
         study_root=study_root,
         status_payload=status_payload,

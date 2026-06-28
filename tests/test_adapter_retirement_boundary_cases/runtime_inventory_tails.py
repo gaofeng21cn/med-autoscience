@@ -43,7 +43,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "can_satisfy_current_recovery_action": False,
     }
     assert set(execution_latest["canonical_first_readers"]) == {
-        "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
+        "provider_admission_parts.provider_admission.persisted_provider_admission_candidates",
         "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
         "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
     }
@@ -107,8 +107,8 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
                     "study_transition_receipt_consumption_parts.default_executor_followthrough."
                     "default_executor_execution_followthrough_receipt_consumption"
                 ),
-                "domain_health_diagnostic_parts.provider_admission_report_closeout_scan",
-                "domain_health_diagnostic_work_units",
+                "provider_admission_parts.provider_admission_report_closeout_scan",
+                "study_outer_loop_work_units",
                 "study_progress_parts.opl_current_control_state_terminal_logs",
             ],
             "allowed_consumption": [
@@ -421,7 +421,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "opl_obligation_actuator_tail_readback_requirement"
     ]["physical_delete_allowed_without_tail_proof"] is False
     assert obligation_actuator["mas_typed_blocker_authority_result_adapter"] == (
-        "med_autoscience.controllers.domain_health_diagnostic_parts."
+        "med_autoscience.controllers.provider_admission_parts."
         "obligation_actuator_parts.mas_domain_typed_blocker_authority_result"
     )
     assert obligation_actuator["typed_blocker_authority_result_adapter_surface"] == (

@@ -11,7 +11,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
     provider_admission_authority_transport_fields,
     provider_admission_candidate_with_authority_boundaries,
@@ -26,7 +26,7 @@ from med_autoscience.controllers.paper_progress_policy_adapter import build_tran
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
-from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
+from med_autoscience.controllers.provider_admission_parts import provider_admission
 from med_autoscience.controllers.owner_route_handoff_parts import current_dispatch_identity
 from med_autoscience.controllers.owner_route_handoff_parts import default_executor_dispatch_readiness
 from med_autoscience.controllers.owner_route_handoff_parts import provider_admission_identity

@@ -6,7 +6,7 @@ from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
     non_empty_text as _non_empty_text,
 )

@@ -37,8 +37,7 @@ CONTROL_PLANE_TESTS := \
 	tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
 	tests/test_study_progress.py \
-	tests/test_product_entry.py \
-	tests/test_domain_health_diagnostic.py
+	tests/test_product_entry.py
 
 test: test-smoke
 

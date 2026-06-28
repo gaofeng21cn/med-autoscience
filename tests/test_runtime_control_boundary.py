@@ -11,10 +11,10 @@ pytestmark = pytest.mark.meta
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 RETIRED_RUNTIME_WATCH_HELPERS = (
-    Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py"),
-    Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_recovery.py"),
-    Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/authority_dispatch_gate.py"),
-    Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/gate_specificity.py"),
+    Path("src/med_autoscience/controllers/provider_admission_parts/runtime_scan.py"),
+    Path("src/med_autoscience/controllers/provider_admission_parts/managed_recovery.py"),
+    Path("src/med_autoscience/controllers/provider_admission_parts/authority_dispatch_gate.py"),
+    Path("src/med_autoscience/controllers/provider_admission_parts/gate_specificity.py"),
 )
 def test_domain_health_diagnostic_execution_helpers_are_retired() -> None:
     for path in RETIRED_RUNTIME_WATCH_HELPERS:
@@ -22,7 +22,7 @@ def test_domain_health_diagnostic_execution_helpers_are_retired() -> None:
 
 
 def test_runtime_scan_uses_runtime_control_ports_for_controller_execution() -> None:
-    path = Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py")
+    path = Path("src/med_autoscience/controllers/provider_admission_parts/runtime_scan.py")
     assert not path.exists()
 
 

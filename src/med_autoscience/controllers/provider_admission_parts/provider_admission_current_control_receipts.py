@@ -2,21 +2,21 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.provider_admission_parts.provider_admission import (
     provider_attempt_matches_identity,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity import (
     accepted_closeout_receipts as _accepted_closeout_receipts,
     attempt_idempotency_key as _attempt_idempotency_key,
     basis_conflicts_with_identity as _basis_conflicts_with_identity,
     closeout_owner_route_basis as _closeout_owner_route_basis,
     route_identity_key as _route_identity_key,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER

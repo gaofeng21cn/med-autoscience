@@ -8,7 +8,7 @@ from ..default_executor_action_policy import (
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
-from ..domain_health_diagnostic_parts import provider_admission
+from ..provider_admission_parts import provider_admission
 from ..study_progress_parts import repair_progress_projection
 from .export_study_projection_common import (
     legacy_owner_callable_task_boundary,

@@ -35,7 +35,7 @@ def test_live_supervisor_canary_requires_one_identity_bound_decision_per_study()
         profile_ref=str(FakeProfile.profile_ref),
         study_ids=(DM002, DM003),
         progress_reader=_progress_reader(_progress_payloads()),
-        dhd_reader=_dhd_reader(_progress_payloads()),
+        diagnostic_reader=_diagnostic_reader(_progress_payloads()),
     )
 
     assert payload["surface_kind"] == "real_paper_autonomy_live_supervisor_canary"
@@ -44,7 +44,7 @@ def test_live_supervisor_canary_requires_one_identity_bound_decision_per_study()
     assert payload["summary"]["writes_performed"] is False
     assert payload["summary"]["exactly_one_supervisor_decision_per_study"] is True
     assert payload["summary"]["forbidden_progress_authorities_rejected"] is True
-    assert payload["dhd_dry_run_summary"] == {
+    assert payload["legacy_diagnostic_summary"] == {
         "action_class": "observe_only",
         "will_start_llm": False,
         "codex_dispatch_count": 0,
@@ -59,7 +59,7 @@ def test_live_supervisor_canary_requires_one_identity_bound_decision_per_study()
         decision = item["supervisor_decision"]
         assert item["supervisor_decision_count"] == 1
         assert item["identity_match"] is True
-        assert item["progress_dhd_identity_match"] is True
+        assert item["progress_legacy_diagnostic_identity_match"] is True
         assert item["classification"] == "recovery_action_required"
         assert item["provider_admission"]["pending_count"] == 0
         assert item["provider_admission"]["candidate_count"] == 0
@@ -72,20 +72,20 @@ def test_live_supervisor_canary_requires_one_identity_bound_decision_per_study()
         assert "action_queue=[]" in decision["forbidden_interpretations"]
 
 
-def test_live_supervisor_canary_fail_closes_dhd_identity_drift() -> None:
+def test_live_supervisor_canary_fail_closes_legacy_diagnostic_identity_drift() -> None:
     progress_payloads = _progress_payloads()
-    dhd_payloads = {
+    diagnostic_payloads = {
         **progress_payloads,
         DM003: {
             **progress_payloads[DM003],
             "current_work_unit": {
                 **progress_payloads[DM003]["current_work_unit"],
-                "work_unit_fingerprint": "sha256:stale-dhd-fingerprint",
-                "action_fingerprint": "sha256:stale-dhd-fingerprint",
+                "work_unit_fingerprint": "sha256:stale-diagnostic-fingerprint",
+                "action_fingerprint": "sha256:stale-diagnostic-fingerprint",
                 "currentness_basis": {
                     **progress_payloads[DM003]["current_work_unit"]["currentness_basis"],
-                    "work_unit_fingerprint": "sha256:stale-dhd-fingerprint",
-                    "action_fingerprint": "sha256:stale-dhd-fingerprint",
+                    "work_unit_fingerprint": "sha256:stale-diagnostic-fingerprint",
+                    "action_fingerprint": "sha256:stale-diagnostic-fingerprint",
                 },
             },
         },
@@ -95,30 +95,29 @@ def test_live_supervisor_canary_fail_closes_dhd_identity_drift() -> None:
         profile=FakeProfile(),  # type: ignore[arg-type]
         study_ids=(DM002, DM003),
         progress_reader=_progress_reader(progress_payloads),
-        dhd_reader=_dhd_reader(dhd_payloads),
+        diagnostic_reader=_diagnostic_reader(diagnostic_payloads),
     )
 
     assert payload["summary"]["status"] == "fail"
     by_study = {item["study_id"]: item for item in payload["study_results"]}
     assert by_study[DM002]["classification"] == "recovery_action_required"
     assert by_study[DM003]["classification"] == "stale_diagnostic"
-    assert by_study[DM003]["progress_dhd_identity_match"] is False
-    assert f"{DM003}:progress_dhd_identity_mismatch" in payload["summary"]["failures"]
+    assert by_study[DM003]["progress_legacy_diagnostic_identity_match"] is False
+    assert f"{DM003}:progress_legacy_diagnostic_identity_mismatch" in payload["summary"]["failures"]
 
 
-def test_live_supervisor_canary_fail_closes_missing_dhd_progress() -> None:
+def test_live_supervisor_canary_allows_missing_legacy_diagnostic_progress() -> None:
     payload = build_live_supervisor_canary(
         profile=FakeProfile(),  # type: ignore[arg-type]
         study_ids=(DM002, DM003),
         progress_reader=_progress_reader(_progress_payloads()),
-        dhd_reader=_dhd_reader({DM002: _progress_payloads()[DM002]}),
+        diagnostic_reader=_diagnostic_reader({DM002: _progress_payloads()[DM002]}),
     )
 
     by_study = {item["study_id"]: item for item in payload["study_results"]}
-    assert payload["summary"]["status"] == "fail"
-    assert by_study[DM003]["classification"] == "stale_diagnostic"
-    assert f"{DM003}:missing_dhd_progress_currentness" in payload["summary"]["failures"]
-    assert f"{DM003}:progress_dhd_identity_mismatch" in payload["summary"]["failures"]
+    assert payload["summary"]["status"] == "pass"
+    assert by_study[DM003]["classification"] == "recovery_action_required"
+    assert by_study[DM003]["progress_legacy_diagnostic_identity_match"] is True
 
 
 def test_live_supervisor_canary_separates_owner_receipt_from_stable_blocker_credit() -> None:
@@ -130,7 +129,7 @@ def test_live_supervisor_canary_separates_owner_receipt_from_stable_blocker_cred
         profile=FakeProfile(),  # type: ignore[arg-type]
         study_ids=(DM002, DM003),
         progress_reader=_progress_reader(payloads),
-        dhd_reader=_dhd_reader(payloads),
+        diagnostic_reader=_diagnostic_reader(payloads),
     )
 
     assert payload["summary"]["status"] == "pass"
@@ -157,7 +156,7 @@ def _progress_reader(payloads: Mapping[str, Mapping[str, Any]]):
     return read_progress
 
 
-def _dhd_reader(payloads: Mapping[str, Mapping[str, Any]]):
+def _diagnostic_reader(payloads: Mapping[str, Mapping[str, Any]]):
     def read_dhd(_profile: FakeProfile, _study_ids: Sequence[str]) -> Mapping[str, Any]:
         return {
             "surface_kind": "domain_health_diagnostic_runtime_report",

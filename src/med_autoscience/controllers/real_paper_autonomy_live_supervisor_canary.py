@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_health_diagnostic, study_progress
+from med_autoscience.controllers import study_progress
 from med_autoscience.controllers.paper_autonomy_supervisor import (
     ALLOWED_DECISIONS,
     build_supervisor_decision,
@@ -25,7 +25,7 @@ READ_ONLY_CONTRACT = {
     "surface_kind": SURFACE_KIND,
     "mode": "read_only_live_canary",
     "may_call_study_progress": True,
-    "may_call_domain_health_diagnostic_dry_run": True,
+    "may_call_legacy_diagnostic_reader": True,
     "may_apply_domain_health_diagnostic": False,
     "may_hydrate": False,
     "may_tick": False,
@@ -84,7 +84,7 @@ RUNNING_DECISIONS = {
 
 
 ProgressReader = Callable[[WorkspaceProfile, str], Mapping[str, Any]]
-DhdReader = Callable[[WorkspaceProfile, Sequence[str]], Mapping[str, Any]]
+DiagnosticReader = Callable[[WorkspaceProfile, Sequence[str]], Mapping[str, Any]]
 
 
 def run_live_supervisor_canary(
@@ -92,7 +92,7 @@ def run_live_supervisor_canary(
     profile_path: str | Path,
     study_ids: Sequence[str] = DEFAULT_TARGET_STUDIES,
     progress_reader: ProgressReader | None = None,
-    dhd_reader: DhdReader | None = None,
+    diagnostic_reader: DiagnosticReader | None = None,
 ) -> dict[str, Any]:
     profile = load_profile(profile_path)
     return build_live_supervisor_canary(
@@ -100,7 +100,7 @@ def run_live_supervisor_canary(
         profile_ref=str(Path(profile_path).expanduser().resolve()),
         study_ids=study_ids,
         progress_reader=progress_reader,
-        dhd_reader=dhd_reader,
+        diagnostic_reader=diagnostic_reader,
     )
 
 
@@ -110,28 +110,29 @@ def build_live_supervisor_canary(
     profile_ref: str | None = None,
     study_ids: Sequence[str] = DEFAULT_TARGET_STUDIES,
     progress_reader: ProgressReader | None = None,
-    dhd_reader: DhdReader | None = None,
+    diagnostic_reader: DiagnosticReader | None = None,
 ) -> dict[str, Any]:
     target_study_ids = tuple(dict.fromkeys(_text_items(study_ids)))
     read_progress = progress_reader or _read_study_progress
-    read_dhd = dhd_reader or _read_dhd_dry_run
 
     progress_by_study = {
         study_id: dict(read_progress(profile, study_id)) for study_id in target_study_ids
     }
-    dhd_report = dict(read_dhd(profile, target_study_ids))
-    diagnostic = _diagnostic_context(dhd_report)
-    dhd_progress_by_study = _dhd_progress_currentness(dhd_report)
+    diagnostic_report = (
+        dict(diagnostic_reader(profile, target_study_ids)) if diagnostic_reader else {}
+    )
+    diagnostic = _diagnostic_context(diagnostic_report)
+    diagnostic_progress_by_study = _diagnostic_progress_currentness(diagnostic_report)
 
     study_results = []
     for study_id in target_study_ids:
         progress_payload = progress_by_study.get(study_id) or {}
-        dhd_progress_payload = dhd_progress_by_study.get(study_id) or {}
+        diagnostic_progress_payload = diagnostic_progress_by_study.get(study_id) or {}
         study_results.append(
             _study_canary_result(
                 study_id=study_id,
                 progress_payload=progress_payload,
-                dhd_progress_payload=dhd_progress_payload,
+                diagnostic_progress_payload=diagnostic_progress_payload,
                 diagnostic=diagnostic,
             )
         )
@@ -157,16 +158,16 @@ def build_live_supervisor_canary(
         "runtime_root": str(profile.runtime_root),
         "read_only_contract": dict(READ_ONLY_CONTRACT),
         "target_studies": list(target_study_ids),
-        "dhd_dry_run_summary": {
-            "action_class": _text(dhd_report.get("action_class")),
-            "will_start_llm": bool(dhd_report.get("will_start_llm")),
-            "codex_dispatch_count": _int(dhd_report.get("codex_dispatch_count")),
+        "legacy_diagnostic_summary": {
+            "action_class": _text(diagnostic_report.get("action_class")),
+            "will_start_llm": bool(diagnostic_report.get("will_start_llm")),
+            "codex_dispatch_count": _int(diagnostic_report.get("codex_dispatch_count")),
             "provider_admission_pending_count": _int(
-                dhd_report.get("provider_admission_pending_count")
+                diagnostic_report.get("provider_admission_pending_count")
             ),
-            "progress_currentness_count": len(dhd_progress_by_study),
+            "progress_currentness_count": len(diagnostic_progress_by_study),
             "provider_admission_candidate_count": _sequence_len(
-                dhd_report.get("managed_study_opl_provider_admission_candidates")
+                diagnostic_report.get("managed_study_opl_provider_admission_candidates")
             ),
         },
         "study_results": study_results,
@@ -191,19 +192,31 @@ def _study_canary_result(
     *,
     study_id: str,
     progress_payload: Mapping[str, Any],
-    dhd_progress_payload: Mapping[str, Any],
+    diagnostic_progress_payload: Mapping[str, Any],
     diagnostic: Mapping[str, Any],
 ) -> dict[str, Any]:
     failures: list[str] = []
     progress_decision = _decision_from_progress(progress_payload, diagnostic=diagnostic)
-    dhd_decision = _decision_from_progress(dhd_progress_payload, diagnostic=diagnostic)
-    selected_decision = progress_decision or dhd_decision
+    diagnostic_decision = _decision_from_progress(
+        diagnostic_progress_payload,
+        diagnostic=diagnostic,
+    )
+    selected_decision = progress_decision or diagnostic_decision
     decision_count = 1 if selected_decision else 0
 
     if not progress_payload:
         failures.append(f"{study_id}:missing_study_progress")
-    if not dhd_progress_payload:
-        failures.append(f"{study_id}:missing_dhd_progress_currentness")
+    if diagnostic_progress_payload and progress_payload:
+        identities_match = _identity_matches(progress_decision, diagnostic_decision)
+        if (
+            (progress_decision is None) != (diagnostic_decision is None)
+            or progress_decision is not None
+            and diagnostic_decision is not None
+            and not identities_match
+        ):
+            failures.append(f"{study_id}:progress_legacy_diagnostic_identity_mismatch")
+    else:
+        identities_match = True
     if selected_decision is None:
         failures.append(f"{study_id}:missing_supervisor_decision")
     elif _text(selected_decision.get("decision")) not in ALLOWED_DECISIONS:
@@ -215,12 +228,6 @@ def _study_canary_result(
     if selected_decision is not None and _text(selected_decision.get("decision")) in FORBIDDEN_TERMINAL_DECISIONS:
         failures.append(f"{study_id}:forbidden_terminal_decision")
 
-    identities_match = _identity_matches(progress_decision, dhd_decision)
-    if (progress_decision is None) != (dhd_decision is None) or (
-        progress_decision is not None and dhd_decision is not None and not identities_match
-    ):
-        failures.append(f"{study_id}:progress_dhd_identity_mismatch")
-
     forbidden_claims = _forbidden_authority_claims(progress_payload, selected_decision)
     failures.extend(f"{study_id}:{claim}" for claim in forbidden_claims)
 
@@ -229,7 +236,6 @@ def _study_canary_result(
         identity_match=identity_match,
         identities_match=identities_match,
         has_progress=bool(progress_payload),
-        has_dhd_progress=bool(dhd_progress_payload),
     )
     return {
         "study_id": study_id,
@@ -242,9 +248,9 @@ def _study_canary_result(
         "supervisor_decision_count": decision_count,
         "supervisor_decision": selected_decision or {},
         "progress_decision_id": _text((progress_decision or {}).get("decision_id")),
-        "dhd_decision_id": _text((dhd_decision or {}).get("decision_id")),
+        "legacy_diagnostic_decision_id": _text((diagnostic_decision or {}).get("decision_id")),
         "identity_match": identity_match,
-        "progress_dhd_identity_match": identities_match,
+        "progress_legacy_diagnostic_identity_match": identities_match,
         "forbidden_authority_claimed": bool(forbidden_claims),
         "forbidden_authority_claims": forbidden_claims,
         "forbidden_progress_authorities": list(FORBIDDEN_PROGRESS_AUTHORITIES),
@@ -278,18 +284,7 @@ def _read_study_progress(profile: WorkspaceProfile, study_id: str) -> Mapping[st
     )
 
 
-def _read_dhd_dry_run(profile: WorkspaceProfile, study_ids: Sequence[str]) -> Mapping[str, Any]:
-    return domain_health_diagnostic.run_domain_health_diagnostic_for_runtime(
-        runtime_root=profile.runtime_root,
-        apply=False,
-        persist_diagnostic_reports=False,
-        profile=profile,
-        study_ids=tuple(study_ids),
-        request_opl_stage_attempts=True,
-    )
-
-
-def _dhd_progress_currentness(report: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
+def _diagnostic_progress_currentness(report: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
     direct = _mapping(report.get("progress_currentness"))
     if direct:
         return {str(key): _mapping(value) for key, value in direct.items()}
@@ -313,14 +308,12 @@ def _classification(
     identity_match: bool,
     identities_match: bool,
     has_progress: bool,
-    has_dhd_progress: bool,
 ) -> str:
     if (
         decision is None
         or not identity_match
         or not identities_match
         or not has_progress
-        or not has_dhd_progress
     ):
         return "stale_diagnostic"
     decision_type = _text(decision.get("decision"))

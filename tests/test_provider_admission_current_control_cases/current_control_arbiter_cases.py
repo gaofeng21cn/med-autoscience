@@ -15,7 +15,7 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -137,7 +137,7 @@ def test_provider_admission_current_control_provider_readback_consumes_same_iden
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -239,7 +239,7 @@ def test_provider_admission_current_control_suppresses_candidate_blocked_by_pape
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -319,7 +319,7 @@ def test_provider_admission_current_control_requires_execute_supervisor_decision
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

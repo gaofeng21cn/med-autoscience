@@ -146,7 +146,7 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
         ),
         "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
         "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
-        "domain_health_diagnostic_parts.provider_admission_report_closeout_scan",
+        "provider_admission_parts.provider_admission_report_closeout_scan",
         "study_progress_parts.opl_current_control_state_terminal_logs",
     } <= set(scan["active_callers"])
     assert "terminal_closeout_consumption" in scan["allowed_consumption"]
@@ -319,7 +319,7 @@ def test_domain_owner_dispatch_persist_does_not_merge_legacy_wire(
 
 def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_path) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     export_projection = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
@@ -400,7 +400,7 @@ def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_pa
 
 def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tmp_path) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     export_projection = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
@@ -524,80 +524,6 @@ def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tm
         == "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint"
     )
     assert rehydrate["surface"] == "owner_callable_adapter_receipt"
-
-
-def test_dhd_legacy_execution_fallback_is_refs_only_stage_run_intake(tmp_path) -> None:
-    diagnostic = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    study_root = tmp_path / "studies" / "study-1"
-    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
-    legacy_path.parent.mkdir(parents=True)
-    legacy_path.write_text(
-        json.dumps(
-            {
-                "surface": "default_executor_dispatch_execution_study_latest",
-                "executions": [
-                    {
-                        "surface": "default_executor_dispatch_execution",
-                        "study_id": "study-1",
-                        "quest_id": "study-1",
-                        "execution_status": "handoff_ready",
-                        "provider_attempt_or_lease_required": True,
-                        "owner_callable_surface": "opl_default_executor.stage_attempt",
-                        "owner_route_current": True,
-                        "action_type": "run_quality_repair_batch",
-                        "work_unit_id": "medical_prose_write_repair",
-                        "work_unit_fingerprint": "fingerprint-legacy",
-                        "action_fingerprint": "fingerprint-legacy",
-                        "dispatch_path": (
-                            "artifacts/supervision/consumer/default_executor_dispatches/"
-                            "immutable/run_quality_repair_batch/fingerprint-legacy.json"
-                        ),
-                        "dispatch_ref": (
-                            "artifacts/supervision/consumer/default_executor_dispatches/"
-                            "immutable/run_quality_repair_batch/fingerprint-legacy.json"
-                        ),
-                        "owner_route": {
-                            "source_refs": {
-                                "work_unit_id": "medical_prose_write_repair",
-                                "work_unit_fingerprint": "fingerprint-legacy",
-                                "owner_route_currentness_basis": {
-                                    "work_unit_id": "medical_prose_write_repair",
-                                    "work_unit_fingerprint": "fingerprint-legacy",
-                                },
-                            }
-                        },
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    [candidate] = diagnostic._legacy_execution_provider_admission_candidates(
-        study_root=study_root,
-        status_payload={
-            "study_id": "study-1",
-            "current_executable_owner_action": {
-                "action_type": "run_quality_repair_batch",
-                "work_unit_id": "medical_prose_write_repair",
-                "work_unit_fingerprint": "fingerprint-legacy",
-            },
-        },
-    )
-
-    assert candidate["source"] == "legacy_default_executor_refs_only_stage_run_intake"
-    assert candidate["status"] == "transition_request_pending"
-    assert candidate["dispatch_status"] == "transition_request_pending"
-    assert candidate["provider_admission_pending"] is False
-    assert candidate["provider_attempt_or_lease_required"] is False
-    assert candidate["provider_admission_requires_opl_runtime_result"] is True
-    assert candidate["opl_transition_runtime_required"] is True
-    assert candidate["legacy_wire_current_reader"] is False
-    assert candidate["legacy_wire_can_authorize_provider_admission"] is False
-    assert candidate["authority_boundary"]["legacy_wire_can_authorize_provider_admission"] is False
-    assert candidate["authority_boundary"]["can_mark_provider_attempt_running"] is False
-
-
 
 
 __all__ = [name for name in globals() if name.startswith("test_")]

@@ -730,7 +730,7 @@ def test_transition_runtime_completion_audit_records_provider_admission_repo_con
     assert lane["status"] == "evidence_required"
     assert {
         (
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/"
+            "src/med_autoscience/controllers/provider_admission_parts/"
             "provider_admission_current_control_arbiter.py::"
             "_provider_admission_readback_consumption_evidence"
         ),

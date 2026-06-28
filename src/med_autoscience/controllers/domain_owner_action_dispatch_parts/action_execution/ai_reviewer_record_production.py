@@ -16,7 +16,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity

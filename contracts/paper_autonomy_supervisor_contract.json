@@ -901,7 +901,7 @@
       "state": "owner_gate_route_back_recovery_materializer_landed",
       "evidence": [
         "src/med_autoscience/controllers/domain_action_request_materializer_parts/fresh_progress_current_action.py",
-        "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_report.py",
+        "src/med_autoscience/controllers/provider_admission_parts/provider_admission_report.py",
         "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/opl_execution_preflight.py",
         "tests/domain_action_request_materializer_cases/current_control_authority_selection_cases.py",
         "tests/test_domain_owner_action_dispatch_cases/current_control_authority_selection.py",

@@ -559,7 +559,7 @@ def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() 
         "med_autoscience.controllers.opl_transition_readback"
     )
     identity = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity"
     )
     candidate = {
         "study_id": STUDY_ID,

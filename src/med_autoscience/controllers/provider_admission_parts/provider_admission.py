@@ -8,12 +8,12 @@ from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
     is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     provider_admission_authority_boundary,
     provider_admission_candidate_with_authority_boundaries,
     stage_transition_authority_boundary,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_handoffs import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_handoffs import (
     handoff_dispatch_path,
     handoff_work_unit_id,
     materialized_record_only_provider_handoff,
@@ -22,7 +22,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 )
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_actions import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions import (
     DEFAULT_EXECUTOR_DISPATCHES,
     PAPER_PROGRESS_TRANSITION_REQUESTS,
     accepted_owner_gate_admission_matches_selected_dispatch_blocker,
@@ -39,13 +39,13 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     _study_current_action_for_provider_admission,
     _study_current_actions_for_provider_admission,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_helpers import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
     non_empty_text as _non_empty_text,
     read_json_object as _read_json_object,
     text_items as _text_items,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_identity import (
     current_identity_is_opl_authorization_typed_blocker as _current_identity_is_opl_authorization_typed_blocker,
     matches_current_action as _matches_current_action,
     matches_current_action_without_fingerprint as _matches_current_action_without_fingerprint,
@@ -53,7 +53,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     status_requires_current_identity as _status_requires_current_identity,
     work_unit_ids_equivalent_for_action as _work_unit_ids_equivalent_for_action,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_probe_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_probe_identity import (
     provider_attempt_matches_identity,
     provider_probe_has_matching_attempt,
     provider_probe_has_non_running_actions,
@@ -62,20 +62,20 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_transition_log_readback import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_transition_log_readback import (
     candidate_with_transition_log_readback as _candidate_with_log_readback,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_stage_run_identity import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_stage_run_identity import (
     candidate_with_stage_run_admission_identity as _candidate_with_stage_run_admission_identity,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_status_currentness import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_status_currentness import (
     current_control_payload_with_status_currentness,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_status import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_status import (
     execution_state_kind as _execution_state_kind,
     status_blocks_action_queue_self_identity as _status_blocks_action_queue_self_identity,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
+from med_autoscience.controllers.provider_admission_parts.current_ai_reviewer_gate_replay import (
     source_eval_id_from_mapping,
 )
 from med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_surfaces import (

@@ -25,10 +25,10 @@ from med_autoscience.profiles import WorkspaceProfile
 from .. import opl_stage_attempt_carrier_packets
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
-from ..domain_health_diagnostic_parts.provider_admission_current_control_actions import (
+from ..provider_admission_parts.provider_admission_current_control_actions import (
     _study_current_action_for_provider_admission,
 )
-from ..domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+from ..provider_admission_parts.provider_admission_current_control_identity import (
     provider_admission_current_control_action,
 )
 from ..domain_action_request_materializer_parts import currentness_identity

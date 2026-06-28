@@ -9,10 +9,10 @@ from tests.provider_admission_current_control_helpers import opl_transition_read
 
 def test_provider_admission_current_control_wrappers_preserve_stage_authority_boundary() -> None:
     identity = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity"
     )
     boundaries = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_boundaries"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action_type = "return_to_ai_reviewer_workflow"
@@ -84,7 +84,7 @@ def test_provider_admission_current_control_wrappers_preserve_stage_authority_bo
 
 def test_provider_admission_identity_prefers_opl_transition_request_identity() -> None:
     identity = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -134,7 +134,7 @@ def test_provider_admission_identity_prefers_opl_transition_request_identity() -
 
 def test_provider_admission_action_uses_opl_transition_request_identity() -> None:
     identity = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -180,7 +180,7 @@ def test_current_control_provider_admission_candidate_uses_opl_transition_reques
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -295,7 +295,7 @@ def test_current_control_provider_admission_candidate_uses_opl_transition_reques
 
 def test_provider_admission_candidate_inherits_current_action_currentness_basis() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action_type = "run_quality_repair_batch"
@@ -359,7 +359,7 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -464,7 +464,7 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
 
 def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action_type = "run_gate_clearing_batch"
@@ -514,7 +514,7 @@ def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity
 
 def test_provider_admission_candidate_does_not_synthesize_stage_packet_from_dispatch_ref() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action_type = "run_gate_clearing_batch"

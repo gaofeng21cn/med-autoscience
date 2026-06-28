@@ -879,7 +879,7 @@
     {
       "active_caller_migrated": true,
       "canonical_first_readers": [
-        "domain_health_diagnostic_parts.provider_admission.persisted_provider_admission_candidates",
+        "provider_admission_parts.provider_admission.persisted_provider_admission_candidates",
         "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
         "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution"
       ],
@@ -932,8 +932,8 @@
             "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
             "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
             "study_transition_receipt_consumption_parts.default_executor_followthrough.default_executor_execution_followthrough_receipt_consumption",
-            "domain_health_diagnostic_parts.provider_admission_report_closeout_scan",
-            "domain_health_diagnostic_work_units",
+            "provider_admission_parts.provider_admission_report_closeout_scan",
+            "study_outer_loop_work_units",
             "study_progress_parts.opl_current_control_state_terminal_logs"
           ],
           "allowed_consumption": [
@@ -1252,7 +1252,7 @@
       "mas_can_mutate_recovery_obligation_store": false,
       "mas_can_run_supervisor_decision_engine": false,
       "mas_owner_claim_allowed": false,
-      "mas_typed_blocker_authority_result_adapter": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.mas_domain_typed_blocker_authority_result",
+      "mas_typed_blocker_authority_result_adapter": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.mas_domain_typed_blocker_authority_result",
       "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
       "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
       "obligation_readback_boundary": {
@@ -1391,7 +1391,7 @@
         "surface_kind": "mas_domain_typed_blocker_authority_result_boundary"
       },
       "typed_blocker_authority_result_adapter_surface": "mas_domain_typed_blocker_authority_result_adapter",
-      "validator_module": "med_autoscience.controllers.domain_health_diagnostic_parts.obligation_actuator_parts.readback_result_validator",
+      "validator_module": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.readback_result_validator",
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",

@@ -365,7 +365,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         ),
     }
     assert actuator["mas_typed_blocker_authority_result_adapter"] == (
-        "med_autoscience.controllers.domain_health_diagnostic_parts."
+        "med_autoscience.controllers.provider_admission_parts."
         "obligation_actuator_parts.mas_domain_typed_blocker_authority_result"
     )
     assert actuator["typed_blocker_authority_result_adapter_surface"] == (

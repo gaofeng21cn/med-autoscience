@@ -14,7 +14,7 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ca
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -94,7 +94,7 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ty
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -184,7 +184,7 @@ def test_current_control_provider_admission_rejects_retained_queue_when_current_
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -278,7 +278,7 @@ def test_current_control_provider_admission_filters_synthetic_current_owner_tick
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -393,7 +393,7 @@ def test_opl_authorization_typed_blocker_without_fingerprint_matches_current_wor
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = tmp_path / "studies" / study_id

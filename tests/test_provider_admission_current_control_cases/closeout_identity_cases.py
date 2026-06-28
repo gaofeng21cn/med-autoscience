@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 closeout_identity = importlib.import_module(
-    "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report_closeout_identity"
+    "med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_identity"
 )
 
 
@@ -70,7 +70,7 @@ def test_provider_admission_current_control_suppresses_record_only_owner_refs_cl
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -146,7 +146,7 @@ def test_provider_admission_current_control_suppresses_record_only_owner_refs_cl
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -230,7 +230,7 @@ def test_provider_admission_current_control_retains_pending_for_record_only_owne
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -307,7 +307,7 @@ def test_provider_admission_currentness_basis_not_inherited_from_different_curre
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -382,7 +382,7 @@ def test_consumed_domain_blocker_closeout_projects_current_typed_blocker(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -506,7 +506,7 @@ def test_fingerprintless_stop_loss_closeout_does_not_consume_new_source_eval_ide
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -573,7 +573,7 @@ def test_record_only_closeout_does_not_consume_new_source_eval_write_repair(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -707,7 +707,7 @@ def test_provider_admission_current_control_retains_pending_when_closeout_identi
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -807,10 +807,10 @@ def test_provider_admission_current_control_retains_pending_when_legacy_closeout
     tmp_path: Path,
 ) -> None:
     control = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
     )
     report = importlib.import_module(
-        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

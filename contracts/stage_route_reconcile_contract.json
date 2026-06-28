@@ -427,7 +427,7 @@
       "src/med_autoscience/controllers/study_progress_parts/current_executable_owner_action.py",
       "src/med_autoscience/controllers/current_work_unit.py",
       "src/med_autoscience/controllers/current_execution_envelope.py",
-      "src/med_autoscience/controllers/domain_health_diagnostic_parts/provider_admission_current_control.py",
+      "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
       "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
       "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py"
     ],

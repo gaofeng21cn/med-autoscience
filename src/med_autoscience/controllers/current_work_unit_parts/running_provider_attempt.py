@@ -20,7 +20,7 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
     text,
     text_items,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+from med_autoscience.controllers.provider_admission_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
 from med_autoscience.controllers.opl_transition_readback import (
