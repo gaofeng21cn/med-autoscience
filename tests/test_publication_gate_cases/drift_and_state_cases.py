@@ -25,6 +25,32 @@ def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_pa
     assert report["submission_minimal_pdf_present"] is True
 
 
+def test_build_gate_report_hides_stale_draft_handoff_when_submission_minimal_exists(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": True,
+            "status": "stale",
+            "delivery_manifest_path": "/tmp/study/manuscript/delivery_manifest.json",
+            "current_package_root": "/tmp/study/manuscript/current_package",
+            "current_package_zip": "/tmp/study/manuscript/current_package.zip",
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["draft_handoff_delivery_required"] is False
+    assert report["draft_handoff_delivery_status"] == "not_applicable"
+
+
 def test_build_gate_report_exposes_authority_handshake_signatures_and_gate_fingerprint(
     tmp_path: Path,
 ) -> None:

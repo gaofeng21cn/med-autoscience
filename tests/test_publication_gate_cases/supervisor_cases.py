@@ -4,6 +4,7 @@ from med_autoscience.controllers.submission_package_layout import (
     resolve_submission_manifest_path,
     submission_manifest_path,
 )
+from tests.control_plane_route_helpers import writable_route_context
 
 from . import shared as _shared
 
@@ -114,7 +115,11 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
         },
     )
 
-    result = module.run_controller(quest_root=quest_root, apply=True)
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        authority_route_context=writable_route_context(bundle_build_allowed=True),
+    )
 
     assert result["status"] == "clear"
     assert result["allow_write"] is True

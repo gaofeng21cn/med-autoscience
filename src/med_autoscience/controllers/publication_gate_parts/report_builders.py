@@ -338,7 +338,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         and draft_handoff_delivery.get("applicable") is True
     )
     draft_handoff_delivery_status = (
-        str(draft_handoff_delivery.get("status") or "").strip() or "not_applicable"
+        (str(draft_handoff_delivery.get("status") or "").strip() or "not_applicable")
+        if draft_handoff_delivery_required
+        else "not_applicable"
     )
     blockers: list[str] = []
     bundle_stage_ready = bool(
