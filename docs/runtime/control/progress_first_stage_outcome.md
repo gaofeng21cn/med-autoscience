@@ -334,14 +334,20 @@ rtk scripts/run-python-clean.sh -m med_autoscience.cli study progress \
 ```
 
 ```bash
-rtk scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic \
+rtk scripts/run-python-clean.sh -m med_autoscience.cli paper-mission inspect \
   --profile "${DM_CVD_PROFILE}" \
-  --studies 002-dm-china-us-mortality-attribution 003-dpcc-primary-care-phenotype-treatment-gap \
-  --request-opl-stage-attempts \
-  --dry-run
+  --study-id 002-dm-china-us-mortality-attribution \
+  --format json
 ```
 
-上述 dry-run 是只读 admission/status smoke。`--request-opl-owner-route-reconcile` 是安全推进 tick，CLI 要求显式 `--apply`，避免 operator 把会写 refs-only reconcile/materialize/dispatch surface 的动作误当成纯只读检查。
+```bash
+rtk scripts/run-python-clean.sh -m med_autoscience.cli paper-mission inspect \
+  --profile "${DM_CVD_PROFILE}" \
+  --study-id 003-dpcc-primary-care-phenotype-treatment-gap \
+  --format json
+```
+
+上述 readback 是当前默认只读监督入口，用来读取 PaperMission、StageOutcome、OPL transition readback、typed blocker、next owner 与 artifact delta。旧 `domain-health-diagnostic` / `owner-route-reconcile` 只保留为 explicit diagnostic / migration provenance，不作为默认推进入口。
 
 ```bash
 rtk scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic \
@@ -352,7 +358,7 @@ rtk scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-dia
   --apply
 ```
 
-Use `--apply` only when the lane is explicitly allowed to drive MAS controller refs-only owner-route reconcile/materialize/dispatch. It must not write runtime-owned study truth, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, submission/current package, memory body or artifact body outside MAS owner-authorized surfaces.
+Use legacy DHD `--apply` only for an explicitly scoped diagnostic / migration lane that is allowed to drive MAS controller refs-only owner-route reconcile/materialize/dispatch. It must not write runtime-owned study truth, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, submission/current package, memory body or artifact body outside MAS owner-authorized surfaces.
 
 When validating a docs-only change in this repo, use documentation review plus git diff/status. Do not run live `--apply` only to prove this runbook.
 

@@ -73,6 +73,9 @@ def _build_manifest_shell_surfaces(
     progress_projection_command = _json_surface_command(
         f"{prefix} study progress --profile {profile_arg} --study-id <study_id>"
     )
+    paper_mission_readback_command = _json_surface_command(
+        f"{prefix} paper-mission inspect --profile {profile_arg} --study-id <study_id>"
+    )
     product_entry_shell = _build_shared_product_entry_shell_catalog(
         _product_entry_shell_from_action_catalog(action_catalog)
     )
@@ -236,9 +239,9 @@ def _build_manifest_shell_surfaces(
             "label": "mas family action graph",
         },
         event_envelope_surface={
-            "ref_kind": "workspace_locator",
-            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-            "label": "domain health diagnostic event companion",
+            "ref_kind": "cli_command",
+            "ref": paper_mission_readback_command,
+            "label": "paper mission readback event companion",
         },
         checkpoint_lineage_surface={
             "ref_kind": "workspace_locator",

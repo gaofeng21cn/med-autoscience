@@ -88,7 +88,7 @@ Canonical durable surfaces 包括：
 | durable study task intake | `submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"` |
 | 正式启动或续跑 | `launch-study --profile <profile> --study-id <study_id>` |
 | 人话进度投影 | `study progress --profile <profile> --study-id <study_id>` |
-| MAS refs 刷新 | `runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --dry-run` |
+| PaperMission / StageOutcome readback | `paper-mission inspect --profile <profile> --study-id <study_id> --format json` |
 | product companion | `product-entry-status --profile <profile>` / `product-entry-manifest --profile <profile>` |
 
 Workspace-local Progress-first 监控薄入口：
@@ -97,6 +97,8 @@ Workspace-local Progress-first 监控薄入口：
 - `ops/medautoscience/bin/study-state-matrix --format json`
 
 `progress-projection` workspace wrapper 与 CLI command 已退役；文档、脚本和自动化必须使用 `study-progress --format json`。
+
+`runtime domain-health-diagnostic` 只保留为 explicit diagnostic / migration provenance；默认监督、automation 或论文推进不得把它作为推进入口。
 
 OPL `current_control_state` / provider attempt ledger 持有 scheduler lifecycle、provider liveness、attempt、retry/dead-letter 和 operator runtime projection。MAS 不再提供 `runtime-supervision-*` compatibility CLI，不再把 workspace-local LaunchAgent / systemd / cron / docker service 写成 active runtime option。
 

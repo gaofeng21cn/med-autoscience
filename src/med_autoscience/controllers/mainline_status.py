@@ -449,9 +449,9 @@ def _phase_ladder() -> list[dict[str, Any]]:
                     "purpose": "读取 MAS domain progress 与 OPL current-control-state handoff refs。",
                 },
                 {
-                    "name": "domain_health_diagnostic",
-                    "command": "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --dry-run",
-                    "purpose": "验证 supervisor tick、恢复动作和 runtime reconciliation。",
+                    "name": "paper_mission_inspect",
+                    "command": "uv run python -m med_autoscience.cli paper-mission inspect --profile <profile> --study-id <study_id> --format json",
+                    "purpose": "读取 PaperMission / StageOutcome / OPL transition readback，确认下一 owner、typed blocker 或 artifact delta。",
                 },
             ],
             "exit_criteria": [

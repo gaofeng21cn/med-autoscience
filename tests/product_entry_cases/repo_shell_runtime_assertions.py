@@ -45,9 +45,10 @@ def _assert_runtime_inventory(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime_inventory"]["substrate"] == "opl_hosted_stage_runtime"
     assert payload["runtime_inventory"]["availability"] == "ready"
     assert payload["runtime_inventory"]["health_status"] == "healthy"
-    assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "workspace_locator"
+    assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "cli_command"
     assert payload["runtime_inventory"]["status_surface"]["ref"] == (
-        "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json"
+        "uv run python -m med_autoscience.cli paper-mission inspect "
+        "--profile <profile> --study-id <study_id> --format json"
     )
     assert payload["runtime_inventory"]["attention_surface"]["ref_kind"] == "json_pointer"
 

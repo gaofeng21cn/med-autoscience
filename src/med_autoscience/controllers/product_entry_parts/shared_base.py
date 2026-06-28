@@ -638,7 +638,7 @@ def _build_product_entry_guardrails(
             _build_shared_guardrail_class(
                 guardrail_id="runtime_recovery_required",
                 trigger="study-progress intervention_lane / OPL current_control_state handoff / workspace-cockpit attention queue",
-                symptom="OPL stage/runtime owner handoff 或 MAS domain diagnostic 显示运行恢复失败，当前必须优先处理 runtime recovery。",
+                symptom="OPL stage/runtime owner handoff 或 MAS paper mission readback 显示运行恢复失败，当前必须优先处理 runtime recovery。",
                 recommended_command=_command(
                     profile_ref,
                     "launch-study",
@@ -649,7 +649,7 @@ def _build_product_entry_guardrails(
             ),
             _build_shared_guardrail_class(
                 guardrail_id="quality_floor_blocker",
-                trigger="study-progress intervention_lane / domain health diagnostic figure-loop alerts / publication gate",
+                trigger="study-progress intervention_lane / paper mission readback figure-loop alerts / publication gate",
                 symptom="研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
                 recommended_command=progress_command,
             ),

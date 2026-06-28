@@ -108,7 +108,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 {
                     "guardrail_id": "workspace_supervision_gap",
                     "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                        "symptom": "OPL scheduler replacement projection 未在线，或 MAS domain runtime freshness stale/missing。",
+                    "symptom": "OPL substrate readback 或 MAS paper mission readback stale/missing。",
                     "recommended_command": (
                         "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
                     ),

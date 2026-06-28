@@ -14,6 +14,7 @@ from .shared import (
     _build_shared_session_continuity,
     _build_shared_task_lifecycle,
     _collect_family_human_gate_ids,
+    _json_surface_command,
     _non_empty_text,
 )
 
@@ -35,6 +36,10 @@ def _build_runtime_inventory_surface(
         if ready_to_try_now
         else "MAS domain refs inventory 当前存在 blocking preflight，需要先恢复 OPL control-state 或 MAS domain refs 前置状态。"
     )
+    paper_mission_readback_command = _json_surface_command(
+        "uv run python -m med_autoscience.cli paper-mission inspect "
+        "--profile <profile> --study-id <study_id>"
+    )
     return _build_shared_runtime_inventory(
         summary=summary,
         runtime_owner=str(runtime.get("runtime_owner") or ""),
@@ -44,9 +49,9 @@ def _build_runtime_inventory_surface(
         availability=availability,
         health_status=health_status,
         status_surface={
-            "ref_kind": "workspace_locator",
-            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-            "label": "domain health diagnostic event companion",
+            "ref_kind": "cli_command",
+            "ref": paper_mission_readback_command,
+            "label": "paper mission readback event companion",
         },
         attention_surface={
             "ref_kind": "json_pointer",
@@ -286,7 +291,7 @@ def _build_artifact_inventory_surface(
             "file_id": "domain_health_diagnostic_latest",
             "label": "Domain health diagnostic (latest)",
             "path": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-            "summary": "domain health diagnostic event companion for supervision freshness.",
+            "summary": "explicit diagnostic / migration provenance only; default supervision reads PaperMission readback.",
         },
         {
             "file_id": "opl_runtime_owner_handoff_latest",

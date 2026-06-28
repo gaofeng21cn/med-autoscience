@@ -332,8 +332,8 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
     doctor_command = "uv run python -m med_autoscience.cli doctor report --profile <profile>"
     supervisor_service_command = "uv run python -m med_autoscience.cli study progress --profile <profile> --format json"
     refresh_supervision_command = (
-        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> "
-        "--profile <profile> --request-opl-stage-attempts --dry-run"
+        "uv run python -m med_autoscience.cli paper-mission inspect "
+        "--profile <profile> --study-id <study_id> --format json"
     )
     launch_study_command = (
         "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>"
@@ -387,8 +387,8 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS domain refs projection",
-                surface_kind="domain_health_diagnostic_refresh",
+                title="读取 PaperMission / StageOutcome readback",
+                surface_kind="paper_mission_readback_refresh",
                 command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_step(
@@ -414,8 +414,8 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
                 command="uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="domain_health_diagnostic",
-                ref="studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+                surface_kind="paper_mission_readback",
+                command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="opl_runtime_owner_handoff",

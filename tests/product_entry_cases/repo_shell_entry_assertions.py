@@ -221,8 +221,12 @@ def _assert_skill_catalog_projection(*, module, payload, profile, profile_ref) -
         "label": "controller checkpoint lineage companion",
     }
     assert payload["task_lifecycle"]["checkpoint_summary"]["verification_ref"] == {
-        "ref_kind": "workspace_locator",
-        "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+        "ref_kind": "cli_command",
+        "ref": (
+            "uv run python -m med_autoscience.cli paper-mission inspect --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id> --format json"
+        ),
         "label": "paper mission readback event companion",
     }
     assert payload["task_lifecycle"]["human_gate_ids"] == [
@@ -302,7 +306,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
             "owner": "one-person-lab",
             "trigger_kind": "interval",
             "target_surface_kind": "paper_mission_readback_refresh",
-            "summary": "由 OPL current_control_state 触发 MAS paper-mission readback refresh，保持 owner handoff 和 attention queue refs 为最新状态。",
+            "summary": "由 OPL current_control_state 触发 MAS paper-mission readback refresh，保持 paper mission、owner handoff 和 attention queue refs 为最新状态。",
             "readiness_status": "automation_ready",
             "gate_policy": "publication_gated",
             "output_expectation": [
