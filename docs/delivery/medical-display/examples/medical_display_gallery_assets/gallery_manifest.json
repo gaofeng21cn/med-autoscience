@@ -23606,11 +23606,13 @@
     "source_asset_root": "docs/delivery/medical-display/examples/medical_display_gallery_assets",
     "target_asset_root": "outputs/display-pack-gallery/medical_display_gallery_assets",
     "copied_file_count": 0,
-    "updated_file_count": 1,
+    "updated_file_count": 4,
     "missing_source_count": 0,
-    "skipped_existing_count": 185,
+    "skipped_existing_count": 182,
     "extension_counts": {
-      ".json": 1
+      ".json": 2,
+      ".png": 1,
+      ".svg": 1
     }
   },
   "lidocaineq_visual_parity_audit": {

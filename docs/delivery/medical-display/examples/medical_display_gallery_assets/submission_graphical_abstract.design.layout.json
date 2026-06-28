@@ -42,10 +42,10 @@
     {
       "box_id": "visual_glyph_cohort",
       "box_type": "visual_glyph",
-      "x0": 0.11903333333333332,
-      "y0": 0.268825,
-      "x1": 0.2576333333333333,
-      "y1": 0.451975
+      "x0": 0.1062,
+      "y0": 0.263275,
+      "x1": 0.27046666666666663,
+      "y1": 0.45752499999999996
     },
     {
       "box_id": "panel_title_cohort",
@@ -114,10 +114,10 @@
     {
       "box_id": "visual_glyph_model_signal",
       "box_type": "visual_glyph",
-      "x0": 0.43069999999999997,
-      "y0": 0.268825,
-      "x1": 0.5693,
-      "y1": 0.451975
+      "x0": 0.41786666666666666,
+      "y0": 0.263275,
+      "x1": 0.5821333333333333,
+      "y1": 0.45752499999999996
     },
     {
       "box_id": "panel_title_model_signal",
@@ -186,10 +186,10 @@
     {
       "box_id": "visual_glyph_clinical_action",
       "box_type": "visual_glyph",
-      "x0": 0.7423666666666666,
-      "y0": 0.268825,
-      "x1": 0.8809666666666667,
-      "y1": 0.451975
+      "x0": 0.7295333333333334,
+      "y0": 0.263275,
+      "x1": 0.8938,
+      "y1": 0.45752499999999996
     },
     {
       "box_id": "panel_title_clinical_action",
@@ -444,7 +444,7 @@
       "model_signal",
       "clinical_use"
     ],
-    "source_renderer": "mas_reference_guided_svg_preview.v3",
+    "source_renderer": "mas_reference_guided_svg_preview.v5",
     "canvas_size_px": [
       1800,
       1000
@@ -453,6 +453,8 @@
       "three_panel_full_width",
       "left_to_right_reading_order",
       "stable_panel_boundaries",
+      "semantic_panel_glyphs",
+      "semantic_panel_microflows",
       "evidence_cue_per_panel",
       "separate_quality_band"
     ]

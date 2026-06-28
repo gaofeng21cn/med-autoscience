@@ -11,17 +11,27 @@
 <rect x="108.00" y="205.00" width="462.00" height="555.00" rx="28.00" fill="#FBFDFE" stroke="#245A6B" stroke-width="3.00"/>
 <rect x="131.10" y="238.30" width="49.90" height="58.28" rx="29.14" fill="#245A6B" stroke="#245A6B" stroke-width="0.00"/>
 <text x="156.05" y="276.76" font-family="Arial, Helvetica, sans-serif" font-size="27.97" font-weight="700" fill="#FFFFFF" text-anchor="middle">A</text>
-<rect x="214.26" y="268.82" width="249.48" height="183.15" rx="24.00" fill="#DCEBF0" stroke="#245A6B" stroke-width="2.50"/>
-<circle cx="289.10" cy="338.42" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="289.10" y1="350.33" x2="289.10" y2="371.39" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="329.02" cy="325.60" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="329.02" y1="337.51" x2="329.02" y2="358.57" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="368.94" cy="338.42" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="368.94" y1="350.33" x2="368.94" y2="371.39" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="309.06" cy="375.05" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="309.06" y1="386.96" x2="309.06" y2="408.02" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="353.97" cy="378.71" r="9.16" fill="#245A6B" stroke="none" stroke-width="0.00"/>
-<line x1="353.97" y1="390.62" x2="353.97" y2="411.68" stroke="#245A6B" stroke-width="4.00" stroke-linecap="round"/>
+<rect x="191.16" y="263.27" width="295.68" height="194.25" rx="24.00" fill="#DCEBF0" stroke="#245A6B" stroke-width="2.50"/>
+<rect x="228.12" y="287.56" width="221.76" height="22.34" rx="11.17" fill="#FFFFFF" stroke="#245A6B" stroke-width="2.00"/>
+<circle cx="253.62" cy="298.73" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<circle cx="284.67" cy="298.73" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<circle cx="315.72" cy="298.73" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="350.09" y1="298.73" x2="421.05" y2="298.73" stroke="#245A6B" stroke-width="3.00" stroke-linecap="round"/>
+<rect x="228.12" y="318.64" width="221.76" height="22.34" rx="11.17" fill="#FFFFFF" stroke="#245A6B" stroke-width="2.00"/>
+<circle cx="253.62" cy="329.81" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<circle cx="284.67" cy="329.81" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<circle cx="315.72" cy="329.81" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="350.09" y1="329.81" x2="421.05" y2="329.81" stroke="#245A6B" stroke-width="3.00" stroke-linecap="round"/>
+<rect x="228.12" y="349.72" width="221.76" height="22.34" rx="11.17" fill="#FFFFFF" stroke="#245A6B" stroke-width="2.00"/>
+<circle cx="253.62" cy="360.89" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<circle cx="284.67" cy="360.89" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<circle cx="315.72" cy="360.89" r="3.35" fill="#245A6B" stroke="none" stroke-width="0.00"/>
+<line x1="350.09" y1="360.89" x2="421.05" y2="360.89" stroke="#245A6B" stroke-width="3.00" stroke-linecap="round"/>
+<path d="M262.12,381.77 L415.88,381.77 L359.70,406.05 L318.30,406.05 Z" fill="#FFFFFF" stroke="#245A6B" stroke-width="2.40" stroke-linejoin="round"/>
+<rect x="284.30" y="408.96" width="109.40" height="35.94" rx="12.00" fill="#FFFFFF" stroke="#245A6B" stroke-width="2.40"/>
+<rect x="318.76" y="424.42" width="40.48" height="13.12" rx="4.00" fill="#245A6B" stroke="#245A6B" stroke-width="0.00"/>
+<path d="M324.78,425.31 C324.78,415.43 353.22,415.43 353.22,425.31" fill="none" stroke="#245A6B" stroke-width="3.20" stroke-linecap="round"/>
+<circle cx="339.00" cy="430.88" r="1.98" fill="#FFFFFF" stroke="none" stroke-width="0.00"/>
 <text x="156.51" y="501.93" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#13293D">Study cohort</text>
 <text x="156.51" y="543.55" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">Registry records mapped to auditable</text>
 <text x="156.51" y="565.87" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">outcomes</text>
@@ -35,14 +45,17 @@
 <rect x="669.00" y="205.00" width="462.00" height="555.00" rx="28.00" fill="#FBFDFE" stroke="#2166AC" stroke-width="3.00"/>
 <rect x="692.10" y="238.30" width="49.90" height="58.28" rx="29.14" fill="#2166AC" stroke="#2166AC" stroke-width="0.00"/>
 <text x="717.05" y="276.76" font-family="Arial, Helvetica, sans-serif" font-size="27.97" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
-<rect x="775.26" y="268.82" width="249.48" height="183.15" rx="24.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.50"/>
-<polyline points="820.17,393.37 875.05,367.73 924.95,338.42 979.83,314.61" fill="none" stroke="#2166AC" stroke-width="5" stroke-linecap="round"/>
-<rect x="823.91" y="389.70" width="27.44" height="19.23" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
-<text x="837.63" y="402.40" font-family="Arial, Helvetica, sans-serif" font-size="10.07" font-weight="700" fill="#2166AC" text-anchor="middle">X</text>
-<rect x="886.28" y="389.70" width="27.44" height="19.23" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
-<text x="900.00" y="402.40" font-family="Arial, Helvetica, sans-serif" font-size="10.07" font-weight="700" fill="#2166AC" text-anchor="middle">f</text>
-<rect x="948.65" y="389.70" width="27.44" height="19.23" rx="8.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.00"/>
-<text x="962.37" y="402.40" font-family="Arial, Helvetica, sans-serif" font-size="10.07" font-weight="700" fill="#2166AC" text-anchor="middle">Y</text>
+<rect x="752.16" y="263.27" width="295.68" height="194.25" rx="24.00" fill="#DCE8F4" stroke="#2166AC" stroke-width="2.50"/>
+<line x1="792.08" y1="401.19" x2="1010.88" y2="401.19" stroke="#B9C8D2" stroke-width="3.00" stroke-linecap="round"/>
+<line x1="792.08" y1="294.35" x2="792.08" y2="401.19" stroke="#B9C8D2" stroke-width="3.00" stroke-linecap="round"/>
+<path d="M808.49,375.55 C846.78,372.35 886.16,368.07 982.44,361.66" fill="none" stroke="#6E7D88" stroke-width="4.5" stroke-linecap="round"/>
+<path d="M808.49,372.88 C848.97,366.47 886.16,339.23 982.44,312.52" fill="none" stroke="#2166AC" stroke-width="5.5" stroke-linecap="round"/>
+<circle cx="974.78" cy="361.66" r="4.49" fill="#6E7D88" stroke="none" stroke-width="0.00"/>
+<text x="947.97" y="359.45" font-family="Arial, Helvetica, sans-serif" font-size="8.94" font-weight="700" fill="#6E7D88" text-anchor="middle">LOW</text>
+<circle cx="974.78" cy="312.52" r="4.49" fill="#2166AC" stroke="none" stroke-width="0.00"/>
+<text x="947.97" y="310.31" font-family="Arial, Helvetica, sans-serif" font-size="8.94" font-weight="700" fill="#2166AC" text-anchor="middle">HIGH</text>
+<rect x="824.60" y="410.90" width="150.80" height="28.17" rx="11.00" fill="#FFFFFF" stroke="#2166AC" stroke-width="2.10"/>
+<text x="900.00" y="429.49" font-family="Arial, Helvetica, sans-serif" font-size="10.10" font-weight="700" fill="#2166AC" text-anchor="middle">C-index 0.86</text>
 <text x="717.51" y="501.93" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#13293D">Risk signal</text>
 <text x="717.51" y="543.55" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">Model separates low- and high-risk</text>
 <text x="717.51" y="565.87" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">strata</text>
@@ -56,16 +69,29 @@
 <rect x="1230.00" y="205.00" width="462.00" height="555.00" rx="28.00" fill="#FBFDFE" stroke="#8B3A3A" stroke-width="3.00"/>
 <rect x="1253.10" y="238.30" width="49.90" height="58.28" rx="29.14" fill="#8B3A3A" stroke="#8B3A3A" stroke-width="0.00"/>
 <text x="1278.05" y="276.76" font-family="Arial, Helvetica, sans-serif" font-size="27.97" font-weight="700" fill="#FFFFFF" text-anchor="middle">C</text>
-<rect x="1336.26" y="268.82" width="249.48" height="183.15" rx="24.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="2.50"/>
-<rect x="1373.68" y="378.71" width="62.37" height="26.56" rx="10.00" fill="#FFFFFF" stroke="#64748B" stroke-width="2.00"/>
-<rect x="1485.95" y="378.71" width="62.37" height="26.56" rx="10.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.40"/>
-<text x="1404.87" y="396.24" font-family="Arial, Helvetica, sans-serif" font-size="9.16" font-weight="700" fill="#64748B" text-anchor="middle">Low</text>
-<text x="1517.13" y="396.24" font-family="Arial, Helvetica, sans-serif" font-size="9.16" font-weight="700" fill="#8B3A3A" text-anchor="middle">High</text>
-<line x1="1461.00" y1="305.45" x2="1404.87" y2="377.80" stroke="#64748B" stroke-width="3.00" stroke-linecap="round"/>
-<line x1="1461.00" y1="305.45" x2="1517.13" y2="377.80" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
-<circle cx="1461.00" cy="305.45" r="12.82" fill="#8B3A3A" stroke="none" stroke-width="0.00"/>
-<circle cx="1461.00" cy="338.42" r="8.24" fill="#64748B" stroke="none" stroke-width="0.00"/>
-<line x1="1461.00" y1="315.53" x2="1461.00" y2="330.18" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
+<rect x="1313.16" y="263.27" width="295.68" height="194.25" rx="24.00" fill="#F1DADA" stroke="#8B3A3A" stroke-width="2.50"/>
+<circle cx="1367.12" cy="315.79" r="7.24" fill="#8B3A3A" stroke="none" stroke-width="0.00"/>
+<line x1="1367.12" y1="324.76" x2="1367.12" y2="350.27" stroke="#8B3A3A" stroke-width="5.00" stroke-linecap="round"/>
+<line x1="1350.16" y1="335.10" x2="1384.08" y2="335.10" stroke="#8B3A3A" stroke-width="5.00" stroke-linecap="round"/>
+<line x1="1367.12" y1="350.27" x2="1352.35" y2="368.20" stroke="#8B3A3A" stroke-width="5.00" stroke-linecap="round"/>
+<line x1="1367.12" y1="350.27" x2="1381.89" y2="368.20" stroke="#8B3A3A" stroke-width="5.00" stroke-linecap="round"/>
+<rect x="1418.13" y="299.21" width="78.36" height="38.85" rx="19.43" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.60"/>
+<text x="1457.30" y="324.85" font-family="Arial, Helvetica, sans-serif" font-size="11.27" font-weight="700" fill="#8B3A3A" text-anchor="middle">HIGH RISK</text>
+<rect x="1502.40" y="299.21" width="76.88" height="90.33" rx="12.00" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.40"/>
+<rect x="1502.40" y="299.21" width="76.88" height="23.03" rx="12.00" fill="#8B3A3A" stroke="#8B3A3A" stroke-width="0.00"/>
+<circle cx="1522.38" cy="335.79" r="4.34" fill="#E6EDF2" stroke="none" stroke-width="0.00"/>
+<circle cx="1540.83" cy="335.79" r="4.34" fill="#E6EDF2" stroke="none" stroke-width="0.00"/>
+<circle cx="1559.28" cy="335.79" r="4.34" fill="#E6EDF2" stroke="none" stroke-width="0.00"/>
+<circle cx="1522.38" cy="355.67" r="4.34" fill="#E6EDF2" stroke="none" stroke-width="0.00"/>
+<circle cx="1540.83" cy="355.67" r="4.34" fill="#E6EDF2" stroke="none" stroke-width="0.00"/>
+<circle cx="1559.28" cy="355.67" r="5.87" fill="#8B3A3A" stroke="none" stroke-width="0.00"/>
+<text x="1540.83" y="314.58" font-family="Arial, Helvetica, sans-serif" font-size="8.55" font-weight="700" fill="#FFFFFF" text-anchor="middle">FOLLOW-UP</text>
+<rect x="1385.60" y="400.22" width="170.02" height="34.97" rx="17.48" fill="#FFFFFF" stroke="#8B3A3A" stroke-width="2.40"/>
+<text x="1470.61" y="423.30" font-family="Arial, Helvetica, sans-serif" font-size="11.27" font-weight="700" fill="#8B3A3A" text-anchor="middle">OWNER REVIEW</text>
+<line x1="1394.47" y1="330.27" x2="1407.78" y2="318.64" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
+<line x1="1496.48" y1="318.64" x2="1492.05" y2="344.37" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
+<line x1="1540.83" y1="393.42" x2="1470.61" y2="394.39" stroke="#8B3A3A" stroke-width="4.00" stroke-linecap="round"/>
+<path d="M1462.96,388.95 L1470.61,397.89 L1478.26,388.95" fill="none" stroke="#8B3A3A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="1278.51" y="501.93" font-family="Arial, Helvetica, sans-serif" font-size="28.00" font-weight="700" fill="#13293D">Care action</text>
 <text x="1278.51" y="543.55" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">High-risk group routed to closer</text>
 <text x="1278.51" y="565.87" font-family="Arial, Helvetica, sans-serif" font-size="18.00" font-weight="400" fill="#64748B">follow-up</text>

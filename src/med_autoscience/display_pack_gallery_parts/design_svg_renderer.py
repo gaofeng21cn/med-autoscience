@@ -21,7 +21,7 @@ from med_autoscience.display_pack_gallery_parts.svg_primitives import (
 CANVAS_WIDTH = 1800
 CANVAS_HEIGHT = 1000
 GA_LAYOUT_STYLE = "reference_guided_flow"
-GA_RENDERER_SOURCE = "mas_reference_guided_svg_preview.v3"
+GA_RENDERER_SOURCE = "mas_reference_guided_svg_preview.v5"
 
 
 def render_submission_graphical_abstract_gallery_preview(
@@ -297,7 +297,7 @@ def _append_workflow_node(
         box_id=f"panel_label_{panel_id}",
         box_type="panel_label",
     )
-    glyph_box = relative_box(panel_box, 0.230, 0.115, 0.770, 0.445)
+    glyph_box = relative_box(panel_box, 0.180, 0.105, 0.820, 0.455)
     append_rect(parts, glyph_box, fill=soft, stroke=accent, stroke_width=2.5, radius=24)
     _append_glyph(parts, glyph_box, role=str(panel.get("visual_role") or ""), accent=accent, colors=colors)
     layout_boxes.append(normalized_box(glyph_box, width=width, height=height, box_id=f"visual_glyph_{panel_id}", box_type="visual_glyph"))
@@ -551,35 +551,92 @@ def _append_gate_glyph(parts: list[str], box: dict[str, float], *, accent: str) 
 
 
 def _append_care_action_glyph(parts: list[str], box: dict[str, float], *, accent: str, colors: dict[str, str]) -> None:
-    low = relative_box(box, 0.150, 0.600, 0.400, 0.745)
-    high = relative_box(box, 0.600, 0.600, 0.850, 0.745)
-    append_rect(parts, low, fill="#FFFFFF", stroke=colors["muted"], stroke_width=2, radius=10)
-    append_rect(parts, high, fill="#FFFFFF", stroke=accent, stroke_width=2.4, radius=10)
-    _center_text(parts, low, label="Low", color=colors["muted"], font_size=box["h"] * 0.050)
-    _center_text(parts, high, label="High", color=accent, font_size=box["h"] * 0.050)
-    append_line(parts, x1=box["x0"] + box["w"] * 0.500, y1=box["y0"] + box["h"] * 0.200, x2=box["x0"] + box["w"] * 0.275, y2=box["y0"] + box["h"] * 0.595, color=colors["muted"], stroke_width=3)
-    append_line(parts, x1=box["x0"] + box["w"] * 0.500, y1=box["y0"] + box["h"] * 0.200, x2=box["x0"] + box["w"] * 0.725, y2=box["y0"] + box["h"] * 0.595, color=accent, stroke_width=4)
-    for cx, cy, r, fill in ((0.50, 0.20, 0.070, accent), (0.50, 0.380, 0.045, colors["muted"])):
-        append_circle(parts, cx=box["x0"] + box["w"] * cx, cy=box["y0"] + box["h"] * cy, r=box["h"] * r, fill=fill)
-    append_line(parts, x1=box["x0"] + box["w"] * 0.500, y1=box["y0"] + box["h"] * 0.255, x2=box["x0"] + box["w"] * 0.500, y2=box["y0"] + box["h"] * 0.335, color=accent, stroke_width=4)
+    patient = relative_box(box, 0.090, 0.210, 0.275, 0.565)
+    append_circle(parts, cx=patient["x0"] + patient["w"] * 0.50, cy=patient["y0"] + patient["h"] * 0.170, r=patient["h"] * 0.105, fill=accent)
+    append_line(parts, x1=patient["x0"] + patient["w"] * 0.50, y1=patient["y0"] + patient["h"] * 0.300, x2=patient["x0"] + patient["w"] * 0.50, y2=patient["y0"] + patient["h"] * 0.670, color=accent, stroke_width=5)
+    append_line(parts, x1=patient["x0"] + patient["w"] * 0.190, y1=patient["y0"] + patient["h"] * 0.450, x2=patient["x0"] + patient["w"] * 0.810, y2=patient["y0"] + patient["h"] * 0.450, color=accent, stroke_width=5)
+    append_line(parts, x1=patient["x0"] + patient["w"] * 0.500, y1=patient["y0"] + patient["h"] * 0.670, x2=patient["x0"] + patient["w"] * 0.230, y2=patient["y0"] + patient["h"] * 0.930, color=accent, stroke_width=5)
+    append_line(parts, x1=patient["x0"] + patient["w"] * 0.500, y1=patient["y0"] + patient["h"] * 0.670, x2=patient["x0"] + patient["w"] * 0.770, y2=patient["y0"] + patient["h"] * 0.930, color=accent, stroke_width=5)
+
+    high_badge = relative_box(box, 0.355, 0.185, 0.620, 0.385)
+    append_rect(parts, high_badge, fill="#FFFFFF", stroke=accent, stroke_width=2.6, radius=high_badge["h"] / 2.0)
+    _center_text(parts, high_badge, label="HIGH RISK", color=accent, font_size=box["h"] * 0.058)
+
+    calendar = relative_box(box, 0.640, 0.185, 0.900, 0.650)
+    append_rect(parts, calendar, fill="#FFFFFF", stroke=accent, stroke_width=2.4, radius=12)
+    append_rect(parts, relative_box(calendar, 0.0, 0.0, 1.0, 0.255), fill=accent, stroke=accent, stroke_width=0, radius=12)
+    for cx in (0.260, 0.500, 0.740):
+        append_circle(parts, cx=calendar["x0"] + calendar["w"] * cx, cy=calendar["y0"] + calendar["h"] * 0.405, r=calendar["h"] * 0.048, fill=colors["grid"])
+    for cx in (0.260, 0.500):
+        append_circle(parts, cx=calendar["x0"] + calendar["w"] * cx, cy=calendar["y0"] + calendar["h"] * 0.625, r=calendar["h"] * 0.048, fill=colors["grid"])
+    append_circle(parts, cx=calendar["x0"] + calendar["w"] * 0.740, cy=calendar["y0"] + calendar["h"] * 0.625, r=calendar["h"] * 0.065, fill=accent)
+    _center_text(parts, relative_box(calendar, 0.050, 0.015, 0.950, 0.250), label="FOLLOW-UP", color="#FFFFFF", font_size=box["h"] * 0.044)
+
+    action = relative_box(box, 0.245, 0.705, 0.820, 0.885)
+    append_rect(parts, action, fill="#FFFFFF", stroke=accent, stroke_width=2.4, radius=action["h"] / 2.0)
+    _center_text(parts, action, label="OWNER REVIEW", color=accent, font_size=box["h"] * 0.058)
+    append_line(parts, x1=patient["x0"] + patient["w"], y1=patient["y0"] + patient["h"] * 0.380, x2=high_badge["x0"] - box["w"] * 0.035, y2=high_badge["y0"] + high_badge["h"] * 0.500, color=accent, stroke_width=4)
+    append_line(parts, x1=high_badge["x0"] + high_badge["w"], y1=high_badge["y0"] + high_badge["h"] * 0.500, x2=calendar["x0"] - box["w"] * 0.035, y2=calendar["y0"] + calendar["h"] * 0.500, color=accent, stroke_width=4)
+    append_line(parts, x1=calendar["x0"] + calendar["w"] * 0.500, y1=calendar["y0"] + calendar["h"] + box["h"] * 0.020, x2=action["x0"] + action["w"] * 0.500, y2=action["y0"] - box["h"] * 0.030, color=accent, stroke_width=4)
+    parts.append(
+        f'<path d="M{action["x0"] + action["w"] * 0.455:.2f},{action["y0"] - box["h"] * 0.058:.2f} '
+        f'L{action["x0"] + action["w"] * 0.500:.2f},{action["y0"] - box["h"] * 0.012:.2f} '
+        f'L{action["x0"] + action["w"] * 0.545:.2f},{action["y0"] - box["h"] * 0.058:.2f}" '
+        f'fill="none" stroke="{escape(accent)}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>\n'
+    )
 
 
 def _append_population_glyph(parts: list[str], box: dict[str, float], *, accent: str) -> None:
-    for cx, cy in ((0.30, 0.38), (0.46, 0.31), (0.62, 0.38), (0.38, 0.58), (0.56, 0.60)):
-        append_circle(parts, cx=box["x0"] + box["w"] * cx, cy=box["y0"] + box["h"] * cy, r=box["h"] * 0.050, fill=accent)
-        append_line(parts, x1=box["x0"] + box["w"] * cx, y1=box["y0"] + box["h"] * (cy + 0.065), x2=box["x0"] + box["w"] * cx, y2=box["y0"] + box["h"] * (cy + 0.180), color=accent, stroke_width=4)
+    rows = [relative_box(box, 0.125, y0, 0.875, y0 + 0.115) for y0 in (0.125, 0.285, 0.445)]
+    for row in rows:
+        append_rect(parts, row, fill="#FFFFFF", stroke=accent, stroke_width=2.0, radius=row["h"] / 2.0)
+        for cx in (0.115, 0.255, 0.395):
+            append_circle(parts, cx=row["x0"] + row["w"] * cx, cy=row["y0"] + row["h"] * 0.500, r=row["h"] * 0.150, fill=accent)
+        append_line(parts, x1=row["x0"] + row["w"] * 0.550, y1=row["y0"] + row["h"] * 0.500, x2=row["x0"] + row["w"] * 0.870, y2=row["y0"] + row["h"] * 0.500, color=accent, stroke_width=3)
+    parts.append(
+        f'<path d="M{box["x0"] + box["w"] * 0.240:.2f},{box["y0"] + box["h"] * 0.610:.2f} '
+        f'L{box["x0"] + box["w"] * 0.760:.2f},{box["y0"] + box["h"] * 0.610:.2f} '
+        f'L{box["x0"] + box["w"] * 0.570:.2f},{box["y0"] + box["h"] * 0.735:.2f} '
+        f'L{box["x0"] + box["w"] * 0.430:.2f},{box["y0"] + box["h"] * 0.735:.2f} Z" '
+        f'fill="#FFFFFF" stroke="{escape(accent)}" stroke-width="2.40" stroke-linejoin="round"/>\n'
+    )
+    endpoint = relative_box(box, 0.315, 0.750, 0.685, 0.935)
+    append_rect(parts, endpoint, fill="#FFFFFF", stroke=accent, stroke_width=2.4, radius=12)
+    append_rect(parts, relative_box(endpoint, 0.315, 0.430, 0.685, 0.795), fill=accent, stroke=accent, stroke_width=0, radius=4)
+    parts.append(
+        f'<path d="M{endpoint["x0"] + endpoint["w"] * 0.370:.2f},{endpoint["y0"] + endpoint["h"] * 0.455:.2f} '
+        f'C{endpoint["x0"] + endpoint["w"] * 0.370:.2f},{endpoint["y0"] + endpoint["h"] * 0.180:.2f} '
+        f'{endpoint["x0"] + endpoint["w"] * 0.630:.2f},{endpoint["y0"] + endpoint["h"] * 0.180:.2f} '
+        f'{endpoint["x0"] + endpoint["w"] * 0.630:.2f},{endpoint["y0"] + endpoint["h"] * 0.455:.2f}" '
+        f'fill="none" stroke="{escape(accent)}" stroke-width="3.20" stroke-linecap="round"/>\n'
+    )
+    append_circle(parts, cx=endpoint["x0"] + endpoint["w"] * 0.500, cy=endpoint["y0"] + endpoint["h"] * 0.610, r=endpoint["h"] * 0.055, fill="#FFFFFF")
 
 
 def _append_model_glyph(parts: list[str], box: dict[str, float], *, accent: str) -> None:
+    axis = relative_box(box, 0.135, 0.160, 0.875, 0.710)
+    append_line(parts, x1=axis["x0"], y1=axis["y0"] + axis["h"], x2=axis["x0"] + axis["w"], y2=axis["y0"] + axis["h"], color="#B9C8D2", stroke_width=3)
+    append_line(parts, x1=axis["x0"], y1=axis["y0"], x2=axis["x0"], y2=axis["y0"] + axis["h"], color="#B9C8D2", stroke_width=3)
     parts.append(
-        f'<polyline points="{box["x0"] + box["w"] * 0.18:.2f},{box["y0"] + box["h"] * 0.68:.2f} {box["x0"] + box["w"] * 0.40:.2f},{box["y0"] + box["h"] * 0.54:.2f} '
-        f'{box["x0"] + box["w"] * 0.60:.2f},{box["y0"] + box["h"] * 0.38:.2f} {box["x0"] + box["w"] * 0.82:.2f},{box["y0"] + box["h"] * 0.25:.2f}" '
-        f'fill="none" stroke="{escape(accent)}" stroke-width="5" stroke-linecap="round"/>\n'
+        f'<path d="M{axis["x0"] + axis["w"] * 0.075:.2f},{axis["y0"] + axis["h"] * 0.760:.2f} '
+        f'C{axis["x0"] + axis["w"] * 0.250:.2f},{axis["y0"] + axis["h"] * 0.730:.2f} '
+        f'{axis["x0"] + axis["w"] * 0.430:.2f},{axis["y0"] + axis["h"] * 0.690:.2f} '
+        f'{axis["x0"] + axis["w"] * 0.870:.2f},{axis["y0"] + axis["h"] * 0.630:.2f}" '
+        f'fill="none" stroke="#6E7D88" stroke-width="4.5" stroke-linecap="round"/>\n'
     )
-    for cx, label in ((0.25, "X"), (0.50, "f"), (0.75, "Y")):
-        node = {"x0": box["x0"] + box["w"] * cx - box["w"] * 0.055, "y0": box["y0"] + box["h"] * 0.66, "w": box["w"] * 0.110, "h": box["h"] * 0.105}
-        append_rect(parts, node, fill="#FFFFFF", stroke=accent, stroke_width=2, radius=8)
-        _center_text(parts, node, label=label, color=accent, font_size=box["h"] * 0.055)
+    parts.append(
+        f'<path d="M{axis["x0"] + axis["w"] * 0.075:.2f},{axis["y0"] + axis["h"] * 0.735:.2f} '
+        f'C{axis["x0"] + axis["w"] * 0.260:.2f},{axis["y0"] + axis["h"] * 0.675:.2f} '
+        f'{axis["x0"] + axis["w"] * 0.430:.2f},{axis["y0"] + axis["h"] * 0.420:.2f} '
+        f'{axis["x0"] + axis["w"] * 0.870:.2f},{axis["y0"] + axis["h"] * 0.170:.2f}" '
+        f'fill="none" stroke="{escape(accent)}" stroke-width="5.5" stroke-linecap="round"/>\n'
+    )
+    for cx, cy, label, color in ((0.835, 0.630, "LOW", "#6E7D88"), (0.835, 0.170, "HIGH", accent)):
+        append_circle(parts, cx=axis["x0"] + axis["w"] * cx, cy=axis["y0"] + axis["h"] * cy, r=axis["h"] * 0.042, fill=color)
+        _center_text(parts, {"x0": axis["x0"] + axis["w"] * 0.610, "y0": axis["y0"] + axis["h"] * cy - axis["h"] * 0.090, "w": axis["w"] * 0.205, "h": axis["h"] * 0.105}, label=label, color=color, font_size=box["h"] * 0.046)
+    auc = relative_box(box, 0.245, 0.760, 0.755, 0.905)
+    append_rect(parts, auc, fill="#FFFFFF", stroke=accent, stroke_width=2.1, radius=11)
+    _center_text(parts, auc, label="C-index 0.86", color=accent, font_size=box["h"] * 0.052)
 
 
 def _center_text(parts: list[str], box: dict[str, float], *, label: str, color: str, font_size: float) -> None:
@@ -621,6 +678,8 @@ def _write_layout(
                         "three_panel_full_width",
                         "left_to_right_reading_order",
                         "stable_panel_boundaries",
+                        "semantic_panel_glyphs",
+                        "semantic_panel_microflows",
                         "evidence_cue_per_panel",
                         "separate_quality_band",
                     ],
