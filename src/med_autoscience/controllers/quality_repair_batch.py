@@ -10,7 +10,7 @@ from med_autoscience.controllers import gate_clearing_batch_currentness
 from med_autoscience.controllers import quality_repair_batch_upstream
 from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
-from med_autoscience.controllers import default_executor_dispatch_packets
+from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import current_publication_eval
 from med_autoscience.controllers.quality_repair_batch_parts.controller_proxy import lazy_controller_module
@@ -77,7 +77,7 @@ def _materialize_writer_worker_handoff(handoff: Mapping[str, Any] | None) -> str
     if dispatch_path_text is None:
         raise ValueError("writer_worker_handoff_missing_dispatch_path")
     dispatch_path = Path(dispatch_path_text).expanduser()
-    packet_handoff = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
+    packet_handoff = opl_stage_attempt_carrier_packets.dispatch_with_immutable_packet_ref(
         dispatch=handoff,
         dispatch_path=dispatch_path,
     )

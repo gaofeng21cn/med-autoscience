@@ -22,7 +22,7 @@ from med_autoscience.cli_parts.paper_mission_commands import (
 )
 from med_autoscience.profiles import WorkspaceProfile
 
-from .. import default_executor_dispatch_packets
+from .. import opl_stage_attempt_carrier_packets
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from ..domain_health_diagnostic_parts.provider_admission_current_control_actions import (
@@ -1158,7 +1158,7 @@ def _current_control_transition_dispatch_refs(
     dispatch = read_json_object(dispatch_path)
     if not dispatch or text(dispatch.get("action_type")) != action_type:
         return {}
-    stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+    stage_packet_path = opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
         dispatch,
         fallback_dispatch_path=dispatch_path,
     )

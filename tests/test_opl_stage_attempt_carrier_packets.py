@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience.controllers import default_executor_dispatch_packets
+from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 
 
-def test_immutable_default_executor_packet_is_abi_provenance_only(tmp_path: Path) -> None:
+def test_immutable_opl_stage_attempt_packet_is_abi_provenance_only(tmp_path: Path) -> None:
     dispatch_path = tmp_path / "default_executor_dispatches" / "run_quality_repair_batch.json"
     dispatch = {
         "surface": "default_executor_dispatch_request",
@@ -28,7 +28,7 @@ def test_immutable_default_executor_packet_is_abi_provenance_only(tmp_path: Path
         },
     }
 
-    packet = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
+    packet = opl_stage_attempt_carrier_packets.dispatch_with_immutable_packet_ref(
         dispatch=dispatch,
         dispatch_path=dispatch_path,
     )
@@ -56,6 +56,7 @@ def test_immutable_default_executor_packet_is_abi_provenance_only(tmp_path: Path
         "human_gate_written",
         "current_package",
     }
-    assert packet["legacy_default_executor_dispatch_packet_boundary"] == {
-        **default_executor_dispatch_packets.LEGACY_DISPATCH_PACKET_BOUNDARY
+    assert packet["opl_stage_attempt_carrier_boundary"] == {
+        **opl_stage_attempt_carrier_packets.OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY
     }
+    assert "legacy_default_executor_dispatch_packet_boundary" not in packet

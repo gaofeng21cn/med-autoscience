@@ -9,8 +9,8 @@ from typing import Any
 
 
 IMMUTABLE_PACKET_DIRNAME = "immutable"
-LEGACY_DISPATCH_PACKET_BOUNDARY = {
-    "surface_kind": "legacy_default_executor_dispatch_packet_boundary",
+OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY = {
+    "surface_kind": "opl_stage_attempt_carrier_packet_boundary",
     "active_caller_class": "abi_provenance_carrier_only",
     "allowed_reference_class": "OPL StageRun ABI carrier",
     "diagnostic_role": "retired_default_paper_dispatch",
@@ -34,7 +34,7 @@ LEGACY_DISPATCH_PACKET_BOUNDARY = {
         "human_gate_written",
         "current_package",
     ],
-    "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+    "dispatch_fail_closed_reason": "opl_stage_attempt_carrier_not_schedulable",
 }
 
 
@@ -68,7 +68,7 @@ def dispatch_with_immutable_packet_ref(
     refs["immutable_dispatch_path"] = str(packet_path)
     refs["stage_packet_path"] = str(packet_path)
     payload["refs"] = refs
-    payload["legacy_default_executor_dispatch_packet_boundary"] = dict(LEGACY_DISPATCH_PACKET_BOUNDARY)
+    payload["opl_stage_attempt_carrier_boundary"] = dict(OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY)
     payload["active_caller_class"] = "abi_provenance_carrier_only"
     payload["allowed_reference_class"] = "OPL StageRun ABI carrier"
     payload["diagnostic_role"] = "retired_default_paper_dispatch"
@@ -81,7 +81,7 @@ def dispatch_with_immutable_packet_ref(
     payload["counts_as_paper_progress"] = False
     payload["can_claim_runtime_ready"] = False
     payload["can_claim_publication_ready"] = False
-    payload["forbidden_claims"] = list(LEGACY_DISPATCH_PACKET_BOUNDARY["forbidden_claims"])
+    payload["forbidden_claims"] = list(OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY["forbidden_claims"])
     return payload
 
 
@@ -122,7 +122,7 @@ def _mapping(value: object) -> dict[str, Any]:
 
 __all__ = [
     "IMMUTABLE_PACKET_DIRNAME",
-    "LEGACY_DISPATCH_PACKET_BOUNDARY",
+    "OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY",
     "dispatch_stage_packet_path",
     "dispatch_with_immutable_packet_ref",
     "immutable_dispatch_packet_path",

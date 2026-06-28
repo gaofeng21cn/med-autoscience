@@ -24,7 +24,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.controllers import study_transition_receipt_consumption
-from med_autoscience.controllers import default_executor_dispatch_packets
+from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.owner_route_handoff_parts import current_dispatch_identity
@@ -122,7 +122,7 @@ def default_executor_dispatch_tasks(
             action_type=action_type,
         )
         dispatch_authority = _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch"
-        stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+        stage_packet_path = opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
             dispatch,
             fallback_dispatch_path=dispatch_path,
         )
@@ -510,7 +510,7 @@ def _current_dispatch_candidates(
             action_type=action_type,
             work_unit_id=_text(canonical.get("work_unit_id")),
             dispatch_path=dispatch_path,
-            stage_packet_path=default_executor_dispatch_packets.dispatch_stage_packet_path(
+            stage_packet_path=opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
                 dispatch,
                 fallback_dispatch_path=dispatch_path,
             ),
@@ -645,7 +645,7 @@ def _dispatch_matches_canonical_current_identity(
         return True
     if current_dispatch_identity.dispatch_work_unit_fingerprint(dispatch) == expected_fingerprint:
         return True
-    stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+    stage_packet_path = opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
         dispatch,
         fallback_dispatch_path=dispatch_path,
     )
@@ -1043,11 +1043,11 @@ def _persist_dispatch_packet_identity(
     dispatch_path: Path,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any]:
-    packet = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
+    packet = opl_stage_attempt_carrier_packets.dispatch_with_immutable_packet_ref(
         dispatch=dispatch,
         dispatch_path=dispatch_path,
     )
-    stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+    stage_packet_path = opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
         packet,
         fallback_dispatch_path=dispatch_path,
     )
