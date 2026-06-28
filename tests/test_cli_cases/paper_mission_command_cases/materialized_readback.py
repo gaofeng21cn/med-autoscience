@@ -4,7 +4,95 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.cli_parts import paper_mission_commands as commands
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
+
+
+def test_paper_mission_inspect_materialized_readback_defaults_to_no_live_opl_probe(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::medical-prose-repair::one-shot"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Read materialized mission without probing OPL by default.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {
+                    "status": "accepted",
+                    "outcome": "accepted_submission_milestone_candidate",
+                },
+                "claim_permissions": {
+                    "can_claim_artifact_delta": False,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": transaction,
+            }
+        ),
+        encoding="utf-8",
+    )
+    live_probe_flags: list[bool] = []
+    original = commands.attach_opl_runtime_carrier_readback
+
+    def spy_attach_opl_runtime_carrier_readback(**kwargs):
+        live_probe_flags.append(bool(kwargs.get("enable_opl_live_probe")))
+        if kwargs.get("enable_opl_live_probe"):
+            raise AssertionError("materialized inspect should not request OPL live probe by default")
+        return original(**kwargs)
+
+    monkeypatch.setattr(
+        commands,
+        "attach_opl_runtime_carrier_readback",
+        spy_attach_opl_runtime_carrier_readback,
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["mission_state"] == "consumed"
+    assert live_probe_flags
+    assert live_probe_flags == [False]
 
 
 def test_paper_mission_materialized_readback_keeps_governed_consumption_current_when_terminal_residue_exists(

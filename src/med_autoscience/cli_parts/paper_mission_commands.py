@@ -354,7 +354,7 @@ def build_paper_mission_readback(
             paper_mission_command=paper_mission_command,
             dry_run=dry_run,
             source=source,
-            enable_opl_live_probe=True,
+            enable_opl_live_probe=enable_opl_live_probe,
             opl_bin=opl_bin,
         )
         if materialized is not None:
