@@ -728,6 +728,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     ai_reviewer_record_parser.add_argument("--payload-json", type=str)
     ai_reviewer_record_parser.add_argument("--dry-run", action="store_true")
     ai_reviewer_record_parser.add_argument("--observe", action="store_true")
+    ai_reviewer_record_parser.add_argument("--authoring-target-output", type=str)
     ai_reviewer_record_parser.add_argument("--expected-owner", type=str)
     ai_reviewer_record_parser.add_argument("--expected-action-type", type=str)
     ai_reviewer_record_parser.add_argument("--expected-work-unit-id", type=str)

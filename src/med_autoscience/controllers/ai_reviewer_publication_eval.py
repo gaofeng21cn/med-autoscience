@@ -226,6 +226,57 @@ def _refresh_record_payload_target_metadata(
     )
 
 
+def _ai_reviewer_record_authoring_target_payload(
+    *,
+    record: Mapping[str, Any] | None,
+    status_payload: Mapping[str, Any],
+    request: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+    required_currentness_refs: list[str],
+) -> dict[str, Any]:
+    metadata = _payload_target_current_metadata(
+        request=request,
+        required_refs=required_refs,
+        required_currentness_refs=required_currentness_refs,
+    )
+    source = dict(record) if _is_record_payload_authoring_target(record) else {}
+    return {
+        "surface": "ai_reviewer_record_payload_authoring_target",
+        "study_id": _optional_text(status_payload.get("study_id")) or _optional_text(request.get("study_id")),
+        "quest_id": _optional_text(status_payload.get("quest_id")) or _optional_text(request.get("quest_id")),
+        "request_kind": _record_request_kind(request),
+        "request_owner": _optional_text(request.get("request_owner")),
+        "owner_callable_surface": "publication materialize-ai-reviewer-record",
+        "owner_callable_mode": "record_only_build_production_trace",
+        "record_payload": _mapping(source.get("record_payload")),
+        **metadata,
+        "authority_boundary": {
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+            "publication_eval_latest_write_allowed": False,
+            "controller_decision_write_allowed": False,
+            "record_only_surface": True,
+        },
+    }
+
+
+def _write_authoring_target_output(
+    *,
+    output_path: Path,
+    study_root: Path,
+    payload: Mapping[str, Any],
+) -> Path:
+    resolved_output = output_path.expanduser().resolve()
+    resolved_study_root = study_root.expanduser().resolve()
+    if resolved_output == resolved_study_root or resolved_study_root in resolved_output.parents:
+        raise ValueError("AI reviewer authoring target output must not be inside the study root")
+    resolved_output.parent.mkdir(parents=True, exist_ok=True)
+    resolved_output.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return resolved_output
+
+
 def _record_payload_missing_blocker(
     *,
     payload: Mapping[str, Any],
@@ -557,6 +608,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     expected_action_type: str | None = None,
     expected_work_unit_id: str | None = None,
     expected_work_unit_fingerprint: str | None = None,
+    authoring_target_output: Path | None = None,
 ) -> dict[str, Any]:
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
@@ -625,6 +677,23 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         )
         else "dry_run"
     )
+    authoring_target_payload = _ai_reviewer_record_authoring_target_payload(
+        record=record_payload,
+        status_payload=status_payload,
+        request=request,
+        required_refs=required_refs,
+        required_currentness_refs=required_currentness_refs,
+    )
+    written_files: list[str] = []
+    authoring_target_output_ref: str | None = None
+    if authoring_target_output is not None:
+        output_ref = _write_authoring_target_output(
+            output_path=authoring_target_output,
+            study_root=resolved_study_root,
+            payload=authoring_target_payload,
+        )
+        authoring_target_output_ref = str(output_ref)
+        written_files.append(str(output_ref))
     result = {
         "status": "dry_run",
         "dry_run": True,
@@ -651,6 +720,14 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         "payload_guard": payload_guard,
         "record_schema_guard": record_schema_guard,
         "payload_target_metadata_refresh": payload_target_metadata_refresh,
+        "authoring_target": {
+            "surface": "ai_reviewer_record_payload_authoring_target",
+            "output_ref": authoring_target_output_ref,
+            "record_payload_preserved": authoring_target_payload.get("record_payload")
+            == _mapping(_mapping(record_payload).get("record_payload")),
+            "record_payload_prefilled_by_mas": False,
+            "writes_authority_surfaces": False,
+        },
         "request": {
             "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
             "request_kind": _record_request_kind(request),
@@ -694,7 +771,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         },
         "publication_eval_surface": "not_written",
         "publication_eval_record_surface": "not_written",
-        "written_files": [],
+        "written_files": written_files,
         "next_required_actions": [
             "author_ai_reviewer_record_payload_against_current_input_refs",
             "rerun_publication_materialize_ai_reviewer_record_with_build_production_trace_without_dry_run",

@@ -256,6 +256,7 @@ def test_publication_ai_reviewer_record_command_runs_identity_guard_before_write
         expected_action_type: str | None = None,
         expected_work_unit_id: str | None = None,
         expected_work_unit_fingerprint: str | None = None,
+        authoring_target_output: Path | None = None,
     ) -> dict:
         called["precheck"] = True
         called["precheck_record"] = record
@@ -263,6 +264,7 @@ def test_publication_ai_reviewer_record_command_runs_identity_guard_before_write
         called["expected_action_type"] = expected_action_type
         called["expected_work_unit_id"] = expected_work_unit_id
         called["expected_work_unit_fingerprint"] = expected_work_unit_fingerprint
+        called["authoring_target_output"] = authoring_target_output
         return {
             "status": "dry_run",
             "identity_guard": {"matched": True},
@@ -426,6 +428,7 @@ def test_publication_ai_reviewer_record_dry_run_dispatches_no_write_plan(
         expected_action_type: str | None = None,
         expected_work_unit_id: str | None = None,
         expected_work_unit_fingerprint: str | None = None,
+        authoring_target_output: Path | None = None,
     ) -> dict:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -437,6 +440,7 @@ def test_publication_ai_reviewer_record_dry_run_dispatches_no_write_plan(
         called["expected_action_type"] = expected_action_type
         called["expected_work_unit_id"] = expected_work_unit_id
         called["expected_work_unit_fingerprint"] = expected_work_unit_fingerprint
+        called["authoring_target_output"] = authoring_target_output
         return {
             "status": "dry_run",
             "dry_run": True,

@@ -270,6 +270,193 @@ def test_ai_reviewer_payload_guard_refreshes_target_metadata_before_record_paylo
     assert not (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").exists()
 
 
+def test_ai_reviewer_record_observe_writes_non_authority_authoring_target(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    current_record_ref = str(
+        (
+            study_root
+            / "artifacts"
+            / "publication_eval"
+            / "ai_reviewer_responses"
+            / "20260629T010203Z_publication_eval_record.json"
+        ).resolve()
+    )
+    for path in (request_path, evidence_path, claim_map_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface": "domain_action_request",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "request_owner": "ai_reviewer",
+                "input_contract": {
+                    "required_refs": {
+                        "evidence_ledger": {"path": str(evidence_path.resolve())},
+                        "claim_evidence_map": {"path": str(claim_map_path.resolve())},
+                    }
+                },
+                "request_lifecycle": {
+                    "state": "requested",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                    "stale_record_ref": current_record_ref,
+                    "required_currentness_refs": [
+                        str(evidence_path.resolve()),
+                        str(claim_map_path.resolve()),
+                    ],
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module.study_progress_projection,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "study_root": str(study_root),
+            "current_work_unit": {
+                "status": "executable_owner_action",
+                "owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::"
+                    "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                ),
+            },
+        },
+    )
+    output_path = tmp_path / "authoring_target.json"
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "materialize-ai-reviewer-record",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--entry-mode",
+            "owner_consumption_payload_guard",
+            "--observe",
+            "--authoring-target-output",
+            str(output_path),
+            "--expected-owner",
+            "ai_reviewer",
+            "--expected-action-type",
+            "return_to_ai_reviewer_workflow",
+            "--expected-work-unit-id",
+            "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "--expected-work-unit-fingerprint",
+            "domain-transition::ai_reviewer_re_eval::"
+            "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        ]
+    )
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    written = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert result["status"] == "dry_run"
+    assert result["authoring_target"]["output_ref"] == str(output_path.resolve())
+    assert result["authoring_target"]["writes_authority_surfaces"] is False
+    assert result["written_files"] == [str(output_path.resolve())]
+    assert written["surface"] == "ai_reviewer_record_payload_authoring_target"
+    assert written["stale_record_ref"] == current_record_ref
+    assert written["required_input_refs"] == {
+        "evidence_ledger": str(evidence_path.resolve()),
+        "claim_evidence_map": str(claim_map_path.resolve()),
+    }
+    assert written["required_currentness_refs"] == [
+        str(evidence_path.resolve()),
+        str(claim_map_path.resolve()),
+    ]
+    assert written["record_payload"] == {}
+    assert written["authority_boundary"]["publication_eval_latest_write_allowed"] is False
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").exists()
+
+
+def test_ai_reviewer_authoring_target_output_refuses_study_root_write(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / study_id
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    for path in (request_path, evidence_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface": "domain_action_request",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "request_owner": "ai_reviewer",
+                "input_contract": {"required_refs": {"evidence_ledger": {"path": str(evidence_path.resolve())}}},
+                "request_lifecycle": {
+                    "state": "requested",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                    "required_currentness_refs": [str(evidence_path.resolve())],
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module.study_progress_projection,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "study_root": str(study_root),
+            "current_work_unit": {"owner": "ai_reviewer"},
+        },
+    )
+
+    try:
+        module.plan_ai_reviewer_publication_eval_record_materialization(
+            profile=profile,
+            study_id=study_id,
+            study_root=None,
+            entry_mode="owner_consumption_payload_guard",
+            source="cli",
+            authoring_target_output=study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "record_production_payloads" / "return_to_ai_reviewer_workflow_payload.json",
+        )
+    except ValueError as exc:
+        assert "must not be inside the study root" in str(exc)
+    else:
+        raise AssertionError("expected study-root authoring target output to be rejected")
+
+
 def test_ai_reviewer_payload_guard_prefers_stable_medical_prose_review_over_legacy_request_ref(
     monkeypatch,
     tmp_path: Path,

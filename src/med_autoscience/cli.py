@@ -486,6 +486,9 @@ def main(argv: list[str] | None = None) -> int:
                 expected_action_type=args.expected_action_type,
                 expected_work_unit_id=args.expected_work_unit_id,
                 expected_work_unit_fingerprint=args.expected_work_unit_fingerprint,
+                authoring_target_output=Path(args.authoring_target_output)
+                if args.authoring_target_output
+                else None,
             )
         else:
             expected_identity_args_present = any(
