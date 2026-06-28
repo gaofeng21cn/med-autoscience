@@ -15,7 +15,7 @@ _module_reexport(_shared)
 
 def _assert_diagnostic_refresh_policy(policy: dict, command: str) -> None:
     assert policy["command"] == command
-    assert policy["surface_role"] == "runtime_diagnostic_refresh"
+    assert policy["surface_role"] == "paper_mission_readback_refresh"
     assert policy["dry_run"] is True
     assert policy["diagnostic_only"] is True
     assert policy["writes_authority"] is False
@@ -674,7 +674,8 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert any(
         item["study_id"] == "001-risk"
         and item["code"] == "study_supervision_gap"
-        and item["recommended_command"].endswith("--request-opl-stage-attempts --dry-run")
+        and "paper-mission inspect" in item["recommended_command"]
+        and item["recommended_command"].endswith("--format json")
         for item in payload["attention_queue"]
     )
     assert any(
@@ -688,7 +689,8 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][0]["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
     assert payload["studies"][0]["operator_verdict"]["decision_mode"] == "intervene_now"
-    assert payload["studies"][0]["recommended_command"].endswith("--request-opl-stage-attempts --dry-run")
+    assert "paper-mission inspect" in payload["studies"][0]["recommended_command"]
+    assert payload["studies"][0]["recommended_command"].endswith("--format json")
     assert payload["studies"][0]["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert payload["studies"][1]["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert payload["studies"][1]["operator_verdict"]["summary"] == "图表推进陷入重复打磨循环，当前 run 应被拉回主线。"

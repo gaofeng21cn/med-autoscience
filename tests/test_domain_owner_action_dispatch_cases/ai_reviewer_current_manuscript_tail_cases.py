@@ -156,13 +156,16 @@ def test_execute_dispatch_rebinds_record_production_to_eval_owned_medical_prose_
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"
     production_request = execution["ai_reviewer_record_production_request"]
     assert production_request["required_input_refs"]["medical_prose_review"] == str(stable_prose_review.resolve())
-    payload_ref = production_request["owner_callable_payload_ref"]
-    payload = json.loads(Path(payload_ref).read_text(encoding="utf-8"))
-    assert payload["required_input_refs"]["medical_prose_review"] == str(stable_prose_review.resolve())
+    assert production_request["owner_callable_payload_ref"].endswith(
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
+    )
 
 
 def test_record_payload_authoring_target_refreshes_guard_metadata_from_current_request(
