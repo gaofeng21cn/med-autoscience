@@ -17,7 +17,6 @@ def handle_domain_handler_command(
     load_profile: Callable[[str | Path], Any],
     load_json_object_file: Callable[[str | Path], dict[str, object]],
     load_module: Callable[[str], Any],
-    owner_route_reconcile: Any,
 ) -> int | None:
     if args.command != "domain-handler":
         return None

@@ -86,7 +86,6 @@ display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("dis
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
 stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_artifact_materializer"))
 light_advisory_materializer = _LazyModuleProxy(lambda: _load_controller("light_advisory_materializer"))
-owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 restore_index_detail_retention = _LazyModuleProxy(lambda: _load_controller("restore_index_detail_retention"))
 historical_body_retention = _LazyModuleProxy(lambda: _load_controller("historical_body_retention"))
@@ -257,7 +256,6 @@ def main(argv: list[str] | None = None) -> int:
         load_profile=load_profile,
         load_json_object_file=_load_json_object_file,
         load_module=_load_module,
-        owner_route_reconcile=owner_route_reconcile,
     )
     if domain_handler_result is not None:
         return domain_handler_result

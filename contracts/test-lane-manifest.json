@@ -2637,7 +2637,6 @@
         "tests/test_runtime_supervision.py",
         "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
         "tests/test_domain_health_diagnostic.py",
-        "tests/test_cli_cases/owner_route_reconcile_command.py",
         "tests/test_paper_autonomy_stability_evidence.py",
         "tests/test_real_workspace_soak_monitor.py",
         "tests/test_study_progress.py",
@@ -2697,7 +2696,6 @@
         "tests/test_real_paper_autonomy_soak_inventory.py",
         "tests/test_real_workspace_soak_monitor.py",
         "tests/test_real_paper_ai_first_soak.py",
-        "tests/test_cli_cases/owner_route_reconcile_command.py",
         "tests/test_cli_cases/workspace_monolith_migration_command.py",
         "tests/test_workspace_git_boundary.py",
         "tests/test_workspace_monolith_migration.py"
