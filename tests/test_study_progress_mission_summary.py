@@ -419,6 +419,14 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["stage_closure_decision"]["projection_status"] == (
+        "stage_closure_decision_missing"
+    )
+    assert payload["stage_closure_outcome"] == "stage_closure_decision_missing"
+    assert payload["stage_closure_decision"]["can_continue_same_stage"] is False
+    assert payload["artifact_first_mission_summary"]["stage_closure_decision"] == (
+        payload["stage_closure_decision"]
+    )
     assert payload["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )

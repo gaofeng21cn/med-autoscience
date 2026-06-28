@@ -81,6 +81,7 @@ def sync_draft_handoff_delivery(
     quest_id: str,
     study_id: str,
     study_root: Path,
+    known_blockers: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     manuscript_root = study_root / "manuscript"
     current_package_root = manuscript_root / "current_package"
@@ -149,6 +150,11 @@ def sync_draft_handoff_delivery(
         "schema_version": 1,
         "generated_at": utc_now(),
         "stage": "draft_handoff",
+        "package_kind": "current_package",
+        "can_submit": False,
+        "quality_gate_status": "blocked" if known_blockers else "not_blocked",
+        "known_blockers": list(known_blockers),
+        "generated_from_current_source": True,
         "study_id": study_id,
         "quest_id": quest_id,
         "source_signature": source_signature,
@@ -193,6 +199,7 @@ def sync_general_delivery(
     study_id: str,
     study_root: Path,
     normalized_stage: str,
+    known_blockers: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     manuscript_root = study_root / "manuscript"
     artifacts_final_root = study_root / "artifacts" / "final"
@@ -375,6 +382,11 @@ def sync_general_delivery(
             "schema_version": 1,
             "generated_at": utc_now(),
             "stage": normalized_stage,
+            "package_kind": "current_package",
+            "can_submit": False,
+            "quality_gate_status": "blocked" if known_blockers else "not_blocked",
+            "known_blockers": list(known_blockers),
+            "generated_from_current_source": True,
             "study_id": study_id,
             "quest_id": quest_id,
             "publication_profile": "general_medical_journal",
@@ -431,6 +443,111 @@ def sync_general_delivery(
     if normalized_stage != "finalize":
         remove_directory(artifacts_final_root)
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
+    return manifest
+
+
+def _sync_current_package_mirror_delivery(
+    *,
+    paper_root: Path,
+    worktree_root: Path,
+    quest_id: str,
+    study_id: str,
+    study_root: Path,
+    normalized_stage: str,
+    publication_profile: str,
+    known_blockers: tuple[str, ...],
+) -> dict[str, Any]:
+    manuscript_root = study_root / "manuscript"
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
+    source_root = build_submission_source_root(paper_root=paper_root, publication_profile=publication_profile)
+    source_relative_root = build_authority_source_relative_root(paper_root=paper_root, source_root=source_root)
+    copied_files: list[dict[str, str]] = []
+    generated_files: list[dict[str, str]] = []
+    manuscript_root.mkdir(parents=True, exist_ok=True)
+    ensure_manuscript_root_readme(manuscript_root=manuscript_root)
+    write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        review_ledger_path=paper_root / "review" / "review_ledger.json",
+    )
+    source_relative_paths = _submission_source_relative_paths(
+        paper_root=paper_root,
+        source_root=source_root,
+    )
+    source_signature = _submission_source_signature(
+        paper_root=paper_root,
+        source_root=source_root,
+        relative_paths=source_relative_paths,
+    )
+    current_package_readme_payload = sync_current_package_projection(
+        paper_root=paper_root,
+        source_root=source_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        study_id=study_id,
+        stage=f"{publication_profile}_{normalized_stage}",
+        source_relative_root=source_relative_root,
+        status_line="human-facing current package mirror; not a submission-ready package",
+        copied_files=copied_files,
+        generated_files=generated_files,
+        review_ledger_source=paper_root / "review" / "review_ledger.json",
+        charter_contract_linkage=charter_contract_linkage,
+    )
+    manifest = {
+        "schema_version": 1,
+        "generated_at": utc_now(),
+        "stage": normalized_stage,
+        "package_kind": "current_package",
+        "can_submit": False,
+        "quality_gate_status": "blocked" if known_blockers else "not_blocked",
+        "known_blockers": list(known_blockers),
+        "generated_from_current_source": True,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "publication_profile": publication_profile,
+        **build_submission_delivery_signature_block(
+            source_signature=source_signature,
+            source_relative_paths=source_relative_paths,
+            source_package_root=source_root,
+            human_package_root=current_package_root,
+            package_role="human_facing_mirror",
+        ),
+        "source": {
+            "paper_root": str(paper_root),
+            "worktree_root": str(worktree_root),
+            "package_source_root": str(source_root),
+        },
+        "controller_authorized_doctor_readme": current_package_readme_payload,
+        "charter_contract_linkage": charter_contract_linkage,
+        **build_delivery_authority_ref_block(study_root=study_root),
+        "surface_roles": build_delivery_surface_roles(
+            paper_root=paper_root,
+            source_root=source_root,
+            manuscript_root=manuscript_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
+            auxiliary_evidence_root=None,
+            journal_submission_mirror_root=None,
+        ),
+        "targets": {
+            "study_root": str(study_root),
+            "manuscript_root": str(manuscript_root),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
+        },
+        "copied_files": copied_files,
+        "generated_files": generated_files,
+        "artifact_lifecycle": build_study_delivery_lifecycle_hook(
+            study_root=study_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
+            copied_files=copied_files,
+            generated_files=generated_files,
+        ),
+    }
+    dump_json(manuscript_root / "delivery_manifest.json", manifest)
     return manifest
 
 

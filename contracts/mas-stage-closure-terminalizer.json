@@ -1,0 +1,97 @@
+{
+  "surface_kind": "mas_stage_closure_terminalizer_contract",
+  "schema_version": 1,
+  "contract_id": "mas.stage_closure_terminalizer.v1",
+  "machine_boundary": {
+    "role": "pure_stage_closeout_decision_contract",
+    "writes_authority_surface": false,
+    "writes_owner_receipt": false,
+    "writes_typed_blocker": false,
+    "writes_human_gate": false,
+    "writes_current_package": false,
+    "writes_submission_package": false,
+    "writes_runtime_queue_or_provider_attempt": false,
+    "opl_can_infer_mas_authority": false
+  },
+  "required_outcome_kinds": [
+    "owner_receipt",
+    "typed_blocker",
+    "human_gate",
+    "next_stage_transition"
+  ],
+  "forbidden_terminal_interpretations": [
+    "provider_completion_is_domain_ready",
+    "candidate_is_submission_ready",
+    "inspection_package_is_submission_ready",
+    "accepted_submission_milestone_candidate_is_durable_stop",
+    "blocked_gate_is_final_without_typed_blocker_or_human_gate",
+    "bundle_build_allowed_false_blocks_current_package_mirror",
+    "continue_same_stage_without_semantic_delta",
+    "focused_tests_passed_is_paper_progress",
+    "queue_empty_is_stage_closed"
+  ],
+  "blocker_taxonomy": {
+    "quality_repairable": [
+      "reviewer_first_concerns_unresolved",
+      "claim_evidence_consistency_failed",
+      "submission_hardening_incomplete",
+      "forbidden_manuscript_terminology",
+      "submission_surface_qc_failure_present",
+      "medical_publication_surface_blocked",
+      "medical_journal_prose_quality_blocked",
+      "manuscript_story_surface_delta_missing"
+    ],
+    "mirror_sync": [
+      "stale_study_delivery_mirror",
+      "delivery_manifest_source_changed",
+      "current_package_missing",
+      "current_package_stale",
+      "study_delivery_current_package_missing"
+    ],
+    "submission_authority": [
+      "stale_submission_minimal_authority",
+      "authority_snapshot_missing",
+      "bundle_build_allowed_missing",
+      "bundle_build_allowed_false",
+      "submission_ready_authority_missing",
+      "paper_write_allowed_missing"
+    ],
+    "hard_authority": [
+      "source_data_missing",
+      "privacy_ethics_permission_boundary",
+      "credential_boundary",
+      "forbidden_write_target",
+      "irreversible_external_submission_authorization_required"
+    ]
+  },
+  "package_authority_split": {
+    "current_package": {
+      "package_kind": "current_package",
+      "can_submit": false,
+      "requires_bundle_build_allowed": false,
+      "requires_source_signature": true,
+      "purpose": "human_facing_current_mirror"
+    },
+    "degraded_handoff_package": {
+      "package_kind": "degraded_handoff_package",
+      "can_submit": false,
+      "requires_known_blockers": true,
+      "purpose": "budget_exhausted_pre_submission_handoff"
+    },
+    "submission_ready_package": {
+      "package_kind": "submission_ready_package",
+      "can_submit": true,
+      "requires_bundle_build_allowed": true,
+      "purpose": "final_submission_or_journal_package"
+    }
+  },
+  "decision_requirements": {
+    "must_emit_exactly_one_outcome": true,
+    "must_classify_gate_blockers": true,
+    "must_preserve_known_blockers": true,
+    "must_record_observability_gap_without_blocking_closure": true,
+    "must_fail_closed_when_no_semantic_delta_repeats": true,
+    "budget_exhausted_quality_blockers_route": "degraded_handoff_package",
+    "current_package_mirror_sync_route": "mirror_sync_without_bundle_build_allowed"
+  }
+}

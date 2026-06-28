@@ -19,11 +19,46 @@ from med_autoscience.publication_profiles import (
 
 from .delivery_context import SYNC_STAGES, _resolve_delivery_context
 from .delivery_stage_sync import (
+    _sync_current_package_mirror_delivery,
     sync_draft_handoff_delivery,
     sync_general_delivery,
     sync_journal_specific_delivery,
     sync_promoted_journal_delivery,
 )
+
+
+def _known_submission_authority_blockers(gate: Mapping[str, Any]) -> tuple[str, ...]:
+    blockers: list[str] = []
+    for reason in gate.get("blocking_reasons") or []:
+        text = str(reason or "").strip()
+        if text and text not in blockers:
+            blockers.append(text)
+    return tuple(blockers)
+
+
+def _explicit_submission_authority_blocked(gate: Mapping[str, Any]) -> bool:
+    return any(
+        reason in {"bundle_build_allowed_false", "bundle_build_allowed_missing"}
+        for reason in _known_submission_authority_blockers(gate)
+    )
+
+
+def _mirror_authority_gate(*, submission_authority_gate: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        **dict(submission_authority_gate),
+        "authorized": True,
+        "allowed": True,
+        "blocking_reasons": [],
+        "route_authorization_flag": "current_package_mirror_source_signature",
+        "submission_authority_blockers": _known_submission_authority_blockers(submission_authority_gate),
+        "package_authority": {
+            "package_kind": "current_package",
+            "can_submit": False,
+            "submission_authority_required": False,
+        },
+    }
+
+
 def sync_study_delivery(
     *,
     paper_root: Path,
@@ -52,13 +87,19 @@ def sync_study_delivery(
         context=write_route_context,
         default_paths=[study_root / "manuscript" / "current_package"],
     )
-    if not bool(authority_route_gate.get("authorized")):
+    submission_authority_blocked = _explicit_submission_authority_blocked(authority_route_gate)
+    requires_submission_authority = promote_to_final
+    if bool(authority_route_gate.get("projection_only")) or (
+        requires_submission_authority and submission_authority_blocked
+    ):
         return blocked_authority_write_payload(
             gate=authority_route_gate,
             stage=normalized_stage,
             paper_root=str(paper_root),
             study_root=str(study_root),
         )
+    mirror_authority_gate = _mirror_authority_gate(submission_authority_gate=authority_route_gate)
+    known_submission_authority_blockers = _known_submission_authority_blockers(authority_route_gate)
     clean_migration_blocker = paper_authority_delivery_guard.pending_clean_migration_blocker(
         study_root=study_root,
     )
@@ -68,16 +109,22 @@ def sync_study_delivery(
             "stage": normalized_stage,
             "paper_root": str(paper_root),
             "study_root": str(study_root),
-            "authority_route_gate": authority_route_gate,
+            "authority_route_gate": mirror_authority_gate if not requires_submission_authority else authority_route_gate,
+            "submission_authority_gate": authority_route_gate,
         }
 
     if normalized_stage == "draft_handoff":
         if normalized_publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:
             raise ValueError("draft_handoff only supports the general_medical_journal profile")
         result = sync_draft_handoff_delivery(
-            paper_root=paper_root, quest_id=quest_id, study_id=study_id, study_root=study_root
+            paper_root=paper_root,
+            quest_id=quest_id,
+            study_id=study_id,
+            study_root=study_root,
+            known_blockers=known_submission_authority_blockers,
         )
-        return attach_authority_route_gate(result, authority_route_gate)
+        result["submission_authority_gate"] = authority_route_gate
+        return attach_authority_route_gate(result, mirror_authority_gate)
 
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         result = sync_general_delivery(
@@ -87,11 +134,27 @@ def sync_study_delivery(
             study_id=study_id,
             study_root=study_root,
             normalized_stage=normalized_stage,
+            known_blockers=known_submission_authority_blockers,
         )
-        return attach_authority_route_gate(result, authority_route_gate)
+        result["submission_authority_gate"] = authority_route_gate
+        return attach_authority_route_gate(result, mirror_authority_gate)
 
     if not is_supported_publication_profile(normalized_publication_profile):
         raise ValueError(f"unsupported publication profile: {normalized_publication_profile}")
+
+    if submission_authority_blocked:
+        result = _sync_current_package_mirror_delivery(
+            paper_root=paper_root,
+            worktree_root=worktree_root,
+            quest_id=quest_id,
+            study_id=study_id,
+            study_root=study_root,
+            normalized_stage=normalized_stage,
+            publication_profile=normalized_publication_profile,
+            known_blockers=known_submission_authority_blockers,
+        )
+        result["submission_authority_gate"] = authority_route_gate
+        return attach_authority_route_gate(result, mirror_authority_gate)
 
     sync_journal_delivery = sync_promoted_journal_delivery if promote_to_final else sync_journal_specific_delivery
     result = sync_journal_delivery(

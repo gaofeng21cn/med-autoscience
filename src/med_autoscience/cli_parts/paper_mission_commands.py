@@ -77,6 +77,10 @@ from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
 )
+from med_autoscience.controllers.stage_closure_terminalizer import (
+    stage_closure_decision_missing,
+    stage_closure_decision_projection,
+)
 
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
@@ -428,6 +432,16 @@ def build_paper_mission_readback(
         if paper_mission_command == "consume-candidate"
         else {}
     )
+    stage_closure_decision = stage_closure_decision_projection(
+        readback={
+            **transaction_readback,
+            "consume_candidate_status": _consume_candidate_status_for_transaction_readback(
+                transaction_readback=transaction_readback,
+                authority_consume_readback=authority_consume_readback,
+            ),
+        },
+        handoff=_mapping(transaction_readback.get("opl_route_handoff")),
+    )
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -457,6 +471,11 @@ def build_paper_mission_readback(
             transaction_readback=transaction_readback,
             authority_consume_readback=authority_consume_readback,
         ),
+        "stage_closure_decision": stage_closure_decision,
+        "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(
+            stage_closure_decision.get("outcome")
+        ).get("kind"),
         "mutation_policy": _mutation_policy(paper_mission_command=paper_mission_command),
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
@@ -662,6 +681,11 @@ def _build_paper_mission_drive_readback(
         consume_readback = _mapping(final_round.get("consume_readback"))
         handoff = _mapping(final_round.get("opl_route_handoff"))
         opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
+    stage_closure_decision = stage_closure_decision_projection(
+        readback=consume_readback,
+        handoff=handoff,
+        opl_runtime_submission=opl_runtime_submission,
+    )
     mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
         package_readback=package_readback,
         consume_readback=consume_readback,
@@ -673,6 +697,7 @@ def _build_paper_mission_drive_readback(
         handoff=handoff,
         opl_runtime_submission=opl_runtime_submission,
         mas_owned_executor_delta=mas_executor_delta,
+        stage_closure_decision=stage_closure_decision,
     )
     return {
         "surface_kind": "paper_mission_drive_readback",
@@ -715,6 +740,11 @@ def _build_paper_mission_drive_readback(
         "opl_route_handoff": handoff or None,
         "opl_runtime_submission": opl_runtime_submission,
         "followthrough": followthrough,
+        "stage_closure_decision": stage_closure_decision,
+        "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(
+            stage_closure_decision.get("outcome")
+        ).get("kind"),
         "semantic_progress_guard": followthrough["semantic_progress_guard"],
         "non_advancing_route_back": followthrough["non_advancing_route_back"],
         "route_back_budget_ledger": followthrough["route_back_budget_ledger"],
@@ -795,9 +825,16 @@ def _paper_mission_drive_followthrough(
     current_progress_guard = dict(initial_progress_guard)
     current_route_back_budget_ledger = dict(route_back_budget_ledger)
     non_advancing_route_back: dict[str, Any] | None = None
+    current_stage_closure_decision = stage_closure_decision_projection(
+        readback=current_consume_readback,
+        handoff=current_handoff,
+        opl_runtime_submission=current_submission,
+    )
     for index in range(DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT):
         if _paper_mission_route_back_budget_exhausted(current_progress_guard):
             non_advancing_route_back = current_progress_guard
+            break
+        if stage_closure_decision_missing(current_stage_closure_decision):
             break
         trigger = _paper_mission_followthrough_trigger(
             consume_readback=current_consume_readback,
@@ -854,6 +891,11 @@ def _paper_mission_drive_followthrough(
                 "opl_route_handoff"
             )
         ) or handoff
+        stage_closure_decision = stage_closure_decision_projection(
+            readback=consume_readback,
+            handoff=handoff,
+            opl_runtime_submission=submission,
+        )
         next_progress_guard = _paper_mission_semantic_progress_guard(
             consume_readback=consume_readback,
             handoff=handoff,
@@ -878,10 +920,16 @@ def _paper_mission_drive_followthrough(
             "consume_readback": consume_readback,
             "opl_route_handoff": handoff or None,
             "opl_runtime_submission": submission,
+            "stage_closure_decision": stage_closure_decision,
+            "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
+            "stage_closure_outcome": _mapping(
+                stage_closure_decision.get("outcome")
+            ).get("kind"),
             "drive_result": _paper_mission_drive_result(
                 consume_readback=consume_readback,
                 handoff=handoff,
                 opl_runtime_submission=submission,
+                stage_closure_decision=stage_closure_decision,
             ),
             "semantic_progress_guard": next_progress_guard,
         }
@@ -891,6 +939,7 @@ def _paper_mission_drive_followthrough(
         current_handoff = handoff
         current_submission = submission
         current_progress_guard = next_progress_guard
+        current_stage_closure_decision = stage_closure_decision
         if _paper_mission_route_back_budget_exhausted(next_progress_guard):
             non_advancing_route_back = next_progress_guard
             break
@@ -920,6 +969,7 @@ def _paper_mission_drive_followthrough(
         handoff=current_handoff,
         opl_runtime_submission=current_submission,
         mas_owned_executor_delta=mas_executor_delta,
+        stage_closure_decision=current_stage_closure_decision,
     )
     return {
         "surface_kind": "paper_mission_drive_followthrough_readback",
@@ -930,6 +980,11 @@ def _paper_mission_drive_followthrough(
         "rounds": rounds,
         "stop_reason": stop_reason,
         "semantic_progress_guard": current_progress_guard,
+        "stage_closure_decision": current_stage_closure_decision,
+        "stage_closure_decision_ref": current_stage_closure_decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(
+            current_stage_closure_decision.get("outcome")
+        ).get("kind"),
         "non_advancing_route_back": non_advancing_route_back,
         "route_back_budget_ledger": current_route_back_budget_ledger,
         "route_back_budget_ledger_ref": str(route_back_budget_ledger_ref),
@@ -1768,6 +1823,7 @@ def _paper_mission_drive_result(
     handoff: Mapping[str, Any],
     opl_runtime_submission: Mapping[str, Any],
     mas_owned_executor_delta: Mapping[str, Any] | None = None,
+    stage_closure_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     handoff_ready = _optional_text(handoff.get("handoff_status")) == (
         "ready_for_opl_route_command"
@@ -1789,8 +1845,16 @@ def _paper_mission_drive_result(
         and status == "opl_runtime_submission_pending"
     ):
         status = "mas_owned_executor_delta_ready"
+    if stage_closure_decision_missing(_mapping(stage_closure_decision)):
+        status = "stage_closure_decision_missing"
     return {
         "status": status,
+        "stage_closure_decision_ref": _mapping(stage_closure_decision).get(
+            "decision_ref"
+        ),
+        "stage_closure_outcome": _mapping(
+            _mapping(stage_closure_decision).get("outcome")
+        ).get("kind"),
         "stage_terminal_decision": decision.get("decision_kind"),
         "route_command": route.get("command_kind"),
         "next_owner": _first_text(
@@ -2809,6 +2873,21 @@ def _build_materialized_mission_readback_if_available(
     projection_fields = _paper_mission_materialized_projection_fields(
         transaction_readback=transaction_readback
     )
+    consume_candidate_status = (
+        transaction_readback.get("consume_candidate_status_override")
+        or _optional_text((consumption_ledger_readback or {}).get("consume_candidate_status"))
+        or _consume_candidate_status(mission, default_readback)
+    )
+    stage_closure_decision = stage_closure_decision_projection(
+        readback={
+            **transaction_readback,
+            "consume_candidate_status": consume_candidate_status,
+            "route_back_budget": projection_fields.get("route_back_budget"),
+        },
+        handoff=_mapping(
+            (consumption_ledger_readback or {}).get("opl_route_handoff")
+        ),
+    )
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -2843,6 +2922,11 @@ def _build_materialized_mission_readback_if_available(
         ],
         "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
         "opl_route_command": transaction_readback["opl_route_command"],
+        "stage_closure_decision": stage_closure_decision,
+        "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(
+            stage_closure_decision.get("outcome")
+        ).get("kind"),
         "default_readback": default_readback,
         **(
             {"candidate_manifest": candidate_manifest}
@@ -2861,11 +2945,7 @@ def _build_materialized_mission_readback_if_available(
             if consumption_ledger_readback is not None
             else {}
         ),
-        "consume_candidate_status": transaction_readback.get(
-            "consume_candidate_status_override"
-        )
-        or _optional_text((consumption_ledger_readback or {}).get("consume_candidate_status"))
-        or _consume_candidate_status(mission, default_readback),
+        "consume_candidate_status": consume_candidate_status,
         "mutation_policy": {
             "writes_authority": False,
             "writes_runtime": False,
@@ -5410,6 +5490,18 @@ def _text_list(value: object) -> list[str]:
         if text is not None:
             items.append(text)
     return items
+
+
+def _dedupe_optional_texts(values: list[object]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _optional_text(value)
+        if text is None or text in seen:
+            continue
+        result.append(text)
+        seen.add(text)
+    return result
 
 
 def _first_text(*values: object) -> str | None:

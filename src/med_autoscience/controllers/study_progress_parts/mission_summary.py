@@ -39,6 +39,9 @@ from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
 )
+from med_autoscience.controllers.stage_closure_terminalizer import (
+    stage_closure_decision_projection,
+)
 
 
 PAPER_MISSION_RUN_CONTRACT_VERSION = "paper-mission-run.v1"
@@ -248,6 +251,19 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "consume_candidate_status": effective_consume_candidate_status,
+        "stage_closure_decision": stage_closure_decision_projection(
+            readback={
+                "paper_mission_transaction": effective_transaction,
+                "stage_terminal_decision": _mapping(
+                    effective_transaction.get("stage_terminal_decision")
+                ),
+                "consume_candidate_status": effective_consume_candidate_status,
+                "route_back_budget": owner_answer_readback.get("route_back_budget"),
+                "terminal_owner_gate": terminal_owner_gate,
+                "opl_runtime_readback_status": carrier_readback["carrier_status"],
+            },
+            consumption_ledger_readback=consumption_ledger_readback,
+        ),
         "current_objective": current_objective,
         "latest_artifact_delta": {
             **latest_artifact_delta,
@@ -331,6 +347,13 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["mission_state"] = summary["mission_state"]
     if "consume_candidate_status" in summary:
         updated["consume_candidate_status"] = summary["consume_candidate_status"]
+    updated["stage_closure_decision"] = summary["stage_closure_decision"]
+    updated["stage_closure_decision_ref"] = summary["stage_closure_decision"].get(
+        "decision_ref"
+    )
+    updated["stage_closure_outcome"] = _mapping(
+        summary["stage_closure_decision"].get("outcome")
+    ).get("kind")
     updated["paper_mission_run"] = summary["paper_mission_run"]
     updated["current_objective"] = summary["current_objective"]
     updated["latest_artifact_delta"] = summary["latest_artifact_delta"]

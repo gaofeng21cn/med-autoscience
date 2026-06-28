@@ -23,6 +23,9 @@ from med_autoscience.paper_mission_terminal_owner_gate import (
     terminal_owner_gate_from_carrier_readback,
     terminal_owner_gate_from_stage_terminal_decision,
 )
+from med_autoscience.controllers.stage_closure_terminalizer import (
+    stage_closure_decision_projection,
+)
 
 
 PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
@@ -316,6 +319,19 @@ def _materialized_mission_summary(
             owner_answer_readback=owner_answer_readback,
             terminal_owner_gate=terminal_owner_gate,
         )
+    stage_closure_decision = stage_closure_decision_projection(
+        readback={
+            "paper_mission_transaction": effective_transaction,
+            "stage_terminal_decision": _mapping(
+                effective_transaction.get("stage_terminal_decision")
+            ),
+            "consume_candidate_status": effective_consume_candidate_status,
+            "route_back_budget": owner_answer_readback.get("route_back_budget"),
+            "terminal_owner_gate": terminal_owner_gate,
+            "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        },
+        consumption_ledger_readback=consumption_ledger_readback,
+    )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -337,6 +353,7 @@ def _materialized_mission_summary(
         "current_objective": current_objective,
         "current_mission": current_mission or None,
         "consume_candidate_status": effective_consume_candidate_status,
+        "stage_closure_decision": stage_closure_decision,
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "terminal_owner_gate": terminal_owner_gate or None,

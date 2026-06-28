@@ -303,6 +303,69 @@ def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None
     assert result["can_claim_runtime_ready"] is False
 
 
+def test_stage_closure_projection_missing_blocks_same_stage_followthrough() -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    terminalizer = importlib.import_module(
+        "med_autoscience.controllers.stage_closure_terminalizer"
+    )
+    readback = _route_back_consume_readback()
+    readback["consume_candidate_status"] = "accepted_submission_milestone_candidate"
+    readback["opl_runtime_readback_status"] = "opl_runtime_terminal_readback_observed"
+    handoff = _route_back_handoff()
+
+    decision = terminalizer.stage_closure_decision_projection(
+        readback=readback,
+        handoff=handoff,
+        opl_runtime_submission={"status": "submitted"},
+    )
+    drive_result = commands._paper_mission_drive_result(
+        consume_readback=readback,
+        handoff=handoff,
+        opl_runtime_submission={"status": "submitted"},
+        stage_closure_decision=decision,
+    )
+
+    assert decision["projection_status"] == "stage_closure_decision_missing"
+    assert decision["decision_ref"] == (
+        "paper-mission-transaction::dm003#stage_closure_decision"
+    )
+    assert decision["outcome"]["kind"] == "stage_closure_decision_missing"
+    assert decision.get("repair_budget") is None
+    assert "accepted_submission_milestone_candidate" in decision["known_blockers"]
+    assert decision["can_continue_same_stage"] is False
+    assert drive_result["status"] == "stage_closure_decision_missing"
+    assert drive_result["stage_closure_outcome"] == "stage_closure_decision_missing"
+
+
+def test_stage_closure_projection_exposes_terminalizer_outcome() -> None:
+    terminalizer = importlib.import_module(
+        "med_autoscience.controllers.stage_closure_terminalizer"
+    )
+    readback = _route_back_consume_readback()
+    readback["stage_closure_decision"] = {
+        "decision_ref": "stage-closure::dm003",
+        "outcome": {
+            "kind": "typed_blocker",
+            "next_owner": "MedAutoScience",
+        },
+        "repair_budget": {
+            "repair_budget_max": 3,
+            "repair_attempt_count": 3,
+            "repair_budget_status": "exhausted",
+        },
+        "package_kind": "degraded_handoff_package",
+        "known_blockers": ["claim_evidence_consistency_failed"],
+    }
+
+    decision = terminalizer.stage_closure_decision_projection(readback=readback)
+
+    assert decision["projection_status"] == "terminalizer_outcome_observed"
+    assert decision["decision_ref"] == "stage-closure::dm003"
+    assert decision["outcome"]["kind"] == "typed_blocker"
+    assert decision["package_kind"] == "degraded_handoff_package"
+    assert decision["known_blockers"] == ["claim_evidence_consistency_failed"]
+
+
 def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path) -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     ledger_ref = tmp_path / "ledger" / "study" / "route_back_budget_ledger.json"
@@ -435,6 +498,7 @@ def _route_back_handoff(
         "route_target": "submission_milestone_candidate",
         "next_owner": "mission_executor",
         "workspace_root": "/tmp/dm-cvd-workspace",
+        "request_idempotency_key": transaction_ref,
         "transaction_materialized": True,
         "opl_route_command": {
             "command_kind": "route_back",

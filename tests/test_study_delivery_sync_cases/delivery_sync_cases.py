@@ -123,7 +123,7 @@ def test_describe_submission_delivery_ignores_stale_submission_evidence_snapshot
     assert "audit/evidence_ledger.json" not in delivery_manifest["source_relative_paths"]
 
 
-def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_path: Path) -> None:
+def test_sync_study_delivery_route_gate_blockers_do_not_block_current_package_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
 
@@ -152,10 +152,21 @@ def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_pa
         },
     )
 
-    assert result["status"] == "authority_route_blocked"
-    assert result["authority_route_gate"]["route_authorization_flag"] == "bundle_build_allowed"
-    assert not (study_root / "manuscript" / "current_package").exists()
-    assert not (study_root / "manuscript" / "current_package.zip").exists()
+    assert result["package_kind"] == "current_package"
+    assert result["can_submit"] is False
+    assert result["quality_gate_status"] == "blocked"
+    assert "bundle_build_allowed_false" in result["known_blockers"]
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["route_authorization_flag"] == "current_package_mirror_source_signature"
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert result["submission_authority_gate"]["route_authorization_flag"] == "bundle_build_allowed"
+    assert (study_root / "manuscript" / "current_package").exists()
+    assert (study_root / "manuscript" / "current_package.zip").exists()
+
+    manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["package_kind"] == "current_package"
+    assert manifest["can_submit"] is False
+    assert "bundle_build_allowed_false" in manifest["known_blockers"]
 
 
 def test_submission_delivery_manifest_and_status_expose_authority_handshake_signatures(
@@ -487,6 +498,80 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
         "auxiliary_evidence_root": None,
         "journal_submission_mirror_root": None,
     }
+
+
+def test_journal_delivery_blocked_by_submission_authority_still_refreshes_current_package_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "manuscript.docx",
+        "frontiers manuscript",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "paper.pdf",
+        "%PDF-1.4\n",
+    )
+    dump_json(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "frontiers_family_harvard",
+            "citation_style": "FrontiersHarvard",
+        },
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "figures" / "Figure1.pdf",
+        "%PDF-1.4\n",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "tables" / "Table1.csv",
+        "a,b\n1,2\n",
+    )
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        publication_profile="frontiers_family_harvard",
+        route_context={
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            }
+        },
+    )
+
+    assert result["package_kind"] == "current_package"
+    assert result["publication_profile"] == "frontiers_family_harvard"
+    assert result["can_submit"] is False
+    assert "bundle_build_allowed_false" in result["known_blockers"]
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert (study_root / "manuscript" / "current_package" / "manuscript.docx").read_text(
+        encoding="utf-8"
+    ) == "frontiers manuscript"
+    assert (study_root / "manuscript" / "current_package.zip").exists()
+    assert not (
+        study_root / "manuscript" / "journal_packages" / "frontiers_family_harvard"
+    ).exists()
+    assert not (study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip").exists()
+
+
 def test_sync_study_delivery_can_promote_primary_journal_package_into_study_final(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)

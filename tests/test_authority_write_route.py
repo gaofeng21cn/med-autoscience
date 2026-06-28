@@ -258,7 +258,7 @@ def test_projection_only_submission_minimal_does_not_materialize(tmp_path: Path)
     assert not submission_root.exists()
 
 
-def test_delivery_sync_without_snapshot_is_blocked_before_current_package_write(tmp_path: Path) -> None:
+def test_delivery_sync_without_snapshot_still_writes_non_submit_current_package(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
 
@@ -267,10 +267,13 @@ def test_delivery_sync_without_snapshot_is_blocked_before_current_package_write(
         stage="submission_minimal",
     )
 
-    assert result["status"] == "authority_route_blocked"
-    assert "authority_snapshot_missing" in result["authority_route_gate"]["blocking_reasons"]
-    assert not (study_root / "manuscript" / "current_package").exists()
-    assert not (study_root / "manuscript" / "current_package.zip").exists()
+    assert result["package_kind"] == "current_package"
+    assert result["can_submit"] is False
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert "authority_snapshot_missing" in result["submission_authority_gate"]["blocking_reasons"]
+    assert (study_root / "manuscript" / "current_package").exists()
+    assert (study_root / "manuscript" / "current_package.zip").exists()
 
 
 def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
@@ -313,7 +316,7 @@ def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
     assert (paper_root / "submission_minimal" / "audit" / "submission_manifest.json").exists()
 
 
-def test_delivery_sync_derives_snapshot_but_preserves_bundle_gate(tmp_path: Path) -> None:
+def test_delivery_sync_derives_snapshot_but_does_not_require_bundle_gate_for_current_package(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
     _write_runtime_authority_snapshots(
@@ -326,10 +329,13 @@ def test_delivery_sync_derives_snapshot_but_preserves_bundle_gate(tmp_path: Path
         stage="submission_minimal",
     )
 
-    assert result["status"] == "authority_route_blocked"
+    assert result["package_kind"] == "current_package"
+    assert result["can_submit"] is False
     assert "authority_snapshot_missing" not in result["authority_route_gate"]["blocking_reasons"]
-    assert "bundle_build_allowed_false" in result["authority_route_gate"]["blocking_reasons"]
-    assert not (study_root / "manuscript" / "current_package").exists()
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert "bundle_build_allowed_false" in result["submission_authority_gate"]["blocking_reasons"]
+    assert (study_root / "manuscript" / "current_package").exists()
 
 
 def test_flat_progress_first_publication_gate_replay_route_context_is_explicit_without_snapshot() -> None:

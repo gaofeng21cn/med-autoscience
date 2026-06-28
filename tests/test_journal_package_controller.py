@@ -28,6 +28,29 @@ def write_png(path: Path) -> None:
     path.write_bytes(base64.b64decode(PNG_1X1_BASE64))
 
 
+def _bundle_authority_context() -> dict:
+    return {
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
+            "dispatch_gate": {
+                "state": "open",
+                "dispatch_allowed": True,
+                "blocking_reasons": [],
+            },
+            "route_authorization": {
+                "authorized": True,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": True,
+                "runtime_recovery_allowed": True,
+            },
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+        }
+    }
+
+
 def make_package_workspace(tmp_path: Path) -> tuple[Path, Path]:
     study_root = tmp_path / "studies" / "001-guideline-aligned-triple-trend"
     paper_root = study_root / "paper"
@@ -113,6 +136,7 @@ def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Pat
         study_root=study_root,
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
+        route_context=_bundle_authority_context(),
     )
 
     package_root = study_root / "submission_packages" / "rheumatology-international"
@@ -254,6 +278,7 @@ def test_materialize_journal_package_marks_runtime_worktree_preview_until_target
         study_root=study_root,
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
+        route_context=_bundle_authority_context(),
     )
 
     manifest = json.loads(Path(result["submission_manifest_path"]).read_text(encoding="utf-8"))
@@ -276,6 +301,7 @@ def test_materialize_journal_package_can_record_explicit_confirmed_target(tmp_pa
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
         confirmed_target=True,
+        route_context=_bundle_authority_context(),
     )
 
     manifest = json.loads(Path(result["submission_manifest_path"]).read_text(encoding="utf-8"))
@@ -296,6 +322,7 @@ def test_materialized_journal_package_survives_manuscript_delivery_sync_refresh(
         study_root=study_root,
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
+        route_context=_bundle_authority_context(),
     )
 
     delivery_sync.sync_study_delivery(
@@ -328,6 +355,7 @@ def test_materialize_journal_package_reads_legacy_submission_manifest_without_re
         study_root=study_root,
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
+        route_context=_bundle_authority_context(),
     )
 
     package_root = study_root / "submission_packages" / "rheumatology-international"
@@ -356,6 +384,7 @@ def test_materialize_journal_package_writes_shallow_zip_without_root_audit_manif
         study_root=study_root,
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
+        route_context=_bundle_authority_context(),
     )
 
     package_root = study_root / "submission_packages" / "rheumatology-international"
