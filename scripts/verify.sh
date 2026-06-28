@@ -18,7 +18,9 @@ fi
 clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"
 
 run_sanity_checks() {
-  "${clean_python_runner}" scripts/repo_hygiene_audit.py --fix
+  if [[ "${MAS_VERIFY_REPO_HYGIENE_FIX:-0}" == "1" ]]; then
+    "${clean_python_runner}" scripts/repo_hygiene_audit.py --fix
+  fi
   "${clean_python_runner}" scripts/repo_hygiene_audit.py
   "${clean_python_runner}" scripts/line_budget.py
 

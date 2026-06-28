@@ -428,6 +428,8 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'exit "${exit_code}"' in runner_script
     assert "run_sanity_checks() {" in verify_script
     assert 'clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"' in verify_script
+    assert 'if [[ "${MAS_VERIFY_REPO_HYGIENE_FIX:-0}" == "1" ]]; then' in verify_script
+    assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py --fix' in verify_script
     assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py' in verify_script
     assert '"${clean_python_runner}" scripts/line_budget.py' in verify_script
     assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
@@ -670,9 +672,11 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
     )
     fake_make.chmod(0o755)
     fake_runner = fake_bin / "run-python-clean.sh"
+    runner_log = tmp_path / "runner.log"
     fake_runner.write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
+        f"printf '%s\\n' \"$*\" >> {runner_log}\n"
         "if [[ \"$1\" == \"scripts/repo_hygiene_audit.py\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
@@ -708,8 +712,26 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
     assert summary["lanes"][0]["command"] == "make test-smoke"
     assert summary["lanes"][0]["exit_code"] == 0
     assert isinstance(summary["lanes"][0]["duration_seconds"], int)
+    assert "scripts/repo_hygiene_audit.py --fix" not in runner_log.read_text(encoding="utf-8")
     assert summary["lanes"][0]["duration_seconds"] >= 0
     assert summary["lanes"][0]["log_path"] == ""
+
+    runner_log.write_text("", encoding="utf-8")
+    env["MAS_VERIFY_REPO_HYGIENE_FIX"] = "1"
+
+    result = subprocess.run(
+        ["bash", "scripts/verify.sh", "smoke"],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    log_lines = runner_log.read_text(encoding="utf-8").splitlines()
+    assert "scripts/repo_hygiene_audit.py --fix" in log_lines
+    assert "scripts/repo_hygiene_audit.py" in log_lines
 
 
 def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
