@@ -780,7 +780,7 @@ def data_asset_sqlite_compact_plan(*, workspace_root: Path, db_path: Path) -> di
         blockers.append("dataset_body_sqlite_requires_dataset_manifest_retention_policy")
     return {
         "surface_kind": "mas_data_asset_sqlite_compact_plan",
-        "status": "blocked" if blockers else "eligible_for_runtime_sqlite_compact_surface",
+        "status": "blocked" if blockers else "blocked_runtime_sqlite_compact_cli_retired",
         "workspace_root": str(workspace_root),
         "db_path": str(db_path),
         "db_ref": relative_db,
@@ -792,10 +792,11 @@ def data_asset_sqlite_compact_plan(*, workspace_root: Path, db_path: Path) -> di
             "dataset_release_sqlite_is_body_or_release_sidecar": under_dataset_body,
             "required_owner_surface": "dataset_manifest_retention_policy" if under_dataset_body else None,
         },
-        "recommended_command": (
+        "recommended_command": None,
+        "retired_runtime_cli_surface": (
             None
             if under_dataset_body or blockers
-            else f"medautosci runtime-lifecycle-payload-retention --db {resolved_db} --compact --apply"
+            else "runtime-lifecycle-payload-retention"
         ),
     }
 

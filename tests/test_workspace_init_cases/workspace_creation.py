@@ -190,8 +190,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     )
     study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
-    maintain_runtime_storage = workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage"
-    storage_audit = workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit"
     install_watch_runtime_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     watch_runtime_service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_watch_runtime_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
@@ -213,8 +211,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert not retired_legacy_clean_migration.exists()
     assert not study_runtime_status.exists()
     assert not watch_runtime.exists()
-    assert maintain_runtime_storage.is_file()
-    assert storage_audit.is_file()
+    assert not (workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage").exists()
+    assert not (workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit").exists()
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "progress-portal").exists()
     assert not install_watch_runtime_service.exists()
     assert not watch_runtime_service_status.exists()
@@ -246,8 +244,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(study_progress, os.X_OK)
     assert os.access(study_state_matrix, os.X_OK)
     assert os.access(paper_mission, os.X_OK)
-    assert os.access(maintain_runtime_storage, os.X_OK)
-    assert os.access(storage_audit, os.X_OK)
     assert os.access(resolve_journal_shortlist, os.X_OK)
     assert os.access(init_portfolio_memory, os.X_OK)
     assert os.access(portfolio_memory_status, os.X_OK)
@@ -260,8 +256,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(publication_strategy_memory_workbench, os.X_OK)
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     paper_mission_text = paper_mission.read_text(encoding="utf-8")
-    maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
-    storage_audit_text = storage_audit.read_text(encoding="utf-8")
     bootstrap_text = bootstrap.read_text(encoding="utf-8")
     show_profile_text = show_profile.read_text(encoding="utf-8")
     enter_study_text = enter_study.read_text(encoding="utf-8")
@@ -291,7 +285,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert '--profile "${PROFILE_PATH}"' in paper_mission_text
     assert 'run_medautosci paper-mission \\' in paper_mission_text
-    assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
     assert "domain-health-diagnostic" not in paper_mission_text
     assert "--loop" not in paper_mission_text
     assert "legacy-control-surface-clean-migration" not in "\n".join(
@@ -306,7 +299,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills")
     )
     assert result["scholarskills_local_install"]["authority_boundary"]["writes_yang_authority"] is False
-    assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text
     assert 'run_medautosci data init-memory "$@"' in init_portfolio_memory_text
     assert 'run_medautosci data memory-status "$@"' in portfolio_memory_status_text

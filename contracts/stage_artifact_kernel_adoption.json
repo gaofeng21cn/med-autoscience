@@ -97,10 +97,8 @@
     "mas_refs_only_pilot": {
       "surface_kind": "mas_runtime_refs_only_state_index_pilot",
       "implementation_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py",
-      "maintenance_entry_refs": [
-        "medautosci runtime maintain-storage --refs-only-state-index-pilot",
-        "medautosci runtime storage-audit --apply --refs-only-state-index-pilot"
-      ],
+      "maintenance_entry_refs": [],
+      "maintenance_entry_status": "mas_runtime_storage_cli_retired",
       "sqlite_ref": "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite",
       "indexed_ref_families": [
         "cursor",

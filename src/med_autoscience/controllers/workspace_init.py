@@ -554,16 +554,6 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage",
-            content=_render_forward_script("runtime maintain-storage", with_profile=True),
-            executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit",
-            content=_render_forward_script("runtime storage-audit", with_profile=True),
-            executable=True,
-        ),
-        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate",
             content=_render_forward_script("publication gate"),
             executable=True,

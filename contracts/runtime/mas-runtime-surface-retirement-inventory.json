@@ -2038,8 +2038,8 @@
         "tests/test_runtime_storage_maintenance_cases/test_archive_report_retention.py::test_report_retention_bundles_old_timestamped_reports_and_keeps_latest",
         "tests/test_runtime_storage_maintenance_cases/test_attempt_evidence_capsule.py::test_attempt_evidence_capsule_plan_writes_manifest_without_mutating_raw",
         "tests/test_runtime_storage_root_git_retirement.py::test_audit_workspace_storage_git_only_retires_workspace_root_git_with_restore_bundle",
-        "tests/test_cli_cases/runtime_storage_commands.py::test_runtime_maintain_storage_command_dispatches_controller",
-        "tests/test_cli_cases/runtime_storage_commands.py::test_runtime_storage_audit_command_dispatches_controller"
+        "tests/test_workspace_init_cases/workspace_creation.py::test_init_workspace_materializes_profile_and_runtime_entrypoints",
+        "tests/test_stage_artifact_kernel_adoption_contract.py::test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in"
       ]
     }
   ],

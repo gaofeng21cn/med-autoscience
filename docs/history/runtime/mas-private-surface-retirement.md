@@ -186,21 +186,21 @@ Forbidden interpretation: MAS capability registry, wildcard capabilities, sideca
 
 ## runtime_lifecycle_payload_retention
 
-Disposition: `opl_authorized_maintenance_callable_adapter_live_takeover_tail_open`
+Disposition: `cli_active_surface_retired_opl_tail_open`
 
 Replacement: OPL runtime lifecycle cleanup / retention policy plus OPL maintenance authorization readback.
 
-Retained MAS role: maintenance callable adapter and body-free receipt projection.
+Retained MAS role: body-free receipt projection and tombstone/readback provenance; no public MAS CLI entry.
 
 Forbidden interpretation: MAS maintenance dry-run plans, cleanup receipts, SQLite sidecar repair or apply authorization cannot become generic runtime lifecycle policy, persistence engine ownership, runtime readiness, provider admission or paper progress.
 
 ## runtime_storage_maintenance
 
-Disposition: `opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open`
+Disposition: `cli_active_surface_retired_opl_tail_open`
 
 Replacement: OPL runtime storage maintenance authorization / retention shell plus OPL `StateIndex` and restore/readback surfaces.
 
-Retained MAS role: maintenance callable adapter and body-free diagnostic projection.
+Retained MAS role: body-free diagnostic projection and tombstone/readback provenance; no public MAS CLI entry or generated workspace bin wrapper.
 
 Forbidden interpretation: MAS storage maintenance checks, restore/retention helpers or apply results cannot become generic runtime storage shell, queue/attempt ownership, provider admission, runtime readiness, paper progress or publication readiness.
 

@@ -980,10 +980,9 @@ def test_data_asset_sqlite_compact_plan_allows_non_dataset_runtime_sqlite_after_
 
     result = module.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
 
-    assert result["status"] == "eligible_for_runtime_sqlite_compact_surface"
+    assert result["status"] == "blocked_runtime_sqlite_compact_cli_retired"
     assert result["under_dataset_body"] is False
     assert result["integrity_check"]["status"] == "ok"
     assert result["dataset_body_compact_boundary"]["generic_sqlite_compact_allowed"] is True
-    assert result["recommended_command"].endswith(
-        "runtime/artifacts/runtime_lifecycle.sqlite --compact --apply"
-    )
+    assert result["recommended_command"] is None
+    assert result["retired_runtime_cli_surface"] == "runtime-lifecycle-payload-retention"

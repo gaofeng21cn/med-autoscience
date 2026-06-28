@@ -283,7 +283,6 @@ def _interfaces() -> dict[str, dict[str, Any]]:
                 "medautosci paper-mission inspect",
                 "medautosci paper-mission drive",
                 "medautosci runtime overlay-status",
-                "medautosci runtime maintain-storage",
             ],
             "projection_role": "paper mission readback and OPL-hosted runtime diagnostics",
         },

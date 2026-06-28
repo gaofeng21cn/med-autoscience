@@ -137,10 +137,8 @@ def test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in() -> None:
 
     assert pilot["surface_kind"] == "mas_runtime_refs_only_state_index_pilot"
     assert pilot["implementation_ref"] == "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py"
-    assert pilot["maintenance_entry_refs"] == [
-        "medautosci runtime maintain-storage --refs-only-state-index-pilot",
-        "medautosci runtime storage-audit --apply --refs-only-state-index-pilot",
-    ]
+    assert pilot["maintenance_entry_refs"] == []
+    assert pilot["maintenance_entry_status"] == "mas_runtime_storage_cli_retired"
     assert pilot["sqlite_ref"] == "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite"
     assert pilot["indexed_ref_families"] == [
         "cursor",

@@ -17,7 +17,6 @@ CONTROL_PLANE_TESTS := \
 	tests/test_artifact_lifecycle_operations_report.py \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
-	tests/test_runtime_storage_maintenance.py \
 	tests/test_workspace_authority_migration_audit.py \
 	tests/test_delivery_authority_backfill_apply.py \
 	tests/test_cli_cases/public_entry_commands.py::test_workspace_authority_migration_audit_command_dispatches_read_only_controller \

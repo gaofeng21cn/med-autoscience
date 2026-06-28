@@ -31,7 +31,6 @@ from med_autoscience.cli_parts.payloads import (
     _parse_key_value_pairs,
 )
 from med_autoscience.cli_parts.retention_commands import handle_retention_command
-from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.scientific_capability_registry_commands import (
     handle_scientific_capability_registry_command,
 )
@@ -90,7 +89,6 @@ workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("worksp
 restore_index_detail_retention = _LazyModuleProxy(lambda: _load_controller("restore_index_detail_retention"))
 historical_body_retention = _LazyModuleProxy(lambda: _load_controller("historical_body_retention"))
 historical_directory_retention = _LazyModuleProxy(lambda: _load_controller("historical_directory_retention"))
-runtime_lifecycle_payload_retention = _LazyModuleProxy(lambda: _load_controller("runtime_lifecycle_payload_retention"))
 retention_surface_housekeeping = _LazyModuleProxy(lambda: _load_controller("retention_surface_housekeeping"))
 cold_store_dedupe = _LazyModuleProxy(lambda: _load_controller("cold_store_dedupe"))
 cold_store_reference_audit = _LazyModuleProxy(lambda: _load_controller("cold_store_reference_audit"))
@@ -107,7 +105,6 @@ paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("p
 paper_story_repair_executor = _LazyModuleProxy(lambda: _load_controller("paper_story_repair_executor"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_health_kernel = _lazy_controller_module("runtime_health_kernel")
-runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
 gate_clearing_batch = _lazy_controller_module("gate_clearing_batch")
@@ -280,15 +277,6 @@ def main(argv: list[str] | None = None) -> int:
         result = backend_audit.run_backend_audit(profile, refresh=bool(args.refresh))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-
-    runtime_storage_result = handle_runtime_storage_command(
-        args,
-        parser=parser,
-        runtime_storage_maintenance=runtime_storage_maintenance,
-        load_profile=load_profile,
-    )
-    if runtime_storage_result is not None:
-        return runtime_storage_result
 
     study_read_result = handle_study_read_command(
         args,
@@ -589,7 +577,6 @@ def main(argv: list[str] | None = None) -> int:
         restore_index_detail_retention=restore_index_detail_retention,
         historical_body_retention=historical_body_retention,
         historical_directory_retention=historical_directory_retention,
-        runtime_lifecycle_payload_retention=runtime_lifecycle_payload_retention,
         retention_surface_housekeeping=retention_surface_housekeeping,
         cold_store_dedupe=cold_store_dedupe,
         cold_store_reference_audit=cold_store_reference_audit,
