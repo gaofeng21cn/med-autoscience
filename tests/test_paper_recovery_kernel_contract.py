@@ -54,7 +54,7 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
     assert metadata["execution_substrate_owner"] == "OPL Framework"
     assert {
         "study_progress",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "operator_status_card",
         "intervention_lane",
         "operator_verdict",
@@ -62,7 +62,7 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
         "recovery_contract",
         "autonomy_contract",
         "user_visible_projection",
-        "DHD provider admission current-control",
+        "domain diagnostic provider admission current-control",
         "OPL admission projection",
     } <= set(metadata["projection_consumers"])
 
@@ -88,7 +88,7 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
     } <= set(authority["opl_substrate"])
     assert {
         "study_progress",
-        "DHD provider admission",
+        "domain diagnostic provider admission",
         "operator_status_card",
         "intervention_lane",
         "operator_verdict",
@@ -114,7 +114,7 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
     assert {
         "OPL execution substrate owns PaperRecovery",
         "study_progress derives paper recovery independently from PaperRecovery",
-        "DHD observe_only alone creates pending recovery execution",
+        "domain diagnostic observe_only alone creates pending recovery execution",
         "operator card status is recovery truth",
         "provider terminal completion is MAS acceptance",
         "manual foreground edit is governed recovery without adoption refs",
@@ -201,7 +201,7 @@ def test_paper_recovery_state_requires_identity_phase_conditions_and_next_action
         "current_work_unit",
         "current_execution_envelope",
         "study_progress",
-        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_diagnostic_report.provider_admission_current_control",
         "domain_handler_export.pending_family_tasks",
         "operator_status_card",
         "OPL admission projection",
@@ -217,7 +217,7 @@ def test_paper_recovery_state_requires_identity_phase_conditions_and_next_action
     ]
     assert interface["migration_sequence"] == [
         "introduce_pure_kernel_decision_fixture",
-        "route_current_work_unit_and_dhd_provider_admission_through_kernel_output",
+        "route_current_work_unit_and_domain_diagnostic_provider_admission_through_kernel_output",
         "route_domain_handler_export_through_kernel_admission_output",
         "retire_duplicate_projection_precedence_logic",
     ]
@@ -258,7 +258,7 @@ def test_paper_recovery_phases_are_mutually_exclusive_and_forbid_bad_combination
     assert forbidden["pending_without_identity_bound_provider_admission"]["when_all"] == [
         "phase=admission_pending",
         "identity_bound_provider_admission_candidate_absent",
-        "DHD.action_class=observe_only",
+        "domain diagnostic.action_class=observe_only",
     ]
     assert forbidden["pending_without_identity_bound_provider_admission"]["effect"] == (
         "admission_blocked"
@@ -400,7 +400,7 @@ def test_paper_recovery_conditions_next_safe_action_and_manual_adoption() -> Non
     assert projection_condition["status"] == "False"
     assert projection_condition["effect"] == "fail_closed"
     assert projection_condition["next_safe_action"] == (
-        "inspect_fresh_study_progress_and_dhd_dry_run_then_rebuild_projection"
+        "inspect_fresh_study_progress_and_domain_diagnostic_dry_run_then_rebuild_projection"
     )
 
     next_action = contract["spec"]["next_safe_action_contract"]
@@ -494,7 +494,7 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
     assert replay["replay_read_sequence"] == [
         "fresh study_progress",
         "paper_recovery_state",
-        "domain-health-diagnostic --dry-run",
+        "domain-diagnostic-report --dry-run",
         "OPL current-control / attempt ledger",
         "owner receipt / typed blocker / human gate / route-back refs",
     ]
@@ -503,7 +503,7 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
         "case_id": "pending_without_identity_bound_provider_admission",
         "symptom": (
             "read-model shows pending or actionable owner card while no identity-bound "
-            "provider admission candidate/count exists and DHD dry-run is observe_only"
+            "provider admission candidate/count exists and domain diagnostic dry-run is observe_only"
         ),
         "required_outcome": "admission_blocked",
         "next_safe_action": "authorize_opl_transport_recovery_or_stable_typed_blocker",
@@ -521,7 +521,7 @@ def test_paper_recovery_accident_replay_documents_forbidden_acceptance_evidence(
         "case_id": "successor_owner_action_shadowed_by_stale_observe_only_admission",
         "symptom": (
             "repair and gate replay evidence prove a successor owner action, but stale "
-            "provider-admission residue and DHD observe_only would otherwise return "
+            "provider-admission residue and domain diagnostic observe_only would otherwise return "
             "admission_blocked"
         ),
         "required_outcome": "owner_action_ready",

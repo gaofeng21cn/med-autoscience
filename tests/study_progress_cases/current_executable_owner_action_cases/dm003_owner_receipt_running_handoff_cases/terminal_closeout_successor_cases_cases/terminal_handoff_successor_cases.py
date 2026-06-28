@@ -41,7 +41,7 @@ def test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_rec
     )
     recovery_state = importlib.import_module("med_autoscience.controllers.paper_recovery_state")
     closeout_ref = (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_08da46bea43329723d2fbbea.closeout.json"
     )
     typed_blocker = {
@@ -183,14 +183,14 @@ def test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_rec
                 "action_fingerprint": WRITE_FINGERPRINT,
                 "typed_blocker_ref": closeout_ref,
             },
-            "latest_typed_default_executor_closeout": {
-                "surface_kind": "mas_latest_default_executor_typed_closeout_projection",
+            "latest_typed_owner_callable_closeout": {
+                "surface_kind": "mas_latest_owner_callable_adapter_typed_closeout_projection",
                 "read_model": "study_opl_current_control_state_handoff_projection",
                 "authority": "observability_only",
                 "source_path": closeout_ref,
                 "receipt_ref": closeout_ref,
                 "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
-                "source_fingerprint": "mas_default_executor_provider_admission_source_95eb75e51e25e7fc938b8682",
+                "source_fingerprint": "mas_owner_callable_adapter_provider_admission_source_95eb75e51e25e7fc938b8682",
                 "idempotency_key": "idem_2f8ab5c3e2608435ee8ccde0",
                 "action_type": "run_quality_repair_batch",
                 "status": "typed_blocker",
@@ -260,7 +260,7 @@ def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeo
     )
     receipt_ref = "artifacts/controller/repair_execution_receipts/latest.json"
     stale_closeout_ref = (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_2d9f8f3b252de25a6103779f.closeout.json"
     )
     handoff_work_unit = {
@@ -363,7 +363,7 @@ def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeo
                 "work_unit_fingerprint": WRITE_FINGERPRINT,
                 "typed_blocker_ref": stale_closeout_ref,
             },
-            "latest_typed_default_executor_closeout": {
+            "latest_typed_owner_callable_closeout": {
                 "status": "typed_blocker",
                 "blocked_reason": "blocked:stage_outcome_authority_execution_count_zero",
                 "action_type": "run_quality_repair_batch",

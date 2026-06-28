@@ -25,7 +25,7 @@ def test_live_provider_attempt_projection_limits_queue_inspect_candidates(monkey
                     "tasks": [
                         {
                             "task_id": f"frt-{index}",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": f"2026-05-26T13:35:2{index}Z",
                             "payload": {

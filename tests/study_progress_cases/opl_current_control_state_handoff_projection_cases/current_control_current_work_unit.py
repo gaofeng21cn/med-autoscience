@@ -65,7 +65,7 @@ def test_study_handoff_preserves_current_control_current_work_unit(
                                 "work_unit_id": "medical_prose_write_repair",
                                 "work_unit_fingerprint": fingerprint,
                                 "typed_blocker_ref": (
-                                    "artifacts/supervision/consumer/default_executor_execution/"
+                                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                                     "sat_f8e1cfe49a3aa3cf95d0584d.closeout.json"
                                 ),
                             },
@@ -245,7 +245,7 @@ def test_same_identity_provider_readback_supersedes_request_only_current_surface
             "surface_kind": "stage_attempt_closeout_packet",
             "generated_at": "2026-06-20T16:05:54Z",
             "study_id": study_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "stage_attempt_id": "sat_efdab57a49cb6d58f2a17eeb",
             "action_type": "run_quality_repair_batch",
             "work_unit_id": work_unit,

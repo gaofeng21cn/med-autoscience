@@ -50,12 +50,12 @@ def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repai
                         "answer_kind": "typed_blocker_ref",
                         "typed_blocker_ref": (
                             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
                             "#typed_blocker"
                         ),
                         "latest_owner_answer_ref": (
                             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
                             "#typed_blocker"
                         ),
                         "work_unit_id": "ai_reviewer_record_gate_consumption",
@@ -72,7 +72,7 @@ def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repai
                         "owner_answer_shape": "typed_blocker_ref",
                         "latest_owner_answer_ref": (
                             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
                             "#typed_blocker"
                         ),
                     },
@@ -85,7 +85,7 @@ def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repai
                 "work_unit_fingerprint": gate_fingerprint,
                 "source_path": (
                     "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                    "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                    "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
                 ),
                 "paper_stage_log": {
                     "progress_delta_classification": "typed_blocker",
@@ -140,7 +140,7 @@ def test_materializer_turns_dm002_anti_loop_owner_gate_into_publishability_repai
                         "evidence_refs": [
                             (
                                 "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                                "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                                "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
                             )
                         ],
                     },

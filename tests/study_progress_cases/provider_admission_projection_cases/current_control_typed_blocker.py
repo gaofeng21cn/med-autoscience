@@ -36,7 +36,7 @@ def _quality_repair_consumed_typed_blocker_handoff(
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": fingerprint,
                     "typed_blocker_ref": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_f8e1cfe49a3aa3cf95d0584d.closeout.json"
                     ),
                 },

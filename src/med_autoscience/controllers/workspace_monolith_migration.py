@@ -388,7 +388,7 @@ def _render_retired_launchd_readme() -> str:
         "# Retired Workspace-Local Scheduler\n\n"
         "This workspace-local LaunchAgent wrapper is retired.\n\n"
         "Default stage/runtime lifecycle is delegated to OPL current_control_state refs-only handoff.\n\n"
-        "Use MAS `domain-health-diagnostic` only for domain health refs, owner receipts, and typed blockers.\n\n"
+        "Use MAS `domain-diagnostic-report` only for domain health refs, owner receipts, and typed blockers.\n\n"
         "`local` is physical-retired tombstone/provenance-only. Do not reinstall "
         "workspace-local LaunchAgent wrappers from this directory or expose local cleanup commands.\n"
     )

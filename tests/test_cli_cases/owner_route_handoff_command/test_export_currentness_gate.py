@@ -33,7 +33,7 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
             "recorded_at": "2026-06-09T12:00:00Z",
             "handoff": {
                 "surface_kind": "mas_runtime_owner_route_handoff",
-                "recommended_task_kind": "domain_route/reconcile-apply",
+                "recommended_task_kind": "stage_outcome/opl-handoff",
                 "reason": "runtime_controller_redrive_required",
                 "recorded_at": "2026-06-09T12:00:00Z",
                 "runtime_state_path": "runtime/quests/002/.ds/runtime_state.json",
@@ -73,7 +73,7 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
             "progress_pressure": {
                 "status": "advance_now",
                 "continuation_required": True,
-                "next_action_type": "domain_route/reconcile-apply",
+                "next_action_type": "stage_outcome/opl-handoff",
                 "next_work_unit_id": "stale_progress_pressure",
                 "stop_allowed": False,
             },
@@ -129,8 +129,8 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
             "paper_autonomy/repair-recheck",
             "publication_aftercare/analysis-queue-progress",
             "publication_aftercare/reviewer-refresh",
-            "domain_route/reconcile-apply",
-            "domain_owner/default-executor-dispatch",
+            "stage_outcome/opl-handoff",
+            "stage_outcome/opl-handoff",
         }
     )
 
@@ -235,10 +235,7 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
         for task in payload["pending_family_tasks"]
         if task.get("payload", {}).get("study_id") == study_id
     ]
-    assert {task["task_kind"] for task in tasks} == {
-        "domain_route/reconcile-apply",
-        "paper_autonomy/supervisor-decision",
-    }
+    assert {task["task_kind"] for task in tasks} == {"paper_autonomy/supervisor-decision"}
     supervisor_task = next(
         task for task in tasks if task["task_kind"] == "paper_autonomy/supervisor-decision"
     )
@@ -263,15 +260,12 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
     assert supervisor_request["recommended_decision_evidence"]["typed_blocker_ref"] == (
         "opl_execution_authorization_required"
     )
-    task = next(task for task in tasks if task["task_kind"] == "domain_route/reconcile-apply")
-    assert task["task_kind"] == "domain_route/reconcile-apply"
-    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
-    assert task["queue_owner"] == "one-person-lab"
-    assert task["payload"]["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
-    assert task["payload"]["current_work_unit"]["work_unit_fingerprint"] == "sha256:gate-replay-current"
-    assert task["payload"]["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
-    assert task["payload"]["authority_boundary"] == "mas_domain_route_refs_only_opl_stage_attempt_owner"
-    assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
+    assert supervisor_task["payload"]["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
+    assert supervisor_task["payload"]["current_work_unit"]["work_unit_fingerprint"] == "sha256:gate-replay-current"
+    assert supervisor_task["payload"]["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert supervisor_task["domain_dispatch_evidence_record_payload"]["task_kind"] == (
+        "paper_autonomy/supervisor-decision"
+    )
 
 
 def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resolution_task(
@@ -316,7 +310,7 @@ def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resol
                             "gate_clearing_batch artifact"
                         ),
                         "source_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_556faaef7e4a16f309819eb3.closeout.json"
                         ),
                     },
@@ -346,21 +340,7 @@ def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resol
         for task in payload["pending_family_tasks"]
         if task.get("payload", {}).get("study_id") == study_id
     ]
-    assert len(tasks) == 1
-    task = tasks[0]
-    assert task["task_kind"] == "domain_route/reconcile-apply"
-    assert task["reason"] == "current_work_unit_typed_blocker_owner_resolution"
-    assert task["queue_owner"] == "one-person-lab"
-    assert task["payload"]["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
-    assert task["payload"]["current_work_unit"]["work_unit_fingerprint"] == work_unit_fingerprint
-    assert task["payload"]["typed_blocker"]["blocker_id"] == "no_selected_dispatch_for_requested_action_types"
-    required_owner_action = task["payload"]["required_owner_action"]
-    assert required_owner_action["owner"] == "MedAutoScience"
-    assert required_owner_action["action_type"] == "run_gate_clearing_batch"
-    assert required_owner_action["work_unit_id"] == "publication_gate_replay"
-    assert required_owner_action["work_unit_fingerprint"] == work_unit_fingerprint
-    assert "current_selected_mas_dispatch" in required_owner_action["accepted_resolution_shapes"]
-    assert task["domain_dispatch_evidence_record_payload"]["task_kind"] == "domain_route/reconcile-apply"
+    assert tasks == []
 
 
 def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolution_task(
@@ -429,7 +409,7 @@ def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolu
                 f"run_gate_clearing_batch::{work_unit_id}::{work_unit_fingerprint}"
             ),
             "evidence_refs": [
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_current_publication_gate_replay.closeout.json"
             ],
             "next_owner": "publication_gate",
@@ -442,7 +422,7 @@ def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolu
             "blocker_type": "publication_gate_replay_blocked",
             "owner": "publication_gate",
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_current_publication_gate_replay.closeout.json"
             ),
             "work_unit_id": work_unit_id,
@@ -513,7 +493,7 @@ def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolu
     assert tasks == []
 
 
-def test_domain_handler_export_does_not_resurrect_default_executor_under_stage_packet_blocker(
+def test_domain_handler_export_does_not_resurrect_owner_callable_adapter_under_stage_packet_blocker(
     tmp_path: Path,
     capsys,
     monkeypatch,
@@ -534,7 +514,7 @@ def test_domain_handler_export_does_not_resurrect_default_executor_under_stage_p
         filename="run_quality_repair_batch.json",
         action_type="run_quality_repair_batch",
         next_owner="write",
-        dispatch_authority="consumer_default_executor_dispatch",
+        dispatch_authority="consumer_owner_callable_dispatch",
         owner_route=_owner_route(
             study_id=study_id,
             next_owner="write",
@@ -634,13 +614,13 @@ def test_domain_handler_export_does_not_resurrect_default_executor_under_stage_p
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    retired_default_executor_tasks = [
+    retired_owner_callable_adapter_tasks = [
         task
         for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+        if task["task_kind"] == "stage_outcome/opl-handoff"
         and task.get("study_id") == study_id
     ]
-    assert retired_default_executor_tasks == []
+    assert retired_owner_callable_adapter_tasks == []
 
 
 def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:
@@ -748,7 +728,7 @@ def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner
             "recorded_at": "2026-06-09T12:00:00Z",
             "handoff": {
                 "surface_kind": "mas_runtime_owner_route_handoff",
-                "recommended_task_kind": "domain_route/reconcile-apply",
+                "recommended_task_kind": "stage_outcome/opl-handoff",
                 "reason": "runtime_controller_redrive_required",
                 "recorded_at": "2026-06-09T12:00:00Z",
                 "owner_route_currentness_basis": {
@@ -785,7 +765,7 @@ def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner
             "progress_pressure": {
                 "status": "advance_now",
                 "continuation_required": True,
-                "next_action_type": "domain_route/reconcile-apply",
+                "next_action_type": "stage_outcome/opl-handoff",
                 "next_work_unit_id": "stale_progress_pressure",
                 "stop_allowed": False,
             },
@@ -842,7 +822,7 @@ def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner
     assert [
         task
         for task in study_tasks
-        if task["task_kind"] == "domain_route/reconcile-apply"
+        if task["task_kind"] == "stage_outcome/opl-handoff"
         or task["task_kind"].startswith("publication_aftercare/")
         or task["task_kind"] == "paper_autonomy/repair-recheck"
     ] == []

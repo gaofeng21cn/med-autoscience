@@ -16,7 +16,7 @@ QUALITY_AUTHORITY_SURFACES = (
 
 RUNTIME_TRUTH_SURFACES = (
     "progress_projection",
-    "domain_health_diagnostic",
+    "domain_diagnostic_report",
     "runtime_escalation_record.json",
     "artifacts/runtime/autonomy_incidents/",
 )
@@ -40,7 +40,7 @@ PROGRAM_LANES = (
         "stage": "active",
         "primary_surfaces": (
             "progress_projection",
-            "domain_health_diagnostic",
+            "domain_diagnostic_report",
             "autonomy_slo",
             "autonomy_state_machine",
         ),
@@ -169,7 +169,7 @@ LEARNING_SOURCE_TAXONOMY = (
             "handoff",
             "soak_proof",
         ),
-        "landing_surfaces": ("operator_projection", "domain_health_diagnostic", "study_progress", "tests"),
+        "landing_surfaces": ("operator_projection", "domain_diagnostic_report", "study_progress", "tests"),
     },
 )
 

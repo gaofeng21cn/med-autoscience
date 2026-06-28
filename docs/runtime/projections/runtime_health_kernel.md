@@ -7,7 +7,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 ## 目标
 
-`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的 domain health / blocker diagnostic reducer。它消费 OPL current-control-state refs、MAS owner route refs、typed closeout refs、owner receipt、typed blocker、stale progress 与 escalation 事件，归并为一个 body-free diagnostic snapshot，供 `progress_projection`、`study_progress`、`domain_health_diagnostic`、workspace cockpit、product entry status 和 MCP compact projection 消费。它不再是 worker/session/runtime lifecycle truth owner。
+`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的 domain health / blocker diagnostic reducer。它消费 OPL current-control-state refs、MAS owner route refs、typed closeout refs、owner receipt、typed blocker、stale progress 与 escalation 事件，归并为一个 body-free diagnostic snapshot，供 `progress_projection`、`study_progress`、`domain_diagnostic_report`、workspace cockpit、product entry status 和 MCP compact projection 消费。它不再是 worker/session/runtime lifecycle truth owner。
 
 该合同采用四条工程原则：
 
@@ -18,12 +18,12 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 ## 稳定表面
 
-- historical diagnostic event log：`studies/<study_id>/artifacts/runtime/health/events.jsonl`，仅作为 legacy fixture / explicit archive import / provenance input；MAS 当前 runtime health 不再暴露 append API，也不把本地 event log 写入当作 lifecycle、attempt、retry、worker 或 provider authority
+- historical diagnostic event log：`studies/<study_id>/artifacts/runtime/health/events.jsonl`，仅作为 explicit archive import / provenance input；MAS 当前 runtime health 不再暴露 append API，也不把本地 event log 写入当作 lifecycle、attempt、retry、worker 或 provider authority
 - materialized snapshot：`studies/<study_id>/artifacts/runtime/health/latest.json`，不是 OPL runtime attempt truth
 - read-model embedding：`progress_projection.runtime_health_snapshot`
 - user projection embedding：`study_progress.runtime_health_epoch` 与 `study_progress.runtime_health_snapshot`
 
-普通 `progress_projection` / `study_progress` read 只生成 shadow snapshot，不写 `artifacts/runtime/health/latest.json`。只有显式 reconcile、`runtime domain-health-diagnostic --apply` 或 controller tick 可以刷新 materialized snapshot。
+普通 `progress_projection` / `study_progress` read 只生成 shadow snapshot，不写 `artifacts/runtime/health/latest.json`。只有显式 reconcile、`runtime domain-diagnostic-report --apply` 或 controller tick 可以刷新 materialized snapshot。
 
 `runtime_session` 是 retired worker/session read model 名称；当前 live/no-live、last attempt、worker liveness、retry/dead-letter 和 provider terminal truth 来自 OPL `current_control_state`。MAS projection 只能显示 OPL refs、owner receipt、typed blocker、route-back reason 和 historical fixture / explicit archive import reference；它不判断 scientific quality，不授权 publication/submission readiness，也不替代 OPL attempt ledger。`canonical_runtime_action` 与 `allowed_controller_actions` 只保留为 retired diagnostic hint；同一 snapshot 必须同时暴露 `runtime_action_hint_is_authority=false`、`allowed_controller_action_hints_are_authority=false`、`opl_observability_readback_required=true`、`opl_current_control_or_stage_run_readback_required=true` 与 `mas_private_attempt_loop_forbidden=true`，任何执行、恢复、attempt、worker 或 provider admission 都必须回到 OPL Observability / StageRun / current-control readback。`runtime_health_decision_gate` 只有在 OPL readback 与当前 runtime-health recovery identity 相同一时，才允许把 recovery hint 转为 `handoff_required` + `opl_stage_attempt_admission_required`；裸 `opl_*_ref`、顶层 read-model claim 或跨 identity readback 都只能保持 suppressed / no-op。
 
@@ -37,7 +37,7 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 
 该入口先读取当前 `progress_projection`，再把 status payload 归一化为 transient shadow events 并刷新 `artifacts/runtime/health/latest.json`。这些 shadow events 不会追加到 `events.jsonl`；它们只服务本次 read-only diagnostic projection。
 
-`owner_receipt_handoff` 是 retired controller/supervisor 恢复意图 ledger 名称；当前恢复由 OPL desired intent vs actual attempt reconciliation 管理。MAS 只能返回 route-back、owner receipt、typed blocker 或 domain_health_diagnostic blocker；`runtime_reconcile_trigger` 只能展示 OPL next action 或 MAS blocker refs，用户刷新 Portal 不会直接 relaunch worker。
+`owner_receipt_handoff` 是 retired controller/supervisor 恢复意图 ledger 名称；当前恢复由 OPL desired intent vs actual attempt reconciliation 管理。MAS 只能返回 route-back、owner receipt、typed blocker 或 domain_diagnostic_report blocker；`runtime_reconcile_trigger` 只能展示 OPL next action 或 MAS blocker refs，用户刷新 Portal 不会直接 relaunch worker。
 
 ## Dominance Rules
 

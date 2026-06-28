@@ -69,7 +69,7 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
         "suppress_same_tick_provider_admission_candidate"
     )
     assert same_tick["applies_to"] == [
-        "developer_supervisor_same_tick.materialize.default_executor_dispatches",
+        "developer_supervisor_same_tick.materialize.owner_callable_adapters",
         "same_tick_materialized_dispatch",
     ]
     shared_identity = identity["shared_identity_helper"]
@@ -104,7 +104,7 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
         progress_ticket["required_strong_identity_any"]
     )
     assert progress_ticket["weak_identity_effect"] == (
-        "diagnostic_only_no_default_executor_dispatch"
+        "diagnostic_only_no_owner_callable_dispatch"
     )
     assert progress_ticket["weak_identity_reason"] == (
         "fresh_progress_current_owner_ticket_requires_strong_currentness_identity"
@@ -147,7 +147,7 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
     assert handshake["required_sequence"] == [
         "OPL attempt reaches terminal state",
         "terminal closeout packet exists for the same stage attempt or work-unit identity",
-        "MAS consumes closeout through domain-health-diagnostic apply or equivalent authority consumer",
+        "MAS consumes closeout through domain-diagnostic-report apply or equivalent authority consumer",
         "fresh study progress/read-model is regenerated",
         "if provider_admission_pending remains for a new identity, OPL scoped tick/hydrate may start the next attempt",
         "if the same identity remains pending, classify as closeout consumption/currentness bug",
@@ -189,12 +189,12 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
         "current_work_unit_owner_receipt_recorded",
     ]
     assert precedence[4]["allowed_output"] == "owner_receipt_recorded"
-    assert precedence[6]["effect"] == "diagnostic_only_no_default_executor_dispatch"
+    assert precedence[6]["effect"] == "diagnostic_only_no_owner_callable_dispatch"
     assert precedence[6]["allowed_output"] == "ignored_diagnostic"
     assert precedence[-1]["allowed_output"] == "ignored_diagnostic"
 
-    same_tick_gate = contract["dhd_apply_same_tick_gate"]
-    assert same_tick_gate["surface_kind"] == "domain_health_diagnostic_apply_same_tick_gate"
+    same_tick_gate = contract["domain_diagnostic_apply_same_tick_gate"]
+    assert same_tick_gate["surface_kind"] == "domain_diagnostic_report_apply_same_tick_gate"
     assert same_tick_gate["decision_point"] == (
         "after_initial_managed_study_obligation_actuator_before_developer_supervisor_same_tick"
     )
@@ -283,10 +283,10 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
     assert edges[("provider_admission_current_control", "opl_stage_run_attempt")][
         "loop_guard"
     ] == "materialized_pending_only_no_live_attempt_no_terminal_closeout_no_current_typed_blocker"
-    assert edges[("terminal_closeout", "domain_health_diagnostic_apply")]["authority_effect"] == (
+    assert edges[("terminal_closeout", "domain_diagnostic_report_apply")]["authority_effect"] == (
         "consume_closeout_or_materialize_current_control_for_matching_identity"
     )
-    assert edges[("domain_health_diagnostic_apply", "mas_owner_receipt_or_typed_blocker")][
+    assert edges[("domain_diagnostic_report_apply", "mas_owner_receipt_or_typed_blocker")][
         "loop_guard"
     ] == "accepted_owner_answer_or_stable_typed_blocker_required"
     assert edges[("mas_owner_receipt_or_typed_blocker", "next_current_owner_delta")][
@@ -301,7 +301,7 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
         "opl_stage_run_attempt",
         "provider_running",
         "terminal_closeout",
-        "domain_health_diagnostic_apply",
+        "domain_diagnostic_report_apply",
         "mas_owner_receipt_or_typed_blocker",
         "next_current_owner_delta",
     ]
@@ -386,7 +386,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
 
     arbiter = contract["stage_route_arbiter_surface"]
     assert arbiter["surface_kind"] == "mas_opl_stage_route_arbiter"
-    assert arbiter["producer"] == "domain-health-diagnostic.provider_admission_current_control"
+    assert arbiter["producer"] == "domain-diagnostic-report.provider_admission_current_control"
     assert arbiter["ordinary_planning_root"] == "current_owner_delta"
     assert arbiter["decision_payload_required_fields"] == [
         "decision",
@@ -517,7 +517,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert {
         "current_work_unit.typed_blocker",
         "current_execution_envelope.typed_blocker",
-        "stale_default_executor_dispatch_owner_route",
+        "stale_owner_callable_dispatch_owner_route",
         "source_ref_or_fingerprint_match_without_executable_owner_action",
     } <= set(dispatch_policy["readiness_blocker_only_forbidden_basis"])
     assert dispatch_policy["forbidden_readiness_dispatch_effect"] == (
@@ -530,10 +530,10 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "shared_currentness_identity_with_fingerprint",
     ]
     assert stage_native["stale_or_unbound_effect"] == (
-        "diagnostic_only_no_default_executor_dispatch"
+        "diagnostic_only_no_owner_callable_dispatch"
     )
     assert dispatch_policy["default_dispatch_allowed_false_effect"] == (
-        "ignored_diagnostic_no_request_task_no_default_executor_dispatch"
+        "ignored_diagnostic_no_request_task_no_owner_callable_dispatch"
     )
     terminal_owner_answer = dispatch_policy["terminal_closeout_owner_answer_dispatch_policy"]
     assert terminal_owner_answer["requires_any"] == [

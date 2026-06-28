@@ -75,7 +75,7 @@ def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admissi
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat_006cf0ce68e11a4661912a37.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True)
@@ -86,17 +86,17 @@ def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admissi
                 "schema_version": 1,
                 "study_id": study_id,
                 "quest_id": study_id,
-                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_id": "stage_outcome/opl-handoff",
                 "stage_attempt_id": "sat_006cf0ce68e11a4661912a37",
                 "generated_at": "2026-06-22T12:30:51+00:00",
                 "status": "blocked",
                 "outcome": "typed_blocker",
                 "action_type": "run_gate_clearing_batch",
                 "work_unit_id": terminal_work_unit_id,
-                "source_fingerprint": "mas_default_executor_provider_admission_source_d0c856af9cdc18ddd4976cb9",
+                "source_fingerprint": "mas_owner_callable_adapter_provider_admission_source_d0c856af9cdc18ddd4976cb9",
                 "idempotency_key": "idem_ad67a8665d189e47139e0fef",
                 "typed_blocker_ref": (
-                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat_006cf0ce68e11a4661912a37.closeout.json#typed_blocker"
                 ),
                 "typed_blocker": {
@@ -115,7 +115,7 @@ def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admissi
                     "stage_work_done": ["Recorded this typed closeout packet."],
                     "paper_work_done": ["No paper authority surface was modified."],
                     "changed_stage_surfaces": [
-                        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_006cf0ce68e11a4661912a37.closeout.json"
                     ],
                     "changed_paper_surfaces": [],

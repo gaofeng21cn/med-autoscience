@@ -596,7 +596,7 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json",
         {
             "schema_version": 1,
             "scanned_at": "2026-04-26T07:17:19+00:00",

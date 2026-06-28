@@ -196,5 +196,5 @@ def test_pilot_harness_materializer_writes_only_its_read_model(tmp_path: Path) -
     assert persisted["read_only_contract"]["writes_runtime_owned_surfaces"] is False
     assert persisted["read_only_contract"]["writable_surfaces"] == ["medical_paper_pilot_harness"]
     assert not (roots[0] / "progress_projection.json").exists()
-    assert not (roots[0] / "domain_health_diagnostic.json").exists()
+    assert not (roots[0] / "domain_diagnostic_report.json").exists()
     assert not (roots[0] / "controller_decisions" / "latest.json").exists()

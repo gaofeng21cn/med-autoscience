@@ -342,7 +342,7 @@ def test_read_only_study_progress_does_not_materialize_status_artifacts(
         },
     )
     write_text(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "domain_diagnostic_report" / "latest.json",
         json.dumps(
             {
                 "controllers": {

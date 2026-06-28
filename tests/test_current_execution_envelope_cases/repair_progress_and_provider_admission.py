@@ -441,7 +441,7 @@ def test_execution_surface_refresh_keeps_repair_progress_action_over_consumed_au
             "running_provider_attempt": False,
             "blocked_reason": "opl_execution_authorization_required",
             "next_owner": "one-person-lab",
-            "latest_typed_default_executor_closeout": {
+            "latest_typed_owner_callable_closeout": {
                 "status": "blocked",
                 "terminal_closeout_status": "blocked",
                 "terminal_closeout_outcome": "typed_blocker",
@@ -452,7 +452,7 @@ def test_execution_surface_refresh_keeps_repair_progress_action_over_consumed_au
                     "blocker_type": "opl_execution_authorization_required",
                     "owner": "gate_clearing_batch",
                 },
-                "receipt_ref": "artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                "receipt_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat.closeout.json",
             },
         },
         runtime_health_snapshot={},
@@ -836,7 +836,7 @@ def test_envelope_does_not_report_closed_stage_attempt_as_running_provider() -> 
             "latest_terminal_stage_log": {
                 "stage_attempt_id": "sat-closed",
                 "status": "closed_with_domain_owner_refs",
-                "source_path": "artifacts/supervision/consumer/default_executor_execution/sat-closed.closeout.json",
+                "source_path": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-closed.closeout.json",
             },
         },
         runtime_health={
@@ -881,7 +881,7 @@ def test_envelope_does_not_report_record_only_archive_closeout_as_running_provid
                 "stage_attempt_id": "sat-record-only",
                 "status": "executed_record_only_archive_materialized",
                 "source_path": (
-                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-record-only.closeout.json"
                 ),
             },

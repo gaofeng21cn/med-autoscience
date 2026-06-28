@@ -22,7 +22,7 @@ def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projectio
     handoff = {
         "latest_terminal_stage_log": {
             "stage_attempt_id": "sat-003",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_quality_repair_batch",
             "status": "executed",
             "missing_user_stage_log_fields": ["progress_delta_classification"],
@@ -146,7 +146,7 @@ def test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delt
     handoff = {
         "latest_terminal_stage_log": {
             "stage_attempt_id": "sat-003",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_quality_repair_batch",
             "status": "executed",
             "missing_user_stage_log_fields": ["progress_delta_classification"],
@@ -374,7 +374,7 @@ def test_repair_progress_gate_replay_survives_identity_different_terminal_handof
         },
         handoff={
             "running_provider_attempt": False,
-            "latest_typed_default_executor_closeout": {
+            "latest_typed_owner_callable_closeout": {
                 "status": "typed_blocker",
                 "blocked_reason": (
                     "domain_owner_dispatch_zero_selected_after_materialized_current_request"
@@ -386,7 +386,7 @@ def test_repair_progress_gate_replay_survives_identity_different_terminal_handof
                 "source_fingerprint": "publication-blockers::497d1260db522f01",
                 "stage_attempt_id": "sat_9bbb471b55ad5ceda9d8495e",
                 "receipt_ref": (
-                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat_9bbb471b55ad5ceda9d8495e.closeout.json"
                 ),
                 "typed_blocker": {

@@ -129,7 +129,7 @@ _LATEST_EVENT_DISPLAY_TIERS = {
     "controller_decision": 0,
     "publication_eval": 0,
     "runtime_escalation": 0,
-    "domain_health_diagnostic": 1,
+    "runtime_readback": 1,
     "launch_report": 2,
 }
 _HUMAN_SURFACE_REFRESH_BLOCKER_LABELS = {
@@ -212,7 +212,7 @@ def _runtime_control_pickup_refs(
     publication_eval_ref: object = None,
     controller_decision_ref: object = None,
     opl_runtime_owner_handoff_ref: object = None,
-    domain_health_diagnostic_ref: object = None,
+    runtime_readback_report_ref: object = None,
 ) -> list[str]:
     refs = dict(refs_payload or {})
     candidates = [
@@ -224,8 +224,8 @@ def _runtime_control_pickup_refs(
         _non_empty_text(refs.get("controller_decision_path")),
         _non_empty_text(opl_runtime_owner_handoff_ref),
         _non_empty_text(refs.get("opl_runtime_owner_handoff_path")),
-        _non_empty_text(domain_health_diagnostic_ref),
-        _non_empty_text(refs.get("domain_health_diagnostic_report_path")),
+        _non_empty_text(runtime_readback_report_ref),
+        _non_empty_text(refs.get("runtime_readback_report_path")),
     ]
     ordered_refs: list[str] = []
     for ref in candidates:
@@ -291,7 +291,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
                 "refs.publication_eval_path",
                 "refs.controller_decision_path",
                 "refs.opl_runtime_owner_handoff_path",
-                "refs.domain_health_diagnostic_report_path",
+                "refs.runtime_readback_report_path",
             ],
             "pickup_refs": pickup_refs,
         },

@@ -247,7 +247,7 @@ def test_owner_receipt_current_work_unit_keeps_accepted_owner_gate_transition_re
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "immutable"
         / "run_quality_repair_batch"
         / "33abc53e0c18295f5fa03738.json"
@@ -257,7 +257,7 @@ def test_owner_receipt_current_work_unit_keeps_accepted_owner_gate_transition_re
         json.dumps(
             {
                 "dispatch_status": "ready",
-                "dispatch_authority": "consumer_default_executor_dispatch",
+                "dispatch_authority": "consumer_owner_callable_dispatch",
                 "study_id": study_id,
                 "quest_id": study_id,
                 "action_type": "run_quality_repair_batch",
@@ -291,7 +291,7 @@ def test_owner_receipt_current_work_unit_keeps_accepted_owner_gate_transition_re
     )
     stage_packet_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-        "supervision/consumer/default_executor_dispatches/immutable/"
+        "supervision/consumer/owner_callable_adapters/immutable/"
         "run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
 

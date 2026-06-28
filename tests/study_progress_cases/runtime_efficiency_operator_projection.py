@@ -44,9 +44,9 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
             },
         },
     )
-    domain_health_diagnostic_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
+    runtime_readback_report_path = quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json"
     _write_json(
-        domain_health_diagnostic_path,
+        runtime_readback_report_path,
         {
             "schema_version": 1,
             "scanned_at": "2026-04-28T10:00:00+00:00",
@@ -863,7 +863,7 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
     assert result["operator_status_card"]["handling_state"] == "progress_continuation_required"
     assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
     assert "supervisor ticks alone cannot prove paper progress" in result["operator_status_card"]["current_focus"]
-    assert "domain_route/reconcile-apply" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "stage_outcome/opl-handoff" in result["operator_status_card"]["next_confirmation_signal"]
 
 
 def test_study_progress_gives_new_live_run_grace_before_activity_timeout(

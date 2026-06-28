@@ -34,7 +34,7 @@ def _import_pack() -> dict:
     return build_dm_paper_mission_canary_import_pack(
         dm002_progress=_load_json("dm002_progress.json"),
         dm003_progress=_load_json("dm003_progress.json"),
-        domain_health_diagnostic_payload=_load_json("dhd_dry_run.json"),
+        runtime_readback_payload=_load_json("domain_diagnostic_dry_run.json"),
         profile_ref=(
             "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
             "ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml"
@@ -99,7 +99,7 @@ def test_dm003_canary_import_builds_prose_repair_typed_blocker_readback() -> Non
     assert readback["current_blocker"]["owner"] == "one-person-lab"
     assert "OPL DomainProgressTransitionRuntime" in readback["current_blocker"]["required_input"]
     assert readback["owner_decision_packet_requirement"]["existing_owner_answer_ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_9afe683ca699e4186f556fec.closeout.json"
     )
     assert any(
@@ -108,14 +108,14 @@ def test_dm003_canary_import_builds_prose_repair_typed_blocker_readback() -> Non
     )
 
 
-def test_dhd_diagnostics_are_imported_as_platform_diagnostics_not_paper_progress() -> None:
+def test_domain_diagnostic_diagnostics_are_imported_as_platform_diagnostics_not_paper_progress() -> None:
     pack = _import_pack()
 
     assert pack["mode"] == "no_write_import_inspect"
     assert pack["paper_progress_accounting"]["import_pack_counts_as_paper_progress"] is False
-    assert pack["paper_progress_accounting"]["dhd_diagnostics_count_as_paper_progress"] is False
-    assert pack["source_surfaces"]["domain_health_diagnostic"]["available"] is True
-    assert pack["source_surfaces"]["domain_health_diagnostic"]["dry_run_written"] is False
+    assert pack["paper_progress_accounting"]["domain_diagnostic_diagnostics_count_as_paper_progress"] is False
+    assert pack["source_surfaces"]["domain_diagnostic_report"]["available"] is True
+    assert pack["source_surfaces"]["domain_diagnostic_report"]["dry_run_written"] is False
 
     for mission in pack["missions"]:
         PaperMissionRun.from_payload(mission)
@@ -124,7 +124,7 @@ def test_dhd_diagnostics_are_imported_as_platform_diagnostics_not_paper_progress
         assert readback["paper_progress"]["mission_import_counts_as_paper_progress"] is False
         assert readback["paper_progress"]["platform_diagnostics_count_as_paper_progress"] is False
         assert readback["platform_diagnostics"]["counts_as_paper_progress"] is False
-        assert readback["platform_diagnostics"]["dhd_written"] is False
+        assert readback["platform_diagnostics"]["domain_diagnostic_written"] is False
         assert readback["platform_diagnostics"]["provider_admission_current_control"][
             "provider_admission_pending_count"
         ] == 0
@@ -172,7 +172,7 @@ def test_dm003_canary_candidate_consumes_as_typed_blocker_request_without_writin
         "opl_execution_authorization_required"
     )
     assert candidate["typed_blocker_request"]["blocker_ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_9afe683ca699e4186f556fec.closeout.json"
     )
     assert authority["status"] == "typed_blocker_required"

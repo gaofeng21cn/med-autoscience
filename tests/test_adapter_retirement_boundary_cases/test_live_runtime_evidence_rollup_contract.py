@@ -344,35 +344,35 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
     assert runtime_health_template["record_template"]["surface_id"] == "runtime_health_kernel"
     assert "evidence_refs" in runtime_health_template["record_template"]
     assert "focused_tests" in runtime_health_template["forbidden_evidence_source_prefixes"]
-    dhd_apply_detail = next(
+    domain_diagnostic_apply_detail = next(
         item
         for item in readback["summary"]["typed_blocker_details"]
-        if item.get("gap_id") == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+        if item.get("gap_id") == "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated"
     )
-    assert dhd_apply_detail["work_order_kind"] == "live_runtime_gap"
-    assert dhd_apply_detail["next_owner"] == (
-        "MAS DHD apply owner with OPL runtime authorization"
+    assert domain_diagnostic_apply_detail["work_order_kind"] == "live_runtime_gap"
+    assert domain_diagnostic_apply_detail["next_owner"] == (
+        "MAS domain diagnostic apply owner with OPL runtime authorization"
     )
     assert "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref" in (
-        dhd_apply_detail["acceptable_evidence_ref_families"]
+        domain_diagnostic_apply_detail["acceptable_evidence_ref_families"]
     )
-    dhd_apply_template = next(
+    domain_diagnostic_apply_template = next(
         item
         for item in readback["summary"]["evidence_record_templates"]
-        if item.get("gap_id") == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+        if item.get("gap_id") == "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated"
     )
-    assert dhd_apply_template["work_order_kind"] == "live_runtime_gap"
-    assert dhd_apply_template["record_template"]["gap_id"] == (
-        "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+    assert domain_diagnostic_apply_template["work_order_kind"] == "live_runtime_gap"
+    assert domain_diagnostic_apply_template["record_template"]["gap_id"] == (
+        "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated"
     )
-    assert dhd_apply_template["templates_are_evidence_records"] is False
+    assert domain_diagnostic_apply_template["templates_are_evidence_records"] is False
     assert {
         "study_id",
         "work_unit_id",
         "work_unit_fingerprint",
         "route_identity_key",
         "attempt_idempotency_key",
-    } <= set(dhd_apply_template["record_template"])
+    } <= set(domain_diagnostic_apply_template["record_template"])
     assert readback["completion_claim_allowed"] is False
     assert {
         "typed_blocker_required_live_runtime_evidence_rollup",

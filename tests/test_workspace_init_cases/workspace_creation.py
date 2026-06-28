@@ -184,7 +184,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     study_progress = workspace_root / "ops" / "medautoscience" / "bin" / "study-progress"
     study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
     paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
-    domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
+    domain_diagnostic_report = workspace_root / "ops" / "medautoscience" / "bin" / "domain-diagnostic-report"
     retired_legacy_clean_migration = (
         workspace_root / "ops" / "medautoscience" / "bin" / "legacy-control-surface-clean-migration"
     )
@@ -207,7 +207,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert not progress_projection.exists()
     assert study_state_matrix.is_file()
     assert paper_mission.is_file()
-    assert not domain_health_diagnostic.exists()
+    assert not domain_diagnostic_report.exists()
     assert not retired_legacy_clean_migration.exists()
     assert not study_runtime_status.exists()
     assert not watch_runtime.exists()
@@ -285,7 +285,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert '--profile "${PROFILE_PATH}"' in paper_mission_text
     assert 'run_medautosci paper-mission \\' in paper_mission_text
-    assert "domain-health-diagnostic" not in paper_mission_text
+    assert "domain-diagnostic-report" not in paper_mission_text
     assert "--loop" not in paper_mission_text
     assert "legacy-control-surface-clean-migration" not in "\n".join(
         path.read_text(encoding="utf-8")
@@ -368,7 +368,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "OPL current_control_state refs-only handoff" in ops_readme_text
     assert "bin/paper-mission inspect" in ops_readme_text
     assert "bin/paper-mission drive" in ops_readme_text
-    assert "domain-health-diagnostic" in ops_readme_text
+    assert "domain-diagnostic-report" not in ops_readme_text
     assert "medautosci runtime ensure-supervision --profile <profile>" not in ops_readme_text
     assert "medautosci runtime supervision-status --profile <profile>" not in ops_readme_text
     assert "medautosci runtime remove-supervision --profile <profile>" not in ops_readme_text

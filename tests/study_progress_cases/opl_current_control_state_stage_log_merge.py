@@ -403,7 +403,7 @@ def test_running_provider_top_level_projection_yields_to_matching_owner_receipt_
                 "status": "executed",
                 "outcome": "owner_receipt",
                 "closeout_refs": [
-                    "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                    "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-completed.closeout.json",
                     "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
                     "20260612T100912Z_publication_eval_record.json",
@@ -438,7 +438,7 @@ def test_running_provider_top_level_projection_yields_to_progress_first_terminal
                 "status": "executed",
                 "outcome": "owner_receipt",
                 "closeout_refs": [
-                    "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                    "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-completed.closeout.json",
                 ],
             },
@@ -593,13 +593,13 @@ def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_runn
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         latest_execution_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-06-10T12:01:00+00:00",
             "study_id": "001-risk",
             "executions": [

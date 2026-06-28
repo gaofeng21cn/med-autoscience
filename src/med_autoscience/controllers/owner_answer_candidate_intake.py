@@ -499,7 +499,7 @@ def _forbidden_authority_writes() -> dict[str, bool]:
         "payload_target_files": True,
         "canonical_manuscript_package_authority": True,
         "non_dry_run_ai_reviewer_materialization": True,
-        "provider_redrive_hydrate_tick_replay_dhd_apply": True,
+        "provider_redrive_hydrate_tick_replay_domain_diagnostic_apply": True,
     }
 
 

@@ -47,7 +47,7 @@ ACCEPTED_EVIDENCE_SOURCE_PREFIXES = (
     "runtime_readback:",
 )
 FORBIDDEN_EVIDENCE_SOURCE_PREFIXES = (
-    "DHD_dry_run",
+    "domain_diagnostic_dry_run",
     "contract_landed",
     "docs",
     "focused_tests",

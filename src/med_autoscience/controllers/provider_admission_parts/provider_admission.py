@@ -23,7 +23,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_han
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions import (
-    DEFAULT_EXECUTOR_DISPATCHES,
+    OWNER_CALLABLE_ADAPTERS,
     PAPER_PROGRESS_TRANSITION_REQUESTS,
     accepted_owner_gate_admission_matches_selected_dispatch_blocker,
     _current_action_identity,
@@ -82,7 +82,7 @@ from med_autoscience.controllers.stage_outcome_authority_parts.execution_surface
     OWNER_CALLABLE_RECEIPT_SURFACE,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    latest_owner_callable_adapter_receipt_payload,
+    latest_owner_callable_receipt_payload,
 )
 
 
@@ -115,7 +115,7 @@ def persisted_provider_admission_candidates(
     status_payload: Mapping[str, Any] | None = None,
     allow_legacy_fallback: bool = False,
 ) -> list[dict[str, Any]]:
-    payload, execution_ref = latest_owner_callable_adapter_receipt_payload(
+    payload, execution_ref = latest_owner_callable_receipt_payload(
         study_root=study_root,
         allow_legacy_fallback=allow_legacy_fallback,
     )
@@ -660,7 +660,7 @@ def _request_only_transition_dispatch_path(
             return path
     root = Path(study_root).expanduser().resolve()
     for relative_root in (
-        DEFAULT_EXECUTOR_DISPATCHES,
+        OWNER_CALLABLE_ADAPTERS,
         PAPER_PROGRESS_TRANSITION_REQUESTS,
     ):
         candidate = root / relative_root / f"{action_type}.json"
@@ -883,7 +883,7 @@ def _execution_payload_source(
         return "owner_callable_adapter_receipt"
     if execution_ref and execution_ref.endswith(str(OWNER_CALLABLE_ADAPTER_RECEIPT_LATEST)):
         return "owner_callable_adapter_receipt"
-    return "default_executor_execution"
+    return "owner_callable_adapter_receipt"
 
 
 def _candidate_with_paper_progress_policy_result(
@@ -919,7 +919,7 @@ def _candidate_with_paper_progress_policy_result(
     else:
         policy_result = paper_progress_policy_adapter.build_policy_result(
             _paper_progress_policy_payload(candidate_with_readback, execution=execution),
-            source="dhd.provider_admission_candidate",
+            source="domain_diagnostic.provider_admission_candidate",
         )
     if not policy_result:
         return dict(candidate_with_readback)
@@ -1517,7 +1517,7 @@ def _gate_replay_execution_has_repair_progress_record_basis(
 def _provider_attempt_required(execution: Mapping[str, Any]) -> bool:
     if execution.get("provider_attempt_or_lease_required") is True:
         return True
-    return _non_empty_text(execution.get("owner_callable_surface")) == "opl_default_executor.stage_attempt"
+    return _non_empty_text(execution.get("owner_callable_surface")) == "opl_owner_callable_adapter.stage_attempt"
 
 
 def _execution_blocked_reason(execution: Mapping[str, Any]) -> str | None:

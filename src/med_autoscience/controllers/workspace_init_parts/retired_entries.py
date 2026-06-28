@@ -95,7 +95,7 @@ def retired_workspace_service_entry_reason(*, path: Path, existing_content: str)
         "run_medautosci progress-portal",
         "run_medautosci workspace progress-portal",
         "run_medautosci study-runtime-status",
-        "run_medautosci runtime domain-health-diagnostic",
+        "run_medautosci runtime domain-diagnostic-report",
         "run_medautosci watch",
         "run_medautosci ensure-study-runtime",
         "run_medautosci runtime domain-route-scan",

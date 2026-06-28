@@ -182,7 +182,6 @@ def _build_session_continuity_surface(
             "opl_runtime_owner_handoff_path_template": (
                 "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
             ),
-            "domain_health_diagnostic_path_template": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
             "publication_eval_path_template": "studies/<study_id>/artifacts/publication_eval/latest.json",
             "controller_decision_path_template": "studies/<study_id>/artifacts/controller_decisions/latest.json",
         },
@@ -286,12 +285,6 @@ def _build_artifact_inventory_surface(
             "label": "Study task intake (latest)",
             "path": "studies/<study_id>/artifacts/controller/task_intake/latest.json",
             "summary": "durable task intake truth (task_id/intent/entry_mode/return_surface_contract).",
-        },
-        {
-            "file_id": "domain_health_diagnostic_latest",
-            "label": "Domain health diagnostic (latest)",
-            "path": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-            "summary": "explicit diagnostic / migration provenance only; default supervision reads PaperMission readback.",
         },
         {
             "file_id": "opl_runtime_owner_handoff_latest",

@@ -355,7 +355,7 @@ def test_terminal_anti_loop_owner_gate_reads_closeout_ref_before_stale_progress_
     study_id = "002-dm-china-us-mortality-attribution"
     closeout_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-        "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+        "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
     )
     closeout_path = tmp_path / closeout_ref
     closeout_path.parent.mkdir(parents=True, exist_ok=True)

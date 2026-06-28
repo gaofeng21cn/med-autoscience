@@ -830,7 +830,7 @@
         "minimal_authority_function": [
           "study_truth",
           "progress_projection",
-          "domain_health_diagnostic",
+          "domain_diagnostic_report",
           "publication_quality_verdict",
           "ai_reviewer_workflow",
           "publication_gate",
@@ -1922,7 +1922,7 @@
             "src/med_autoscience/controllers/owner_callable_action_policy.py"
           ],
           "retired_code_paths": [
-            "src/med_autoscience/controllers/domain_route_reconcile.py"
+            "src/med_autoscience/controllers/domain_route_retired_reconcile.py"
           ],
           "domain_ref_consumers": [
             "owner-route one-shot tick",
@@ -2660,9 +2660,12 @@
         "dispatch_receipt_surface_kind": "mas_family_domain_handler_dispatch_receipt",
         "bridge_policy": "controlled_bridge_to_mas_owner_surface",
         "allowed_task_kinds": [
-          "domain_route/reconcile-apply",
-          "domain_route/retired-runtime-recover",
-          "paper_autonomy/retired-continue",
+          "paper_autonomy/ai-reviewer-recheck",
+          "paper_autonomy/guarded-apply",
+          "paper_autonomy/repair-recheck",
+          "paper_autonomy/supervisor-decision",
+          "publication_aftercare/analysis-queue-progress",
+          "publication_aftercare/reviewer-refresh",
           "safe_reconcile/dry-run",
           "study_progress/read",
           "status/read",
@@ -2690,7 +2693,7 @@
       "forbidden_authority_writes": [
         "study_truth",
         "progress_projection",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "paper/current_package",

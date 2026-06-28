@@ -49,14 +49,14 @@ def assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory()
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
         "domain_authority_refs_index",
-        "default_executor_dispatch_request",
+        "owner_callable_dispatch_request",
         "domain_action_request_materializer_local_carrier_persistence_api",
         "owner_callable_adapter_legacy_dispatch_projection_alias",
-        "domain_action_request_materializer_current_default_executor_dispatches_api",
+        "domain_action_request_materializer_current_owner_callable_adapters_api",
         "domain_action_request_materializer_owner_callable_adapter_projection",
-        "default_executor_execution_latest_wire_projection",
+        "owner_callable_adapter_receipt_latest_wire_projection",
         "stage_outcome_authority",
-        "domain_health_diagnostic_obligation_actuator",
+        "domain_diagnostic_obligation_actuator",
         "agent_tool_arsenal_scientific_capability_registry",
     }
     for surface in surfaces.values():
@@ -69,7 +69,7 @@ def assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory()
             "worker_lease_residency_projection",
             "domain_action_request_materializer_local_carrier_persistence_api",
             "owner_callable_adapter_legacy_dispatch_projection_alias",
-            "domain_action_request_materializer_current_default_executor_dispatches_api",
+            "domain_action_request_materializer_current_owner_callable_adapters_api",
         }:
             assert surface["active_caller_migrated"] is True
             assert surface["current_disposition"] == "physically_retired"

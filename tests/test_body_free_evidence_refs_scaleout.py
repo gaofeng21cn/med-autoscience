@@ -258,7 +258,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_route/reconcile-apply",
+        task_kind="stage_outcome/opl-handoff",
         study_id="DM002",
         reason="opl_stage_attempt_admission_required",
         evidence_refs=[
@@ -289,7 +289,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
         )
     } == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "stage_outcome/opl-handoff",
         "study_id": "DM002",
         "source_fingerprint": "provider-attempt-123",
         "domain_source_fingerprint": "abc123",
@@ -310,7 +310,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     ]
     research_summary = payload["record_payload"]["research_evidence_pack_summary"]
     assert payload["record_payload"]["research_evidence_pack_ref"] == (
-        "mas-research-evidence-pack:medautoscience:domain_route_reconcile-apply:DM002"
+        "mas-research-evidence-pack:medautoscience:domain_route_retired_reconcile-apply:DM002"
     )
     assert research_summary["pack_ref"] == payload["record_payload"]["research_evidence_pack_ref"]
     assert research_summary["input_refs"] == payload["record_payload"]["evidence_refs"]
@@ -375,7 +375,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     assert identity_binding["surface_kind"] == "mas_domain_dispatch_evidence_identity_binding"
     assert identity_binding["payload_identity"] == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "stage_outcome/opl-handoff",
         "study_id": "DM002",
         "source_fingerprint": "provider-attempt-123",
         "domain_source_fingerprint": "abc123",
@@ -520,19 +520,19 @@ def test_domain_dispatch_evidence_payload_typed_blocker_ref_keeps_identity_token
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     first = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_owner/default-executor-dispatch",
+        task_kind="stage_outcome/opl-handoff",
         study_id="002-dm-china-us-mortality-attribution",
-        reason="opl_worklist_owner_receipt_or_default_executor_closeout_pending",
+        reason="opl_worklist_owner_receipt_or_owner_callable_adapter_closeout_pending",
         source_fingerprint="bd2c4f4a4b37c93f",
-        stage_attempt_source_fingerprint="mas_default_executor_source_88ef5de2fd4a4cca0ac80f96",
+        stage_attempt_source_fingerprint="mas_owner_callable_adapter_source_88ef5de2fd4a4cca0ac80f96",
         profile_name="dm-cvd-mortality-risk",
     )
     second = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_owner/default-executor-dispatch",
+        task_kind="stage_outcome/opl-handoff",
         study_id="002-dm-china-us-mortality-attribution",
-        reason="opl_worklist_owner_receipt_or_default_executor_closeout_pending",
+        reason="opl_worklist_owner_receipt_or_owner_callable_adapter_closeout_pending",
         source_fingerprint="25ce38af2d382288",
-        stage_attempt_source_fingerprint="mas_default_executor_source_12b16bbd3018014cbf0a20a5",
+        stage_attempt_source_fingerprint="mas_owner_callable_adapter_source_12b16bbd3018014cbf0a20a5",
         profile_name="dm-cvd-mortality-risk",
     )
 

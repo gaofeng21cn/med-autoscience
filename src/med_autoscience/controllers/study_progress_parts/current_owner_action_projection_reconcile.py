@@ -375,8 +375,10 @@ def current_execution_evidence_actions(
         return []
     if current_execution_handoff_consumes_current_action(handoff) or _handoff_has_consumed_action_queue(handoff):
         current_action = _current_executable_owner_action_as_envelope_action(current_executable_owner_action)
-        if _non_empty_text(_mapping_copy(current_action).get("source_surface")) != (
-            "study_progress.next_forced_delta.owner_action"
+        if not _current_action_survives_consumed_handoff(
+            current_action,
+            handoff=handoff,
+            paper_progress_delta_counted=paper_progress_delta_counted,
         ):
             return []
         if _current_action_consumed_by_handoff(current_action, handoff):
@@ -397,13 +399,35 @@ def current_execution_handoff_consumes_current_action(handoff: Mapping[str, Any]
         return True
     if _handoff_blocked_reason_is_current_control_typed_blocker(handoff):
         return True
-    latest_closeout = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
+    latest_closeout = _mapping_copy(handoff.get("latest_typed_owner_callable_closeout"))
     if _non_empty_text(latest_closeout.get("status")) == "typed_blocker":
         return True
     return (
         _non_empty_text(latest_closeout.get("terminal_closeout_outcome")) == "typed_blocker"
         or _non_empty_text(latest_closeout.get("progress_delta_classification")) == "typed_blocker"
         or _non_empty_text(latest_closeout.get("terminal_closeout_status")) == "blocked"
+    )
+
+
+def _current_action_survives_consumed_handoff(
+    current_action: Mapping[str, Any] | None,
+    *,
+    handoff: Mapping[str, Any],
+    paper_progress_delta_counted: bool = False,
+) -> bool:
+    if current_action is None:
+        return False
+    if _non_empty_text(_mapping_copy(current_action).get("source_surface")) == (
+        "study_progress.next_forced_delta.owner_action"
+    ):
+        return True
+    if paper_progress_delta_counted and _non_empty_text(current_action.get("source_surface")) in (
+        CURRENT_CONTROL_TYPED_BLOCKER_SUCCESSOR_SOURCES
+    ):
+        return True
+    return current_control_typed_blocker_successor_action(
+        current_action,
+        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
     )
 
 

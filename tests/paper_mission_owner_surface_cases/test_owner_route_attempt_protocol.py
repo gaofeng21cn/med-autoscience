@@ -505,7 +505,7 @@ def test_owner_route_protocol_treats_unregistered_reason_as_diagnostic_when_rout
     assert route["allowed_actions"] == ["run_quality_repair_batch"]
 
 
-def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_boundary() -> None:
+def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_boundary() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 
     owner_route = {
@@ -533,7 +533,7 @@ def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_
         },
     }
 
-    envelope = protocol.default_executor_attempt_envelope(
+    envelope = protocol.owner_callable_attempt_envelope(
         dispatch={
             "action_type": "run_quality_repair_batch",
             "next_executable_owner": "write",
@@ -554,7 +554,7 @@ def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_
     )
 
     assert envelope["dispatchable"] is True
-    assert envelope["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert envelope["search_boundaries"]["surface"] == "owner_callable_search_discipline.v1"
     assert "grep -R" in envelope["search_boundaries"]["forbidden_command_patterns"]
     assert "runtime/.ds/**" in envelope["tool_discipline"]["forbidden_path_globs"]
     assert envelope["authority_boundary"] == {
@@ -600,7 +600,7 @@ def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_
     assert domain_intent["missing_required_fields"] == []
 
 
-def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_without_runtime_health() -> None:
+def test_owner_callable_attempt_envelope_accepts_eval_bound_writer_route_without_runtime_health() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 
     source_eval_id = (
@@ -641,7 +641,7 @@ def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_witho
         },
     }
 
-    envelope = protocol.default_executor_attempt_envelope(
+    envelope = protocol.owner_callable_attempt_envelope(
         dispatch={
             "action_type": "run_quality_repair_batch",
             "next_executable_owner": "write",
@@ -657,7 +657,7 @@ def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_witho
     assert envelope["domain_intent"]["missing_required_fields"] == []
 
 
-def test_default_executor_attempt_envelope_carries_decision_trace_refs_only() -> None:
+def test_owner_callable_attempt_envelope_carries_decision_trace_refs_only() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 
     owner_route = {
@@ -700,7 +700,7 @@ def test_default_executor_attempt_envelope_carries_decision_trace_refs_only() ->
         },
     }
 
-    envelope = protocol.default_executor_attempt_envelope(
+    envelope = protocol.owner_callable_attempt_envelope(
         dispatch={
             "action_type": "methodology_reframe_route_decision",
             "next_executable_owner": "decision",
@@ -729,16 +729,16 @@ def test_default_executor_attempt_envelope_carries_decision_trace_refs_only() ->
     assert "private body" not in str(envelope)
 
 
-def test_default_executor_attempt_envelope_preallocates_closeout_first_contract() -> None:
+def test_owner_callable_attempt_envelope_preallocates_closeout_first_contract() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 
-    envelope = protocol.default_executor_attempt_envelope(
+    envelope = protocol.owner_callable_attempt_envelope(
         dispatch={
             "action_type": "run_quality_repair_batch",
             "next_executable_owner": "write",
             "dispatch_ref": (
                 "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/abc123.json"
+                "consumer/owner_callable_adapters/immutable/run_quality_repair_batch/abc123.json"
             ),
             "owner_route": {
                 "surface": "domain_route_owner_route",
@@ -767,15 +767,15 @@ def test_default_executor_attempt_envelope_preallocates_closeout_first_contract(
     )
 
     contract = envelope["closeout_first_contract"]
-    assert contract["surface_kind"] == "mas_default_executor_closeout_first_contract"
+    assert contract["surface_kind"] == "mas_stage_outcome_opl_handoff_closeout_first_contract"
     assert contract["preallocated_closeout_ref"] == (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-        "consumer/default_executor_execution/<stage_attempt_id>.closeout.json"
+        "consumer/owner_callable_adapter_receipt/<stage_attempt_id>.closeout.json"
     )
     assert contract["required_schema"] == {
         "surface_kind": "stage_attempt_closeout_packet",
         "schema_version": 1,
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "stage_outcome/opl-handoff",
         "required_ref_field": "closeout_refs",
         "minimum_closeout_refs": 1,
     }
@@ -795,14 +795,14 @@ def test_default_executor_attempt_envelope_preallocates_closeout_first_contract(
     ]
     assert envelope["required_closeout_packet"]["preallocated_closeout_ref"] == (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-        "consumer/default_executor_execution/<stage_attempt_id>.closeout.json"
+        "consumer/owner_callable_adapter_receipt/<stage_attempt_id>.closeout.json"
     )
 
 
-def test_default_executor_attempt_envelope_fails_closed_without_domain_intent_required_fields() -> None:
+def test_owner_callable_attempt_envelope_fails_closed_without_domain_intent_required_fields() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 
-    envelope = protocol.default_executor_attempt_envelope(
+    envelope = protocol.owner_callable_attempt_envelope(
         dispatch={
             "action_type": "return_to_ai_reviewer_workflow",
             "next_executable_owner": "ai_reviewer",

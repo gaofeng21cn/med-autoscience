@@ -6,7 +6,7 @@
   "default_active_path": "PaperMission + StageTerminalDecision/StageOutcome on OPL/Temporal hosted substrate; MAS direct skill is only a direct entry to the same PaperMission owner surface",
   "tombstoned_surfaces": [
     {
-      "surface_id": "dhd_owner_route_dispatch_paper_recovery_default_paper_mainline",
+      "surface_id": "domain_diagnostic_owner_route_dispatch_paper_recovery_default_paper_mainline",
       "status": "retired_tombstone",
       "classification": "retired_diagnostics_migration_provenance_only",
       "default_caller": false,
@@ -15,15 +15,15 @@
       "tombstone_ref": "docs/active/mas_executor_first_rearchitecture_program.md#phase-4-retire-old-way",
       "replacement_ref": "contracts/paper_mission_run_contract.json",
       "replacement_projection_ref": "study_progress.artifact_first_mission_summary.paper_mission_run",
-      "retained_context": "DHD, owner-route, default-executor dispatch, default_executor_execution, PaperRecovery, Portal/workbench, and MAS control-plane wording may be used only as diagnostics, migration input, provenance, or consume/readback evidence; they must not be the product/default domain-handler paper mission mainline or an active public projection alias.",
+      "retained_context": "domain diagnostic, owner-route, owner-callable dispatch, owner_callable_adapter_receipt, PaperRecovery, Portal/workbench, and MAS control-plane wording may be used only as diagnostics, migration input, provenance, or consume/readback evidence; they must not be the product/default domain-handler paper mission mainline or an active public projection alias.",
       "legacy_surfaces": [
-        "domain_health_diagnostic",
-        "DHD",
+        "domain_diagnostic_report",
+        "domain diagnostic",
         "owner-route",
         "owner_route",
         "domain-handler export",
-        "default-executor dispatch",
-        "default_executor_execution",
+        "owner-callable dispatch",
+        "owner_callable_adapter_receipt",
         "dispatch",
         "PaperRecovery",
         "paper_recovery_state",
@@ -45,12 +45,12 @@
         "domain_handler_default_task_kind": "paper_mission/start_or_resume",
         "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
         "legacy_task_kind_policy": {
-          "task_kind": "domain_owner/default-executor-dispatch",
+          "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
           "default_paper_mission_entry": false,
           "migration_diagnostic_only": true,
           "ordinary_schedulable": false,
           "active_caller_class": "diagnostic_only",
-          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
+          "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned"
         }
       },
       "authority_boundary": {
@@ -135,9 +135,9 @@
       "supervisor-consume",
       "supervisor-execute-dispatch",
       "runtime_platform_repair",
-      "domain-health-diagnostic",
-      "domain_owner/default-executor-dispatch",
-      "default_executor_execution",
+      "domain-diagnostic-report",
+      "stage_outcome/opl-handoff",
+      "owner_callable_adapter_receipt",
       "progress_portal",
       "progress-portal",
       "workbench"
@@ -250,12 +250,12 @@
         "validator": "med_autoscience.paper_mission_run.PaperMissionRun"
       },
         "legacy_active_caller_allowed_only_when": {
-          "task_kind": "domain_owner/default-executor-dispatch",
+          "task_kind": "stage_outcome/opl-handoff",
           "default_paper_mission_entry": false,
           "migration_diagnostic_only": true,
           "ordinary_schedulable": false,
           "active_caller_class": "diagnostic_only",
-          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+          "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned",
           "active_public_projection_alias_allowed": false
         }
       },
@@ -268,8 +268,8 @@
           "default_command_contains": "paper-mission inspect"
         },
         "forbidden_default_markers": [
-          "domain-health-diagnostic",
-          "default-executor-dispatch",
+          "domain-diagnostic-report",
+          "owner-callable-adapter",
           "PaperRecovery"
         ]
       },
@@ -280,11 +280,11 @@
           "dispatch.default_action_intent": "paper_mission/start_or_resume"
         },
         "legacy_carrier_policy": {
-          "task_kind": "domain_owner/default-executor-dispatch",
+          "task_kind": "stage_outcome/opl-handoff",
           "default_paper_mission_entry": false,
           "migration_diagnostic_only": true,
           "ordinary_schedulable": false,
-          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
+          "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned"
         }
       },
       {
@@ -293,45 +293,43 @@
         "required_default_task_kind": "paper_mission/start_or_resume",
         "legacy_task_kind_allowed": false,
         "legacy_task_kind_allowed_only_when": {
-          "task_kind": "domain_owner/default-executor-dispatch",
+          "task_kind": "stage_outcome/opl-handoff",
           "default_paper_mission_entry": false,
           "migration_diagnostic_only": true,
           "ordinary_schedulable": false,
-          "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned"
+          "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned"
         }
       },
       {
         "surface_id": "family_action_catalog",
         "source_ref": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
-        "required_policy": "no legacy DHD/default-executor/PaperRecovery action is a default paper mission action",
+        "required_policy": "no legacy domain diagnostic/owner-callable/PaperRecovery action is a default paper mission action",
         "allowed_legacy_reference_class": "descriptor-only domain handler export/dispatch refs; dispatch is read-only boundary metadata and not an owner-answer producer"
       },
       {
         "surface_id": "mcp_tool_manifest",
         "source_ref": "src/med_autoscience/mcp_server.py::list_tools",
-        "required_policy": "no standalone DHD/default-executor/PaperRecovery MCP tool is exposed as the paper mission default",
+        "required_policy": "no standalone domain diagnostic/owner-callable/PaperRecovery MCP tool is exposed as the paper mission default",
         "allowed_legacy_reference_class": "runtime diagnostic internals and descriptor metadata only"
       },
       {
         "surface_id": "plugin_skill_ordinary_path",
         "source_ref": "plugins/mas/skills/mas/SKILL.md",
         "required_ordinary_path": "study -> stage -> domain owner receipt or typed blocker -> handoff",
-        "allowed_legacy_reference_class": "Retired runtime controller references may name domain-health-diagnostic only as diagnostic/control readback, not ordinary paper mission execution"
+        "allowed_legacy_reference_class": "Retired runtime controller references may name domain-diagnostic-report only as diagnostic/control readback, not ordinary paper mission execution"
       }
     ],
     "allowed_legacy_reference_classes": [
       "runtime diagnostic",
       "authority consume/readback",
-      "OPL StageRun ABI carrier",
       "migration diagnostic",
       "history provenance",
-      "legacy fixture",
       "retired workbench projection"
     ],
     "legacy_reference_rigor_policy": {
       "status": "active_claim_boundary",
       "policy_owner": "contracts/runtime/legacy-active-path-tombstones.json",
-      "scope": "DHD, owner-route, default-executor dispatch, PaperRecovery, and domain-handler legacy references after PaperMissionRun cutover",
+      "scope": "domain diagnostic, owner-route, owner-callable dispatch, PaperRecovery, and domain-handler legacy references after PaperMissionRun cutover",
       "required_for_each_allowed_reference_class": [
         "reference_class",
         "allowed_use",
@@ -401,26 +399,6 @@
           "can_claim_runtime_ready": false
         },
         {
-          "reference_class": "OPL StageRun ABI carrier",
-          "allowed_use": "carry MAS terminal decision route metadata to OPL without becoming an OPL outbox, event, StageRun, provider attempt, or owner-answer authority",
-          "required_evidence": [
-            "route_command_ref",
-            "stage_terminal_decision_ref",
-            "required_postcondition",
-            "no_forbidden_write_boundary"
-          ],
-          "forbidden_claims": [
-            "runtime_ready",
-            "provider_running",
-            "owner_receipt_written",
-            "typed_blocker_written",
-            "paper_progress"
-          ],
-          "can_select_next_paper_stage": false,
-          "counts_as_paper_progress": false,
-          "can_claim_runtime_ready": false
-        },
-        {
           "reference_class": "migration diagnostic",
           "allowed_use": "freeze old-system truth as mission input, decision constraints, or non-degradation evidence",
           "required_evidence": [
@@ -453,24 +431,6 @@
             "runtime_ready",
             "DM002_complete",
             "DM003_complete"
-          ],
-          "can_select_next_paper_stage": false,
-          "counts_as_paper_progress": false,
-          "can_claim_runtime_ready": false
-        },
-        {
-          "reference_class": "legacy fixture",
-          "allowed_use": "exercise regression tests that prove demotion, fail-closed dispatch, or replacement parity",
-          "required_evidence": [
-            "fixture_scope",
-            "replacement_parity_or_fail_closed_assertion"
-          ],
-          "forbidden_claims": [
-            "product_default_mainline",
-            "domain_handler_default_mainline",
-            "paper_progress",
-            "runtime_ready",
-            "publication_ready"
           ],
           "can_select_next_paper_stage": false,
           "counts_as_paper_progress": false,

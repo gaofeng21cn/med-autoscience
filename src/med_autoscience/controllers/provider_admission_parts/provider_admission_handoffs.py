@@ -38,7 +38,7 @@ def transition_request_pending_dispatch_result(
     for handoff in materialized_record_only_provider_handoffs(materialize_result):
         executions.append(
             {
-                "surface": "default_executor_dispatch_execution",
+                "surface": "owner_callable_dispatch_execution",
                 "study_id": _non_empty_text(handoff.get("study_id")),
                 "quest_id": _non_empty_text(handoff.get("quest_id")),
                 "action_type": _non_empty_text(handoff.get("action_type")),

@@ -449,7 +449,7 @@ def _controller_read_model_feedback_refs(*, root: Path, study_id: str) -> list[s
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "unit_harmonized_external_validation_rerun.json",
     )
     if refs:

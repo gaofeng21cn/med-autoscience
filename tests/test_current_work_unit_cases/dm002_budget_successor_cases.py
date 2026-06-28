@@ -119,11 +119,11 @@ def test_current_work_unit_supersedes_terminal_anti_loop_with_safe_next_forced_d
             "work_unit_fingerprint": blocker_fingerprint,
             "action_fingerprint": blocker_fingerprint,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat.closeout.json#typed_blocker"
             ),
             "latest_owner_answer_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat.closeout.json#typed_blocker"
             ),
             "latest_owner_answer_kind": "typed_blocker",
@@ -252,11 +252,11 @@ def test_current_work_unit_derives_dm002_anti_loop_successor_from_repair_progres
             "action_fingerprint": blocker_fingerprint,
             "source_eval_id": source_eval_id,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_67e10efde628859185249aa0.closeout.json"
             ),
             "latest_owner_answer_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_67e10efde628859185249aa0.closeout.json"
             ),
             "latest_owner_answer_kind": "typed_blocker",
@@ -351,7 +351,7 @@ def test_current_work_unit_consumes_repeat_suppressed_blocker_after_fresh_repair
                     "source_eval_id": source_eval_id,
                     "stage_attempt_id": "sat_67e10efde628859185249aa0",
                     "source_ref": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_67e10efde628859185249aa0.closeout.json"
                     ),
                 },

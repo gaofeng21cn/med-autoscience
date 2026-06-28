@@ -78,7 +78,7 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
         "owner_callable_adapter_receipt_projection_as_opl_stage_run_readback"
     )
     owner_dispatch["consumer_input_boundary"][
-        "inline_default_executor_dispatch_request_candidate_allowed"
+        "inline_owner_callable_dispatch_request_candidate_allowed"
     ] = True
     owner_dispatch["consumer_input_boundary"][
         "can_create_opl_event_outbox_or_stage_run"
@@ -201,7 +201,7 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
             "stage_outcome_authority",
             (
                 "owner_dispatch_consumer_boundary_forbidden:"
-                "inline_default_executor_dispatch_request_candidate_allowed"
+                "inline_owner_callable_dispatch_request_candidate_allowed"
             ),
         ),
         (
@@ -228,7 +228,7 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
     obligation = next(
         surface
         for surface in obligation_bad_inventory["surfaces"]
-        if surface["surface_id"] == "domain_health_diagnostic_obligation_actuator"
+        if surface["surface_id"] == "domain_diagnostic_obligation_actuator"
     )
     obligation["mas_can_run_supervisor_decision_engine"] = True
     obligation["mas_can_mutate_recovery_obligation_store"] = True
@@ -277,123 +277,123 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
 
     assert {
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "truthy_authority_flag:mas_can_mutate_recovery_obligation_store",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "truthy_authority_flag:mas_can_run_supervisor_decision_engine",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_forbidden:mas_can_mutate_recovery_obligation_store",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_forbidden:mas_can_run_supervisor_decision_engine",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "request_projection_can_satisfy_success",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_request_projection_can_satisfy_success",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_request_projection_is_success",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_missing_consumed_identity_gate",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_missing_domain_authority_boundary_gate",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_read_model_refs_can_satisfy_success",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_readback_tail_forbidden:repo_no_authority_guard_can_satisfy_readback",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_must_not_claim_readback_proven",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_must_not_claim_no_active_caller",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_must_not_allow_physical_delete",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_forbidden:mas_policy_projection_can_satisfy_readback",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_missing_false_completion_guards",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             (
                 "truthy_authority_flag:typed_blocker_authority_result_adapter_boundary."
                 "actuator_private_write_authority"
             ),
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             (
                 "obligation_actuator_typed_blocker_boundary_forbidden:"
                 "actuator_private_write_authority"
             ),
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             (
                 "obligation_actuator_typed_blocker_boundary_forbidden:"
                 "can_authorize_provider_admission"
             ),
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_direct_filesystem_write_not_retired",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_must_not_claim_readback_proven",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_must_not_claim_no_active_caller",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_must_not_allow_physical_delete",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_forbidden:mas_policy_projection_can_satisfy_readback",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_tail_missing_false_completion_guards",
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             (
                 "obligation_actuator_readback_tail_forbidden:"
                 "mas_request_projection_can_satisfy_readback"
             ),
         ),
         (
-            "domain_health_diagnostic_obligation_actuator",
+            "domain_diagnostic_obligation_actuator",
             "obligation_actuator_missing_owner_retirement_decision_gate",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in obligation_violations}

@@ -35,7 +35,7 @@ from ..guarded_apply_owner_delta_contract import (
 from ..real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .authority_boundary import authority_boundary_payload
 from .dispatch_receipts import write_dispatch_receipt
-from .task_kinds import ALLOWED_TASK_KINDS, FORBIDDEN_PAYLOAD_FLAGS
+from .task_kinds import ALLOWED_TASK_KINDS, FORBIDDEN_PAYLOAD_FLAGS, RETIRED_DIAGNOSTIC_TASK_KINDS
 
 STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
     {
@@ -129,7 +129,7 @@ def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id
     profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
     if action_type == "domain_route_recover":
         return f"uv run python -m med_autoscience.cli domain-handler export{profile_part} --format json"
-    if action_type in {"safe_reconcile_dry_run", "domain_route_owner_handoff"}:
+    if action_type == "safe_reconcile_dry_run":
         return f"uv run python -m med_autoscience.cli domain-handler export{profile_part} --format json"
     if action_type == "study_progress_read":
         study_selector = f" --study-id {study_id}" if study_id else ""
@@ -426,8 +426,6 @@ def _apply_dispatch_action(
     study_id: str | None,
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if action_type == "domain_route_owner_handoff":
-        return _with_domain_route_owner_handoff(receipt=receipt, task=task, study_id=study_id)
     if action_type == "paper_repair_executor_dispatch":
         return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)
     if action_type == "ai_reviewer_recheck_execute_dispatch":
@@ -439,32 +437,6 @@ def _apply_dispatch_action(
             study_id=study_id,
             task=task,
         )
-    return receipt
-
-
-def _with_domain_route_owner_handoff(
-    *,
-    receipt: dict[str, Any],
-    task: Mapping[str, Any],
-    study_id: str | None,
-) -> dict[str, Any]:
-    payload = _mapping(task.get("payload"))
-    receipt["opl_attempt_admission_requested"] = True
-    receipt["opl_attempt_admission_status"] = "requested"
-    receipt["dispatch"]["execution_policy"] = "opl_route_hydration_stage_attempt_admission"
-    receipt["dispatch"]["result"] = {
-        "surface": "domain_route_owner_handoff_admission",
-        "status": "opl_attempt_admission_requested",
-        "study_id": study_id,
-        "route_target": _text(payload.get("route_target")),
-        "continuation_reason": _text(payload.get("continuation_reason")),
-        "owner_route_handoff_ref": _text(payload.get("owner_route_handoff_ref")),
-        "controller_decision_ref": _text(payload.get("controller_decision_ref")),
-        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint")),
-        "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
-        "mas_executes_reconcile_apply": False,
-        "provider_completion_is_domain_completion": False,
-    }
     return receipt
 
 
@@ -591,6 +563,12 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
             requested_writes=opl_provider_ready_adapter.requested_writes_from_task(task),
             forbidden_requested_writes=forbidden_requested_writes,
         )
+    if task_kind in RETIRED_DIAGNOSTIC_TASK_KINDS:
+        return _retired_task_kind_receipt(
+            generated_at=generated_at,
+            task_id=task_id,
+            task_kind=task_kind,
+        )
     action_type = ALLOWED_TASK_KINDS.get(task_kind)
     if action_type is None:
         return _dispatch_error(
@@ -667,6 +645,41 @@ def _dispatch_error(
     if detail is not None:
         payload["detail"] = detail
     return payload
+
+
+def _retired_task_kind_receipt(
+    *,
+    generated_at: str,
+    task_id: str,
+    task_kind: str,
+) -> dict[str, Any]:
+    reason = RETIRED_DIAGNOSTIC_TASK_KINDS[task_kind]
+    return {
+        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+        "version": "mas-family-domain-handler.v1",
+        "accepted": False,
+        "generated_at": generated_at,
+        "task_id": task_id,
+        "task_kind": task_kind,
+        "reason": "legacy_owner_callable_dispatch_tombstoned"
+        if task_kind == "domain_owner/owner-callable-adapter"
+        else reason,
+        "retired_reason": reason,
+        "retired_diagnostic_task_kind": True,
+        "default_paper_mission_entry": False,
+        "migration_diagnostic_only": True,
+        "ordinary_schedulable": False,
+        "active_caller_class": "diagnostic_only",
+        "replacement_task_kind": "paper_mission/start_or_resume",
+        "diagnostic_role": "retired_default_paper_dispatch",
+        "authority_boundary": authority_boundary_payload(),
+        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
+            result="blocked",
+            task_id=task_id,
+            task_kind=task_kind,
+            requested_writes=(),
+        ),
+    }
 
 
 __all__ = ["ALLOWED_TASK_KINDS", "dispatch_family_domain_handler_task"]

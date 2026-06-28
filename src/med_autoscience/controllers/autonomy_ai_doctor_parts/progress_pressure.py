@@ -76,7 +76,7 @@ def progress_pressure_from_slo_status(
             else _text(executable_action.get("owner") if executable_action else None) or "mas_controller"
         ),
         "next_action_type": (
-            "domain_route/reconcile-apply"
+            "stage_outcome/opl-handoff"
             if next_work_unit_id is not None and not stop_allowed
             else _text(executable_action.get("action_type") if executable_action else None) or "monitor_autonomy_slo"
         ),

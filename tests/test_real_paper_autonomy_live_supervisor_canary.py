@@ -157,9 +157,9 @@ def _progress_reader(payloads: Mapping[str, Mapping[str, Any]]):
 
 
 def _diagnostic_reader(payloads: Mapping[str, Mapping[str, Any]]):
-    def read_dhd(_profile: FakeProfile, _study_ids: Sequence[str]) -> Mapping[str, Any]:
+    def read_domain_diagnostic(_profile: FakeProfile, _study_ids: Sequence[str]) -> Mapping[str, Any]:
         return {
-            "surface_kind": "domain_health_diagnostic_runtime_report",
+            "surface_kind": "domain_diagnostic_report_runtime_report",
             "schema_version": 1,
             "action_class": "observe_only",
             "will_start_llm": False,
@@ -170,7 +170,7 @@ def _diagnostic_reader(payloads: Mapping[str, Mapping[str, Any]]):
             "progress_currentness": dict(payloads),
         }
 
-    return read_dhd
+    return read_domain_diagnostic
 
 
 def _progress_payloads() -> dict[str, dict[str, Any]]:
@@ -396,7 +396,7 @@ def _progress_payload(
 @pytest.mark.parametrize(
     "forbidden_flag",
     (
-        "may_apply_domain_health_diagnostic",
+        "may_apply_domain_diagnostic_report",
         "may_hydrate",
         "may_tick",
         "may_redrive",

@@ -23,7 +23,7 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ca
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     action_fingerprint = "sha256:queue-self-identity"
@@ -31,12 +31,12 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ca
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": action_fingerprint,
@@ -103,7 +103,7 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ty
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     action_fingerprint = "sha256:queue-self-identity-typed-blocker"
@@ -111,12 +111,12 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ty
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": action_fingerprint,
@@ -193,7 +193,7 @@ def test_current_control_provider_admission_rejects_retained_queue_when_current_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     stale_fingerprint = "sha256:stale-ai-reviewer-recheck"
@@ -201,7 +201,7 @@ def test_current_control_provider_admission_rejects_retained_queue_when_current_
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "return_to_ai_reviewer_workflow",
@@ -287,7 +287,7 @@ def test_current_control_provider_admission_filters_synthetic_current_owner_tick
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     work_unit_id = "medical_prose_write_repair"
@@ -299,7 +299,7 @@ def test_current_control_provider_admission_filters_synthetic_current_owner_tick
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
@@ -402,7 +402,7 @@ def test_opl_authorization_typed_blocker_without_fingerprint_matches_current_wor
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     work_unit_id = "manuscript_story_repair"
@@ -410,12 +410,12 @@ def test_opl_authorization_typed_blocker_without_fingerprint_matches_current_wor
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "write",
             "required_output_surface": (
                 "canonical manuscript story-surface delta or "
@@ -430,7 +430,7 @@ def test_opl_authorization_typed_blocker_without_fingerprint_matches_current_wor
             "surface": "stage_outcome_authority",
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "study_id": study_id,
                     "quest_id": study_id,
                     "action_type": "run_quality_repair_batch",

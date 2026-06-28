@@ -288,7 +288,7 @@ def build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
         allowed_task_kinds=(
-            "domain_route/reconcile-apply",
+            "stage_outcome/opl-handoff",
             "paper_autonomy/repair-recheck",
             "paper_autonomy/ai-reviewer-recheck",
             "publication_aftercare/analysis-queue-progress",
@@ -406,8 +406,8 @@ def build_product_entry_manifest(
             "single_project_boundary": single_project_boundary,
             "capability_owner_boundary": capability_owner_boundary,
             "executor_defaults": {
-                "default_executor_name": "codex_cli",
-                "default_executor_mode": "autonomous",
+                "owner_callable_adapter_name": "codex_cli",
+                "owner_callable_adapter_mode": "autonomous",
                 "default_model": "inherit_local_codex_default",
                 "default_reasoning_effort": "inherit_local_codex_default",
                 "executor_labels": {

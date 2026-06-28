@@ -14,8 +14,8 @@ Date: `2026-05-26`
 - `stage` 是 OPL provider-backed attempt 的大型研究步骤与 admission 单位。
 - `route` 是 MAS 医学 owner-chain 的 domain transition recommendation，表示下一步 owner、route-back、human gate、typed blocker 或 owner action。
 - `handoff` 是 MAS 给 OPL 的 body-free refs-only 交接包，用来让 OPL hydrate queue、创建 stage attempt、执行 retry/dead-letter、唤醒 provider 或生成 operator workorder。
-- 机器入口是 domain-handler owner-route pending task 上的 `route_transition_contract` 与 `stage_graph_handoff`：前者给 OPL 读 allowed / forbidden refs 与 owner 边界，后者给 OPL 读 `journal-resolution` / `finalize` 这类 route 的 stage graph hints。
-- `domain_owner/default-executor-dispatch` 的机器入口是 `Owner-Route Attempt Protocol` envelope。MAS 必须在 envelope 中给出 `DomainIntent`、当前 `domain_owner`、`action_type`、`work_unit_id`、currentness basis、allowed / forbidden write surfaces、typed closeout requirement 和 completion boundary；OPL 只能用它 hydrate queue/attempt/provider transport。
+- 机器入口是 PaperMission / DomainProgressTransitionRuntime / owner-route protocol 产生的 body-free refs、typed blocker、owner receipt 和 route command。OPL 读取这些 refs 后 hydrate queue、attempt 和 provider transport；MAS 不再把 owner-route handoff 作为 ordinary `domain-handler export.pending_family_tasks` 发布。
+- `stage_outcome/opl-handoff` 只保留为 OPL-owned stage id / historical owner-route protocol vocabulary / readback provenance。它不是 MAS `domain-handler dispatch` allowlist task，也不是 MAS 私有 queue 或 admission 入口。
 
 MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/dead-letter、worker liveness arbiter、route graph runner 或 generic state-machine runtime。OPL 当前若承载能力不足，应补 OPL stage graph / transition runner / runtime manager / App read model，而不是在 MAS 回补私有 runtime。
 
@@ -63,7 +63,7 @@ Progress-first Co-Scientist affordance 的 handoff 读法固定为：affordance 
 
 Progress-first review / repair / carry-forward 的标准读法见 [Progress-First Quality Loop](./control/progress_first_quality_loop.md)。Review / repair 是有界质量循环，不是默认安全截停层；预算耗尽必须先做 severity decision。`fatal_blocker` 才阻断并输出 stable `TypedBlocker`、`human_gate_ref` 或 route / owner redesign；`must_fix_before_current_gate`、`carry_forward_advisory` 和 `optional_polish` 若复判为非 fatal，必须通过 `CarryForwardRiskReceipt` 带风险推进下一 owner。`CarryForwardRiskReceipt` 是 ordinary progress handoff receipt，只能证明非 fatal 风险可接力，不能声明 quality-clean、publication-ready、submission-ready、artifact authority 或 package freshness。
 
-当前 live 证据已经证明 sidecar owner-route handoff 和 default executor attempt protocol 可读、body-free 且 fail closed：`src/med_autoscience/controllers/owner_route_handoff_parts/owner_route_handoff_tasks.py` 产出 `route_transition_contract` / `stage_graph_handoff`，focused tests 证明它不写 runtime state、queue、publication eval、controller decisions 或 `current_package`；`tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py` 证明 `mas-owner-route-attempt-protocol.v1`、diagnostic reason contract、currentness basis、provider/domain completion boundary 和缺字段 fail-closed 规则。真实 paper-line provider apply、MAS owner-chain closeout、long-soak、artifact movement 和 human gate receipt 仍是独立证据尾项。
+当前 live 证据已经证明 owner-route attempt protocol 可读、body-free 且 fail closed：`tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py` 证明 `mas-owner-route-attempt-protocol.v1`、diagnostic reason contract、currentness basis、provider/domain completion boundary 和缺字段 fail-closed 规则。旧 `owner_route_handoff_tasks.py` / `controller_route_back_tasks.py` task builder 已退役；真实 paper-line provider apply、MAS owner-chain closeout、long-soak、artifact movement 和 human gate receipt 仍是独立证据尾项。
 
 2026-06-01 更新：`med_autoscience.stage_route_contract.route_obligations_descriptor` 现在从 `agent/stages/stage_route_contract.yaml` 直接投影 10 个 route 的 `knowledge_input_obligations` 与 `memory_closeout_obligations`，并以 `present` / `missing` / `blocker` 形态给出每个 route 的 `handoff_readiness`。同一投影已嵌入 product-entry `family_stage_control_plane_descriptor.route_obligations_descriptor`，供 OPL/operator 在 stage handoff 前读取需要携带的知识输入、memory closeout 输出和缺失字段；它仍是 body-free read-only descriptor，不能替代 MAS owner receipt、memory router receipt、quality verdict、publication readiness 或 artifact authority。
 
@@ -73,7 +73,7 @@ MAS 在 OPL 中应按下面链路运行：
 
 ```text
 MAS route / transition / authority refs
-  -> domain-handler export pending family task
+  -> PaperMission / DomainProgressTransitionRuntime route command
   -> OPL family-runtime queue hydrate
   -> OPL provider-backed stage attempt
   -> OPL generic transition runner / stage graph consumes MAS refs/hints
@@ -139,7 +139,7 @@ route 之间的调度由 OPL 负责：
 
 ## Owner-Route Attempt Protocol
 
-MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v1`：
+MAS owner-callable handoff 必须先通过 `mas-owner-route-attempt-protocol.v1`：
 
 1. `owner_reason_contract` 只提供 diagnostic、forbidden-surfaces 与 regression refs；ready dispatch 必须来自显式 `allowed_actions`、currentness basis、source fingerprint 和 required closeout boundary，不能由 reason registry 自动恢复。
 2. `priority_lattice` 固定为 hard methodology/source blocker、pending AI reviewer request、AI reviewer currentness、write route-back、package freshness、delivery/human handoff。

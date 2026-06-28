@@ -41,7 +41,7 @@ def materialize_fresh_domain_transition_controller_decision_if_required(
         transition_route_target=transition_route_target,
     ):
         return None
-    tick_request = outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
+    tick_request = outer_loop.build_runtime_readback_outer_loop_tick_request(
         study_root=resolved_study_root,
         status_payload=dict(status),
     )

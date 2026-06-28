@@ -38,7 +38,7 @@ OBLIGATION_ACTUATOR_TAIL_READBACK = {
         "opl_supervisor_decision_engine_active_caller_readback",
     ],
     "required_before_physical_delete": (
-        "domain_health_diagnostic_obligation_actuator_"
+        "domain_diagnostic_obligation_actuator_"
         "opl_obligation_actuator_tail_readback_ref"
     ),
     "physical_delete_requires": [
@@ -308,7 +308,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         == "explicit_history_replay_or_local_refs_inspection_only"
     )
 
-    actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
+    actuator = surfaces["domain_diagnostic_obligation_actuator"]
     assert actuator["active_caller_migrated"] is False
     assert actuator["validator_role"] == "accepted_owner_answer_or_opl_readback_shape_validator"
     assert actuator["local_allowed_outcome_table_role"] == (
@@ -341,7 +341,7 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
     assert actuator["obligation_readback_boundary"] == {
         "request_projection_is_success_outcome": False,
         "success_proof_required_for_postcondition_ok": True,
-        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_surface_kind": "domain_diagnostic_apply_success_proof",
         "success_proof_requires_consumed_readback_identity": True,
         "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
         "mas_domain_authority_readback_requires_authority_boundary": True,

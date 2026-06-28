@@ -250,7 +250,7 @@ def _execution_latest_path(study_root: Path) -> Path:
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
 
@@ -298,7 +298,7 @@ def _controller_action_types(runtime_state: dict[str, object]) -> set[str]:
     return {str(item).strip() for item in values if str(item or "").strip()}
 
 
-def _superseding_default_executor_execution(
+def _superseding_owner_callable_adapter_receipt(
     *,
     status: ProgressProjectionStatus,
     study_root: Path,
@@ -338,7 +338,7 @@ def _superseding_default_executor_execution(
         ):
             continue
         return {
-            "source_surface": "default_executor_execution/latest.json",
+            "source_surface": "owner_callable_adapter_receipt/latest.json",
             "source_path": str(execution_path),
             "superseded_run_id": blocked_run_id,
             "execution_id": str(item.get("execution_id") or "").strip() or None,
@@ -361,7 +361,7 @@ def _record_blocked_closeout_supersession_if_present(
         return
     runtime_state_path = _runtime_state_path(quest_root)
     runtime_state = _load_json_dict(runtime_state_path)
-    supersession = _superseding_default_executor_execution(
+    supersession = _superseding_owner_callable_adapter_receipt(
         status=status,
         study_root=study_root,
         runtime_state=runtime_state,

@@ -15,8 +15,8 @@
       "artifact_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller_decisions/latest.json"
     },
     {
-      "category": "domain_health_diagnostic",
-      "artifact_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/reports/domain_health_diagnostic/latest.json"
+      "category": "domain_diagnostic_report",
+      "artifact_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/reports/domain_diagnostic_report/latest.json"
     }
   ],
   "current_blockers": [
@@ -43,7 +43,7 @@
       "evidence_refs": [
         "artifacts/publication_eval/latest.json",
         "artifacts/controller_decisions/latest.json",
-        "artifacts/supervision/consumer/default_executor_execution/sat_9afe683ca699e4186f556fec.closeout.json"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_9afe683ca699e4186f556fec.closeout.json"
       ],
       "handoff_source": "opl_current_control_state.next_owner"
     }

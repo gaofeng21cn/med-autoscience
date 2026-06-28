@@ -42,7 +42,7 @@ def test_runtime_contract_declares_execution_authority_boundary() -> None:
         "runtime_policy_summary_ref",
     ]
     assert contract["emits_refs"] == [
-        "domain_health_diagnostic_ref",
+        "runtime_readback_report_ref",
         "owner_route_ref",
         "typed_blocker_ref",
         "runtime_escalation_record_ref",

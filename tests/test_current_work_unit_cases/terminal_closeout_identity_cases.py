@@ -29,7 +29,7 @@ def test_current_work_unit_uses_terminal_typed_blocker_current_identity() -> Non
                     "stage_name": requested_work_unit_id,
                     "source_path": (
                         "studies/002-dm-china-us-mortality-attribution/"
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_cfb833131bfa30d6661c26c2.closeout.json"
                     ),
                     "typed_blocker": {
@@ -74,12 +74,12 @@ def test_current_work_unit_uses_terminal_typed_blocker_current_identity() -> Non
             "work_unit_fingerprint": stale_dispatch_fingerprint,
             "source_ref": (
                 "studies/002-dm-china-us-mortality-attribution/"
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_cfb833131bfa30d6661c26c2.closeout.json"
             ),
             "typed_blocker_ref": (
                 "studies/002-dm-china-us-mortality-attribution/"
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_cfb833131bfa30d6661c26c2.closeout.json"
             ),
             "currentness_basis": {
@@ -112,7 +112,7 @@ def test_current_work_unit_uses_progress_first_current_identity_for_stage_packet
         "run_quality_repair_batch"
     )
     closeout_ref = (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_cfb833131bfa30d6661c26c2.closeout.json"
     )
 
@@ -162,7 +162,7 @@ def test_current_work_unit_uses_progress_first_current_identity_for_stage_packet
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": stale_fingerprint,
                 "action_fingerprint": stale_fingerprint,
-                "source_fingerprint": "mas_default_executor_provider_admission_source_3f9025607ed6045582b98437",
+                "source_fingerprint": "mas_owner_callable_adapter_provider_admission_source_3f9025607ed6045582b98437",
                 "idempotency_key": "idem_e12d1fa19793dab9388c74cc",
                 "stage_attempt_id": "sat_cfb833131bfa30d6661c26c2",
             },
@@ -196,7 +196,7 @@ def test_current_work_unit_uses_owner_gate_current_identity_for_stage_packet_blo
     )
     gate_replay_fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
     closeout_ref = (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_cfb833131bfa30d6661c26c2.closeout.json"
     )
 
@@ -265,7 +265,7 @@ def test_current_work_unit_uses_owner_gate_current_identity_for_stage_packet_blo
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": stale_fingerprint,
                 "action_fingerprint": stale_fingerprint,
-                "source_fingerprint": "mas_default_executor_provider_admission_source_3f9025607ed6045582b98437",
+                "source_fingerprint": "mas_owner_callable_adapter_provider_admission_source_3f9025607ed6045582b98437",
                 "idempotency_key": "idem_e12d1fa19793dab9388c74cc",
                 "stage_attempt_id": "sat_cfb833131bfa30d6661c26c2",
             },
@@ -294,9 +294,9 @@ def test_current_work_unit_uses_owner_gate_current_identity_for_no_selected_disp
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
     current_fingerprint = "publication-blockers::0915410f804b3697"
-    stale_fingerprint = "mas_default_executor_provider_admission_source_95eb75e51e25e7fc938b8682"
+    stale_fingerprint = "mas_owner_callable_adapter_provider_admission_source_95eb75e51e25e7fc938b8682"
     closeout_ref = (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_08da46bea43329723d2fbbea.closeout.json"
     )
 
@@ -326,7 +326,7 @@ def test_current_work_unit_uses_owner_gate_current_identity_for_no_selected_disp
                         "owner_gate_decision_ref": "owner-gate-decision:dm003-stage-packet",
                         "stage_packet_refs": [
                             f"studies/{study_id}/artifacts/supervision/consumer/"
-                            "default_executor_dispatches/immutable/run_quality_repair_batch/current.json"
+                            "owner_callable_adapters/immutable/run_quality_repair_batch/current.json"
                         ],
                     },
                 }

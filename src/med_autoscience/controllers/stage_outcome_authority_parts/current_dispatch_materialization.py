@@ -33,7 +33,7 @@ def current_materialized_dispatches(
     requested = set(action_types)
     foreground_dispatches = [
         dict(dispatch)
-        for dispatch in payload.get("mas_foreground_owner_callable_dispatches", [])
+        for dispatch in payload.get("mas_foreground_owner_callable_adapters", [])
         if isinstance(dispatch, Mapping)
         and (not requested or text(dispatch.get("action_type")) in requested)
     ]

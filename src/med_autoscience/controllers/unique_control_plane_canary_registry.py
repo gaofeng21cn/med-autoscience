@@ -122,7 +122,7 @@ REGISTRY: dict[str, Any] = {
                 "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py",
             ],
             opl_transport_fixture_refs=[
-                "opl:agent-lab/transport/default-executor-dispatch",
+                "opl:agent-lab/transport/owner-callable-adapter",
                 "contracts/generated_surface_handoff.json",
             ],
             owner_route_regression_refs=[

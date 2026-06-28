@@ -42,7 +42,7 @@ def test_study_state_matrix_keeps_typed_closeout_packet_as_typed_blocker(
                 },
                 "current_blockers": ["typed_closeout_packet_required"],
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "completed_without_typed_closeout",
                     "terminal_closeout_semantic_completeness": {
                         "status": "typed_blocker",
@@ -114,7 +114,7 @@ def test_study_state_matrix_keeps_redrive_budget_exhausted_as_typed_blocker(
                     "owner": "med-autoscience",
                 },
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "handoff_ready",
                     "semantic_completeness": {
                         "status": "missing_required_fields",
@@ -189,7 +189,7 @@ def test_study_state_matrix_does_not_let_stale_redrive_budget_mask_deliverable_d
                     },
                 },
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "executed",
                     "stage_name": "consume_current_inputs_ai_reviewer_record_then_gate_replay",

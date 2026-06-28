@@ -14,7 +14,7 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _domain_health_diagnostic_tick_request_module() -> object:
+def _domain_diagnostic_report_tick_request_module() -> object:
     return importlib.import_module("med_autoscience.controllers.study_outer_loop_parts.tick_request")
 
 

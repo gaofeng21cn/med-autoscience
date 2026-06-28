@@ -83,11 +83,11 @@ def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(
             "schema_version": 1,
             "study_id": "001-risk",
             "stage_attempt_id": "sat-001",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_quality_repair_batch",
             "status": "completed",
             "generated_at": "2026-05-31T01:00:00+00:00",
-            "closeout_refs": ["artifacts/supervision/consumer/default_executor_execution/sat-001.json"],
+            "closeout_refs": ["artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-001.json"],
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
                 "stage_name": "current_story_surface_repair",
@@ -101,7 +101,7 @@ def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(
                 "usage_refs": ["usage://sat-001"],
                 "cost_refs": ["cost://sat-001"],
                 "evidence_refs": [
-                    "artifacts/supervision/consumer/default_executor_execution/sat-001.json"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-001.json"
                 ],
             },
         },
@@ -164,11 +164,11 @@ def test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfa
             "schema_version": 1,
             "study_id": "001-risk",
             "stage_attempt_id": "sat-002",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_quality_repair_batch",
             "status": "completed",
             "generated_at": "2026-05-31T01:00:00+00:00",
-            "closeout_refs": ["artifacts/supervision/consumer/default_executor_execution/sat-002.json"],
+            "closeout_refs": ["artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-002.json"],
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
                 "stage_name": "current_story_surface_repair",
@@ -190,7 +190,7 @@ def test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfa
                 "usage_refs": ["usage://sat-002"],
                 "cost_refs": ["cost://sat-002"],
                 "evidence_refs": [
-                    "artifacts/supervision/consumer/default_executor_execution/sat-002.json"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-002.json"
                 ],
             },
         },
@@ -237,7 +237,7 @@ def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
             "schema_version": 1,
             "study_id": "001-risk",
             "stage_attempt_id": "sat-003",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_quality_repair_batch",
             "status": "completed",
             "generated_at": "2026-05-31T01:00:00+00:00",
@@ -246,7 +246,7 @@ def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
             "cost": {"status": "missing", "usd": None},
             "usage_refs": ["usage://top-level-missing"],
             "cost_refs": ["cost://top-level-missing"],
-            "closeout_refs": ["artifacts/supervision/consumer/default_executor_execution/sat-003.json"],
+            "closeout_refs": ["artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-003.json"],
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
                 "stage_name": "current_story_surface_repair",
@@ -268,7 +268,7 @@ def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
                 "usage_refs": ["usage://sat-003"],
                 "cost_refs": ["cost://sat-003"],
                 "evidence_refs": [
-                    "artifacts/supervision/consumer/default_executor_execution/sat-003.json"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-003.json"
                 ],
                 "progress_delta_classification": "deliverable_progress",
             },

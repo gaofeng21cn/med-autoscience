@@ -11,7 +11,7 @@ OPL_EXECUTION_AUTHORIZATION_REQUIRED_INPUT = (
 )
 
 _OPL_OWNER_VALUES = frozenset({"one-person-lab", "opl", "OPL"})
-_OPL_DEFAULT_EXECUTORS = frozenset({"codex_cli", "codex_cli_default"})
+_OPL_HOST_EXECUTORS = frozenset({"codex_cli", "codex_cli_default"})
 _OPL_EXECUTION_REF_KEYS = (
     "provider_attempt_id",
     "attempt_id",
@@ -71,7 +71,7 @@ def trusted_opl_execution_authorization(candidate: Mapping[str, Any] | None) -> 
     if owner not in _OPL_OWNER_VALUES:
         return None
     executor_kind = _text(payload.get("executor_kind")) or _text(payload.get("selected_executor"))
-    if executor_kind is not None and executor_kind not in _OPL_DEFAULT_EXECUTORS:
+    if executor_kind is not None and executor_kind not in _OPL_HOST_EXECUTORS:
         return None
     if not any(_text(payload.get(key)) is not None for key in _OPL_EXECUTION_REF_KEYS):
         return None

@@ -27,7 +27,7 @@ def test_terminal_next_forced_write_without_strong_fingerprint_is_not_executable
                     "action_type": "return_to_ai_reviewer_workflow",
                     "source_path": (
                         "studies/003/artifacts/supervision/consumer/"
-                        "default_executor_execution/sat.closeout.json"
+                        "owner_callable_adapter_receipt/sat.closeout.json"
                     ),
                     "paper_stage_log": {
                         "next_forced_delta": {
@@ -336,7 +336,7 @@ def test_current_action_does_not_reopen_write_repair_after_consumed_gate_replay_
                             },
                         }
                     },
-                    "source_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+                    "source_path": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
                     "evidence_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
                 }
             },
@@ -396,7 +396,7 @@ def test_current_action_routes_consumed_write_repair_closeout_to_ai_reviewer_suc
                         "work_unit_id": "medical_prose_write_repair",
                         "work_unit_fingerprint": fingerprint,
                         "typed_blocker_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_f8e1cfe49a3aa3cf95d0584d.closeout.json"
                         ),
                     },

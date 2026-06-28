@@ -834,7 +834,7 @@ def _canonical_typed_blocker_from_handoff(handoff: Mapping[str, Any]) -> dict[st
     handoff_blocker = _typed_blocker_from_current_control_blocked_reason(handoff)
     if handoff_blocker:
         return handoff_blocker
-    latest_closeout = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
+    latest_closeout = _mapping_copy(handoff.get("latest_typed_owner_callable_closeout"))
     embedded = _mapping_copy(latest_closeout.get("typed_blocker"))
     blocked_reason = (
         _non_empty_text(embedded.get("blocker_type"))
@@ -1410,7 +1410,7 @@ def _handoff_has_consumed_terminal_typed_blocker(handoff: Mapping[str, Any]) -> 
         return True
     if _mapping_copy(consumed.get("typed_blocker")):
         return True
-    latest = _mapping_copy(handoff.get("latest_typed_default_executor_closeout"))
+    latest = _mapping_copy(handoff.get("latest_typed_owner_callable_closeout"))
     if _non_empty_text(latest.get("status")) == "typed_blocker":
         return True
     terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))

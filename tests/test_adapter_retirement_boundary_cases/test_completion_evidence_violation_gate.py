@@ -24,7 +24,7 @@ def _force_all_live_tail_proofs(inventory: dict) -> None:
     _surface(inventory, "domain_authority_refs_index")["opl_state_index_takeover_bridge"][
         "legacy_helper_active_caller_scan"
     ]["no_active_replay_or_local_inspection_caller_proven"] = True
-    _surface(inventory, "default_executor_execution_latest_wire_projection")[
+    _surface(inventory, "owner_callable_adapter_receipt_latest_wire_projection")[
         "legacy_stage_run_abi_boundary"
     ]["active_stage_run_abi_caller_scan"]["no_active_stage_run_abi_caller_proven"] = True
     capability_soak = _surface(
@@ -35,7 +35,7 @@ def _force_all_live_tail_proofs(inventory: dict) -> None:
     capability_soak["direct_hosted_parity_proven"] = True
 
     tail_keys = (
-        "opl_default_executor_carrier_tail_readback",
+        "opl_owner_callable_adapter_carrier_tail_readback",
         "opl_obligation_actuator_tail_readback",
         "opl_runtime_health_observability_tail_readback",
         "opl_materializer_projection_tail_readback",

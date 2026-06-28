@@ -348,10 +348,10 @@ def _gate_report_is_clear_progress_projection(payload: dict[str, Any] | None) ->
     return _non_empty_text(payload.get("status")) == "clear" or payload.get("allow_write") is True
 
 
-def _latest_domain_health_diagnostic_report(quest_root: Path | None) -> Path | None:
+def _latest_runtime_readback_report(quest_root: Path | None) -> Path | None:
     if quest_root is None:
         return None
-    report_root = quest_root / "artifacts" / "reports" / "domain_health_diagnostic"
+    report_root = quest_root / "artifacts" / "reports" / "runtime_readback"
     if not report_root.exists():
         return None
     latest_path = report_root / "latest.json"
@@ -389,7 +389,7 @@ def _runtime_module_surface(
     opl_runtime_owner_handoff_path: Path,
     opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     runtime_escalation_path: Path | None,
-    domain_health_diagnostic_path: Path | None,
+    runtime_readback_report_path: Path | None,
     recovery_contract: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     publication_supervisor_state: dict[str, Any],
@@ -469,7 +469,7 @@ def _runtime_module_surface(
         runtime_escalation_record_ref=(
             str(runtime_escalation_path.resolve()) if runtime_escalation_path is not None else None
         ),
-        domain_health_diagnostic_ref=str(domain_health_diagnostic_path.resolve()) if domain_health_diagnostic_path is not None else None,
+        runtime_readback_report_ref=str(runtime_readback_report_path.resolve()) if runtime_readback_report_path is not None else None,
         health_status=runtime_health_status,
         runtime_decision=_non_empty_text(status.get("decision")) or "noop",
         runtime_reason=_non_empty_text(status.get("reason")),
@@ -499,7 +499,7 @@ def _runtime_module_surface(
         "runtime_status_ref": summary["runtime_status_ref"],
         "runtime_artifact_ref": summary["runtime_artifact_ref"],
         "runtime_escalation_record_ref": summary["runtime_escalation_record_ref"],
-        "domain_health_diagnostic_ref": summary["domain_health_diagnostic_ref"],
+        "runtime_readback_report_ref": summary["runtime_readback_report_ref"],
         "health_status": summary["health_status"],
         "runtime_decision": summary["runtime_decision"],
         "runtime_reason": summary["runtime_reason"],
@@ -513,36 +513,36 @@ def _runtime_module_surface(
 
 def _publishability_gate_report_path(
     *,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     quest_root: Path | None,
 ) -> Path | None:
     publication_gate = (
-        dict((((domain_health_diagnostic_payload or {}).get("controllers") or {}).get("publication_gate") or {}))
-        if isinstance(((domain_health_diagnostic_payload or {}).get("controllers") or {}).get("publication_gate"), dict)
+        dict((((runtime_readback_payload or {}).get("controllers") or {}).get("publication_gate") or {}))
+        if isinstance(((runtime_readback_payload or {}).get("controllers") or {}).get("publication_gate"), dict)
         else {}
     )
     report_json = _non_empty_text(publication_gate.get("report_json"))
-    domain_health_diagnostic_candidate: Path | None = None
+    runtime_readback_report_candidate: Path | None = None
     if report_json is not None:
         candidate = Path(report_json).expanduser()
         if candidate.is_absolute():
-            domain_health_diagnostic_candidate = candidate.resolve()
+            runtime_readback_report_candidate = candidate.resolve()
         elif quest_root is not None:
-            domain_health_diagnostic_candidate = (quest_root / candidate).resolve()
+            runtime_readback_report_candidate = (quest_root / candidate).resolve()
     latest_candidate = None
     if quest_root is not None:
         candidate = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
         if candidate.exists():
             latest_candidate = candidate.resolve()
-    if domain_health_diagnostic_candidate is None:
+    if runtime_readback_report_candidate is None:
         return latest_candidate
     if latest_candidate is None:
-        return domain_health_diagnostic_candidate
-    if not domain_health_diagnostic_candidate.exists():
+        return runtime_readback_report_candidate
+    if not runtime_readback_report_candidate.exists():
         return latest_candidate
-    if latest_candidate.stat().st_mtime >= domain_health_diagnostic_candidate.stat().st_mtime:
+    if latest_candidate.stat().st_mtime >= runtime_readback_report_candidate.stat().st_mtime:
         return latest_candidate
-    return domain_health_diagnostic_candidate
+    return runtime_readback_report_candidate
 
 
 def _refresh_publication_surfaces_from_gate_report(
@@ -553,11 +553,11 @@ def _refresh_publication_surfaces_from_gate_report(
     quest_id: str | None,
     publication_eval_path: Path,
     runtime_escalation_path: Path | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     materialize_read_model_artifacts: bool = True,
 ) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any] | None]:
     publishability_gate_path = _publishability_gate_report_path(
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         quest_root=quest_root,
     )
     publishability_gate_payload = (
@@ -684,7 +684,7 @@ def _evaluation_module_surface(
     study_root: Path,
     publication_eval_payload: dict[str, Any] | None,
     runtime_escalation_path: Path | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     quest_root: Path | None,
     materialize_read_model_artifacts: bool = True,
 ) -> dict[str, Any] | None:
@@ -692,7 +692,7 @@ def _evaluation_module_surface(
     promotion_gate_path = stable_promotion_gate_path(study_root=study_root)
     if not evaluation_summary_path.exists():
         gate_report_path = _publishability_gate_report_path(
-            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            runtime_readback_payload=runtime_readback_payload,
             quest_root=quest_root,
         )
         charter_path = stable_study_charter_path(study_root=study_root)

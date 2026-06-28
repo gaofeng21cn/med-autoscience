@@ -158,7 +158,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "authority_surfaces": [],
         "canonical_surfaces": [
             "RuntimeHealthKernel diagnostic snapshot",
-            "domain_health_diagnostic refs",
+            "domain_diagnostic_report refs",
             "runtime_escalation_record.json",
             "progress_projection runtime_health_snapshot",
         ],

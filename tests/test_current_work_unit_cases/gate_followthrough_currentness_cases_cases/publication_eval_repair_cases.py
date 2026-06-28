@@ -8,7 +8,7 @@ def test_current_work_unit_publication_eval_repair_supersedes_publication_gate_r
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     closeout_ref = (
         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_d2b4c700b31294ab17c225d4.closeout.json"
+        "owner_callable_adapter_receipt/sat_d2b4c700b31294ab17c225d4.closeout.json"
     )
 
     work_unit = module.build_current_work_unit(

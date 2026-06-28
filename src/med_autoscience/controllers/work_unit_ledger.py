@@ -191,7 +191,7 @@ def lifecycle_summary(*, study_root: Path) -> dict[str, Any]:
             payload = event.get("payload")
             if isinstance(payload, Mapping):
                 closeout_refs.extend(_text_list(payload.get("closeout_refs")))
-                if ref := _non_empty_text(payload.get("default_executor_execution_ref")):
+                if ref := _non_empty_text(payload.get("owner_callable_adapter_receipt_ref")):
                     closeout_refs.append(ref)
         replay_count += len(replay_events)
         specificity_request_count += len(specificity_events)

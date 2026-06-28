@@ -141,7 +141,7 @@ def test_provider_admission_projection_materializes_accepted_owner_gate_transiti
     work_unit_id = "medical_prose_write_repair"
     fingerprint = "publication-blockers::0915410f804b3697"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -151,7 +151,7 @@ def test_provider_admission_projection_materializes_accepted_owner_gate_transiti
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
@@ -208,7 +208,7 @@ def test_provider_admission_projection_owner_receipt_consumes_accepted_owner_gat
         f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json"
     )
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -218,7 +218,7 @@ def test_provider_admission_projection_owner_receipt_consumes_accepted_owner_gat
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
@@ -322,7 +322,7 @@ def test_provider_admission_projection_owner_gate_admission_supersedes_terminal_
     fingerprint = "publication-blockers::0915410f804b3697"
     stage_attempt_id = "sat_08da46bea43329723d2fbbea"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -332,7 +332,7 @@ def test_provider_admission_projection_owner_gate_admission_supersedes_terminal_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
@@ -431,7 +431,7 @@ def test_provider_admission_projection_rejects_owner_gate_admission_without_cond
     work_unit_id = "medical_prose_write_repair"
     fingerprint = "publication-blockers::0915410f804b3697"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -473,7 +473,7 @@ def test_provider_admission_projection_rejects_owner_gate_admission_without_stag
     work_unit_id = "medical_prose_write_repair"
     fingerprint = "publication-blockers::0915410f804b3697"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)

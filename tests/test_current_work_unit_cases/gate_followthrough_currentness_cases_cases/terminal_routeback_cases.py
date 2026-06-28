@@ -8,7 +8,7 @@ def test_current_work_unit_terminal_gate_routeback_action_supersedes_same_closeo
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     closeout_ref = (
         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_e4dbaf4c7df74333010d29ae.closeout.json"
+        "owner_callable_adapter_receipt/sat_e4dbaf4c7df74333010d29ae.closeout.json"
     )
 
     work_unit = module.build_current_work_unit(
@@ -19,7 +19,7 @@ def test_current_work_unit_terminal_gate_routeback_action_supersedes_same_closeo
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_e4dbaf4c7df74333010d29ae",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "work_unit_id": "publication_gate_replay",
                     "status": "blocked",
@@ -84,7 +84,7 @@ def test_current_work_unit_terminal_gate_routeback_action_supersedes_prior_readi
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     closeout_ref = (
         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_e4dbaf4c7df74333010d29ae.closeout.json"
+        "owner_callable_adapter_receipt/sat_e4dbaf4c7df74333010d29ae.closeout.json"
     )
     readiness_ref = (
         f"/workspace/studies/{study_id}/artifacts/stage_outputs/"
@@ -120,7 +120,7 @@ def test_current_work_unit_terminal_gate_routeback_action_supersedes_prior_readi
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_e4dbaf4c7df74333010d29ae",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "work_unit_id": "publication_gate_replay",
                     "status": "blocked",
@@ -175,10 +175,10 @@ def test_current_work_unit_terminal_gate_routeback_action_accepts_live_closeout_
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     closeout_ref = (
         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_e4dbaf4c7df74333010d29ae.closeout.json"
+        "owner_callable_adapter_receipt/sat_e4dbaf4c7df74333010d29ae.closeout.json"
     )
     relative_closeout_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_e4dbaf4c7df74333010d29ae.closeout.json"
     )
     readiness_ref = (
@@ -215,7 +215,7 @@ def test_current_work_unit_terminal_gate_routeback_action_accepts_live_closeout_
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_e4dbaf4c7df74333010d29ae",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
                     "outcome": "blocked:publication_gate_replay_blocked",
@@ -275,7 +275,7 @@ def test_current_work_unit_prefers_raw_terminal_handoff_over_flattened_monitorin
     )
     terminal_summary = {
         "stage_attempt_id": "sat_58099ea2494e3ed8eb6f978a",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "stage_outcome/opl-handoff",
         "action_type": "run_gate_clearing_batch",
         "status": "blocked",
         "stage_name": "run_gate_clearing_batch",
@@ -287,7 +287,7 @@ def test_current_work_unit_prefers_raw_terminal_handoff_over_flattened_monitorin
         ],
         "source_path": (
             "/workspace/studies/002-dm-china-us-mortality-attribution/"
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_58099ea2494e3ed8eb6f978a.closeout.json"
         ),
     }

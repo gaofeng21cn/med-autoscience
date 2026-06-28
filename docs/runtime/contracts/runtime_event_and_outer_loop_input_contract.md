@@ -142,7 +142,7 @@ OPL current-control runtime ref 扩展字段：
 - `supervisor_tick_audit.status != fresh` 时，不得把当前 runtime 输入表述成稳定托管中
 - `runtime_escalation_ref` 缺失或非法时，不得把需要 escalation 的场景描述成正常可继续
 - 不允许再用 controller-side synthetic event 覆盖 OPL current_control_state / native runtime truth
-- 不允许把 `domain_health_diagnostic`、`launch_report` 或 `study_progress` 升格成 quest runtime truth
+- 不允许把 `domain_diagnostic_report`、`launch_report` 或 `study_progress` 升格成 quest runtime truth
 
 ## 7. 当前完成状态
 

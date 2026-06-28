@@ -247,7 +247,7 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_unsuppor
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": "quest-nf",
             "action_type": "unsupported_supervisor_action",

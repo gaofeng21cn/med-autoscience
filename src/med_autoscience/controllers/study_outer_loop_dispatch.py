@@ -51,7 +51,7 @@ def attach_to_quest_report(
     quest_report: dict[str, Any],
     dispatch_payload: Mapping[str, Any],
     write_latest_watch_alias: Callable[..., tuple[Path, Path]],
-    render_domain_health_diagnostic_markdown: Callable[[dict[str, Any]], str],
+    render_domain_diagnostic_report_markdown: Callable[[dict[str, Any]], str],
 ) -> None:
     report_dispatch = {
         "study_id": _non_empty_text(dispatch_payload.get("study_id")),
@@ -74,5 +74,5 @@ def attach_to_quest_report(
     write_latest_watch_alias(
         report_dir=latest_report_path.parent,
         report=quest_report,
-        markdown=render_domain_health_diagnostic_markdown(quest_report),
+        markdown=render_domain_diagnostic_report_markdown(quest_report),
     )

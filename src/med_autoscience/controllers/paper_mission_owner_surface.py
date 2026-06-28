@@ -581,7 +581,7 @@ def _study_projection(
         if next_owner is None and blocked_reason:
             next_owner = block_state_part.next_owner_for_blocked_reason(blocked_reason)
     pre_receipt_actions = [dict(action) for action in actions]
-    owner_route, actions, default_executor_execution_receipt_consumption = (
+    owner_route, actions, owner_callable_receipt_consumption = (
         owner_callable_receipts.route_and_consume_current_execution_receipt(
             study_id=study_id,
             quest_id=resolved_quest_id,
@@ -602,27 +602,27 @@ def _study_projection(
     blocked_reason = owner_overlay.get("blocked_reason", blocked_reason)
     next_owner = owner_overlay.get("next_owner", next_owner)
     lifecycle = _mapping(owner_overlay.get("lifecycle", lifecycle))
-    if default_executor_execution_receipt_consumption:
-        receipt_blocked_reason = _text(default_executor_execution_receipt_consumption.get("blocked_reason"))
-        if _text(default_executor_execution_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
+    if owner_callable_receipt_consumption:
+        receipt_blocked_reason = _text(owner_callable_receipt_consumption.get("blocked_reason"))
+        if _text(owner_callable_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
             restored = stale_redrive_resolution.restore_after_superseded_blocker(
                 study_id=study_id,
                 quest_id=resolved_quest_id,
                 status=status_payload,
                 progress=progress_payload,
                 actions=pre_receipt_actions,
-                receipt=default_executor_execution_receipt_consumption,
+                receipt=owner_callable_receipt_consumption,
                 block_state=block_state,
                 why_not_applied=why_not_applied,
                 block_state_next_owner=block_state_next_owner,
                 active_run_id=_active_run_id(status_payload, progress_payload),
             )
             if restored is not None:
-                default_executor_execution_receipt_consumption = restored["receipt"]
+                owner_callable_receipt_consumption = restored["receipt"]
                 owner_route, actions = restored["owner_route"], restored["actions"]
                 blocked_reason, next_owner = restored["blocked_reason"], restored["next_owner"]
             else:
-                receipt_typed_blocker = _mapping(default_executor_execution_receipt_consumption.get("typed_blocker"))
+                receipt_typed_blocker = _mapping(owner_callable_receipt_consumption.get("typed_blocker"))
                 why_not_applied = receipt_blocked_reason
                 blocked_reason = receipt_blocked_reason
                 next_owner = _text(receipt_typed_blocker.get("next_owner")) or block_state_part.next_owner_for_blocked_reason(
@@ -637,15 +637,15 @@ def _study_projection(
                 quest_id=resolved_quest_id,
                 study_root=study_root,
                 publication_eval_payload=publication_eval_payload,
-                consumed_receipt=default_executor_execution_receipt_consumption,
+                consumed_receipt=owner_callable_receipt_consumption,
             )
             if followthrough_action is not None:
                 if (
-                    _text(default_executor_execution_receipt_consumption.get("action_type"))
+                    _text(owner_callable_receipt_consumption.get("action_type"))
                     == "run_gate_clearing_batch"
                 ):
-                    default_executor_execution_receipt_consumption = {
-                        **default_executor_execution_receipt_consumption,
+                    owner_callable_receipt_consumption = {
+                        **owner_callable_receipt_consumption,
                         "consumption_mode": "followthrough_action_transition",
                         "followthrough_from_action_type": "run_gate_clearing_batch",
                         "followthrough_to_action_type": _text(followthrough_action.get("action_type")),
@@ -673,14 +673,14 @@ def _study_projection(
                     quest_id=resolved_quest_id,
                     study_root=study_root,
                     publication_eval_payload=publication_eval_payload,
-                    consumed_receipt=default_executor_execution_receipt_consumption,
+                    consumed_receipt=owner_callable_receipt_consumption,
                 )
                 if followthrough_action is not None:
-                    default_executor_execution_receipt_consumption = {
-                        **default_executor_execution_receipt_consumption,
+                    owner_callable_receipt_consumption = {
+                        **owner_callable_receipt_consumption,
                         "consumption_mode": "current_controller_followthrough",
                         "followthrough_from_action_type": _text(
-                            default_executor_execution_receipt_consumption.get("action_type")
+                            owner_callable_receipt_consumption.get("action_type")
                         ),
                         "followthrough_to_action_type": _text(followthrough_action.get("action_type")),
                         "next_action": "honor_current_controller_owner_route",
@@ -717,10 +717,10 @@ def _study_projection(
     live_attempt_overlay = stale_redrive_resolution.live_attempt_overlay(
         live_attempt=live_provider_attempt,
         actions=actions,
-        receipt=default_executor_execution_receipt_consumption,
+        receipt=owner_callable_receipt_consumption,
     )
     if live_attempt_overlay:
-        default_executor_execution_receipt_consumption = _mapping(live_attempt_overlay.get("receipt"))
+        owner_callable_receipt_consumption = _mapping(live_attempt_overlay.get("receipt"))
         blocked_reason = why_not_applied = None
         next_owner = "supervisor_only/live_provider_attempt"
         lifecycle = {}
@@ -848,7 +848,7 @@ def _study_projection(
         "domain_authority_handoff": domain_handoff,
         "paper_progress_stall": paper_progress_stall_payload,
         "owner_route": owner_route,
-        "default_executor_execution_receipt_consumption": default_executor_execution_receipt_consumption or None,
+        "owner_callable_receipt_consumption": owner_callable_receipt_consumption or None,
         "repeat_suppression": repeat_guard,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),

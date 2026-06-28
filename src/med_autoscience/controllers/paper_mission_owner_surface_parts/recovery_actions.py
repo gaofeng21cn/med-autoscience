@@ -11,7 +11,7 @@ from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.paper_mission_owner_surface_parts import hard_methodology_currentness
 from med_autoscience.controllers.paper_mission_owner_surface_parts import methodology_reframe_actions
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    latest_owner_callable_adapter_receipt_payload,
+    latest_owner_callable_receipt_payload,
 )
 
 
@@ -230,7 +230,7 @@ def _clean_migration_receipt_publication_eval(publication_eval_payload: Mapping[
 
 
 def _latest_clean_migration_rehydrate_execution(study_root: Path) -> dict[str, Any] | None:
-    payload, receipt_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    payload, receipt_ref = latest_owner_callable_receipt_payload(study_root=study_root)
     executions = (
         [
             *list(payload.get("executions") or []),

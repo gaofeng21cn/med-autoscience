@@ -11,7 +11,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
 
 
 CurrentActions = Callable[..., tuple[list[dict[str, Any]] | None, list[dict[str, Any]]]]
-DefaultDispatch = Callable[..., dict[str, Any]]
+OwnerCallableDispatch = Callable[..., dict[str, Any]]
 TransitionRequestProjection = Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
 ReadJsonObject = Callable[[object], dict[str, Any] | None]
 ResolveStudyIds = Callable[[Mapping[str, Any], Iterable[str]], tuple[str, ...]]
@@ -31,7 +31,7 @@ def current_owner_callable_adapters(
     scan_latest_path: ScanPath,
     resolve_study_ids_from_scan: ResolveStudyIds,
     selected_actions: CurrentActions,
-    default_executor_dispatch: DefaultDispatch,
+    owner_callable_dispatch: OwnerCallableDispatch,
     domain_progress_transition_request_projection: TransitionRequestProjection,
     owner_from_action: Callable[[Mapping[str, Any], str], str],
     required_output_surface: Callable[[Mapping[str, Any], str], str],
@@ -52,7 +52,7 @@ def current_owner_callable_adapters(
         study_ids=resolved_study_ids,
     )
     dispatches = [
-        default_executor_dispatch(
+        owner_callable_dispatch(
             profile=profile,
             action=action,
             action_type=text(action.get("action_type")) or "unknown_action",
@@ -128,7 +128,7 @@ def current_owner_callable_adapters(
         "ready_owner_callable_adapter_count": _dispatch_status_count(transition_source_dispatches, "ready", text=text),
         "blocked_owner_callable_adapter_count": _dispatch_status_count(transition_source_dispatches, "blocked", text=text),
         "mas_foreground_owner_callable_dispatch_count": len(foreground_dispatches),
-        "mas_foreground_owner_callable_dispatches": foreground_dispatches,
+        "mas_foreground_owner_callable_adapters": foreground_dispatches,
         "domain_progress_transition_request_count": len(transition_requests),
         "ready_domain_progress_transition_request_count": _dispatch_status_count(
             transition_requests,

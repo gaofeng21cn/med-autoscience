@@ -22,7 +22,7 @@ def test_current_execution_refresh_prefers_selected_gate_successor_over_stale_ha
     stale_fingerprint = "publication-blockers::0915410f804b3697"
     closeout_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-        "consumer/default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+        "consumer/owner_callable_adapter_receipt/sat_08da46bea43329723d2fbbea.closeout.json"
     )
     embedded_action = {
         "surface_kind": "current_executable_owner_action",

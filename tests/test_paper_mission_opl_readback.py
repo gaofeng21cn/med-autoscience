@@ -113,7 +113,7 @@ def test_opl_terminal_closeout_readback_requires_record_only_boundary(
     assert readback["runtime_readback_status"] == "missing"
 
 
-def test_opl_terminal_closeout_readback_ignores_prior_default_executor_closeout_for_next_stage(
+def test_opl_terminal_closeout_readback_ignores_prior_owner_callable_adapter_closeout_for_next_stage(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
@@ -129,7 +129,7 @@ def test_opl_terminal_closeout_readback_ignores_prior_default_executor_closeout_
     _write_closeout(
         study_root,
         {
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "blocked_reason": "opl_runtime_lifecycle_readback_required",
         },
     )

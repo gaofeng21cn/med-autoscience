@@ -169,6 +169,8 @@ def test_private_surface_retirement_contracts_expose_completion_gates() -> None:
         assert item["no_forbidden_write_proof"].startswith("required_no_write_to_")
         if item["category"] in {"refs_only_helper", "diagnostic_probe"}:
             assert item["disposition"] == "temporary_refs_projection", item["item_id"]
+        elif item["category"] == "retired_diagnostic_provenance":
+            assert item["disposition"] == "tombstone_only", item["item_id"]
         else:
             assert item["disposition"] == "retained_minimal_authority_function", item["item_id"]
 
@@ -302,7 +304,7 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert domain_handler["allowed_bridge_writes"] == [
         "runtime/artifacts/opl_family_domain_handler/dispatch_receipts/*.json",
     ]
-    assert "domain_route/reconcile-apply" in domain_handler["allowed_task_kinds"]
+    assert "stage_outcome/opl-handoff" not in domain_handler["allowed_task_kinds"]
     assert "notification/receipt" in domain_handler["allowed_task_kinds"]
 
     projections = lane["entry_projection_surfaces"]
@@ -322,7 +324,7 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert set(lane["forbidden_authority_writes"]) >= {
         "study_truth",
         "progress_projection",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "paper/current_package",
@@ -528,7 +530,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     ]
     assert set(classification["minimal_authority_function"]) == set(lane["mas_domain_authority_surfaces"]) | {
         "progress_projection",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "ai_reviewer_workflow",
         "publication_gate",
     }
@@ -584,7 +586,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     inventory_by_id = {item["module_id"]: item for item in inventory}
     assert "local_launchd_scheduler_install_path" not in inventory_by_id
     assert "workspace_local_watch_service_wrappers" not in inventory_by_id
-    assert "domain_health_diagnostic_loop_shell" not in inventory_by_id
+    assert "domain_diagnostic_report_loop_shell" not in inventory_by_id
     assert inventory_by_id["domain_authority_refs_index"]["code_paths"] == [
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",

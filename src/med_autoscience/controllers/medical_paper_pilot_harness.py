@@ -93,7 +93,7 @@ def read_only_contract() -> dict[str, Any]:
         "writable_surfaces": [SURFACE],
         "prohibited_runtime_owned_surfaces": [
             "progress_projection",
-            "domain_health_diagnostic",
+            "domain_diagnostic_report",
             "publication_eval/latest.json",
             "runtime_escalation_record.json",
             "controller_decisions/latest.json",

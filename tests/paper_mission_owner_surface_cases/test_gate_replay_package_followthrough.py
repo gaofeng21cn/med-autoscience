@@ -67,16 +67,16 @@ def test_consumed_gate_clearing_batch_routes_blocked_gate_replay_to_next_work_un
         ),
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "execution_ledger": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -109,7 +109,7 @@ def test_consumed_gate_clearing_batch_routes_blocked_gate_replay_to_next_work_un
     )
 
     study = result["studies"][0]
-    receipt = study["default_executor_execution_receipt_consumption"]
+    receipt = study["owner_callable_receipt_consumption"]
     assert receipt["action_type"] == "run_gate_clearing_batch"
     assert receipt["consumption_mode"] == "followthrough_action_transition"
     _assert_package_freshness_action(study)

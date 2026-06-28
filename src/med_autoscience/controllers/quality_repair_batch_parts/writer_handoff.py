@@ -6,13 +6,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.owner_callable_action_policy import default_executor_search_discipline
-from med_autoscience.controllers.owner_callable_closeout_contract import default_executor_typed_closeout_contract
+from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
+from med_autoscience.controllers.owner_callable_closeout_contract import owner_callable_typed_closeout_contract
 from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
-from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
@@ -125,10 +125,10 @@ def build_writer_worker_handoff(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
-    typed_closeout_contract = default_executor_typed_closeout_contract(
+    typed_closeout_contract = owner_callable_typed_closeout_contract(
         action_type=StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
     )
     source_refs = _mapping(owner_route.get("source_refs"))
@@ -188,8 +188,8 @@ def build_writer_worker_handoff(
         "repair_execution_evidence_ref": str(repair_execution_evidence_path),
         "required_closeout_packet": typed_closeout_contract,
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
-        "tool_discipline": default_executor_search_discipline(),
-        "search_boundaries": default_executor_search_discipline(),
+        "tool_discipline": owner_callable_search_discipline(),
+        "search_boundaries": owner_callable_search_discipline(),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "paper_package_mutation_allowed": False,
@@ -204,7 +204,7 @@ def build_writer_worker_handoff(
     return {
         "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": schema_version,
-        **default_executor_policy(),
+        **owner_callable_policy(),
         "study_id": study_id,
         "quest_id": quest_id,
         "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,

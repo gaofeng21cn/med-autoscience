@@ -182,7 +182,7 @@ Canonical runtime state and active cache closeout evidence:
 
 Files and archives remain authoritative for:
 
-- `publication_eval/latest.json`, `controller_decisions/latest.json`, `progress_projection`, `domain_health_diagnostic`, study charter, evidence ledger, review ledger, manuscripts, tables, figures, packages, delivery mirrors, dataset manifests, restore manifests, archive payloads, owner receipts and typed blockers.
+- `publication_eval/latest.json`, `controller_decisions/latest.json`, `progress_projection`, `domain_diagnostic_report`, study charter, evidence ledger, review ledger, manuscripts, tables, figures, packages, delivery mirrors, dataset manifests, restore manifests, archive payloads, owner receipts and typed blockers.
 
 OPL remains authoritative for generic stage/runtime control:
 

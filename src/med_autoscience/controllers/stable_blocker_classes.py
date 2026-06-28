@@ -30,7 +30,7 @@ _PUBLICATION_GATE_SUPERSESSION_REASONS = {
     "stale_run_gate_clearing_dispatch_superseded_by_publication_gate_route",
     "stale_return_to_ai_reviewer_dispatch_superseded_by_publication_gate_route",
     "owner_authorized_publication_gate_replay_stage_attempt_blocker",
-    "delivered_package_handoff_typed_blocker_observed_for_default_executor_dispatch",
+    "delivered_package_handoff_typed_blocker_observed_for_owner_callable_dispatch",
 }
 
 _RUNTIME_RECOVERY_REASONS = {
@@ -42,16 +42,16 @@ _RUNTIME_RECOVERY_REASONS = {
 }
 
 _CURRENT_OWNER_ROUTE_REASONS = {
-    "current_owner_route_typed_blocker_observed_for_default_executor_dispatch",
+    "current_owner_route_typed_blocker_observed_for_owner_callable_dispatch",
 }
 
 _STAGE_ATTEMPT_CLOSEOUT_REASONS = {
-    "stage_attempt_closeout_typed_blocker_observed_for_default_executor_dispatch",
+    "stage_attempt_closeout_typed_blocker_observed_for_owner_callable_dispatch",
 }
 
 _EXPLANATIONS = {
     DISPATCH_SUPERSEDED_BLOCKER: (
-        "The OPL default-executor dispatch is stale because the current MAS owner route "
+        "The OPL owner-callable dispatch is stale because the current MAS owner route "
         "or consumed handoff already supersedes that attempt."
     ),
     PUBLICATION_GATE_SUPERSESSION_BLOCKER: (
@@ -67,7 +67,7 @@ _EXPLANATIONS = {
         "must not be replayed as executable work."
     ),
     STAGE_ATTEMPT_CLOSEOUT_BLOCKER: (
-        "The observed default-executor closeout is a typed blocker and does not close "
+        "The observed owner-callable closeout is a typed blocker and does not close "
         "domain readiness or publication readiness."
     ),
 }

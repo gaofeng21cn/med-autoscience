@@ -58,7 +58,7 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
     fingerprint = "publication-blockers::0915410f804b3697"
     route_key = f"provider-admission::{study_id}::{fingerprint}"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     runtime_readback = _non_advancing_opl_transition_readback(
@@ -261,7 +261,7 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
     fingerprint = "publication-blockers::0915410f804b3697"
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     runtime_readback = opl_transition_readback(
@@ -432,7 +432,7 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
     stage_attempt_id = "sat-stale-no-selected-dispatch"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     runtime_readback = opl_transition_readback(
@@ -508,7 +508,7 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / f"{stage_attempt_id}.closeout.json",
         {
             "surface_kind": "stage_attempt_closeout_packet",
@@ -516,7 +516,7 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
             "study_id": study_id,
             "quest_id": quest_id,
             "stage_attempt_id": stage_attempt_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "generated_at": "2026-06-19T14:58:00Z",
             "status": "blocked",
             "execution_status": "typed_blocker",
@@ -526,7 +526,7 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
             "action_fingerprint": fingerprint,
             "stage_packet_ref": stage_packet_ref,
             "typed_blocker_ref": (
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 f"{stage_attempt_id}.closeout.json"
             ),
             "paper_stage_log": {
@@ -539,7 +539,7 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
                     "No paper, manuscript, current package, or publication gate surface was edited."
                 ],
                 "changed_stage_surfaces": [
-                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     f"{stage_attempt_id}.closeout.json"
                 ],
                 "changed_paper_surfaces": [],
@@ -877,16 +877,16 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat-dm003-gate.closeout.json",
         {
             "surface_kind": "stage_attempt_closeout_packet",
             "schema_version": 1,
             "stage_attempt_id": "sat-dm003-gate",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "stage_packet_ref": (
                 f"studies/{study_id}/artifacts/supervision/consumer/"
-                "default_executor_dispatches/run_gate_clearing_batch.json"
+                "owner_callable_adapters/run_gate_clearing_batch.json"
             ),
             "study_id": study_id,
             "quest_id": quest_id,
@@ -930,7 +930,7 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
                 ],
             },
             "closeout_refs": [
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/sat-dm003-gate.closeout.json",
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-dm003-gate.closeout.json",
                 f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json",
             ],
             "paper_stage_log": {
@@ -1011,7 +1011,7 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
     assert handoff["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
     assert handoff["typed_blocker"]["work_unit_id"] == work_unit
     assert handoff["typed_blocker"]["work_unit_fingerprint"] == fingerprint
-    assert handoff["latest_typed_default_executor_closeout"]["receipt_ref"].endswith(
+    assert handoff["latest_typed_owner_callable_closeout"]["receipt_ref"].endswith(
         "sat-dm003-gate.closeout.json"
     )
     assert handoff["consumed_action_queue"][0]["work_unit_id"] == work_unit
@@ -1043,7 +1043,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     stale_fingerprint = "publication-blockers::497d1260db522f01"
     next_work_unit = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
     next_fingerprint = "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
-    source_fingerprint = "mas_default_executor_source_77f18f8da1eb6e57139208c1"
+    source_fingerprint = "mas_owner_callable_adapter_source_77f18f8da1eb6e57139208c1"
     idempotency_key = "idem_cd631f437e1e7f3be53f386e"
     handoff_path = (
         profile.workspace_root
@@ -1091,13 +1091,13 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
     )
     latest_execution_path = execution_root / "latest.json"
     _write_json(
         latest_execution_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "generated_at": "2026-06-11T21:11:35+00:00",
             "study_id": study_id,
@@ -1146,7 +1146,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
             "study_id": study_id,
             "quest_id": quest_id,
             "stage_attempt_id": "sat_82",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "generated_at": "2026-06-11T20:11:08Z",
             "source_fingerprint": source_fingerprint,
             "idempotency_key": idempotency_key,
@@ -1188,7 +1188,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
                     "No manuscript, package, publication gate, or readiness surface was modified."
                 ],
                 "changed_stage_surfaces": [
-                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/sat_82.closeout.json"
+                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_82.closeout.json"
                 ],
                 "changed_paper_surfaces": [],
                 "outcome": "typed_blocker_anti_loop_budget_exhausted",
@@ -1201,7 +1201,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
                 "usage_refs": [],
                 "cost_refs": [],
                 "evidence_refs": [
-                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/sat_82.closeout.json"
+                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_82.closeout.json"
                 ],
                 "progress_delta_classification": "typed_blocker",
                 "deliverable_progress_delta": {"count": 0, "token_usage_total": None},
@@ -1250,7 +1250,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     handoff = result["opl_current_control_state_handoff"]
     current_work_unit = result["current_work_unit"]
     assert handoff["latest_terminal_stage_log"]["source_path"] == str(anti_loop_closeout_path)
-    assert handoff["latest_typed_default_executor_closeout"]["source_path"] == str(
+    assert handoff["latest_typed_owner_callable_closeout"]["source_path"] == str(
         anti_loop_closeout_path
     )
     assert handoff["typed_blocker"]["blocker_type"] == "anti_loop_budget_exhausted"
@@ -1352,7 +1352,7 @@ def test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handof
             "study_id": study_id,
             "quest_id": quest_id,
             "stage_attempt_id": "sat-dm003-terminal",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_gate_clearing_batch",
             "generated_at": "2026-06-10T08:05:00+00:00",
             "status": "completed",

@@ -456,7 +456,7 @@ def test_current_owner_action_prefers_terminal_quality_repair_next_delta_over_st
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "analysis_claim_evidence_repair",
                     "source_path": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_dm002_current_quality_repair.closeout.json"
                     ),
                     "paper_stage_log": {
@@ -536,7 +536,7 @@ def test_current_owner_action_stop_loss_typed_blocker_blocks_stale_gate_followth
                             "run_quality_repair_batch"
                         ),
                         "source_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_82a2b164657c9b4d0c312db9.closeout.json"
                         ),
                         "anti_loop_budget": {
@@ -583,7 +583,7 @@ def test_current_owner_action_routes_terminal_gate_blocker_back_to_write_repair(
     gate_fingerprint = "sha256:12592784fb257f669d5a5678f6c3a6e93a03c5d16ec1d661d1f88c19692bb4df"
     closeout_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-        "consumer/default_executor_execution/sat_e4dbaf4c7df74333010d29ae.closeout.json"
+        "consumer/owner_callable_adapter_receipt/sat_e4dbaf4c7df74333010d29ae.closeout.json"
     )
 
     action = module.build_current_executable_owner_action(
@@ -817,7 +817,7 @@ def test_current_owner_action_consumes_terminal_gate_replay_refs_before_same_wor
             },
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "executed",
                     "stage_name": "publication_gate_replay",
@@ -844,7 +844,7 @@ def test_current_owner_action_consumes_terminal_gate_replay_refs_before_same_wor
                     ],
                     "source_path": (
                         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/latest.json"
+                        "owner_callable_adapter_receipt/latest.json"
                     ),
                 },
             },

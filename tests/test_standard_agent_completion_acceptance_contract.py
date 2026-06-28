@@ -140,8 +140,8 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
         "workflow_terminal",
         "active_run_id_present",
         "active_run_id_null",
-        "DHD_observe_only",
-        "default_executor_residue_cleanup_clean",
+        "domain_diagnostic_observe_only",
+        "owner_callable_adapter_residue_cleanup_clean",
         "verified_refs_only_ledger",
         "App_projection_ready",
         "manual_foreground_edit_without_adoption_refs",
@@ -284,8 +284,8 @@ def test_standard_agent_completion_evidence_ledger_records_representative_live_o
     live = gates["live_owner_evidence_for_representative_paper_lines"]
     assert live["status"] == "satisfied_with_live_owner_evidence"
     assert {
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM002-outcome=typed_blocker_ref/postcondition_ok",
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM003-outcome=owner_receipt_ref/postcondition_ok",
+        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/DM002-outcome=typed_blocker_ref/postcondition_ok",
+        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/DM003-outcome=owner_receipt_ref/postcondition_ok",
     } <= set(live["observed_refs"])
     assert live["missing_evidence_tails"] == []
     assert {
@@ -425,7 +425,7 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
     assert {scan_ref, scan_test_ref} <= set(morphology["observed_refs"])
     assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/"
-        "surfaces/domain_health_diagnostic_obligation_actuator"
+        "surfaces/domain_diagnostic_obligation_actuator"
     ) in morphology["observed_refs"]
     assert (
         "tests/test_adapter_retirement_boundary.py::"
@@ -437,7 +437,7 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
     )
     assert {
         "direct_or_hosted_generated_surface_production_consumption_ref",
-        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
+        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
     } <= set(morphology["missing_evidence_tails"])
     assert {
         "functional_structure_gap_count_zero",
@@ -449,7 +449,7 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
     assert ledger["completion_claim_allowed"] is False
 
 
-def test_standard_agent_completion_evidence_ledger_names_precise_dhd_actuator_physical_tail() -> None:
+def test_standard_agent_completion_evidence_ledger_names_precise_domain_diagnostic_actuator_physical_tail() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
     morphology = gates["physical_source_morphology_standardized"]
@@ -462,7 +462,7 @@ def test_standard_agent_completion_evidence_ledger_names_precise_dhd_actuator_ph
         ).read_text(encoding="utf-8")
     )
     surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
-    actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
+    actuator = surfaces["domain_diagnostic_obligation_actuator"]
 
     assert actuator["active_caller_migrated"] is False
     assert actuator["current_disposition"] == "obligation_readback_projection_consumer"
@@ -473,7 +473,7 @@ def test_standard_agent_completion_evidence_ledger_names_precise_dhd_actuator_ph
     assert actuator["request_projection_only_status"] == "transition_request_pending"
     assert actuator["transition_request_pending_can_close_physical_tail"] is False
     assert actuator["no_forbidden_write_proof_surface"] == (
-        "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json"
+        "artifacts/mas_authority/typed_blockers/domain_diagnostic_report_obligation/latest.json"
     )
     assert actuator["can_write_fail_closed_typed_control_blocker"] is False
     assert actuator["fail_closed_typed_blocker_surface"] == "mas_domain_typed_blocker"
@@ -489,7 +489,7 @@ def test_standard_agent_completion_evidence_ledger_names_precise_dhd_actuator_ph
     }
 
     assert (
-        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
+        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
     ) in morphology["missing_evidence_tails"]
     assert "physical_retirement_owner_decision_ref" not in morphology["missing_evidence_tails"]
     assert morphology["status"] == "evidence_required"
@@ -552,15 +552,15 @@ def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_follo
     )
 
 
-def test_standard_agent_completion_evidence_ledger_records_retired_default_executor_residue_cleanup_receipt_without_progress_claim() -> None:
+def test_standard_agent_completion_evidence_ledger_records_retired_owner_callable_adapter_residue_cleanup_receipt_without_progress_claim() -> None:
     contract = _contract()
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
 
-    cleanup = ledger["historical_default_executor_dispatch_residue_cleanup_receipt"]
-    assert "latest_default_executor_dispatch_residue_cleanup" not in ledger
-    assert cleanup["surface_kind"] == "default_executor_dispatch_residue_cleanup_historical_receipt"
-    assert cleanup["source_surface_kind"] == "default_executor_dispatch_residue_cleanup"
+    cleanup = ledger["historical_owner_callable_dispatch_residue_cleanup_receipt"]
+    assert "latest_owner_callable_dispatch_residue_cleanup" not in ledger
+    assert cleanup["surface_kind"] == "owner_callable_dispatch_residue_cleanup_historical_receipt"
+    assert cleanup["source_surface_kind"] == "owner_callable_dispatch_residue_cleanup"
     assert cleanup["workspace_ref"] == "workspace:Yang/DM-CVD-Mortality-Risk"
     assert cleanup["status"] == "historical_clean_receipt"
     assert cleanup["repo_source_disposition"] == "physically_retired"
@@ -575,9 +575,9 @@ def test_standard_agent_completion_evidence_ledger_records_retired_default_execu
     assert cleanup["remaining_cleanup_candidate_count"] == 0
     assert cleanup["immutable_dispatch_provenance_file_count"] == 396
     assert cleanup["authority_boundary"] == {
-        "default_executor_mutable_residue_mutation": True,
+        "owner_callable_adapter_mutable_residue_mutation": True,
         "immutable_dispatch_provenance_mutation": False,
-        "dhd_apply": False,
+        "domain_diagnostic_apply": False,
         "provider_start": False,
         "paper_content_mutation": False,
         "publication_truth_mutation": False,
@@ -596,14 +596,14 @@ def test_standard_agent_completion_evidence_ledger_records_retired_default_execu
     assert receipts["002-dm-china-us-mortality-attribution"]["receipt_ref"] == (
         "workspace:Yang/DM-CVD-Mortality-Risk/studies/"
         "002-dm-china-us-mortality-attribution#artifacts/migration/"
-        "default_executor_dispatch_residue_cleanup/latest.json"
+        "owner_callable_dispatch_residue_cleanup/latest.json"
     )
     assert receipts["002-dm-china-us-mortality-attribution"]["archived_mutable_slot_count"] == 14
     assert receipts["002-dm-china-us-mortality-attribution"]["currentness_basis"] == "typed_blocker"
     assert receipts["003-dpcc-primary-care-phenotype-treatment-gap"]["receipt_ref"] == (
         "workspace:Yang/DM-CVD-Mortality-Risk/studies/"
         "003-dpcc-primary-care-phenotype-treatment-gap#artifacts/migration/"
-        "default_executor_dispatch_residue_cleanup/latest.json"
+        "owner_callable_dispatch_residue_cleanup/latest.json"
     )
     assert receipts["003-dpcc-primary-care-phenotype-treatment-gap"]["archived_mutable_slot_count"] == 9
     assert receipts["003-dpcc-primary-care-phenotype-treatment-gap"]["currentness_basis"] == (
@@ -614,11 +614,11 @@ def test_standard_agent_completion_evidence_ledger_records_retired_default_execu
     active_caller = gates["active_caller_migration_and_no_resurrection"]
     assert {
         (
-            "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-apply-"
+            "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-apply-"
             "2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396"
         ),
         (
-            "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-dry-run-"
+            "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-dry-run-"
             "2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
         ),
     } <= set(active_caller["observed_refs"])
@@ -626,12 +626,12 @@ def test_standard_agent_completion_evidence_ledger_records_retired_default_execu
     negative = gates["negative_false_completion_tests"]
     assert (
         "tests/test_standard_agent_completion_acceptance_contract.py::"
-        "test_standard_agent_completion_evidence_ledger_records_retired_default_executor_residue_cleanup_receipt_without_progress_claim"
+        "test_standard_agent_completion_evidence_ledger_records_retired_owner_callable_adapter_residue_cleanup_receipt_without_progress_claim"
     ) in negative["observed_refs"]
-    assert "default_executor_residue_cleanup_clean" in contract["false_completion_claims"]
-    assert "default_executor_residue_cleanup_clean" in ledger["rejected_completion_claims"]
-    assert ledger["non_claims"]["default_executor_residue_cleanup_clean"] is False
-    assert ledger["non_claims"]["default_executor_residue_cleanup_means_paper_progress"] is False
+    assert "owner_callable_adapter_residue_cleanup_clean" in contract["false_completion_claims"]
+    assert "owner_callable_adapter_residue_cleanup_clean" in ledger["rejected_completion_claims"]
+    assert ledger["non_claims"]["owner_callable_adapter_residue_cleanup_clean"] is False
+    assert ledger["non_claims"]["owner_callable_adapter_residue_cleanup_means_paper_progress"] is False
     assert ledger["completion_claim_allowed"] is False
 
 

@@ -933,7 +933,7 @@ def _current_action_source_eval_id(current_action: Mapping[str, Any]) -> str | N
 def accepted_closeout_receipts(study: Mapping[str, Any]) -> list[dict[str, Any]]:
     receipts: list[dict[str, Any]] = []
     for key in (
-        "default_executor_execution_receipt_consumption",
+        "owner_callable_receipt_consumption",
         "opl_provider_attempt",
         "terminal_closeout_precedence_evidence",
         "stage_attempt_closeout",
@@ -944,7 +944,7 @@ def accepted_closeout_receipts(study: Mapping[str, Any]) -> list[dict[str, Any]]
     for key in (
         "accepted_closeout_evidence",
         "stage_attempt_closeouts",
-        "default_executor_execution_receipt_consumptions",
+        "owner_callable_receipt_consumptions",
         "stage_attempt_closeout_receipts",
     ):
         for item in study.get(key) or []:

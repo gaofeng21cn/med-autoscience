@@ -326,7 +326,7 @@ def selected_dispatches(
         study_id=study_id,
         dispatches=consumer_dispatches,
     )
-    consumer_dispatches = consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_dispatches(
+    consumer_dispatches = consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_adapters(
         profile=profile,
         study_id=study_id,
         dispatches=consumer_dispatches,
@@ -399,7 +399,7 @@ def selected_dispatches(
                 continue
             selected_by_key[key] = len(selected)
             selected.append(payload)
-        for payload in consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_dispatches(
+        for payload in consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_adapters(
             profile=profile,
             study_id=study_id,
             dispatches=consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
@@ -558,7 +558,7 @@ def selected_dispatches(
         selected.append(payload)
         selected_keys.add(key)
         selected_by_key[key] = len(selected) - 1
-    for payload in consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_dispatches(
+    for payload in consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_adapters(
         profile=profile,
         study_id=study_id,
         dispatches=consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(

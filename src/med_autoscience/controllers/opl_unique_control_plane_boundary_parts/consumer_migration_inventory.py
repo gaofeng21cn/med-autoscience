@@ -13,7 +13,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
     "minimal_authority_function": [
         "study_truth",
         "progress_projection",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "publication_quality_verdict",
         "ai_reviewer_workflow",
         "publication_gate",

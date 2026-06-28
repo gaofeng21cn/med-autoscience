@@ -43,7 +43,7 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     )
     blocked_dispatch["dispatch_status"] = "blocked"
     blocked_dispatch["blocked_reason"] = "owner_route_next_owner_mismatch"
-    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"
+    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapters"
     ready_path = dispatch_dir / "current_package_freshness_required.json"
     blocked_path = dispatch_dir / "return_to_ai_reviewer_workflow.json"
     _write_json(ready_path, ready_dispatch)
@@ -119,7 +119,7 @@ def test_execute_dispatch_action_type_requires_current_consumer_dispatch(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     _write_json(dispatch_path, stale_dispatch)
@@ -181,7 +181,7 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "current_package_freshness_required.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
@@ -206,7 +206,7 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
         "executor_requirement_owner": "one-person-lab",
         "mas_executor_adapter_policy": "codex_cli_default_only",
         "supported_executor_kind": "codex_cli_default",
-        "default_executor_kind": "codex_cli_default",
+        "owner_callable_adapter_kind": "codex_cli_default",
         "received_executor_kind": "hermes_agent",
         "unsupported_executor_policy": "fail_closed",
         "local_codex_cli_scope": "standalone_diagnostics_only",
@@ -258,7 +258,7 @@ def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
@@ -282,13 +282,13 @@ def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "study_id": study_id,
                     "quest_id": f"quest-{study_id}",
                     "action_type": "return_to_ai_reviewer_workflow",
@@ -375,7 +375,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     _write_json(dispatch_path, dispatch_payload)

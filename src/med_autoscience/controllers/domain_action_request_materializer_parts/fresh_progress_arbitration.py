@@ -298,7 +298,7 @@ def has_current_quality_repair_writer_handoff(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     request_path = (

@@ -54,7 +54,7 @@ def reason(
         or _text(repair_evidence.get("blocked_reason"))
         or _text(owner_result.get("status"))
         or _text(repair_evidence.get("status"))
-        or "default_executor_closeout_not_consumable"
+        or "owner_callable_adapter_closeout_not_consumable"
     )
 
 
@@ -68,10 +68,10 @@ def consumption(
     owner_route: Mapping[str, Any],
     repeat_count: int,
 ) -> dict[str, Any]:
-    reason = _text(latest.get("reason")) or "default_executor_closeout_not_consumable"
+    reason = _text(latest.get("reason")) or "owner_callable_adapter_closeout_not_consumable"
     return {
         "status": "consumed",
-        "receipt_kind": "default_executor_execution",
+        "receipt_kind": "owner_callable_adapter_receipt",
         "receipt_ref": _text(latest.get("receipt_ref")),
         "execution_id": _text(latest.get("execution_id")),
         "action_type": _text(latest.get("action_type")),

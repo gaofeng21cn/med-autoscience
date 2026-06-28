@@ -51,7 +51,7 @@ def assert_dm002_dm003_recovery_acceptance(contract: dict[str, Any]) -> None:
         "work_unit_id": "publication_gate_replay",
         "provider_admission_pending_count": 0,
         "provider_admission_candidates": [],
-        "dhd_action_class": "observe_only",
+        "domain_diagnostic_action_class": "observe_only",
         "will_start_llm": False,
         "codex_dispatch_count": 0,
     }
@@ -67,7 +67,7 @@ def assert_dm002_dm003_recovery_acceptance(contract: dict[str, Any]) -> None:
         "work_unit_id": "publication_gate_replay",
         "provider_admission_pending_count": 0,
         "provider_admission_candidates": [],
-        "dhd_action_class": "observe_only",
+        "domain_diagnostic_action_class": "observe_only",
         "will_start_llm": False,
         "codex_dispatch_count": 0,
     }
@@ -85,7 +85,7 @@ def assert_dm002_dm003_recovery_acceptance(contract: dict[str, Any]) -> None:
     } <= set(stop_loss["allowed_reopen_conditions"])
     assert {
         "same_work_unit_provider_admission_redrive",
-        "same_work_unit_default_executor_dispatch",
+        "same_work_unit_owner_callable_dispatch",
         "foreground_codex_retry_of_repair_batch",
         "replaying_stale_action_queue_or_provider_admission",
     } <= set(stop_loss["forbidden_recovery_actions"])
@@ -148,7 +148,7 @@ def assert_dm002_dm003_recovery_acceptance(contract: dict[str, Any]) -> None:
     assert recovery["required_readback"] == [
         "fresh_study_progress_for_dm002",
         "fresh_study_progress_for_dm003",
-        "domain_health_diagnostic_dry_run_readback",
+        "domain_diagnostic_report_dry_run_readback",
         "provider_admission_pending_count_readback",
         "owner_receipt_or_typed_blocker_ref_readback",
     ]
@@ -258,7 +258,7 @@ def assert_dm002_dm003_conformance_invariants(contract: dict[str, Any]) -> None:
     ]
     assert selected_dispatch["same_work_unit_redrive_allowed"] is False
     assert selected_dispatch["forbidden_actions"] == [
-        "same_work_unit_default_executor_dispatch",
+        "same_work_unit_owner_callable_dispatch",
         "same_work_unit_provider_admission_redrive",
         "stale_stage_packet_replay",
         "foreground_gate_replay_retry_without_owner_binding",

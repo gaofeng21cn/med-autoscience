@@ -47,7 +47,7 @@ def test_progress_first_monitoring_consumes_ai_reviewer_recheck_terminal_write_r
                     "action_type": "return_to_ai_reviewer_workflow",
                     "stage_attempt_id": "sat-current-ai-reviewer",
                     "source_path": (
-                        "studies/003/default_executor_execution/"
+                        "studies/003/owner_callable_adapter_receipt/"
                         "sat-current-ai-reviewer.closeout.json"
                     ),
                     "paper_stage_log": {

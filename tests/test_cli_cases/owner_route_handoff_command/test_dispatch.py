@@ -4,7 +4,7 @@ import hashlib
 
 from .shared import *  # noqa: F403,F401
 
-def test_domain_handler_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_rejects_retired_owner_route_reconcile_task_kind(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
@@ -15,7 +15,7 @@ def test_domain_handler_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_
         {
             "task_id": "frt_001",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/retired-runtime-recover",
+            "task_kind": "domain_route/reconcile-apply",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
             "attempts": 1,
             "source": "opl_family_runtime",
@@ -34,31 +34,29 @@ def test_domain_handler_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_
     payload = json.loads(captured.out)
     assert payload["surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
     assert payload["accepted"] is False
-    assert payload["reason"] == "unsupported_task_kind"
-    assert payload["task_kind"] == "domain_route/retired-runtime-recover"
+    assert payload["reason"] == "retired_owner_route_reconcile_task_kind"
+    assert payload["task_kind"] == "domain_route/reconcile-apply"
     assert payload["authority_boundary"]["writes_domain_truth"] is False
     assert payload["authority_boundary"]["writes_artifact_gate"] is False
-    assert payload["forbidden_write_guard_proof"]["result"] == "not_evaluated"
+    assert payload["forbidden_write_guard_proof"]["result"] == "blocked"
     assert "dispatch" not in payload
     assert "receipt_ref" not in payload
     assert not (workspace_root / ".ds" / "user_message_queue.json").exists()
     assert not (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").exists()
 
 
-def test_domain_handler_dispatch_requests_opl_admission_for_owner_route_handoff(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_rejects_stage_outcome_opl_handoff_as_mas_task_kind(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-    monkeypatch.delattr(adapter, "domain_route_reconcile", raising=False)
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
         {
             "task_id": "frt_reconcile",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/reconcile-apply",
+            "task_kind": "stage_outcome/opl-handoff",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
         },
     )
@@ -66,14 +64,12 @@ def test_domain_handler_dispatch_requests_opl_admission_for_owner_route_handoff(
     exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 0
-    assert payload["accepted"] is True
-    assert payload["opl_attempt_admission_requested"] is True
-    assert payload["opl_attempt_admission_status"] == "requested"
-    assert payload["dispatch"]["execution_policy"] == "opl_route_hydration_stage_attempt_admission"
-    assert payload["dispatch"]["result"]["surface"] == "domain_route_owner_handoff_admission"
-    assert payload["dispatch"]["result"]["mas_executes_reconcile_apply"] is False
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "unsupported_task_kind"
+    assert payload["task_kind"] == "stage_outcome/opl-handoff"
     assert payload["authority_boundary"]["writes_domain_truth"] is False
+    assert "dispatch" not in payload
 
 
 def test_domain_handler_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_path: Path, capsys) -> None:
@@ -565,15 +561,14 @@ def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_c
 
     assert analysis_exit == 0
     assert reviewer_exit == 0
-    assert analysis_payload["dispatch"]["action_type"] == "domain_route_owner_handoff"
-    assert analysis_payload["dispatch"]["execution_policy"] == "opl_route_hydration_stage_attempt_admission"
+    assert analysis_payload["dispatch"]["action_type"] == "stage_outcome_opl_handoff"
+    assert analysis_payload["dispatch"]["execution_policy"] == "guarded_domain_control_receipt_only"
     assert reviewer_payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
     assert reviewer_payload["dispatch"]["execution_policy"] == "opl_attempt_lease_or_receipt_required"
     assert reviewer_payload["stable_typed_blocker"] == "opl_execution_authorization_required"
-    assert analysis_payload["opl_attempt_admission_requested"] is True
-    assert analysis_payload["opl_attempt_admission_status"] == "requested"
-    assert analysis_payload["dispatch"]["result"]["surface"] == "domain_route_owner_handoff_admission"
-    assert analysis_payload["dispatch"]["result"]["mas_executes_reconcile_apply"] is False
+    assert analysis_payload["opl_attempt_admission_requested"] is False
+    assert analysis_payload["opl_attempt_admission_status"] == "not_requested"
+    assert "result" not in analysis_payload["dispatch"]
     assert reviewer_payload["dispatch"]["result"]["execution_status"] == "blocked"
     assert reviewer_payload["dispatch"]["result"]["typed_blocker"] == "opl_execution_authorization_required"
     assert analysis_payload["authority_boundary"]["writes_domain_truth"] is False
@@ -638,7 +633,7 @@ def test_domain_handler_export_turns_slo_progress_pressure_into_continuation_tas
                 "timeout_is_terminal_failure": False,
                 "continuation_required": True,
                 "next_owner": "mas_controller",
-                "next_action_type": "domain_route/reconcile-apply",
+                "next_action_type": "stage_outcome/opl-handoff",
                 "next_work_unit_id": "analysis_claim_evidence_repair",
                 "stop_allowed": False,
                 "quality_gate_relaxation_allowed": False,
@@ -653,21 +648,12 @@ def test_domain_handler_export_turns_slo_progress_pressure_into_continuation_tas
     route_tasks = [
         task
         for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_route/reconcile-apply"
+        if task["task_kind"] == "stage_outcome/opl-handoff"
     ]
-    assert len(route_tasks) == 1
-    task = route_tasks[0]
-    assert task["source"] == "mas-autonomy-progress-pressure"
-    assert task["reason"] == "progress_pressure_continue"
-    assert task["requires_approval"] is False
-    assert task["payload"]["continuation_reason"] == "progress_pressure_continue"
-    assert task["payload"]["progress_pressure"]["status"] == "advance_now"
-    assert task["payload"]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
-    assert task["payload"]["authority_boundary"] == "mas_owner_route_refs_only_opl_stage_attempt_owner"
-    assert task["payload"]["progress_pressure"]["next_action_type"] == "domain_route/reconcile-apply"
+    assert route_tasks == []
     study_projection = payload["studies"][0]
     assert study_projection["autonomy_continuation"]["eligible_for_auto_dispatch"] is True
-    assert study_projection["autonomy_continuation"]["recommended_task_kind"] == "domain_route/reconcile-apply"
+    assert study_projection["autonomy_continuation"]["recommended_task_kind"] == "stage_outcome/opl-handoff"
     assert study_projection["autonomy_continuation"]["status"] == "progress_pressure_continue"
     assert study_projection["autonomy_continuation"]["operator_label"] == "continue_owner_route"
 
@@ -710,7 +696,7 @@ def test_domain_handler_dispatch_rejects_opl_attempt_truth_substitution(tmp_path
         {
             "task_id": "attempt-substitution",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/reconcile-apply",
+            "task_kind": "stage_outcome/opl-handoff",
             "payload": {
                 "profile": "/tmp/profile.toml",
                 "study_id": "001-risk",

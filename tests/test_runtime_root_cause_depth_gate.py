@@ -73,7 +73,7 @@ def test_root_cause_depth_gate_rejects_symptom_only_report() -> None:
         "owner_surface": "MAS owner precheck",
         "fix_or_next_action": "add guarded no-write precheck",
         "proof": {
-            "evidence_refs": ["dhd-dry-run:/tmp/b002-owner-precheck.json"],
+            "evidence_refs": ["domain_diagnostic-dry-run:/tmp/b002-owner-precheck.json"],
             "proves": "no forbidden files were written",
             "does_not_prove": "B002 owner path is unblocked",
         },
@@ -108,7 +108,7 @@ def test_root_cause_depth_gate_accepts_l3_owner_repair_path_report() -> None:
         "proof": {
             "evidence_refs": [
                 "study-progress:/tmp/b002-progress.json",
-                "dhd-dry-run:/tmp/b002-dhd.json",
+                "domain_diagnostic-dry-run:/tmp/b002-domain_diagnostic.json",
             ],
             "proves": "the current identity is absent from the read model consumed by precheck",
             "does_not_prove": "paper progress or publication readiness",

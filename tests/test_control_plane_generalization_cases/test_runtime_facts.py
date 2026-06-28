@@ -20,7 +20,7 @@ def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() 
                 "event_count": 10,
                 "status_counts": {"clear": 8, "handoff_required": 2},
             },
-            "domain_health_diagnostic_wakeup_dedupe_summary": {
+            "domain_diagnostic_wakeup_dedupe_summary": {
                 "status": "dedupe_confirmed",
                 "outcome": "skipped_matching_work_unit",
             },

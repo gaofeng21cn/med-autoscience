@@ -456,7 +456,7 @@ def _next_system_action(
     controller_decision_payload: dict[str, Any] | None,
     publication_supervisor_state: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     current_blockers: list[str],
     execution_owner_guard: dict[str, Any],
     status: dict[str, Any],
@@ -543,7 +543,7 @@ def _next_system_action(
         and route_repair_action is not None
         and _quality_blocker_present(
             publication_eval_payload=publication_eval_payload,
-            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            runtime_readback_payload=runtime_readback_payload,
         )
     ):
         return route_repair_action
@@ -552,7 +552,7 @@ def _next_system_action(
         and publication_action_key in {"continue_bundle_stage", "complete_bundle_stage"}
         and _quality_blocker_present(
             publication_eval_payload=publication_eval_payload,
-            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            runtime_readback_payload=runtime_readback_payload,
         )
     ):
         return "先修正当前质量阻塞，再决定是否继续投稿打包。"
@@ -578,7 +578,7 @@ def _current_blockers(
     *,
     status: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     runtime_medical_publication_surface: dict[str, Any] | None = None,
     runtime_escalation_payload: dict[str, Any] | None,
     controller_confirmation_summary: dict[str, Any] | None,
@@ -677,7 +677,7 @@ def _current_blockers(
             _append_unique(blockers, _non_empty_text(gap.get("summary")))
     for blocker in runtime_surface_blockers:
         _append_unique(blockers, blocker)
-    controllers_payload = (domain_health_diagnostic_payload or {}).get("controllers") or {}
+    controllers_payload = (runtime_readback_payload or {}).get("controllers") or {}
     if isinstance(controllers_payload, dict):
         for controller_payload in controllers_payload.values():
             if not isinstance(controller_payload, dict):
@@ -697,12 +697,12 @@ def _current_blockers(
 def _quality_blocker_present(
     *,
     publication_eval_payload: dict[str, Any] | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
 ) -> bool:
     for gap in (publication_eval_payload or {}).get("gaps") or []:
         if isinstance(gap, dict) and _publication_eval_gap_is_blocking(gap):
             return True
-    controllers_payload = (domain_health_diagnostic_payload or {}).get("controllers") or {}
+    controllers_payload = (runtime_readback_payload or {}).get("controllers") or {}
     if not isinstance(controllers_payload, dict):
         return False
     for controller_payload in controllers_payload.values():
@@ -728,7 +728,7 @@ def _intervention_lane(
     needs_physician_decision: bool,
     progress_freshness: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     status: dict[str, Any],
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
@@ -873,7 +873,7 @@ def _intervention_lane(
         }
     if _quality_blocker_present(
         publication_eval_payload=publication_eval_payload,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
     ):
         route_repair = _publication_eval_route_repair(publication_eval_payload)
         route_summary = _route_repair_summary(route_repair)

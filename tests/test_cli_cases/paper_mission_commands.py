@@ -1050,7 +1050,7 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
     assert carrier_readback["authority_materialized"] is False
     assert carrier_readback["terminal_closeout"]["stage_attempt_id"] == "sat-terminal"
     assert carrier_readback["terminal_closeout"]["closeout_ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat-terminal.closeout.json"
     )
     assert payload["terminal_owner_gate"] == {
@@ -1059,11 +1059,11 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
         "gate_kind": "domain_gate",
         "blocked_reason": "domain_gate_pending",
         "typed_blocker_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat-terminal.closeout.json#domain_blocker"
         ),
         "closeout_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat-terminal.closeout.json"
         ),
         "stage_attempt_id": "sat-terminal",
@@ -1178,7 +1178,7 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
         "route_back_evidence_ref",
     ]
     assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat-terminal.closeout.json#domain_blocker"
     )
     assert authority_readback["authority_boundary"]["can_claim_paper_progress"] is False

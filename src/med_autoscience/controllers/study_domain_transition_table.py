@@ -259,7 +259,7 @@ def project_domain_transition(
         completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
     )
     if review_recheck_transition is not None:
-        consumed_transition = _consumed_default_executor_transition(
+        consumed_transition = _consumed_owner_callable_adapter_transition(
             study_id=study_id,
             quest_id=_text(status.get("quest_id")),
             study_root=root,
@@ -280,7 +280,7 @@ def project_domain_transition(
         completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
     )
     if ai_reviewer_transition is not None:
-        consumed_transition = _consumed_default_executor_transition(
+        consumed_transition = _consumed_owner_callable_adapter_transition(
             study_id=study_id,
             quest_id=_text(status.get("quest_id")),
             study_root=root,
@@ -336,7 +336,7 @@ def project_domain_transition(
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
         )
-        consumed_transition = _consumed_default_executor_transition(
+        consumed_transition = _consumed_owner_callable_adapter_transition(
             study_id=study_id,
             quest_id=_text(status.get("quest_id")),
             study_root=root,
@@ -408,14 +408,14 @@ def project_domain_transition(
     if active_runtime_present:
         return _transition(
             study_id=study_id,
-            decision_type="active_domain_health_diagnostic",
+            decision_type="active_runtime_readback",
             route_target="diagnostic",
             next_work_unit=_work_unit(
-                "domain_health_diagnostic_active_run",
+                "runtime_readback_active_run",
                 "diagnostic",
-                "Observe the active MAS runtime run through domain health diagnostic refs.",
+                "Observe the active MAS runtime run through runtime readback refs.",
             ),
-            controller_action="domain_health_diagnostic",
+            controller_action="runtime_readback",
             owner="med-autoscience",
             typed_blocker=None,
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=True),
@@ -505,7 +505,7 @@ def project_domain_transition(
     )
 
 
-def _consumed_default_executor_transition(
+def _consumed_owner_callable_adapter_transition(
     *,
     study_id: str,
     quest_id: str | None,
@@ -531,9 +531,9 @@ def _consumed_default_executor_transition(
         decision_type="completion_receipt_consumed",
         route_target="inspect",
         next_work_unit=_work_unit(
-            "default_executor_owner_receipt_consumed_handoff",
+            "owner_callable_adapter_owner_receipt_consumed_handoff",
             "controller",
-            "Expose the consumed default-executor owner receipt without redriving the current work unit.",
+            "Expose the consumed owner-callable owner receipt without redriving the current work unit.",
         ),
         controller_action="none",
         owner="med-autoscience",

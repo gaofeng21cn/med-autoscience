@@ -186,7 +186,7 @@ def _workspace_relative_ref(value: str | None, *, study_root: Path | None) -> st
 
 
 def _preserve_existing_source_refs(payload: Mapping[str, Any]) -> bool:
-    return _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "default_executor_execution"}
+    return _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "owner_callable_adapter_receipt"}
 
 
 def _dispatch_ref_can_recover_stage_packet_identity(
@@ -197,7 +197,7 @@ def _dispatch_ref_can_recover_stage_packet_identity(
 ) -> bool:
     if (
         _non_empty_text(execution.get("surface")) not in execution_surfaces.ACCEPTED_EXECUTION_SURFACES
-        and _non_empty_text(execution.get("source")) not in {"owner_callable_adapter_receipt", "default_executor_execution"}
+        and _non_empty_text(execution.get("source")) not in {"owner_callable_adapter_receipt", "owner_callable_adapter_receipt"}
     ):
         return False
     if _non_empty_text(payload.get("dispatch_path")) is None and _non_empty_text(
@@ -206,7 +206,7 @@ def _dispatch_ref_can_recover_stage_packet_identity(
         return False
     if _non_empty_text(execution.get("owner_route_current")) == "False" or execution.get("owner_route_current") is False:
         return False
-    if _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "default_executor_execution"}:
+    if _non_empty_text(payload.get("source")) in {"owner_callable_adapter_receipt", "owner_callable_adapter_receipt"}:
         return True
     dispatch_authority = (
         _non_empty_text(payload.get("dispatch_authority"))
@@ -215,7 +215,7 @@ def _dispatch_ref_can_recover_stage_packet_identity(
     )
     return dispatch_authority in {
         "ai_reviewer_record_production_handoff",
-        "consumer_default_executor_dispatch",
+        "consumer_owner_callable_dispatch",
         "quality_repair_batch_writer_handoff",
     }
 

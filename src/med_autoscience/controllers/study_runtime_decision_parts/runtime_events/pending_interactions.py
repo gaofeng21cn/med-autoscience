@@ -151,7 +151,7 @@ def _task_intake_override_allows_stopped_auto_resume(*, quest_root: Path) -> boo
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
     if stop_reason is None:
         return True
-    return _controller_stop_source(stop_reason) == "domain_health_diagnostic_outer_loop_wakeup"
+    return _controller_stop_source(stop_reason) == "domain_diagnostic_outer_loop_wakeup"
 
 
 def _stopped_invalid_blocking_auto_resume_allowed(

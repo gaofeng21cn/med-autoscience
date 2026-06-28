@@ -279,11 +279,11 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
         "answer_kind": "typed_blocker_ref",
         "typed_blocker_ref": (
             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
         ),
         "latest_owner_answer_ref": (
             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
         ),
         "work_unit_id": "ai_reviewer_record_gate_consumption",
         "work_unit_fingerprint": fingerprint,
@@ -292,7 +292,7 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
     current_work_unit["state"]["typed_blocker"] |= {
         "latest_owner_answer_ref": (
             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
         ),
         "latest_owner_answer_kind": "typed_blocker",
         "owner_answer_shape": "typed_blocker_ref",
@@ -310,7 +310,7 @@ def test_terminal_anti_loop_typed_blocker_does_not_rerun_same_owner_callable() -
                 "work_unit_fingerprint": fingerprint,
                 "source_path": (
                     "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                    "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json"
+                    "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json"
                 ),
                 "paper_stage_log": {
                     "progress_delta_classification": "typed_blocker",
@@ -373,7 +373,7 @@ def test_terminal_anti_loop_uses_safe_next_forced_delta_successor_after_paper_de
     current_work_unit["state"]["typed_blocker"] |= {
         "latest_owner_answer_ref": (
             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
         ),
         "latest_owner_answer_kind": "typed_blocker",
         "owner_answer_shape": "typed_blocker_ref",
@@ -470,7 +470,7 @@ def test_consumed_anti_loop_closeout_yields_repair_owner_receipt_before_domain_b
     current_work_unit["state"]["typed_blocker"] |= {
         "latest_owner_answer_ref": (
             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
         ),
         "latest_owner_answer_kind": "typed_blocker",
         "owner_answer_shape": "typed_blocker_ref",
@@ -513,7 +513,7 @@ def test_consumed_anti_loop_closeout_yields_repair_owner_receipt_before_domain_b
                     "blocker_type": "anti_loop_budget_exhausted",
                     "typed_blocker_ref": (
                         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                        "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+                        "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
                     ),
                     "typed_blocker": {
                         "blocker_type": "anti_loop_budget_exhausted",
@@ -572,7 +572,7 @@ def test_terminal_anti_loop_does_not_rematerialize_consumed_gate_replay_successo
     current_work_unit["state"]["typed_blocker"] |= {
         "latest_owner_answer_ref": (
             "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-            "consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+            "consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
         ),
         "latest_owner_answer_kind": "typed_blocker",
         "owner_answer_shape": "typed_blocker_ref",
@@ -671,12 +671,12 @@ def test_same_work_unit_repair_receipt_supersedes_no_selected_dispatch_owner_gat
     }
     current_work_unit["state"]["typed_blocker"] |= {
         "typed_blocker_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_08da46bea43329723d2fbbea.closeout.json"
         ),
         "stage_packet_ref": (
             "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-            "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/"
+            "consumer/owner_callable_adapters/immutable/run_quality_repair_batch/"
             "33abc53e0c18295f5fa03738.json"
         ),
         "work_unit_fingerprint": fingerprint,

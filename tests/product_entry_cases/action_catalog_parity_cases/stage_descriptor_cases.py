@@ -523,7 +523,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
             "runtime_event:evidence_ledger.baseline_evidence_ready",
         ],
         "bounded_analysis_campaign": [
-            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
+            "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
             "runtime_event:evidence_ledger.bounded_analysis_evidence_ready",
         ],
         "manuscript_authoring": [
@@ -685,7 +685,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert launch_packet["quality_gate_refs"] == stage["evaluation"]
         assert launch_packet["quality_pack_refs"] == stage["quality_pack_refs"]
         assert launch_packet["tool_refs"]["allowed_action_refs"] == stage["allowed_action_refs"]
-        assert launch_packet["tool_refs"]["default_executor_kind"] == "codex_cli_default"
+        assert launch_packet["tool_refs"]["owner_callable_adapter_kind"] == "codex_cli_default"
         assert launch_packet["tool_refs"]["can_write_mas_truth"] is False
         assert launch_packet["expected_receipt_refs"]["owner_receipt_contract_ref"] == (
             "/product_entry_manifest/owner_receipt_contract"

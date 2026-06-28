@@ -31,7 +31,7 @@ def build_sli_summary(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(handoff_summary, Mapping)
         else 0
     )
-    dedupe_summary = profile_payload.get("domain_health_diagnostic_wakeup_dedupe_summary")
+    dedupe_summary = profile_payload.get("domain_diagnostic_wakeup_dedupe_summary")
     dedupe_status = (
         str(dedupe_summary.get("status") or "").strip()
         if isinstance(dedupe_summary, Mapping)

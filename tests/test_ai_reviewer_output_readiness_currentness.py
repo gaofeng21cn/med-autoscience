@@ -98,7 +98,7 @@ def test_execute_dispatch_does_not_repeat_suppress_current_manuscript_pending_ev
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
@@ -107,13 +107,13 @@ def test_execute_dispatch_does_not_repeat_suppress_current_manuscript_pending_ev
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "study_id": study_id,
                     "quest_id": f"quest-{study_id}",
                     "action_type": "return_to_ai_reviewer_workflow",
@@ -194,13 +194,13 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
             "action_type": "return_to_ai_reviewer_workflow",

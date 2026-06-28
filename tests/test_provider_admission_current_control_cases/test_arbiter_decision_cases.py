@@ -49,7 +49,7 @@ def test_provider_admission_current_control_terminal_closeout_precedes_stale_liv
                     "active_workflow_id": "wf-terminal-wins",
                     "dispatch_path": candidate["dispatch_path"],
                 },
-                "default_executor_execution_receipt_consumption": {
+                "owner_callable_receipt_consumption": {
                     "execution_status": "executed",
                     "current_attempt_state": "completed",
                     "closeout_receipt_status": "accepted_typed_closeout",
@@ -159,7 +159,7 @@ def test_provider_admission_current_control_records_accepted_closeout_arbiter_de
                 "study_id": study_id,
                 "quest_id": study_id,
                 "running_provider_attempt": False,
-                "default_executor_execution_receipt_consumption": {
+                "owner_callable_receipt_consumption": {
                     "execution_status": "executed",
                     "current_attempt_state": "completed",
                     "closeout_receipt_status": "accepted_typed_closeout",

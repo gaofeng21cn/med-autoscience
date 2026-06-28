@@ -27,7 +27,7 @@ def test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate(
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
     receipt_ref = f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     handoff_path = (
@@ -157,7 +157,7 @@ def test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / f"{stage_attempt_id}.closeout.json",
         {
             "surface_kind": "stage_attempt_closeout_packet",
@@ -165,7 +165,7 @@ def test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate(
             "study_id": study_id,
             "quest_id": quest_id,
             "stage_attempt_id": stage_attempt_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "generated_at": "2026-06-18T03:44:00Z",
             "status": "closed",
             "execution_status": "owner_receipt_recorded",
@@ -179,7 +179,7 @@ def test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate(
             "stage_packet_refs": [stage_packet_ref],
             "owner_receipt_ref": receipt_ref,
             "closeout_refs": [
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 f"{stage_attempt_id}.closeout.json",
                 receipt_ref,
             ],
@@ -196,7 +196,7 @@ def test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate(
                     "No manuscript or publication readiness surface was mutated by this closeout."
                 ],
                 "changed_stage_surfaces": [
-                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     f"{stage_attempt_id}.closeout.json"
                 ],
                 "changed_paper_surfaces": [],
@@ -270,7 +270,7 @@ def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
     receipt_ref = f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     handoff_path = (
@@ -349,7 +349,7 @@ def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / f"{stage_attempt_id}.closeout.json",
         {
             "surface_kind": "stage_attempt_closeout_packet",
@@ -357,7 +357,7 @@ def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
             "study_id": study_id,
             "quest_id": quest_id,
             "stage_attempt_id": stage_attempt_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "generated_at": "2026-06-18T03:44:00Z",
             "status": "closed",
             "execution_status": "owner_receipt_recorded",
@@ -371,7 +371,7 @@ def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
             "stage_packet_refs": [stage_packet_ref],
             "owner_receipt_ref": receipt_ref,
             "closeout_refs": [
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 f"{stage_attempt_id}.closeout.json",
                 receipt_ref,
             ],
@@ -388,7 +388,7 @@ def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
                     "No manuscript or publication readiness surface was mutated by this closeout."
                 ],
                 "changed_stage_surfaces": [
-                    f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     f"{stage_attempt_id}.closeout.json"
                 ],
                 "changed_paper_surfaces": [],

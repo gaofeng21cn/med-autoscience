@@ -172,7 +172,7 @@ def test_lightweight_executor_receipt_builds_from_executor_evidence_dict_and_kee
 
     receipt = module.build_lightweight_executor_receipt_from_evidence(
         {
-            "executor_backend": "codex_default_executor",
+            "executor_backend": "codex_owner_callable_adapter",
             "command_ref": "artifacts/supervision/requests/current.json#command",
             "action_type": "run_quality_repair_batch",
             "status": "failed",
@@ -189,7 +189,7 @@ def test_lightweight_executor_receipt_builds_from_executor_evidence_dict_and_kee
         }
     )
 
-    assert receipt["executor_backend"] == "codex_default_executor"
+    assert receipt["executor_backend"] == "codex_owner_callable_adapter"
     assert receipt["command_ref"] == "artifacts/supervision/requests/current.json#command"
     assert receipt["status"] == "sandbox_not_authorized"
     assert receipt["work_unit"]["action_type"] == "run_quality_repair_batch"

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-_DEFAULT_EXECUTOR_BLOCKED_STATUSES = frozenset({"blocked"})
+_OWNER_CALLABLE_BLOCKED_STATUSES = frozenset({"blocked"})
 _TYPED_CLOSEOUT_STATUSES = frozenset(
     {
         "blocked",
@@ -33,7 +33,7 @@ def is_blocked_typed_closeout(
         return False
     owner_result = _mapping(execution.get("owner_result"))
     if (
-        _text(execution.get("execution_status")) in _DEFAULT_EXECUTOR_BLOCKED_STATUSES
+        _text(execution.get("execution_status")) in _OWNER_CALLABLE_BLOCKED_STATUSES
         and bool(_text(owner_result.get("blocked_reason")))
     ):
         return True
@@ -75,7 +75,7 @@ def consumption(
     closeout_ref = _relative_study_artifact_ref(receipt_ref) or str(receipt_ref)
     return {
         "status": "consumed",
-        "receipt_kind": "default_executor_execution",
+        "receipt_kind": "owner_callable_adapter_receipt",
         "receipt_ref": str(receipt_ref),
         "closeout_ref": closeout_ref,
         "execution_id": _text(execution.get("execution_id")) or _text(execution.get("stage_attempt_id")),

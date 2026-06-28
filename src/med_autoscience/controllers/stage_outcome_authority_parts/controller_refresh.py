@@ -241,7 +241,7 @@ def _controller_refresh_tick_request(
     from .. import study_outer_loop
 
     try:
-        tick_request = study_outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
+        tick_request = study_outer_loop.build_runtime_readback_outer_loop_tick_request(
             study_root=study_root,
             status_payload=status_payload,
         )
@@ -409,7 +409,7 @@ def _request_runtime_resume(
         "queue_owner": "one-person-lab",
         "delegated_runtime_owner": "one-person-lab",
         "runtime_state_mutated": False,
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "stage_outcome/opl-handoff",
         "runtime_owner_handoff": {
             "surface_kind": "mas_controller_authorization_runtime_handoff",
             "study_id": study_id,
@@ -420,7 +420,7 @@ def _request_runtime_resume(
             "work_unit_fingerprint": _text(authorization.get("work_unit_fingerprint")),
             "queue_owner": "one-person-lab",
             "domain_truth_owner": "med-autoscience",
-            "recommended_task_kind": "domain_route/reconcile-apply",
+            "recommended_task_kind": "stage_outcome/opl-handoff",
             "authority_boundary": {
                 "mas_writes_generic_runtime_queue": False,
                 "mas_submits_runtime_chat": False,
@@ -455,7 +455,7 @@ def _runtime_owner_prompt_refresh_handoff(
         "reason": "active_codex_prompt_stale_for_current_controller_authorization",
         "queue_owner": "one-person-lab",
         "runtime_state_mutated": False,
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "stage_outcome/opl-handoff",
     }
 
 

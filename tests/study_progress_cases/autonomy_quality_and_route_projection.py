@@ -25,9 +25,9 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
         manuscript_family="prediction_model",
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    domain_health_diagnostic_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
+    runtime_readback_report_path = quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json"
     _write_json(
-        domain_health_diagnostic_path,
+        runtime_readback_report_path,
         {
             "schema_version": 1,
             "scanned_at": "2026-04-21T04:16:00+00:00",
@@ -40,7 +40,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
                     "route_key_question": "当前同线稿件还差哪一步最窄修订？",
                     "controller_action_type": "request_opl_stage_attempt_relaunch",
                     "dispatch_status": "executed",
-                    "source": "domain_health_diagnostic_outer_loop_wakeup",
+                    "source": "domain_diagnostic_outer_loop_wakeup",
                 }
             ],
             "controllers": {},
@@ -123,7 +123,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
         "progress_freshness_status": "missing",
         "next_confirmation_signal": "先补齐论文证据与叙事，再回到发表门控复核。",
         "proof_refs": [
-            str(domain_health_diagnostic_path),
+            str(runtime_readback_report_path),
             str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         ],
     }
@@ -201,7 +201,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         ],
     )
     _write_runtime_escalation(quest_root, study_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     _write_bash_summary(quest_root)
     _write_details_projection(quest_root)
     publishability_gate_path = _write_publishability_gate_report(quest_root)

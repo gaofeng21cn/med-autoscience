@@ -197,7 +197,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert set(classification["minimal_authority_function"]) == {
         "study_truth",
         "progress_projection",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "publication_quality_verdict",
         "ai_reviewer_workflow",
         "publication_gate",
@@ -215,7 +215,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     by_id = {item["module_id"]: item for item in inventory}
     assert "local_launchd_scheduler_install_path" not in by_id
     assert "workspace_local_watch_service_wrappers" not in by_id
-    assert "domain_health_diagnostic_loop_shell" not in by_id
+    assert "domain_diagnostic_report_loop_shell" not in by_id
     assert by_id["domain_authority_refs_index"]["code_paths"] == [
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",

@@ -9,7 +9,7 @@ from med_autoscience.controllers.stage_outcome_authority_parts import (
     dispatch_contract,
     persisted_dispatches,
 )
-from med_autoscience.controllers.owner_callable_action_policy import default_executor_search_discipline
+from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -113,7 +113,7 @@ def preserved_quality_repair_writer_handoff_dispatch(
 def _upgrade_writer_handoff_dispatch(payload: Mapping[str, Any]) -> dict[str, Any]:
     upgraded = dict(payload)
     prompt_contract = dict(_mapping(payload.get("prompt_contract")))
-    search_discipline = default_executor_search_discipline()
+    search_discipline = owner_callable_search_discipline()
     prompt_contract.setdefault("tool_discipline", search_discipline)
     prompt_contract.setdefault("search_boundaries", search_discipline)
     upgraded["prompt_contract"] = prompt_contract
@@ -171,18 +171,7 @@ def _writer_handoff_dispatch_candidate_paths(
     action_type: str,
     dispatch_path: Path,
 ) -> tuple[Path, ...]:
-    legacy_owner_callable_path = (
-        profile.studies_root
-        / study_id
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapters"
-        / f"{action_type}.json"
-    )
-    if legacy_owner_callable_path == dispatch_path:
-        return (dispatch_path,)
-    return (dispatch_path, legacy_owner_callable_path)
+    return (dispatch_path,)
 
 
 def _writer_handoff_dispatch_from_current_batch_action(

@@ -8,7 +8,7 @@ from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers.paper_mission_owner_surface_parts import controller_followthrough_actions
 from med_autoscience.controllers.paper_mission_owner_surface_parts import current_truth_owner
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -40,13 +40,13 @@ def route_and_consume_current_execution_receipt(
         for action in routed_actions
         if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
     ]
-    receipt = study_transition_receipt_consumption.default_executor_execution_followthrough_receipt_consumption(
+    receipt = study_transition_receipt_consumption.owner_callable_receipt_followthrough_consumption(
         study_root=study_root,
         owner_route=owner_route,
         actions=routed_actions,
     )
     if not receipt:
-        receipt = study_transition_receipt_consumption.default_executor_execution_receipt_consumption(
+        receipt = study_transition_receipt_consumption.owner_callable_receipt_consumption(
             study_root=study_root,
             owner_route=owner_route,
             actions=routed_actions,
@@ -57,7 +57,7 @@ def route_and_consume_current_execution_receipt(
             status=status,
         )
         if followthrough_candidate is not None:
-            receipt = study_transition_receipt_consumption.default_executor_execution_receipt_consumption(
+            receipt = study_transition_receipt_consumption.owner_callable_receipt_consumption(
                 study_root=study_root,
                 owner_route=followthrough_candidate["owner_route"],
                 actions=followthrough_candidate["actions"],
@@ -99,7 +99,7 @@ def _previous_owner_route_receipt_for_current_controller_followthrough(
     )
     if controller_followthrough_actions.action_from_controller_route(controller_route or {}) is None:
         return None
-    for execution, _receipt_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, _receipt_ref in owner_callable_receipt_candidates(study_root=study_root):
         if _text(execution.get("action_type")) != "run_quality_repair_batch":
             continue
         owner_route = owner_route_part.ensure_owner_route_v2(

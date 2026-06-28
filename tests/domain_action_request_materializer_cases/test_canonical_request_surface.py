@@ -140,7 +140,7 @@ def test_canonical_transition_request_projection_carries_dispatcher_boundary_fie
         "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
     )
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "dispatch_status": "ready",
         "study_id": "study-a",
         "quest_id": "quest-a",
@@ -149,7 +149,7 @@ def test_canonical_transition_request_projection_carries_dispatcher_boundary_fie
         "refs": {
             "dispatch_path": (
                 "studies/study-a/artifacts/supervision/consumer/"
-                "default_executor_dispatches/run_quality_repair_batch.json"
+                "owner_callable_adapters/run_quality_repair_batch.json"
             )
         },
         "prompt_contract": {
@@ -170,7 +170,7 @@ def test_canonical_transition_request_projection_carries_dispatcher_boundary_fie
     request = projection.domain_progress_transition_request_projection([dispatch])[0]
 
     assert request["surface"] == "mas_domain_progress_transition_request_projection"
-    assert request["legacy_surface"] == "default_executor_dispatch_request"
+    assert request["legacy_surface"] == "owner_callable_dispatch_request"
     assert request["projection_only"] is True
     assert request["owner_callable_carrier_projection_only"] is True
     assert request["owner_callable_adapter_diagnostic_only"] is True

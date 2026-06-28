@@ -9,7 +9,7 @@
   "profile_role": "medical_research_foundry_agent_golden_path_profile",
   "purpose": "Med Auto Science golden path for OPL-hosted Foundry Agent execution under current_owner_delta and AI-first medical research quality gates.",
   "machine_boundary": "This profile describes the ordinary default path and hidden variant policy. It does not declare paper closure, publication ready, domain ready, quality ready, artifact ready, current_package update, or production ready.",
-  "default_executor": "codex_cli",
+  "owner_callable_adapter": "codex_cli",
   "default_outer_loop": "current_owner_delta",
   "stage_attempt_strategy": "cognitive_kernel_stage_internal",
   "stage_control_plane_ref": "contracts/stage_control_plane.json",

@@ -161,7 +161,7 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     assert result["written_files"] == []
@@ -268,7 +268,7 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     assert result["written_files"] == []
@@ -391,7 +391,7 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
@@ -405,7 +405,7 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     ).exists()
 
@@ -585,7 +585,7 @@ def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_disp
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
 

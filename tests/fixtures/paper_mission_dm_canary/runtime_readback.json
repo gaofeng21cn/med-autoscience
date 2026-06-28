@@ -116,11 +116,11 @@
           "blocker_type": "opl_execution_authorization_required",
           "blocked_reason": "opl_execution_authorization_required",
           "action_type": "run_quality_repair_batch",
-          "typed_blocker_ref": "artifacts/supervision/consumer/default_executor_execution/sat_9afe683ca699e4186f556fec.closeout.json",
-          "latest_owner_answer_ref": "artifacts/supervision/consumer/default_executor_execution/sat_9afe683ca699e4186f556fec.closeout.json",
+          "typed_blocker_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_9afe683ca699e4186f556fec.closeout.json",
+          "latest_owner_answer_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_9afe683ca699e4186f556fec.closeout.json",
           "closeout_refs": [
             "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/stage_attempt_closeouts/sat_9afe683ca699e4186f556fec.json",
-            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_execution/sat_9afe683ca699e4186f556fec.closeout.json"
+            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_9afe683ca699e4186f556fec.closeout.json"
           ]
         },
         "source_refs": [

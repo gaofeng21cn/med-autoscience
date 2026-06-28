@@ -11,7 +11,7 @@ from ..owner_callable_action_policy import (
 from ..provider_admission_parts import provider_admission
 from ..study_progress_parts import repair_progress_projection
 from .export_study_projection_common import (
-    legacy_owner_callable_task_boundary,
+    stage_outcome_opl_handoff_task_boundary,
     mapping,
     text,
 )
@@ -55,7 +55,7 @@ def provider_admission_owner_action_record(
     return {
         "surface_kind": "mas_current_owner_action_record",
         "schema_version": 1,
-        "source": "default_executor_execution.provider_admission_identity",
+        "source": "owner_callable_adapter_receipt.provider_admission_identity",
         "study_id": study_root.name,
         "quest_id": text(candidate.get("quest_id")) or study_root.name,
         "recorded_at": text(candidate.get("recorded_at")),
@@ -63,13 +63,13 @@ def provider_admission_owner_action_record(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "next_owner": text(candidate.get("next_executable_owner")),
         "allowed_actions": [action_type],
         "required_output_surface": text(candidate.get("required_output_surface")),
-        "source_ref_role": "default_executor_execution_provider_admission_identity",
+        "source_ref_role": "owner_callable_adapter_receipt_provider_admission_identity",
         "source_relative_path": text(candidate.get("execution_ref")),
-        "source_surface": "default_executor_execution",
+        "source_surface": "owner_callable_adapter_receipt",
         "provider_admission_identity": dict(candidate),
         "provider_admission_identity_ref": text(candidate.get("execution_ref")),
         "repair_progress_followup": current_action,
@@ -158,7 +158,7 @@ def repair_progress_followup_owner_action_record(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": action_fingerprint,
         "action_fingerprint": action_fingerprint,
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "next_owner": next_owner,
         "allowed_actions": [action_type],
         "required_output_surface": text(mapping(current_action.get("target_surface")).get("surface_ref"))

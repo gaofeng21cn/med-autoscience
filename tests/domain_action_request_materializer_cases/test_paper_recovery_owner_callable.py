@@ -279,7 +279,7 @@ def test_materializer_dispatches_identity_different_paper_recovery_successor_act
                     "state_kind": "typed_blocker",
                     "owner_answer_binding": {
                         "latest_owner_answer_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_d2b4c700b31294ab17c225d4.closeout.json"
                         )
                     },
@@ -290,7 +290,7 @@ def test_materializer_dispatches_identity_different_paper_recovery_successor_act
                         "work_unit_id": "publication_gate_replay",
                         "work_unit_fingerprint": gate_fingerprint,
                         "latest_owner_answer_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_d2b4c700b31294ab17c225d4.closeout.json"
                         ),
                     },

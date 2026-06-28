@@ -1326,7 +1326,7 @@ def build_projection_refs(
     opl_runtime_owner_handoff_path: Path,
     opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     runtime_escalation_path: Path | None,
-    domain_health_diagnostic_path: Path | None,
+    runtime_readback_report_path: Path | None,
     runtime_module_surface: dict[str, Any],
     runtime_efficiency_refs: dict[str, Any],
     study_root: Path,
@@ -1359,7 +1359,7 @@ def build_projection_refs(
         ),
         "opl_runtime_owner_handoff_path": str(opl_runtime_owner_handoff_path) if opl_runtime_owner_handoff_payload is not None else None,
         "runtime_escalation_path": str(runtime_escalation_path) if runtime_escalation_path is not None else None,
-        "domain_health_diagnostic_report_path": str(domain_health_diagnostic_path) if domain_health_diagnostic_path is not None else None,
+        "runtime_readback_report_path": str(runtime_readback_report_path) if runtime_readback_report_path is not None else None,
         "runtime_status_summary_path": runtime_module_surface["summary_ref"],
         **runtime_efficiency_refs,
         "autonomy_slo_status_path": (

@@ -12,7 +12,7 @@ from typing import Any
 
 
 CLOSEOUT_RELATIVE_ROOTS = (
-    Path("artifacts/supervision/consumer/default_executor_execution"),
+    Path("artifacts/supervision/consumer/owner_callable_adapter_receipt"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
 )
 TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"

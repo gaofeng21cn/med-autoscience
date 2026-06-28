@@ -45,7 +45,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
             "surface_kind": "stage_attempt_closeout_packet",
             "generated_at": "2026-05-27T19:46:34Z",
             "study_id": "001-risk",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "stage_attempt_id": "sat-terminal",
             "action_type": "run_quality_repair_batch",
             "status": "blocked_with_domain_owner_refs",
@@ -56,7 +56,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
             "cost_refs": ["cost:provider-attempt:sat-terminal"],
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
-                "stage_name": "domain_owner/default-executor-dispatch",
+                "stage_name": "stage_outcome/opl-handoff",
                 "problem_summary": "The repair owner could not write because authority route evidence was blocked.",
                 "stage_goal": "Produce owner-authorized manuscript repair output or a typed blocker.",
                 "stage_work_done": [
@@ -76,7 +76,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
                 "usage_refs": ["usage:provider-attempt:sat-terminal"],
                 "cost_refs": ["cost:provider-attempt:sat-terminal"],
                 "evidence_refs": [
-                    "artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                    "artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                     "artifacts/publication_eval/latest.json",
                 ],
             },
@@ -161,7 +161,7 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
             "action_type": "run_quality_repair_batch",
             "status": "blocked_with_domain_owner_refs",
             "paper_stage_log": {
-                "stage_name": "domain_owner/default-executor-dispatch",
+                "stage_name": "stage_outcome/opl-handoff",
                 "paper_work_done": ["Recorded an older typed blocker."],
                 "outcome": "blocked_with_domain_typed_blocker",
                 "remaining_blockers": ["authority_route_blocked"],
@@ -175,14 +175,14 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         latest_execution_path,
         {
             "surface": "owner_callable_adapter_receipt_study_latest",
-            "legacy_surface_alias": "default_executor_dispatch_execution_study_latest",
+            "legacy_surface_alias": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-05-27T21:12:39+00:00",
             "study_id": "001-risk",
             "owner_callable_receipt_projection": True,
@@ -190,7 +190,7 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
             "executions": [
                 {
                     "surface": "owner_callable_adapter_receipt",
-                    "legacy_surface_alias": "default_executor_dispatch_execution",
+                    "legacy_surface_alias": "owner_callable_dispatch_execution",
                     "generated_at": "2026-05-27T21:12:39+00:00",
                     "study_id": "001-risk",
                     "action_type": "run_quality_repair_batch",
@@ -300,13 +300,13 @@ def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tm
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         latest_execution_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-06-08T17:19:37+00:00",
             "study_id": "001-risk",
             "executions": [
@@ -385,13 +385,13 @@ def test_handoff_projection_fail_closed_when_terminal_closeout_lacks_owner_answe
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         closeout_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-06-10T12:01:00+00:00",
             "study_id": "001-risk",
             "executions": [
@@ -472,13 +472,13 @@ def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         closeout_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-06-10T12:01:00+00:00",
             "study_id": "001-risk",
             "executions": [
@@ -491,7 +491,7 @@ def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path
                     "status": "closed_with_domain_owner_refs",
                     "route_outcome": "owner_receipt",
                     "owner_receipt_ref": (
-                        "studies/001-risk/artifacts/supervision/consumer/default_executor_execution/"
+                        "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat-owner-answer.closeout.json#owner_receipt"
                     ),
                     "paper_stage_log": {
@@ -572,12 +572,12 @@ def test_handoff_projection_accepts_terminal_closeout_next_handoff_refs(tmp_path
             "generated_at": "2026-06-10T12:01:00+00:00",
             "study_id": "001-risk",
             "stage_attempt_id": "sat-next-handoff",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "return_to_ai_reviewer_workflow",
             "status": "closed_with_domain_owner_refs",
             "domain_owner_refs": {
                 "publication_eval_record_ref": "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
-                "next_dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                "next_dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json",
                 "next_request_ref": "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
             },
             "paper_stage_log": {
@@ -591,7 +591,7 @@ def test_handoff_projection_accepts_terminal_closeout_next_handoff_refs(tmp_path
                 "paper_work_done": ["Produced record-only reviewer evidence."],
                 "changed_stage_surfaces": [
                     "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
-                    "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                    "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json",
                     "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
                 ],
                 "changed_paper_surfaces": [],
@@ -613,13 +613,13 @@ def test_handoff_projection_accepts_terminal_closeout_next_handoff_refs(tmp_path
                 },
                 "evidence_refs": [
                     "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
-                    "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                    "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json",
                     "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
                 ],
             },
             "closeout_refs": [
                 "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
-                "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json",
                 "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
             ],
         },

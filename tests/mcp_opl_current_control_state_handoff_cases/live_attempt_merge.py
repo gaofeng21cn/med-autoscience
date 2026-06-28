@@ -130,7 +130,7 @@ def test_live_attempt_merge_keeps_running_over_prior_same_work_unit_terminal_clo
                 "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
                 "status": "blocked",
                 "typed_blocker_reason": "opl_execution_authorization_required",
-                "source_path": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_execution/latest.json",
+                "source_path": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
             },
         },
         live_attempt_handoff={
@@ -147,7 +147,7 @@ def test_live_attempt_merge_keeps_running_over_prior_same_work_unit_terminal_clo
             "stage_progress_log": {
                 "planned_work": {
                     "stage_attempt_id": "sat-current",
-                    "stage_packet_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                    "stage_packet_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json",
                 }
             },
         },
@@ -219,7 +219,7 @@ def test_live_attempt_merge_ignores_prior_typed_closeout_for_different_stage_att
                 "health_status": "running",
                 "runtime_liveness_status": "live",
             },
-            "latest_typed_default_executor_closeout": {
+            "latest_typed_owner_callable_closeout": {
                 "execution_id": "sat-prior",
                 "stage_attempt_id": "sat-prior",
                 "action_type": "run_quality_repair_batch",
@@ -274,13 +274,13 @@ def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         latest_execution_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-05-28T03:45:25+00:00",
             "study_id": "001-risk",
             "executions": [
@@ -341,13 +341,13 @@ def test_latest_terminal_stage_log_preserves_zero_observability_values(tmp_path)
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     _write_json(
         latest_execution_path,
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "generated_at": "2026-05-28T03:45:25+00:00",
             "study_id": "001-risk",
             "executions": [

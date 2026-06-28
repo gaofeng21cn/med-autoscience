@@ -741,7 +741,7 @@ SOAK_STAGE_REF_HINTS: dict[str, tuple[str, ...]] = {
         "artifacts/stage_outputs/07-independent_review_and_revision/receipts/owner_receipt.json",
     ),
     "runtime_recovery": (
-        "artifacts/supervision/consumer/default_executor_execution/history.jsonl",
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/history.jsonl",
         "artifacts/runtime/runtime_status_summary.json",
         "artifacts/supervision/opl_current_control_state/latest.json",
     ),

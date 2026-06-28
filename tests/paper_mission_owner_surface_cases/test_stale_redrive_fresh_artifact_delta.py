@@ -15,7 +15,7 @@ def _write_json(path: Path, payload: dict) -> None:
 def _write_repeated_nonconsumable_execution(study_root: Path, owner_route: dict) -> None:
     def execution(execution_id: str) -> dict:
         return {
-            "surface": "default_executor_dispatch_execution",
+            "surface": "owner_callable_dispatch_execution",
             "schema_version": 1,
             "study_id": study_root.name,
             "quest_id": study_root.name,
@@ -45,9 +45,9 @@ def _write_repeated_nonconsumable_execution(study_root: Path, owner_route: dict)
         }
 
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_root.name,
             "executions": [],
@@ -165,7 +165,7 @@ def test_scan_routes_fresh_artifact_delta_supersedes_stale_redrive_budget(
     )
 
     study = result["studies"][0]
-    receipt = study["default_executor_execution_receipt_consumption"]
+    receipt = study["owner_callable_receipt_consumption"]
     assert receipt["blocked_reason"] == "progress_first_owner_redrive_budget_exhausted"
     assert receipt["stale_blocker_resolution"]["status"] == "superseded"
     assert receipt["stale_blocker_resolution"]["basis"] == "fresh_meaningful_artifact_delta"

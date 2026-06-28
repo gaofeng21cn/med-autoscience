@@ -7,14 +7,14 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_closeout_contract import (
-    default_executor_typed_closeout_contract,
+    owner_callable_typed_closeout_contract,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import opl_domain_progress_transition_contract as transition_contract
 from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers import progress_first_closeout
 from med_autoscience.controllers.runtime_ai_repair_policy import (
-    default_executor_policy,
+    owner_callable_policy,
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.owner_callable_adapter_projection import (
@@ -54,7 +54,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     SOURCE_ACTION_REF_FIELDS,
     SOURCE_HANDOFF_REF_FIELDS,
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
-    default_executor_search_discipline,
+    owner_callable_search_discipline,
     request_output_surface_for_action_type,
     request_output_target_surface_for_action_type,
     request_owner_for_action_type,
@@ -73,8 +73,8 @@ from med_autoscience.runtime_control import repeat_suppression
 SCHEMA_VERSION = 1
 CONSUMER_LATEST_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/latest.json")
 CONSUMER_HISTORY_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/history.jsonl")
-DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
-    "artifacts/supervision/consumer/default_executor_dispatches"
+OWNER_CALLABLE_ADAPTER_RELATIVE_ROOT = Path(
+    "artifacts/supervision/consumer/owner_callable_adapters"
 )
 OWNER_CALLABLE_ADAPTER_KIND = "opl_authorized_owner_callable_adapter"
 TARGET_RUNTIME_OWNER = transition_contract.RUNTIME_OWNER
@@ -158,8 +158,8 @@ def _request_packet_path(profile: WorkspaceProfile, study_id: str, action_type: 
     return _study_root(profile, study_id) / _request_packet_ref_for_action_type(action_type)
 
 
-def _default_executor_dispatch_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
-    return _study_root(profile, study_id) / DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT / f"{action_type}.json"
+def _owner_callable_adapter_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
+    return _study_root(profile, study_id) / OWNER_CALLABLE_ADAPTER_RELATIVE_ROOT / f"{action_type}.json"
 
 
 def _scan_latest_path(profile: WorkspaceProfile) -> Path:
@@ -315,7 +315,7 @@ def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str
     )
 
 
-def _default_executor_forbidden_surfaces(owner_route: Mapping[str, Any]) -> list[str]:
+def _owner_callable_forbidden_surfaces(owner_route: Mapping[str, Any]) -> list[str]:
     forbidden = list(FORBIDDEN_SURFACES)
     for item in _mapping(owner_route.get("owner_reason_contract")).get("forbidden_surfaces") or []:
         if (surface := _text(item)) is not None and surface not in forbidden:
@@ -393,7 +393,7 @@ def _readiness_dispatch_enrichment(
     }
 
 
-def _default_executor_dispatch(
+def _owner_callable_dispatch(
     *,
     profile: WorkspaceProfile,
     action: Mapping[str, Any],
@@ -406,8 +406,8 @@ def _default_executor_dispatch(
     generated_at: str,
 ) -> dict[str, Any]:
     study_id = _text(action.get("study_id")) or "unknown-study"
-    dispatch_path = _default_executor_dispatch_path(profile, study_id, action_type)
-    executor_policy = default_executor_policy()
+    dispatch_path = _owner_callable_adapter_path(profile, study_id, action_type)
+    executor_policy = owner_callable_policy()
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
     )
@@ -456,8 +456,8 @@ def _default_executor_dispatch(
         return preserved_writer_handoff
     idempotency_key = _text(owner_route.get("idempotency_key"))
     repeat_key = repeat_suppression.repeat_key(owner_route)
-    typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
-    forbidden_surfaces = _default_executor_forbidden_surfaces(owner_route)
+    typed_closeout_contract = owner_callable_typed_closeout_contract(action_type=action_type)
+    forbidden_surfaces = _owner_callable_forbidden_surfaces(owner_route)
     required_output_target_surface = _request_output_target_surface_for_action_type(action_type)
     readiness_dispatch = _readiness_dispatch_enrichment(action, action_type, profile=profile)
     evidence_gap_projection = evidence_gap_decision_part.projection_for_action(
@@ -485,8 +485,8 @@ def _default_executor_dispatch(
         "source_scan_latest": str(_scan_latest_path(profile)),
         "required_closeout_packet": typed_closeout_contract,
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
-        "tool_discipline": default_executor_search_discipline(),
-        "search_boundaries": default_executor_search_discipline(),
+        "tool_discipline": owner_callable_search_discipline(),
+        "search_boundaries": owner_callable_search_discipline(),
         "forbidden_surfaces": list(forbidden_surfaces),
         "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
@@ -510,7 +510,7 @@ def _default_executor_dispatch(
         "forbidden_surfaces": list(forbidden_surfaces),
         "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
     }
-    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
+    owner_route_attempt_envelope = owner_route_attempt_protocol.owner_callable_attempt_envelope(
         dispatch=dispatch_shell
     )
     execution_ready_dispatch_requested = developer_mode_payload.get("dry_run_executor_dispatch") is True
@@ -545,7 +545,7 @@ def _default_executor_dispatch(
         and owner_route_allows_action
         else "dry_run" if not apply else "blocked"
     )
-    blocked_reason = _default_executor_dispatch_blocked_reason(
+    blocked_reason = _owner_callable_dispatch_blocked_reason(
         dispatch_status=dispatch_status,
         developer_mode_payload=developer_mode_payload,
         action=action,
@@ -579,7 +579,7 @@ def _default_executor_dispatch(
     if dispatch_status == "ready" and closeout_admission.get("admission_status") == "blocked":
         dispatch_status = "blocked"
         blocked_reason = _text(closeout_admission.get("blocked_reason"))
-    return _default_executor_dispatch_payload(
+    return _owner_callable_dispatch_payload(
         profile=profile,
         action=action,
         action_type=action_type,
@@ -719,7 +719,7 @@ def _mas_foreground_owner_callable_dispatch_payload(
     progress_first_closeout_admission: Mapping[str, Any],
     generated_at: str,
 ) -> dict[str, Any]:
-    payload = _default_executor_dispatch_payload(
+    payload = _owner_callable_dispatch_payload(
         profile=profile,
         action=action,
         action_type=action_type,
@@ -971,7 +971,7 @@ def _iter_payloads(value: object) -> list[Mapping[str, Any]]:
     return payloads
 
 
-def _default_executor_dispatch_payload(
+def _owner_callable_dispatch_payload(
     *,
     profile: WorkspaceProfile,
     action: Mapping[str, Any],
@@ -1082,7 +1082,7 @@ def _default_executor_dispatch_payload(
         "required_closeout_packet": dict(typed_closeout_contract),
         "owner_route_attempt_envelope": dict(owner_route_attempt_envelope),
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
-        "default_executor_policy": dict(executor_policy),
+        "owner_callable_policy": dict(executor_policy),
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "prompt_contract": dict(prompt_contract),
         "domain_intent": _domain_intent(
@@ -1100,7 +1100,7 @@ def _default_executor_dispatch_payload(
             study_id=study_id,
             next_executable_owner=next_executable_owner,
             required_output_surface=required_output_surface,
-            typed_closeout_contract=default_executor_typed_closeout_contract,
+            typed_closeout_contract=owner_callable_typed_closeout_contract,
         ),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
@@ -1194,7 +1194,7 @@ def _domain_intent(
     }
 
 
-def _default_executor_dispatch_blocked_reason(
+def _owner_callable_dispatch_blocked_reason(
     *,
     dispatch_status: str,
     developer_mode_payload: Mapping[str, Any],
@@ -1494,8 +1494,8 @@ def current_owner_callable_adapters(
         scan_latest_path=_scan_latest_path,
         resolve_study_ids_from_scan=_resolve_study_ids_from_scan,
         selected_actions=_selected_actions,
-        default_executor_dispatch=lambda **kwargs: _with_transition_request_projection(
-            _default_executor_dispatch(**kwargs)
+        owner_callable_dispatch=lambda **kwargs: _with_transition_request_projection(
+            _owner_callable_dispatch(**kwargs)
         ),
         domain_progress_transition_request_projection=transition_request_projection.domain_progress_transition_request_projection,
         owner_from_action=_owner_from_action,
@@ -1540,7 +1540,7 @@ def materialize_domain_action_requests(
     ]
     owner_callable_adapters = [
         _with_transition_request_projection(
-            _default_executor_dispatch(
+            _owner_callable_dispatch(
                 profile=profile,
                 action=action,
                 action_type=_text(action.get("action_type")) or "unknown_action",

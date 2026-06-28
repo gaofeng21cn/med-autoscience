@@ -17,7 +17,7 @@ def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> d
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     route_key = f"provider-admission::{study_id}::{action_fingerprint}"
@@ -112,7 +112,7 @@ def test_provider_admission_current_control_suppresses_record_only_owner_refs_cl
                         "work_unit_fingerprint": action_fingerprint,
                         "action_fingerprint": action_fingerprint,
                         "owner_receipt_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat-record-only.closeout.json#owner_receipt"
                         ),
                         "record_ref": "artifacts/publication_eval/ai_reviewer_responses/record.json",
@@ -195,7 +195,7 @@ def test_provider_admission_current_control_suppresses_record_only_owner_refs_cl
                             "owner": "ai_reviewer",
                             "owner_receipt_ref": (
                                 "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                                "supervision/consumer/default_executor_execution/"
+                                "supervision/consumer/owner_callable_adapter_receipt/"
                                 "sat-record-only-without-fingerprint.closeout.json#owner_receipt"
                             ),
                             "publication_eval_record_ref": (
@@ -273,7 +273,7 @@ def test_provider_admission_current_control_retains_pending_for_record_only_owne
                             "owner": "ai_reviewer",
                             "owner_receipt_ref": (
                                 "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                                "supervision/consumer/default_executor_execution/"
+                                "supervision/consumer/owner_callable_adapter_receipt/"
                                 "sat-record-only-without-currentness.closeout.json#owner_receipt"
                             ),
                             "publication_eval_record_ref": (
@@ -328,7 +328,7 @@ def test_provider_admission_currentness_basis_not_inherited_from_different_curre
             / "artifacts"
             / "supervision"
             / "consumer"
-            / "default_executor_dispatches"
+            / "owner_callable_adapters"
             / "return_to_ai_reviewer_workflow.json"
         ),
         "next_executable_owner": "ai_reviewer",
@@ -391,7 +391,7 @@ def test_consumed_domain_blocker_closeout_projects_current_typed_blocker(
     fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
     stage_packet_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-        "consumer/default_executor_dispatches/immutable/run_gate_clearing_batch/"
+        "consumer/owner_callable_adapters/immutable/run_gate_clearing_batch/"
         "6e3e5a94951b7c405a834292.json"
     )
     candidate = {
@@ -469,7 +469,7 @@ def test_consumed_domain_blocker_closeout_projects_current_typed_blocker(
                         },
                         "typed_blocker_ref": (
                             "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                            "supervision/consumer/default_executor_execution/"
+                            "supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
                         ),
                         "typed_blocker": {},
@@ -596,7 +596,7 @@ def test_record_only_closeout_does_not_consume_new_source_eval_write_repair(
             / "artifacts"
             / "supervision"
             / "consumer"
-            / "default_executor_dispatches"
+            / "owner_callable_adapters"
             / "run_quality_repair_batch.json"
         ),
         "next_executable_owner": "write",
@@ -720,7 +720,7 @@ def test_provider_admission_current_control_retains_pending_when_closeout_identi
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     candidate = {
@@ -830,7 +830,7 @@ def test_provider_admission_current_control_retains_pending_when_legacy_closeout
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     candidate = {
@@ -872,7 +872,7 @@ def test_provider_admission_current_control_retains_pending_when_legacy_closeout
             "stage_attempt_id": "sat_fd3ea6271b172b0aa05bb4f0",
             "typed_blocker_ref": (
                 "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_execution/sat_fd3ea6271b172b0aa05bb4f0.closeout.json#domain_blocker"
+                "consumer/owner_callable_adapter_receipt/sat_fd3ea6271b172b0aa05bb4f0.closeout.json#domain_blocker"
             ),
         },
         identity=identity,

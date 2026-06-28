@@ -91,7 +91,7 @@ def test_refresh_current_execution_surfaces_promotes_live_gate_followthrough_ove
             "running_provider_attempt": False,
             "blocked_reason": "publication_gate_replay_blocked",
             "next_owner": "publication_gate",
-            "latest_typed_default_executor_closeout": {
+            "latest_typed_owner_callable_closeout": {
                 "stage_attempt_id": "sat_d2b4c700b31294ab17c225d4",
                 "status": "typed_blocker",
                 "blocked_reason": "publication_gate_replay_blocked",
@@ -394,14 +394,14 @@ def test_existing_projection_refresh_promotes_gate_followthrough_over_terminal_g
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     dispatch_path.parent.mkdir(parents=True, exist_ok=True)
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "dispatch_status": "ready",
             "study_id": study_id,
             "quest_id": study_id,
@@ -500,7 +500,7 @@ def test_existing_projection_refresh_promotes_gate_followthrough_over_terminal_g
                 "running_provider_attempt": False,
                 "blocked_reason": "domain_owner_dispatch_zero_selected_after_materialized_current_request",
                 "next_owner": "one-person-lab",
-                "latest_typed_default_executor_closeout": {
+                "latest_typed_owner_callable_closeout": {
                     "stage_attempt_id": "sat_gate",
                     "status": "typed_blocker",
                     "blocked_reason": "domain_owner_dispatch_zero_selected_after_materialized_current_request",

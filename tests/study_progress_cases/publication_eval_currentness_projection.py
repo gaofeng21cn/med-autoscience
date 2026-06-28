@@ -419,7 +419,7 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
         },
     )
     _write_runtime_escalation(quest_root, study_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     gate_report_path = _write_publishability_gate_report(quest_root)
     gate_report = json.loads(gate_report_path.read_text(encoding="utf-8"))
     gate_report.update(
@@ -569,7 +569,7 @@ def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_
     )
     _write_json(publication_eval_path, stale_eval)
     _write_runtime_escalation(quest_root, study_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     gate_report_path = _write_publishability_gate_report(quest_root)
     gate_report = json.loads(gate_report_path.read_text(encoding="utf-8"))
     gate_report.update(

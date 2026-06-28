@@ -38,7 +38,7 @@ def test_provider_admission_current_control_prefers_live_attempt_over_pending_ca
         "action_fingerprint": action_fingerprint,
         "dispatch_path": (
             "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
-            "artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+            "artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json"
         ),
         "next_executable_owner": "finalize",
         "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
@@ -62,7 +62,7 @@ def test_provider_admission_current_control_prefers_live_attempt_over_pending_ca
         "provider_attempt_owner": "one-person-lab",
         "queue_owner": "one-person-lab",
         "task_id": "frt-live",
-        "task_kind": "domain_owner/default-executor-dispatch",
+        "task_kind": "stage_outcome/opl-handoff",
         "provider_kind": "temporal",
         "action_type": "run_gate_clearing_batch",
         "work_unit_id": work_unit_id,
@@ -175,7 +175,7 @@ def test_provider_admission_current_control_uses_worker_liveness_as_running_gate
         "action_fingerprint": stale_fingerprint,
         "dispatch_path": (
             "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
-            "artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+            "artifacts/supervision/consumer/owner_callable_adapters/run_gate_clearing_batch.json"
         ),
         "next_executable_owner": "gate_clearing_batch",
         "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
@@ -267,7 +267,7 @@ def test_provider_admission_prefers_canonical_current_work_unit_over_stale_curre
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     action_fingerprint = "sha256:current-canonical-gate-replay"
@@ -275,12 +275,12 @@ def test_provider_admission_prefers_canonical_current_work_unit_over_stale_curre
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": "sha256:stale-dispatch-fingerprint",
@@ -364,7 +364,7 @@ def test_provider_admission_uses_fresh_repair_progress_action_over_stale_current
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     current_fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
@@ -375,12 +375,12 @@ def test_provider_admission_uses_fresh_repair_progress_action_over_stale_current
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": stale_fingerprint,
@@ -474,7 +474,7 @@ def test_provider_admission_rejects_same_fingerprint_with_stale_action_identity(
     dispatch_path = tmp_path / "dispatches" / "return_to_ai_reviewer_workflow.json"
     current_fingerprint = "sha256:current-gate-clearing"
     execution = {
-        "source": "default_executor_execution",
+        "source": "owner_callable_adapter_receipt",
         "execution_status": "handoff_ready",
         "study_id": study_id,
         "quest_id": study_id,
@@ -495,7 +495,7 @@ def test_provider_admission_rejects_same_fingerprint_with_stale_action_identity(
 
     candidate = provider_admission.provider_admission_candidate_from_execution(
         execution,
-        execution_ref="runtime/artifacts/supervision/consumer/default_executor_execution/latest.json",
+        execution_ref="runtime/artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
         status_study_id=study_id,
         current_action_identity={
             "action_ids": ["run_gate_clearing_batch", "publication_gate_replay"],
@@ -516,18 +516,18 @@ def test_provider_admission_execution_requires_current_identity_for_current_cont
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     dispatch_path = tmp_path / "dispatches" / "run_gate_clearing_batch.json"
-    action_fingerprint = "sha256:stale-persisted-default-executor"
+    action_fingerprint = "sha256:stale-persisted-owner-callable"
     execution_payload = {
         "surface": "stage_outcome_authority",
         "executions": [
             {
-                "source": "default_executor_execution",
+                "source": "owner_callable_adapter_receipt",
                 "execution_status": "handoff_ready",
                 "study_id": study_id,
                 "quest_id": study_id,
                 "action_type": "run_gate_clearing_batch",
                 "dispatch_path": str(dispatch_path),
-                "dispatch_authority": "consumer_default_executor_dispatch",
+                "dispatch_authority": "consumer_owner_callable_dispatch",
                 "next_executable_owner": "gate_clearing_batch",
                 "provider_attempt_or_lease_required": True,
                 "owner_route_current": True,
@@ -544,7 +544,7 @@ def test_provider_admission_execution_requires_current_identity_for_current_cont
 
     candidates = provider_admission.provider_admission_candidates_from_execution_payload(
         execution_payload,
-        execution_ref="runtime/artifacts/supervision/consumer/default_executor_execution/latest.json",
+        execution_ref="runtime/artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
         status_payload={
             "study_id": study_id,
             "current_execution_envelope": {

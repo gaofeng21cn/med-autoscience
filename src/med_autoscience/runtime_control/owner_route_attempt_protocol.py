@@ -4,9 +4,9 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_closeout_contract import (
-    default_executor_typed_closeout_contract,
+    owner_callable_typed_closeout_contract,
 )
-from med_autoscience.controllers.owner_callable_action_policy import default_executor_search_discipline
+from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
 from med_autoscience.runtime_control import decision_trace_ledger
 
 
@@ -100,9 +100,10 @@ CURRENTNESS_BASIS_FIELDS = frozenset(
     }
 )
 CLOSEOUT_PREALLOCATED_REF_TEMPLATE = (
-    "studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+    "studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
     "<stage_attempt_id>.closeout.json"
 )
+STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND = "stage_outcome/opl-handoff"
 CLOSEOUT_FIRST_TERMINAL_OUTCOMES = [
     "typed_blocker",
     "owner_receipt",
@@ -252,7 +253,7 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
         "route_to_attempt_contract": _route_to_attempt_contract(),
         "authority_boundary": _authority_boundary(),
         "runtime_completion_guard": _runtime_completion_guard(),
-        "completion_boundary": default_executor_typed_closeout_contract(
+        "completion_boundary": owner_callable_typed_closeout_contract(
             action_type=action_type or "domain_owner_action"
         )["completion_boundary"],
     }
@@ -268,7 +269,7 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     return route
 
 
-def default_executor_attempt_envelope(
+def owner_callable_attempt_envelope(
     *,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -319,10 +320,10 @@ def default_executor_attempt_envelope(
         "forbidden_surfaces": _list_field(dispatch, prompt_contract, "forbidden_surfaces"),
         "tool_discipline": _mapping(prompt_contract.get("tool_discipline"))
         or _mapping(dispatch.get("tool_discipline"))
-        or default_executor_search_discipline(),
+        or owner_callable_search_discipline(),
         "search_boundaries": _mapping(prompt_contract.get("search_boundaries"))
         or _mapping(dispatch.get("search_boundaries"))
-        or default_executor_search_discipline(),
+        or owner_callable_search_discipline(),
         "required_closeout_packet": closeout_packet_for_transport(transport_closeout_packet),
         "closeout_first_contract": closeout_first_contract,
         "completion_boundary": completion_boundary,
@@ -356,11 +357,11 @@ def default_executor_attempt_envelope(
     }
 
 
-def payload_fields_for_default_executor_dispatch(
+def payload_fields_for_owner_callable_dispatch(
     *,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any]:
-    envelope = default_executor_attempt_envelope(dispatch=dispatch)
+    envelope = owner_callable_attempt_envelope(dispatch=dispatch)
     return {
         "work_unit_id": envelope.get("work_unit_id"),
         "source_eval_id": envelope.get("source_eval_id"),
@@ -805,7 +806,7 @@ def _required_closeout_packet(
     )
     if packet:
         return dict(packet)
-    return default_executor_typed_closeout_contract(action_type=action_type or "domain_owner_action")
+    return owner_callable_typed_closeout_contract(action_type=action_type or "domain_owner_action")
 
 
 def _completion_boundary(
@@ -816,7 +817,7 @@ def _completion_boundary(
     boundary = _mapping(required_closeout_packet.get("completion_boundary"))
     if boundary:
         return dict(boundary)
-    return default_executor_typed_closeout_contract(
+    return owner_callable_typed_closeout_contract(
         action_type=action_type or "domain_owner_action"
     )["completion_boundary"]
 
@@ -872,14 +873,14 @@ def _closeout_first_contract(
     required_ref_field = _text(required_closeout_packet.get("required_ref_field")) or "closeout_refs"
     minimum_closeout_refs = int(required_closeout_packet.get("minimum_closeout_refs") or 0)
     return {
-        "surface_kind": "mas_default_executor_closeout_first_contract",
-        "version": "mas-default-executor-closeout-first-contract.v1",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "surface_kind": "mas_stage_outcome_opl_handoff_closeout_first_contract",
+        "version": "mas-stage-outcome-opl-handoff-closeout-first-contract.v1",
+        "stage_id": STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND,
         "preallocated_closeout_ref": CLOSEOUT_PREALLOCATED_REF_TEMPLATE.format(study_id=study_id),
         "required_schema": {
             "surface_kind": "stage_attempt_closeout_packet",
             "schema_version": 1,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND,
             "required_ref_field": required_ref_field,
             "minimum_closeout_refs": minimum_closeout_refs,
         },
@@ -1015,9 +1016,9 @@ __all__ = [
     "currentness_basis",
     "currentness_contract",
     "decorate_owner_route",
-    "default_executor_attempt_envelope",
+    "owner_callable_attempt_envelope",
     "normalize_currentness_sources",
     "owner_reason_contract",
-    "payload_fields_for_default_executor_dispatch",
+    "payload_fields_for_owner_callable_dispatch",
     "route_protocol_dispatchable",
 ]

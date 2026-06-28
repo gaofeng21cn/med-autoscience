@@ -10,7 +10,7 @@ def test_current_work_unit_blocks_same_identity_record_only_terminal_closeout() 
     fingerprint = "publication-blockers::0915410f804b3697"
     closeout_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-        "consumer/default_executor_execution/sat_f22f2e9d25d336fa2a2a4306.closeout.json"
+        "consumer/owner_callable_adapter_receipt/sat_f22f2e9d25d336fa2a2a4306.closeout.json"
     )
     owner_receipt_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/"
@@ -50,7 +50,7 @@ def test_current_work_unit_blocks_same_identity_record_only_terminal_closeout() 
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_f22f2e9d25d336fa2a2a4306",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "closed",
                     "outcome": "closed_with_existing_mas_owner_receipt_ref; provider_completion_is_not_domain_completion",
                     "action_type": "run_quality_repair_batch",

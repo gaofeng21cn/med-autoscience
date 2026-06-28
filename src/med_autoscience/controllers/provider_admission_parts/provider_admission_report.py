@@ -1051,7 +1051,7 @@ def _provider_admission_scanned_report_studies(
             or _mapping(current_work_unit.get("typed_blocker"))
             or None,
             "parked_state": None,
-            "source": "domain_health_diagnostic.managed_study_actions",
+            "source": "domain_diagnostic_report.managed_study_actions",
         }
         studies.append(
             {
@@ -1117,7 +1117,7 @@ def _progress_currentness_closeout_evidence(
     evidence: list[dict[str, Any]] = []
     identity = _mapping(identity) or _progress_currentness_current_identity(payload)
     for key in (
-        "default_executor_execution_receipt_consumption",
+        "owner_callable_receipt_consumption",
         "terminal_closeout_precedence_evidence",
         "latest_stage_attempt_closeout",
         "stage_attempt_closeout",
@@ -1133,7 +1133,7 @@ def _progress_currentness_closeout_evidence(
     for key in (
         "accepted_closeout_evidence",
         "stage_attempt_closeouts",
-        "default_executor_execution_receipt_consumptions",
+        "owner_callable_receipt_consumptions",
     ):
         for item in payload.get(key) or []:
             mapped = _mapping(item)
@@ -1238,7 +1238,7 @@ def _provider_admission_candidates_from_progress_currentness(
         candidates.extend(
             _explicit_provider_admission_candidates_from_progress_currentness(
                 status_payload,
-                source="dhd.provider_admission_progress_currentness",
+                source="domain_diagnostic.provider_admission_progress_currentness",
             )
         )
         candidates.extend(
@@ -1679,7 +1679,7 @@ def _provider_admission_candidates_from_same_tick_materialize(
         candidate = _same_tick_candidate_with_stage_run_identity(candidate)
         candidate = _candidate_with_opl_transition_request(
             candidate,
-            source="dhd.provider_admission_same_tick_materialized_dispatch",
+            source="domain_diagnostic.provider_admission_same_tick_materialized_dispatch",
             current_action_source="same_tick_materialized_dispatch",
         )
         if candidate["study_id"] is not None and candidate["action_type"] is not None:

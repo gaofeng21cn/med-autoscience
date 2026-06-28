@@ -48,7 +48,7 @@ def consumed_current_transition_receipt(
     ]
     if not routed_actions:
         return {}
-    receipt = study_transition_receipt_consumption.default_executor_execution_receipt_consumption(
+    receipt = study_transition_receipt_consumption.owner_callable_receipt_consumption(
         study_root=study_root,
         owner_route=owner_route,
         actions=routed_actions,

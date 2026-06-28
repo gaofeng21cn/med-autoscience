@@ -78,7 +78,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MDS can supervise while the daemon is alive; MAS default outer supervision is observed through OPL provider ticks and OPL stage attempt reconciliation.",
         "default_user_impact": "Outer drift detection follows OPL provider cadence; MAS only advances domain state from owner receipt, typed blocker, or publication gate verdict.",
-        "mas_contract": "OPL owns scheduler, queue, attempt continuation, retry/dead-letter, and worker liveness; MAS keeps domain_health_diagnostic/progress freshness interpretation plus owner receipt and typed blocker semantics.",
+        "mas_contract": "OPL owns scheduler, queue, attempt continuation, retry/dead-letter, and worker liveness; MAS keeps domain_diagnostic_report/progress freshness interpretation plus owner receipt and typed blocker semantics.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -156,7 +156,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MDS resumes at daemon startup; OPL reconciles desired intent versus attempt state and MAS returns route-back, owner receipt, or typed blocker.",
         "default_user_impact": "Recovery is independent of MDS checkout and no longer depends on MAS recovery-intent ledgers.",
-        "mas_contract": "OPL owns recovery scheduling, retry/dead-letter, and worker restart; MAS domain_health_diagnostic can explain blockers but cannot drive provider state.",
+        "mas_contract": "OPL owns recovery scheduling, retry/dead-letter, and worker restart; MAS domain_diagnostic_report can explain blockers but cannot drive provider state.",
         "recommended_operator_action": "use_opl_provider_stage_runtime",
     },
     {

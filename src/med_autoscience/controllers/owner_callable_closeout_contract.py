@@ -9,7 +9,7 @@ from .owner_callable_stage_log import (
 )
 
 
-def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, Any]:
+def owner_callable_typed_closeout_contract(*, action_type: str) -> dict[str, Any]:
     return {
         "typed_closeout_required_for_completion": True,
         "free_text_closeout_accepted": False,
@@ -113,4 +113,4 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
     }
 
 
-__all__ = ["default_executor_typed_closeout_contract"]
+__all__ = ["owner_callable_typed_closeout_contract"]

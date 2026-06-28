@@ -258,8 +258,8 @@ def write_task_intake(
             "opl_runtime_owner_handoff_path": str(
                 resolved_study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
             ),
-            "domain_health_diagnostic_path": str(
-                resolved_study_root / "artifacts" / "domain_health_diagnostic" / "latest.json"
+            "runtime_readback_report_path": str(
+                resolved_study_root / "artifacts" / "domain_diagnostic_report" / "latest.json"
             ),
             "publication_eval_path": str(
                 resolved_study_root / "artifacts" / "publication_eval" / "latest.json"

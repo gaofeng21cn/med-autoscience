@@ -457,7 +457,7 @@ def run_controller(
         if runtime_status in {"running", "active"}:
             if _is_self_owned_quest_invocation(state.quest_root):
                 quest_stop_deferred = True
-                quest_stop_defer_reason = "self_owned_domain_health_diagnostic"
+                quest_stop_defer_reason = "self_owned_domain_diagnostic_report"
             else:
                 stop_result = {
                     "status": "owner_route_required",

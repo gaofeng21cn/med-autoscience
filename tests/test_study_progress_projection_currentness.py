@@ -17,10 +17,10 @@ def test_progress_projection_recomputes_actions_after_consumed_closeout_typed_bl
             "work_unit_id": "publication_gate_replay",
             "work_unit_fingerprint": "sha256:2c4793",
             "action_fingerprint": "sha256:2c4793",
-            "source_ref": "artifacts/supervision/consumer/default_executor_execution/sat_e106.closeout.json",
+            "source_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_e106.closeout.json",
             "typed_blocker_ref": (
                 "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-                "consumer/default_executor_execution/sat_e106.closeout.json#domain_blocker"
+                "consumer/owner_callable_adapter_receipt/sat_e106.closeout.json#domain_blocker"
             ),
             "stage_attempt_id": "sat_e106",
             "terminal_closeout_status": "blocked",
@@ -60,11 +60,17 @@ def test_progress_projection_recomputes_actions_after_consumed_closeout_typed_bl
         },
     )
 
-    assert payload["current_work_unit"]["status"] == "typed_blocker"
-    assert payload["current_work_unit"]["state"]["source"] == "typed_blocker"
-    assert payload["current_execution_envelope"]["state_kind"] == "typed_blocker"
-    assert payload["current_executable_owner_action"] is None
-    assert payload["current_execution_evidence"]["action_queue"] == []
+    assert payload["current_work_unit"]["status"] == "executable_owner_action"
+    assert payload["current_work_unit"]["state"]["source"] == (
+        "repair_progress_projection.mas_owner_repair_execution_evidence"
+    )
+    assert payload["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert payload["current_executable_owner_action"] == action
+    evidence_action = payload["current_execution_evidence"]["action_queue"][0]
+    assert evidence_action["action_type"] == action["action_type"]
+    assert evidence_action["work_unit_id"] == action["work_unit_id"]
+    assert evidence_action["action_fingerprint"] == action["action_fingerprint"]
+    assert evidence_action["source_surface"] == action["source"]
     assert payload["current_execution_evidence"]["opl_current_control_state_handoff"]["typed_blocker"] == (
         handoff["typed_blocker"]
     )

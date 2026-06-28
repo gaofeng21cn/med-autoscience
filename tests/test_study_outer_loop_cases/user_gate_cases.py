@@ -129,7 +129,7 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
             }
         ],
         reason="Human-review milestone reached; stop the live runtime and wait for explicit resume.",
-        source="domain_health_diagnostic_outer_loop_wakeup",
+        source="domain_diagnostic_outer_loop_wakeup",
         recorded_at="2026-04-05T06:12:00+00:00",
     )
 

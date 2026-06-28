@@ -43,7 +43,7 @@ Date: `2026-06-16`
 
 - MAS 只发布 domain intent、policy result、accepted owner answer shape 和 authority refs；不能在 MAS 内自建 command log、event log、outbox、fixed-point runtime、attempt lifecycle 或 worker residency。
 - OPL 只把 MAS intent 事务化为 runtime command / event / outbox / StageRun / tool invocation / human gate transport；不能签 MAS owner receipt、创建 MAS typed blocker、解释 publication-ready、写 paper body 或授权 artifact mutation。
-- 所有 status、DHD、Portal、Workbench、state index、sidecar、lineage、trace 和 raw worklist 都是 projection / observation / audit plane。它们必须带 `derived_from_event_id`、`observed_generation`、`authority=false` 或等价边界；缺这些字段时只能作为 diagnostic。
+- 所有 status、domain diagnostic、Portal、Workbench、state index、sidecar、lineage、trace 和 raw worklist 都是 projection / observation / audit plane。它们必须带 `derived_from_event_id`、`observed_generation`、`authority=false` 或等价边界；缺这些字段时只能作为 diagnostic。
 - 任何新能力先归位到 OPL primitive、MAS authority function、MAS declarative pack、Scientific Capability Registry 或 refs-only audit sidecar；不能先落 MAS 私有 helper 再以后续上收为理由保留。
 
 ### 理想运行平面
@@ -500,7 +500,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 
 - `current_owner_delta` 不得被 worklist 空、sidecar 缺失、old dispatch 或 stale read-model 覆盖。
 - `DomainProgressTransitionRuntime` 未给出 command/event/outbox/readback 时，MAS provider admission 只能停在 transition request / diagnostic，不得自签 provider admission 或 materialize ready dispatch。
-- `Paper Autonomy Supervisor`、DHD、`current_work_unit`、`paper_recovery_state`、domain-handler export 和 Workbench 只能消费 OPL transition event + MAS policy result；不得各自从 queue、stage index、old dispatch、provider count 或 prose status 重新选择下一步。
+- `Paper Autonomy Supervisor`、domain diagnostic、`current_work_unit`、`paper_recovery_state`、domain-handler export 和 Workbench 只能消费 OPL transition event + MAS policy result；不得各自从 queue、stage index、old dispatch、provider count 或 prose status 重新选择下一步。
 - external advisory 缺失默认 fail open。
 - observability、lineage、provider completion、queue completion、descriptor ready 都不能声明 paper closure。
 - MAS function 不得重新持有 generic scheduler、queue、worker residency、session store、workbench 或 private lifecycle owner。

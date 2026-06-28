@@ -142,7 +142,7 @@
       ],
       "missing_explicit_current_identity_effect": "suppress_same_tick_provider_admission_candidate",
       "applies_to": [
-        "developer_supervisor_same_tick.materialize.default_executor_dispatches",
+        "developer_supervisor_same_tick.materialize.owner_callable_adapters",
         "same_tick_materialized_dispatch"
       ]
     },
@@ -245,24 +245,24 @@
         "attempt_lifecycle_authority": false,
         "allowed_execution_sources": [
           "owner_callable_adapter_receipt",
-          "default_executor_execution"
+          "owner_callable_adapter_receipt"
         ],
         "allowed_execution_surfaces": [
           "owner_callable_adapter_receipt",
-          "default_executor_dispatch_execution"
+          "owner_callable_dispatch_execution"
         ],
         "allowed_dispatch_authorities": [
           "ai_reviewer_record_production_handoff",
-          "consumer_default_executor_dispatch",
+          "consumer_owner_callable_dispatch",
           "quality_repair_batch_writer_handoff"
         ],
         "required_guards": [
           "dispatch_path_present",
           "owner_route_current_not_false",
-          "existing_source_refs_preserved_for_default_executor_execution"
+          "existing_source_refs_preserved_for_owner_callable_adapter_receipt"
         ],
         "allowed_effects": [
-          "recover_stage_packet_ref_from_same_default_executor_carrier_dispatch_ref"
+          "recover_stage_packet_ref_from_same_owner_callable_adapter_carrier_dispatch_ref"
         ],
         "forbidden_effects": [
           "general_dispatch_ref_to_stage_packet_ref_synthesis",
@@ -356,7 +356,7 @@
         "current_owner_ticket.work_unit.work_unit_fingerprint"
       ],
       "weak_identity_signal": "weak_fresh_progress_current_owner_ticket_identity",
-      "weak_identity_effect": "diagnostic_only_no_default_executor_dispatch",
+      "weak_identity_effect": "diagnostic_only_no_owner_callable_dispatch",
       "weak_identity_reason": "fresh_progress_current_owner_ticket_requires_strong_currentness_identity",
       "route_generation_policy": "do_not_generate_owner_route_from_generated_at_or_source_ref_only"
     },
@@ -411,8 +411,8 @@
       "ProviderAdmissionRequested": "MAS provider admission identity bound to current owner delta",
       "OPLStageRunAdmitted": "OPL StageRun Kernel",
       "ProviderRunning": "OPL liveness plus MAS identity match and no terminal closeout",
-      "ProviderTerminalCloseoutObserved": "OPL/default-executor closeout packet",
-      "MASCloseoutConsumed": "domain-health-diagnostic apply or equivalent MAS authority consumer",
+      "ProviderTerminalCloseoutObserved": "OPL/owner-callable closeout packet",
+      "MASCloseoutConsumed": "domain-diagnostic-report apply or equivalent MAS authority consumer",
       "DomainAcceptedOrTypedBlocked": "MAS owner receipt, quality gate receipt, stable typed blocker, human gate, or route-back evidence",
       "NextOwnerDeltaProjected": "MAS current_owner_delta/current_work_unit projection"
     },
@@ -454,7 +454,7 @@
         "id": "provider_admission_current_control",
         "label": "provider admission current-control",
         "state_role": "transport_intent",
-        "authority": "MAS DHD arbiter"
+        "authority": "MAS domain diagnostic arbiter"
       },
       {
         "id": "opl_stage_run_attempt",
@@ -472,11 +472,11 @@
         "id": "terminal_closeout",
         "label": "terminal closeout",
         "state_role": "terminal_current",
-        "authority": "OPL/default-executor closeout"
+        "authority": "OPL/owner-callable closeout"
       },
       {
-        "id": "domain_health_diagnostic_apply",
-        "label": "DHD apply / closeout consumer",
+        "id": "domain_diagnostic_report_apply",
+        "label": "domain diagnostic apply / closeout consumer",
         "state_role": "domain_consumer",
         "authority": "MAS authority consumer"
       },
@@ -544,12 +544,12 @@
       },
       {
         "from": "terminal_closeout",
-        "to": "domain_health_diagnostic_apply",
+        "to": "domain_diagnostic_report_apply",
         "authority_effect": "consume_closeout_or_materialize_current_control_for_matching_identity",
         "loop_guard": "dry_run_identity_match_required_before_apply"
       },
       {
-        "from": "domain_health_diagnostic_apply",
+        "from": "domain_diagnostic_report_apply",
         "to": "mas_owner_receipt_or_typed_blocker",
         "authority_effect": "accept_domain_owner_answer_or_stable_blocker",
         "loop_guard": "accepted_owner_answer_or_stable_typed_blocker_required"
@@ -581,7 +581,7 @@
       "opl_stage_run_attempt",
       "provider_running",
       "terminal_closeout",
-      "domain_health_diagnostic_apply",
+      "domain_diagnostic_report_apply",
       "mas_owner_receipt_or_typed_blocker",
       "next_current_owner_delta"
     ],
@@ -758,7 +758,7 @@
     {
       "rank": 7,
       "signal": "weak_fresh_progress_current_owner_ticket_identity",
-      "effect": "diagnostic_only_no_default_executor_dispatch",
+      "effect": "diagnostic_only_no_owner_callable_dispatch",
       "required_match": [
         "current_owner_ticket_or_current_action_present",
         "missing_strong_currentness_identity"
@@ -794,11 +794,11 @@
       "allowed_output": "ignored_diagnostic"
     }
   ],
-  "dhd_apply_same_tick_gate": {
-    "surface_kind": "domain_health_diagnostic_apply_same_tick_gate",
-    "producer": "domain-health-diagnostic.apply",
+  "domain_diagnostic_apply_same_tick_gate": {
+    "surface_kind": "domain_diagnostic_report_apply_same_tick_gate",
+    "producer": "domain-diagnostic-report.apply",
     "decision_point": "after_initial_managed_study_obligation_actuator_before_developer_supervisor_same_tick",
-    "purpose": "Prevent DHD apply from running same-tick owner-route reconcile after the initial actuator has already closed the current paper recovery obligation, while preserving same-tick follow-through when fresh progress exposes a successor owner action or gate.",
+    "purpose": "Prevent domain diagnostic apply from running same-tick owner-route reconcile after the initial actuator has already closed the current paper recovery obligation, while preserving same-tick follow-through when fresh progress exposes a successor owner action or gate.",
     "closed_outcome_kinds_skip_same_tick": [
       "owner_receipt_ref",
       "provider_admission_pending",
@@ -841,7 +841,7 @@
     "required_sequence": [
       "OPL attempt reaches terminal state",
       "terminal closeout packet exists for the same stage attempt or work-unit identity",
-      "MAS consumes closeout through domain-health-diagnostic apply or equivalent authority consumer",
+      "MAS consumes closeout through domain-diagnostic-report apply or equivalent authority consumer",
       "fresh study progress/read-model is regenerated",
       "if provider_admission_pending remains for a new identity, OPL scoped tick/hydrate may start the next attempt",
       "if the same identity remains pending, classify as closeout consumption/currentness bug"
@@ -925,7 +925,7 @@
   "stage_route_arbiter_surface": {
     "surface_kind": "mas_opl_stage_route_arbiter",
     "schema_version": 1,
-    "producer": "domain-health-diagnostic.provider_admission_current_control",
+    "producer": "domain-diagnostic-report.provider_admission_current_control",
     "ordinary_planning_root": "current_owner_delta",
     "purpose": "Explain, in one machine-readable place, why each provider-admission identity is retained as pending or suppressed by strict live/terminal evidence.",
     "decision_payload_required_fields": [
@@ -1091,7 +1091,7 @@
     "readiness_blocker_only_forbidden_basis": [
       "current_work_unit.typed_blocker",
       "current_execution_envelope.typed_blocker",
-      "stale_default_executor_dispatch_owner_route",
+      "stale_owner_callable_dispatch_owner_route",
       "source_ref_or_fingerprint_match_without_executable_owner_action"
     ],
     "allowed_readiness_dispatch_effect": "execute_or_handoff_owner_action",
@@ -1102,7 +1102,7 @@
         "owner_route_match_with_allowed_action",
         "shared_currentness_identity_with_fingerprint"
       ],
-      "stale_or_unbound_effect": "diagnostic_only_no_default_executor_dispatch",
+      "stale_or_unbound_effect": "diagnostic_only_no_owner_callable_dispatch",
       "blocked_reason": "stage_native_workspace_next_action_requires_current_work_unit_currentness_match",
       "readiness_barrier_derived_repair_requires": [
         "fresh_action.reason == medical_paper_readiness_missing",
@@ -1111,7 +1111,7 @@
         "current_work_unit.state.stale_queue_or_handoff_can_override != true",
         "stage_native_next_action_has_authority_binding"
       ],
-      "readiness_barrier_stale_or_unbound_effect": "diagnostic_only_no_default_executor_dispatch",
+      "readiness_barrier_stale_or_unbound_effect": "diagnostic_only_no_owner_callable_dispatch",
       "readiness_barrier_forbidden_basis": [
         "current_execution_envelope_typed_blocker_without_current_work_unit_readiness_identity",
         "stale_queue_or_handoff_can_override_true",
@@ -1119,7 +1119,7 @@
         "readiness_typed_blocker_for_non_current_work_unit"
       ]
     },
-    "default_dispatch_allowed_false_effect": "ignored_diagnostic_no_request_task_no_default_executor_dispatch",
+    "default_dispatch_allowed_false_effect": "ignored_diagnostic_no_request_task_no_owner_callable_dispatch",
     "terminal_closeout_owner_answer_dispatch_policy": {
       "requires_any": [
         "closeout_ref_or_source_ref_points_to_dispatch",
@@ -1692,14 +1692,14 @@
     "purpose": "Central operator contract for deciding whether a MAS/OPL stage-route surface is only observable, needs closeout consumption, may hydrate a new OPL StageRun, or must fail closed as supervisor diagnostic.",
     "ordinary_read_sequence": [
       "fresh_study_progress",
-      "domain_health_diagnostic_dry_run_with_stage_attempts",
+      "domain_diagnostic_report_dry_run_with_stage_attempts",
       "opl_current_control_queue_attempt_worker_readback",
       "terminal_closeout_consumer_gate",
       "fresh_study_progress_after_consumer"
     ],
     "operator_actions": [
       {
-        "action": "domain_health_diagnostic_dry_run",
+        "action": "domain_diagnostic_report_dry_run",
         "effect": "observe_runtime_truth_and_may_refresh_diagnostic_evidence",
         "starts_provider_or_llm": false,
         "can_claim_no_write": false,
@@ -1715,7 +1715,7 @@
         ]
       },
       {
-        "action": "domain_health_diagnostic_apply",
+        "action": "domain_diagnostic_report_apply",
         "requires_all": [
           "terminal_closeout_observed_for_current_or_successor_identity",
           "dry_run_currentness_identity_matches_selected_study",
@@ -1784,14 +1784,14 @@
           "terminal_closeout_refs_present_for_current_identity",
           "terminal_closeout_refs_present_for_successor_handoff_identity"
         ],
-        "effect": "force_dhd_apply_or_equivalent_consumer_before_next_hydrate",
+        "effect": "force_domain_diagnostic_apply_or_equivalent_consumer_before_next_hydrate",
         "forbidden_shortcut": "do_not_hydrate_or_redrive_while_terminal_closeout_is_unconsumed"
       }
     ],
     "current_control_four_state_payload": {
       "desired": "MAS current_owner_delta/current_work_unit/provider_admission_identity",
       "running": "OPL StageRun lease plus Temporal/provider liveness with same identity",
-      "terminal": "OPL/default-executor closeout refs and terminal outcome for same identity",
+      "terminal": "OPL/owner-callable closeout refs and terminal outcome for same identity",
       "read_model": "rebuildable projection and operator summary only",
       "mutual_exclusion_rule": "same_identity_cannot_be_running_and_terminal; terminal_precedes_running; read_model_cannot_authorize_desired"
     },
@@ -1820,7 +1820,7 @@
       ]
     },
     "forbidden_automation_shortcuts": [
-      "repeat_dhd_apply_after_observe_only_without_new_terminal_or_identity",
+      "repeat_domain_diagnostic_apply_after_observe_only_without_new_terminal_or_identity",
       "hydrate_without_materialized_provider_admission",
       "same_work_unit_redrive_after_anti_loop_budget_exhausted",
       "provider_slo_tick_as_handoff_consumer",
@@ -1918,7 +1918,7 @@
   "verification_refs": [
     "tests/test_stage_route_reconcile_contract.py",
     "tests/paper_mission_owner_surface_cases/test_opl_provider_attempt_projection.py",
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
+    "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
     "tests/test_current_work_unit.py",
     "scripts/verify.sh",
     "make test-meta"
@@ -1957,7 +1957,7 @@
       "paper_local_codex_execution_without_mas_owner_callable_or_explicit_manual_mode",
       "direct_manuscript_or_package_edit_claimed_as_mas_opl_recovery",
       "foreground_replay_of_provider_admission_queue",
-      "foreground_domain_health_diagnostic_apply_without_explicit_controller_lane",
+      "foreground_domain_diagnostic_report_apply_without_explicit_controller_lane",
       "study_workspace_runtime_artifact_mutation",
       "publication_eval_or_controller_decision_manual_write"
     ],
@@ -2023,7 +2023,7 @@
           "work_unit_id": "publication_gate_replay",
           "provider_admission_pending_count": 0,
           "provider_admission_candidates": [],
-          "dhd_action_class": "observe_only",
+          "domain_diagnostic_action_class": "observe_only",
           "will_start_llm": false,
           "codex_dispatch_count": 0
         },
@@ -2039,7 +2039,7 @@
           "work_unit_id": "publication_gate_replay",
           "provider_admission_pending_count": 0,
           "provider_admission_candidates": [],
-          "dhd_action_class": "observe_only",
+          "domain_diagnostic_action_class": "observe_only",
           "will_start_llm": false,
           "codex_dispatch_count": 0
         }
@@ -2060,7 +2060,7 @@
       ],
       "forbidden_recovery_actions": [
         "same_work_unit_provider_admission_redrive",
-        "same_work_unit_default_executor_dispatch",
+        "same_work_unit_owner_callable_dispatch",
         "foreground_codex_retry_of_repair_batch",
         "replaying_stale_action_queue_or_provider_admission"
       ]
@@ -2127,7 +2127,7 @@
     "required_readback": [
       "fresh_study_progress_for_dm002",
       "fresh_study_progress_for_dm003",
-      "domain_health_diagnostic_dry_run_readback",
+      "domain_diagnostic_report_dry_run_readback",
       "provider_admission_pending_count_readback",
       "owner_receipt_or_typed_blocker_ref_readback"
     ],
@@ -2157,7 +2157,7 @@
     "stage_route_role": "consume_paper_recovery_obligation_for_provider_admission_and_closeout_reconcile",
     "derived_surfaces_must_read_from_paper_recovery": [
       "study_progress",
-      "domain_health_diagnostic.provider_admission_current_control",
+      "domain_diagnostic_report.provider_admission_current_control",
       "operator_status_card",
       "intervention_lane",
       "operator_verdict",
@@ -2194,7 +2194,7 @@
         "current_work_unit",
         "current_execution_envelope",
         "study_progress",
-        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_diagnostic_report.provider_admission_current_control",
         "domain_handler_export.pending_family_tasks",
         "operator_status_card",
         "OPL admission projection",
@@ -2313,7 +2313,7 @@
       ],
       "same_work_unit_redrive_allowed": false,
       "forbidden_actions": [
-        "same_work_unit_default_executor_dispatch",
+        "same_work_unit_owner_callable_dispatch",
         "same_work_unit_provider_admission_redrive",
         "stale_stage_packet_replay",
         "foreground_gate_replay_retry_without_owner_binding"

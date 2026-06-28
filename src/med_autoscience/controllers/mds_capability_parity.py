@@ -108,12 +108,12 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "classification": "mas_owned",
         "mds_authority_role": "backend",
         "mas_target_owner": "Runtime OS",
-        "mas_owner_surface": "Runtime OS progress_projection/domain_health_diagnostic replay consumer",
+        "mas_owner_surface": "Runtime OS progress_projection/domain_diagnostic_report replay consumer",
         "oracle_fixture_ref": "fixtures/mds_oracle/runtime_execution.json",
         "required_parity_proof": "runtime execution replay and recovery regression suite",
         "parity_proof": {
             "proof_kind": "execution_replay",
-            "mas_contract": "progress_projection/domain_health_diagnostic own runtime decisions and recovery visibility",
+            "mas_contract": "progress_projection/domain_diagnostic_report own runtime decisions and recovery visibility",
             "mds_oracle": "MDS quest execution traces can be replayed only as backend behavior fixtures",
             "acceptance": "MAS recovery decisions match or intentionally supersede replayed MDS behavior",
         },
@@ -122,7 +122,7 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "publication_ready_authority_allowed": False,
         "parity_status": "oracle_fixture_defined",
         "provenance_ref": PROVENANCE_REF,
-        "rollback_surface": "progress_projection/domain_health_diagnostic retain MAS domain owner refs and typed blockers; OPL owns runtime control state",
+        "rollback_surface": "progress_projection/domain_diagnostic_report retain MAS domain owner refs and typed blockers; OPL owns runtime control state",
         "old_mds_authority_surface_status": "marked_oracle",
     },
     {

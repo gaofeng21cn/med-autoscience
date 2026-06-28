@@ -8,7 +8,7 @@ from typing import Any
 
 ACTION_TYPE = "run_quality_repair_batch"
 BLOCKED_REASON = "claim_evidence_alignment_required"
-DEFAULT_EXECUTOR_EXECUTION_SURFACE = "artifacts/supervision/consumer/default_executor_execution/latest.json"
+OWNER_CALLABLE_RECEIPT_SURFACE = "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
 CONSUMER_REQUEST_SURFACE = "artifacts/supervision/consumer/run_quality_repair_batch.json"
 REQUIRED_OUTPUT = (
     "claim-evidence map and evidence ledger alignment or "
@@ -61,7 +61,7 @@ def action_from_ai_reviewer_alignment_blocker(*, study_root: Path) -> dict[str, 
 
 
 def _latest_alignment_blocker_execution(*, study_root: Path) -> dict[str, Any] | None:
-    source_path = Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_EXECUTION_SURFACE
+    source_path = Path(study_root).expanduser().resolve() / OWNER_CALLABLE_RECEIPT_SURFACE
     record = _read_json_object(source_path)
     for execution in reversed(record.get("executions") or []):
         if not isinstance(execution, Mapping):

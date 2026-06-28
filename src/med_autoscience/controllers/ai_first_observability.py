@@ -162,7 +162,7 @@ def _user_view(
         return {
             "status": "informational",
             "reason": "doctor report exposes the observability contract without study-specific runtime traces",
-            "next_action": "inspect_progress_projection_or_domain_health_diagnostic",
+            "next_action": "inspect_progress_projection_or_domain_diagnostic_report",
         }
     if not reasons:
         return {

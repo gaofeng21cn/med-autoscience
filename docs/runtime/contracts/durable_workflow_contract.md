@@ -25,7 +25,7 @@ OPL runtime 必须用 durable event log 恢复状态。replay 从 `restore_point
 
 ## Idempotent Tick
 
-controller tick 的幂等键由 `program_id`、`study_id`、`quest_id`、`active_run_id`、`work_unit_id`、`restore_point_id` 与 `tick_sequence` 组成。重复 tick 只能返回已有 decision ref；它可以写 `progress_projection`、`domain_health_diagnostic`、`runtime_escalation_record.json` 与 `artifacts/controller_decisions/latest.json`，但不能创建或覆盖 study truth、不能覆盖 quality truth、不能声明 publication ready。
+controller tick 的幂等键由 `program_id`、`study_id`、`quest_id`、`active_run_id`、`work_unit_id`、`restore_point_id` 与 `tick_sequence` 组成。重复 tick 只能返回已有 decision ref；它可以写 `progress_projection`、`domain_diagnostic_report`、`runtime_escalation_record.json` 与 `artifacts/controller_decisions/latest.json`，但不能创建或覆盖 study truth、不能覆盖 quality truth、不能声明 publication ready。
 
 ## Human Gate
 

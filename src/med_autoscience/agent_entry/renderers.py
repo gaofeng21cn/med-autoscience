@@ -174,7 +174,7 @@ def render_stage_route_contract_guide() -> str:
             "A `typed blocker` is a stop or owner-route signal, not execution authority. Blocker-only state must not "
             "execute `complete_medical_paper_readiness_surface` or redrive the same work unit without a new owner "
             "receipt, route-back, human gate, successor identity, or owner-authorized action.",
-            "DHD dry-run, DHD apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are "
+            "domain diagnostic dry-run, domain diagnostic apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are "
             f"defined by `runtime_supervision_operator_policy` ({runtime_supervision_policy.get('surface_kind')}); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.",
         )
     )

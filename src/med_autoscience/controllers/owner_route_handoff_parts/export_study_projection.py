@@ -6,7 +6,7 @@ from typing import Any, Mapping
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    latest_owner_callable_adapter_receipt_payload,
+    latest_owner_callable_receipt_payload,
 )
 
 from ..domain_action_request_materializer_parts import current_writer_handoff
@@ -16,7 +16,7 @@ from ..owner_callable_action_policy import (
     request_owner_for_action_type,
 )
 from .export_study_projection_common import (
-    legacy_owner_callable_task_boundary,
+    stage_outcome_opl_handoff_task_boundary,
     mapping,
     read_json_object,
     text,
@@ -167,7 +167,7 @@ def autonomy_continuation_projection(study: Mapping[str, Any]) -> dict[str, Any]
             "status": "progress_pressure_continue",
             "operator_label": "continue_owner_route",
             "replacement_owner": "one-person-lab",
-            "recommended_task_kind": "domain_route/reconcile-apply",
+            "recommended_task_kind": "stage_outcome/opl-handoff",
             "workspace_profile": None,
             "progress_pressure": dict(progress_pressure),
         }
@@ -222,7 +222,7 @@ def current_control_owner_route_handoff_record(
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "stage_outcome/opl-handoff",
         "study_id": study_root.name,
         "quest_id": quest_id,
         "runtime_state_path": runtime_state_path,
@@ -295,7 +295,7 @@ def current_control_owner_action_record(
         "recorded_at": current_recorded_at,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "owner_route_currentness_basis": currentness_basis,
         "owner_route": dict(owner_route),
         "currentness_status": "current_owner_action_active",
@@ -346,7 +346,7 @@ def current_writer_handoff_owner_action_record(
         "recorded_at": recorded_at,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "owner_route_currentness_basis": currentness_basis,
         "owner_route": dict(owner_route),
         "currentness_status": "current_writer_handoff_active",
@@ -397,7 +397,7 @@ def stage_native_next_action_owner_action_record(
         "recorded_at": text(next_action.get("generated_at")) or text(next_action.get("recorded_at")),
         "action_type": action_type,
         "work_unit_id": currentness_basis["work_unit_id"],
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "next_owner": owner,
         "allowed_actions": [action_type],
         "required_output_surface": text(next_action.get("required_output_surface"))
@@ -466,7 +466,7 @@ def paper_mission_owner_surface_readiness_repair_owner_action_record(
         "recorded_at": recorded_at,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "next_owner": next_owner,
         "allowed_actions": allowed_actions,
         "required_output_surface": text(action.get("required_output_surface")),
@@ -549,7 +549,7 @@ def current_readiness_owner_action_record(
         "recorded_at": text(controller_decision.get("generated_at")),
         "action_type": action_type,
         "work_unit_id": work_unit_id,
-        **legacy_owner_callable_task_boundary(),
+        **stage_outcome_opl_handoff_task_boundary(),
         "next_owner": "MedAutoScience",
         "allowed_actions": [action_type],
         "surface_key": surface_key,
@@ -590,7 +590,7 @@ def _current_provider_handoff_execution(
     action_type: str,
     work_unit_id: str,
 ) -> dict[str, Any]:
-    payload, receipt_ref = latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    payload, receipt_ref = latest_owner_callable_receipt_payload(study_root=study_root)
     if payload is None:
         return {}
     for item in payload.get("executions") or []:
@@ -600,7 +600,7 @@ def _current_provider_handoff_execution(
             continue
         if item.get("provider_attempt_or_lease_required") is not True and text(
             item.get("owner_callable_surface")
-        ) != "opl_default_executor.stage_attempt":
+        ) != "opl_owner_callable_adapter.stage_attempt":
             continue
         if item.get("owner_route_current") is False:
             continue
@@ -627,7 +627,7 @@ def _provider_handoff_source(item: Mapping[str, Any], *, receipt_ref: str) -> st
         return "owner_callable_adapter_receipt"
     if receipt_ref.endswith("owner_callable_adapter_receipts/latest.json"):
         return "owner_callable_adapter_receipt"
-    return "default_executor_execution"
+    return "owner_callable_adapter_receipt"
 
 
 def _matching_current_control_study(

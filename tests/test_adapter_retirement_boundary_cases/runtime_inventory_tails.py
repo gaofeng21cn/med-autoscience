@@ -6,7 +6,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
 
 
 def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
-    execution_latest = surfaces["default_executor_execution_latest_wire_projection"]
+    execution_latest = surfaces["owner_callable_adapter_receipt_latest_wire_projection"]
     assert execution_latest["active_caller_migrated"] is True
     assert execution_latest["current_disposition"] == "physically_retired"
     assert execution_latest["retained_mas_role"] == "none_physically_retired_no_alias"
@@ -14,8 +14,8 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     assert execution_latest["canonical_wire_path"] == (
         "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     )
-    assert execution_latest["legacy_wire_surface"] == "default_executor_dispatch_execution_study_latest"
-    assert execution_latest["legacy_wire_path"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
+    assert execution_latest["legacy_wire_surface"] == "owner_callable_dispatch_execution_study_latest"
+    assert execution_latest["legacy_wire_path"] == "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
     assert execution_latest["legacy_wire_readers_tail_open"] == []
     assert execution_latest["legacy_wire_default_reader_fallback_allowed"] is False
     assert execution_latest["legacy_wire_current_reader_fallback_allowed"] is False
@@ -26,16 +26,16 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "current_provider_handoff_export_reads_legacy_wire": False,
         "current_recovery_action_reads_legacy_wire": False,
         "default_execution_latest_payload_reads_legacy_wire_by_default": False,
-        "default_executor_execution_candidates_reads_legacy_wire_by_default": False,
-        "default_executor_receipt_consumption_reads_legacy_wire_by_default": False,
-        "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default": False,
+        "owner_callable_receipt_candidates_reads_legacy_wire_by_default": False,
+        "owner_callable_adapter_receipt_consumption_reads_legacy_wire_by_default": False,
+        "owner_callable_adapter_nonconsumable_closeout_reads_legacy_wire_by_default": False,
         "canonical_missing_outcome": "no_current_owner_callable_receipt",
         "legacy_wire_role": "history_replay_and_provenance_only",
     }
     assert execution_latest["history_replay_boundary"] == {
-        "default_executor_execution_candidates_requires_allow_legacy_fallback": True,
-        "default_executor_receipt_consumption_requires_allow_legacy_fallback": True,
-        "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback": True,
+        "owner_callable_receipt_candidates_requires_allow_legacy_fallback": True,
+        "owner_callable_adapter_receipt_consumption_requires_allow_legacy_fallback": True,
+        "owner_callable_adapter_nonconsumable_closeout_requires_allow_legacy_fallback": True,
         "execution_latest_payload_requires_allow_legacy_fallback": True,
         "legacy_latest_payload_helper_requires_allow_legacy_fallback": True,
         "can_authorize_provider_admission": False,
@@ -65,12 +65,12 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     ]
     assert execution_latest["legacy_stage_run_abi_boundary"] == {
         "abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "retired_stage_id_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
         "closeout_packet_roots": [
-            "artifacts/supervision/consumer/default_executor_execution/*.closeout.json",
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/*.closeout.json",
             "artifacts/supervision/consumer/stage_attempt_closeouts/*.json",
             "paper/review/*.json",
-            "paper/review/default_executor_closeouts/*.json",
+            "paper/review/owner_callable_adapter_closeouts/*.json",
         ],
         "allowed_consumption": [
             "terminal_closeout_consumption",
@@ -94,18 +94,18 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             "no_active_stage_run_abi_caller_proven": False,
             "physical_delete_allowed": False,
             "required_before_physical_delete": (
-                "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
+                "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
             ),
             "active_callers": [
                 (
                     "study_transition_receipt_consumption_parts.owner_callable_candidates."
-                    "default_executor_execution_candidates::_stage_closeout_candidates"
+                    "owner_callable_receipt_candidates::_stage_closeout_candidates"
                 ),
-                "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
-                "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
+                "study_transition_receipt_consumption.owner_callable_receipt_consumption",
+                "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
                 (
                     "study_transition_receipt_consumption_parts.owner_callable_followthrough."
-                    "default_executor_execution_followthrough_receipt_consumption"
+                    "owner_callable_receipt_followthrough_consumption"
                 ),
                 "provider_admission_parts.provider_admission_report_closeout_scan",
                 "study_outer_loop_work_units",
@@ -185,8 +185,8 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             "src/med_autoscience/controllers/owner_callable_action_policy.py#SUPPORTED_ACTION_TYPES"
         ),
         "repo_fail_closed_test_ref": (
-            "tests/test_stage_outcome_authority_contract.py::"
-            "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
+            "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::"
+            "test_canonical_transition_request_projection_carries_dispatcher_boundary_fields"
         ),
         "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
         "current_execution_running_proof_requires_opl_live_readback": True,
@@ -253,9 +253,10 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             "provider_handoff_or_completion_as_physical_delete",
         ],
     }
-    assert "tests/test_stage_outcome_authority_cases/opl_authorization_boundary.py" in owner_dispatch[
-        "verified_by"
-    ]
+    assert (
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::"
+        "test_canonical_transition_request_projection_carries_dispatcher_boundary_fields"
+    ) in owner_dispatch["verified_by"]
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]
     assert "closeout_binding_as_execution_authorization" in owner_dispatch["forbidden_claims"]
     assert "legacy_caller_exists" not in owner_dispatch["retention_reason"]
@@ -369,7 +370,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     assert "tests/test_adapter_retirement_boundary.py" in runtime_health["verified_by"]
     assert "mas_owned_attempt_ledger" in runtime_health["forbidden_claims"]
 
-    obligation_actuator = surfaces["domain_health_diagnostic_obligation_actuator"]
+    obligation_actuator = surfaces["domain_diagnostic_obligation_actuator"]
     assert obligation_actuator["current_disposition"] == "obligation_readback_projection_consumer"
     assert obligation_actuator["retained_mas_role"] == (
         "consume_only_obligation_outcome_projection_and_mas_typed_blocker_authority_result"
@@ -392,7 +393,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             "mas_domain_authority_readback",
         ],
         "success_proof_required_for_postcondition_ok": True,
-        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_surface_kind": "domain_diagnostic_apply_success_proof",
         "success_proof_requires_consumed_readback_identity": True,
         "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
         "mas_domain_authority_readback_requires_authority_boundary": True,
@@ -481,8 +482,6 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "can_generate_action": False,
         "can_open_runtime_endpoint": False,
         "can_transport_operator_action": False,
-        "legacy_operator_focus_role": "diagnostic_legacy_projection_input",
-        "legacy_next_system_action_role": "diagnostic_legacy_projection_input",
         "must_not_be_used_as_next_action_authority": True,
         "must_not_be_used_as_paper_progress": True,
         "must_not_be_used_as_provider_admission": True,

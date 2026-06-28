@@ -42,7 +42,7 @@
         "contracts/stage_route_reconcile_contract.json#/paper_recovery_kernel_consumption",
         "tests/test_paper_recovery_kernel_contract.py::test_paper_recovery_contract_declares_single_authority_root",
         "tests/test_stage_route_reconcile_contract.py::test_stage_route_reconcile_contract_consumes_paper_recovery_kernel",
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/exactly_one_obligation_actuator_outcomes",
+        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/exactly_one_obligation_actuator_outcomes",
         "workspace:Yang/DM-CVD-Mortality-Risk#study-progress-2026-06-15T15:09:08Z/DM002-DM003-post-apply-readback"
       ],
       "missing_evidence_tails": [],
@@ -50,7 +50,7 @@
         "old_action_queue_empty",
         "active_run_id_present_or_absent",
         "provider_completion",
-        "DHD_observe_only",
+        "domain_diagnostic_observe_only",
         "operator_card_wording"
       ]
     },
@@ -71,14 +71,14 @@
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
         "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator",
         "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
       ],
       "missing_evidence_tails": [
         "direct_or_hosted_generated_surface_production_consumption_ref",
-        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
+        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
       ],
       "false_completion_boundary": [
         "functional_structure_gap_count_zero",
@@ -103,8 +103,8 @@
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_cli_cases/public_entry_commands.py::test_runtime_legacy_ds_retire_public_surface_is_retired",
         "src/med_autoscience/cli_public_surface.py#GROUPED_SUBCOMMANDS",
-        "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-apply-2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396",
-        "workspace:Yang/DM-CVD-Mortality-Risk#default-executor-dispatch-residue-cleanup-dry-run-2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
+        "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-apply-2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396",
+        "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-dry-run-2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
       ],
       "missing_evidence_tails": [
         "production_generated_surface_consumption_ref"
@@ -128,8 +128,8 @@
         "contracts/stage_route_reconcile_contract.json#/stage_route_arbiter",
         "contracts/stage_route_reconcile_contract.json#/runtime_supervision_operator_policy",
         "tests/test_stage_route_reconcile_contract.py",
-        "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#supervision-consumer-default-executor-execution-sat_67e10efde628859185249aa0-closeout-typed-blocker",
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM002-typed_blocker_ref-postcondition_ok",
+        "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#supervision-consumer-owner-callable-execution-sat_67e10efde628859185249aa0-closeout-typed-blocker",
+        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/DM002-typed_blocker_ref-postcondition_ok",
         "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#contracts/opl-framework/stage-route-scheduler-contract.json#/stage_route_arbiter_substrate_contract",
         "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#contracts/opl-framework/standard-agent-landing-evidence-status.json#/gate_statuses/stage_route_arbiter_and_stop_loss",
         "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts",
@@ -160,7 +160,7 @@
         "tests/test_paper_recovery_kernel_contract.py",
         "tests/test_stage_route_reconcile_contract.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py",
-        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_retired_default_executor_residue_cleanup_receipt_without_progress_claim",
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_retired_owner_callable_adapter_residue_cleanup_receipt_without_progress_claim",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/standard-agent-landing-acceptance-contract.test.ts::standard agent landing negative conformance has repo-backed cross-agent samples"
       ],
@@ -184,13 +184,13 @@
         "canonical_changed_surface_adopted_ref",
         "strict_current_identity_provider_running_proof",
         "fresh_DM002_DM003_study_progress_ref",
-        "fresh_DHD_dry_run_or_apply_when_delegated_ref"
+        "fresh_domain_diagnostic_dry_run_or_apply_when_delegated_ref"
       ],
       "observed_refs": [
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM002-outcome=typed_blocker_ref/postcondition_ok",
-        "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/supervision/consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker",
+        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/DM002-outcome=typed_blocker_ref/postcondition_ok",
+        "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker",
         "workspace:Yang/DM-CVD-Mortality-Risk#study-progress-2026-06-15T15:09:08Z/DM002-stop_with_stable_typed_blocker",
-        "workspace:Yang/DM-CVD-Mortality-Risk#DHD-apply-2026-06-15T15:08:10Z/DM003-outcome=owner_receipt_ref/postcondition_ok",
+        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/DM003-outcome=owner_receipt_ref/postcondition_ok",
         "workspace:Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap#artifacts/controller/gate_clearing_batch/latest.json",
         "workspace:Yang/DM-CVD-Mortality-Risk#study-progress-2026-06-15T15:09:08Z/DM003-stop_with_owner_receipt"
       ],
@@ -201,7 +201,7 @@
         "docs_updated",
         "manual_foreground_edit_without_adoption_refs",
         "provider_completed_without_mas_closeout_consumption",
-        "DHD_observe_only",
+        "domain_diagnostic_observe_only",
         "queue_empty"
       ]
     },
@@ -256,8 +256,8 @@
     "workflow_terminal",
     "active_run_id_present",
     "active_run_id_null",
-    "DHD_observe_only",
-    "default_executor_residue_cleanup_clean",
+    "domain_diagnostic_observe_only",
+    "owner_callable_adapter_residue_cleanup_clean",
     "verified_refs_only_ledger",
     "App_projection_ready",
     "manual_foreground_edit_without_adoption_refs",
@@ -280,7 +280,7 @@
     "typed_blocker_count": 12,
     "typed_blocker_surface_ids": [
       "agent_tool_arsenal_scientific_capability_registry",
-      "domain_health_diagnostic_obligation_actuator",
+      "domain_diagnostic_obligation_actuator",
       "stage_outcome_authority",
       "progress_portal_study_workbench_overview_action_projection",
       "runtime_health_kernel",
@@ -288,7 +288,7 @@
       "runtime_storage_maintenance"
     ],
     "typed_blocker_gap_ids": [
-      "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+      "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",
       "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption",
       "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
       "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
@@ -301,7 +301,7 @@
       "queue_empty",
       "provider_admission_pending_count_zero",
       "projection_clean",
-      "DHD_observe_only",
+      "domain_diagnostic_observe_only",
       "partial_live_runtime_evidence_rollup",
       "typed_blocker_required_live_runtime_evidence_rollup"
     ]
@@ -309,7 +309,7 @@
   "latest_live_owner_closeout_observations": [
     {
       "observed_at": "2026-06-15T15:09:08Z",
-      "source_kind": "live_workspace_DHD_apply_and_post_apply_readback",
+      "source_kind": "live_workspace_domain_diagnostic_apply_and_post_apply_readback",
       "workspace_ref": "workspace:Yang/DM-CVD-Mortality-Risk",
       "study_id": "002-dm-china-us-mortality-attribution",
       "progress_first_outcome": "blocked_with_typed_owner",
@@ -322,22 +322,22 @@
         "typed_blocker": "anti_loop_budget_exhausted"
       },
       "supervisor_decision_kind": "stop_with_stable_typed_blocker",
-      "dhd_actuator_outcome": {
+      "domain_diagnostic_actuator_outcome": {
         "scanned_at": "2026-06-15T15:08:10Z",
         "outcome_kind": "typed_blocker_ref",
         "exactly_one_outcome": true,
         "postcondition_ok": true,
-        "typed_blocker_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/supervision/consumer/default_executor_execution/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
+        "typed_blocker_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
       },
       "active_run_id": null,
       "completion_evidence": true,
       "can_close_live_owner_gate": true,
       "paper_progress_delta": false,
-      "reason": "Fresh DHD apply consumed the current obligation into exactly one stable typed blocker outcome and post-apply progress still reads stop_with_stable_typed_blocker. This closes the representative live-owner evidence gate but is not paper recovery or publication readiness."
+      "reason": "Fresh domain diagnostic apply consumed the current obligation into exactly one stable typed blocker outcome and post-apply progress still reads stop_with_stable_typed_blocker. This closes the representative live-owner evidence gate but is not paper recovery or publication readiness."
     },
     {
       "observed_at": "2026-06-15T15:09:08Z",
-      "source_kind": "live_workspace_DHD_apply_and_post_apply_readback",
+      "source_kind": "live_workspace_domain_diagnostic_apply_and_post_apply_readback",
       "workspace_ref": "workspace:Yang/DM-CVD-Mortality-Risk",
       "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
       "progress_first_outcome": "terminal_success",
@@ -350,7 +350,7 @@
         "owner_receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap#artifacts/controller/gate_clearing_batch/latest.json"
       },
       "supervisor_decision_kind": "stop_with_owner_receipt",
-      "dhd_actuator_outcome": {
+      "domain_diagnostic_actuator_outcome": {
         "scanned_at": "2026-06-15T15:08:10Z",
         "outcome_kind": "owner_receipt_ref",
         "exactly_one_outcome": true,
@@ -361,7 +361,7 @@
       "completion_evidence": true,
       "can_close_live_owner_gate": true,
       "paper_progress_delta": false,
-      "reason": "Fresh DHD apply consumed the current obligation into exactly one owner receipt outcome and post-apply progress still reads stop_with_owner_receipt. The receipt is a gate replay owner outcome, not publication-ready or package-ready evidence."
+      "reason": "Fresh domain diagnostic apply consumed the current obligation into exactly one owner receipt outcome and post-apply progress still reads stop_with_owner_receipt. The receipt is a gate replay owner outcome, not publication-ready or package-ready evidence."
     }
   ],
   "non_claims": {
@@ -377,8 +377,8 @@
     "artifact_ready": false,
     "package_export_ready": false,
     "memory_or_artifact_lifecycle_work_order_complete_means_ready": false,
-    "default_executor_residue_cleanup_clean": false,
-    "default_executor_residue_cleanup_means_paper_progress": false,
+    "owner_callable_adapter_residue_cleanup_clean": false,
+    "owner_callable_adapter_residue_cleanup_means_paper_progress": false,
     "live_runtime_evidence_rollup_typed_blocker_required_means_ready": false,
     "representative_live_owner_closeout_means_full_live_runtime_readiness": false
   },
@@ -453,9 +453,9 @@
       ]
     }
   ],
-  "historical_default_executor_dispatch_residue_cleanup_receipt": {
-    "surface_kind": "default_executor_dispatch_residue_cleanup_historical_receipt",
-    "source_surface_kind": "default_executor_dispatch_residue_cleanup",
+  "historical_owner_callable_dispatch_residue_cleanup_receipt": {
+    "surface_kind": "owner_callable_dispatch_residue_cleanup_historical_receipt",
+    "source_surface_kind": "owner_callable_dispatch_residue_cleanup",
     "workspace_ref": "workspace:Yang/DM-CVD-Mortality-Risk",
     "status": "historical_clean_receipt",
     "repo_source_disposition": "physically_retired",
@@ -476,7 +476,7 @@
     "study_receipts": [
       {
         "study_id": "002-dm-china-us-mortality-attribution",
-        "receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/migration/default_executor_dispatch_residue_cleanup/latest.json",
+        "receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#artifacts/migration/owner_callable_dispatch_residue_cleanup/latest.json",
         "archived_mutable_slot_count": 14,
         "immutable_dispatch_provenance_file_count": 144,
         "currentness_basis": "typed_blocker",
@@ -484,7 +484,7 @@
       },
       {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-        "receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap#artifacts/migration/default_executor_dispatch_residue_cleanup/latest.json",
+        "receipt_ref": "workspace:Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap#artifacts/migration/owner_callable_dispatch_residue_cleanup/latest.json",
         "archived_mutable_slot_count": 9,
         "immutable_dispatch_provenance_file_count": 252,
         "currentness_basis": "owner_receipt_recorded",
@@ -492,9 +492,9 @@
       }
     ],
     "authority_boundary": {
-      "default_executor_mutable_residue_mutation": true,
+      "owner_callable_adapter_mutable_residue_mutation": true,
       "immutable_dispatch_provenance_mutation": false,
-      "dhd_apply": false,
+      "domain_diagnostic_apply": false,
       "provider_start": false,
       "paper_content_mutation": false,
       "publication_truth_mutation": false,

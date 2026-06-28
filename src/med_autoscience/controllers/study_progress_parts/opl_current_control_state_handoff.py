@@ -26,7 +26,7 @@ from med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_
     terminal_provider_attempt_closeout_for_study,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
     is_blocked_typed_closeout,
@@ -49,7 +49,7 @@ from .opl_current_control_state_handoff_values import (
 from .opl_current_control_state_handoff_identity import bind_live_attempt_to_handoff_identity
 from .opl_current_control_state_terminal_logs import (
     _latest_terminal_stage_log_projection,
-    _latest_typed_default_executor_closeout_projection,
+    _latest_typed_owner_callable_closeout_projection,
     _source_path_mtime,
     _typed_closeout_supersedes_terminal,
 )
@@ -268,7 +268,7 @@ def opl_current_control_state_study_handoff_projection(
         profile=profile,
         study_id=study_id,
     )
-    latest_typed_closeout = _latest_typed_default_executor_closeout_projection(
+    latest_typed_closeout = _latest_typed_owner_callable_closeout_projection(
         profile=profile,
         study_id=study_id,
     )
@@ -496,7 +496,7 @@ def opl_current_control_state_study_handoff_projection(
         terminal_stage_log=latest_terminal_stage_log or matching_terminal_stage_log,
     ):
         typed_closeout = _observability_mapping(latest_typed_closeout)
-        projection["latest_typed_default_executor_closeout"] = typed_closeout
+        projection["latest_typed_owner_callable_closeout"] = typed_closeout
         if _newer_typed_closeout_blocks_stale_current_control(
             typed_closeout=typed_closeout,
             projection=projection,
@@ -504,14 +504,14 @@ def opl_current_control_state_study_handoff_projection(
         ):
             projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
             projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
-            projection = _apply_typed_default_executor_closeout_to_handoff(
+            projection = _apply_typed_owner_callable_adapter_closeout_to_handoff(
                 projection,
                 allow_stale_identity_override=True,
             )
         elif not _handoff_has_complete_current_transition_readback(projection):
             projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
             projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
-            projection = _apply_typed_default_executor_closeout_to_handoff(projection)
+            projection = _apply_typed_owner_callable_adapter_closeout_to_handoff(projection)
     if latest_terminal_stage_log is not None:
         projection["latest_terminal_stage_log"] = latest_terminal_stage_log
     elif matching_terminal_stage_log:
@@ -810,7 +810,7 @@ def refresh_handoff_with_terminal_closeout_candidates(
         preferred_actions=preferred_actions,
     )
     if not closeout:
-        closeout = _terminal_default_executor_closeout_for_preferred_actions(
+        closeout = _terminal_owner_callable_adapter_closeout_for_preferred_actions(
             profile=profile,
             study_id=study_id,
             preferred_actions=preferred_actions,
@@ -837,7 +837,7 @@ def refresh_handoff_with_terminal_closeout_candidates(
     return _apply_matching_terminal_closeout_to_handoff(refreshed)
 
 
-def _terminal_default_executor_closeout_for_preferred_actions(
+def _terminal_owner_callable_adapter_closeout_for_preferred_actions(
     *,
     profile: WorkspaceProfile,
     study_id: str,
@@ -846,16 +846,16 @@ def _terminal_default_executor_closeout_for_preferred_actions(
     study_root = _study_root_for_owner_callable_candidates(profile=profile, study_id=study_id)
     if study_root is None:
         return None
-    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, receipt_ref in owner_callable_receipt_candidates(study_root=study_root):
         closeout = dict(execution)
         closeout.setdefault("receipt_ref", receipt_ref)
-        closeout.setdefault("source", "mas_default_executor_closeout")
-        if any(_default_executor_closeout_can_consume_preferred_action(closeout, action) for action in preferred_actions):
+        closeout.setdefault("source", "mas_owner_callable_adapter_closeout")
+        if any(_owner_callable_adapter_closeout_can_consume_preferred_action(closeout, action) for action in preferred_actions):
             return closeout
     return None
 
 
-def _default_executor_closeout_can_consume_preferred_action(
+def _owner_callable_adapter_closeout_can_consume_preferred_action(
     closeout: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
@@ -1546,8 +1546,8 @@ def _closeout_only_study_handoff_projection(
     if terminal_stage_log:
         projection["latest_terminal_stage_log"] = dict(terminal_stage_log)
     if typed_closeout:
-        projection["latest_typed_default_executor_closeout"] = dict(typed_closeout)
-        projection = _apply_typed_default_executor_closeout_to_handoff(projection)
+        projection["latest_typed_owner_callable_closeout"] = dict(typed_closeout)
+        projection = _apply_typed_owner_callable_adapter_closeout_to_handoff(projection)
     projection.update(_opl_current_control_state_mode_fields(source_payload))
     return projection
 
@@ -2200,7 +2200,7 @@ def _terminal_closeout_has_owner_answer(
     terminal: Mapping[str, Any],
     projection: Mapping[str, Any],
 ) -> bool:
-    if _observability_mapping(projection.get("latest_typed_default_executor_closeout")):
+    if _observability_mapping(projection.get("latest_typed_owner_callable_closeout")):
         return True
     if _non_empty_text(terminal.get("closeout_receipt_status")) == "accepted_typed_closeout":
         return True
@@ -2577,12 +2577,12 @@ def _terminal_closeout_owner_answer_blocker(
     return {key: value for key, value in blocker.items() if value not in (None, "", [], {})}
 
 
-def _apply_typed_default_executor_closeout_to_handoff(
+def _apply_typed_owner_callable_adapter_closeout_to_handoff(
     projection: dict[str, Any],
     *,
     allow_stale_identity_override: bool = False,
 ) -> dict[str, Any]:
-    typed_closeout = _observability_mapping(projection.get("latest_typed_default_executor_closeout"))
+    typed_closeout = _observability_mapping(projection.get("latest_typed_owner_callable_closeout"))
     if not typed_closeout:
         return projection
     if _handoff_has_complete_current_transition_readback(projection) and not allow_stale_identity_override:
@@ -2608,7 +2608,7 @@ def _apply_typed_default_executor_closeout_to_handoff(
                 **dict(item),
                 "consumption": {
                     **_observability_mapping(item.get("consumption")),
-                    "state": "consumed_by_typed_default_executor_closeout",
+                    "state": "consumed_by_typed_owner_callable_adapter_closeout",
                     "typed_blocker_ref": _non_empty_text(typed_closeout.get("receipt_ref"))
                     or _non_empty_text(typed_closeout.get("source_path")),
                 },
@@ -2645,7 +2645,7 @@ def _apply_typed_default_executor_closeout_to_handoff(
             "work_unit_id": _work_unit_identity(typed_blocker.get("work_unit_id")),
             "work_unit_fingerprint": _non_empty_text(typed_blocker.get("work_unit_fingerprint")),
             "action_fingerprint": _non_empty_text(typed_blocker.get("action_fingerprint")),
-            "source": "latest_typed_default_executor_closeout",
+            "source": "latest_typed_owner_callable_closeout",
             "typed_blocker": typed_blocker,
             "authority_boundary": {
                 "projection_only": True,
@@ -2786,7 +2786,7 @@ def _typed_closeout_current_work_unit(
             or _non_empty_text(typed_closeout.get("source_path")),
             "state": {
                 "state_kind": "typed_blocker",
-                "source": "latest_typed_default_executor_closeout",
+                "source": "latest_typed_owner_callable_closeout",
                 "typed_blocker": dict(typed_blocker),
                 "stage_attempt_id": _non_empty_text(typed_closeout.get("stage_attempt_id")),
                 "stale_queue_or_handoff_can_override": False,

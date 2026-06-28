@@ -38,12 +38,12 @@ def test_current_work_unit_uses_latest_terminal_handoff_domain_blocker_over_repe
             "opl_current_control_state_handoff": {
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat_857dcf8b3164f75dfd037e22",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
                     "typed_blocker_ref": (
                         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                        "consumer/default_executor_execution/sat_857dcf8b3164f75dfd037e22.closeout.json"
+                        "consumer/owner_callable_adapter_receipt/sat_857dcf8b3164f75dfd037e22.closeout.json"
                         "#typed_blocker"
                     ),
                     "paper_stage_log": {
@@ -67,7 +67,7 @@ def test_current_work_unit_uses_latest_terminal_handoff_domain_blocker_over_repe
                     },
                     "source_path": (
                         "/workspace/studies/002-dm-china-us-mortality-attribution/"
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_857dcf8b3164f75dfd037e22.closeout.json"
                     ),
                 }
@@ -146,7 +146,7 @@ def test_paper_recovery_successor_supersedes_legacy_unsupported_dispatch_surface
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_ff29f3cd92715d39043b1342",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "blocked",
                     "outcome": "blocked:unsupported_dispatch_surface",
                     "progress_delta_classification": "typed_blocker",
@@ -213,7 +213,7 @@ def test_current_work_unit_reports_consumed_gate_replay_blocker_after_fresh_gate
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_58099ea2494e3ed8eb6f978a",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
                     "stage_name": work_unit_id,
@@ -225,7 +225,7 @@ def test_current_work_unit_reports_consumed_gate_replay_blocker_after_fresh_gate
                     ],
                     "source_path": (
                         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/sat_58099ea2494e3ed8eb6f978a.closeout.json"
+                        "owner_callable_adapter_receipt/sat_58099ea2494e3ed8eb6f978a.closeout.json"
                     ),
                 },
             },

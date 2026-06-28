@@ -207,7 +207,7 @@ def test_current_work_unit_projects_repair_progress_gate_replay_over_stale_stage
                 "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
             ),
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_cfb833131bfa30d6661c26c2.closeout.json"
             ),
         },
@@ -269,7 +269,7 @@ def test_current_work_unit_keeps_opl_authorization_blocker_over_paper_recovery_s
             "action_type": "run_gate_clearing_batch",
             "work_unit_id": "publication_gate_replay",
             "work_unit_fingerprint": "sha256:bfcf03bacdcb4e58edd085444dda2f3906814c8a1806afb63b8095b90408bac9",
-            "typed_blocker_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+            "typed_blocker_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
         },
         next_owner="one-person-lab",
     )
@@ -373,7 +373,7 @@ def test_current_work_unit_keeps_terminal_opl_authorization_blocker_over_paper_r
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_old_auth_blocker",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": repair_fingerprint,
@@ -391,7 +391,7 @@ def test_current_work_unit_keeps_terminal_opl_authorization_blocker_over_paper_r
                         "work_unit_fingerprint": repair_fingerprint,
                     },
                     "source_path": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_old_auth_blocker.closeout.json"
                     ),
                 }
@@ -664,7 +664,7 @@ def test_current_work_unit_gate_followthrough_successor_supersedes_same_gate_sta
             },
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "stage_attempt_id": "sat_old_stall",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
@@ -672,7 +672,7 @@ def test_current_work_unit_gate_followthrough_successor_supersedes_same_gate_sta
                     "progress_delta_classification": "typed_blocker",
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": gate_fingerprint,
-                    "source_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+                    "source_path": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
                     "typed_blocker": {
                         "blocker_id": "paper_progress_stall_terminal",
                         "blocker_type": "paper_progress_stall_terminal",
@@ -741,7 +741,7 @@ def test_current_work_unit_ignores_provider_handoff_residue_without_opl_readback
         "allowed_actions": ["run_quality_repair_batch"],
         "owner_receipt_required": True,
         "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
-        "source_ref": "artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+        "source_ref": "artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
     }
     work_unit = module.build_current_work_unit(
         progress={

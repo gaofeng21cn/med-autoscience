@@ -117,7 +117,7 @@ def test_dm002_replay_fixture_converges_to_exactly_one_stable_typed_blocker_tran
                     "blocker_type": "anti_loop_budget_exhausted",
                     "typed_blocker_ref": (
                         "studies/002-dm-china-us-mortality-attribution/artifacts/"
-                        "supervision/consumer/default_executor_execution/"
+                        "supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_67e10efde628859185249aa0.closeout.json#typed_blocker"
                     ),
                 },
@@ -286,7 +286,7 @@ def test_terminal_owner_receipt_closeout_consumes_transition_request_projection_
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
     stage_attempt_id = "sat_f22f2e9d25d336fa2a2a4306"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
     )
     owner_receipt_ref = f"studies/{study_id}/artifacts/controller/repair_execution_receipts/latest.json"
@@ -385,7 +385,7 @@ def test_closeout_stagerun_identity_split_replay_converges_to_one_stable_typed_b
     )
     closeout_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-        "consumer/default_executor_execution/sat_cfb833131bfa30d6661c26c2.closeout.json"
+        "consumer/owner_callable_adapter_receipt/sat_cfb833131bfa30d6661c26c2.closeout.json"
     )
 
     current_work_unit = _current_work_unit_from_progress(
@@ -597,7 +597,7 @@ def test_current_work_unit_and_paper_recovery_state_disagreement_resolves_to_one
     }
 
 
-def test_dhd_provider_transition_request_without_opl_readback_becomes_non_advancing_apply() -> None:
+def test_domain_diagnostic_provider_transition_request_without_opl_readback_becomes_non_advancing_apply() -> None:
     requested = _stable_transition_step(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -749,7 +749,7 @@ def test_paper_progress_replay_live_evidence_status_contract_keeps_live_acceptan
     assert contract["live_evidence_acceptance"]["fresh_live_command_required"] is True
     forbidden = set(contract["forbidden_completion_interpretations"])
     assert "queue_empty" in forbidden
-    assert "DHD_dry_run" in forbidden
+    assert "domain_diagnostic_dry_run" in forbidden
     assert "provider_admission_pending_count=0" in forbidden
     assert "focused_tests_passed" in forbidden
     assert "stale_transition_request_after_terminal_owner_receipt_closeout_as_pending_progress" in forbidden

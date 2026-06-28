@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 
-_DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
-_DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
+_OWNER_CALLABLE_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
+_OWNER_CALLABLE_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
     {
         "progress_delta_candidate",
         "executed",
@@ -15,13 +15,13 @@ _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
 )
 
 
-def default_executor_owner_result_consumable(
+def owner_callable_adapter_owner_result_consumable(
     *,
     action_type: str | None,
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
-    if default_executor_dispatch_zero_execution_blocker(owner_result):
+    if owner_callable_dispatch_zero_execution_blocker(owner_result):
         return False
     if _current_manuscript_digest_mismatch(owner_result=owner_result, repair_evidence=repair_evidence):
         return False
@@ -40,9 +40,9 @@ def default_executor_owner_result_consumable(
         return publication_gate_specificity_owner_result_satisfies_route_output(owner_result=owner_result)
     if owner_result.get("ok") is True:
         return True
-    if _text(owner_result.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES:
+    if _text(owner_result.get("status")) in _OWNER_CALLABLE_CONSUMABLE_OWNER_RESULT_STATUSES:
         return True
-    if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
+    if _text(repair_evidence.get("status")) in _OWNER_CALLABLE_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
         return True
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
 
@@ -56,7 +56,7 @@ def publication_gate_specificity_owner_result_satisfies_route_output(*, owner_re
     return _is_publication_eval_latest_path(_text(publication_eval.get("artifact_path")))
 
 
-def default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
+def owner_callable_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
     dispatcher_result = _mapping(owner_result.get("dispatcher_result"))
     if not dispatcher_result:
         return False
@@ -74,7 +74,7 @@ def default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str, 
     )
 
 
-def default_executor_consumed_blocked_reason(
+def owner_callable_adapter_consumed_blocked_reason(
     *,
     action_type: str | None,
     owner_result: Mapping[str, Any],

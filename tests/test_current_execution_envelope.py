@@ -380,7 +380,7 @@ def test_study_progress_does_not_project_closed_handoff_attempt_as_live(
                         "status": "closed_with_domain_owner_refs",
                         "source_path": (
                             "studies/002-dm-china-us-mortality-attribution/"
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat-closed.closeout.json"
                         ),
                     },
@@ -612,7 +612,7 @@ def test_study_progress_projects_provider_admission_identity_queue_fields(
     )
 
 
-def test_study_progress_envelope_preserves_latest_default_executor_typed_closeout_over_stale_action_queue(
+def test_study_progress_envelope_preserves_latest_owner_callable_adapter_typed_closeout_over_stale_action_queue(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -654,7 +654,7 @@ def test_study_progress_envelope_preserves_latest_default_executor_typed_closeou
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat-rehydrate.closeout.json"
     )
     _write_json(
@@ -665,14 +665,14 @@ def test_study_progress_envelope_preserves_latest_default_executor_typed_closeou
             "generated_at": "2026-06-07T01:04:47+00:00",
             "study_id": study_id,
             "quest_id": quest_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "stage_attempt_id": "sat-rehydrate",
             "closeout_id": "stage-attempt-closeout::sat-rehydrate::medical_prose_review_request_rehydrate_required",
             "action_type": "return_to_ai_reviewer_workflow",
             "status": "blocked_with_typed_closeout",
             "blocked_reason": "medical_prose_review_request_rehydrate_required",
             "stage_packet_ref": (
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
                 "immutable/return_to_ai_reviewer_workflow/packet.json"
             ),
             "domain_execution": {
@@ -707,7 +707,7 @@ def test_study_progress_envelope_preserves_latest_default_executor_typed_closeou
                 "progress_delta_classification": "typed_blocker",
             },
             "closeout_refs": [
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/sat-rehydrate.closeout.json",
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-rehydrate.closeout.json",
                 "typed-blocker:medical_prose_review_request_rehydrate_required",
             ],
         },
@@ -739,8 +739,8 @@ def test_study_progress_envelope_preserves_latest_default_executor_typed_closeou
 
     handoff = result["opl_current_control_state_handoff"]
     envelope = result["current_execution_envelope"]
-    assert handoff["blocked_reason"] == "domain_closeout_provided_incomplete_user_stage_log"
-    assert handoff["latest_typed_default_executor_closeout"]["receipt_ref"].endswith(
+    assert handoff["blocked_reason"] == "medical_prose_review_request_rehydrate_required"
+    assert handoff["latest_typed_owner_callable_closeout"]["receipt_ref"].endswith(
         "sat-rehydrate.closeout.json"
     )
     assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"

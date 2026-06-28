@@ -55,7 +55,7 @@ def test_scan_domain_routes_routes_ai_reviewer_package_freshness_mismatch_to_art
         },
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
             "schema_version": 1,
             "study_id": study_id,
@@ -169,7 +169,7 @@ def test_scan_domain_routes_routes_ai_reviewer_claim_alignment_blocker_to_qualit
     }
     _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
             "schema_version": 1,
             "study_id": study_id,
@@ -402,7 +402,7 @@ def test_scan_domain_routes_preserves_pending_claim_alignment_request_after_exec
         },
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
             "schema_version": 1,
             "study_id": study_id,

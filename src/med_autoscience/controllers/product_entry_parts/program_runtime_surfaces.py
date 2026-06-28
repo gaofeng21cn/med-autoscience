@@ -72,7 +72,6 @@ def _build_research_runtime_control_projection(
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.opl_runtime_owner_handoff_path",
-                "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },

@@ -15,8 +15,8 @@
       "artifact_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller_decisions/latest.json"
     },
     {
-      "category": "domain_health_diagnostic",
-      "artifact_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution/artifacts/reports/domain_health_diagnostic/latest.json"
+      "category": "domain_diagnostic_report",
+      "artifact_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution/artifacts/reports/domain_diagnostic_report/latest.json"
     }
   ],
   "current_blockers": [

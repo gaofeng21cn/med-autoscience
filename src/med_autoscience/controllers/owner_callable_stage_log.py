@@ -21,7 +21,7 @@ STANDARD_USER_STAGE_LOG_ALIASES = {
 }
 
 
-def paper_stage_log_for_default_executor_execution(
+def paper_stage_log_for_owner_callable_adapter_receipt(
     *,
     study_id: str,
     action_type: str,
@@ -572,5 +572,5 @@ __all__ = [
     "ACCOUNTING_POLICY",
     "SEMANTIC_INCOMPLETE_POLICY",
     "STANDARD_USER_STAGE_LOG_ALIASES",
-    "paper_stage_log_for_default_executor_execution",
+    "paper_stage_log_for_owner_callable_adapter_receipt",
 ]

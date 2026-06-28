@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_closeout_contract import (
-    default_executor_typed_closeout_contract,
+    owner_callable_typed_closeout_contract,
 )
 from med_autoscience.controllers.stage_outcome_authority_parts.execution_surfaces import (
     ACCEPTED_EXECUTION_LATEST_SURFACES,
@@ -19,12 +19,12 @@ from med_autoscience.controllers.stage_outcome_authority_parts.execution_surface
 
 EXECUTED_STATUSES = frozenset({"executed"})
 EXECUTION_REF = Path("artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json")
-LEGACY_EXECUTION_REF = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
+LEGACY_EXECUTION_REF = Path("artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json")
 CLOSEOUT_ROOT_REFS = (
-    Path("artifacts/supervision/consumer/default_executor_execution"),
+    Path("artifacts/supervision/consumer/owner_callable_adapter_receipt"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
     Path("paper/review"),
-    Path("paper/review/default_executor_closeouts"),
+    Path("paper/review/owner_callable_adapter_closeouts"),
 )
 CLOSEOUT_SURFACES = frozenset(
     {
@@ -32,9 +32,10 @@ CLOSEOUT_SURFACES = frozenset(
         "domain_stage_closeout_packet",
     }
 )
+STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND = "stage_outcome/opl-handoff"
 
 
-def default_executor_execution_candidates(
+def owner_callable_receipt_candidates(
     *,
     study_root: Path,
     allow_legacy_fallback: bool = False,
@@ -58,7 +59,7 @@ def default_executor_execution_candidates(
     return candidates
 
 
-def latest_owner_callable_adapter_receipt_payload(
+def latest_owner_callable_receipt_payload(
     *,
     study_root: Path,
     allow_legacy_fallback: bool = False,
@@ -86,17 +87,17 @@ def latest_owner_callable_adapter_receipt_payload(
     payload.setdefault("attempt_lifecycle_authority", False)
     payload.setdefault("queue_authority", False)
     if receipt_ref == LEGACY_EXECUTION_REF:
-        payload.setdefault("legacy_surface_alias", "default_executor_dispatch_execution_study_latest")
-        payload.setdefault("legacy_wire_surface", "default_executor_dispatch_execution_study_latest")
+        payload.setdefault("legacy_surface_alias", "owner_callable_dispatch_execution_study_latest")
+        payload.setdefault("legacy_wire_surface", "owner_callable_dispatch_execution_study_latest")
     return payload, str(receipt_ref)
 
 
-def latest_owner_callable_adapter_receipt_candidates(
+def latest_owner_callable_receipt_candidates(
     *,
     study_root: Path,
     allow_legacy_fallback: bool = False,
 ) -> list[tuple[Mapping[str, Any], str]]:
-    receipt, receipt_ref = latest_owner_callable_adapter_receipt_payload(
+    receipt, receipt_ref = latest_owner_callable_receipt_payload(
         study_root=study_root,
         allow_legacy_fallback=allow_legacy_fallback,
     )
@@ -252,7 +253,7 @@ def _execution_from_stage_closeout(
 ) -> dict[str, Any] | None:
     if _text(closeout.get("surface_kind")) not in CLOSEOUT_SURFACES:
         return None
-    if _text(closeout.get("stage_id")) != "domain_owner/default-executor-dispatch":
+    if _text(closeout.get("stage_id")) != STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND:
         return None
     action_type = _text(closeout.get("action_type"))
     if not action_type:
@@ -531,7 +532,7 @@ def _missing_user_stage_log_fields(
     action_type: str,
     user_stage_log: Mapping[str, Any],
 ) -> list[str]:
-    required = default_executor_typed_closeout_contract(action_type=action_type)[
+    required = owner_callable_typed_closeout_contract(action_type=action_type)[
         "required_user_stage_log_fields"
     ]
     return [
@@ -782,9 +783,9 @@ def _stage_closeout_stage_packet_refs(closeout: Mapping[str, Any]) -> list[str]:
 
 def _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref: str) -> bool:
     parts = Path(stage_packet_ref).parts
-    if "default_executor_dispatches" not in parts:
+    if "owner_callable_adapters" not in parts:
         return False
-    dispatch_index = parts.index("default_executor_dispatches")
+    dispatch_index = parts.index("owner_callable_adapters")
     return len(parts) > dispatch_index + 1 and parts[dispatch_index + 1] == "immutable"
 
 
@@ -914,7 +915,7 @@ def _text(value: object) -> str:
 __all__ = [
     "EXECUTION_REF",
     "LEGACY_EXECUTION_REF",
-    "default_executor_execution_candidates",
-    "latest_owner_callable_adapter_receipt_candidates",
-    "latest_owner_callable_adapter_receipt_payload",
+    "owner_callable_receipt_candidates",
+    "latest_owner_callable_receipt_candidates",
+    "latest_owner_callable_receipt_payload",
 ]

@@ -13,7 +13,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_rep
     closeout_identity_matches_current as _closeout_identity_matches_current,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -95,7 +95,7 @@ def study_root_closeout_evidence(
     if not identity:
         return []
     evidence: list[dict[str, Any]] = []
-    for execution, execution_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, execution_ref in owner_callable_receipt_candidates(study_root=study_root):
         closeout = _closeout_evidence_with_identity(execution, identity=identity)
         if not _closeout_identity_matches_current(closeout, identity=identity):
             continue
@@ -112,7 +112,7 @@ def study_root_unconsumed_closeout_evidence(
     if not identity:
         return []
     evidence: list[dict[str, Any]] = []
-    for execution, execution_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, execution_ref in owner_callable_receipt_candidates(study_root=study_root):
         closeout = _closeout_evidence_with_identity(execution, identity=identity)
         if _closeout_identity_matches_current(closeout, identity=identity):
             continue

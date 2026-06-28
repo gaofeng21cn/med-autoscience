@@ -24,7 +24,7 @@ class ProjectionSurfacePayloads:
     controller_confirmation_summary: dict[str, Any] | None
     opl_runtime_owner_handoff_payload: dict[str, Any] | None
     runtime_escalation_payload: dict[str, Any] | None
-    domain_health_diagnostic_payload: dict[str, Any] | None
+    runtime_readback_payload: dict[str, Any] | None
     gate_clearing_batch_payload: dict[str, Any] | None
     publication_eval_payload: dict[str, Any] | None
     publishability_gate_path: Path | None
@@ -62,8 +62,8 @@ def read_projection_surface_payloads(
         study_root=study_root,
         ref=controller_confirmation_summary_path,
     ) or preexisting_controller_confirmation_summary
-    domain_health_diagnostic_payload = (
-        _read_json_object(paths.domain_health_diagnostic_path) if paths.domain_health_diagnostic_path is not None else None
+    runtime_readback_payload = (
+        _read_json_object(paths.runtime_readback_report_path) if paths.runtime_readback_report_path is not None else None
     )
     publication_eval_payload, publishability_gate_path, publishability_gate_payload = (
         _refresh_publication_surfaces_from_gate_report(
@@ -73,7 +73,7 @@ def read_projection_surface_payloads(
             quest_id=paths.quest_id,
             publication_eval_path=paths.publication_eval_path,
             runtime_escalation_path=paths.runtime_escalation_path,
-            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            runtime_readback_payload=runtime_readback_payload,
             materialize_read_model_artifacts=materialize_read_model_artifacts,
         )
     )
@@ -88,7 +88,7 @@ def read_projection_surface_payloads(
             runtime_health_status=runtime_health_status,
             path=paths.runtime_escalation_path,
         ),
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         gate_clearing_batch_payload=_read_json_object(paths.gate_clearing_batch_path),
         publication_eval_payload=publication_eval_payload,
         publishability_gate_path=publishability_gate_path,

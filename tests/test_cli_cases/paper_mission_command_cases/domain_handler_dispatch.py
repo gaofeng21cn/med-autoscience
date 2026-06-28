@@ -62,7 +62,9 @@ def test_domain_handler_export_defaults_to_paper_mission_start_or_resume(
         "pending_family_tasks_role": "mixed_explicit_owner_handoff_and_migration_compatibility_queue",
         "legacy_dispatch_diagnostics_source": "/retired_default_paper_dispatch_diagnostics",
         "ordinary_consumer_forbidden_task_kinds": [
-            "domain_owner/default-executor-dispatch"
+            "domain_owner/default-executor-dispatch",
+            "domain_owner/owner-callable-adapter",
+            "domain_route/reconcile-apply",
         ],
         "legacy_task_kinds_must_not_hydrate_from_pending_family_tasks": True,
         "ordinary_consumer_rule": (

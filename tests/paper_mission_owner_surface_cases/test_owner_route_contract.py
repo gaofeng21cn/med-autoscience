@@ -594,7 +594,7 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     assert result["written_files"] == []
@@ -614,7 +614,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     owner_route = {
@@ -628,7 +628,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
         "idempotency_key": "owner-route::dm002::truth-epoch-old::ai_reviewer::ai_reviewer_assessment_required::old",
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "schema_version": 1,
         "executor_kind": "codex_cli_default",
         "executor_name": "Codex CLI",

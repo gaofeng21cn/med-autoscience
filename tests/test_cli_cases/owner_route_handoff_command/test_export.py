@@ -62,7 +62,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert framework["executor_adapter_requirement"] == {
         "owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",
-        "default_executor_kind": "codex_cli_default",
+        "owner_callable_adapter_kind": "codex_cli_default",
         "required_capability": "opl_executor_adapter_receipt",
         "mas_accepts": "typed_closeout_or_domain_task_receipt",
         "mas_local_codex_cli_scope": "standalone_diagnostics_only",
@@ -172,7 +172,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert len(inventory_by_id) == 15
     assert "local_launchd_scheduler_install_path" not in inventory_by_id
     assert "workspace_local_watch_service_wrappers" not in inventory_by_id
-    assert "domain_health_diagnostic_loop_shell" not in inventory_by_id
+    assert "domain_diagnostic_report_loop_shell" not in inventory_by_id
     assert inventory_by_id["domain_authority_refs_index"]["migration_action"] == (
         "declare_domain_authority_refs_index_and_consume_opl_current_control_state"
     )
@@ -316,14 +316,14 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",
-        "default_executor_kind": "codex_cli_default",
+        "owner_callable_adapter_kind": "codex_cli_default",
         "required_adapter": "opl_executor_adapter",
         "accepted_receipts": ["opl_provider_attempt_receipt", "typed_closeout_receipt"],
         "domain_action_authority": "med-autoscience",
         "mas_builtin_executor_adapter": False,
         "mas_local_codex_cli_scope": "standalone_diagnostics_only",
-        "non_default_executor_opt_in_owner": "one-person-lab",
-        "non_default_executor_opt_in_policy": "explicit_opt_in_only_receipt_to_mas",
+        "non_owner_callable_adapter_opt_in_owner": "one-person-lab",
+        "non_owner_callable_adapter_opt_in_policy": "explicit_opt_in_only_receipt_to_mas",
         "mas_owned_hermes_or_claude_executor": False,
     }
     assert provider["direct_mas_path"]["status"] == "authoritative"
@@ -337,12 +337,11 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert provider["domain_handler_contract"]["queue_hydration_source_role"] == (
         "mixed_explicit_owner_handoff_and_migration_compatibility_queue"
     )
-    assert payload["pending_family_tasks_policy"]["legacy_dispatch_diagnostics_source"] == (
-        "/retired_default_paper_dispatch_diagnostics"
-    )
-    assert payload["pending_family_tasks_policy"]["ordinary_consumer_forbidden_task_kinds"] == [
-        "domain_owner/default-executor-dispatch"
-    ]
+    assert set(payload["pending_family_tasks_policy"]["ordinary_consumer_forbidden_task_kinds"]) == {
+        "domain_owner/default-executor-dispatch",
+        "domain_owner/owner-callable-adapter",
+        "domain_route/reconcile-apply",
+    }
     assert (
         payload["pending_family_tasks_policy"][
             "legacy_task_kinds_must_not_hydrate_from_pending_family_tasks"
@@ -398,7 +397,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert not [
         task
         for task in non_default_tasks
-        if task.get("task_kind") == "domain_owner/default-executor-dispatch"
+        if task.get("task_kind") == "stage_outcome/opl-handoff"
     ]
     for task in non_default_tasks:
         assert task["paper_mission_default_role"] == "diagnostic_or_explicit_owner_handoff"
@@ -524,7 +523,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
     assert availability["provider_attempt_available"] is True
     assert availability["proof_ref"] == str(proof_ref)
     assert availability["semantics"]["provider_completion_is_paper_closure"] is False
-    assert availability["semantics"]["mas_domain_health_diagnostic_role"] == "domain_truth_and_local_diagnostics"
+    assert availability["semantics"]["mas_domain_diagnostic_report_role"] == "domain_truth_and_local_diagnostics"
     managed_state = payload["managed_temporal_state_consistency"]
     assert managed_state["surface_kind"] == "mas_opl_managed_temporal_state_consistency"
     assert managed_state["status"] == "consistent"
@@ -844,11 +843,10 @@ def test_domain_handler_export_suppresses_auxiliary_paper_tasks_when_opl_current
     assert "paper_autonomy/repair-recheck" not in task_kinds
     assert "publication_aftercare/analysis-queue-progress" not in task_kinds
     assert "publication_aftercare/reviewer-refresh" not in task_kinds
-    assert task_kinds == ["domain_route/reconcile-apply"]
-    assert payload["pending_family_tasks"][0]["reason"] == "current_controller_work_unit"
+    assert "stage_outcome/opl-handoff" not in task_kinds
 
 
-def test_domain_handler_export_projects_controller_route_back_as_pending_task(
+def test_domain_handler_export_projects_controller_route_back_without_pending_task(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -908,76 +906,16 @@ def test_domain_handler_export_projects_controller_route_back_as_pending_task(
     route_tasks = [
         task
         for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_route/reconcile-apply"
+        if task["task_kind"] == "stage_outcome/opl-handoff"
     ]
-    assert len(route_tasks) == 1
-    task = route_tasks[0]
-    assert task["source"] == "mas-controller-decision"
-    assert task["requires_approval"] is False
-    assert task["dedupe_key"].startswith(
-        "mas:nfpitnet:002-dm-china-us-mortality-attribution:controller-decision:"
+    assert route_tasks == []
+    study_projection = payload["studies"][0]
+    assert study_projection["controller_decisions"]["decision_type"] == "route_back_same_line"
+    assert study_projection["controller_decisions"]["route_target"] == "analysis-campaign"
+    assert any(
+        ref["role"] == "controller_decisions" and ref["exists"] is True
+        for ref in study_projection["domain_owned_source_refs"]
     )
-    assert task["source_fingerprint"]
-    assert task["payload"]["profile"] == str(profile_path)
-    assert task["payload"]["study_id"] == "002-dm-china-us-mortality-attribution"
-    assert task["payload"]["continuation_reason"] == "controller_decision_route_back"
-    assert task["payload"]["route_target"] == "analysis-campaign"
-    assert task["payload"]["next_work_unit"]["unit_id"] == (
-        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
-    )
-    assert task["payload"]["work_unit_fingerprint"] == (
-        "domain-transition::route_back_same_line::"
-        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
-    )
-    assert task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
-    assert task["domain_truth_owner"] == "med-autoscience"
-    assert task["queue_owner"] == "one-person-lab"
-    assert task["reason"] == "controller_decision_route_back"
-    assert task["dispatch_owner"] == "med-autoscience"
-    assert task["profile_name"] == "nfpitnet"
-    assert task["source_refs"] == [
-        {
-            "role": "mas_controller_decision_route_back",
-            "ref": "studies/002-dm-china-us-mortality-attribution/artifacts/controller_decisions/latest.json",
-            "exists": True,
-        }
-    ]
-    evidence_payload = task["domain_dispatch_evidence_record_payload"]
-    assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
-    assert evidence_payload["task_kind"] == "domain_route/reconcile-apply"
-    assert evidence_payload["study_id"] == "002-dm-china-us-mortality-attribution"
-    assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
-    assert evidence_payload["domain_source_fingerprint"] == task["source_fingerprint"]
-    assert evidence_payload["profile_name"] == "nfpitnet"
-    assert {
-        key: evidence_payload["record_payload"][key]
-        for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "profile_name")
-    } == {
-        "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
-        "study_id": "002-dm-china-us-mortality-attribution",
-        "source_fingerprint": task["source_fingerprint"],
-        "profile_name": "nfpitnet",
-    }
-    assert evidence_payload["record_payload"]["typed_blocker_refs"]
-    assert evidence_payload["record_payload"]["no_regression_refs"]
-    assert evidence_payload["opl_runtime_action_execute_payload"] == evidence_payload["record_payload"]
-    assert evidence_payload["opl_runtime_action_execute_usage"]["required_preflight_status_before_record"] == (
-        "ready_to_record"
-    )
-    assert evidence_payload["opl_runtime_action_execute_usage"][
-        "required_identity_binding_status_before_record"
-    ] == "matched"
-    assert evidence_payload["identity_binding"]["payload_identity"] == {
-        "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
-        "study_id": "002-dm-china-us-mortality-attribution",
-        "source_fingerprint": task["source_fingerprint"],
-        "domain_source_fingerprint": task["source_fingerprint"],
-        "profile_name": "nfpitnet",
-    }
-    assert evidence_payload["body_included"] is False
-    assert evidence_payload["domain_ready_claimed"] is False
 
 
 def test_domain_handler_export_suppresses_controller_route_back_after_owner_receipt(

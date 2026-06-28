@@ -15,7 +15,7 @@ INTERNAL_NO_PROGRESS_REPAIR_AFTER_SECONDS = 30 * 60
 DEVELOPER_HEARTBEAT_INTERVAL_SECONDS = 60 * 60
 
 
-def default_executor_policy() -> dict[str, Any]:
+def owner_callable_policy() -> dict[str, Any]:
     return {
         "executor_kind": "codex_cli_default",
         "executor_name": "Codex CLI",
@@ -41,7 +41,7 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
                 "stale_truth_surface",
                 "runtime_recovery_retry_budget_exhausted",
             ],
-            "default_executor": default_executor_policy(),
+            "owner_callable_adapter": owner_callable_policy(),
         },
         "developer_supervisor": {
             "heartbeat_interval_seconds": DEVELOPER_HEARTBEAT_INTERVAL_SECONDS,
@@ -94,6 +94,6 @@ __all__ = [
     "INTERNAL_AI_DOCTOR_TIMEOUT_SECONDS",
     "INTERNAL_AI_MONITOR_INTERVAL_SECONDS",
     "INTERNAL_NO_PROGRESS_REPAIR_AFTER_SECONDS",
-    "default_executor_policy",
+    "owner_callable_policy",
     "two_layer_ai_repair_policy_payload",
 ]

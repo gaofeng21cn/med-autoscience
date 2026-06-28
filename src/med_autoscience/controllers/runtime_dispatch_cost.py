@@ -132,7 +132,7 @@ def dispatch_action_fingerprint(*, dispatch: Mapping[str, Any], dispatch_path: A
     ):
         if text := _text(value):
             return text
-    return f"default_executor_dispatch::{dispatch_path.as_posix()}"
+    return f"owner_callable_dispatch::{dispatch_path.as_posix()}"
 
 
 def executor_action_cost(
@@ -145,21 +145,21 @@ def executor_action_cost(
     status = _text(execution.get("execution_status"))
     if not apply or status == "dry_run":
         return reconcile_dry_run_contract(
-            reason="default_executor_dispatch_dry_run",
+            reason="owner_callable_dispatch_dry_run",
             action_fingerprint=action_fingerprint,
         )
     if status in {"repeat_suppressed", "blocked"}:
         return observe_only_contract(
-            reason=f"default_executor_dispatch_{status}",
+            reason=f"owner_callable_dispatch_{status}",
             action_fingerprint=action_fingerprint,
         )
     if status == "handoff_ready":
         return codex_worker_dispatch_contract(
-            reason="default_executor_dispatch_writer_handoff_ready",
+            reason="owner_callable_dispatch_writer_handoff_ready",
             action_fingerprint=action_fingerprint,
         )
     return controller_apply_contract(
-        reason="default_executor_dispatch_controller_apply",
+        reason="owner_callable_dispatch_controller_apply",
         action_fingerprint=action_fingerprint,
     )
 

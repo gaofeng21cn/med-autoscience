@@ -97,10 +97,10 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
                 "schema_version: v1",
                 "phase_25_ready: true",
                 "critical_overrides:",
-                "  - id: no_degrade_domain_health_diagnostic",
-                "    source_path: ops/med-deepscientist/policies/domain_health_diagnostic.md",
+                "  - id: no_degrade_domain_diagnostic_report",
+                "    source_path: ops/med-deepscientist/policies/domain_diagnostic_report.md",
                 "    status: approved",
-                "    target_surface: domain_health_diagnostic",
+                "    target_surface: domain_diagnostic_report",
             ]
         )
         + "\n",
@@ -120,10 +120,10 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
     assert result["behavior_gate"]["ready"] is True
     assert result["behavior_gate"]["critical_overrides"] == [
         {
-            "id": "no_degrade_domain_health_diagnostic",
-            "source_path": "ops/med-deepscientist/policies/domain_health_diagnostic.md",
+            "id": "no_degrade_domain_diagnostic_report",
+            "source_path": "ops/med-deepscientist/policies/domain_diagnostic_report.md",
             "status": "approved",
-            "target_surface": "domain_health_diagnostic",
+            "target_surface": "domain_diagnostic_report",
         }
     ]
 
@@ -248,7 +248,7 @@ def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Pa
                 "phase_25_ready: true",
                 "critical_overrides:",
                 "  - id: malformed_override",
-                "    source_path: ops/med-deepscientist/policies/domain_health_diagnostic.md",
+                "    source_path: ops/med-deepscientist/policies/domain_diagnostic_report.md",
                 "    status: approved",
             ]
         )
@@ -286,10 +286,10 @@ def test_inspect_workspace_contracts_rejects_placeholder_launcher_path(tmp_path:
                 "schema_version: v1",
                 "phase_25_ready: true",
                 "critical_overrides:",
-                "  - id: no_degrade_domain_health_diagnostic",
-                "    source_path: ops/med-deepscientist/policies/domain_health_diagnostic.md",
+                "  - id: no_degrade_domain_diagnostic_report",
+                "    source_path: ops/med-deepscientist/policies/domain_diagnostic_report.md",
                 "    status: approved",
-                "    target_surface: domain_health_diagnostic",
+                "    target_surface: domain_diagnostic_report",
             ]
         )
         + "\n",

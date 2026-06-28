@@ -47,7 +47,7 @@ def assert_single_planning_root(contract: dict[str, Any]) -> None:
     )
     assert {
         "study_progress",
-        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_diagnostic_report.provider_admission_current_control",
         "operator_status_card",
         "intervention_lane",
         "operator_verdict",
@@ -84,7 +84,7 @@ def assert_single_planning_root(contract: dict[str, Any]) -> None:
         "current_work_unit",
         "current_execution_envelope",
         "study_progress",
-        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_diagnostic_report.provider_admission_current_control",
         "domain_handler_export.pending_family_tasks",
         "operator_status_card",
         "OPL admission projection",

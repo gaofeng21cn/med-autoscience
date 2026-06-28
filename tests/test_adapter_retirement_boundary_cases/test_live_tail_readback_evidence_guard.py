@@ -7,9 +7,9 @@ import pytest
 
 TAIL_CASES = (
     (
-        "opl_default_executor_carrier_tail_readback",
-        "no_active_default_executor_carrier_caller_proven",
-        "default_executor_no_active_scan_as_live_tail_readback",
+        "opl_owner_callable_adapter_carrier_tail_readback",
+        "no_active_owner_callable_adapter_carrier_caller_proven",
+        "owner_callable_adapter_no_active_scan_as_live_tail_readback",
     ),
     (
         "opl_obligation_actuator_tail_readback",

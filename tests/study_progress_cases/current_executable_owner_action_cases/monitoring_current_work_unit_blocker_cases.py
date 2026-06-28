@@ -135,7 +135,7 @@ def test_progress_first_monitoring_keeps_terminal_domain_blocker_over_artifact_a
                 "action_queue": [],
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat_857dcf8b3164f75dfd037e22",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
                     "paper_stage_log": {
@@ -219,11 +219,11 @@ def test_progress_first_monitoring_prefers_canonical_typed_blocker_over_stale_te
                 "action_queue": [],
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat_stale_terminal",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "blocked",
                     "source_path": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_stale_terminal.closeout.json"
                     ),
                     "paper_stage_log": {
@@ -283,7 +283,7 @@ def test_progress_first_monitoring_blocks_admission_when_canonical_typed_blocker
                         "work_unit_fingerprint": "sha256:gate-replay-current",
                         "action_fingerprint": "sha256:gate-replay-current",
                         "source_ref": (
-                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                             "sat_gate_replay.closeout.json"
                         ),
                     },
@@ -327,7 +327,7 @@ def test_progress_first_monitoring_blocks_admission_when_canonical_typed_blocker
         "blocker_type": "medical_publication_surface_blocked",
         "blocked_reason": "medical_publication_surface_blocked",
         "source_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_gate_replay.closeout.json"
         ),
     }

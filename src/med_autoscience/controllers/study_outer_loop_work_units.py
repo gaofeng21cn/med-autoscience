@@ -11,12 +11,12 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 
 
 _UPSTREAM_REPAIR_UNITS = UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
-_OUTER_LOOP_WAKEUP_SOURCE = "domain_health_diagnostic_outer_loop_wakeup"
+_OUTER_LOOP_WAKEUP_SOURCE = "domain_diagnostic_outer_loop_wakeup"
 _LEDGER_EXECUTED_EVENT_TYPES = frozenset({"closed"})
 _SPECIFICITY_UNIT_ID = "gate_needs_specificity"
 _SPECIFICITY_ACTION_TYPE = "request_gate_specificity"
@@ -44,7 +44,7 @@ _DECISION_PAYLOAD_CONTEXT_KEYS = (
     "specificity_questions",
     "currentness_basis",
 )
-_DEFAULT_EXECUTOR_TERMINAL_CLOSEOUT_STATUSES = frozenset(
+_OWNER_CALLABLE_TERMINAL_CLOSEOUT_STATUSES = frozenset(
     {
         "blocked",
         "completed",
@@ -82,7 +82,7 @@ def _text_list(value: object) -> list[str]:
 
 
 def _wakeup_latest_path(study_root: Path) -> Path:
-    return Path(study_root).expanduser().resolve() / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json"
+    return Path(study_root).expanduser().resolve() / "artifacts" / "runtime" / "domain_diagnostic_wakeup" / "latest.json"
 
 
 def dispatch_key(tick_request: Mapping[str, Any]) -> str | None:
@@ -460,7 +460,7 @@ def close_stale_opl_runtime_handoff_if_meaningful_delta(
     )
 
 
-def close_stale_opl_runtime_handoff_if_default_executor_closeout(
+def close_stale_opl_runtime_handoff_if_owner_callable_adapter_closeout(
     *,
     study_root: Path,
     status_payload: Mapping[str, Any],
@@ -468,7 +468,7 @@ def close_stale_opl_runtime_handoff_if_default_executor_closeout(
     wakeup_audit: Mapping[str, Any],
     default_recorded_at: str,
 ) -> dict[str, Any] | None:
-    evidence = _default_executor_closeout_evidence(
+    evidence = _owner_callable_adapter_closeout_evidence(
         study_root=study_root,
         tick_request=tick_request,
     )
@@ -482,7 +482,7 @@ def close_stale_opl_runtime_handoff_if_default_executor_closeout(
         default_recorded_at=default_recorded_at,
         evidence={
             "wakeup_reason": "prior platform repair requirement superseded by default executor closeout refs",
-            "closure_reason": "default_executor_closeout_after_opl_runtime_handoff",
+            "closure_reason": "owner_callable_adapter_closeout_after_opl_runtime_handoff",
             **evidence,
         },
     )
@@ -496,15 +496,15 @@ def close_stale_opl_runtime_handoff_if_result_evidence(
     wakeup_audit: Mapping[str, Any],
     default_recorded_at: str,
 ) -> dict[str, Any] | None:
-    default_executor_closeout = close_stale_opl_runtime_handoff_if_default_executor_closeout(
+    owner_callable_adapter_closeout = close_stale_opl_runtime_handoff_if_owner_callable_adapter_closeout(
         study_root=study_root,
         status_payload=status_payload,
         tick_request=tick_request,
         wakeup_audit=wakeup_audit,
         default_recorded_at=default_recorded_at,
     )
-    if default_executor_closeout is not None:
-        return default_executor_closeout
+    if owner_callable_adapter_closeout is not None:
+        return owner_callable_adapter_closeout
     return close_stale_opl_runtime_handoff_if_meaningful_delta(
         study_root=study_root,
         status_payload=status_payload,
@@ -514,7 +514,7 @@ def close_stale_opl_runtime_handoff_if_result_evidence(
     )
 
 
-def _default_executor_closeout_evidence(
+def _owner_callable_adapter_closeout_evidence(
     *,
     study_root: Path,
     tick_request: Mapping[str, Any],
@@ -522,7 +522,7 @@ def _default_executor_closeout_evidence(
     action_type, work_unit_id, work_unit_fingerprint = _tick_request_owner_identity(tick_request)
     if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
         return None
-    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, receipt_ref in owner_callable_receipt_candidates(study_root=study_root):
         if _non_empty_text(execution.get("action_type")) != action_type:
             continue
         if _execution_work_unit_id(execution) != work_unit_id:
@@ -535,13 +535,13 @@ def _default_executor_closeout_evidence(
         execution_status = _non_empty_text(execution.get("execution_status"))
         stage_closeout_status = _non_empty_text(execution.get("stage_closeout_status"))
         if (
-            execution_status not in _DEFAULT_EXECUTOR_TERMINAL_CLOSEOUT_STATUSES
-            and stage_closeout_status not in _DEFAULT_EXECUTOR_TERMINAL_CLOSEOUT_STATUSES
+            execution_status not in _OWNER_CALLABLE_TERMINAL_CLOSEOUT_STATUSES
+            and stage_closeout_status not in _OWNER_CALLABLE_TERMINAL_CLOSEOUT_STATUSES
         ):
             continue
         return {
-            "default_executor_execution_ref": receipt_ref,
-            "default_executor_execution_status": execution_status,
+            "owner_callable_adapter_receipt_ref": receipt_ref,
+            "owner_callable_adapter_receipt_status": execution_status,
             "stage_closeout_status": stage_closeout_status,
             "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
             "closeout_refs": closeout_refs,

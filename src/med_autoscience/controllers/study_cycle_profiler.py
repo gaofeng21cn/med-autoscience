@@ -30,7 +30,7 @@ from med_autoscience.controllers.study_cycle_profiler_rendering import (
     render_study_cycle_profile_markdown,
     render_workspace_cycle_profile_markdown,
 )
-from med_autoscience.controllers.study_cycle_profiler_scheduler import (
+from med_autoscience.controllers.study_cycle_profiler_planner import (
     optimization_action_units_for_study,
     workspace_scheduler,
 )
@@ -207,7 +207,7 @@ def _category_roots(*, study_root: Path, quest_root: Path | None) -> tuple[tuple
         roots.extend(
             [
                 ("publishability_gate", quest_root / "artifacts" / "reports" / "publishability_gate"),
-                ("domain_health_diagnostic", quest_root / "artifacts" / "reports" / "domain_health_diagnostic"),
+                ("domain_diagnostic_report", quest_root / "artifacts" / "reports" / "domain_diagnostic_report"),
             ]
         )
     return tuple(roots)
@@ -346,12 +346,12 @@ def _latest_current_payloads(*, study_root: Path, quest_root: Path | None) -> tu
     return publication_eval_latest, publishability_gate_latest
 
 
-def _domain_health_diagnostic_wakeup_dedupe_summary(
+def _domain_diagnostic_wakeup_dedupe_summary(
     *,
     study_root: Path,
     controller_decision_fingerprints: Mapping[str, Any],
 ) -> dict[str, Any]:
-    latest_path = study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json"
+    latest_path = study_root / "artifacts" / "runtime" / "domain_diagnostic_wakeup" / "latest.json"
     payload = _read_json_mapping(latest_path)
     if payload is None:
         return {"status": "not_observed"}
@@ -505,7 +505,7 @@ def _bottlenecks(
     *,
     opl_runtime_owner_handoff_summary: Mapping[str, Any],
     controller_decision_fingerprints: Mapping[str, Any],
-    domain_health_diagnostic_wakeup_dedupe_summary: Mapping[str, Any],
+    domain_diagnostic_wakeup_dedupe_summary: Mapping[str, Any],
     gate_blocker_summary: Mapping[str, Any],
     package_currentness: Mapping[str, Any],
     current_state_summary: Mapping[str, Any] | None = None,
@@ -529,7 +529,7 @@ def _bottlenecks(
     if (
         isinstance(top_repeats, list)
         and top_repeats
-        and domain_health_diagnostic_wakeup_dedupe_summary.get("status")
+        and domain_diagnostic_wakeup_dedupe_summary.get("status")
         not in {"dedupe_confirmed", "work_unit_dispatched"}
     ):
         bottlenecks.append(
@@ -731,7 +731,7 @@ def profile_study_cycle(
         study_root=resolved_study_root,
         publishability_gate_latest=publishability_gate_latest,
     )
-    domain_health_diagnostic_wakeup_dedupe = _domain_health_diagnostic_wakeup_dedupe_summary(
+    domain_diagnostic_wakeup_dedupe = _domain_diagnostic_wakeup_dedupe_summary(
         study_root=resolved_study_root,
         controller_decision_fingerprints=decision_fingerprints,
     )
@@ -753,7 +753,7 @@ def profile_study_cycle(
     bottlenecks = _bottlenecks(
         opl_runtime_owner_handoff_summary=opl_handoff_summary,
         controller_decision_fingerprints=decision_fingerprints,
-        domain_health_diagnostic_wakeup_dedupe_summary=domain_health_diagnostic_wakeup_dedupe,
+        domain_diagnostic_wakeup_dedupe_summary=domain_diagnostic_wakeup_dedupe,
         gate_blocker_summary=gate_summary,
         package_currentness=package_currentness,
         current_state_summary=current_state,
@@ -767,7 +767,7 @@ def profile_study_cycle(
     sli_summary = profile_sli.build_sli_summary(
         {
             "opl_runtime_owner_handoff_summary": opl_handoff_summary,
-            "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
+            "domain_diagnostic_wakeup_dedupe_summary": domain_diagnostic_wakeup_dedupe,
             "gate_blocker_summary": gate_summary,
             "package_currentness": package_currentness,
         }
@@ -809,7 +809,7 @@ def profile_study_cycle(
             "study_id": resolved_study_id,
             "quest_id": quest_id,
             "opl_runtime_owner_handoff_summary": opl_handoff_summary,
-            "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
+            "domain_diagnostic_wakeup_dedupe_summary": domain_diagnostic_wakeup_dedupe,
             "gate_blocker_summary": gate_summary,
             "package_currentness": package_currentness,
             "eta_confidence_band": eta_band,
@@ -855,7 +855,7 @@ def profile_study_cycle(
             "quest_id": quest_id,
             "category_windows": category_windows,
             "opl_runtime_owner_handoff_summary": opl_handoff_summary,
-            "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
+            "domain_diagnostic_wakeup_dedupe_summary": domain_diagnostic_wakeup_dedupe,
             "work_unit_lifecycle_summary": work_unit_lifecycle,
             "publication_eval_replay_lag": publication_eval_lag,
             "current_state_summary": current_state,
@@ -883,7 +883,7 @@ def profile_study_cycle(
         "category_windows": category_windows,
         "opl_runtime_owner_handoff_summary": opl_handoff_summary,
         "controller_decision_fingerprints": decision_fingerprints,
-        "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
+        "domain_diagnostic_wakeup_dedupe_summary": domain_diagnostic_wakeup_dedupe,
         "work_unit_lifecycle_summary": work_unit_lifecycle,
         "publication_eval_replay_lag": publication_eval_lag,
         "current_state_summary": current_state,

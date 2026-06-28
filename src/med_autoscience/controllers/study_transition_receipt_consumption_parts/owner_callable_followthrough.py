@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_route_currentness import (
     execution_matches_owner_route,
@@ -16,9 +16,9 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts.owne
 )
 
 
-_DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed"})
-_DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
-_DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
+_OWNER_CALLABLE_EXECUTED_STATUSES = frozenset({"executed"})
+_OWNER_CALLABLE_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
+_OWNER_CALLABLE_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
     {
         "progress_delta_candidate",
         "executed",
@@ -27,7 +27,7 @@ _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
 )
 
 
-def default_executor_execution_followthrough_receipt_consumption(
+def owner_callable_receipt_followthrough_consumption(
     *,
     study_root: Path,
     owner_route: Mapping[str, Any],
@@ -37,7 +37,7 @@ def default_executor_execution_followthrough_receipt_consumption(
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if current_action_types != {"current_package_freshness_required"}:
         return {}
-    for execution, receipt_ref in default_executor_execution_candidates(
+    for execution, receipt_ref in owner_callable_receipt_candidates(
         study_root=study_root,
         allow_legacy_fallback=allow_legacy_fallback,
     ):
@@ -53,7 +53,7 @@ def default_executor_execution_followthrough_receipt_consumption(
             return {}
         if action_type not in {"publication_gate_specificity_required", "run_gate_clearing_batch"}:
             continue
-        if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+        if _text(execution.get("execution_status")) not in _OWNER_CALLABLE_EXECUTED_STATUSES:
             continue
         if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
             continue
@@ -63,7 +63,7 @@ def default_executor_execution_followthrough_receipt_consumption(
             action_type=action_type,
         ):
             continue
-        if _default_executor_dispatch_zero_execution_blocker(owner_result):
+        if _owner_callable_dispatch_zero_execution_blocker(owner_result):
             continue
         if action_type == "publication_gate_specificity_required" and not _publication_gate_specificity_owner_result_satisfies_route_output(
             owner_result=owner_result
@@ -73,14 +73,14 @@ def default_executor_execution_followthrough_receipt_consumption(
             owner_result=owner_result
         ):
             continue
-        blocked_reason = _default_executor_consumed_blocked_reason(
+        blocked_reason = _owner_callable_adapter_consumed_blocked_reason(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         )
         currentness_basis = owner_route_currentness_basis(owner_route)
         return {
             "status": "consumed",
-            "receipt_kind": "default_executor_execution",
+            "receipt_kind": "owner_callable_adapter_receipt",
             "receipt_ref": str(receipt_ref),
             "execution_id": _text(execution.get("execution_id")),
             "action_type": action_type,
@@ -148,15 +148,15 @@ def _direct_execution_consumes_current_owner_route(
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
-    if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+    if _text(execution.get("execution_status")) not in _OWNER_CALLABLE_EXECUTED_STATUSES:
         return False
     if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
         return False
     if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
         return False
-    if _default_executor_dispatch_zero_execution_blocker(owner_result):
+    if _owner_callable_dispatch_zero_execution_blocker(owner_result):
         return False
-    return _default_executor_owner_result_consumable(
+    return _owner_callable_adapter_owner_result_consumable(
         owner_result=owner_result,
         repair_evidence=repair_evidence,
     )
@@ -232,21 +232,21 @@ def _gate_clearing_batch_owner_result_satisfies_route_output(*, owner_result: Ma
     return _text(owner_result.get("status")) == "executed" and _text(gate_replay.get("status")) == "blocked"
 
 
-def _default_executor_owner_result_consumable(
+def _owner_callable_adapter_owner_result_consumable(
     *,
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
     if owner_result.get("ok") is True:
         return True
-    if _text(owner_result.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES:
+    if _text(owner_result.get("status")) in _OWNER_CALLABLE_CONSUMABLE_OWNER_RESULT_STATUSES:
         return True
-    if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
+    if _text(repair_evidence.get("status")) in _OWNER_CALLABLE_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
         return True
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
 
 
-def _default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
+def _owner_callable_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
     dispatcher_result = _mapping(owner_result.get("dispatcher_result"))
     if not dispatcher_result:
         return False
@@ -264,7 +264,7 @@ def _default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str,
     )
 
 
-def _default_executor_consumed_blocked_reason(
+def _owner_callable_adapter_consumed_blocked_reason(
     *,
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
@@ -302,4 +302,4 @@ def _string_set(value: object) -> set[str]:
     return {text for item in value if (text := _text(item))}
 
 
-__all__ = ["default_executor_execution_followthrough_receipt_consumption"]
+__all__ = ["owner_callable_receipt_followthrough_consumption"]

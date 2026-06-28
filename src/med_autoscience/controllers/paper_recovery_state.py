@@ -1207,14 +1207,14 @@ def _provider_admission_terminal_closeout_consumed(
     terminal = (
         _mapping(consumed.get("latest_terminal_stage_log"))
         or _mapping(handoff.get("latest_terminal_stage_log"))
-        or _mapping(handoff.get("latest_typed_default_executor_closeout"))
+        or _mapping(handoff.get("latest_typed_owner_callable_closeout"))
     )
     paper_stage_log = _mapping(terminal.get("paper_stage_log"))
     typed_blocker = (
         _mapping(consumed.get("typed_blocker"))
         or _mapping(terminal.get("typed_blocker"))
         or _mapping(handoff.get("typed_blocker"))
-        or _mapping(_mapping(handoff.get("latest_typed_default_executor_closeout")).get("typed_blocker"))
+        or _mapping(_mapping(handoff.get("latest_typed_owner_callable_closeout")).get("typed_blocker"))
     )
     refs = _dedupe(
         [

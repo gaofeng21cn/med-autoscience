@@ -163,7 +163,7 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 
 - `domain_status_projection.progress_projection(...)`
   - 只读，返回序列化后的 `ProgressProjectionStatus`，不得写 OPL runtime truth
-- `runtime_control.ports.request_opl_stage_attempt(...)` / injected domain-health-diagnostic `request_opl_stage_attempt` port
+- `runtime_control.ports.request_opl_stage_attempt(...)` / injected domain-diagnostic-report `request_opl_stage_attempt` port
   - 读 `progress_projection` status payload，输出 OPL stage-attempt admission request、controller authorization refs、owner-route handoff、owner receipt 或 typed blocker；不得直接执行 provider resume/relaunch、queue hydration、attempt retry 或 MAS 私有 lifecycle mutation
 
 `progress_projection(...)` 接受：

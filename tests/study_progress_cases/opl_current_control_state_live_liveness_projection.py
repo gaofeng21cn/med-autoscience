@@ -651,7 +651,7 @@ def test_progress_projection_treats_terminal_opl_success_handoff_as_settled_not_
                     "running_provider_attempt": False,
                     "handoff_generated_at": "2026-05-28T08:43:37+00:00",
                     "task_id": "frt-terminal-success",
-                    "task_kind": "domain_route/reconcile-apply",
+                    "task_kind": "stage_outcome/opl-handoff",
                     "current_attempt_state": "succeeded",
                     "reconciliation_status": "succeeded",
                     "terminal_provider_transport_observation_superseded": True,

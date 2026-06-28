@@ -92,9 +92,9 @@ def test_current_ai_reviewer_write_routeback_does_not_project_reviewer_redrive_f
         active_run_id="mas-run-dm002",
     )
 
-    assert transition["decision_type"] == "active_domain_health_diagnostic"
+    assert transition["decision_type"] == "active_runtime_readback"
     assert transition["owner"] == "med-autoscience"
-    assert transition["controller_action"] == "domain_health_diagnostic"
+    assert transition["controller_action"] == "runtime_readback"
 
 
 def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_when_not_live(

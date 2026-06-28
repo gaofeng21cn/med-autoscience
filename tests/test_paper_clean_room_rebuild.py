@@ -343,7 +343,7 @@ def test_domain_owner_dispatch_executes_paper_clean_room_rebuild_action(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "paper_clean_room_rebuild_required.json"
     )
     _write_current_dispatch(
@@ -426,7 +426,7 @@ def test_domain_owner_dispatch_executes_clean_room_publication_surface_action(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_medical_publication_surface_from_clean_room.json"
     )
     _write_current_dispatch(
@@ -757,7 +757,7 @@ def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_o
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     payload = _dispatch(

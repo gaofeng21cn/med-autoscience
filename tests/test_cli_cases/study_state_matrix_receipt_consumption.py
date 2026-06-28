@@ -171,7 +171,7 @@ def test_study_state_matrix_consumes_bundle_stage_package_closure_receipt(
     assert rule["receipt"]["completion_receipt_consumption"]["receipt_kind"] == "runtime_turn_closeout_package_closure"
 
 
-def test_study_state_matrix_marks_default_executor_execution_receipt_supersession(
+def test_study_state_matrix_marks_owner_callable_receipt_supersession(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -186,9 +186,9 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
     (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
 
     supersession = {
-        "source_surface": "default_executor_execution/latest.json",
+        "source_surface": "owner_callable_adapter_receipt/latest.json",
         "source_path": str(
-            study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
+            study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json"
         ),
         "superseded_run_id": "run-old",
         "execution_id": "execution::003-dpcc::return_to_ai_reviewer_workflow::2026-05-15T07:48:49+00:00",
@@ -235,11 +235,11 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
     assert transition["decision_type"] == "ai_reviewer_re_eval"
     assert transition["completion_receipt_consumption"] == {
         "status": "superseded_stale_closeout",
-        "receipt_kind": "default_executor_execution",
+        "receipt_kind": "owner_callable_adapter_receipt",
         "superseded_run_id": "run-old",
         "execution_id": "execution::003-dpcc::return_to_ai_reviewer_workflow::2026-05-15T07:48:49+00:00",
         "action_type": "return_to_ai_reviewer_workflow",
-        "source_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+        "source_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
         "next_action": "honor_newer_owner_execution_receipt",
     }
     assert case["expected"]["decision_type"] == "ai_reviewer_re_eval"
@@ -247,7 +247,7 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
     assert case["context"]["completion_receipt_consumption"]["next_action"] == "honor_newer_owner_execution_receipt"
 
 
-def test_study_state_matrix_consumes_paper_review_default_executor_closeout(
+def test_study_state_matrix_consumes_paper_review_owner_callable_adapter_closeout(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -308,7 +308,7 @@ def test_study_state_matrix_consumes_paper_review_default_executor_closeout(
             "surface_kind": "domain_stage_closeout_packet",
             "schema_version": 1,
             "stage_attempt_id": "sat_dm002_writer",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
@@ -377,7 +377,7 @@ def test_study_state_matrix_consumes_paper_review_default_executor_closeout(
     assert transition["owner"] == "med-autoscience"
     receipt = transition["completion_receipt_consumption"]
     assert receipt["status"] == "consumed"
-    assert receipt["receipt_kind"] == "default_executor_execution"
+    assert receipt["receipt_kind"] == "owner_callable_adapter_receipt"
     assert receipt["receipt_ref"] == "paper/review/domain_stage_closeout_sat_dm002_20260602T090821Z.json"
     assert receipt["action_type"] == "run_quality_repair_batch"
     assert receipt["owner_result_status"] == "completed_for_write_owner_idempotent"

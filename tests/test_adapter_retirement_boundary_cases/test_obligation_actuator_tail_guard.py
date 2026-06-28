@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SURFACE_ID = "domain_health_diagnostic_obligation_actuator"
+SURFACE_ID = "domain_diagnostic_obligation_actuator"
 
 
 def _inventory() -> dict:

@@ -56,13 +56,13 @@ def _write_ready_quality_repair_dispatch(study_root, *, study_id: str, fingerpri
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "dispatch_status": "ready",
             "dispatch_authority": "quality_repair_batch_writer_handoff",
             "study_id": study_id,

@@ -394,7 +394,6 @@ def _build_opl_native_helper_proof_surface() -> dict[str, Any]:
             "helper_write_policy": "no_domain_truth_writes",
             "authoritative_truth_refs": [
                 "/progress_projection",
-                "/domain_health_diagnostic",
                 "/publication_eval/latest.json",
                 "/controller_decisions/latest.json",
             ],

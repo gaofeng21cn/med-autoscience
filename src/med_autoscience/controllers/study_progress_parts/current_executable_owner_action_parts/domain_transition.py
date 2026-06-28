@@ -148,9 +148,9 @@ def _runtime_diagnostic_transition(
     action: str | None,
 ) -> bool:
     return (
-        decision_type == "active_domain_health_diagnostic"
-        or work_unit_id == "domain_health_diagnostic_active_run"
-        or action == "domain_health_diagnostic"
+        decision_type == "active_runtime_readback"
+        or work_unit_id == "runtime_readback_active_run"
+        or action == "runtime_readback"
     )
 
 

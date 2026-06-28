@@ -45,7 +45,7 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "next_stage_refs": ["manuscript_authoring"],
         "trust_lane": "codex_executor",
         "runtime_event_refs": [
-            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
+            "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
             "runtime_event:evidence_ledger.bounded_analysis_evidence_ready",
         ],
     },

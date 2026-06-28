@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.test_adapter_retirement_boundary_cases.default_executor_wire import *  # noqa: F403,F401
+from tests.test_adapter_retirement_boundary_cases.owner_callable_adapter_wire import *  # noqa: F403,F401
 from tests.test_adapter_retirement_boundary_cases.owner_callable_projection import *  # noqa: F403,F401
 from tests.test_adapter_retirement_boundary_cases.runtime_inventory_contract import (
     assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory as _assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory,

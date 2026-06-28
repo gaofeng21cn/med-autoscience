@@ -328,13 +328,13 @@ def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(
                         {
                             "task_id": task_id,
                             "status": "running",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "payload": {
                                 "profile": str(profile_path),
                                 "study_id": study_id,
                                 "action_type": "return_to_ai_reviewer_workflow",
                                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-                                "dispatch_ref": "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/live.json",
+                                "dispatch_ref": "studies/003/artifacts/supervision/consumer/owner_callable_adapters/immutable/return_to_ai_reviewer_workflow/live.json",
                             },
                         }
                     ]
@@ -346,13 +346,13 @@ def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(
                 "family_runtime_task": {
                     "task": {
                         "task_id": task_id,
-                        "task_kind": "domain_owner/default-executor-dispatch",
+                        "task_kind": "stage_outcome/opl-handoff",
                         "payload": {
                             "profile": str(profile_path),
                             "study_id": study_id,
                             "action_type": "return_to_ai_reviewer_workflow",
                             "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-                            "dispatch_ref": "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/live.json",
+                            "dispatch_ref": "studies/003/artifacts/supervision/consumer/owner_callable_adapters/immutable/return_to_ai_reviewer_workflow/live.json",
                         },
                         "current_control_state": {
                             "running_provider_attempt": True,
@@ -372,7 +372,7 @@ def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(
                             "workspace_locator": {
                                 "workspace_root": str(profile.workspace_root),
                                 "action_type": "return_to_ai_reviewer_workflow",
-                                "dispatch_ref": "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/live.json",
+                                "dispatch_ref": "studies/003/artifacts/supervision/consumer/owner_callable_adapters/immutable/return_to_ai_reviewer_workflow/live.json",
                             },
                         }
                     ],

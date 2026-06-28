@@ -74,7 +74,7 @@
     "symptom_label_as_root_cause",
     "blocked_reason_as_root_cause",
     "queue_empty_as_progress",
-    "dhd_dry_run_clean_as_progress",
+    "domain_diagnostic_dry_run_clean_as_progress",
     "focused_tests_as_runtime_ready",
     "repair_lane_commit_as_paper_progress",
     "candidate_absorption_as_owner_path_unblocked",

@@ -839,7 +839,7 @@ def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_sto
                     "owner": "one-person-lab",
                     "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
                     "source_ref": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_82a2b164657c9b4d0c312db9.closeout.json"
                     ),
                 },

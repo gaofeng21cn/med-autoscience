@@ -76,7 +76,7 @@ def _owner_callable_closeout_paths(
             / "artifacts"
             / "supervision"
             / "consumer"
-            / "default_executor_execution"
+            / "owner_callable_adapter_receipt"
             / f"{stage_attempt_id}.closeout.json"
         )
         try:

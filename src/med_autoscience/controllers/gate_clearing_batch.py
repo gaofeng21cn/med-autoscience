@@ -17,7 +17,7 @@ from med_autoscience.controllers.gate_clearing_batch_fingerprints import (
 )
 from med_autoscience.controllers import gate_clearing_batch_package_freshness
 from med_autoscience.controllers import gate_clearing_batch_submission
-from med_autoscience.controllers import gate_clearing_batch_scheduler
+from med_autoscience.controllers import gate_clearing_batch_planner
 from med_autoscience.controllers import gate_clearing_batch_execution
 from med_autoscience.controllers import gate_clearing_batch_currentness
 from med_autoscience.controllers import gate_clearing_batch_repair_fingerprints
@@ -787,7 +787,7 @@ def run_gate_clearing_batch(
             repair_units=repair_units,
         ),
     )
-    repair_unit_execution_plan = gate_clearing_batch_scheduler.build_repair_unit_execution_plan(repair_units)
+    repair_unit_execution_plan = gate_clearing_batch_planner.build_repair_unit_execution_plan(repair_units)
     if not repair_units and study_delivery_status.startswith("stale"):
         # Let publication_gate.run_controller(apply=True) own stale delivery refresh even when
         # there are no other deterministic repairs to launch in parallel.

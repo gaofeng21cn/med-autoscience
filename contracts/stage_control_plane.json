@@ -241,7 +241,7 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "default_executor_kind": "codex_cli_default",
+          "owner_callable_adapter_kind": "codex_cli_default",
           "dispatch_boundary": "mas_guarded_actions_only"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
@@ -441,7 +441,7 @@
       ],
       "selected_executor": {
         "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
-        "default_executor": true,
+        "owner_callable_adapter": true,
         "executor_binding_ref": "default_codex_cli",
         "executor_kind": "codex_cli",
         "required_capabilities": [
@@ -1139,7 +1139,7 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "default_executor_kind": "codex_cli_default",
+          "owner_callable_adapter_kind": "codex_cli_default",
           "dispatch_boundary": "mas_guarded_actions_only"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
@@ -1886,7 +1886,7 @@
           "independent_gate_receipt_required": false,
           "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
           "runtime_event_refs": [
-            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
+            "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
             "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
           ],
           "stage_status_ref": "/progress_projection",
@@ -2015,7 +2015,7 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "default_executor_kind": "codex_cli_default",
+          "owner_callable_adapter_kind": "codex_cli_default",
           "dispatch_boundary": "mas_guarded_actions_only"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
@@ -2515,7 +2515,7 @@
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
         "runtime_event_refs": [
-          "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
+          "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
           "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
         ],
         "source_scope_refs": [
@@ -2727,7 +2727,7 @@
         "owner_receipt_required": true,
         "records_runtime_events": true,
         "runtime_event_refs": [
-          "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
+          "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
           "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
         ],
         "runtime_guard_required": true,
@@ -2896,7 +2896,7 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "default_executor_kind": "codex_cli_default",
+          "owner_callable_adapter_kind": "codex_cli_default",
           "dispatch_boundary": "mas_guarded_actions_only"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
@@ -3816,7 +3816,7 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "default_executor_kind": "codex_cli_default",
+          "owner_callable_adapter_kind": "codex_cli_default",
           "dispatch_boundary": "mas_guarded_actions_only"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
@@ -4755,7 +4755,7 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "default_executor_kind": "codex_cli_default",
+          "owner_callable_adapter_kind": "codex_cli_default",
           "dispatch_boundary": "mas_guarded_actions_only"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"

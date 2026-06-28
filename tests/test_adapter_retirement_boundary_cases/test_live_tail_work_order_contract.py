@@ -93,7 +93,7 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         "runtime_readback:",
     ]
     assert {
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "contract_landed",
         "docs",
         "focused_tests",

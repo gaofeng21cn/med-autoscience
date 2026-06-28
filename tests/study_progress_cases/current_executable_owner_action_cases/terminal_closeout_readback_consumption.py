@@ -19,7 +19,7 @@ WORK_UNIT = "medical_prose_write_repair"
 FINGERPRINT = "publication-blockers::0915410f804b3697"
 CLOSEOUT_REF = (
     "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-    "consumer/default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+    "consumer/owner_callable_adapter_receipt/sat_08da46bea43329723d2fbbea.closeout.json"
 )
 RECEIPT_REF = (
     "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/"
@@ -193,14 +193,14 @@ def _handoff_with_consumed_terminal_closeout() -> dict[str, object]:
             "action_fingerprint": FINGERPRINT,
             "typed_blocker_ref": CLOSEOUT_REF,
         },
-        "latest_typed_default_executor_closeout": {
-            "surface_kind": "mas_latest_default_executor_typed_closeout_projection",
+        "latest_typed_owner_callable_closeout": {
+            "surface_kind": "mas_latest_owner_callable_adapter_typed_closeout_projection",
             "read_model": "study_opl_current_control_state_handoff_projection",
             "authority": "observability_only",
             "source_path": CLOSEOUT_REF,
             "receipt_ref": CLOSEOUT_REF,
             "stage_attempt_id": "sat_08da46bea43329723d2fbbea",
-            "source_fingerprint": "mas_default_executor_provider_admission_source_95eb75e51e25e7fc938b8682",
+            "source_fingerprint": "mas_owner_callable_adapter_provider_admission_source_95eb75e51e25e7fc938b8682",
             "idempotency_key": "idem_2f8ab5c3e2608435ee8ccde0",
             "action_type": "run_quality_repair_batch",
             "status": "typed_blocker",

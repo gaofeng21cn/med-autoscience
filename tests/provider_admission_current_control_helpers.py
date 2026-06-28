@@ -9,7 +9,7 @@ def provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> di
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     identity_key = f"provider-admission::{study_id}::{action_fingerprint}"

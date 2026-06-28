@@ -104,7 +104,7 @@ def build_codex_cli_launch_packet(
         "tool_refs": {
             "allowed_action_refs": list(allowed_action_refs),
             "dispatch_boundary": "mas_guarded_actions_only",
-            "default_executor_kind": "codex_cli_default",
+            "owner_callable_adapter_kind": "codex_cli_default",
             "can_write_mas_truth": False,
             "can_authorize_quality_verdict": False,
         },

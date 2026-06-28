@@ -27,9 +27,9 @@ def validate_legacy_latest_wire(
             "current_provider_handoff_export_reads_legacy_wire",
             "current_recovery_action_reads_legacy_wire",
             "default_execution_latest_payload_reads_legacy_wire_by_default",
-            "default_executor_execution_candidates_reads_legacy_wire_by_default",
-            "default_executor_receipt_consumption_reads_legacy_wire_by_default",
-            "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default",
+            "owner_callable_receipt_candidates_reads_legacy_wire_by_default",
+            "owner_callable_adapter_receipt_consumption_reads_legacy_wire_by_default",
+            "owner_callable_adapter_nonconsumable_closeout_reads_legacy_wire_by_default",
         ):
             if current_boundary.get(key, False) is not False:
                 violations.append(_violation(surface_id, f"current_reader_legacy_fallback:{key}"))
@@ -38,9 +38,9 @@ def validate_legacy_latest_wire(
     replay_boundary = surface.get("history_replay_boundary")
     if isinstance(replay_boundary, Mapping):
         for key in (
-            "default_executor_execution_candidates_requires_allow_legacy_fallback",
-            "default_executor_receipt_consumption_requires_allow_legacy_fallback",
-            "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback",
+            "owner_callable_receipt_candidates_requires_allow_legacy_fallback",
+            "owner_callable_adapter_receipt_consumption_requires_allow_legacy_fallback",
+            "owner_callable_adapter_nonconsumable_closeout_requires_allow_legacy_fallback",
             "execution_latest_payload_requires_allow_legacy_fallback",
             "legacy_latest_payload_helper_requires_allow_legacy_fallback",
         ):
@@ -61,7 +61,7 @@ def validate_legacy_stage_run_abi(
         return [_violation(surface_id, "missing_legacy_stage_run_abi_boundary")]
     if boundary.get("abi_role") != "opl_stagerun_closeout_provenance_identity_recovery_only":
         violations.append(_violation(surface_id, "legacy_stage_run_abi_role_not_provenance_only"))
-    if boundary.get("stage_id") != "domain_owner/default-executor-dispatch":
+    if boundary.get("stage_id") != "stage_outcome/opl-handoff":
         violations.append(_violation(surface_id, "legacy_stage_run_abi_stage_id_not_bound"))
     if boundary.get("latest_wire_surface_is_stage_run_abi") is not False:
         violations.append(_violation(surface_id, "legacy_latest_wire_misclassified_as_stage_run_abi"))
@@ -145,13 +145,13 @@ def validate_stage_run_abi_active_caller_scan(
         violations.append(_violation(surface_id, "stage_closeout_active_scan_missing_false_completion_guard"))
     if (
         _text(scan.get("required_before_physical_delete"))
-        != "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
+        != "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
     ):
         violations.append(_violation(surface_id, "stage_closeout_active_scan_missing_physical_delete_ref"))
     return violations
 
 
-def validate_legacy_default_executor_carrier(
+def validate_legacy_owner_callable_adapter_carrier(
     surface_id: str,
     surface: Mapping[str, Any],
 ) -> list[dict[str, str]]:
@@ -180,7 +180,7 @@ def validate_legacy_default_executor_carrier(
     if isinstance(abi_boundary, Mapping):
         if abi_boundary.get("carrier_kind") != "opl_domain_progress_transition_request_carrier":
             violations.append(_violation(surface_id, "legacy_carrier_kind_not_opl_transition_request"))
-        if abi_boundary.get("task_kind_retained_for_opl_stage_run_abi") != "domain_owner/default-executor-dispatch":
+        if abi_boundary.get("task_kind_retained_for_opl_stage_run_abi") != "stage_outcome/opl-handoff":
             violations.append(_violation(surface_id, "legacy_carrier_missing_stage_run_abi_task_kind"))
         for key in (
             "mas_can_create_stage_run",
@@ -242,7 +242,7 @@ def validate_legacy_default_executor_carrier(
     else:
         violations.append(_violation(surface_id, "missing_legacy_source_contamination_boundary"))
 
-    violations.extend(validate_default_executor_carrier_tail_readback(surface_id, surface))
+    violations.extend(validate_owner_callable_adapter_carrier_tail_readback(surface_id, surface))
 
     gate = surface.get("retirement_gate")
     if isinstance(gate, Mapping):
@@ -250,7 +250,7 @@ def validate_legacy_default_executor_carrier(
             violations.append(_violation(surface_id, "legacy_carrier_repo_stage_run_abi_provenance_not_proven"))
         if gate.get("no_active_authority_caller_proven") is not True:
             violations.append(_violation(surface_id, "legacy_carrier_no_active_authority_caller_not_proven"))
-        if gate.get("opl_default_executor_carrier_tail_readback_required") is not True:
+        if gate.get("opl_owner_callable_adapter_carrier_tail_readback_required") is not True:
             violations.append(_violation(surface_id, "legacy_carrier_missing_tail_readback_gate"))
         if gate.get("physical_delete_allowed") is not False:
             violations.append(_violation(surface_id, "legacy_carrier_gate_must_not_allow_physical_delete"))
@@ -259,23 +259,23 @@ def validate_legacy_default_executor_carrier(
     return violations
 
 
-def validate_default_executor_carrier_tail_readback(
+def validate_owner_callable_adapter_carrier_tail_readback(
     surface_id: str,
     surface: Mapping[str, Any],
 ) -> list[dict[str, str]]:
-    tail = surface.get("opl_default_executor_carrier_tail_readback")
+    tail = surface.get("opl_owner_callable_adapter_carrier_tail_readback")
     if not isinstance(tail, Mapping):
-        return [_violation(surface_id, "missing_opl_default_executor_carrier_tail_readback")]
+        return [_violation(surface_id, "missing_opl_owner_callable_adapter_carrier_tail_readback")]
 
     violations: list[dict[str, str]] = []
-    if tail.get("surface_kind") != "opl_default_executor_carrier_tail_readback_requirement":
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_surface_kind_mismatch"))
+    if tail.get("surface_kind") != "opl_owner_callable_adapter_carrier_tail_readback_requirement":
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_surface_kind_mismatch"))
     if tail.get("status") != "tail_open":
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_status_not_open"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_status_not_open"))
     if tail.get("runtime_owner") != GENERIC_RUNTIME_OWNER:
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_runtime_owner_not_opl"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_runtime_owner_not_opl"))
     if tail.get("runtime_kind") != "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun":
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_runtime_kind_mismatch"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_runtime_kind_mismatch"))
 
     required_readbacks = tail.get("required_active_caller_readbacks")
     required_readback_set = (
@@ -289,14 +289,14 @@ def validate_default_executor_carrier_tail_readback(
         "opl_stagerun_owner_callable_adapter_live_readback",
     }
     if not expected_readbacks.issubset(required_readback_set):
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_required_readbacks"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_missing_required_readbacks"))
 
     required_before_physical_delete = _text(tail.get("required_before_physical_delete"))
     if (
         required_before_physical_delete
-        != "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+        != "owner_callable_dispatch_request_opl_owner_callable_adapter_carrier_tail_readback_ref"
     ):
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_physical_delete_ref"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_missing_physical_delete_ref"))
 
     physical_delete_requires = tail.get("physical_delete_requires")
     required_delete_set = (
@@ -305,18 +305,18 @@ def validate_default_executor_carrier_tail_readback(
         else set()
     )
     expected_delete_requirements = expected_readbacks | {
-        "no_active_default_executor_carrier_caller_scan",
+        "no_active_owner_callable_adapter_carrier_caller_scan",
         "no_forbidden_write_proof",
         "replacement_parity_ref",
         "owner_retirement_decision_ref",
         "tombstone_or_provenance_ref",
     }
     if not expected_delete_requirements.issubset(required_delete_set):
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_physical_delete_requirements"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_missing_physical_delete_requirements"))
 
     for key in (
         "tail_readback_proven",
-        "no_active_default_executor_carrier_caller_proven",
+        "no_active_owner_callable_adapter_carrier_caller_proven",
         "physical_delete_allowed",
         "legacy_carrier_provenance_can_satisfy_readback",
         "transition_request_pending_can_satisfy_readback",
@@ -326,21 +326,21 @@ def validate_default_executor_carrier_tail_readback(
         "request_only_carrier_can_claim_running_or_progress",
     ):
         if tail.get(key, False) is not False:
-            violations.append(_violation(surface_id, f"default_executor_carrier_tail_forbidden:{key}"))
+            violations.append(_violation(surface_id, f"owner_callable_adapter_carrier_tail_forbidden:{key}"))
 
     forbidden_claims = tail.get("forbidden_completion_claims")
     expected_forbidden_claims = {
-        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+        "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback",
         "transition_request_pending_as_opl_live_readback",
-        "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
-        "focused_tests_green_as_no_active_default_executor_carrier_caller",
+        "repo_no_authority_guard_as_owner_callable_adapter_carrier_tail_readback",
+        "focused_tests_green_as_no_active_owner_callable_adapter_carrier_caller",
         "request_only_carrier_as_provider_admission",
         "request_only_carrier_as_running_or_progress",
     }
     if not isinstance(forbidden_claims, list) or not expected_forbidden_claims.issubset(
         {str(item) for item in forbidden_claims}
     ):
-        violations.append(_violation(surface_id, "default_executor_carrier_tail_missing_false_completion_guards"))
+        violations.append(_violation(surface_id, "owner_callable_adapter_carrier_tail_missing_false_completion_guards"))
     return violations
 
 

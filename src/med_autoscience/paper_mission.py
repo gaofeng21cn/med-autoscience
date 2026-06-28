@@ -96,17 +96,17 @@ _FORBIDDEN_AUTHORITY_CLAIMS = (
 def build_paper_mission_canary_import_pack(
     *,
     study_progress_payloads: Mapping[str, Any] | Iterable[Mapping[str, Any]],
-    domain_health_diagnostic_payload: Mapping[str, Any] | None = None,
+    runtime_readback_payload: Mapping[str, Any] | None = None,
     profile_ref: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     progress_by_study = _progress_payloads_by_study(study_progress_payloads)
-    dhd = _mapping(domain_health_diagnostic_payload)
+    domain_diagnostic = _mapping(runtime_readback_payload)
     mission_payloads = [
         _build_mission(
             study_id=study_id,
             progress=progress,
-            dhd=dhd,
+            domain_diagnostic=domain_diagnostic,
         )
         for study_id, progress in progress_by_study.items()
     ]
@@ -129,15 +129,15 @@ def build_paper_mission_canary_import_pack(
                 }
                 for study_id, progress in progress_by_study.items()
             ],
-            "domain_health_diagnostic": {
-                "available": bool(dhd),
-                "scanned_at": _text(dhd.get("scanned_at")),
-                "dry_run_written": bool(dhd.get("written")),
+            "runtime_readback": {
+                "available": bool(domain_diagnostic),
+                "scanned_at": _text(domain_diagnostic.get("scanned_at")),
+                "dry_run_written": bool(domain_diagnostic.get("written")),
             },
         },
         "paper_progress_accounting": {
             "import_pack_counts_as_paper_progress": False,
-            "dhd_diagnostics_count_as_paper_progress": False,
+            "runtime_readback_counts_as_paper_progress": False,
             "paper_progress_requires": [
                 "paper_facing_artifact_delta",
                 "accepted_owner_decision_packet",
@@ -156,13 +156,13 @@ def build_dm_paper_mission_canary_import_pack(
     *,
     dm002_progress: Mapping[str, Any],
     dm003_progress: Mapping[str, Any],
-    domain_health_diagnostic_payload: Mapping[str, Any] | None = None,
+    runtime_readback_payload: Mapping[str, Any] | None = None,
     profile_ref: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     return build_paper_mission_canary_import_pack(
         study_progress_payloads=(dm002_progress, dm003_progress),
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         profile_ref=profile_ref,
         generated_at=generated_at,
     )
@@ -172,13 +172,13 @@ def build_dm_paper_mission_one_shot_migration_pack(
     *,
     dm002_progress: Mapping[str, Any],
     dm003_progress: Mapping[str, Any],
-    domain_health_diagnostic_payload: Mapping[str, Any] | None = None,
+    runtime_readback_payload: Mapping[str, Any] | None = None,
     profile_ref: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     return build_paper_mission_one_shot_migration_pack(
         study_progress_payloads=(dm002_progress, dm003_progress),
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         profile_ref=profile_ref,
         generated_at=generated_at,
     )
@@ -187,17 +187,17 @@ def build_dm_paper_mission_one_shot_migration_pack(
 def build_paper_mission_one_shot_migration_pack(
     *,
     study_progress_payloads: Mapping[str, Any] | Iterable[Mapping[str, Any]],
-    domain_health_diagnostic_payload: Mapping[str, Any] | None = None,
+    runtime_readback_payload: Mapping[str, Any] | None = None,
     profile_ref: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     progress_by_study = _progress_payloads_by_study(study_progress_payloads)
-    dhd = _mapping(domain_health_diagnostic_payload)
+    domain_diagnostic = _mapping(runtime_readback_payload)
     missions = [
         _build_one_shot_mission(
             study_id=study_id,
             progress=progress,
-            dhd=dhd,
+            domain_diagnostic=domain_diagnostic,
         )
         for study_id, progress in progress_by_study.items()
     ]
@@ -420,9 +420,9 @@ def _build_one_shot_mission(
     *,
     study_id: str,
     progress: Mapping[str, Any],
-    dhd: Mapping[str, Any],
+    domain_diagnostic: Mapping[str, Any],
 ) -> dict[str, Any]:
-    action = _dhd_action_for_study(dhd, study_id=study_id)
+    action = _domain_diagnostic_action_for_study(domain_diagnostic, study_id=study_id)
     current_work_unit = _first_mapping(
         action.get("current_work_unit"),
         _mapping(progress.get("current_work_unit")),
@@ -433,7 +433,7 @@ def _build_one_shot_mission(
     )
     execution_envelope = _first_mapping(
         action.get("current_execution_envelope"),
-        _dhd_current_execution_envelope(dhd, study_id=study_id),
+        _domain_diagnostic_current_execution_envelope(domain_diagnostic, study_id=study_id),
         _mapping(progress.get("current_execution_envelope")),
     )
     typed_blocker = _first_mapping(
@@ -450,7 +450,7 @@ def _build_one_shot_mission(
     legacy_import = _legacy_truth_import_pack(
         study_id=study_id,
         progress=progress,
-        dhd=dhd,
+        domain_diagnostic=domain_diagnostic,
         action=action,
         current_work_unit=current_work_unit,
         current_owner_action=current_owner_action,
@@ -470,7 +470,7 @@ def _build_one_shot_mission(
     platform_diagnostics = _platform_diagnostics(
         study_id=study_id,
         action=action,
-        dhd=dhd,
+        domain_diagnostic=domain_diagnostic,
     )
     mission = _formal_one_shot_mission_payload(
         study_id=study_id,
@@ -509,9 +509,9 @@ def _build_mission(
     *,
     study_id: str,
     progress: Mapping[str, Any],
-    dhd: Mapping[str, Any],
+    domain_diagnostic: Mapping[str, Any],
 ) -> dict[str, Any]:
-    action = _dhd_action_for_study(dhd, study_id=study_id)
+    action = _domain_diagnostic_action_for_study(domain_diagnostic, study_id=study_id)
     current_work_unit = _first_mapping(
         action.get("current_work_unit"),
         _mapping(progress.get("current_work_unit")),
@@ -522,7 +522,7 @@ def _build_mission(
     )
     execution_envelope = _first_mapping(
         action.get("current_execution_envelope"),
-        _dhd_current_execution_envelope(dhd, study_id=study_id),
+        _domain_diagnostic_current_execution_envelope(domain_diagnostic, study_id=study_id),
         _mapping(progress.get("current_execution_envelope")),
     )
     typed_blocker = _first_mapping(
@@ -547,7 +547,7 @@ def _build_mission(
     platform_diagnostics = _platform_diagnostics(
         study_id=study_id,
         action=action,
-        dhd=dhd,
+        domain_diagnostic=domain_diagnostic,
     )
     current_blocker = _current_blocker(
         progress=progress,
@@ -832,7 +832,7 @@ def _legacy_truth_import_pack(
     *,
     study_id: str,
     progress: Mapping[str, Any],
-    dhd: Mapping[str, Any],
+    domain_diagnostic: Mapping[str, Any],
     action: Mapping[str, Any],
     current_work_unit: Mapping[str, Any],
     current_owner_action: Mapping[str, Any],
@@ -872,9 +872,9 @@ def _legacy_truth_import_pack(
         _text_items(
             (
                 "provider_admission_pending_count="
-                f"{_platform_count(dhd, 'provider_admission_pending_count')}",
+                f"{_platform_count(domain_diagnostic, 'provider_admission_pending_count')}",
                 "transition_request_pending_count="
-                f"{_platform_count(dhd, 'transition_request_pending_count')}",
+                f"{_platform_count(domain_diagnostic, 'transition_request_pending_count')}",
                 "opl_current_control_state.next_owner",
                 _text(_mapping(action.get("runtime_health_snapshot")).get("runtime_health_epoch")),
             )
@@ -910,7 +910,7 @@ def _legacy_truth_import_pack(
     legacy_constraints = {
         "old_blocker": old_blocker,
         "old_blocker_is_default_execution_state": False,
-        "must_not_resume_legacy_default_executor": True,
+        "must_not_resume_legacy_owner_callable_adapter": True,
         "must_not_write_authority_surfaces": True,
         "must_not_update_current_package": True,
     }
@@ -1100,7 +1100,7 @@ def _paper_audit_pack(
                 [
                     _text(current_blocker.get("blocker_id")) or "",
                     _text(current_blocker.get("status")) or "",
-                    f"mission://{study_id}/failed-path/legacy-default-executor-not-authority",
+                    f"mission://{study_id}/failed-path/legacy-owner-callable-not-authority",
                 ]
             ),
         ),
@@ -1117,7 +1117,7 @@ def _paper_audit_pack(
             refs=_dedupe(
                 _text_items(legacy.get("opl_current_control_refs"))
                 + [
-                    _text(platform_diagnostics.get("dhd_scanned_at")) or "",
+                    _text(platform_diagnostics.get("domain_diagnostic_scanned_at")) or "",
                     f"mission://{study_id}/runtime-diagnostics/read-only",
                 ]
             ),
@@ -1160,11 +1160,11 @@ def _authority_touchpoints(
             "status": "read_only",
         },
         {
-            "touchpoint_id": f"touchpoint::{study_id}::domain-health-diagnostic",
+            "touchpoint_id": f"touchpoint::{study_id}::runtime-readback",
             "owner": "MedAutoScience",
-            "surface": "domain-health-diagnostic dry-run",
+            "surface": "runtime readback",
             "status": "read_only"
-            if platform_diagnostics.get("dhd_available")
+            if platform_diagnostics.get("runtime_readback_available")
             else "not_touched",
         },
         {
@@ -1178,7 +1178,7 @@ def _authority_touchpoints(
             "owner": "one-person-lab",
             "surface": "OPL runtime/current-control",
             "status": "read_only"
-            if platform_diagnostics.get("dhd_available")
+            if platform_diagnostics.get("runtime_readback_available")
             else "not_touched",
         },
     ]
@@ -1201,8 +1201,8 @@ def _ref_kind(ref: str) -> str:
         return "publication_eval"
     if "controller_decisions/latest.json" in ref:
         return "controller_decision"
-    if "domain_health_diagnostic" in ref:
-        return "domain_health_diagnostic"
+    if "runtime_readback" in ref:
+        return "runtime_readback"
     if "runtime_status_summary.json" in ref:
         return "runtime_status_summary"
     if "closeout" in ref or "owner_answer" in ref:
@@ -1395,16 +1395,16 @@ def _platform_diagnostics(
     *,
     study_id: str,
     action: Mapping[str, Any],
-    dhd: Mapping[str, Any],
+    domain_diagnostic: Mapping[str, Any],
 ) -> dict[str, Any]:
-    provider_state = _mapping(dhd.get("provider_admission_current_control_state"))
+    provider_state = _mapping(domain_diagnostic.get("provider_admission_current_control_state"))
     action_queue = _mapping_list(provider_state.get("action_queue"))
     envelopes = _mapping(provider_state.get("current_execution_envelopes"))
     return {
         "counts_as_paper_progress": False,
-        "dhd_available": bool(dhd),
-        "dhd_scanned_at": _text(dhd.get("scanned_at")),
-        "dhd_written": bool(dhd.get("written")),
+        "runtime_readback_available": bool(domain_diagnostic),
+        "domain_diagnostic_scanned_at": _text(domain_diagnostic.get("scanned_at")),
+        "domain_diagnostic_written": bool(domain_diagnostic.get("written")),
         "running_provider_attempt": bool(action.get("running_provider_attempt")),
         "runtime_health": _compact_mapping(
             _mapping(action.get("runtime_health_snapshot")),
@@ -1441,19 +1441,19 @@ def _platform_diagnostics(
     }
 
 
-def _dhd_action_for_study(dhd: Mapping[str, Any], *, study_id: str) -> dict[str, Any]:
-    for action in _mapping_list(dhd.get("managed_study_actions")):
+def _domain_diagnostic_action_for_study(domain_diagnostic: Mapping[str, Any], *, study_id: str) -> dict[str, Any]:
+    for action in _mapping_list(domain_diagnostic.get("managed_study_actions")):
         if action.get("study_id") == study_id:
             return action
     return {}
 
 
-def _dhd_current_execution_envelope(
-    dhd: Mapping[str, Any],
+def _domain_diagnostic_current_execution_envelope(
+    domain_diagnostic: Mapping[str, Any],
     *,
     study_id: str,
 ) -> dict[str, Any]:
-    provider_state = _mapping(dhd.get("provider_admission_current_control_state"))
+    provider_state = _mapping(domain_diagnostic.get("provider_admission_current_control_state"))
     envelopes = _mapping(provider_state.get("current_execution_envelopes"))
     return _mapping(envelopes.get(study_id))
 
@@ -1743,8 +1743,8 @@ def _refs_with_kinds(refs: list[str], kinds: set[str]) -> list[str]:
     return [ref for ref in refs if _ref_kind(ref) in kinds]
 
 
-def _platform_count(dhd: Mapping[str, Any], key: str) -> int:
-    provider_state = _mapping(dhd.get("provider_admission_current_control_state"))
+def _platform_count(domain_diagnostic: Mapping[str, Any], key: str) -> int:
+    provider_state = _mapping(domain_diagnostic.get("provider_admission_current_control_state"))
     return _int_or_zero(provider_state.get(key))
 
 

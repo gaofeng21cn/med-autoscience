@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 
-CLOSEOUT_REQUIRED_REASON = "closeout_required_before_new_default_executor_task"
+CLOSEOUT_REQUIRED_REASON = "closeout_required_before_new_owner_callable_adapter_task"
 
 
 def closeout_first_admission(
@@ -26,7 +26,7 @@ def closeout_first_admission(
         return {
             "admission_status": "ready",
             "blocked_reason": None,
-            "export_new_default_executor_task": True,
+            "export_new_owner_callable_adapter_task": True,
             "consumed_closeout": consumed,
             "immutable_dispatch_packet": packet or None,
         }
@@ -34,7 +34,7 @@ def closeout_first_admission(
         return {
             "admission_status": "blocked",
             "blocked_reason": CLOSEOUT_REQUIRED_REASON,
-            "export_new_default_executor_task": False,
+            "export_new_owner_callable_adapter_task": False,
             "immutable_dispatch_packet": packet,
             "running_attempt": dict(running_attempt or {}),
             "typed_blocker": _closeout_required_blocker(identity=identity, packet=packet),
@@ -42,7 +42,7 @@ def closeout_first_admission(
     return {
         "admission_status": "ready",
         "blocked_reason": None,
-        "export_new_default_executor_task": True,
+        "export_new_owner_callable_adapter_task": True,
         "consumed_closeout": None,
         "immutable_dispatch_packet": packet or None,
     }
@@ -81,7 +81,7 @@ def _closeout_required_blocker(
         "effective_eval_id": _text(packet.get("effective_eval_id")),
         "next_owner": "med-autoscience",
         "provider_completion_is_domain_completion": False,
-        "export_new_default_executor_task": False,
+        "export_new_owner_callable_adapter_task": False,
         "authority_boundary": {
             "opl": "transport_and_attempt_projection_only",
             "mas": "owner_receipt_typed_blocker_and_closeout_authority",

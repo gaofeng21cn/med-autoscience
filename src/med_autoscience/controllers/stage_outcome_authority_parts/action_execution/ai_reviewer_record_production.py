@@ -9,7 +9,7 @@ from typing import Any
 
 from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers.owner_callable_closeout_contract import (
-    default_executor_typed_closeout_contract,
+    owner_callable_typed_closeout_contract,
 )
 from med_autoscience.controllers.domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
@@ -21,7 +21,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_bou
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
-from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.policies.publication_critique import (
     FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS,
@@ -386,10 +386,10 @@ def build_ai_reviewer_record_worker_handoff(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / f"{ACTION_TYPE}.json"
     )
-    closeout_contract = default_executor_typed_closeout_contract(action_type=ACTION_TYPE)
+    closeout_contract = owner_callable_typed_closeout_contract(action_type=ACTION_TYPE)
     repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
@@ -477,13 +477,13 @@ def build_ai_reviewer_record_worker_handoff(
         "provider_admission_requires_opl_runtime_result": True,
         **transition_authority_fields,
     }
-    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
+    owner_route_attempt_envelope = owner_route_attempt_protocol.owner_callable_attempt_envelope(
         dispatch=dispatch_shell
     )
     return {
         "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
-        **default_executor_policy(),
+        **owner_callable_policy(),
         "study_id": study_id,
         "quest_id": quest_id,
         "action_type": ACTION_TYPE,
@@ -539,7 +539,7 @@ def build_ai_reviewer_record_worker_handoff(
 
 
 def _executor_prompt() -> str:
-    closeout_contract = default_executor_typed_closeout_contract(action_type=ACTION_TYPE)
+    closeout_contract = owner_callable_typed_closeout_contract(action_type=ACTION_TYPE)
     return (
         "Use Codex CLI as the default MAS repair executor. "
         "Handle action `return_to_ai_reviewer_workflow` as owner `ai_reviewer`. "

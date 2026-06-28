@@ -257,7 +257,7 @@ def test_current_work_unit_projects_recovery_successor_over_unsupported_dispatch
     fingerprint = "publication-blockers::0915410f804b3697"
     closeout_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-        "supervision/consumer/default_executor_execution/sat_ff29f3cd92715d39043b1342.closeout.json"
+        "supervision/consumer/owner_callable_adapter_receipt/sat_ff29f3cd92715d39043b1342.closeout.json"
     )
     work_unit = module.build_current_work_unit(
         progress={

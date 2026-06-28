@@ -17,10 +17,10 @@ def test_provider_admission_current_control_does_not_consume_new_stage_packet_wi
     fingerprint = "publication-blockers::0915410f804b3697"
     old_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_dispatches/run_quality_repair_batch.json"
+        "owner_callable_adapters/run_quality_repair_batch.json"
     )
     current_stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/77fa1796dc1d50c2b7687a9f.json"
     )
     candidate = {
@@ -76,7 +76,7 @@ def test_provider_admission_current_control_does_not_consume_new_stage_packet_wi
                         "stage_packet_ref": old_stage_packet_ref,
                         "closeout_refs": [
                             f"studies/{study_id}/artifacts/supervision/consumer/"
-                            "default_executor_execution/sat_f8e1cfe49a3aa3cf95d0584d.closeout.json",
+                            "owner_callable_adapter_receipt/sat_f8e1cfe49a3aa3cf95d0584d.closeout.json",
                             "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
                             "artifacts/controller/repair_execution_evidence/latest.json",
                         ],
@@ -122,10 +122,10 @@ def test_accepted_closeout_matching_requires_current_stage_packet_identity() -> 
     source_eval_id = "publication-eval::003::ai-reviewer-record::20260612T142918Z::sat_433"
     old_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_dispatches/run_quality_repair_batch.json"
+        "owner_callable_adapters/run_quality_repair_batch.json"
     )
     current_stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_quality_repair_batch/77fa1796dc1d50c2b7687a9f.json"
     )
 

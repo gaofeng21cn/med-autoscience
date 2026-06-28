@@ -180,7 +180,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
     )
     consumer_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
     latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
-    _write_json(stale_dispatch_path, {"surface": "default_executor_dispatch_request", "dispatch_status": "ready"})
+    _write_json(stale_dispatch_path, {"surface": "owner_callable_dispatch_request", "dispatch_status": "ready"})
     _write_json(
         consumer_path,
         {

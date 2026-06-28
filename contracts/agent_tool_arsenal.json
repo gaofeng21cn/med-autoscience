@@ -2805,7 +2805,7 @@
             "paper_mission",
             "non_authority_candidate_package"
           ],
-          "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
+          "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
         },
         "fit_signal": {
           "capability_tags": [
@@ -2871,7 +2871,7 @@
           "requires_stage_attempt": false
         },
         "tool_id": "domain_handler_dispatch",
-        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
+        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
       },
       {
         "action_id": "authority_operations",
@@ -18313,7 +18313,7 @@
           "paper_mission",
           "non_authority_candidate_package"
         ],
-        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
+        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
       },
       "effect": "mutating",
       "executor_receipt_ref_policy": {
@@ -18581,7 +18581,7 @@
         "structured_payload_matches_output_schema",
         "no_forbidden_authority_claim"
       ],
-      "summary": "Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts.",
+      "summary": "Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts.",
       "supported_surfaces": [
         "ai_sdk",
         "cli",
@@ -18594,7 +18594,7 @@
       "title": "Dispatch MAS domain-handler task",
       "tool_id": "domain_handler_dispatch",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
-      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
+      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
     },
     {
       "action_id": "authority_operations",
@@ -20843,7 +20843,7 @@
           "paper_mission",
           "non_authority_candidate_package"
         ],
-        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
+        "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
       },
       "effect": "mutating",
       "fit_signal": {
@@ -20905,7 +20905,7 @@
         "task_ref"
       ],
       "tool_id": "domain_handler_dispatch",
-      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy default-executor dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
+      "when_to_use": "Use domain_handler_dispatch when an autonomous agent needs this capability from the current_owner_delta path: Boundary for OPL typed task consumption. Ordinary paper execution uses paper_mission/start_or_resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts."
     },
     {
       "action_id": "authority_operations",

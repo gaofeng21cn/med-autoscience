@@ -31,12 +31,6 @@ from .paper_artifacts import (
     resolve_submission_minimal_artifact_authority,
     resolve_submission_minimal_output_paths,
 )
-from .domain_health_diagnostic import (
-    load_domain_health_diagnostic_state,
-    plan_controller_intervention,
-    save_domain_health_diagnostic_state,
-    write_domain_health_diagnostic_report,
-)
 from .study_runtime import (
     StartupContractValidation,
     StartupContractValidationStatus,
@@ -121,13 +115,9 @@ __all__ = [
     "resolve_study_root_from_paper_root",
     "resolve_active_stdout_path",
     "resolve_worktree_root_from_paper_root",
-    "load_domain_health_diagnostic_state",
-    "save_domain_health_diagnostic_state",
     "should_refresh_startup_hydration_for_runtime_hold",
     "validate_startup_contract_resolution",
-    "write_domain_health_diagnostic_report",
     "write_runtime_escalation_record",
-    "plan_controller_intervention",
     "persist_runtime_artifacts",
     "read_runtime_event_record_ref",
     "read_runtime_escalation_record_ref",

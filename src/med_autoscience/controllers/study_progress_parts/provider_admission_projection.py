@@ -627,7 +627,7 @@ def _owner_receipt_consumes_accepted_owner_gate_recovery(
     refs = _text_items(recovery.get("evidence_refs"))
     if not any(ref.startswith("owner-gate-decision:") for ref in refs):
         return False
-    if not any("stage_packet" in ref or "default_executor_dispatches" in ref for ref in refs):
+    if not any("stage_packet" in ref or "owner_callable_adapters" in ref for ref in refs):
         return False
     obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
     if obligation and not _same_action_identity(current_work_unit, obligation):

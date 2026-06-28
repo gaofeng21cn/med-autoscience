@@ -35,7 +35,7 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
 
-DEFAULT_EXECUTOR_DISPATCHES = Path("artifacts/supervision/consumer/default_executor_dispatches")
+OWNER_CALLABLE_ADAPTERS = Path("artifacts/supervision/consumer/owner_callable_adapters")
 PAPER_PROGRESS_TRANSITION_REQUESTS = Path(
     "artifacts/runtime/paper_progress_transition_refs/transition_requests"
 )
@@ -56,10 +56,10 @@ CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS = {
 OPL_RUNTIME_ROUTE_OWNERS = {"one-person-lab"}
 ACCEPTED_OWNER_GATE_DECISION_SOURCE = "paper_recovery_state.accepted_owner_gate_decision"
 CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
-    "complete_medical_paper_readiness_surface": {"consumer_default_executor_dispatch"},
+    "complete_medical_paper_readiness_surface": {"consumer_owner_callable_dispatch"},
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
-    "run_quality_repair_batch": {None, "quality_repair_batch_writer_handoff", "consumer_default_executor_dispatch"},
-    "run_gate_clearing_batch": {None, "consumer_default_executor_dispatch"},
+    "run_quality_repair_batch": {None, "quality_repair_batch_writer_handoff", "consumer_owner_callable_dispatch"},
+    "run_gate_clearing_batch": {None, "consumer_owner_callable_dispatch"},
 }
 
 
@@ -165,7 +165,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             "current_executable_owner_action": current,
             "paper_recovery_state": _provider_admission_recovery(owner=executable_owner),
         },
-        source="dhd.provider_admission_candidate",
+        source="domain_diagnostic.provider_admission_candidate",
     )
     if prebuilt_transition_request:
         paper_policy_result = {
@@ -583,7 +583,7 @@ def _current_control_action_dispatch_path_for_action_type(
         return str(
             (
                 Path(study_root_text).expanduser().resolve()
-                / DEFAULT_EXECUTOR_DISPATCHES
+                / OWNER_CALLABLE_ADAPTERS
                 / f"{action_type}.json"
             )
         )
@@ -592,7 +592,7 @@ def _current_control_action_dispatch_path_for_action_type(
     return str(
         Path("studies")
         / study_id
-        / DEFAULT_EXECUTOR_DISPATCHES
+        / OWNER_CALLABLE_ADAPTERS
         / f"{action_type}.json"
     )
 
@@ -755,7 +755,7 @@ def _accepted_owner_gate_stage_packet_refs(
             for ref in _text_items(recovery.get("evidence_refs"))
             if ref.startswith("stage-packet:")
             or "stage_packet" in ref
-            or "default_executor_dispatches" in ref
+            or "owner_callable_adapters" in ref
         ],
     ]
     result: list[str] = []
@@ -805,7 +805,7 @@ def _recovery_has_owner_gate_stage_packet_ref(recovery: Mapping[str, Any]) -> bo
     has_stage_packet = any(
         ref.startswith("stage-packet:")
         or "stage_packet" in ref
-        or "default_executor_dispatches" in ref
+        or "owner_callable_adapters" in ref
         for ref in refs
     )
     return has_owner_gate and has_stage_packet
@@ -1361,7 +1361,7 @@ def _current_control_action_dispatch_path(
     root = Path(study_root).expanduser().resolve()
     for relative_root in (
         PAPER_PROGRESS_TRANSITION_REQUESTS,
-        DEFAULT_EXECUTOR_DISPATCHES,
+        OWNER_CALLABLE_ADAPTERS,
     ):
         candidate = root / relative_root / f"{action_type}.json"
         if candidate.exists():

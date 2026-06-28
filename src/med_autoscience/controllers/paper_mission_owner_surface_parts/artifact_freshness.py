@@ -12,7 +12,7 @@ OWNER = "artifact_os"
 REQUIRED_OUTPUT_SURFACE = "artifacts/controller/gate_clearing_batch/latest.json"
 DISPLAY_REGISTRY_SURFACE = "paper/display_registry.json"
 CURRENT_PACKAGE_FRESHNESS_SURFACE = "artifacts/controller/current_package_freshness/latest.json"
-DEFAULT_EXECUTOR_EXECUTION_SURFACE = "artifacts/supervision/consumer/default_executor_execution/latest.json"
+OWNER_CALLABLE_RECEIPT_SURFACE = "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
 AI_REVIEWER_FRESHNESS_MISMATCH_ERROR = "current_package_freshness_source_eval_id_mismatch"
 
 
@@ -98,7 +98,7 @@ def blocked_action_from_ai_reviewer_freshness_mismatch(
     )
     action["source_error"] = AI_REVIEWER_FRESHNESS_MISMATCH_ERROR
     action["source_execution_path"] = str(
-        Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_EXECUTION_SURFACE
+        Path(study_root).expanduser().resolve() / OWNER_CALLABLE_RECEIPT_SURFACE
     )
     action["current_package_freshness"] = {
         "status": _text(_mapping(freshness).get("status")),
@@ -145,7 +145,7 @@ def _read_gate_clearing_record(*, study_root: Path) -> dict[str, Any] | None:
 
 
 def _latest_ai_reviewer_freshness_mismatch_execution(*, study_root: Path) -> dict[str, Any] | None:
-    record = _read_json_object(Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_EXECUTION_SURFACE)
+    record = _read_json_object(Path(study_root).expanduser().resolve() / OWNER_CALLABLE_RECEIPT_SURFACE)
     for execution in reversed(record.get("executions") or []):
         if not isinstance(execution, Mapping):
             continue
@@ -263,7 +263,7 @@ __all__ = [
     "ACTION_TYPE",
     "AI_REVIEWER_FRESHNESS_MISMATCH_ERROR",
     "CURRENT_PACKAGE_FRESHNESS_SURFACE",
-    "DEFAULT_EXECUTOR_EXECUTION_SURFACE",
+    "OWNER_CALLABLE_RECEIPT_SURFACE",
     "DISPLAY_MATERIALIZATION_ACTION_TYPE",
     "OWNER",
     "REQUIRED_OUTPUT_SURFACE",

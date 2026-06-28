@@ -25,7 +25,7 @@ def _migration_pack() -> dict:
     return build_dm_paper_mission_one_shot_migration_pack(
         dm002_progress=_load_json("dm002_progress.json"),
         dm003_progress=_load_json("dm003_progress.json"),
-        domain_health_diagnostic_payload=_load_json("dhd_dry_run.json"),
+        runtime_readback_payload=_load_json("domain_diagnostic_dry_run.json"),
         profile_ref=(
             "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
             "ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml"

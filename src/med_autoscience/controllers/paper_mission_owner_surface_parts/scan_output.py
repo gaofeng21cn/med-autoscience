@@ -173,7 +173,6 @@ def build_scan_domain_routes_payload(
             "tick_contract": {
                 "command": "opl family-runtime provider-slo tick --provider temporal",
                 "cadence_owner": "opl_provider_runtime_manager",
-                "domain_diagnostic_command": "ops/medautoscience/bin/domain-health-diagnostic",
                 "resident_daemon": False,
             },
             "retired_workspace_local_schedulers": ["systemd_user", "cron", "launchd"],

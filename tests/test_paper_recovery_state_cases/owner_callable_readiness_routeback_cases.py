@@ -114,7 +114,7 @@ def test_current_owner_route_missing_after_repair_progress_materializes_gate_rep
         "blocked_reason": "current_owner_route_missing",
         "work_unit_fingerprint": gate_fingerprint,
         "action_fingerprint": gate_fingerprint,
-        "latest_owner_answer_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+        "latest_owner_answer_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
         "latest_owner_answer_kind": "typed_blocker",
         "owner_answer_shape": "typed_blocker_ref",
         "terminal_closeout_outcome": "blocked:current_owner_route_missing",

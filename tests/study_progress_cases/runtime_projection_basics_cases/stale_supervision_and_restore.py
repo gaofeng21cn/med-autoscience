@@ -17,7 +17,7 @@ def test_study_progress_projects_stale_progress_signal_for_active_runtime(monkey
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     _write_publication_eval(study_root, quest_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     _write_bash_summary(quest_root)
     task_intake_module.write_task_intake(
         profile=profile,
@@ -111,7 +111,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     opl_runtime_owner_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
     _write_json(
         opl_runtime_owner_handoff_path,

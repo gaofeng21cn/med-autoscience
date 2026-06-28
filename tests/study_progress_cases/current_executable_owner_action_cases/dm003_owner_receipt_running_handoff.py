@@ -288,7 +288,7 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     dispatch_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_request",
+                "surface": "owner_callable_dispatch_request",
                 "study_id": STUDY_ID,
                 "quest_id": STUDY_ID,
                 "action_type": "return_to_ai_reviewer_workflow",
@@ -508,7 +508,7 @@ def test_current_execution_refresh_prefers_consumed_terminal_closeout_over_hando
             "work_unit_fingerprint": WRITE_FINGERPRINT,
             "action_fingerprint": WRITE_FINGERPRINT,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_08da46bea43329723d2fbbea.closeout.json"
             ),
         },
@@ -520,7 +520,7 @@ def test_current_execution_refresh_prefers_consumed_terminal_closeout_over_hando
             "work_unit_fingerprint": WRITE_FINGERPRINT,
             "action_fingerprint": WRITE_FINGERPRINT,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_08da46bea43329723d2fbbea.closeout.json"
             ),
             "owner_receipt_ref": receipt_ref,
@@ -573,7 +573,7 @@ def test_current_execution_refresh_prefers_consumed_terminal_closeout_over_hando
     assert state["state_kind"] == "typed_blocker"
     assert state["source"] == "terminal_closeout_typed_blocker"
     assert state["typed_blocker"]["typed_blocker_ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat_08da46bea43329723d2fbbea.closeout.json"
     )
     assert state["typed_blocker"]["terminal_closeout_consumption_source"] == (
@@ -632,7 +632,7 @@ def test_paper_recovery_refresh_rebuilds_stale_successor_under_terminal_typed_bl
                     "work_unit_fingerprint": WRITE_FINGERPRINT,
                     "latest_owner_answer_kind": "typed_blocker",
                     "latest_owner_answer_ref": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_874630c42f23f77d537c5781.closeout.json"
                     ),
                 },

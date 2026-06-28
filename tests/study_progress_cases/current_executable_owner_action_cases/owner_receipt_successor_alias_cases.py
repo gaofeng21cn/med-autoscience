@@ -125,7 +125,7 @@ def _handoff() -> dict[str, object]:
             "action_fingerprint": WRITE_FINGERPRINT,
             "owner_receipt_ref": RECEIPT_REF,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_08da46bea43329723d2fbbea.closeout.json"
             ),
         },

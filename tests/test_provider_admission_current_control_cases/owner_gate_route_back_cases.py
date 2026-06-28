@@ -23,7 +23,7 @@ def test_provider_admission_report_does_not_admit_owner_gate_route_back_without_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     stage_packet_path = (
@@ -32,7 +32,7 @@ def test_provider_admission_report_does_not_admit_owner_gate_route_back_without_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "immutable"
         / "run_quality_repair_batch"
         / "d4b2229c300acd93d67676bf.json"
@@ -40,12 +40,12 @@ def test_provider_admission_report_does_not_admit_owner_gate_route_back_without_
     dispatch_path.parent.mkdir(parents=True, exist_ok=True)
     stage_packet_path.parent.mkdir(parents=True, exist_ok=True)
     dispatch_payload = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "study_id": study_id,
         "quest_id": study_id,
         "action_type": "run_quality_repair_batch",
         "dispatch_status": "ready",
-        "dispatch_authority": "consumer_default_executor_dispatch",
+        "dispatch_authority": "consumer_owner_callable_dispatch",
         "next_executable_owner": "write",
         "required_output_surface": (
             "canonical manuscript story-surface delta or "

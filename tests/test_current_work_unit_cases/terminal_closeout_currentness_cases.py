@@ -88,7 +88,7 @@ def test_current_work_unit_treats_repeat_suppressed_gate_replay_terminal_stage_a
             "current_stage": "publication_supervision",
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "repeat_suppressed",
                     "stage_name": work_unit_id,
@@ -96,7 +96,7 @@ def test_current_work_unit_treats_repeat_suppressed_gate_replay_terminal_stage_a
                     "progress_delta_classification": "typed_blocker",
                     "source_path": (
                         "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
-                        "artifacts/supervision/consumer/default_executor_execution/latest.json"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
                     ),
                 },
             },
@@ -138,7 +138,7 @@ def test_current_work_unit_does_not_turn_handoff_ready_terminal_log_into_typed_b
             "current_stage": "publication_supervision",
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "handoff_ready",
                     "stage_name": work_unit_id,
@@ -147,7 +147,7 @@ def test_current_work_unit_does_not_turn_handoff_ready_terminal_log_into_typed_b
                     "remaining_blockers": [],
                     "source_path": (
                         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/latest.json"
+                        "owner_callable_adapter_receipt/latest.json"
                     ),
                     "paper_stage_log": {
                         "outcome": "handoff_ready",
@@ -213,7 +213,7 @@ def test_current_work_unit_consumes_opl_terminal_closeout_over_same_identity_suc
     fingerprint = "publication-blockers::0915410f804b3697"
     closeout_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+        "owner_callable_adapter_receipt/sat_08da46bea43329723d2fbbea.closeout.json"
     )
 
     work_unit = module.build_current_work_unit(
@@ -363,7 +363,7 @@ def test_current_executable_owner_action_materializes_successor_over_selector_re
                         "work_unit_id": work_unit_id,
                         "work_unit_fingerprint": fingerprint,
                         "latest_owner_answer_kind": "typed_blocker",
-                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat.closeout.json",
                     },
                 },
             },
@@ -439,7 +439,7 @@ def test_current_executable_owner_action_prefers_gate_followthrough_over_selecto
                         "latest_owner_answer_kind": "typed_blocker",
                         "latest_owner_answer_ref": (
                             "studies/003/artifacts/supervision/consumer/"
-                            "default_executor_execution/sat.closeout.json"
+                            "owner_callable_adapter_receipt/sat.closeout.json"
                         ),
                     },
                 },
@@ -524,7 +524,7 @@ def test_current_executable_owner_action_suppressed_by_stable_terminal_typed_blo
                         "work_unit_id": work_unit_id,
                         "work_unit_fingerprint": fingerprint,
                         "latest_owner_answer_kind": "typed_blocker",
-                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat.closeout.json",
                     },
                 },
             },
@@ -583,7 +583,7 @@ def test_current_work_unit_uses_write_repair_after_executed_ai_reviewer_receipt_
                         "20260612T100912Z_publication_eval_record.json"
                     ],
                     "source_path": (
-                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_fdeabae35e46694c6f8dacd2.closeout.json"
                     ),
                 },
@@ -618,7 +618,7 @@ def test_current_work_unit_uses_write_repair_after_executed_ai_reviewer_receipt_
             "action_type": "run_gate_clearing_batch",
             "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_b2652a75945b6ed8fb16148e.closeout.json"
             ),
         },
@@ -653,7 +653,7 @@ def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() 
             "current_stage": "publication_supervision",
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "stage_attempt_id": "sat_c0348bcfa41849926ebb46f9",
                     "action_type": "run_gate_clearing_batch",
                     "status": "executed",
@@ -666,7 +666,7 @@ def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() 
                     ],
                     "source_path": (
                         "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_c0348bcfa41849926ebb46f9.closeout.json"
                     ),
                 },
@@ -735,7 +735,7 @@ def test_current_work_unit_gate_replay_executed_log_uses_gate_blocked_reason() -
                     },
                     "source_path": (
                         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/latest.json"
+                        "owner_callable_adapter_receipt/latest.json"
                     ),
                 },
             },
@@ -777,7 +777,7 @@ def test_current_work_unit_preserves_same_identity_gate_replay_typed_closeout_ov
     fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
     closeout_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_eb4ae953c9b1fd3ada29360f.closeout.json"
+        "owner_callable_adapter_receipt/sat_eb4ae953c9b1fd3ada29360f.closeout.json"
     )
 
     work_unit = module.build_current_work_unit(
@@ -787,7 +787,7 @@ def test_current_work_unit_preserves_same_identity_gate_replay_typed_closeout_ov
             "current_stage": "publication_supervision",
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "stage_attempt_id": "sat_eb4ae953c9b1fd3ada29360f",
                     "action_type": "run_gate_clearing_batch",
                     "status": "closed_with_domain_owner_refs",
@@ -853,7 +853,7 @@ def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_
     fingerprint = "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
     closeout_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_quality_repair.closeout.json"
+        "owner_callable_adapter_receipt/sat_quality_repair.closeout.json"
     )
 
     work_unit = module.build_current_work_unit(
@@ -881,7 +881,7 @@ def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_
             },
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "stage_attempt_id": "sat_quality_repair",
                     "action_type": "run_quality_repair_batch",
                     "status": "blocked",

@@ -280,7 +280,7 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
         encoding="utf-8",
     )
     closeout_root = (
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt"
     )
     closeout_root.mkdir(parents=True)
     (closeout_root / "sat-terminal.closeout.json").write_text(
@@ -363,7 +363,7 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
         "blocked_reason": "domain_gate_pending",
         "typed_blocker_ref": "closeout.json#domain_blocker",
         "closeout_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat-terminal.closeout.json"
         ),
         "stage_attempt_id": "sat-terminal",

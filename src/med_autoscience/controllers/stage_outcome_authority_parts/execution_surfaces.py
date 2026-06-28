@@ -3,8 +3,8 @@ from __future__ import annotations
 
 OWNER_CALLABLE_RECEIPT_SURFACE = "owner_callable_adapter_receipt"
 OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE = "owner_callable_adapter_receipt_study_latest"
-LEGACY_EXECUTION_SURFACE = "default_executor_dispatch_execution"
-LEGACY_EXECUTION_STUDY_LATEST_SURFACE = "default_executor_dispatch_execution_study_latest"
+LEGACY_EXECUTION_SURFACE = "owner_callable_dispatch_execution"
+LEGACY_EXECUTION_STUDY_LATEST_SURFACE = "owner_callable_dispatch_execution_study_latest"
 ACCEPTED_EXECUTION_SURFACES = frozenset({OWNER_CALLABLE_RECEIPT_SURFACE})
 ACCEPTED_EXECUTION_LATEST_SURFACES = frozenset({OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE})
 

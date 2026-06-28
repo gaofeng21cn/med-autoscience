@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 _BASE_TRUTH_SURFACES = (
     "progress_projection",
-    "domain_health_diagnostic",
+    "domain_diagnostic_report",
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
 )

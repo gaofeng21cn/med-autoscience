@@ -4,31 +4,10 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+
 def _dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _load_json(path: Path, default: Any = None) -> Any:
-    if not path.exists():
-        return default
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _state_dir(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "reports" / "domain_health_diagnostic"
-
-
-def load_domain_health_diagnostic_state(quest_root: Path) -> dict[str, Any]:
-    path = _state_dir(quest_root) / "state.json"
-    return _load_json(path, default={"schema_version": 1, "controllers": {}}) or {
-        "schema_version": 1,
-        "controllers": {},
-    }
-
-
-def save_domain_health_diagnostic_state(quest_root: Path, payload: Mapping[str, Any]) -> None:
-    _dump_json(_state_dir(quest_root) / "state.json", dict(payload))
 
 
 def write_timestamped_report(

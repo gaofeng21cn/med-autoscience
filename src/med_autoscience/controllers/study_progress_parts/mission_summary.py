@@ -62,8 +62,8 @@ MISSION_STATES = (
     "terminal_handoff",
 )
 PLATFORM_DIAGNOSTIC_TERMS = (
-    "DHD",
-    "domain-health-diagnostic",
+    "domain diagnostic",
+    "runtime-readback",
     "currentness",
     "storage",
     "dispatch",
@@ -1157,8 +1157,8 @@ def _platform_diagnostics(
 def _diagnostic_sources(progress: Mapping[str, Any]) -> list[str]:
     refs = _mapping(progress.get("refs"))
     sources: list[str] = []
-    if _non_empty_text(refs.get("domain_health_diagnostic")):
-        sources.append("refs.domain_health_diagnostic")
+    if _non_empty_text(refs.get("runtime_readback")):
+        sources.append("refs.runtime_readback")
     for key in (
         "runtime_health_snapshot",
         "opl_current_control_state_handoff",
@@ -1176,12 +1176,12 @@ def _diagnostic_sources(progress: Mapping[str, Any]) -> list[str]:
 def _diagnostic_refs(progress: Mapping[str, Any]) -> list[str]:
     refs = _mapping(progress.get("refs"))
     result = [
-        _non_empty_text(refs.get("domain_health_diagnostic")),
+        _non_empty_text(refs.get("runtime_readback")),
         _non_empty_text(refs.get("progress_projection")),
     ]
     for key in (
         "diagnostic_ref",
-        "domain_health_diagnostic_ref",
+        "runtime_readback_report_ref",
         "owner_route_ref",
         "dispatch_ref",
         "paper_recovery_ref",

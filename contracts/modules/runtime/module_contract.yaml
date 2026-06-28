@@ -10,7 +10,7 @@ consumes_refs:
   - opl_provider_attempt_ref
   - runtime_policy_summary_ref
 emits_refs:
-  - domain_health_diagnostic_ref
+  - runtime_readback_report_ref
   - owner_route_ref
   - typed_blocker_ref
   - runtime_escalation_record_ref

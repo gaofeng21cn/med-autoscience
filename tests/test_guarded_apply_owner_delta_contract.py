@@ -68,7 +68,7 @@ def test_guarded_apply_current_owner_delta_validation_rejects_three_shape_contra
 
 
 def test_guarded_apply_current_owner_delta_validation_rejects_wrong_identity_or_answer_state() -> None:
-    wrong = guarded_apply_current_owner_delta_validation(_live_delta(stage_id="domain_owner/default-executor-dispatch"))
+    wrong = guarded_apply_current_owner_delta_validation(_live_delta(stage_id="stage_outcome/opl-handoff"))
     answered = guarded_apply_current_owner_delta_validation(_live_delta(latest_owner_answer_ref="receipt://done"))
     domain_ready = guarded_apply_current_owner_delta_validation(_live_delta(domain_ready_authorized=True))
 

@@ -27,7 +27,7 @@ def _write_stage_attempt_closeout(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / f"{stage_attempt_id}.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -64,7 +64,7 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
                     "tasks": [
                         {
                             "task_id": "frt-live",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-05-26T13:35:24Z",
                             "payload": {
@@ -80,12 +80,12 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
                 "family_runtime_task": {
                     "task": {
                         "task_id": "frt-live",
-                        "task_kind": "domain_owner/default-executor-dispatch",
+                        "task_kind": "stage_outcome/opl-handoff",
                         "payload": {
                             "study_id": "001-risk",
                             "action_type": "run_quality_repair_batch",
                             "work_unit_id": "dm002_methods_write_pass",
-                            "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                            "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                         },
                         "current_control_state": {
                             "active_run_id": "opl-stage-attempt://sat-live",
@@ -122,7 +122,7 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
                             "workspace_locator": {
                                 "workspace_root": str(profile.workspace_root),
                                 "action_type": "run_quality_repair_batch",
-                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                             }
                         }
                     ],
@@ -175,7 +175,7 @@ def test_live_provider_attempt_projection_reads_queue_list_linked_liveness(
                     "tasks": [
                         {
                             "task_id": "frt-live-linked",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-06-10T21:42:00.690Z",
                             "payload": {
@@ -186,7 +186,7 @@ def test_live_provider_attempt_projection_reads_queue_list_linked_liveness(
                                 "action_type": "return_to_ai_reviewer_workflow",
                                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                                 "work_unit_fingerprint": "sha256:current-ai-reviewer",
-                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/return_to_ai_reviewer_workflow.json",
                             },
                             "linked_stage_attempt_liveness": {
                                 "status": "live",
@@ -244,7 +244,7 @@ def test_live_provider_attempt_projection_rejects_unobserved_linked_liveness(
                     "tasks": [
                         {
                             "task_id": "frt-live-linked",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-06-10T21:42:00.690Z",
                             "payload": {
@@ -313,7 +313,7 @@ def test_live_provider_attempt_projection_skips_linked_liveness_with_terminal_ma
                     "tasks": [
                         {
                             "task_id": "frt-live-linked",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-06-10T21:42:00.690Z",
                             "payload": {
@@ -378,7 +378,7 @@ def test_live_provider_attempt_projection_skips_queue_inspect_with_terminal_mas_
                     "tasks": [
                         {
                             "task_id": "frt-live",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-05-26T13:35:24Z",
                             "payload": {
@@ -394,7 +394,7 @@ def test_live_provider_attempt_projection_skips_queue_inspect_with_terminal_mas_
                 "family_runtime_task": {
                     "task": {
                         "task_id": "frt-live",
-                        "task_kind": "domain_owner/default-executor-dispatch",
+                        "task_kind": "stage_outcome/opl-handoff",
                         "payload": {
                             "study_id": study_id,
                             "action_type": "run_quality_repair_batch",
@@ -457,7 +457,7 @@ def test_live_provider_attempt_projection_prefers_current_owner_action(
                     "tasks": [
                         {
                             "task_id": "frt-ai-reviewer",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-05-28T15:17:25Z",
                             "payload": {
@@ -465,12 +465,12 @@ def test_live_provider_attempt_projection_prefers_current_owner_action(
                                 "study_id": "001-risk",
                                 "action_type": "return_to_ai_reviewer_workflow",
                                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
-                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/return_to_ai_reviewer_workflow.json",
                             },
                         },
                         {
                             "task_id": "frt-write-repair",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-05-28T15:15:39Z",
                             "payload": {
@@ -478,7 +478,7 @@ def test_live_provider_attempt_projection_prefers_current_owner_action(
                                 "study_id": "001-risk",
                                 "action_type": "run_quality_repair_batch",
                                 "work_unit_id": "manuscript_story_repair",
-                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                             },
                         },
                     ]
@@ -492,15 +492,15 @@ def test_live_provider_attempt_projection_prefers_current_owner_action(
             else "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
         )
         dispatch_ref = (
-            "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json"
             if task_id == "frt-write-repair"
-            else "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+            else "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/return_to_ai_reviewer_workflow.json"
         )
         return {
             "family_runtime_task": {
                 "task": {
                     "task_id": task_id,
-                    "task_kind": "domain_owner/default-executor-dispatch",
+                    "task_kind": "stage_outcome/opl-handoff",
                     "payload": {
                         "study_id": "001-risk",
                         "action_type": action_type,
@@ -574,7 +574,7 @@ def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_di
                     "tasks": [
                         {
                             "task_id": "frt-ai-reviewer",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-05-28T15:17:25Z",
                             "payload": {
@@ -582,12 +582,12 @@ def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_di
                                 "study_id": "001-risk",
                                 "action_type": "return_to_ai_reviewer_workflow",
                                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
-                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/return_to_ai_reviewer_workflow.json",
                             },
                         },
                         {
                             "task_id": "frt-write-repair",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "running",
                             "updated_at": "2026-05-28T15:15:39Z",
                             "payload": {
@@ -595,7 +595,7 @@ def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_di
                                 "study_id": "001-risk",
                                 "action_type": "run_quality_repair_batch",
                                 "work_unit_id": "manuscript_story_repair",
-                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                             },
                         },
                     ]
@@ -612,7 +612,7 @@ def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_di
             "family_runtime_task": {
                 "task": {
                     "task_id": task_id,
-                    "task_kind": "domain_owner/default-executor-dispatch",
+                    "task_kind": "stage_outcome/opl-handoff",
                     "payload": {
                         "study_id": "001-risk",
                         "action_type": action_type,
@@ -679,7 +679,7 @@ def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_
                     "tasks": [
                         {
                             "task_id": "frt-old-succeeded",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "succeeded",
                             "updated_at": "2026-05-27T13:35:24Z",
                             "payload": {
@@ -689,7 +689,7 @@ def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_
                         },
                         {
                             "task_id": "frt-old-dead-letter",
-                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "task_kind": "stage_outcome/opl-handoff",
                             "status": "dead_letter",
                             "updated_at": "2026-05-27T13:36:24Z",
                             "payload": {
@@ -738,7 +738,7 @@ def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
                         {
                             "stage_attempt_id": "sat-live",
                             "domain_id": "medautoscience",
-                            "stage_id": "domain_owner/default-executor-dispatch",
+                            "stage_id": "stage_outcome/opl-handoff",
                             "status": "running",
                             "task_id": "frt-live",
                             "provider_run": {
@@ -752,7 +752,7 @@ def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
                                 "quest_id": study_id,
                                 "action_type": "run_quality_repair_batch",
                                 "work_unit_id": "medical_prose_write_repair",
-                                "dispatch_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                                "dispatch_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                             },
                         }
                     ]
@@ -764,7 +764,7 @@ def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
                     "attempt": {
                         "stage_attempt_id": "sat-live",
                         "domain_id": "medautoscience",
-                        "stage_id": "domain_owner/default-executor-dispatch",
+                        "stage_id": "stage_outcome/opl-handoff",
                         "status": "running",
                         "task_id": "frt-live",
                         "provider_kind": "temporal",
@@ -780,7 +780,7 @@ def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
                             "quest_id": study_id,
                             "action_type": "run_quality_repair_batch",
                             "work_unit_id": "medical_prose_write_repair",
-                            "dispatch_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                            "dispatch_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
                         },
                         "stage_progress_log": {
                             "surface_kind": "opl_stage_progress_log_summary",
@@ -839,7 +839,7 @@ def test_live_provider_attempt_projection_skips_attempt_ledger_entry_with_termin
         return {
             "stage_attempt_id": stage_attempt_id,
             "domain_id": "medautoscience",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "status": "running",
             "task_id": f"frt-{stage_attempt_id}",
             "updated_at": updated_at,

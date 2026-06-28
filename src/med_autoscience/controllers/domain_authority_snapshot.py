@@ -170,7 +170,7 @@ def _controller_authorizes_opl_runtime_recovery(authorization: Mapping[str, Any]
     control_surface = _text(authorization.get("control_surface"))
     if work_unit_id and work_unit_id != "runtime_recovery":
         return False
-    if control_surface and control_surface != "domain_health_diagnostic":
+    if control_surface and control_surface != "domain_diagnostic_report":
         return False
     return action in RUNTIME_RECOVERY_CONTROLLER_ACTIONS or controller_action_type in RUNTIME_RECOVERY_CONTROLLER_ACTIONS
 

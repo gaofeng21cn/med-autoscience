@@ -26,7 +26,7 @@ def _assert_diagnostic_refresh_policy(policy: dict, command: str) -> None:
     assert policy["default_paper_mission_entry"] is False
 
 
-def test_workspace_cockpit_marks_dhd_commands_as_diagnostic_only(tmp_path) -> None:
+def test_workspace_cockpit_marks_domain_diagnostic_commands_as_diagnostic_only(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"

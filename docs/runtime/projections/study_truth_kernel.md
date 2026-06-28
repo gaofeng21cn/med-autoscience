@@ -7,7 +7,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 ## 目标
 
-`StudyTruthKernel` 是 MAS study 级运行真相的唯一 reducer。它把 task intake、controller decision、runtime event、publication gate、quality review、package authority、delivery sync、human gate、writer lock 等输入归并为一个 `StudyTruthSnapshot`，供 `progress_projection`、`study_progress`、`domain_health_diagnostic`、workspace cockpit、product entry status 和 MCP compact projection 消费。
+`StudyTruthKernel` 是 MAS study 级运行真相的唯一 reducer。它把 task intake、controller decision、runtime event、publication gate、quality review、package authority、delivery sync、human gate、writer lock 等输入归并为一个 `StudyTruthSnapshot`，供 `progress_projection`、`study_progress`、`domain_diagnostic_report`、workspace cockpit、product entry status 和 MCP compact projection 消费。
 
 该合同采用三条工程原则：
 

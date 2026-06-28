@@ -130,7 +130,7 @@ def test_domain_handler_export_projects_functional_consumer_boundary(tmp_path: P
     inventory_by_id = {item["module_id"]: item for item in inventory}
     assert "local_launchd_scheduler_install_path" not in inventory_by_id
     assert "workspace_local_watch_service_wrappers" not in inventory_by_id
-    assert "domain_health_diagnostic_loop_shell" not in inventory_by_id
+    assert "domain_diagnostic_report_loop_shell" not in inventory_by_id
     assert inventory_by_id["domain_authority_refs_index"]["code_paths"] == [
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",

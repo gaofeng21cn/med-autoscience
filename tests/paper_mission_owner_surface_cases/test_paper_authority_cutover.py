@@ -139,14 +139,14 @@ def test_scan_domain_routes_routes_clean_cutover_rehydrate_blocker_to_write(
         },
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": study_id,
@@ -350,14 +350,14 @@ def test_scan_domain_routes_keeps_clean_cutover_rehydrate_failure_on_write_owner
         },
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": study_id,
@@ -454,14 +454,14 @@ def test_scan_domain_routes_defers_clean_cutover_rehydrate_when_scientific_ancho
         },
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": study_id,

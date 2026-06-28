@@ -190,7 +190,7 @@ def dispatch_with_current_owner_action_identity(
 
     updated = dict(dispatch)
     updated["owner_route"] = dict(current_owner_route)
-    if next_owner := _default_executor_owner_for_action(
+    if next_owner := _owner_callable_adapter_owner_for_action(
         action_type=action_type,
         dispatch=dispatch,
         current_owner_action=current_owner_action,
@@ -468,7 +468,7 @@ def _current_owner_action_can_override_stale_dispatch_work_unit(
     return _text(basis.get("runtime_health_epoch")) is not None or _text(basis.get("source_eval_id")) is not None
 
 
-def _default_executor_owner_for_action(
+def _owner_callable_adapter_owner_for_action(
     *,
     action_type: str,
     dispatch: Mapping[str, Any],

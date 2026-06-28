@@ -135,11 +135,11 @@ def _write_dispatch(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / filename
     )
     payload = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,

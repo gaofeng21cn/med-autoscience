@@ -99,14 +99,14 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
     legacy_latest = next(
         surface
         for surface in legacy_bad_inventory["surfaces"]
-        if surface["surface_id"] == "default_executor_execution_latest_wire_projection"
+        if surface["surface_id"] == "owner_callable_adapter_receipt_latest_wire_projection"
     )
     legacy_latest["legacy_wire_default_reader_fallback_allowed"] = True
     legacy_latest["current_reader_boundary"][
-        "default_executor_execution_candidates_reads_legacy_wire_by_default"
+        "owner_callable_receipt_candidates_reads_legacy_wire_by_default"
     ] = True
     legacy_latest["history_replay_boundary"].pop(
-        "default_executor_receipt_consumption_requires_allow_legacy_fallback"
+        "owner_callable_adapter_receipt_consumption_requires_allow_legacy_fallback"
     )
     del legacy_latest["tombstone_or_provenance_ref"]
 
@@ -114,7 +114,7 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
 
     assert {
         (
-            "default_executor_execution_latest_wire_projection",
+            "owner_callable_adapter_receipt_latest_wire_projection",
             "physically_retired_missing_tombstone_or_provenance_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in legacy_violations}
@@ -123,7 +123,7 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
     legacy_stage_run = next(
         surface
         for surface in legacy_stage_run_bad_inventory["surfaces"]
-        if surface["surface_id"] == "default_executor_execution_latest_wire_projection"
+        if surface["surface_id"] == "owner_callable_adapter_receipt_latest_wire_projection"
     )
     legacy_stage_run["legacy_stage_run_abi_boundary"][
         "stage_closeout_packets_can_authorize_provider_admission"
@@ -147,21 +147,21 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
 
     assert {
         (
-            "default_executor_execution_latest_wire_projection",
+            "owner_callable_adapter_receipt_latest_wire_projection",
             (
                 "truthy_authority_flag:legacy_stage_run_abi_boundary."
                 "stage_closeout_packets_can_authorize_provider_admission"
             ),
         ),
         (
-            "default_executor_execution_latest_wire_projection",
+            "owner_callable_adapter_receipt_latest_wire_projection",
             (
                 "truthy_authority_flag:legacy_stage_run_abi_boundary."
                 "stage_closeout_packets_can_authorize_execution"
             ),
         ),
         (
-            "default_executor_execution_latest_wire_projection",
+            "owner_callable_adapter_receipt_latest_wire_projection",
             "physically_retired_missing_tombstone_or_provenance_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in legacy_stage_run_violations}
@@ -170,7 +170,7 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
     legacy_carrier = next(
         surface
         for surface in carrier_bad_inventory["surfaces"]
-        if surface["surface_id"] == "default_executor_dispatch_request"
+        if surface["surface_id"] == "owner_callable_dispatch_request"
     )
     legacy_carrier["active_caller_boundary"]["provider_admission_pending"] = True
     legacy_carrier["legacy_stage_run_abi_provenance_boundary"]["mas_can_create_stage_run"] = True
@@ -186,16 +186,16 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
     legacy_carrier["legacy_source_contamination_boundary"]["forbidden_source_claims"].remove(
         "provider_admission_pending"
     )
-    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+    legacy_carrier["opl_owner_callable_adapter_carrier_tail_readback"][
         "tail_readback_proven"
     ] = True
-    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+    legacy_carrier["opl_owner_callable_adapter_carrier_tail_readback"][
         "transition_request_pending_can_satisfy_readback"
     ] = True
-    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+    legacy_carrier["opl_owner_callable_adapter_carrier_tail_readback"][
         "request_only_carrier_can_authorize_provider_admission"
     ] = True
-    legacy_carrier["opl_default_executor_carrier_tail_readback"][
+    legacy_carrier["opl_owner_callable_adapter_carrier_tail_readback"][
         "forbidden_completion_claims"
     ].remove("transition_request_pending_as_opl_live_readback")
     del legacy_carrier["tombstone_or_provenance_ref"]
@@ -206,23 +206,23 @@ def test_authority_refs_materializer_execution_wire_and_carrier_violation_guards
 
     assert {
         (
-            "default_executor_dispatch_request",
+            "owner_callable_dispatch_request",
             "truthy_authority_flag:active_caller_boundary.provider_admission_pending",
         ),
         (
-            "default_executor_dispatch_request",
+            "owner_callable_dispatch_request",
             "truthy_authority_flag:legacy_stage_run_abi_provenance_boundary.mas_can_create_stage_run",
         ),
         (
-            "default_executor_dispatch_request",
+            "owner_callable_dispatch_request",
             "truthy_authority_flag:legacy_source_contamination_boundary.polluted_source_payload_can_authorize_provider_admission",
         ),
         (
-            "default_executor_dispatch_request",
-            "truthy_authority_flag:opl_default_executor_carrier_tail_readback.request_only_carrier_can_authorize_provider_admission",
+            "owner_callable_dispatch_request",
+            "truthy_authority_flag:opl_owner_callable_adapter_carrier_tail_readback.request_only_carrier_can_authorize_provider_admission",
         ),
         (
-            "default_executor_dispatch_request",
+            "owner_callable_dispatch_request",
             "physically_retired_missing_tombstone_or_provenance_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in carrier_violations}

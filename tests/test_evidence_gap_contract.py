@@ -89,7 +89,7 @@ def test_evidence_gap_consumption_abi_declares_opl_workbench_mcp_surface() -> No
     )
     assert set(abi["consumer_refs"]) >= {
         "study_progress",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "domain_action_materializer",
         "opl_stage_control_plane",
         "workbench",

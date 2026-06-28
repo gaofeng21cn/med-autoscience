@@ -43,8 +43,8 @@
         "mas_owned_attempt_ledger",
         "mas_owned_retry_dead_letter",
         "provider_completion_as_domain_ready",
-        "legacy_default_executor_carrier_as_provider_admission",
-        "legacy_default_executor_carrier_as_stage_run_authority"
+        "legacy_owner_callable_adapter_carrier_as_provider_admission",
+        "legacy_owner_callable_adapter_carrier_as_stage_run_authority"
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
@@ -329,7 +329,7 @@
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
         "dispatch_intake_policy": "domain_handler_dispatch_requests_opl_domain_progress_transition_runtime_intake_only",
         "forbidden_top_level_lifecycle_status_override": true,
-        "legacy_surface": "default_executor_dispatch_request",
+        "legacy_surface": "owner_callable_dispatch_request",
         "mas_creates_opl_event": false,
         "mas_creates_opl_outbox": false,
         "mas_creates_opl_stage_run": false,
@@ -337,7 +337,7 @@
         "mas_private_attempt_loop_forbidden": true,
         "provider_admission_pending": false,
         "provider_attempt_or_lease_required": false,
-        "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
+        "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
         "transition_request_status": "transition_request_pending"
       },
       "legacy_source_contamination_boundary": {
@@ -364,13 +364,13 @@
         "active_compat_test_retired": true,
         "active_controller_module_retired": true,
         "current_entry_allowed": false,
-        "historical_receipt_ref": "contracts/standard_agent_completion_evidence_status.json#/historical_default_executor_dispatch_residue_cleanup_receipt",
-        "retired_command": "default-executor-dispatch-residue-cleanup",
-        "retired_module": "med_autoscience.controllers.default_executor_dispatch_residue_cleanup"
+        "historical_receipt_ref": "contracts/standard_agent_completion_evidence_status.json#/historical_owner_callable_dispatch_residue_cleanup_receipt",
+        "retired_command": "owner-callable-adapter-residue-cleanup",
+        "retired_module": "med_autoscience.controllers.owner_callable_dispatch_residue_cleanup"
       },
       "legacy_stage_run_abi_provenance_boundary": {
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
-        "legacy_surface": "default_executor_dispatch_request",
+        "legacy_surface": "owner_callable_dispatch_request",
         "mas_can_create_stage_run": false,
         "mas_can_mark_provider_admission": false,
         "mas_can_mark_provider_running": false,
@@ -378,28 +378,28 @@
         "provider_admission_pending": false,
         "requires_opl_domain_progress_transition_runtime_intake": true,
         "running_provider_attempt_provenance_without_opl_live_readback": "observability_only",
-        "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
+        "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
         "transition_request_pending_only": true
       },
       "mas_owner_claim_allowed": false,
-      "opl_default_executor_carrier_tail_readback": {
+      "opl_owner_callable_adapter_carrier_tail_readback": {
         "focused_tests_can_satisfy_readback": false,
         "forbidden_completion_claims": [
-          "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+          "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback",
           "transition_request_pending_as_opl_live_readback",
-          "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
-          "focused_tests_green_as_no_active_default_executor_carrier_caller",
+          "repo_no_authority_guard_as_owner_callable_adapter_carrier_tail_readback",
+          "focused_tests_green_as_no_active_owner_callable_adapter_carrier_caller",
           "request_only_carrier_as_provider_admission",
           "request_only_carrier_as_running_or_progress"
         ],
         "legacy_carrier_provenance_can_satisfy_readback": false,
-        "no_active_default_executor_carrier_caller_proven": false,
+        "no_active_owner_callable_adapter_carrier_caller_proven": false,
         "physical_delete_allowed": false,
         "physical_delete_requires": [
           "opl_domain_progress_transition_runtime_live_readback",
           "opl_command_event_outbox_live_readback",
           "opl_stagerun_owner_callable_adapter_live_readback",
-          "no_active_default_executor_carrier_caller_scan",
+          "no_active_owner_callable_adapter_carrier_caller_scan",
           "no_forbidden_write_proof",
           "replacement_parity_ref",
           "owner_retirement_decision_ref",
@@ -413,11 +413,11 @@
           "opl_command_event_outbox_live_readback",
           "opl_stagerun_owner_callable_adapter_live_readback"
         ],
-        "required_before_physical_delete": "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref",
+        "required_before_physical_delete": "owner_callable_dispatch_request_opl_owner_callable_adapter_carrier_tail_readback_ref",
         "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
         "runtime_owner": "one-person-lab",
         "status": "tail_open",
-        "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
+        "surface_kind": "opl_owner_callable_adapter_carrier_tail_readback_requirement",
         "tail_readback_proven": false,
         "transition_request_pending_can_satisfy_readback": false
       },
@@ -444,8 +444,8 @@
         "repo_source_physical_retirement_authorized": true,
         "tombstone_or_provenance_proven": true
       },
-      "surface_id": "default_executor_dispatch_request",
-      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#default_executor_dispatch_request"
+      "surface_id": "owner_callable_dispatch_request",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#owner_callable_dispatch_request"
     },
     {
       "active_caller_migrated": true,
@@ -473,7 +473,7 @@
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer_parts/persistence.py",
       "retired_symbols": [
-        "persist_default_executor_dispatches",
+        "persist_owner_callable_adapters",
         "persist_request_packets",
         "persist_consumer_payload",
         "request_packet_for_persistence",
@@ -500,7 +500,7 @@
         "mas_owned_queue",
         "mas_owned_attempt_ledger",
         "mas_owned_retry_dead_letter",
-        "legacy_default_executor_dispatches_as_owner_callable_adapters",
+        "legacy_owner_callable_adapters_as_owner_callable_adapters",
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
@@ -515,7 +515,7 @@
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/owner_callable_adapter_projection.py",
       "retired_symbols": [
-        "default_executor_dispatches owner_callable_adapters fallback alias"
+        "owner_callable_adapters owner_callable_adapters fallback alias"
       ],
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
@@ -537,8 +537,8 @@
         "mas_owned_queue",
         "mas_owned_attempt_ledger",
         "mas_owned_retry_dead_letter",
-        "legacy_current_default_executor_dispatches_preview_api",
-        "legacy_default_executor_dispatch_count_as_controller_readback",
+        "legacy_current_owner_callable_adapters_preview_api",
+        "legacy_owner_callable_dispatch_count_as_controller_readback",
         "provider_completion_as_domain_ready"
       ],
       "generic_runtime_owner": "one-person-lab",
@@ -553,8 +553,8 @@
       "retained_mas_role": "none_physically_retired_no_alias",
       "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer.py",
       "retired_symbols": [
-        "current_default_executor_dispatches",
-        "domain_action_request_materializer_parts.current_default_executor_dispatches"
+        "current_owner_callable_adapters",
+        "domain_action_request_materializer_parts.current_owner_callable_adapters"
       ],
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
@@ -564,8 +564,8 @@
         "repo_source_physical_retirement_authorized": true,
         "tombstone_or_provenance_proven": true
       },
-      "surface_id": "domain_action_request_materializer_current_default_executor_dispatches_api",
-      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_current_default_executor_dispatches_api"
+      "surface_id": "domain_action_request_materializer_current_owner_callable_adapters_api",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#domain_action_request_materializer_current_owner_callable_adapters_api"
     },
     {
       "active_caller_migrated": true,
@@ -753,7 +753,7 @@
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
         "tests/domain_action_request_materializer_cases/request_handoff_dispatch_cases.py::test_materialize_domain_action_requests_writes_request_handoff_for_publication_gate_and_ai_reviewer_actions",
         "tests/test_domain_action_request_materializer_cases/test_completed_analysis_ai_reviewer_handoff.py::test_materialize_domain_action_requests_consumes_completed_analysis_ai_reviewer_handoff",
-        "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_default_executor_task_until_running_provider_or_closeout"
+        "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_owner_callable_adapter_task_until_running_provider_or_closeout"
       ]
     },
     {
@@ -893,9 +893,9 @@
         "current_provider_handoff_export_reads_legacy_wire": false,
         "current_recovery_action_reads_legacy_wire": false,
         "default_execution_latest_payload_reads_legacy_wire_by_default": false,
-        "default_executor_execution_candidates_reads_legacy_wire_by_default": false,
-        "default_executor_nonconsumable_closeout_reads_legacy_wire_by_default": false,
-        "default_executor_receipt_consumption_reads_legacy_wire_by_default": false,
+        "owner_callable_receipt_candidates_reads_legacy_wire_by_default": false,
+        "owner_callable_adapter_nonconsumable_closeout_reads_legacy_wire_by_default": false,
+        "owner_callable_adapter_receipt_consumption_reads_legacy_wire_by_default": false,
         "legacy_wire_role": "history_replay_and_provenance_only"
       },
       "forbidden_claims": [
@@ -918,9 +918,9 @@
         "can_authorize_provider_admission": false,
         "can_generate_current_handoff": false,
         "can_satisfy_current_recovery_action": false,
-        "default_executor_execution_candidates_requires_allow_legacy_fallback": true,
-        "default_executor_nonconsumable_closeout_requires_allow_legacy_fallback": true,
-        "default_executor_receipt_consumption_requires_allow_legacy_fallback": true,
+        "owner_callable_receipt_candidates_requires_allow_legacy_fallback": true,
+        "owner_callable_adapter_nonconsumable_closeout_requires_allow_legacy_fallback": true,
+        "owner_callable_adapter_receipt_consumption_requires_allow_legacy_fallback": true,
         "execution_latest_payload_requires_allow_legacy_fallback": true,
         "legacy_latest_payload_helper_requires_allow_legacy_fallback": true
       },
@@ -928,10 +928,10 @@
         "abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
         "active_stage_run_abi_caller_scan": {
           "active_callers": [
-            "study_transition_receipt_consumption_parts.owner_callable_candidates.default_executor_execution_candidates::_stage_closeout_candidates",
-            "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
-            "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
-            "study_transition_receipt_consumption_parts.owner_callable_followthrough.default_executor_execution_followthrough_receipt_consumption",
+            "study_transition_receipt_consumption_parts.owner_callable_candidates.owner_callable_receipt_candidates::_stage_closeout_candidates",
+            "study_transition_receipt_consumption.owner_callable_receipt_consumption",
+            "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
+            "study_transition_receipt_consumption_parts.owner_callable_followthrough.owner_callable_receipt_followthrough_consumption",
             "provider_admission_parts.provider_admission_report_closeout_scan",
             "study_outer_loop_work_units",
             "study_progress_parts.opl_current_control_state_terminal_logs"
@@ -950,7 +950,7 @@
           ],
           "no_active_stage_run_abi_caller_proven": false,
           "physical_delete_allowed": false,
-          "required_before_physical_delete": "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
+          "required_before_physical_delete": "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
           "status": "active_callers_present_tail_open"
         },
         "allowed_consumption": [
@@ -960,10 +960,10 @@
           "paper_stage_log_delta_projection"
         ],
         "closeout_packet_roots": [
-          "artifacts/supervision/consumer/default_executor_execution/*.closeout.json",
+          "artifacts/supervision/consumer/owner_callable_adapter_receipt/*.closeout.json",
           "artifacts/supervision/consumer/stage_attempt_closeouts/*.json",
           "paper/review/*.json",
-          "paper/review/default_executor_closeouts/*.json"
+          "paper/review/owner_callable_adapter_closeouts/*.json"
         ],
         "dispatch_ref_stage_packet_identity_recovery_is_authority": false,
         "latest_wire_surface_is_stage_run_abi": false,
@@ -975,16 +975,16 @@
         "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run": false,
         "stage_closeout_packets_can_create_provider_attempt": false,
         "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": false,
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "retired_stage_id_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
         "terminal_closeout_consumption_requires_owner_result_or_typed_blocker": true
       },
       "legacy_wire_current_reader_fallback_allowed": false,
       "legacy_wire_default_reader_fallback_allowed": false,
       "legacy_wire_history_merge_requires_explicit_opt_in": true,
       "legacy_wire_history_replay_fallback_requires_explicit_opt_in": true,
-      "legacy_wire_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+      "legacy_wire_path": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
       "legacy_wire_readers_tail_open": [],
-      "legacy_wire_surface": "default_executor_dispatch_execution_study_latest",
+      "legacy_wire_surface": "owner_callable_dispatch_execution_study_latest",
       "mas_owner_claim_allowed": false,
       "physical_delete_completion_basis": {
         "active_callsites_migrated_or_deleted": true,
@@ -1002,15 +1002,15 @@
         "repo_source_physical_retirement_authorized": true,
         "tombstone_or_provenance_proven": true
       },
-      "surface_id": "default_executor_execution_latest_wire_projection",
-      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#default_executor_execution_latest_wire_projection",
+      "surface_id": "owner_callable_adapter_receipt_latest_wire_projection",
+      "tombstone_or_provenance_ref": "docs/history/runtime/mas-private-surface-retirement.md#owner_callable_adapter_receipt_latest_wire_projection",
       "verified_by": [
         "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy",
         "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire",
         "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in",
         "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
-        "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
+        "tests/test_adapter_retirement_boundary.py::test_owner_callable_adapter_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
         "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
       ]
@@ -1086,8 +1086,8 @@
         "dispatcher_prompt_contract_normalization": "prompt_contract_ref_to_prompt_contract_for_adapter_preflight_only",
         "explicit_action_pending_request_outcome": "opl_execution_authorization_required",
         "explicit_action_transition_request_pending_selection": "fail_closed_blocker_projection_only",
-        "inline_default_executor_dispatch_request_candidate_allowed": false,
-        "legacy_default_executor_dispatches_candidate_role": "persisted_migration_carrier_only_after_transition_request_normalization_and_opl_authorization_guard",
+        "inline_owner_callable_dispatch_request_candidate_allowed": false,
+        "legacy_owner_callable_adapters_candidate_role": "persisted_migration_carrier_only_after_transition_request_normalization_and_opl_authorization_guard",
         "owner_callable_adapters_candidate_allowed": false
       },
       "current_disposition": "opl_authorized_owner_callable_adapter",
@@ -1244,7 +1244,7 @@
       "mas_owner_claim_allowed": false,
       "mas_typed_blocker_authority_result_adapter": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.mas_domain_typed_blocker_authority_result",
       "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
-      "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_health_diagnostic_obligation/latest.json",
+      "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_diagnostic_report_obligation/latest.json",
       "obligation_readback_boundary": {
         "actuator_can_write_private_blocker_surface": false,
         "consumed_readback_identity_surface_kind": "consumed_obligation_readback_identity",
@@ -1284,7 +1284,7 @@
         "success_proof_forbidden_when_request_projection_only": true,
         "success_proof_required_for_postcondition_ok": true,
         "success_proof_requires_consumed_readback_identity": true,
-        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_surface_kind": "domain_diagnostic_apply_success_proof",
         "supervisor_disallowed_outcome_is_success": false,
         "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator"
       },
@@ -1314,7 +1314,7 @@
           "opl_recovery_obligation_store_active_caller_readback",
           "opl_supervisor_decision_engine_active_caller_readback"
         ],
-        "required_before_physical_delete": "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref",
+        "required_before_physical_delete": "domain_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref",
         "runtime_kind": "RecoveryObligationStore/SupervisorDecisionEngine",
         "runtime_owner": "one-person-lab",
         "status": "tail_open",
@@ -1361,7 +1361,7 @@
         "surface": "study_progress_parts.paper_autonomy_supervisor_decision.supervisor_decision_for_projection"
       },
       "study_progress_supervisor_projection_can_build_decision": false,
-      "surface_id": "domain_health_diagnostic_obligation_actuator",
+      "surface_id": "domain_diagnostic_obligation_actuator",
       "transition_request_pending_can_close_physical_tail": false,
       "typed_blocker_authority_result_adapter_boundary": {
         "actuator_private_write_authority": false,
@@ -1385,8 +1385,8 @@
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
-        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py::test_domain_health_diagnostic_apply_accepts_opl_provider_admission_result_as_closed_outcome",
+        "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
+        "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py::test_domain_diagnostic_report_apply_accepts_opl_provider_admission_result_as_closed_outcome",
         "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback",
         "tests/test_paper_recovery_state.py::test_typed_blocker_owns_recovery_even_when_residual_action_exists",
         "tests/test_paper_recovery_state.py::test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuilding",

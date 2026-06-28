@@ -62,7 +62,7 @@ def test_transition_runtime_completion_audit_declares_non_completion_boundary() 
     assert policy["opl_repo_slice_can_claim_mas_live_complete"] is False
     assert policy["projection_clean_can_claim_complete"] is False
     assert policy["queue_empty_can_claim_complete"] is False
-    assert policy["dhd_dry_run_can_claim_complete"] is False
+    assert policy["domain_diagnostic_dry_run_can_claim_complete"] is False
 
     assert audit["required_runtime_readback_sections"] == [
         "identity",
@@ -123,7 +123,7 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
     open_tails = set(audit["open_evidence_tails"])
     assert {
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         (
             "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
             "admission arbiter for current DM002/DM003 transition identity"
@@ -135,11 +135,11 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         (
-            "legacy default-executor carrier no-active StageRun ABI caller physical delete "
+            "legacy owner-callable carrier no-active StageRun ABI caller physical delete "
             "proof after OPL StageRun ABI/provenance boundary proof"
         ),
         (
-            "legacy default-executor carrier OPL DomainProgressTransitionRuntime / outbox / StageRun "
+            "legacy owner-callable carrier OPL DomainProgressTransitionRuntime / outbox / StageRun "
             "live readback or no-active-carrier-caller physical delete proof after OPL StageRun ABI/provenance boundary proof"
         ),
         (
@@ -147,7 +147,7 @@ def test_transition_runtime_completion_audit_covers_target_lanes_and_keeps_open_
             "physical-delete/tombstone proof after no-active replay/local-inspection proof "
             "and active caller source-adapter migration"
         ),
-        "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
+        "domain_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
         "stage_outcome_authority live every-active-caller soak or no-active-caller proof",
     } <= open_tails
 
@@ -184,7 +184,7 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     } <= set(repo_source["completion_criteria"])
     assert {
         "missing OPL outbox / StageRun live readback",
-        "missing DHD apply exactly-one live outcome",
+        "missing domain diagnostic apply exactly-one live outcome",
         "missing provider running proof",
         "missing DM002/DM003 fresh paper-line outcome",
     } <= set(repo_source["non_blocking_live_runtime_tails"])
@@ -193,10 +193,10 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
         "runtime_surface_retirement audit reports open_surface_count=0 and open_surface_ids=[] for repo-source retirement",
         "runtime_surface_retirement validator reports violation_count=0",
     } <= set(repo_source["completed_repo_source_retirement_evidence"])
-    assert "DHD_dry_run_missing" in repo_source["false_repo_source_blockers"]
+    assert "domain_diagnostic_dry_run_missing" in repo_source["false_repo_source_blockers"]
 
     assert live_runtime["scope"] == (
-        "OPL live readback, DHD apply exactly-one, provider running proof, "
+        "OPL live readback, domain diagnostic apply exactly-one, provider running proof, "
         "DM002/DM003 live paper-line outcome"
     )
     assert live_runtime["status"] == "partial"
@@ -256,7 +256,7 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     }
     assert {
         "same-transition OPL command/event/outbox/StageRun identity readback",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "provider admission or running proof backed by same-identity OPL runtime readback",
         (
             "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, "
@@ -345,8 +345,8 @@ def test_transition_runtime_completion_audit_rejects_known_false_completion_clai
         "make_test_meta_passed",
         "scripts_verify_passed",
         "OPL_repo_slice_landed",
-        "DHD_dry_run",
-        "DHD_observe_only",
+        "domain_diagnostic_dry_run",
+        "domain_diagnostic_observe_only",
         "queue_empty",
         "provider_completed",
         "provider_admission_pending_count=0",
@@ -363,7 +363,7 @@ def test_transition_runtime_completion_audit_rejects_known_false_completion_clai
     non_claims = audit["non_claims"]
     assert non_claims["all_mas_private_surfaces_physically_retired"] is False
     assert non_claims["domain_progress_transition_runtime_live_complete"] is False
-    assert non_claims["dhd_apply_runtime_ready"] is False
+    assert non_claims["domain_diagnostic_apply_runtime_ready"] is False
     assert non_claims["provider_admission_ready"] is False
     assert non_claims["dm002_dm003_live_paper_progress"] is False
     assert non_claims["paper_closure"] is False
@@ -403,7 +403,7 @@ def test_transition_runtime_completion_audit_matches_replay_status_open_tails() 
     } <= set(replay["remaining_evidence_tails"])
     assert {
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "focused_tests_passed",
         "docs_updated",
@@ -438,16 +438,16 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["stage_outcome_authority"]["current_disposition"] == (
         "opl_authorized_owner_callable_adapter"
     )
-    assert surfaces["domain_health_diagnostic_obligation_actuator"]["current_disposition"] == (
+    assert surfaces["domain_diagnostic_obligation_actuator"]["current_disposition"] == (
         "obligation_readback_projection_consumer"
     )
-    assert surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert surfaces["domain_diagnostic_obligation_actuator"][
         "fail_closed_typed_blocker_surface"
     ] == "mas_domain_typed_blocker"
-    assert surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_readback_boundary"
     ]["mas_domain_authority_readback_requires_authority_boundary"] is True
-    assert surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_readback_boundary"
     ]["read_model_evidence_refs_can_satisfy_success"] is False
     assert surfaces["domain_authority_refs_index"]["current_disposition"] == "physically_retired"
@@ -479,64 +479,64 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert surfaces["domain_authority_refs_index"]["physical_delete_completion_basis"][
         "live_runtime_evidence_blocks_repo_source_delete"
     ] is False
-    assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
+    assert surfaces["owner_callable_dispatch_request"]["active_caller_boundary"][
         "active_caller_effect"
     ] == "opl_domain_progress_transition_runtime_intake_only"
-    assert surfaces["default_executor_dispatch_request"]["current_disposition"] == (
+    assert surfaces["owner_callable_dispatch_request"]["current_disposition"] == (
         "physically_retired"
     )
-    assert surfaces["default_executor_dispatch_request"]["retained_mas_role"] == (
+    assert surfaces["owner_callable_dispatch_request"]["retained_mas_role"] == (
         "none_physically_retired_no_alias"
     )
-    assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
+    assert surfaces["owner_callable_dispatch_request"]["active_caller_boundary"][
         "provider_admission_pending"
     ] is False
-    assert surfaces["default_executor_dispatch_request"]["active_caller_boundary"][
+    assert surfaces["owner_callable_dispatch_request"]["active_caller_boundary"][
         "active_caller_retains_surface"
     ] is False
-    assert surfaces["default_executor_dispatch_request"][
+    assert surfaces["owner_callable_dispatch_request"][
         "legacy_stage_run_abi_provenance_boundary"
     ]["mas_can_create_stage_run"] is False
-    assert surfaces["default_executor_dispatch_request"][
+    assert surfaces["owner_callable_dispatch_request"][
         "legacy_stage_run_abi_provenance_boundary"
     ]["requires_opl_domain_progress_transition_runtime_intake"] is True
-    assert surfaces["default_executor_dispatch_request"][
-        "opl_default_executor_carrier_tail_readback"
+    assert surfaces["owner_callable_dispatch_request"][
+        "opl_owner_callable_adapter_carrier_tail_readback"
     ]["tail_readback_proven"] is False
-    assert surfaces["default_executor_dispatch_request"][
-        "opl_default_executor_carrier_tail_readback"
+    assert surfaces["owner_callable_dispatch_request"][
+        "opl_owner_callable_adapter_carrier_tail_readback"
     ]["transition_request_pending_can_satisfy_readback"] is False
-    assert surfaces["default_executor_dispatch_request"][
-        "opl_default_executor_carrier_tail_readback"
+    assert surfaces["owner_callable_dispatch_request"][
+        "opl_owner_callable_adapter_carrier_tail_readback"
     ]["request_only_carrier_can_authorize_provider_admission"] is False
-    assert surfaces["default_executor_dispatch_request"]["retirement_gate"][
+    assert surfaces["owner_callable_dispatch_request"]["retirement_gate"][
         "repo_source_physical_retirement_authorized"
     ] is True
-    assert surfaces["default_executor_dispatch_request"]["retirement_gate"][
+    assert surfaces["owner_callable_dispatch_request"]["retirement_gate"][
         "live_runtime_readiness_required_for_repo_source_delete"
     ] is False
-    assert surfaces["default_executor_dispatch_request"]["physical_delete_completion_basis"][
+    assert surfaces["owner_callable_dispatch_request"]["physical_delete_completion_basis"][
         "live_runtime_evidence_blocks_repo_source_delete"
     ] is False
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "current_disposition"
     ] == "physically_retired"
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "retained_mas_role"
     ] == "none_physically_retired_no_alias"
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "legacy_stage_run_abi_boundary"
     ]["abi_role"] == "opl_stagerun_closeout_provenance_identity_recovery_only"
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "legacy_stage_run_abi_boundary"
     ]["stage_closeout_packets_can_authorize_provider_admission"] is False
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "legacy_stage_run_abi_boundary"
     ]["stage_closeout_packets_can_authorize_execution"] is False
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "retirement_gate"
     ]["repo_source_physical_retirement_authorized"] is True
-    assert surfaces["default_executor_execution_latest_wire_projection"][
+    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
         "physical_delete_completion_basis"
     ]["live_runtime_evidence_blocks_repo_source_delete"] is False
     assert surfaces["runtime_lifecycle_payload_retention"]["current_disposition"] == (
@@ -560,7 +560,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     )
     assert {
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         (
             "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
             "admission arbiter for current DM002/DM003 transition identity"
@@ -568,22 +568,22 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     } <= set(physical_gate["live_runtime_readiness_missing_evidence_tails"])
     assert {
         "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
-        "domain_health_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
+        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
         "stage_outcome_authority_live_every_active_caller_soak_or_no_active_caller_ref",
-        "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref",
-        "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
+        "owner_callable_dispatch_request_opl_owner_callable_adapter_carrier_tail_readback_ref",
+        "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
     }.isdisjoint(set(physical_gate["missing_evidence_tails"]))
     assert (
-        "legacy_default_executor_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref"
+        "legacy_owner_callable_adapter_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref"
         not in physical_gate["missing_evidence_tails"]
     )
     assert (
         "tests/test_adapter_retirement_boundary.py::"
-        "test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only"
+        "test_owner_callable_adapter_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only"
     ) in physical_gate["observed_refs"]
     assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "default_executor_execution_latest_wire_projection#"
+        "owner_callable_adapter_receipt_latest_wire_projection#"
         "legacy_stage_run_abi_boundary.active_stage_run_abi_caller_scan"
     ) in physical_gate["observed_refs"]
     assert (
@@ -644,15 +644,15 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     ) in physical_gate["observed_refs"]
     assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "default_executor_dispatch_request#legacy_stage_run_abi_provenance_boundary"
+        "owner_callable_dispatch_request#legacy_stage_run_abi_provenance_boundary"
     ) in physical_gate["observed_refs"]
     assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "default_executor_dispatch_request#opl_default_executor_carrier_tail_readback"
+        "owner_callable_dispatch_request#opl_owner_callable_adapter_carrier_tail_readback"
     ) in physical_gate["observed_refs"]
     assert (
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "default_executor_execution_latest_wire_projection#legacy_stage_run_abi_boundary"
+        "owner_callable_adapter_receipt_latest_wire_projection#legacy_stage_run_abi_boundary"
     ) in physical_gate["observed_refs"]
     assert (
         "src/med_autoscience/controllers/study_transition_receipt_consumption_parts/"
@@ -661,11 +661,11 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     ) in physical_gate["observed_refs"]
     assert (
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
-        "_validate_legacy_default_executor_carrier"
+        "_validate_legacy_owner_callable_adapter_carrier"
     ) in physical_gate["observed_refs"]
     assert (
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
-        "_validate_default_executor_carrier_tail_readback"
+        "_validate_owner_callable_adapter_carrier_tail_readback"
     ) in physical_gate["observed_refs"]
     assert (
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
@@ -674,22 +674,22 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert (
         "tests/test_adapter_retirement_boundary.py::"
         "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#"
-        "legacy_default_executor_carrier_stage_run_abi_boundary"
+        "legacy_owner_callable_adapter_carrier_stage_run_abi_boundary"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_adapter_retirement_boundary.py::"
         "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#"
-        "default_executor_carrier_tail_readback"
+        "owner_callable_adapter_carrier_tail_readback"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
-        "legacy_default_executor_carrier_authority_regression"
+        "legacy_owner_callable_adapter_carrier_authority_regression"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
-        "default_executor_carrier_tail_false_completion_guard"
+        "owner_callable_adapter_carrier_tail_false_completion_guard"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::"
@@ -703,7 +703,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert "active_caller_exists_as_retention_reason" in physical_gate["false_completion_boundary"]
     assert "read_only_projection_as_execution_authority" in physical_gate["false_completion_boundary"]
     assert (
-        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback"
+        "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback"
         in physical_gate["false_completion_boundary"]
     )
     assert (
@@ -756,7 +756,7 @@ def test_transition_runtime_completion_audit_records_provider_admission_repo_con
             "instead of replay fixture readback"
         ),
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
     } <= set(lane["missing_evidence_tails"])
     assert "contracts/paper_progress_replay_live_evidence_status.json#/replay_to_live_separation_gate" in (
@@ -842,7 +842,7 @@ def test_blueprint_l0_l7_functional_acceptance_matrix_splits_repo_and_live_scope
         "tests_or_contracts_can_claim_live_acceptance": False,
     }
     assert {
-        "DHD apply",
+        "domain diagnostic apply",
         "provider start",
         "hydrate",
         "tick",
@@ -862,11 +862,11 @@ def test_blueprint_l0_l7_functional_acceptance_matrix_splits_repo_and_live_scope
     assert {
         "fresh DM002 study_progress and accepted outcome evidence",
         "fresh DM003 study_progress and accepted outcome evidence",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
     } <= set(rows["L7"]["live_only_deferred"]["required_evidence"])
     assert {
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
     } <= set(matrix["remaining_live_only_deferred"])
     assert audit["completion_claim_allowed"] is False

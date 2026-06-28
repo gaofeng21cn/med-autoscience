@@ -308,8 +308,8 @@ def _should_refresh_managed_study_status_after_stage_request(payload: Mapping[st
     return not _payload_strict_live(payload)
 
 
-def _domain_health_diagnostic_wakeup_latest_path(study_root: Path) -> Path:
-    return study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json"
+def _domain_diagnostic_wakeup_latest_path(study_root: Path) -> Path:
+    return study_root / "artifacts" / "runtime" / "domain_diagnostic_wakeup" / "latest.json"
 
 
 def _artifact_fingerprint(path: Path | None) -> dict[str, Any]:
@@ -463,7 +463,7 @@ def _build_outer_loop_wakeup_audit(
         study_root=study_root,
         status_payload=status_payload,
     )
-    latest_path = _domain_health_diagnostic_wakeup_latest_path(Path(study_root).expanduser().resolve())
+    latest_path = _domain_diagnostic_wakeup_latest_path(Path(study_root).expanduser().resolve())
     previous = _read_json_object(latest_path) or {}
     previous_outcome = _non_empty_text(previous.get("outcome"))
     previous_fingerprint = _non_empty_text(previous.get("input_fingerprint"))
@@ -482,7 +482,7 @@ def _build_outer_loop_wakeup_audit(
 
 
 def _write_outer_loop_wakeup_audit(*, study_root: Path, audit: Mapping[str, Any]) -> None:
-    _write_json_object(_domain_health_diagnostic_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
+    _write_json_object(_domain_diagnostic_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
 
 
 def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | Any) -> bool:

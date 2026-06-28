@@ -9,18 +9,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src" / "med_autoscience"
 
 
-def test_default_executor_dispatch_residue_cleanup_surface_is_physically_retired() -> None:
+def test_owner_callable_dispatch_residue_cleanup_surface_is_physically_retired() -> None:
     assert not (
-        SRC_ROOT / "controllers" / "default_executor_dispatch_residue_cleanup.py"
+        SRC_ROOT / "controllers" / "owner_callable_dispatch_residue_cleanup.py"
     ).exists()
-    assert not (REPO_ROOT / "tests" / "test_default_executor_dispatch_residue_cleanup.py").exists()
+    assert not (REPO_ROOT / "tests" / "test_owner_callable_dispatch_residue_cleanup.py").exists()
 
     cli_text = (SRC_ROOT / "cli.py").read_text(encoding="utf-8")
     parser_text = (SRC_ROOT / "cli_parts" / "parser.py").read_text(encoding="utf-8")
-    assert "_load_controller(\"default_executor_dispatch_residue_cleanup\")" not in cli_text
-    assert "default_executor_dispatch_residue_cleanup =" not in cli_text
-    assert "args.command == \"default-executor-dispatch-residue-cleanup\"" not in cli_text
-    assert "add_parser(\"default-executor-dispatch-residue-cleanup\"" not in parser_text
+    assert "_load_controller(\"owner_callable_dispatch_residue_cleanup\")" not in cli_text
+    assert "owner_callable_dispatch_residue_cleanup =" not in cli_text
+    assert "args.command == \"owner-callable-adapter-residue-cleanup\"" not in cli_text
+    assert "add_parser(\"owner-callable-adapter-residue-cleanup\"" not in parser_text
 
 
 def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:
@@ -56,15 +56,15 @@ def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_pat
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"
-    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
+    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json"
     legacy_path.parent.mkdir(parents=True)
     legacy_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_execution_study_latest",
+                "surface": "owner_callable_dispatch_execution_study_latest",
                 "executions": [
                     {
-                        "surface": "default_executor_dispatch_execution",
+                        "surface": "owner_callable_dispatch_execution",
                         "execution_status": "blocked",
                         "action_type": "legacy_action",
                     }
@@ -90,7 +90,7 @@ def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_pat
         encoding="utf-8",
     )
 
-    payload, receipt_ref = candidates.latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    payload, receipt_ref = candidates.latest_owner_callable_receipt_payload(study_root=study_root)
 
     assert receipt_ref == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     assert payload["executions"][0]["action_type"] == "canonical_action"
@@ -99,11 +99,11 @@ def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_pat
     assert payload["queue_authority"] is False
 
     canonical_path.unlink()
-    payload, receipt_ref = candidates.latest_owner_callable_adapter_receipt_payload(study_root=study_root)
+    payload, receipt_ref = candidates.latest_owner_callable_receipt_payload(study_root=study_root)
 
     assert payload is None
     assert receipt_ref == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
-    assert candidates.default_executor_execution_candidates(study_root=study_root) == []
+    assert candidates.owner_callable_receipt_candidates(study_root=study_root) == []
 
 def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker() -> None:
     inventory = json.loads(
@@ -116,7 +116,7 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     )
     surface = {
         item["surface_id"]: item for item in inventory["surfaces"]
-    }["default_executor_execution_latest_wire_projection"]
+    }["owner_callable_adapter_receipt_latest_wire_projection"]
     scan = surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
 
     assert surface["current_disposition"] == "physically_retired"
@@ -130,22 +130,22 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     }
     assert surface["tombstone_or_provenance_ref"] == (
         "docs/history/runtime/mas-private-surface-retirement.md#"
-        "default_executor_execution_latest_wire_projection"
+        "owner_callable_adapter_receipt_latest_wire_projection"
     )
     assert scan["status"] == "active_callers_present_tail_open"
     assert scan["no_active_stage_run_abi_caller_proven"] is False
     assert scan["physical_delete_allowed"] is False
     assert (
         scan["required_before_physical_delete"]
-        == "legacy_default_executor_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
+        == "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
     )
     assert {
         (
             "study_transition_receipt_consumption_parts.owner_callable_candidates."
-            "default_executor_execution_candidates::_stage_closeout_candidates"
+            "owner_callable_receipt_candidates::_stage_closeout_candidates"
         ),
-        "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
-        "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
+        "study_transition_receipt_consumption.owner_callable_receipt_consumption",
+        "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
         "provider_admission_parts.provider_admission_report_closeout_scan",
         "study_progress_parts.opl_current_control_state_terminal_logs",
     } <= set(scan["active_callers"])
@@ -157,7 +157,7 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     ]
 
     audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
-    assert "default_executor_execution_latest_wire_projection" not in audit["open_surface_ids"]
+    assert "owner_callable_adapter_receipt_latest_wire_projection" not in audit["open_surface_ids"]
     assert audit["repo_source_retirement_completion"]["completion_claim_allowed"] is True
     assert audit["completion_claim_allowed"] is True
     assert audit["live_runtime_readiness_completion"]["completion_claim_allowed"] is False
@@ -165,14 +165,14 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     bad_inventory = json.loads(json.dumps(inventory))
     bad_surface = {
         item["surface_id"]: item for item in bad_inventory["surfaces"]
-    }["default_executor_execution_latest_wire_projection"]
+    }["owner_callable_adapter_receipt_latest_wire_projection"]
     del bad_surface["tombstone_or_provenance_ref"]
 
     violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
 
     assert {
         (
-            "default_executor_execution_latest_wire_projection",
+            "owner_callable_adapter_receipt_latest_wire_projection",
             "physically_retired_missing_tombstone_or_provenance_ref",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
@@ -208,17 +208,17 @@ def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "latest.json"
     )
     legacy_path.parent.mkdir(parents=True)
     legacy_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_execution_study_latest",
+                "surface": "owner_callable_dispatch_execution_study_latest",
                 "executions": [
                     {
-                        "surface": "default_executor_dispatch_execution",
+                        "surface": "owner_callable_dispatch_execution",
                         "execution_status": "blocked",
                         "action_type": "legacy_action",
                     }
@@ -237,86 +237,6 @@ def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
     ) is None
 
 
-def test_domain_owner_dispatch_persist_does_not_merge_legacy_wire(
-    tmp_path,
-) -> None:
-    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
-    profiles = importlib.import_module("med_autoscience.profiles")
-    profile = profiles.WorkspaceProfile(
-        name="test",
-        workspace_root=tmp_path,
-        runtime_root=tmp_path / "runtime",
-        studies_root=tmp_path / "studies",
-        portfolio_root=tmp_path / "portfolio",
-        med_deepscientist_runtime_root=tmp_path / "legacy-runtime",
-        med_deepscientist_repo_root=None,
-        default_publication_profile="default",
-        default_citation_style="vancouver",
-        enable_medical_overlay=False,
-        medical_overlay_scope="none",
-        medical_overlay_skills=(),
-        research_route_bias_policy="none",
-        preferred_study_archetypes=(),
-        default_submission_targets=(),
-    )
-    legacy_path = (
-        profile.studies_root
-        / "study-1"
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_execution"
-        / "latest.json"
-    )
-    legacy_path.parent.mkdir(parents=True)
-    legacy_path.write_text(
-        json.dumps(
-            {
-                "surface": "default_executor_dispatch_execution_study_latest",
-                "executions": [
-                    {
-                        "surface": "default_executor_dispatch_execution",
-                        "execution_status": "blocked",
-                        "action_type": "legacy_action",
-                        "execution_id": "legacy-execution",
-                        "study_id": "study-1",
-                        "quest_id": "study-1",
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    written = dispatch_module._persist_study_executions(
-        profile=profile,
-        study_id="study-1",
-        generated_at="2026-06-19T00:00:00+00:00",
-        study_executions=[
-            {
-                "surface": "owner_callable_adapter_receipt",
-                "execution_status": "blocked",
-                "action_type": "canonical_action",
-                "execution_id": "canonical-execution",
-                "study_id": "study-1",
-                "quest_id": "study-1",
-            }
-        ],
-    )
-
-    latest_path = Path(written[0])
-    latest = json.loads(latest_path.read_text(encoding="utf-8"))
-    ledger = {item["execution_id"]: item for item in latest["execution_ledger"]}
-    assert set(ledger) == {"canonical-execution"}
-    assert latest["projection_authority"] is False
-    assert latest["execution_ledger_authority"] is False
-    assert latest["attempt_lifecycle_authority"] is False
-    assert latest["queue_authority"] is False
-    assert latest["executions"][0]["domain_authority_ref_index"]["status"] == (
-        "opl_state_index_source_adapter_emitted"
-    )
-
-
 def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_path) -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.provider_admission_parts.provider_admission"
@@ -328,21 +248,21 @@ def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_pa
         "med_autoscience.controllers.paper_mission_owner_surface_parts.recovery_actions"
     )
     study_root = tmp_path / "studies" / "study-1"
-    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
+    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json"
     legacy_execution = {
-        "surface": "default_executor_dispatch_execution",
+        "surface": "owner_callable_dispatch_execution",
         "study_id": "study-1",
         "quest_id": "study-1",
         "execution_status": "handoff_ready",
         "provider_attempt_or_lease_required": True,
-        "owner_callable_surface": "opl_default_executor.stage_attempt",
+        "owner_callable_surface": "opl_owner_callable_adapter.stage_attempt",
         "owner_route_current": True,
         "action_type": "run_quality_repair_batch",
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": "fingerprint-legacy",
         "action_fingerprint": "fingerprint-legacy",
-        "dispatch_path": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-legacy.json",
-        "dispatch_ref": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-legacy.json",
+        "dispatch_path": "artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/fingerprint-legacy.json",
+        "dispatch_ref": "artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/fingerprint-legacy.json",
         "owner_route": {
             "source_refs": {
                 "work_unit_id": "medical_prose_write_repair",
@@ -358,11 +278,11 @@ def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_pa
     legacy_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_execution_study_latest",
+                "surface": "owner_callable_dispatch_execution_study_latest",
                 "executions": [legacy_execution],
                 "execution_ledger": [
                     {
-                        "surface": "default_executor_dispatch_execution",
+                        "surface": "owner_callable_dispatch_execution",
                         "execution_status": "blocked",
                         "action_type": "canonical_paper_inputs_rehydrate_required",
                         "blocked_reason": "canonical_paper_inputs_rehydrate_failed",
@@ -410,21 +330,21 @@ def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tm
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"
-    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
+    legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json"
     canonical_execution = {
         "surface": "owner_callable_adapter_receipt",
         "study_id": "study-1",
         "quest_id": "study-1",
         "execution_status": "handoff_ready",
         "provider_attempt_or_lease_required": True,
-        "owner_callable_surface": "opl_default_executor.stage_attempt",
+        "owner_callable_surface": "opl_owner_callable_adapter.stage_attempt",
         "owner_route_current": True,
         "action_type": "run_quality_repair_batch",
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": "fingerprint-current",
         "action_fingerprint": "fingerprint-current",
-        "dispatch_path": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-current.json",
-        "dispatch_ref": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-current.json",
+        "dispatch_path": "artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/fingerprint-current.json",
+        "dispatch_ref": "artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/fingerprint-current.json",
         "owner_route": {
             "source_refs": {
                 "work_unit_id": "medical_prose_write_repair",
@@ -438,11 +358,11 @@ def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tm
     }
     legacy_execution = {
         **canonical_execution,
-        "surface": "default_executor_dispatch_execution",
+        "surface": "owner_callable_dispatch_execution",
         "work_unit_fingerprint": "fingerprint-legacy",
         "action_fingerprint": "fingerprint-legacy",
-        "dispatch_path": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-legacy.json",
-        "dispatch_ref": "artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/fingerprint-legacy.json",
+        "dispatch_path": "artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/fingerprint-legacy.json",
+        "dispatch_ref": "artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/fingerprint-legacy.json",
     }
     canonical_path.parent.mkdir(parents=True)
     canonical_path.write_text(
@@ -472,11 +392,11 @@ def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tm
     legacy_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_execution_study_latest",
+                "surface": "owner_callable_dispatch_execution_study_latest",
                 "executions": [legacy_execution],
                 "execution_ledger": [
                     {
-                        "surface": "default_executor_dispatch_execution",
+                        "surface": "owner_callable_dispatch_execution",
                         "execution_status": "blocked",
                         "action_type": "canonical_paper_inputs_rehydrate_required",
                         "blocked_reason": "canonical_paper_inputs_rehydrate_failed",

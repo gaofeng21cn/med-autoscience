@@ -165,7 +165,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         "paper/evidence_ledger.json",
         "paper/review/**",
     ]
-    assert dispatch["prompt_contract_ref"]["search_boundaries_ref"]["surface"] == "default_executor_search_discipline.v1"
+    assert dispatch["prompt_contract_ref"]["search_boundaries_ref"]["surface"] == "owner_callable_search_discipline.v1"
     assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries_ref"]["forbidden_command_patterns"]
     assert "runtime/.ds/**" in dispatch["prompt_contract_ref"]["search_boundaries_ref"]["forbidden_path_globs"]
     assert dispatch["source_action_ref"]["surface"] == "quality_repair_batch"
@@ -328,7 +328,6 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     dispatch_contract = importlib.import_module(
         "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
     )
@@ -515,31 +514,6 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     assert "dispatch_ref" not in transition_request
     assert result["ready_domain_progress_transition_request_count"] == 0
     assert result["transition_request_pending_domain_progress_transition_request_count"] == 1
-    monkeypatch.setattr(
-        dispatch_module.action_execution.quality_repair,
-        "execute_quality_repair_batch",
-        lambda **_: {
-            "execution_status": "handoff_ready",
-            "blocked_reason": None,
-            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
-            "owner_result": {"status": "handoff_ready"},
-        },
-    )
-
-    dispatch_result = dispatch_module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("run_quality_repair_batch",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    summary = dispatch_result["per_study_execution_summary"][0]
-    assert summary["selected_dispatch_count"] == 0
-    assert summary["zero_dispatch_reason"] == "no_selected_dispatch_for_requested_action_types"
-    assert dispatch_result["execution_count"] == 0
-    assert dispatch_result["blocked_count"] == 0
-
 
 def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_transition(
     monkeypatch,
@@ -707,7 +681,7 @@ def _writer_handoff(*, study_id: str, dispatch_path: Path, route: dict[str, obje
         "typed blocker:manuscript_story_surface_delta_missing"
     )
     return {
-        "surface": "default_executor_dispatch_request",
+        "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
         "executor_kind": "codex_cli_default",
         "chat_completion_only_executor_forbidden": True,

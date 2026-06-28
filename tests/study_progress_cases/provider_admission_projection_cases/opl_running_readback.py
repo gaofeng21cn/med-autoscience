@@ -245,7 +245,7 @@ def test_provider_admission_projection_consumes_terminal_closeout_after_owner_re
         "stage_attempt_id": stage_attempt_id,
         "typed_blocker_ref": (
             f"studies/{study_id}/artifacts/supervision/consumer/"
-            f"default_executor_execution/{stage_attempt_id}.closeout.json"
+            f"owner_callable_adapter_receipt/{stage_attempt_id}.closeout.json"
         ),
     }
     handoff = {
@@ -285,7 +285,7 @@ def test_provider_admission_projection_consumes_terminal_closeout_after_owner_re
         "latest_terminal_stage_log": {
             "surface_kind": "mas_latest_terminal_stage_log_projection",
             "stage_attempt_id": stage_attempt_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "run_quality_repair_batch",
             "status": "blocked",
             "outcome": "typed_blocker",

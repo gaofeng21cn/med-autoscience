@@ -5,8 +5,8 @@ from pathlib import Path
 
 from med_autoscience.controllers.study_domain_transition_table import project_domain_transition
 from med_autoscience.controllers.study_transition_receipt_consumption import (
-    default_executor_execution_nonconsumable_closeout,
-    default_executor_execution_receipt_consumption,
+    owner_callable_receipt_nonconsumable_closeout,
+    owner_callable_receipt_consumption,
     mas_owner_apply_receipt_consumption,
 )
 
@@ -16,7 +16,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_default_executor_consumes_accepted_paper_story_repair_owner_receipt(
+def test_owner_callable_adapter_consumes_accepted_paper_story_repair_owner_receipt(
     tmp_path: Path,
 ) -> None:
     study_id = "002-dm-china-us-mortality-attribution"
@@ -45,16 +45,16 @@ def test_default_executor_consumes_accepted_paper_story_repair_owner_receipt(
     draft_ref = str(study_root / "paper" / "draft.md")
     review_ref = str(study_root / "paper" / "build" / "review_manuscript.md")
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": study_id,
@@ -99,15 +99,15 @@ def test_default_executor_consumes_accepted_paper_story_repair_owner_receipt(
         },
     )
 
-    receipt = default_executor_execution_receipt_consumption(
+    receipt = owner_callable_receipt_consumption(
         study_root=study_root,
         owner_route=owner_route,
         actions=[{"action_type": "run_quality_repair_batch"}],
     )
 
     assert receipt["status"] == "consumed"
-    assert receipt["receipt_kind"] == "default_executor_execution"
-    assert receipt["receipt_ref"] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
+    assert receipt["receipt_kind"] == "owner_callable_adapter_receipt"
+    assert receipt["receipt_ref"] == "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
     assert receipt["execution_id"].endswith("accepted-story-repair")
     assert receipt["owner_result_status"] == "progress_delta_candidate"
     assert receipt["repair_execution_evidence_status"] == "progress_delta_candidate"
@@ -117,7 +117,7 @@ def test_default_executor_consumes_accepted_paper_story_repair_owner_receipt(
     assert receipt["submission_authorized"] is False
     assert receipt["current_package_write_authorized"] is False
     assert (
-        default_executor_execution_nonconsumable_closeout(
+        owner_callable_receipt_nonconsumable_closeout(
             study_root=study_root,
             owner_route=owner_route,
             actions=[{"action_type": "run_quality_repair_batch"}],

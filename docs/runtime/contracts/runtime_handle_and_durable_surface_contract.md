@@ -63,7 +63,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 - 典型落点：
   - `runtime_binding.yaml`
   - `progress_projection`
-  - `domain_health_diagnostic`
+  - `domain_diagnostic_report`
   - `runtime/quests/<quest_id>/`
 - 边界：
   - 它是 study 绑定到受控 runtime 后的正式 handle
@@ -102,9 +102,9 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 - `progress_projection`
   - study 侧状态总表面
   - 必须回显 `study_id`、`quest_id`、`opl_runtime_ref` / `runtime_ref`、`runtime_engine_id`、`research_backend_id`、decision / reason、runtime gate 摘要
-- `domain_health_diagnostic`
+- `domain_diagnostic_report`
   - quest 侧 diagnostic / intervention 表面
-  - 当前报告继续写入 legacy namespace `runtime/quests/<quest_id>/artifacts/reports/domain_health_diagnostic/`
+  - 当前报告继续写入 legacy namespace `runtime/quests/<quest_id>/artifacts/reports/domain_diagnostic_report/`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
   - study 侧 publication verdict latest surface
 - `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`

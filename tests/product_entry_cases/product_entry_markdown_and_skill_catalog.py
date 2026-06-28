@@ -99,7 +99,7 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
         "helper_write_policy": "no_domain_truth_writes",
         "authoritative_truth_refs": [
             "/progress_projection",
-            "/domain_health_diagnostic",
+            "/domain_diagnostic_report",
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json",
         ],

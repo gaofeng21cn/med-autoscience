@@ -203,7 +203,7 @@ def test_mcp_server_can_call_open_auto_research_soak_compact_surface(
             },
             "input_refs": {
                 "publication_eval_path": "/tmp/dm002/artifacts/publication_eval/latest.json",
-                "domain_health_diagnostic_report_path": "/tmp/dm002/artifacts/runtime/watch/latest.json",
+                "runtime_readback_report_path": "/tmp/dm002/artifacts/runtime/watch/latest.json",
                 "ignored_large_ref": "/tmp/dm002/large.json",
             },
         }
@@ -274,7 +274,7 @@ def test_mcp_server_can_call_open_auto_research_soak_compact_surface(
             "projection_path": "/tmp/dm002/artifacts/runtime/open_auto_research_projection/latest.json",
             "runtime_trajectory_proof_path": "/tmp/dm002/artifacts/runtime/action_observation_trajectory/latest.json",
             "publication_eval_path": "/tmp/dm002/artifacts/publication_eval/latest.json",
-            "domain_health_diagnostic_report_path": "/tmp/dm002/artifacts/runtime/watch/latest.json",
+            "runtime_readback_report_path": "/tmp/dm002/artifacts/runtime/watch/latest.json",
         },
         "soak_report_summary": {
             "status": "blocked",

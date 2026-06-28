@@ -236,13 +236,13 @@ def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "dispatch_status": "ready",
             "study_id": study_id,
             "quest_id": quest_id,

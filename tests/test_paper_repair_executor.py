@@ -355,7 +355,7 @@ def test_paper_repair_executor_materializes_ai_reviewer_owner_handoff(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).is_file()
     assert not (study_root / "manuscript" / "current_package").exists()
@@ -403,7 +403,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoc
     dispatch = result["ai_reviewer_record_worker_handoff"]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     assert dispatch["prompt_contract"]["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
-    envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    envelope = attempt_protocol.owner_callable_attempt_envelope(dispatch=dispatch)
     assert envelope["owner_route_currentness_basis"]["runtime_health_epoch"] == (
         "runtime-health-event-current"
     )
@@ -591,7 +591,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_ru
         == "runtime-health-event-from-work-unit-route"
     )
     assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
-    envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    envelope = attempt_protocol.owner_callable_attempt_envelope(dispatch=dispatch)
     assert envelope["owner_route_currentness_basis"]["runtime_health_epoch"] == (
         "runtime-health-event-from-work-unit-route"
     )

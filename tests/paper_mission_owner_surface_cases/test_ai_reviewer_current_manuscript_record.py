@@ -365,7 +365,7 @@ def test_current_manuscript_stale_ai_reviewer_request_supersedes_write_route(
     assert study["owner_route"]["source_refs"]["work_unit_id"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
-    envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=action)
+    envelope = owner_route_attempt_protocol.owner_callable_attempt_envelope(dispatch=action)
     assert envelope["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert envelope["dispatchable"] is True
     request = json.loads(

@@ -572,7 +572,7 @@ def test_gate_followthrough_action_survives_zero_selected_materialized_dispatch_
                 "work_unit_id": "analysis_claim_evidence_repair",
                 "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
                 "source_ref": (
-                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat_9bbb471b55ad5ceda9d8495e.closeout.json"
                 ),
             },

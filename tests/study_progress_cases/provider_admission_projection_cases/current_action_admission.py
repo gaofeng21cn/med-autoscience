@@ -53,7 +53,7 @@ def test_provider_admission_projection_emits_candidate_for_current_executable_ac
     expected_identity = f"provider-admission::{study_id}::{fingerprint}"
     expected_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_dispatches/run_quality_repair_batch.json"
+        "owner_callable_adapters/run_quality_repair_batch.json"
     )
     assert candidate["route_identity_key"] == expected_identity
     assert candidate["attempt_idempotency_key"] == expected_identity
@@ -730,7 +730,7 @@ def test_provider_admission_projection_materializes_gate_followthrough_owner_act
     expected_identity = f"provider-admission::{study_id}::{fingerprint}"
     expected_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_dispatches/run_quality_repair_batch.json"
+        "owner_callable_adapters/run_quality_repair_batch.json"
     )
     assert candidate["route_identity_key"] == expected_identity
     assert candidate["attempt_idempotency_key"] == expected_identity

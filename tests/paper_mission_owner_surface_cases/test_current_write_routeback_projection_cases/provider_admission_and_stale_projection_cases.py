@@ -33,14 +33,14 @@ def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_wi
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     stale_fingerprint = "sha256:stale-ai-reviewer-recheck"
     _write_json(
         stale_dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": quest_id,
             "action_type": "return_to_ai_reviewer_workflow",
@@ -157,19 +157,19 @@ def test_scan_routes_projects_provider_admission_when_queue_matches_current_work
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     current_gate_fingerprint = "sha256:current-gate-clearing"
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": quest_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": current_gate_fingerprint,

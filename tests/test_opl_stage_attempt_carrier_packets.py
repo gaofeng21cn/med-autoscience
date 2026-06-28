@@ -6,11 +6,11 @@ from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 
 
 def test_immutable_opl_stage_attempt_packet_is_abi_provenance_only(tmp_path: Path) -> None:
-    dispatch_path = tmp_path / "default_executor_dispatches" / "run_quality_repair_batch.json"
+    dispatch_path = tmp_path / "owner_callable_adapters" / "run_quality_repair_batch.json"
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "action_type": "run_quality_repair_batch",
-        "dispatch_authority": "consumer_default_executor_dispatch",
+        "dispatch_authority": "consumer_owner_callable_dispatch",
         "active_caller_class": "ordinary_task",
         "default_paper_mission_entry": True,
         "ordinary_schedulable": True,
@@ -36,7 +36,7 @@ def test_immutable_opl_stage_attempt_packet_is_abi_provenance_only(tmp_path: Pat
     assert packet["refs"]["dispatch_path"] == str(dispatch_path)
     assert packet["refs"]["stage_packet_path"] == packet["refs"]["immutable_dispatch_path"]
     assert packet["active_caller_class"] == "abi_provenance_carrier_only"
-    assert packet["allowed_reference_class"] == "OPL StageRun ABI carrier"
+    assert packet["allowed_reference_class"] == "retired_handoff_provenance"
     assert packet["diagnostic_role"] == "retired_default_paper_dispatch"
     assert packet["replacement_task_kind"] == "paper_mission/start_or_resume"
     assert packet["default_paper_mission_entry"] is False
@@ -59,4 +59,4 @@ def test_immutable_opl_stage_attempt_packet_is_abi_provenance_only(tmp_path: Pat
     assert packet["opl_stage_attempt_carrier_boundary"] == {
         **opl_stage_attempt_carrier_packets.OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY
     }
-    assert "legacy_default_executor_dispatch_packet_boundary" not in packet
+    assert "legacy_owner_callable_dispatch_packet_boundary" not in packet

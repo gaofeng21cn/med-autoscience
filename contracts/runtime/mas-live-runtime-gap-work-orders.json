@@ -62,7 +62,7 @@
         "runtime_readback:"
       ],
       "forbidden_evidence_source_prefixes": [
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "contract_landed",
         "docs",
         "focused_tests",
@@ -100,7 +100,7 @@
       "accepted_family_without_concrete_ref_can_satisfy_work_order": false,
       "missing_concrete_evidence_ref_blocks_live_runtime_readiness_claim": true,
       "transition_identity_ref_required_for_families": [
-        "DHD_apply_exactly_one_live_outcome_ref",
+        "domain_diagnostic_apply_exactly_one_live_outcome_ref",
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
         "OPL_command_event_outbox_live_readback_ref",
         "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
@@ -147,21 +147,21 @@
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0"
       ]
     },
     {
-      "gap_id": "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
-      "gap_text": "DHD apply exactly-one live outcome when explicitly delegated",
+      "gap_id": "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",
+      "gap_text": "domain diagnostic apply exactly-one live outcome when explicitly delegated",
       "status": "evidence_required",
-      "next_owner": "MAS DHD apply owner with OPL runtime authorization",
+      "next_owner": "MAS domain diagnostic apply owner with OPL runtime authorization",
       "repo_source_retirement_blocked": false,
       "live_runtime_readiness_claim_allowed": false,
-      "typed_blocker_when_missing": "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated_live_runtime_evidence_required",
+      "typed_blocker_when_missing": "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated_live_runtime_evidence_required",
       "acceptable_evidence_ref_families": [
-        "DHD_apply_exactly_one_live_outcome_ref",
+        "domain_diagnostic_apply_exactly_one_live_outcome_ref",
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
       ],
       "forbidden_evidence_substitutes": [
@@ -172,7 +172,7 @@
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0"
       ]
@@ -197,7 +197,7 @@
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0",
         "provider_admission_same_identity_replay_as_fresh_opl_readback"
@@ -224,7 +224,7 @@
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0"
       ]
@@ -249,7 +249,7 @@
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0",
         "same_identity_readback_consumes_transition_request_as_paper_line_outcome"

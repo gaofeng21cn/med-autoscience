@@ -6,20 +6,20 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts import (
     missing_refs_typed_closeout,
     nonconsumable_redrive_budget,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_result_policy import (
-    default_executor_consumed_blocked_reason,
-    default_executor_dispatch_zero_execution_blocker,
-    default_executor_owner_result_consumable,
+    owner_callable_adapter_consumed_blocked_reason,
+    owner_callable_dispatch_zero_execution_blocker,
+    owner_callable_adapter_owner_result_consumable,
     gate_replay_blocker_fields,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_followthrough import (
-    default_executor_execution_followthrough_receipt_consumption,
+    owner_callable_receipt_followthrough_consumption,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_receipts import (
     human_gate_resume_receipt_consumption,
@@ -31,7 +31,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts.owne
     owner_route_currentness_basis as build_owner_route_currentness_basis,
 )
 
-_DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed", "closed_with_domain_owner_refs"})
+_OWNER_CALLABLE_EXECUTED_STATUSES = frozenset({"executed", "closed_with_domain_owner_refs"})
 
 
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
@@ -41,7 +41,7 @@ def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
     source_ref = relative_study_artifact_ref(_text(supersession.get("source_path")))
     return {
         "status": "superseded_stale_closeout",
-        "receipt_kind": "default_executor_execution",
+        "receipt_kind": "owner_callable_adapter_receipt",
         "superseded_run_id": _text(supersession.get("superseded_run_id")),
         "execution_id": _text(supersession.get("execution_id")),
         "action_type": _text(supersession.get("action_type")),
@@ -50,7 +50,7 @@ def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def default_executor_execution_receipt_consumption(
+def owner_callable_receipt_consumption(
     *,
     study_root: Path,
     owner_route: Mapping[str, Any],
@@ -63,7 +63,7 @@ def default_executor_execution_receipt_consumption(
     nonconsumable_matches: list[dict[str, Any]] = []
     outcomes: list[dict[str, Any]] = []
     for index, (execution, receipt_ref) in enumerate(
-        default_executor_execution_candidates(
+        owner_callable_receipt_candidates(
             study_root=study_root,
             allow_legacy_fallback=allow_legacy_fallback,
         )
@@ -82,7 +82,7 @@ def default_executor_execution_receipt_consumption(
             receipt_ref=receipt_ref,
         )
         if (
-            _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES
+            _text(execution.get("execution_status")) not in _OWNER_CALLABLE_EXECUTED_STATUSES
             and not blocked_typed_closeout
             and not missing_refs_typed_closeout_packet
         ):
@@ -97,7 +97,7 @@ def default_executor_execution_receipt_consumption(
             continue
         if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
-        dispatch_zero_execution_blocker = default_executor_dispatch_zero_execution_blocker(owner_result)
+        dispatch_zero_execution_blocker = owner_callable_dispatch_zero_execution_blocker(owner_result)
         if dispatch_zero_execution_blocker:
             match = nonconsumable_redrive_budget.match(
                 execution=execution,
@@ -114,7 +114,7 @@ def default_executor_execution_receipt_consumption(
             )
             nonconsumable_matches.append(match)
             outcomes.append(
-                _default_executor_execution_outcome(
+                _owner_callable_adapter_receipt_outcome(
                     kind="nonconsumable",
                     receipt_ref=receipt_ref,
                     sequence_index=index,
@@ -125,7 +125,7 @@ def default_executor_execution_receipt_consumption(
             continue
         if missing_refs_typed_closeout_packet:
             outcomes.append(
-                _default_executor_execution_outcome(
+                _owner_callable_adapter_receipt_outcome(
                     kind="consumed",
                     receipt_ref=receipt_ref,
                     sequence_index=index,
@@ -140,20 +140,20 @@ def default_executor_execution_receipt_consumption(
             )
             continue
         if blocked_typed_closeout and _blocked_typed_closeout_consumes_without_redrive(execution):
-            blocked_reason = _typed_blocker_reason(execution) or default_executor_consumed_blocked_reason(
+            blocked_reason = _typed_blocker_reason(execution) or owner_callable_adapter_consumed_blocked_reason(
                 action_type=action_type,
                 owner_result=owner_result,
                 repair_evidence=repair_evidence,
             )
             owner_route_currentness_basis = build_owner_route_currentness_basis(owner_route)
             outcomes.append(
-                _default_executor_execution_outcome(
+                _owner_callable_adapter_receipt_outcome(
                     kind="consumed",
                     receipt_ref=receipt_ref,
                     sequence_index=index,
                     payload={
                         "status": "consumed",
-                        "receipt_kind": "default_executor_execution",
+                        "receipt_kind": "owner_callable_adapter_receipt",
                         "receipt_ref": str(receipt_ref),
                         "execution_id": _text(execution.get("execution_id"))
                         or _text(execution.get("stage_attempt_id")),
@@ -181,7 +181,7 @@ def default_executor_execution_receipt_consumption(
                 )
             )
             continue
-        if not default_executor_owner_result_consumable(
+        if not owner_callable_adapter_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
@@ -201,7 +201,7 @@ def default_executor_execution_receipt_consumption(
             )
             nonconsumable_matches.append(match)
             outcomes.append(
-                _default_executor_execution_outcome(
+                _owner_callable_adapter_receipt_outcome(
                     kind="nonconsumable",
                     receipt_ref=receipt_ref,
                     sequence_index=index,
@@ -210,7 +210,7 @@ def default_executor_execution_receipt_consumption(
                 )
             )
             continue
-        blocked_reason = default_executor_consumed_blocked_reason(
+        blocked_reason = owner_callable_adapter_consumed_blocked_reason(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
@@ -218,13 +218,13 @@ def default_executor_execution_receipt_consumption(
         typed_blocker_extra = gate_replay_blocker_fields(owner_result)
         owner_route_currentness_basis = build_owner_route_currentness_basis(owner_route)
         outcomes.append(
-            _default_executor_execution_outcome(
+            _owner_callable_adapter_receipt_outcome(
                 kind="consumed",
                 receipt_ref=receipt_ref,
                 sequence_index=index,
                 payload={
                     "status": "consumed",
-                    "receipt_kind": "default_executor_execution",
+                    "receipt_kind": "owner_callable_adapter_receipt",
                     "receipt_ref": str(receipt_ref),
                     "execution_id": _text(execution.get("execution_id")),
                     "action_type": action_type,
@@ -259,7 +259,7 @@ def default_executor_execution_receipt_consumption(
                 study_root=study_root,
             )
         )
-    latest_outcome = _latest_default_executor_execution_outcome(outcomes)
+    latest_outcome = _latest_owner_callable_adapter_receipt_outcome(outcomes)
     if latest_outcome is None:
         return {}
     if latest_outcome.get("kind") == "nonconsumable":
@@ -287,7 +287,7 @@ def _typed_blocker_consumption_fields(
         (_text(blocked_reason) if extra_payload else "")
         or _typed_blocker_reason(execution)
         or _text(blocked_reason)
-        or "default_executor_typed_blocker"
+        or "owner_callable_adapter_typed_blocker"
     )
     typed_blocker_ref = _text(execution.get("typed_blocker_ref"))
     owner_receipt_ref = _text(execution.get("owner_receipt_ref"))
@@ -352,7 +352,7 @@ def _typed_blocker_reason(execution: Mapping[str, Any]) -> str:
     return ""
 
 
-def default_executor_execution_nonconsumable_closeout(
+def owner_callable_receipt_nonconsumable_closeout(
     *,
     study_root: Path,
     owner_route: Mapping[str, Any],
@@ -362,7 +362,7 @@ def default_executor_execution_nonconsumable_closeout(
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
         return {}
-    for execution, receipt_ref in default_executor_execution_candidates(
+    for execution, receipt_ref in owner_callable_receipt_candidates(
         study_root=study_root,
         allow_legacy_fallback=allow_legacy_fallback,
     ):
@@ -378,7 +378,7 @@ def default_executor_execution_nonconsumable_closeout(
             receipt_ref=receipt_ref,
         )
         if (
-            _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES
+            _text(execution.get("execution_status")) not in _OWNER_CALLABLE_EXECUTED_STATUSES
             and not blocked_typed_closeout
             and not missing_refs_typed_closeout_packet
         ):
@@ -397,10 +397,10 @@ def default_executor_execution_nonconsumable_closeout(
                 )
             )
         )
-        dispatch_zero_execution_blocker = default_executor_dispatch_zero_execution_blocker(owner_result)
+        dispatch_zero_execution_blocker = owner_callable_dispatch_zero_execution_blocker(owner_result)
         if missing_refs_typed_closeout_packet or _blocked_typed_closeout_consumes_without_redrive(execution):
             continue
-        if not recovered_stage_packet_currentness and default_executor_owner_result_consumable(
+        if not recovered_stage_packet_currentness and owner_callable_adapter_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
@@ -408,7 +408,7 @@ def default_executor_execution_nonconsumable_closeout(
             continue
         return {
             "status": "non_consumable_closeout",
-            "receipt_kind": "default_executor_execution",
+            "receipt_kind": "owner_callable_adapter_receipt",
             "receipt_ref": str(receipt_ref),
             "execution_id": _text(execution.get("execution_id")),
             "action_type": action_type,
@@ -430,7 +430,7 @@ def default_executor_execution_nonconsumable_closeout(
     return {}
 
 
-def _default_executor_execution_outcome(
+def _owner_callable_adapter_receipt_outcome(
     *,
     kind: str,
     receipt_ref: str,
@@ -442,7 +442,7 @@ def _default_executor_execution_outcome(
         "kind": kind,
         "receipt_ref": str(receipt_ref),
         "sequence_index": sequence_index,
-        "sort_key": _default_executor_execution_outcome_sort_key(
+        "sort_key": _owner_callable_adapter_receipt_outcome_sort_key(
             receipt_ref=receipt_ref,
             sequence_index=sequence_index,
             study_root=study_root,
@@ -451,13 +451,13 @@ def _default_executor_execution_outcome(
     }
 
 
-def _latest_default_executor_execution_outcome(outcomes: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+def _latest_owner_callable_adapter_receipt_outcome(outcomes: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
     if not outcomes:
         return None
     return max(outcomes, key=lambda item: _mapping(item).get("sort_key") or ("", 0))
 
 
-def _default_executor_execution_outcome_sort_key(
+def _owner_callable_adapter_receipt_outcome_sort_key(
     *,
     receipt_ref: str,
     sequence_index: int,
@@ -809,9 +809,9 @@ def _text(value: object) -> str:
 __all__ = [
     "ai_reviewer_publication_eval_receipt_consumption",
     "bundle_stage_completion_receipt_consumption",
-    "default_executor_execution_nonconsumable_closeout",
-    "default_executor_execution_followthrough_receipt_consumption",
-    "default_executor_execution_receipt_consumption",
+    "owner_callable_receipt_nonconsumable_closeout",
+    "owner_callable_receipt_followthrough_consumption",
+    "owner_callable_receipt_consumption",
     "execution_receipt_consumption",
     "mas_owner_apply_receipt_consumption",
     "publication_route_memory_writeback_receipt_consumption",

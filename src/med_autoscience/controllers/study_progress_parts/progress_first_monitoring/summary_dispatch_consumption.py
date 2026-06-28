@@ -23,7 +23,7 @@ def dispatch_consumption_summary(
     if explicit:
         return explicit
     completion_receipt = _mapping(domain_transition.get("completion_receipt_consumption"))
-    execution_receipt = _mapping(domain_transition.get("default_executor_execution_receipt_consumption"))
+    execution_receipt = _mapping(domain_transition.get("owner_callable_receipt_consumption"))
     if completion_receipt or execution_receipt:
         status = (
             _text(completion_receipt.get("consumption_status"))
@@ -106,7 +106,7 @@ def transition_consumed_owner_action(domain_transition: Mapping[str, Any]) -> bo
 
 def transition_receipt_consumed(domain_transition: Mapping[str, Any]) -> bool:
     completion = _mapping(domain_transition.get("completion_receipt_consumption"))
-    execution = _mapping(domain_transition.get("default_executor_execution_receipt_consumption"))
+    execution = _mapping(domain_transition.get("owner_callable_receipt_consumption"))
     status = (
         _text(completion.get("consumption_status"))
         or _text(completion.get("status"))

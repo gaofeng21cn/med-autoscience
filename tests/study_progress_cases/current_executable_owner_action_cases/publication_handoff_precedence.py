@@ -367,11 +367,11 @@ def test_current_executable_owner_action_consumes_executed_ai_reviewer_receipt_a
                     "status": "executed",
                     "outcome": "owner_receipt",
                     "source_path": (
-                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_fdeabae35e46694c6f8dacd2.closeout.json"
                     ),
                     "closeout_refs": [
-                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_fdeabae35e46694c6f8dacd2.closeout.json",
                         "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
                         "20260612T100912Z_publication_eval_record.json",
@@ -472,7 +472,7 @@ def test_current_executable_owner_action_uses_progress_first_ai_reviewer_termina
                     "status": "executed",
                     "outcome": "owner_receipt",
                     "source_path": (
-                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_fdeabae35e46694c6f8dacd2.closeout.json"
                     ),
                     "closeout_refs": [

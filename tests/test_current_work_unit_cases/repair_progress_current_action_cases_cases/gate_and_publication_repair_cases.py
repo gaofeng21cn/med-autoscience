@@ -33,7 +33,7 @@ def test_current_work_unit_prefers_repair_progress_owner_receipt_over_stale_term
             },
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "stage_attempt_id": "sat_stale_gate_replay",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
@@ -42,14 +42,14 @@ def test_current_work_unit_prefers_repair_progress_owner_receipt_over_stale_term
                     "progress_delta_classification": "typed_blocker",
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": gate_fingerprint,
-                    "source_path": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+                    "source_path": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
                     "typed_blocker": {
                         "blocker_type": "paper_progress_stall_terminal",
                         "owner": "one-person-lab",
                         "action_type": "run_gate_clearing_batch",
                         "work_unit_id": "publication_gate_replay",
                         "work_unit_fingerprint": gate_fingerprint,
-                        "typed_blocker_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+                        "typed_blocker_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
                     },
                 },
             },
@@ -137,7 +137,7 @@ def test_current_work_unit_projects_repair_progress_gate_replay_over_zero_select
             "work_unit_id": "analysis_claim_evidence_repair",
             "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_9bbb471b55ad5ceda9d8495e.closeout.json"
             ),
             "terminal_closeout_status": "blocked",
@@ -230,7 +230,7 @@ def test_current_work_unit_projects_publication_eval_repair_over_stale_gate_sele
             "work_unit_fingerprint": "sha256:8d94eccab0e8236ff9c5b46ae36f90251473f0da6b8b23e0392286976bb8f415",
             "action_fingerprint": "sha256:8d94eccab0e8236ff9c5b46ae36f90251473f0da6b8b23e0392286976bb8f415",
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_556faaef7e4a16f309819eb3.closeout.json"
             ),
         },
@@ -354,7 +354,7 @@ def test_current_work_unit_keeps_reconciled_current_action_over_stale_gate_termi
                         "stage-attempt-sat_73cbcf44529e4c3ed3cd2e9a::2026-06-10T08:04:48+00:00"
                     ),
                     "source_path": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_2af188d02fc0999c46931598.closeout.json"
                     ),
                 }

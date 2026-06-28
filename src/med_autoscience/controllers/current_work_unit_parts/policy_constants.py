@@ -31,6 +31,7 @@ CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
         "repair_progress_gate_replay_required",
         "runtime_recovery_not_authorized",
         "current_typed_blocker_precedes_provider_admission",
+        "opl_execution_authorization_required",
     }
 )
 MEDICAL_READINESS_BLOCKERS = frozenset(

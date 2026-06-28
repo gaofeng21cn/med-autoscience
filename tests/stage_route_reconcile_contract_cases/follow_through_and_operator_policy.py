@@ -89,24 +89,24 @@ def assert_opl_follow_through_and_external_practice_mapping(
     assert legacy_dispatch_ref_exception["attempt_lifecycle_authority"] is False
     assert dispatch_ref_exception["allowed_execution_sources"] == [
         "owner_callable_adapter_receipt",
-        "default_executor_execution"
+        "owner_callable_adapter_receipt"
     ]
     assert dispatch_ref_exception["allowed_execution_surfaces"] == [
         "owner_callable_adapter_receipt",
-        "default_executor_dispatch_execution"
+        "owner_callable_dispatch_execution"
     ]
     assert dispatch_ref_exception["allowed_dispatch_authorities"] == [
         "ai_reviewer_record_production_handoff",
-        "consumer_default_executor_dispatch",
+        "consumer_owner_callable_dispatch",
         "quality_repair_batch_writer_handoff",
     ]
     assert dispatch_ref_exception["required_guards"] == [
         "dispatch_path_present",
         "owner_route_current_not_false",
-        "existing_source_refs_preserved_for_default_executor_execution",
+        "existing_source_refs_preserved_for_owner_callable_adapter_receipt",
     ]
     assert dispatch_ref_exception["allowed_effects"] == [
-        "recover_stage_packet_ref_from_same_default_executor_carrier_dispatch_ref"
+        "recover_stage_packet_ref_from_same_owner_callable_adapter_carrier_dispatch_ref"
     ]
     assert {
         "general_dispatch_ref_to_stage_packet_ref_synthesis",
@@ -432,19 +432,19 @@ def assert_runtime_supervision_operator_policy(contract: dict[str, Any]) -> None
     assert policy["surface_kind"] == "mas_opl_runtime_supervision_operator_policy"
     assert policy["ordinary_read_sequence"] == [
         "fresh_study_progress",
-        "domain_health_diagnostic_dry_run_with_stage_attempts",
+        "domain_diagnostic_report_dry_run_with_stage_attempts",
         "opl_current_control_queue_attempt_worker_readback",
         "terminal_closeout_consumer_gate",
         "fresh_study_progress_after_consumer",
     ]
 
     actions = {item["action"]: item for item in policy["operator_actions"]}
-    assert actions["domain_health_diagnostic_dry_run"]["effect"] == (
+    assert actions["domain_diagnostic_report_dry_run"]["effect"] == (
         "observe_runtime_truth_and_may_refresh_diagnostic_evidence"
     )
-    assert actions["domain_health_diagnostic_dry_run"]["starts_provider_or_llm"] is False
-    assert actions["domain_health_diagnostic_dry_run"]["can_claim_no_write"] is False
-    assert actions["domain_health_diagnostic_apply"]["requires_all"] == [
+    assert actions["domain_diagnostic_report_dry_run"]["starts_provider_or_llm"] is False
+    assert actions["domain_diagnostic_report_dry_run"]["can_claim_no_write"] is False
+    assert actions["domain_diagnostic_report_apply"]["requires_all"] == [
         "terminal_closeout_observed_for_current_or_successor_identity",
         "dry_run_currentness_identity_matches_selected_study",
         "write_boundary_is_current_control_or_closeout_consumption_only",
@@ -474,7 +474,7 @@ def assert_runtime_supervision_operator_policy(contract: dict[str, Any]) -> None
         "Temporal unreachable",
     ]
     assert actions["terminal_closeout_consumer_gate"]["effect"] == (
-        "force_dhd_apply_or_equivalent_consumer_before_next_hydrate"
+        "force_domain_diagnostic_apply_or_equivalent_consumer_before_next_hydrate"
     )
 
     classifications = policy["progress_classification_policy"]
@@ -501,7 +501,7 @@ def assert_runtime_supervision_operator_policy(contract: dict[str, Any]) -> None
 
     forbidden = policy["forbidden_automation_shortcuts"]
     assert {
-        "repeat_dhd_apply_after_observe_only_without_new_terminal_or_identity",
+        "repeat_domain_diagnostic_apply_after_observe_only_without_new_terminal_or_identity",
         "hydrate_without_materialized_provider_admission",
         "same_work_unit_redrive_after_anti_loop_budget_exhausted",
         "provider_slo_tick_as_handoff_consumer",

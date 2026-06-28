@@ -297,7 +297,7 @@ def test_current_work_unit_owner_receipt_blocks_stale_dispatch_revival() -> None
         },
         actions=[
             {
-                "source": "legacy.default_executor_dispatches.ready",
+                "source": "legacy.owner_callable_adapters.ready",
                 "next_owner": "write",
                 "action_type": "run_quality_repair_batch",
                 "allowed_actions": ["run_quality_repair_batch"],
@@ -305,7 +305,7 @@ def test_current_work_unit_owner_receipt_blocks_stale_dispatch_revival() -> None
                 "work_unit_fingerprint": "stale-dispatch::old-write",
                 "action_fingerprint": "stale-dispatch::old-write",
                 "owner_route_currentness_basis": {
-                    "source": "legacy.default_executor_dispatches.ready",
+                    "source": "legacy.owner_callable_adapters.ready",
                     "truth_epoch": "truth::old-dispatch",
                     "runtime_health_epoch": "runtime::old-dispatch",
                     "work_unit_id": "medical_prose_write_repair",
@@ -637,7 +637,7 @@ def test_current_work_unit_binds_anti_loop_typed_blocker_as_owner_answer_ref() -
     module = _module()
     typed_blocker_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_82a2b164657c9b4d0c312db9.closeout.json#typed_blocker"
+        "owner_callable_adapter_receipt/sat_82a2b164657c9b4d0c312db9.closeout.json#typed_blocker"
     )
     closeout_ref = typed_blocker_ref.removesuffix("#typed_blocker")
     work_unit_id = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
@@ -664,7 +664,7 @@ def test_current_work_unit_binds_anti_loop_typed_blocker_as_owner_answer_ref() -
                 "work_unit_id": work_unit_id,
                 "work_unit_fingerprint": work_unit_fingerprint,
                 "action_fingerprint": work_unit_fingerprint,
-                "source_fingerprint": "mas_default_executor_source_77f18f8da1eb6e57139208c1",
+                "source_fingerprint": "mas_owner_callable_adapter_source_77f18f8da1eb6e57139208c1",
                 "idempotency_key": "idem_cd631f437e1e7f3be53f386e",
                 "allowed_actions": ["run_quality_repair_batch"],
             }
@@ -717,7 +717,7 @@ def test_current_work_unit_binds_anti_loop_typed_blocker_as_owner_answer_ref() -
     assert blocker["owner_answer_shape"] == "typed_blocker_ref"
     assert blocker["currentness_basis"]["work_unit_id"] == work_unit_id
     assert blocker["currentness_basis"]["work_unit_fingerprint"] == work_unit_fingerprint
-    assert blocker["currentness_basis"]["source_fingerprint"] == "mas_default_executor_source_77f18f8da1eb6e57139208c1"
+    assert blocker["currentness_basis"]["source_fingerprint"] == "mas_owner_callable_adapter_source_77f18f8da1eb6e57139208c1"
     assert blocker["currentness_basis"]["idempotency_key"] == "idem_cd631f437e1e7f3be53f386e"
     binding = work_unit["state"]["owner_answer_binding"]
     assert binding["answer_kind"] == "typed_blocker_ref"
@@ -738,7 +738,7 @@ def test_current_work_unit_binds_owner_route_identity_for_typed_blocker_owner_an
     module = _module()
     typed_blocker_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_e1063d97901cc3d70424fc5c.closeout.json"
+        "owner_callable_adapter_receipt/sat_e1063d97901cc3d70424fc5c.closeout.json"
     )
     idempotency_key = (
         "owner-route::003-dpcc-primary-care-phenotype-treatment-gap::truth-event-000035-39f0b8e96689a623::"
@@ -756,7 +756,7 @@ def test_current_work_unit_binds_owner_route_identity_for_typed_blocker_owner_an
         },
         actions=[
             {
-                "source": "default_executor_dispatch.stage_packet",
+                "source": "owner_callable_dispatch.stage_packet",
                 "action_type": "run_gate_clearing_batch",
                 "next_owner": "gate_clearing_batch",
                 "work_unit_id": "publication_gate_replay",
@@ -768,7 +768,7 @@ def test_current_work_unit_binds_owner_route_identity_for_typed_blocker_owner_an
         typed_blocker={
             "surface_kind": "mas_domain_typed_blocker",
             "schema_version": 1,
-            "blocker_kind": "default_executor_execution_blocked",
+            "blocker_kind": "owner_callable_adapter_receipt_blocked",
             "reason": "opl_execution_authorization_required",
             "blocker_type": "opl_execution_authorization_required",
             "owner": "one-person-lab",

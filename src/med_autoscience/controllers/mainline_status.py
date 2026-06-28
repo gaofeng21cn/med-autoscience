@@ -162,7 +162,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "runtime_recovery",
                 "owner": "MedAutoScience",
-                "truth_surface": "MAS domain runtime receipts / progress_projection / domain_health_diagnostic",
+                "truth_surface": "MAS domain runtime receipts / progress_projection / domain_diagnostic_report",
                 "summary": (
                     "运行恢复、supervision freshness、worker/session replay 与下一次确认信号由 MAS "
                     "domain owner surface 解释；generic cadence/provider SLO 迁往 OPL runtime manager。"
@@ -254,7 +254,7 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
                 ),
                 "truth_surfaces": [
                     "progress_projection",
-                    "domain_health_diagnostic",
+                    "domain_diagnostic_report",
                     "study-progress.autonomy_contract",
                     "controller_decisions/latest.json",
                 ],

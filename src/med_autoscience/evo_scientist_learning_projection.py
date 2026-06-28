@@ -86,7 +86,7 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
                 "target_surfaces": [
                     "product_entry_manifest",
                     "domain_handler_export",
-                    "default_executor_handoff",
+                    "owner_callable_adapter_handoff",
                 ],
                 "source_refs": [
                     "EvoScientist/EvoScientist::middleware.tool_selector",

@@ -52,19 +52,19 @@
       "source_of_truth": [
         "contracts/paper_recovery_kernel_contract.json",
         "contracts/stage_route_reconcile_contract.json",
-        "fresh study_progress and DHD dry-run for live studies"
+        "fresh study_progress and domain diagnostic dry-run for live studies"
       ],
       "requires": [
         "ordinary progress root is current_owner_delta",
         "paper recovery root is paper_recovery_state",
-        "study_progress, DHD provider admission, operator card, intervention lane, operator verdict, recovery/autonomy contract, and user-visible projection derive from the authority root",
+        "study_progress, domain diagnostic provider admission, operator card, intervention lane, operator verdict, recovery/autonomy contract, and user-visible projection derive from the authority root",
         "queue, active_run_id, transport status, operator card, parked runtime, docs-only claim, and stale dispatch are audit-only unless adopted by an owner answer"
       ],
       "cannot_be_satisfied_by": [
         "old action queue empty",
         "active_run_id present or absent",
         "provider completion",
-        "DHD observe_only report",
+        "domain diagnostic observe_only report",
         "operator card wording"
       ]
     },
@@ -160,7 +160,7 @@
       "required_status": "evidence_required",
       "source_of_truth": [
         "fresh DM002/DM003 study_progress",
-        "fresh DHD dry-run/apply when delegated",
+        "fresh domain diagnostic dry-run/apply when delegated",
         "OPL current-control / attempt ledger",
         "owner receipt / quality gate receipt / stable typed blocker / human gate / route-back evidence / canonical changed surface refs"
       ],
@@ -211,8 +211,8 @@
     "workflow_terminal",
     "active_run_id_present",
     "active_run_id_null",
-    "DHD_observe_only",
-    "default_executor_residue_cleanup_clean",
+    "domain_diagnostic_observe_only",
+    "owner_callable_adapter_residue_cleanup_clean",
     "verified_refs_only_ledger",
     "App_projection_ready",
     "manual_foreground_edit_without_adoption_refs",

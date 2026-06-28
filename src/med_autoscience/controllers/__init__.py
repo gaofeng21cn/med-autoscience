@@ -25,7 +25,7 @@ __all__ = [
     "product_entry",
     "reference_papers",
     "runtime_reentry_gate",
-    "domain_health_diagnostic",
+    "domain_diagnostic_report",
     "domain_status_projection",
     "study_delivery_sync",
     "study_progress",

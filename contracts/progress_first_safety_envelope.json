@@ -411,7 +411,7 @@
         "old_owner_route_handoff",
         "stale_action_queue",
         "stale_stage_artifact_projection",
-        "consumed_default_executor_dispatch",
+        "consumed_owner_callable_dispatch",
         "receipt_consumed_without_next_owner"
       ],
       "prevention_layers": [
@@ -445,7 +445,7 @@
       ],
       "prevention_layers": [
         "owner_route_currentness_basis",
-        "default_executor_receipt_consumption",
+        "owner_callable_adapter_receipt_consumption",
         "stage_run_closeout_binding",
         "progress_first_tick_accounting"
       ],

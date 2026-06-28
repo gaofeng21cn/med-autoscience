@@ -12,7 +12,7 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
     assert payload["internal_ai_repair"]["monitor_interval_seconds"] == 300
     assert payload["internal_ai_repair"]["ai_doctor_timeout_seconds"] == 900
     assert payload["internal_ai_repair"]["no_progress_repair_after_seconds"] == 1800
-    assert payload["internal_ai_repair"]["default_executor"]["executor_kind"] == "codex_cli_default"
+    assert payload["internal_ai_repair"]["owner_callable_adapter"]["executor_kind"] == "codex_cli_default"
     assert payload["developer_supervisor"]["heartbeat_interval_seconds"] == 3600
     assert payload["developer_supervisor"]["owner_pickup_overdue_after_hours"] == 2
     assert payload["developer_supervisor"]["developer_attention_after_hours"] == 6

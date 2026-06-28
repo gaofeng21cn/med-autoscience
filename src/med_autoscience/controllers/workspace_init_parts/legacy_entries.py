@@ -28,7 +28,6 @@ def legacy_generated_workspace_guidance_reason(
     if path.name == "AGENTS.md" and "这个文件由 `medautosci init-workspace` 自动生成" in existing_content:
         current_required_tokens = (
             "ops/medautoscience/bin/study-progress",
-            "ops/medautoscience/bin/domain-health-diagnostic",
             "OPL current-control-state refs",
         )
         if any(token not in existing_content for token in current_required_tokens):
@@ -77,7 +76,6 @@ def legacy_generated_workspace_guidance_reason(
         if "这个目录是当前 workspace 面向用户和 Agent 的本地入口层" not in existing_content:
             return None
         current_required_tokens = (
-            "bin/domain-health-diagnostic",
             "bin/study-progress",
             "OPL current_control_state refs-only handoff",
         )

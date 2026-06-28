@@ -40,7 +40,7 @@
   "attempt_projection": {
     "source_surfaces": [
       "progress_projection",
-      "domain_health_diagnostic",
+      "domain_diagnostic_report",
       "controller_decisions/latest.json"
     ],
     "maps_to_opl_contract": "opl_family_runtime_attempt_contract.v1",
@@ -76,7 +76,7 @@
   },
   "incident_projection": {
     "source_surfaces": [
-      "domain_health_diagnostic",
+      "domain_diagnostic_report",
       "artifacts/autonomy/slo_status/latest.json",
       "artifacts/autonomy/ai_doctor_requests/*.json",
       "artifacts/autonomy/ai_doctor_diagnoses/*.json",
@@ -683,7 +683,7 @@
       "domain_route_owner_route",
       "domain_route_dispatch_receipt",
       "surface_refs",
-      "domain_health_diagnostic/latest.json",
+      "domain_diagnostic_report/latest.json",
       "controller_decisions/latest.json"
     ],
     "sqlite_tables": [

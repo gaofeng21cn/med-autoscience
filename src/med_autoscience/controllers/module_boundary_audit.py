@@ -128,7 +128,7 @@ MAINTAINABILITY_FORBIDDEN_TRUTH_WRITES = frozenset(
         "artifact_authority",
         "controller_decisions/latest.json",
         "progress_projection",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
     }
 )
 
@@ -381,7 +381,7 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
             "MAS domain owner receipts and typed blockers; OPL/one-person-lab owns runtime lifecycle, "
             "attempt ledger, worker liveness, retry/dead-letter, and canonical runtime action"
         ),
-        "projection_consumers": ["progress_projection", "domain_health_diagnostic", "mainline-status"],
+        "projection_consumers": ["progress_projection", "domain_diagnostic_report", "mainline-status"],
     },
     {
         "boundary_id": "opl_progress_spine",
@@ -393,7 +393,7 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
         "projection_consumers": [
             "domain_action_request_materializer",
             "stage_outcome_authority",
-            "domain_health_diagnostic",
+            "domain_diagnostic_report",
             "study_progress",
             "workbench",
         ],

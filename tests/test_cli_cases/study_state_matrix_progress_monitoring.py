@@ -117,7 +117,7 @@ def test_study_state_matrix_reads_nested_progress_projection_monitoring_summary(
                         "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
                     },
                     "latest_terminal_stage": {
-                        "stage_id": "domain_owner/default-executor-dispatch",
+                        "stage_id": "stage_outcome/opl-handoff",
                         "status": "handoff_ready",
                         "semantic_completeness": {
                             "status": "missing_required_fields",
@@ -171,7 +171,7 @@ def test_study_state_matrix_prioritizes_terminal_closeout_telemetry_gap(
 
     def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
         latest_terminal_stage = {
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "status": "handoff_ready",
             "semantic_completeness": {"status": "complete", "missing_fields": []},
             "telemetry_completeness": {"status": "complete", "missing_fields": []},
@@ -246,7 +246,7 @@ def test_study_state_matrix_fail_closes_closeout_semantic_gap_when_owner_action_
                 "next_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
                 "dispatch_consumption": {},
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "handoff_ready",
                     "semantic_completeness": {
                         "status": "missing_required_fields",
@@ -808,7 +808,7 @@ def test_study_state_matrix_keeps_consumed_ai_reviewer_closeout_blocker_out_of_r
                     "summary": "Provider completion needs a typed closeout packet.",
                 },
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "handoff_ready",
                     "semantic_completeness": {
                         "status": "missing_required_fields",
@@ -931,12 +931,12 @@ def test_study_state_matrix_exposes_supervisor_monitoring_bundle_without_writes(
                 },
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat-dm002",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "status": "completed_without_typed_closeout",
                     "outcome": "typed_blocker",
                     "remaining_blockers": ["typed_closeout_packet_required"],
                     "closeout_refs": [
-                        "artifacts/supervision/consumer/default_executor_execution/sat-dm002.closeout.json"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-dm002.closeout.json"
                     ],
                     "source_path": "artifacts/supervision/current_control_state/latest_terminal_stage.json",
                 },
@@ -963,7 +963,7 @@ def test_study_state_matrix_exposes_supervisor_monitoring_bundle_without_writes(
         bundle["latest_24h_timeline_refs"]["refs"]
     )
     assert bundle["latest_closeout"]["ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/sat-dm002.closeout.json"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-dm002.closeout.json"
     )
     assert bundle["publication_eval"]["observed"] is True
     assert bundle["publication_eval"]["eval_id"] == "publication-eval::002-dm::current"

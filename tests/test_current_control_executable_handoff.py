@@ -652,7 +652,7 @@ def test_terminal_consumed_provider_candidate_is_not_active_provider_control() -
             "route_identity_key": route_key,
             "attempt_idempotency_key": route_key,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/sat.closeout.json"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat.closeout.json"
             ),
         },
     }
@@ -706,7 +706,7 @@ def test_terminal_closeout_typed_blocker_suppresses_stale_provider_admission_can
             "route_identity_key": terminal_route_key,
             "attempt_idempotency_key": terminal_route_key,
             "typed_blocker_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_006cf0ce68e11a4661912a37.closeout.json#typed_blocker"
             ),
             "typed_blocker": {
@@ -741,7 +741,7 @@ def test_terminal_closeout_typed_blocker_outranks_stale_provider_admission_proje
     terminal_route_key = "paper-policy-request:3e1395abcbe28c3d60094f32"
     closeout_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-        "consumer/default_executor_execution/sat_006cf0ce68e11a4661912a37.closeout.json"
+        "consumer/owner_callable_adapter_receipt/sat_006cf0ce68e11a4661912a37.closeout.json"
     )
     stale_readback = opl_transition_readback(
         study_id,

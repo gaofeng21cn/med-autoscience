@@ -31,7 +31,7 @@ FORBIDDEN_TERMINAL_DECISIONS = {
 
 
 def test_dm002_dm003_zero_queue_live_shape_emits_one_non_idle_supervisor_decision_per_study() -> None:
-    decisions = _decisions_by_study(_dm002_dm003_dhd_live_shape())
+    decisions = _decisions_by_study(_dm002_dm003_domain_diagnostic_live_shape())
 
     assert set(decisions) == EXPECTED_STUDY_IDS
     for decision in decisions.values():
@@ -53,7 +53,7 @@ def test_dm002_dm003_zero_queue_live_shape_emits_one_non_idle_supervisor_decisio
 
 
 def test_dm002_dm003_current_blockers_materialize_recovery_actions_when_owner_callable_is_allowed() -> None:
-    decisions = _decisions_by_study(_dm002_dm003_dhd_live_shape())
+    decisions = _decisions_by_study(_dm002_dm003_domain_diagnostic_live_shape())
 
     dm002 = decisions["002-dm-china-us-mortality-attribution"]
     assert dm002["decision"] == "materialize_recovery_action"
@@ -79,7 +79,7 @@ def test_dm002_dm003_current_blockers_materialize_recovery_actions_when_owner_ca
 
 
 def test_paper_recovery_state_projects_current_supervisor_decision_for_dm002_dm003_live_shape() -> None:
-    report = _dm002_dm003_dhd_live_shape()
+    report = _dm002_dm003_domain_diagnostic_live_shape()
 
     for study_id, progress in report["progress_currentness"].items():
         state = build_paper_recovery_state(
@@ -120,7 +120,7 @@ def test_owner_receipt_recorded_live_shape_is_allowed_terminal_supervisor_decisi
 
 
 def test_live_shape_obligation_preserves_current_identity_not_queue_empty_as_root() -> None:
-    report = _dm002_dm003_dhd_live_shape()
+    report = _dm002_dm003_domain_diagnostic_live_shape()
     progress = report["progress_currentness"]["003-dpcc-primary-care-phenotype-treatment-gap"]
     state = build_paper_recovery_state(progress)
 
@@ -174,9 +174,9 @@ def _assert_paper_recovery_state_projects_supervisor_decision(
     assert decision["authority_boundary"]["provider_completion_is_paper_progress"] is False
 
 
-def _dm002_dm003_dhd_live_shape() -> dict[str, Any]:
+def _dm002_dm003_domain_diagnostic_live_shape() -> dict[str, Any]:
     return {
-        "surface_kind": "domain_health_diagnostic_runtime_report",
+        "surface_kind": "domain_diagnostic_report_runtime_report",
         "schema_version": 1,
         "action_class": "observe_only",
         "will_start_llm": False,

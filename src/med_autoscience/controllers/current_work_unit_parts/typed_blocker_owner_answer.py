@@ -197,18 +197,18 @@ def typed_blocker_precedes_stage_owner_answer(
         or _text(payload.get("terminal_closeout_status")) is not None
         or _text(payload.get("terminal_closeout_outcome")) is not None
         or bool(_text_items(payload.get("closeout_refs")))
-        or default_executor_closeout_ref(payload)
+        or owner_callable_adapter_closeout_ref(payload)
     )
 
 
-def default_executor_closeout_ref(blocker: Mapping[str, Any]) -> bool:
+def owner_callable_adapter_closeout_ref(blocker: Mapping[str, Any]) -> bool:
     for value in (
         _text(blocker.get("typed_blocker_ref")),
         _text(blocker.get("source_ref")),
         _text(blocker.get("latest_owner_answer_ref")),
         *_text_items(blocker.get("acceptance_refs")),
     ):
-        if value is not None and "default_executor_execution/" in value:
+        if value is not None and "owner_callable_adapter_receipt/" in value:
             return True
     return False
 
@@ -273,7 +273,7 @@ def _stage_id(
 
 
 __all__ = [
-    "default_executor_closeout_ref",
+    "owner_callable_adapter_closeout_ref",
     "owner_answer_binding",
     "owner_answer_typed_blocker",
     "typed_blocker_answer_ref",

@@ -90,8 +90,8 @@ def _record_family_orchestration_companion(
             else {},
             {
                 "ref_kind": "repo_path",
-                "ref": str(quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"),
-                "label": "domain_health_diagnostic_latest",
+                "ref": str(quest_root / "artifacts" / "reports" / "domain_diagnostic_report" / "latest.json"),
+                "label": "domain_diagnostic_report_latest",
             },
         ],
         state_refs=[

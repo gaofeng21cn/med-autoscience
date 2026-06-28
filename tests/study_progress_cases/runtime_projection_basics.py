@@ -42,8 +42,8 @@ def test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary
         publication_eval_path=publication_eval_path,
         controller_decision_payload=None,
         controller_decision_path=controller_decision_path,
-        domain_health_diagnostic_payload=None,
-        domain_health_diagnostic_path=None,
+        runtime_readback_payload=None,
+        runtime_readback_report_path=None,
         details_projection_payload=None,
         details_projection_path=None,
         bash_summary_payload={
@@ -431,7 +431,7 @@ def test_study_progress_reads_stage_token_usage_from_closeout_refs_when_runner_t
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     closeout_ref = (
-        "studies/001-risk/artifacts/supervision/consumer/default_executor_execution/"
+        "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat-001.closeout.json"
     )
     _write_publication_eval(study_root, quest_root)
@@ -513,7 +513,7 @@ def test_study_progress_reads_provider_token_usage_from_closeout_top_level(
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     closeout_ref = (
-        "studies/001-risk/artifacts/supervision/consumer/default_executor_execution/"
+        "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
         "sat-002.closeout.json"
     )
     _write_publication_eval(study_root, quest_root)
@@ -598,7 +598,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     controller_decision_path = _write_controller_decision(study_root, quest_root)
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)
     publishability_gate_report_path = _write_publishability_gate_report(quest_root)
-    domain_health_diagnostic_path = _write_domain_health_diagnostic(quest_root)
+    runtime_readback_report_path = _write_runtime_readback_report(quest_root)
     bash_summary_path = _write_bash_summary(quest_root)
     details_projection_path = _write_details_projection(quest_root)
     telemetry_path, evidence_index_path = _write_runtime_efficiency_fixture(quest_root)
@@ -609,7 +609,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
         entry_mode="full_research",
         task_intent="把当前研究收口到 SCI-ready 投稿标准，并持续自检卡住、无进度和质量回退。",
         journal_target="BMC Medicine",
-        first_cycle_outputs=("study-progress", "domain_health_diagnostic", "publication_eval/latest.json"),
+        first_cycle_outputs=("study-progress", "runtime_readback", "publication_eval/latest.json"),
     )
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
     _write_json(
@@ -727,7 +727,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert result["refs"]["controller_confirmation_summary_path"] == str(
         study_root / "artifacts" / "controller" / "controller_confirmation_summary.json"
     )
-    assert result["refs"]["domain_health_diagnostic_report_path"] == str(domain_health_diagnostic_path)
+    assert result["refs"]["runtime_readback_report_path"] == str(runtime_readback_report_path)
     assert result["refs"]["controller_summary_path"] == str(
         study_root / "artifacts" / "controller" / "controller_summary.json"
     )
@@ -805,7 +805,7 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
     _write_study_charter_and_controller_summary(study_root)
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     publishability_gate_report_path = _write_publishability_gate_report(quest_root)
-    domain_health_diagnostic_path = _write_domain_health_diagnostic(quest_root)
+    runtime_readback_report_path = _write_runtime_readback_report(quest_root)
 
     _write_json(
         launch_report_path,
@@ -857,7 +857,7 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
 
     assert result["study_id"] == "001-risk"
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
-    assert result["refs"]["domain_health_diagnostic_report_path"] == str(domain_health_diagnostic_path)
+    assert result["refs"]["runtime_readback_report_path"] == str(runtime_readback_report_path)
     assert result["refs"]["runtime_escalation_path"] == str(runtime_escalation_path)
     assert result["refs"]["evaluation_summary_path"] is None
     assert result["refs"]["promotion_gate_path"] is None
@@ -890,7 +890,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     )
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)
     _write_publishability_gate_report(quest_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     _write_bash_summary(quest_root)
     _write_details_projection(quest_root)
     _write_runtime_efficiency_fixture(quest_root)

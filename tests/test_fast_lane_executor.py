@@ -266,7 +266,7 @@ def test_fast_lane_manifest_records_dependency_dag_idempotency_and_durable_check
 
 
 def test_scheduler_embeds_fast_lane_manifest_in_repair_unit_execution_plan() -> None:
-    scheduler = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_scheduler")
+    scheduler = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_planner")
 
     execution_plan = scheduler.build_repair_unit_execution_plan(_dependent_repair_units())
     manifest = execution_plan["fast_lane_execution_manifest"]

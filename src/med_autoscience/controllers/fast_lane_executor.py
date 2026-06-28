@@ -4,7 +4,7 @@ import hashlib
 import json
 from typing import Any, Mapping
 
-from med_autoscience.controllers import gate_clearing_batch_scheduler
+from med_autoscience.controllers import gate_clearing_batch_planner
 from med_autoscience.controllers.authority_write_route import resolve_authority_write_route_context
 
 
@@ -124,7 +124,7 @@ def build_fast_lane_execution_manifest(
         context=route_context,
         default_paths=[],
     )
-    execution_plan = gate_clearing_batch_scheduler.build_repair_unit_execution_plan(repair_units)
+    execution_plan = gate_clearing_batch_planner.build_repair_unit_execution_plan(repair_units)
     plan_manifest = _mapping(execution_plan.get("fast_lane_execution_manifest"))
     manifest_state = _manifest_state(quality_ledger_enforcement)
     blocking_reasons = _blocking_reasons(quality_ledger_enforcement)

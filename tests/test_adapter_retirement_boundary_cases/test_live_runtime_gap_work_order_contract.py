@@ -68,7 +68,7 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         "runtime_readback:",
     ]
     assert {
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "contract_landed",
         "docs",
         "focused_tests",
@@ -115,7 +115,7 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
         is True
     )
     assert schema["transition_identity_ref_required_for_families"] == [
-        "DHD_apply_exactly_one_live_outcome_ref",
+        "domain_diagnostic_apply_exactly_one_live_outcome_ref",
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
         "OPL_command_event_outbox_live_readback_ref",
         "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
@@ -355,19 +355,19 @@ def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> 
         "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
     )
     contract = _contract()
-    dhd_apply = next(
+    domain_diagnostic_apply = next(
         order
         for order in contract["work_orders"]
-        if order["gap_id"] == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+        if order["gap_id"] == "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated"
     )
     authority_family = (
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
     )
 
     family_only = work_orders.evaluate_live_runtime_gap_evidence_record(
-        dhd_apply,
+        domain_diagnostic_apply,
         {
-            "gap_id": dhd_apply["gap_id"],
+            "gap_id": domain_diagnostic_apply["gap_id"],
             "evidence_source": "mas_owner_gate:typed-blocker-recorded",
             "evidence_ref_families": [authority_family],
         },
@@ -379,9 +379,9 @@ def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> 
     assert family_only["live_runtime_readiness_claim_allowed"] is False
 
     concrete_typed_blocker = work_orders.evaluate_live_runtime_gap_evidence_record(
-        dhd_apply,
+        domain_diagnostic_apply,
         {
-            "gap_id": dhd_apply["gap_id"],
+            "gap_id": domain_diagnostic_apply["gap_id"],
             "evidence_source": "mas_owner_gate:typed-blocker-recorded",
             "evidence_ref_families": [authority_family],
             "typed_blocker_ref": "typed-blocker:dm003:no-selected-dispatch",
@@ -525,7 +525,7 @@ def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
     mismatched = work_orders.evaluate_live_runtime_gap_evidence_record(
         provider_readback,
         {
-            "gap_id": "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+            "gap_id": "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",
             "evidence_source": "opl_live_readback:provider-admission:2026-06-20T00:00:00Z",
             "evidence_ref_families": [ref_family],
             "evidence_refs": [
@@ -538,7 +538,7 @@ def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
     assert mismatched["status"] == "typed_blocker_required"
     assert (
         mismatched["evidence_record_gap_id"]
-        == "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated"
+        == "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated"
     )
     assert mismatched["evidence_record_id_mismatch"] is True
     assert mismatched["matched_evidence_ref_families"] == [ref_family]

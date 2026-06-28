@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.domain_action_request_materializer import FORBIDDEN_SURFACES
-from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.runtime_control import repeat_suppression
 
 
@@ -54,7 +54,7 @@ def build(
     return {
         "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": schema_version,
-        **default_executor_policy(),
+        **owner_callable_policy(),
         "study_id": study_id,
         "quest_id": quest_id,
         "action_type": action_type,

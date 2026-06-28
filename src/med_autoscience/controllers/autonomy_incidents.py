@@ -50,12 +50,12 @@ _PLATFORM_INCIDENT_LABELS = {
 _PREVENTION_ACTION_BY_INCIDENT = {
     "no_live": {
         "action_type": "runtime_taxonomy",
-        "controller_surface": "domain_health_diagnostic",
+        "controller_surface": "domain_diagnostic_report",
         "summary": "Classify no-live runtime loss before any resume or work-unit dispatch.",
     },
     "stalled": {
         "action_type": "guard",
-        "controller_surface": "domain_health_diagnostic",
+        "controller_surface": "domain_diagnostic_report",
         "summary": "Guard against stalled turns by requiring a fresh heartbeat/progress observation.",
     },
     "status_drift": {
@@ -80,7 +80,7 @@ _PREVENTION_ACTION_BY_INCIDENT = {
     },
     "runtime_recovery_failure": {
         "action_type": "runbook",
-        "controller_surface": "domain_health_diagnostic",
+        "controller_surface": "domain_diagnostic_report",
         "summary": "Escalate repeated recovery failures through a platform runbook before retrying.",
     },
     "surface_ownership_drift": {
@@ -99,7 +99,7 @@ _PREVENTION_ACTION_BY_INCIDENT = {
     },
     "opl_runtime_owner_handoff_required": {
         "action_type": "contract",
-        "controller_surface": "domain_health_diagnostic",
+        "controller_surface": "domain_diagnostic_report",
         "summary": "Keep OPL current_control_state hydration as the only stage attempt path.",
     },
     "repeated_controller_decision": {

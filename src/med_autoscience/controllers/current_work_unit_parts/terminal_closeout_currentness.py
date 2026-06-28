@@ -372,13 +372,13 @@ def _provider_admission_terminal_closeout_consumed(
     terminal = (
         mapping(consumed.get("latest_terminal_stage_log"))
         or mapping(handoff.get("latest_terminal_stage_log"))
-        or mapping(handoff.get("latest_typed_default_executor_closeout"))
+        or mapping(handoff.get("latest_typed_owner_callable_closeout"))
     )
     typed_blocker = (
         mapping(consumed.get("typed_blocker"))
         or mapping(terminal.get("typed_blocker"))
         or mapping(handoff.get("typed_blocker"))
-        or mapping(mapping(handoff.get("latest_typed_default_executor_closeout")).get("typed_blocker"))
+        or mapping(mapping(handoff.get("latest_typed_owner_callable_closeout")).get("typed_blocker"))
     )
     return {
         key: value

@@ -48,17 +48,6 @@ def _build_family_persistence_policy_surface(
             ref=_ref("studies/<study_id>/progress_projection.json", ref_kind="workspace_locator"),
         ),
         _persistence_surface(
-            surface_id="domain_health_diagnostic_latest",
-            surface_role="mas_domain_runtime_health_projection",
-            storage_role="file_authority",
-            owner=TARGET_DOMAIN_ID,
-            ref=_ref(
-                "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-                ref_kind="workspace_locator",
-                label="domain_health_diagnostic",
-            ),
-        ),
-        _persistence_surface(
             surface_id="publication_eval_latest",
             surface_role="publication_quality_authority",
             storage_role="file_authority",

@@ -38,7 +38,7 @@ def test_current_work_unit_projects_next_forced_delta_over_stale_owner_route_clo
         "work_unit_id": "publication_gate_replay",
         "work_unit_fingerprint": "sha256:stale-publication-gate-replay",
         "source_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_0f1a9f5d24d067c53e89b342.closeout.json"
         ),
     }
@@ -64,7 +64,7 @@ def test_current_work_unit_projects_next_forced_delta_over_stale_owner_route_clo
             },
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "stage_attempt_id": "sat_0f1a9f5d24d067c53e89b342",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
@@ -74,7 +74,7 @@ def test_current_work_unit_projects_next_forced_delta_over_stale_owner_route_clo
                     "remaining_blockers": ["owner_route_stale"],
                     "source_path": (
                         "/workspace/studies/002-dm-china-us-mortality-attribution/"
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_0f1a9f5d24d067c53e89b342.closeout.json"
                     ),
                 },

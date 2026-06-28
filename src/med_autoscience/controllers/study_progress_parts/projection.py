@@ -219,7 +219,7 @@ def build_study_progress_projection(
     publication_eval_path = input_paths.publication_eval_path
     controller_decision_path = input_paths.controller_decision_path
     runtime_escalation_path = input_paths.runtime_escalation_path
-    domain_health_diagnostic_path = input_paths.domain_health_diagnostic_path
+    runtime_readback_report_path = input_paths.runtime_readback_report_path
     opl_runtime_owner_handoff_path = input_paths.opl_runtime_owner_handoff_path
     gate_clearing_batch_path = input_paths.gate_clearing_batch_path
     bash_summary_path = input_paths.bash_summary_path
@@ -245,7 +245,7 @@ def build_study_progress_projection(
     controller_confirmation_summary = surface_payloads.controller_confirmation_summary
     opl_runtime_owner_handoff_payload = surface_payloads.opl_runtime_owner_handoff_payload
     runtime_escalation_payload = surface_payloads.runtime_escalation_payload
-    domain_health_diagnostic_payload = surface_payloads.domain_health_diagnostic_payload
+    runtime_readback_payload = surface_payloads.runtime_readback_payload
     publication_eval_payload = surface_payloads.publication_eval_payload
     current_ai_reviewer_record = (
         ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
@@ -288,7 +288,7 @@ def build_study_progress_projection(
     runtime_medical_publication_surface = build_runtime_medical_publication_surface_projection(
         study_root=resolved_study_root,
         quest_root=quest_root,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
     )
     readiness_builder = (
         medical_paper_readiness.build_medical_paper_readiness_surface
@@ -451,7 +451,7 @@ def build_study_progress_projection(
             blockers=_current_blockers(
                 status=status,
                 publication_eval_payload=publication_eval_payload,
-                domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+                runtime_readback_payload=runtime_readback_payload,
                 runtime_medical_publication_surface=runtime_medical_publication_surface,
                 runtime_escalation_payload=runtime_escalation_payload,
                 controller_confirmation_summary=controller_confirmation_summary,
@@ -471,7 +471,7 @@ def build_study_progress_projection(
         controller_decision_payload=controller_decision_payload,
         publication_supervisor_state=publication_supervisor_state,
         publication_eval_payload=publication_eval_payload,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         current_blockers=current_blockers,
         execution_owner_guard=execution_owner_guard,
         status=status,
@@ -503,7 +503,7 @@ def build_study_progress_projection(
         needs_physician_decision=needs_physician_decision,
         progress_freshness=progress_freshness,
         publication_eval_payload=publication_eval_payload,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         status=status,
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
@@ -532,7 +532,7 @@ def build_study_progress_projection(
         next_system_action=next_system_action,
         continuation_state=continuation_state,
         family_checkpoint_lineage=family_checkpoint_lineage,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         needs_physician_decision=needs_physician_decision,
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
@@ -559,8 +559,8 @@ def build_study_progress_projection(
         publication_eval_path=publication_eval_path,
         controller_decision_payload=controller_decision_payload,
         controller_decision_path=controller_decision_path,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
-        domain_health_diagnostic_path=domain_health_diagnostic_path,
+        runtime_readback_payload=runtime_readback_payload,
+        runtime_readback_report_path=runtime_readback_report_path,
         details_projection_payload=details_projection_payload,
         details_projection_path=details_projection_path,
         bash_summary_payload=bash_summary_payload,
@@ -653,7 +653,7 @@ def build_study_progress_projection(
         publication_eval_payload=publication_eval_payload,
         controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
@@ -687,7 +687,7 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
         runtime_escalation_path=runtime_escalation_path,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
         quest_root=quest_root,
         materialize_read_model_artifacts=materialize_read_model_artifacts,
     )
@@ -701,7 +701,7 @@ def build_study_progress_projection(
         opl_runtime_owner_handoff_path=opl_runtime_owner_handoff_path,
         opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         runtime_escalation_path=runtime_escalation_path,
-        domain_health_diagnostic_path=domain_health_diagnostic_path,
+        runtime_readback_report_path=runtime_readback_report_path,
         recovery_contract=recovery_contract,
         execution_owner_guard=execution_owner_guard,
         publication_supervisor_state=publication_supervisor_state,
@@ -780,7 +780,7 @@ def build_study_progress_projection(
     autonomy_soak_status = _autonomy_soak_status(
         autonomy_contract=autonomy_contract,
         progress_freshness=progress_freshness,
-        domain_health_diagnostic_path=domain_health_diagnostic_path,
+        runtime_readback_report_path=runtime_readback_report_path,
         controller_decision_path=controller_decision_path,
     )
     supervision_health_status = _supervision_health_status(
@@ -805,7 +805,7 @@ def build_study_progress_projection(
         opl_runtime_owner_handoff_ref=(
             str(opl_runtime_owner_handoff_path) if opl_runtime_owner_handoff_payload is not None else None
         ),
-        domain_health_diagnostic_ref=str(domain_health_diagnostic_path) if domain_health_diagnostic_path is not None else None,
+        runtime_readback_report_ref=str(runtime_readback_report_path) if runtime_readback_report_path is not None else None,
     )
     ai_first_observability_snapshots = ai_first_observability.build_ai_first_observability_snapshots_from_study_root(
         study_root=resolved_study_root,
@@ -855,7 +855,7 @@ def build_study_progress_projection(
         opl_runtime_owner_handoff_path=opl_runtime_owner_handoff_path,
         opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         runtime_escalation_path=runtime_escalation_path,
-        domain_health_diagnostic_path=domain_health_diagnostic_path,
+        runtime_readback_report_path=runtime_readback_report_path,
         runtime_module_surface=runtime_module_surface,
         runtime_efficiency_refs=_runtime_efficiency_refs(runtime_efficiency),
         study_root=resolved_study_root,

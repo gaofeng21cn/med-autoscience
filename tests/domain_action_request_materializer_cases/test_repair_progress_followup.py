@@ -833,7 +833,7 @@ def test_materialize_domain_action_requests_prefers_terminal_next_forced_write_o
                     ),
                 },
                 "acceptance_refs": [
-                    "studies/003/default_executor_execution/sat-fresh-ai-reviewer.closeout.json"
+                    "studies/003/owner_callable_adapter_receipt/sat-fresh-ai-reviewer.closeout.json"
                 ],
             },
             "current_owner_ticket": None,

@@ -586,7 +586,7 @@ def test_accepted_closeout_typed_blocker_owns_recovery_before_admission_blocked(
                     "action_fingerprint": fingerprint,
                     "typed_blocker_ref": (
                         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                        "supervision/consumer/default_executor_execution/"
+                        "supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
                     ),
                     "typed_blocker": {},
@@ -601,7 +601,7 @@ def test_accepted_closeout_typed_blocker_owns_recovery_before_admission_blocked(
                     },
                     "closeout_refs": [
                         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                        "supervision/consumer/default_executor_execution/"
+                        "supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_e1063d97901cc3d70424fc5c.closeout.json"
                     ],
                 }

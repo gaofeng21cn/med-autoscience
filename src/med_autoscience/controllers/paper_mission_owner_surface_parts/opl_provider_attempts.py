@@ -61,6 +61,7 @@ OPL_PROVIDER_READINESS_KEYS = (
     "can_write_domain_truth",
     "can_authorize_publication_ready",
 )
+STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND = "stage_outcome/opl-handoff"
 
 
 def live_provider_attempt_for_study(
@@ -418,7 +419,7 @@ def _candidate_tasks(
         task
         for task in tasks
         if _task_matches_study(task, profile=profile, study_id=study_id)
-        and _text(task.get("task_kind")) == "domain_owner/default-executor-dispatch"
+        and _text(task.get("task_kind")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
         and _text(task.get("status")) in LIVE_ATTEMPT_STATES
         and not _task_linked_liveness_has_terminal_closeout(
             task,
@@ -505,7 +506,7 @@ def _candidate_attempts(
         for attempt in attempts
         if _attempt_matches_study(attempt, profile=profile, study_id=study_id)
         and _text(attempt.get("domain_id")) == "medautoscience"
-        and _text(attempt.get("stage_id")) == "domain_owner/default-executor-dispatch"
+        and _text(attempt.get("stage_id")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
         and _attempt_is_live(attempt)
         and not has_terminal_owner_callable_closeout(
             profile=profile,
@@ -539,7 +540,7 @@ def _candidate_terminal_attempts(
         for attempt in attempts
         if _attempt_matches_study(attempt, profile=profile, study_id=study_id)
         and _text(attempt.get("domain_id")) == "medautoscience"
-        and _text(attempt.get("stage_id")) == "domain_owner/default-executor-dispatch"
+        and _text(attempt.get("stage_id")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
         and _attempt_is_terminal(attempt)
         and not has_terminal_owner_callable_closeout(
             profile=profile,
@@ -920,7 +921,7 @@ def _live_projection_from_attempt_inspect(
         return None
     if _text(attempt.get("domain_id")) != "medautoscience":
         return None
-    if _text(attempt.get("stage_id")) != "domain_owner/default-executor-dispatch":
+    if _text(attempt.get("stage_id")) != STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND:
         return None
     if not _attempt_is_live(attempt):
         return None
@@ -954,7 +955,7 @@ def _live_projection_from_attempt_inspect(
         "provider_attempt_owner": "one-person-lab",
         "queue_owner": "one-person-lab",
         "task_id": task_id,
-        "task_kind": "domain_owner/default-executor-dispatch",
+        "task_kind": STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND,
         "provider_kind": _text(attempt.get("provider_kind")) or _text(provider_run.get("provider_kind")),
         "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
         "work_unit_id": _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id")),
@@ -1016,7 +1017,7 @@ def _terminal_closeout_projection_from_attempt_inspect(
         return None
     if _text(attempt.get("domain_id")) != "medautoscience":
         return None
-    if _text(attempt.get("stage_id")) != "domain_owner/default-executor-dispatch":
+    if _text(attempt.get("stage_id")) != STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND:
         return None
     if not _attempt_is_terminal(attempt):
         return None

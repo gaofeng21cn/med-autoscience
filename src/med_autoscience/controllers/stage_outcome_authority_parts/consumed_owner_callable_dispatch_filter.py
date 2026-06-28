@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from med_autoscience.controllers.study_transition_receipt_consumption import (
-    default_executor_execution_receipt_consumption,
+    owner_callable_receipt_consumption,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -11,7 +11,7 @@ from . import current_writer_handoff
 from . import opl_execution_preflight
 
 
-def without_consumed_owner_callable_dispatches(
+def without_consumed_owner_callable_adapters(
     *,
     profile: WorkspaceProfile,
     study_id: str,
@@ -46,7 +46,7 @@ def consumed_owner_callable_dispatch(
     )
     if not route:
         return False
-    receipt = default_executor_execution_receipt_consumption(
+    receipt = owner_callable_receipt_consumption(
         study_root=profile.studies_root / study_id,
         owner_route=route,
         actions=[{"action_type": action_type}],
@@ -99,5 +99,5 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "consumed_owner_callable_dispatch",
-    "without_consumed_owner_callable_dispatches",
+    "without_consumed_owner_callable_adapters",
 ]

@@ -371,7 +371,7 @@ def _ai_reviewer_owner_handoff_result(
         generated_at=generated_at,
         owner_route=owner_route,
     )
-    dispatch_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches" / f"{action_type}.json"
+    dispatch_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapters" / f"{action_type}.json"
     handoff = ai_reviewer_owner_callable_dispatch.build(
         study_id=study_id,
         quest_id=quest_id,

@@ -66,7 +66,7 @@ def _write_transport_inputs(study_root: Path) -> None:
     write_text(transport_root / "nhanes_transportability_input.csv", nhanes_rows + "\n")
     write_text(
         study_root / "analysis" / "clean_room_execution" / "00_harmonization" / "predictor_mapping_table.md",
-        "| logical_name | nhanes_column |\n| --- | --- |\n| hdl_c | LBDHDD |\n",
+        "| logical_name | nhanes_column |\n| --- | --- |\n| hdl_c | LBdomain diagnosticD |\n",
     )
     write_text(
         transport_root / "model_spec_and_feature_list.md",
@@ -203,7 +203,7 @@ def test_clean_rebuild_authorization_materializes_unit_harmonized_rerun_evidence
             "clean_reproducible_model_rebuild_authorized": True,
             "selected_route_option": "rebuild_reproducible_model_route",
         },
-        "refs": {"dispatch_path": "artifacts/supervision/consumer/default_executor_dispatches/rerun.json"},
+        "refs": {"dispatch_path": "artifacts/supervision/consumer/owner_callable_adapters/rerun.json"},
     }
     request = {
         "request_kind": "unit_harmonized_external_validation_rerun",
@@ -289,7 +289,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "unit_harmonized_external_validation_rerun.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)

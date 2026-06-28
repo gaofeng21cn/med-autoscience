@@ -20,7 +20,7 @@
     "goal_complete": false,
     "completion_claim_allowed": false,
     "classification": "repo_source_retirement_split_from_live_runtime_readiness",
-    "current_summary": "Completion evidence is now split into repo-source retirement and live-runtime readiness. Repo-source physical retirement is not blocked by missing live OPL readback, DHD apply, provider running proof, or DM002/DM003 paper-line outcome. A repo-source retirement item can be marked done when active callsites have migrated to OPL primitives or MAS minimal PaperProgressPolicyAdapter / authority adapter, old modules/aliases/wrappers/compat shims/private scheduler-log-outbox-projection authority are physically deleted or tombstoned, missing live proof fails closed as a typed blocker, focused/meta/default verification passes, and docs/contracts/runtime inventory are updated. Live-runtime readiness remains a separate final acceptance tail: OPL command/event/outbox/StageRun readback, DHD apply exactly-one, provider admission/running proof, and fresh DM002/DM003 owner/paper-line outcomes are still required before runtime or paper progress can be claimed. OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, read-model rebuild proof-gating, and MAS runtime-health local event append retirement have landed. The MAS-facing OPL DomainProgressTransitionRuntime ABI is now single-sourced in contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py, and request projection, MAS policy adapter, provider-admission boundary, and live-readback validator consume that shape. The OPL live-readback transaction-consistency ABI is also single-sourced in the same contract/helper and the MAS readback validator consumes the helper-defined identity, causality, latest-transaction refs, required command/event/outbox flags, and required read-model rebuild sections. The MAS validator now rejects read_model_readback when identity, causality, authority_boundary, exactly_one_outcome, or projection_metadata differ from the top-level live readback. The full equivalence target is still open because live DHD apply exactly-one outcome, OPL outbox/StageRun live readback, live DM002/DM003 provider-admission/running proof, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; MAS OPL transition readback consumer rejects thin StageRun identity, stale event/outbox/transaction refs, stale read-model rebuild sections, and provider-admission live readbacks whose study/work-unit/fingerprint/route/attempt/request identity does not match the current transition; and MAS provider-admission arbiter pending decisions now expose a non-authoritative opl_transition_event_consumption proof derived from the same provider-bound live readback instead of retaining empty-evidence pending decisions. Legacy default-executor latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume default_executor_execution/latest.json. Request-task alias retirement now removes the top-level materializer request_tasks field entirely; legacy request task refs survive only under legacy_request_task_diagnostics.legacy_request_task_refs as body-free diagnostic refs. Recovery successor consumption is now fingerprint-bound, so stale repair_progress_projection cannot consume a newer paper_recovery_state successor during fixed-point projection refresh. Domain-owner dispatch latest payload reads are now canonical-only by default; legacy default_executor_execution/latest.json can only be merged with explicit history/provenance opt-in and remains non-authority. Legacy default-executor StageRun closeout packets are now machine-proven as OPL StageRun ABI/provenance and identity-recovery evidence only, not latest-wire fallback, provider-admission authority, execution authority, attempt lifecycle authority, or running/progress proof. Runtime lifecycle payload retention and runtime storage maintenance are now OPL-authorized maintenance callable adapters with fail-closed apply gates and repo-wide no-authority audit coverage; those repo-side guards do not claim OPL live takeover, physical delete, runtime readiness, or paper progress. OPL family adoption and product-entry persistence projections now consume the OPL StateIndex source-adapter manifest instead of inspecting domain_authority_refs.sqlite; legacy SQLite payload reads are explicit history replay/local inspection only and cannot satisfy StateIndex takeover. Completion evidence aggregation now rejects no-active caller scans as substitutes for OPL live-readback tail proof across default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails. Repo-source private-surface retirement is complete in the runtime_surface_retirement inventory at MAS 8de3658e with violation_count=0; live-runtime readiness remains evidence_required and cannot be claimed from source retirement. Fresh read-only DM002/DM003 readback at MAS b958148f87 / OPL b2f707de08 on 2026-06-19T09:07-09:08Z still shows no active_run, no active_stage_attempt, no provider admission, no transition request, no current executable owner action, DHD observe_only candidate_count=0, and both studies stopped with OPL supervisor-decision-backed stable typed blockers, so live paper acceptance remains open."
+    "current_summary": "Completion evidence is now split into repo-source retirement and live-runtime readiness. Repo-source physical retirement is not blocked by missing live OPL readback, domain diagnostic apply, provider running proof, or DM002/DM003 paper-line outcome. A repo-source retirement item can be marked done when active callsites have migrated to OPL primitives or MAS minimal PaperProgressPolicyAdapter / authority adapter, old modules/aliases/wrappers/compat shims/private scheduler-log-outbox-projection authority are physically deleted or tombstoned, missing live proof fails closed as a typed blocker, focused/meta/default verification passes, and docs/contracts/runtime inventory are updated. Live-runtime readiness remains a separate final acceptance tail: OPL command/event/outbox/StageRun readback, domain diagnostic apply exactly-one, provider admission/running proof, and fresh DM002/DM003 owner/paper-line outcomes are still required before runtime or paper progress can be claimed. OPL runtime slice, MAS policy adapter consumption, replay expansion, projection demotion, live-readback-only admission boundary, live readback transaction-consistency fail-closed validation, terminal closeout currentness, provider-hosted stale admission recovery, terminal handoff fixed-point projection rebuild, consumed terminal-blocker precedence over owner-receipt handoff surfaces, read-model rebuild proof-gating, and MAS runtime-health local event append retirement have landed. The MAS-facing OPL DomainProgressTransitionRuntime ABI is now single-sourced in contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py, and request projection, MAS policy adapter, provider-admission boundary, and live-readback validator consume that shape. The OPL live-readback transaction-consistency ABI is also single-sourced in the same contract/helper and the MAS readback validator consumes the helper-defined identity, causality, latest-transaction refs, required command/event/outbox flags, and required read-model rebuild sections. The MAS validator now rejects read_model_readback when identity, causality, authority_boundary, exactly_one_outcome, or projection_metadata differ from the top-level live readback. The full equivalence target is still open because live domain diagnostic apply exactly-one outcome, OPL outbox/StageRun live readback, live DM002/DM003 provider-admission/running proof, and DM002/DM003 fresh paper-line outcome are not closed. paper_recovery_state now treats request-only current_work_unit/provider-admission projections as diagnostic until a complete OPL live readback is present; terminal typed-blocker handoff consumption rebuilds paper_recovery_state and current_executable_owner_action so stale successor actions cannot survive the same refresh; current_execution_surfaces now consume same-identity terminal typed blockers even when the handoff current_work_unit still projects owner_receipt_recorded; OPL current-control terminal closeout consumption no longer lets identity-bound admissions fall back to weak action/work-unit/fingerprint matching; MAS OPL transition readback consumer rejects thin StageRun identity, stale event/outbox/transaction refs, stale read-model rebuild sections, and provider-admission live readbacks whose study/work-unit/fingerprint/route/attempt/request identity does not match the current transition; and MAS provider-admission arbiter pending decisions now expose a non-authoritative opl_transition_event_consumption proof derived from the same provider-bound live readback instead of retaining empty-evidence pending decisions. Legacy owner-callable latest wire fallback is now explicit-history-only: current provider admission, current provider handoff export, and current clean-migration recovery readers require canonical owner_callable_adapter_receipts/latest.json and do not consume owner_callable_adapter_receipt/latest.json. Request-task alias retirement now removes the top-level materializer request_tasks field entirely; legacy request task refs survive only under legacy_request_task_diagnostics.legacy_request_task_refs as body-free diagnostic refs. Recovery successor consumption is now fingerprint-bound, so stale repair_progress_projection cannot consume a newer paper_recovery_state successor during fixed-point projection refresh. Domain-owner dispatch latest payload reads are now canonical-only by default; legacy owner_callable_adapter_receipt/latest.json can only be merged with explicit history/provenance opt-in and remains non-authority. Legacy owner-callable StageRun closeout packets are now machine-proven as OPL StageRun ABI/provenance and identity-recovery evidence only, not latest-wire fallback, provider-admission authority, execution authority, attempt lifecycle authority, or running/progress proof. Runtime lifecycle payload retention and runtime storage maintenance are now OPL-authorized maintenance callable adapters with fail-closed apply gates and repo-wide no-authority audit coverage; those repo-side guards do not claim OPL live takeover, physical delete, runtime readiness, or paper progress. OPL family adoption and product-entry persistence projections now consume the OPL StateIndex source-adapter manifest instead of inspecting domain_authority_refs.sqlite; legacy SQLite payload reads are explicit history replay/local inspection only and cannot satisfy StateIndex takeover. Completion evidence aggregation now rejects no-active caller scans as substitutes for OPL live-readback tail proof across owner-callable carrier, domain diagnostic obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails. Repo-source private-surface retirement is complete in the runtime_surface_retirement inventory at MAS 8de3658e with violation_count=0; live-runtime readiness remains evidence_required and cannot be claimed from source retirement. Fresh read-only DM002/DM003 readback at MAS b958148f87 / OPL b2f707de08 on 2026-06-19T09:07-09:08Z still shows no active_run, no active_stage_attempt, no provider admission, no transition request, no current executable owner action, domain diagnostic observe_only candidate_count=0, and both studies stopped with OPL supervisor-decision-backed stable typed blockers, so live paper acceptance remains open."
   },
   "completion_columns": {
     "repo_source_retirement_completion": {
@@ -60,7 +60,7 @@
       "open_repo_source_gaps": [],
       "non_blocking_live_runtime_tails": [
         "missing OPL outbox / StageRun live readback",
-        "missing DHD apply exactly-one live outcome",
+        "missing domain diagnostic apply exactly-one live outcome",
         "missing provider running proof",
         "missing DM002/DM003 fresh paper-line outcome",
         "missing live OPL Workbench Shell action transport/readback",
@@ -69,7 +69,7 @@
         "missing Tool Arsenal direct-hosted parity and live owner consumption soak"
       ],
       "false_repo_source_blockers": [
-        "DHD_dry_run_missing",
+        "domain_diagnostic_dry_run_missing",
         "OPL_provider_running_proof_missing",
         "DM002_DM003_live_paper_outcome_missing",
         "queue_or_attempt_empty"
@@ -92,7 +92,7 @@
     },
     "live_runtime_readiness_completion": {
       "column_id": "live_runtime_readiness_completion",
-      "scope": "OPL live readback, DHD apply exactly-one, provider running proof, DM002/DM003 live paper-line outcome",
+      "scope": "OPL live readback, domain diagnostic apply exactly-one, provider running proof, DM002/DM003 live paper-line outcome",
       "status": "partial",
       "completion_percent": 50,
       "completion_claim_allowed": false,
@@ -100,7 +100,7 @@
       "blocks_final_runtime_paper_acceptance": true,
       "required_evidence": [
         "same-transition OPL command/event/outbox/StageRun identity readback",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "provider admission or running proof backed by same-identity OPL runtime readback",
         "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta",
         "live evidence records for same-transition gaps must carry study_id, work_unit_id, work_unit_fingerprint, route_identity_key, and attempt_idempotency_key",
@@ -109,11 +109,11 @@
       "fresh_readonly_evidence_refs": [
         "/tmp/mas-progress-dm002-07ab91312-oplb2f707de0-20260619T093631Z.json",
         "/tmp/mas-progress-dm003-07ab91312-oplb2f707de0-20260619T093631Z.json",
-        "/tmp/mas-dhd-dm002-dm003-07ab91312-oplb2f707de0-20260619T093631Z.json"
+        "/tmp/mas-domain_diagnostic-dm002-dm003-07ab91312-oplb2f707de0-20260619T093631Z.json"
       ],
       "open_live_runtime_gaps": [
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
@@ -126,7 +126,7 @@
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0",
         "accepted_ref_family_without_current_transition_identity",
@@ -138,7 +138,7 @@
       ],
       "open_live_runtime_work_order_surface_ids": [
         "agent_tool_arsenal_scientific_capability_registry",
-        "domain_health_diagnostic_obligation_actuator",
+        "domain_diagnostic_obligation_actuator",
         "stage_outcome_authority",
         "progress_portal_study_workbench_overview_action_projection",
         "runtime_health_kernel",
@@ -158,7 +158,7 @@
       ],
       "open_live_runtime_gap_work_order_ids": [
         "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request",
-        "dhd_apply_exactly_one_live_outcome_when_explicitly_delegated",
+        "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",
         "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
         "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
         "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption"
@@ -211,7 +211,7 @@
     },
     "verification_scope": {
       "forbidden_live_commands_not_run": [
-        "DHD apply",
+        "domain diagnostic apply",
         "provider start",
         "hydrate",
         "tick",
@@ -383,7 +383,7 @@
       },
       {
         "level": "L4",
-        "functional_surface": "dhd_owner_route_export_consume_only_projection",
+        "functional_surface": "domain_diagnostic_owner_route_export_consume_only_projection",
         "classification": [
           "already_done",
           "repo_source_control_plane_required",
@@ -393,16 +393,16 @@
           "status": "done",
           "completion_percent": 100,
           "required": [
-            "DHD, owner-route, provider admission, export, current_work_unit, and study_progress consume OPL-backed readback only",
+            "domain diagnostic, owner-route, provider admission, export, current_work_unit, and study_progress consume OPL-backed readback only",
             "readback shape requires identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata",
             "request-only or bare event/outbox/StageRun fragments fail closed"
           ],
           "evidence_refs": [
-            "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py",
+            "src/med_autoscience/controllers/domain_diagnostic_report_parts/opl_transition_readback.py",
             "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control_arbiter.py",
             "tests/test_provider_admission_current_control_arbiter.py",
             "tests/test_provider_admission_current_control_cases/transition_request_consume_only_cases.py",
-            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
+            "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py",
             "tests/test_mcp_opl_current_control_state_handoff_projection.py",
             "tests/study_progress_cases/provider_admission_projection_cases/opl_running_readback.py"
           ],
@@ -414,7 +414,7 @@
         "live_only_deferred": {
           "status": "deferred_not_run",
           "required_evidence": [
-            "DHD apply exactly-one live outcome when explicitly delegated",
+            "domain diagnostic apply exactly-one live outcome when explicitly delegated",
             "provider admission arbiter consuming fresh OPL event/outbox/StageRun readback for current DM002/DM003 identity"
           ],
           "blocks_repo_source_control_plane_completion": false
@@ -534,7 +534,7 @@
           "required_evidence": [
             "fresh DM002 study_progress and accepted outcome evidence",
             "fresh DM003 study_progress and accepted outcome evidence",
-            "DHD apply exactly-one live outcome when explicitly delegated",
+            "domain diagnostic apply exactly-one live outcome when explicitly delegated",
             "same-identity OPL current-control or StageRun readback when provider/running/admission is claimed",
             "MAS owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta"
           ],
@@ -545,7 +545,7 @@
     "remaining_live_only_deferred": [
       "OPL outbox and StageRun identity live readback for the same transition request",
       "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
-      "DHD apply exactly-one live outcome when explicitly delegated",
+      "domain diagnostic apply exactly-one live outcome when explicitly delegated",
       "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
       "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
       "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
@@ -570,7 +570,7 @@
       "focused_tests_passed",
       "projection_clean",
       "queue_empty",
-      "DHD_dry_run",
+      "domain_diagnostic_dry_run",
       "provider_admission_pending_count=0",
       "transition_request_pending_count=0",
       "refs_only_surface",
@@ -602,13 +602,13 @@
     ],
     "repo_source_retirement_not_blocked_by": [
       "missing OPL outbox / StageRun live readback",
-      "missing DHD apply exactly-one live outcome",
+      "missing domain diagnostic apply exactly-one live outcome",
       "missing provider running proof",
       "missing DM002/DM003 fresh paper-line outcome"
     ],
     "live_runtime_readiness_hundred_percent_requires": [
       "same-transition OPL command/event/outbox/StageRun identity readback",
-      "DHD apply exactly-one live outcome when explicitly delegated",
+      "domain diagnostic apply exactly-one live outcome when explicitly delegated",
       "provider admission or running proof backed by same-identity OPL runtime readback",
       "fresh DM002/DM003 owner receipt, stable typed blocker, human gate, route-back evidence, strict running proof, or paper/gate/artifact semantic delta"
     ],
@@ -651,7 +651,7 @@
         "OPL runtime tests cover aggregate version and idempotency readback.",
         "MAS adapter and replay tests assert clean request identity without OPL artifact fields."
       ],
-      "open_gap": "Fresh live DHD apply and provider admission must prove the same aggregate identity reaches OPL StageRun readback."
+      "open_gap": "Fresh live domain diagnostic apply and provider admission must prove the same aggregate identity reaches OPL StageRun readback."
     },
     {
       "feature_id": "mas_policy_verdict",
@@ -722,9 +722,9 @@
       "completion_percent": 62,
       "evidence": [
         "OPL runtime tests cover fixed-point helper choosing exactly one transition or NonAdvancingApply.",
-        "MAS DHD boundary documents exactly-one postcondition requirements."
+        "MAS domain diagnostic boundary documents exactly-one postcondition requirements."
       ],
-      "open_gap": "DHD apply live path has not yet proven end-to-end exactly-one closure for DM002/DM003 under the new runtime."
+      "open_gap": "domain diagnostic apply live path has not yet proven end-to-end exactly-one closure for DM002/DM003 under the new runtime."
     },
     {
       "feature_id": "exactly_one_postcondition",
@@ -734,9 +734,9 @@
       "completion_percent": 68,
       "evidence": [
         "MAS replay fixtures and terminal closeout currentness tests prevent projection-only success for representative cases.",
-        "DHD policy states transition_request_pending is not postcondition_ok without OPL readback."
+        "domain diagnostic policy states transition_request_pending is not postcondition_ok without OPL readback."
       ],
-      "open_gap": "Fresh live DHD apply outcome remains open by current instructions and must not be inferred from dry-run."
+      "open_gap": "Fresh live domain diagnostic apply outcome remains open by current instructions and must not be inferred from dry-run."
     },
     {
       "feature_id": "non_advancing_apply",
@@ -748,7 +748,7 @@
         "OPL runtime tests cover NonAdvancingApply.",
         "MAS replay fixtures and terminal closeout currentness tests cover request-only and record-only no-progress cases."
       ],
-      "open_gap": "Live DHD apply must still show NonAdvancingApply or another accepted outcome when explicitly delegated."
+      "open_gap": "Live domain diagnostic apply must still show NonAdvancingApply or another accepted outcome when explicitly delegated."
     },
     {
       "feature_id": "historical_replay_harness",
@@ -777,38 +777,38 @@
     {
       "feature_id": "read_model_rebuild",
       "correct_owner": "OPL Console/Vault and derived MAS projections",
-      "target": "study_progress, DHD, Workbench, and current surfaces rebuild from OPL events plus MAS policy result, not local authority.",
+      "target": "study_progress, domain diagnostic, Workbench, and current surfaces rebuild from OPL events plus MAS policy result, not local authority.",
       "status": "partial",
       "completion_percent": 70,
       "evidence": [
         "MAS projection metadata demotes authority and live-readback-only provider admission.",
         "MAS runtime-health local event append API is retired.",
         "contracts/opl_domain_progress_transition_runtime_contract.json and src/med_autoscience/controllers/opl_domain_progress_transition_contract.py now require read_model_rebuild_required_sections for identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata.",
-        "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py now rejects read_model_readback unless those five sections exactly match the top-level live readback sections.",
+        "src/med_autoscience/controllers/domain_diagnostic_report_parts/opl_transition_readback.py now rejects read_model_readback unless those five sections exactly match the top-level live readback sections.",
         "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape rejects stale read_model_readback identity refs.",
         "src/med_autoscience/controllers/study_progress_parts/opl_supervisor_decision_readback.py consumes OPL SupervisorDecisionEngine readback from family-runtime/paper-autonomy/supervisor/supervisor-decisions.jsonl as a read-only study_progress projection.",
         "tests/study_progress_cases/opl_supervisor_decision_readback_projection.py proves the consumed supervisor decision readback updates paper_recovery_state and refs without creating provider admission or MAS truth.",
-        "domain-handler export and DHD dry-run preview now suppress same-identity stop_with_stable_typed_blocker owner-resolution tasks after OPL supervisor decision readback is consumed; tests/test_cli_cases/owner_route_handoff_command/test_export.py and tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py cover the suppression while preserving materialize_recovery_action owner-resolution preview.",
-        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "domain-handler export and domain diagnostic dry-run preview now suppress same-identity stop_with_stable_typed_blocker owner-resolution tasks after OPL supervisor decision readback is consumed; tests/test_cli_cases/owner_route_handoff_command/test_export.py and tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases.py cover the suppression while preserving materialize_recovery_action owner-resolution preview.",
+        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for owner-callable carrier, domain diagnostic obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path.",
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
       "open_gap": "Workbench and all downstream projections still need fresh live proof of full event-driven rebuild under real paper-line flow."
     },
     {
-      "feature_id": "dhd_apply_consumer",
+      "feature_id": "domain_diagnostic_apply_consumer",
       "correct_owner": "OPL runtime consumer plus MAS adapter",
-      "target": "DHD apply triggers or consumes OPL fixed-point runtime and does not self-sign provider admission.",
+      "target": "domain diagnostic apply triggers or consumes OPL fixed-point runtime and does not self-sign provider admission.",
       "status": "partial",
       "completion_percent": 60,
       "evidence": [
-        "MAS DHD contracts fail closed request-only transitions without OPL readback.",
+        "MAS domain diagnostic contracts fail closed request-only transitions without OPL readback.",
         "Focused tests cover consume-only and live-readback-only admission boundaries.",
         "tests/test_opl_transition_readback_contract.py rejects thin StageRun identity and stale event/outbox/transaction readback refs before provider admission.",
-        "DHD readback validation now also rejects stale read-model rebuild sections, so projection rebuild cannot be accepted when it diverges from the live transaction readback.",
-        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "domain diagnostic readback validation now also rejects stale read-model rebuild sections, so projection rebuild cannot be accepted when it diverges from the live transaction readback.",
+        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for owner-callable carrier, domain diagnostic obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path.",
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
-      "open_gap": "Current session did not run DHD apply; fresh live exactly-one apply outcome is still required before completion. The 2026-06-19 dry-run is observe_only with candidate_count=0 and cannot be treated as apply closure."
+      "open_gap": "Current session did not run domain diagnostic apply; fresh live exactly-one apply outcome is still required before completion. The 2026-06-19 dry-run is observe_only with candidate_count=0 and cannot be treated as apply closure."
     },
     {
       "feature_id": "provider_admission",
@@ -828,7 +828,7 @@
         "Paper autonomy supervisor gate now accepts materialize_recovery_action provider admission only when a provider-admission identity-bound OPL live readback matches the current paper autonomy obligation; request-only carriers cannot bypass via admission_pending or provider_admission_requires_opl_runtime_result=false recovery state.",
         "Provider-admission arbiter pending decisions now expose opl_transition_event_consumption proof with event_id, outbox_item_id, transaction_id, stage_run identity, route identity, attempt idempotency, request idempotency, same-transaction flag, and MAS non-authority flags; request-only event/outbox/StageRun fragments remain transition_request_pending.",
         "Provider-admission running-proof consumption now requires provider_admission_opl_transition_readback for the current action identity; a handoff running_provider_attempt flag without same-identity OPL live readback remains observability only, while a matching provider_admission_candidate may supply the readback without authorizing MAS to start the provider.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
       "open_gap": "Fresh DM002/DM003 provider admission/running proof remains open; 2026-06-19 readback shows provider_admission_pending_count=0, transition_request_pending_count=0, active_run_id=null, active_stage_attempt_id=null, and current_executable_owner_action=null for both studies."
     },
@@ -847,7 +847,7 @@
         "Paper autonomy supervisor tests prove current request-only provider-admission carriers remain blocked unless the OPL live readback is provider-admission identity-bound to the current obligation.",
         "Current work unit and current_execution_envelope now require same-identity OPL DomainProgressTransitionRuntime live readback before projecting running_provider_attempt; weak live_provider_attempt and weak handoff running flags stay diagnostic and cannot consume current execution.",
         "Paper recovery provider-admission state no longer projects transition_request_pending after the same current_work_unit has complete same-identity OPL live readback; cross-identity readback and bare transaction fragments stay request-pending diagnostics.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
       "open_gap": "Full consume-only derivation from OPL transition event remains tied to live apply/readback closure."
     },
@@ -863,7 +863,7 @@
         "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_rebuilds_successor_after_handoff_terminal_blocker proves terminal handoff typed blockers force current_executable_owner_action back to null instead of preserving stale successor action.",
         "tests/study_progress_cases/current_executable_owner_action_cases/dm003_owner_receipt_running_handoff.py::test_paper_recovery_refresh_consumes_handoff_terminal_blocker_over_owner_receipt proves consumed terminal typed blockers suppress executable action even when the handoff current_work_unit still says owner_receipt_recorded.",
         "tests/study_progress_cases/current_executable_owner_action_cases/paper_recovery_successor_cases.py::test_paper_recovery_successor_survives_stale_repair_progress_during_fixed_point proves repair_progress_projection can only consume a paper recovery successor when the repair and successor fingerprints match; stale repair progress no longer demotes the current successor action.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
       "open_gap": "Projection still needs long-tail live proof across other owner-answer families."
     },
@@ -896,7 +896,7 @@
         "Progress Portal top-level study.next_system_action, study workbench overview next_system_action, runtime workbench user_next, runtime workbench next_action_summary, workspace dashboard focus, and materialized workspace-row fallback now use read-only current_owner_delta summaries instead of legacy user_visible/cockpit next_system_action or legacy operator focus.",
         "Legacy next_system_action and operator focus values are retained only under diagnostic_legacy_projection_input payloads with can_generate_action=false and must_not_be_used_as_next_action_authority=true.",
         "Progress Portal / study workbench overview now has an explicit opl_workbench_shell_readback_tail: runtime_surface_retirement keeps tail_readback_proven=false, no_active_workbench_projection_action_caller_proven=false, and physical_delete_allowed=false until OPL Workbench Shell action transport, OPL current-control, and DomainProgressTransitionRuntime readbacks or no-active-caller proof exist; MAS portal projections, next_system_action summaries, operator-intent refs, repo no-authority guards, and focused tests cannot satisfy the tail.",
-        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path."
+        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for owner-callable carrier, domain diagnostic obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path."
       ],
       "open_gap": "Workbench/Portal still need event-driven rebuild proof from OPL transition event plus MAS policy result and live OPL Workbench Shell/current-control/DomainProgressTransitionRuntime readback."
     },
@@ -911,10 +911,10 @@
         "Runtime surface inventory tracks remaining private surface tails.",
         "stage_outcome_authority has repo-level coverage for missing OPL proof fail-closed across every supported action, trusted OPL authorization, bound DomainProgressTransitionRuntime readback, and provider-hosted exact StageRun authorization.",
         "stage_outcome_authority now consumes the same helper-defined DomainProgressTransitionRuntime provider-admission identity binding as provider admission; readbacks missing explicit route_identity_key or attempt_idempotency_key fail closed as missing OPL authorization.",
-        "Legacy default_executor_execution/latest.json fallback is no longer consumed by current provider admission, provider handoff export, clean-migration recovery readers, default_executor_execution_candidates, default_executor_execution_receipt_consumption, or default_executor_execution_nonconsumable_closeout; legacy latest requires explicit history/replay opt-in.",
-        "Legacy default_executor_dispatch_request now has a machine-readable OPL DomainProgressTransitionRuntime intake-only and StageRun ABI/provenance-only no-authority boundary; runtime_surface_retirement rejects provider-admission, provider-running, and MAS-created StageRun regressions.",
-        "Legacy default-executor stage closeout packets emitted through default_executor_execution_candidates now carry explicit OPL StageRun closeout provenance and identity-recovery flags with provider_admission_authority=false, execution_authority=false, attempt_lifecycle_authority=false, and queue_authority=false.",
-        "Legacy default_executor_execution/latest.json now has a unified retirement_gate tied to the StageRun ABI active-caller scan; runtime_surface_retirement keeps no_active_stage_run_abi_caller_proven=false and physical_delete_allowed=false while active closeout consumers remain, and rejects tests or provenance-only scans as physical delete evidence.",
+        "Legacy owner_callable_adapter_receipt/latest.json fallback is no longer consumed by current provider admission, provider handoff export, clean-migration recovery readers, owner_callable_receipt_candidates, owner_callable_receipt_consumption, or owner_callable_receipt_nonconsumable_closeout; legacy latest requires explicit history/replay opt-in.",
+        "Legacy owner_callable_dispatch_request now has a machine-readable OPL DomainProgressTransitionRuntime intake-only and StageRun ABI/provenance-only no-authority boundary; runtime_surface_retirement rejects provider-admission, provider-running, and MAS-created StageRun regressions.",
+        "Legacy owner-callable stage closeout packets emitted through owner_callable_receipt_candidates now carry explicit OPL StageRun closeout provenance and identity-recovery flags with provider_admission_authority=false, execution_authority=false, attempt_lifecycle_authority=false, and queue_authority=false.",
+        "Legacy owner_callable_adapter_receipt/latest.json now has a unified retirement_gate tied to the StageRun ABI active-caller scan; runtime_surface_retirement keeps no_active_stage_run_abi_caller_proven=false and physical_delete_allowed=false while active closeout consumers remain, and rejects tests or provenance-only scans as physical delete evidence.",
         "domain_authority_refs_index active callers now route through opl_state_index_source_adapter and emit OPL StateIndex source-adapter proofs by default; db_path no longer implies MAS SQLite persistence, active callers do not receive a persist_sqlite parameter, and legacy SQLite writes require explicit opt-in for replay/local inspection.",
         "domain_authority_refs_index legacy helper active-caller scan now proves no active replay/local-inspection consumers remain after the paper_progress_transition_refs opt-in removal, records the retired transition-ref SQLite opt-in only as provenance, and keeps physical_delete_allowed=false until live OPL StateIndexKernel takeover plus physical-delete/tombstone evidence exists.",
         "domain_authority_refs_index OPL family adoption and product-entry persistence projections now read state_index_source_adapter manifests; legacy domain_authority_refs.sqlite inspection/payload helpers are history replay or local inspection only and cannot satisfy StateIndexKernel takeover.",
@@ -922,19 +922,19 @@
         "runtime_lifecycle_payload_retention apply and sqlite sidecar repair now require OPL runtime lifecycle maintenance authorization proof bound to operation, maintenance surface, db_path, authorized outcome, and authorization_ref; missing proof returns stable typed blocker shape and does not mutate SQLite/cold objects/sidecars.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention/capsule projections remain non-authority.",
         "runtime_surface_retirement_no_authority_audit derives repo-wide no-authority status from the retirement inventory and classifies runtime lifecycle/storage maintenance as OPL-authorized adapters, not MAS private runtime authority.",
-        "Legacy default_executor_dispatch_request now has a machine-readable legacy_source_contamination_boundary: polluted source claims for MAS dispatch authority, OPL event/outbox/StageRun writes, or provider_admission_pending must remain diagnostic-only; receipt projections must force authority and provider-admission flags false, and runtime_surface_retirement rejects regressions that let polluted carrier payloads authorize provider admission or satisfy OPL readback.",
+        "Legacy owner_callable_dispatch_request now has a machine-readable legacy_source_contamination_boundary: polluted source claims for MAS dispatch authority, OPL event/outbox/StageRun writes, or provider_admission_pending must remain diagnostic-only; receipt projections must force authority and provider-admission flags false, and runtime_surface_retirement rejects regressions that let polluted carrier payloads authorize provider admission or satisfy OPL readback.",
         "owner_callable_adapter_projection.owner_callable_adapters is retired as an active body reader; current consumers must read domain_progress_transition_requests, and legacy diagnostics can only read body-free identity refs via legacy_owner_callable_adapter_refs / legacy_owner_callable_adapter_diagnostics.",
         "Agent Tool Arsenal / Scientific Capability Registry is now tracked as an OPL Capability Runtime projection in the runtime surface retirement inventory; wildcard sidecar action triggers cannot auto-select without explicit capability_families / route_required_ref_families and runtime_surface_retirement rejects MAS selector or wildcard auto-select regressions.",
         "Agent Tool Arsenal / Scientific Capability Registry now has a live_owner_consumption_soak_boundary that keeps live_owner_consumption_soak_proven=false, direct_hosted_parity_proven=false, no_active_caller_proven=false, and physical_delete_allowed=false until current-owner-delta-bound capability-consumption live readback, explicit capability-request resolution live readback, direct hosted tool-invocation runtime parity, or no-active registry-projection caller scan exists; runtime_surface_retirement rejects repo-test, wildcard-guard, MCP/CLI mode, hosted-runtime-requirement, capability-request projection, or registry-projection scan evidence as live soak, paper progress, direct parity, or physical-delete proof.",
-        "domain_health_diagnostic_obligation_actuator now has an OPL obligation actuator tail-readback boundary for RecoveryObligationStore and SupervisorDecisionEngine active-caller readbacks; runtime_surface_retirement keeps tail_readback_proven=false, no_active_mas_obligation_actuator_caller_proven=false, and physical_delete_allowed=false until OPL tail readback or no-active-caller proof exists, and rejects MAS policy projections, request projections, focused tests, typed blocker authority results, or repo no-authority guards as tail readback proof.",
+        "domain_diagnostic_obligation_actuator now has an OPL obligation actuator tail-readback boundary for RecoveryObligationStore and SupervisorDecisionEngine active-caller readbacks; runtime_surface_retirement keeps tail_readback_proven=false, no_active_mas_obligation_actuator_caller_proven=false, and physical_delete_allowed=false until OPL tail readback or no-active-caller proof exists, and rejects MAS policy projections, request projections, focused tests, typed blocker authority results, or repo no-authority guards as tail readback proof.",
         "runtime_health_kernel now has an OPL runtime-health observability tail-readback boundary for OPL Observability / StageRun / RouteReconciler active readbacks; runtime_surface_retirement keeps tail_readback_proven=false, no_active_diagnostic_projection_caller_proven=false, and physical_delete_allowed=false until OPL observability/route-reconciler readback or no-active diagnostic-projection proof exists, and rejects MAS runtime-health snapshots, diagnostic projections, focused tests, decision gates, or repo no-authority guards as tail readback proof.",
         "Progress Portal / Workbench overview now has an OPL Workbench Shell readback tail in the runtime surface retirement inventory; runtime_surface_retirement keeps tail_readback_proven=false, no_active_workbench_projection_action_caller_proven=false, and physical_delete_allowed=false until live OPL workbench action-transport/current-control/DomainProgressTransitionRuntime readbacks or no-active-caller proof exist, and rejects MAS portal projection, next_system_action summaries, operator-intent refs, repo no-authority guards, or focused tests as tail readback proof.",
         "runtime_lifecycle_payload_retention and runtime_storage_maintenance now have explicit OPL live-takeover tail-readback boundaries; runtime_surface_retirement keeps tail_readback_proven=false, no-active adapter caller proof=false, and physical_delete_allowed=false until OPL cleanup/storage policy live readback or no-active-caller proof exists, and rejects OPL maintenance authorization, apply gates, dry-run/projection/read-model evidence, maintenance receipts, restore canaries, refs-only index projections, or repo tests as live takeover / physical delete proof.",
         "runtime_surface_retirement_no_authority_audit now exposes completion_evidence_layers that separate repo_no_authority_guard=satisfied_with_repo_evidence from live_soak_or_no_active_caller=evidence_required and physical_retirement=evidence_required; completion_claim_allowed remains false.",
         "domain_authority_refs_index now separates runtime-active private StateIndex caller proof from replay/local-inspection helper tails: runtime_active_private_state_index_caller_count=0 and no_active_replay_or_local_inspection_caller_proven=true are repo-side no-active-caller evidence only, physical_delete_allowed remains false, and live OPL StateIndexKernel takeover plus physical-delete/tombstone evidence remains open.",
         "stage_outcome_authority active-caller soak tail now requires explicit live readback for execute_dispatch, stage-native owner action, provider-hosted stage packet selection, AI reviewer authorization, gate clearing authorization, current-execution running proof, and study-progress running proof, or a no-active owner-callable adapter caller scan; repo authorization coverage, provider completion, focused tests, or running-proof projections without OPL readback remain false completion evidence.",
-        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for owner-callable carrier, domain diagnostic obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path.",
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
       "open_gap": "Remaining repo-source retirement gaps can close through active callsite migration, physical delete/tombstone, retained-minimal-adapter classification, fail-closed typed blocker behavior, and focused/meta/default verification; live OPL readback, provider running proof, and DM002/DM003 paper-line outcomes are tracked in the live-runtime readiness column and no longer block source deletion.",
       "repo_source_retirement_status": "partial",
@@ -949,11 +949,11 @@
       "evidence": [
         "Fresh read-only study_progress on 2026-06-19T04:23:50+00:00 at MAS main/origin 05847e4a6 shows DM002 current_work_unit.status=typed_blocker with blocker_type=anti_loop_budget_exhausted, owner=one-person-lab, work_unit_id=ai_reviewer_record_gate_consumption, active_run_id=None, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=None.",
         "Fresh read-only study_progress on 2026-06-19T04:23:51+00:00 at MAS main/origin 05847e4a6 shows DM003 current_work_unit.status=typed_blocker with blocker_type=no_selected_dispatch_for_authorized_stage_packet, owner=one-person-lab, work_unit_id=medical_prose_write_repair, active_run_id=None, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=None.",
-        "Fresh read-only DHD dry-run on 2026-06-19T04:24:26+00:00 produced action_class=observe_only, will_start_llm=false, provider_admission_pending_count=0, transition_request_pending_count=0, and no supervisor_decisions; this is not DHD apply, OPL outbox/StageRun readback, provider running proof, or paper-line progress.",
-        "Fresh read-only DHD dry-run on 2026-06-19T05:58:56+00:00 from the stable-blocker-preview-suppression worktree produced DM003 domain_handler_owner_resolution_preview_task_count=0 with action_class=observe_only and no provider/transition pending candidates.",
-        "Fresh domain-handler export on 2026-06-19T05:58:36Z from the same worktree produced no DM003 pending_family_tasks, proving the closed stop_with_stable_typed_blocker readback is no longer re-exported as domain_route/reconcile-apply."
+        "Fresh read-only domain diagnostic dry-run on 2026-06-19T04:24:26+00:00 produced action_class=observe_only, will_start_llm=false, provider_admission_pending_count=0, transition_request_pending_count=0, and no supervisor_decisions; this is not domain diagnostic apply, OPL outbox/StageRun readback, provider running proof, or paper-line progress.",
+        "Fresh read-only domain diagnostic dry-run on 2026-06-19T05:58:56+00:00 from the stable-blocker-preview-suppression worktree produced DM003 domain_handler_owner_resolution_preview_task_count=0 with action_class=observe_only and no provider/transition pending candidates.",
+        "Fresh domain-handler export on 2026-06-19T05:58:36Z from the same worktree produced no DM003 pending_family_tasks, proving the closed stop_with_stable_typed_blocker readback is no longer re-exported as stage_outcome/opl-handoff."
       ],
-      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated DHD apply exactly-one closure before broader paper-line progress can be claimed. DM003 now reads as a closed stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) with OPL supervisor decision readback consumed and no longer re-exported as owner-resolution preview; this closes the preview loop but is still not provider running proof or semantic paper/gate/artifact progress. queue empty, DHD observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence.",
+      "open_gap": "DM002 remains an accepted stable typed blocker for the current anti-loop owner-resolution lane, but it still needs owner resolution, route-back, human gate, semantic paper/gate/artifact delta, or delegated domain diagnostic apply exactly-one closure before broader paper-line progress can be claimed. DM003 now reads as a closed stable typed blocker (no_selected_dispatch_for_authorized_stage_packet) with OPL supervisor decision readback consumed and no longer re-exported as owner-resolution preview; this closes the preview loop but is still not provider running proof or semantic paper/gate/artifact progress. queue empty, domain diagnostic observe_only, provider_admission_pending_count=0, transition_request_pending_count=0, and focused tests remain non-progress evidence.",
       "repo_source_retirement_status": "done",
       "live_runtime_readiness_status": "partial"
     }
@@ -993,7 +993,7 @@
       "evidence": [
         "OPL fixed-point helper and MAS postcondition boundaries are covered by repo tests."
       ],
-      "open_gap": "DHD apply exactly-one live outcome remains open."
+      "open_gap": "domain diagnostic apply exactly-one live outcome remains open."
     },
     {
       "phase_id": "lane_4_replay_suite",
@@ -1014,7 +1014,7 @@
         "OPL current-control terminal closeout consumption now preserves identity-bound live-readback provider admissions unless the closeout matches the same StageRun/route/idempotency/packet identity.",
         "Paper recovery execution refresh reruns recovery state, current executable action, provider projection, and admission sync after terminal handoff typed-blocker consumption so stale successor state does not remain current.",
         "Current execution surface refresh consumes provider_admission_terminal_closeout_consumed typed blockers before owner-receipt successor projection when their identity overlaps without conflict.",
-        "Top-level materializer request_tasks alias is retired; DHD preview and stability evidence consume only nested legacy_request_task_diagnostics refs.",
+        "Top-level materializer request_tasks alias is retired; domain diagnostic preview and stability evidence consume only nested legacy_request_task_diagnostics refs.",
         "Repair-progress consumption of paper recovery successors is fingerprint-bound, preventing stale projection demotion during fixed-point refresh.",
         "OPL transition readback validation now requires read_model_readback to rebuild identity, causality, authority_boundary, exactly_one_outcome, and projection_metadata from the same live sections.",
         "study_progress now consumes OPL SupervisorDecisionEngine readback JSONL as refs-only projection evidence, so MAS no longer has to synthesize or stall the paper autonomy supervisor decision locally."
@@ -1040,17 +1040,17 @@
         "stage_outcome_authority repo tests cover fail-closed typed blockers for missing proof across every supported action, trusted OPL authorization, bound transition readback, and exact provider-hosted StageRun authorization.",
         "stage_outcome_authority no longer accepts its own weak readback binding; tests cover missing explicit route/attempt identity fail-closed through the shared OPL transition ABI helper.",
         "Top-level request_tasks alias is physically removed from materializer output, with replacement nested diagnostic refs and retirement inventory updated; remaining carriers still need live/no-active-caller closeout.",
-        "Legacy default_executor_execution/latest.json is no longer a default current receipt reader for default_executor_execution_candidates, default_executor_execution_receipt_consumption, or default_executor_execution_nonconsumable_closeout; tests migrate current fixtures to canonical owner_callable_adapter_receipts/latest.json and keep legacy fallback explicit for history/provenance only.",
+        "Legacy owner_callable_adapter_receipt/latest.json is no longer a default current receipt reader for owner_callable_receipt_candidates, owner_callable_receipt_consumption, or owner_callable_receipt_nonconsumable_closeout; tests migrate current fixtures to canonical owner_callable_adapter_receipts/latest.json and keep legacy fallback explicit for history/provenance only.",
         "runtime_storage_maintenance workspace apply and direct quest physical apply now require bound opl_runtime_storage_maintenance_authorization proof; dry-run, restore-proof canary, refs-only index-only, and planned retention projections remain authorization-free and non-progress claims.",
         "runtime_surface_retirement_no_authority_audit now derives a repo-wide no-authority guard from the retirement inventory, proving open active callers are refs-only, consume-only, read-only, or OPL-authorized adapters rather than MAS private runtime authority.",
-        "default_executor_dispatch_request legacy_source_contamination_boundary is now enforced by tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py and src/med_autoscience/runtime_protocol/runtime_surface_retirement.py, so source payloads claiming MAS authority or OPL writes cannot be reinterpreted as admission, execution, or readback authority.",
-        "runtime_surface_retirement_parts/private_runtime_residue_validators.py now has dedicated fail-closed validators for stage_outcome_authority and domain_health_diagnostic_obligation_actuator, rejecting weak owner-dispatch selection/execution authority, MAS supervisor decision engine revival, MAS recovery obligation store mutation, request-projection success, and actuator-private blocker writes.",
-        "DHD obligation actuator MAS-domain authority readback now requires a trusted domain_authority_boundary, rejects paper_recovery_state.evidence_refs as a success proof source, and consumes owner-gate/human-gate/route-back authority payload refs preserved by paper_recovery_state instead of reinterpreting read-model evidence refs.",
+        "owner_callable_dispatch_request legacy_source_contamination_boundary is now enforced by tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py and src/med_autoscience/runtime_protocol/runtime_surface_retirement.py, so source payloads claiming MAS authority or OPL writes cannot be reinterpreted as admission, execution, or readback authority.",
+        "runtime_surface_retirement_parts/private_runtime_residue_validators.py now has dedicated fail-closed validators for stage_outcome_authority and domain_diagnostic_obligation_actuator, rejecting weak owner-dispatch selection/execution authority, MAS supervisor decision engine revival, MAS recovery obligation store mutation, request-projection success, and actuator-private blocker writes.",
+        "domain diagnostic obligation actuator MAS-domain authority readback now requires a trusted domain_authority_boundary, rejects paper_recovery_state.evidence_refs as a success proof source, and consumes owner-gate/human-gate/route-back authority payload refs preserved by paper_recovery_state instead of reinterpreting read-model evidence refs.",
         "domain_authority_refs_index legacy helper active-caller scan no longer lists OPL family adoption SQLite inspection/payload consumers; current OPL family adoption reads the source-adapter manifest while legacy SQLite helper remains explicit replay/local-inspection only.",
         "domain_authority_refs_index runtime-active private StateIndex caller scan is now machine-read by runtime_surface_retirement and test-addressable; it proves current runtime callers use the OPL state-index source adapter without turning source-adapter manifests into live StateIndexKernel takeover.",
         "Agent Tool Arsenal / Scientific Capability Registry retirement tail now requires current-owner-delta capability-consumption live readback, explicit capability-request resolution live readback, direct hosted tool-invocation runtime parity, or no-active registry-projection caller scan; registry contracts, wildcard guards, MCP/CLI coverage, hosted-runtime requirements, projections, and repo tests remain false completion evidence.",
         "stage_outcome_authority active-caller soak tail now requires explicit live readback for execute_dispatch, stage-native owner action, provider-hosted stage packet selection, AI reviewer authorization, gate clearing authorization, current-execution running proof, and study-progress running proof, or a no-active owner-callable adapter caller scan; repo authorization coverage, provider completion, focused tests, or running-proof projections without OPL readback remain false completion evidence.",
-        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for default-executor carrier, DHD obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path."
+        "b958148f8 / tests/test_adapter_retirement_boundary_cases/test_live_tail_readback_evidence_guard.py prove that no-active caller scans do not satisfy OPL live-readback tail evidence for owner-callable carrier, domain diagnostic obligation actuator, runtime-health observability, materializer projection, Workbench shell, lifecycle maintenance, and storage maintenance tails; tail_readback_proven remains the positive live-evidence path."
       ],
       "open_gap": "Repo-source retirement is closed. Live OPL takeover tails remain in live-runtime readiness and must not be reported as paper progress or production readiness."
     },
@@ -1060,16 +1060,16 @@
       "completion_percent": 50,
       "evidence": [
         "Fresh readbacks have shown stable blocker/owner receipt states but not paper progress completion.",
-        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-dhd-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; DHD dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
+        "Fresh read-only live audit at MAS b958148f87 / OPL b2f707de08 generated /tmp/mas-live-readback-b958148f87-20260619T090731Z-002-dm-china-us-mortality-attribution-progress.json, /tmp/mas-live-readback-b958148f87-20260619T090731Z-003-dpcc-primary-care-phenotype-treatment-gap-progress.json, and /tmp/mas-live-readback-b958148f87-20260619T090731Z-dm002-dm003-domain_diagnostic-dry-run.json: both studies have active_run_id=null, active_stage_attempt_id=null, provider_admission_pending_count=0, transition_request_pending_count=0, current_executable_owner_action=null, OPL supervisor-decision readback consumed, and stable typed blockers; domain diagnostic dry-run action_class=observe_only, will_start_llm=false, candidate_count=0, owner_resolution_preview task_count=0."
       ],
       "open_gap": "DM002/DM003 remain stable typed blockers with no running/admission/current executable owner action in fresh read-only evidence; live paper acceptance is not closed."
     }
   ],
   "required_before_goal_complete": [
     {
-      "gate_id": "live_dhd_apply_exactly_one_outcome",
+      "gate_id": "live_domain_diagnostic_apply_exactly_one_outcome",
       "status": "open",
-      "required_evidence": "Fresh DHD apply, when explicitly delegated, must produce exactly one accepted live outcome family rather than projection refresh, observe_only, or dry-run evidence."
+      "required_evidence": "Fresh domain diagnostic apply, when explicitly delegated, must produce exactly one accepted live outcome family rather than projection refresh, observe_only, or dry-run evidence."
     },
     {
       "gate_id": "opl_outbox_stagerun_identity_live_readback",
@@ -1090,7 +1090,7 @@
     {
       "gate_id": "no_private_runtime_residue_as_authority",
       "status": "open",
-      "required_evidence": "Repo-source retirement evidence is evaluated in completion_columns.repo_source_retirement_completion and does not require live OPL readback, DHD apply, provider running proof, or DM002/DM003 paper-line outcome. Final runtime/paper acceptance still requires the live-runtime readiness column to close, and missing live proof must fail closed as typed blocker evidence rather than revive MAS private runtime authority.",
+      "required_evidence": "Repo-source retirement evidence is evaluated in completion_columns.repo_source_retirement_completion and does not require live OPL readback, domain diagnostic apply, provider running proof, or DM002/DM003 paper-line outcome. Final runtime/paper acceptance still requires the live-runtime readiness column to close, and missing live proof must fail closed as typed blocker evidence rather than revive MAS private runtime authority.",
       "repo_source_retirement_blocks_on_live_runtime_evidence": false,
       "live_runtime_readiness_remains_final_acceptance_tail": true
     }
@@ -1101,7 +1101,7 @@
     "focused_tests_passed",
     "projection_clean",
     "queue_empty",
-    "DHD_dry_run",
+    "domain_diagnostic_dry_run",
     "provider_admission_pending_count=0",
     "transition_request_pending_count=0",
     "owner_resolution_preview",
@@ -1133,7 +1133,7 @@
     "opl_repo_slice_can_claim_mas_live_complete": false,
     "projection_clean_can_claim_complete": false,
     "queue_empty_can_claim_complete": false,
-    "dhd_dry_run_can_claim_complete": false,
+    "domain_diagnostic_dry_run_can_claim_complete": false,
     "repo_source_retirement_can_complete_without_live_runtime_evidence": true,
     "repo_source_retirement_item_claim_requires": [
       "active callsites migrated to OPL primitives or MAS minimal PaperProgressPolicyAdapter / authority adapter",
@@ -1206,7 +1206,7 @@
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/owner_receipt_recorded_after_apply_does_not_advance",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/terminal_owner_receipt_closeout_transition_request_residue",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/closeout_stagerun_identity_split",
-        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/dhd_request_without_opl_readback",
+        "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/domain_diagnostic_request_without_opl_readback",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/provider_admission_same_identity_live_readback_consumes_transition_request",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/provider_admission_cross_identity_readback_remains_request_pending",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_coverage/provider_admission_bare_transaction_fragments_rejected",
@@ -1276,17 +1276,17 @@
     },
     {
       "gate_id": "lane_3_opl_substrate_hardening_live_consumption",
-      "target_role": "Provider admission and DHD apply consume OPL live readback for the same transition, outbox item, and StageRun identity.",
+      "target_role": "Provider admission and domain diagnostic apply consume OPL live readback for the same transition, outbox item, and StageRun identity.",
       "status": "evidence_required",
       "required_evidence_refs": [
         "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
-        "DHD_apply_exactly_one_live_outcome_ref",
+        "domain_diagnostic_apply_exactly_one_live_outcome_ref",
         "provider_admission_arbiter_consumes_opl_transition_event_ref",
         "StageRun_identity_packet_currentness_ref"
       ],
       "observed_refs": [
         "contracts/paper_progress_replay_live_evidence_status.json#/live_evidence_acceptance",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_dispatch_request",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/owner_callable_dispatch_request",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/stage_outcome_authority",
         "tests/test_paper_recovery_state_cases/opl_authorization_cases.py::test_request_only_provider_admission_candidate_does_not_suppress_projection_contradiction",
         "tests/test_paper_recovery_state_cases/opl_authorization_cases.py::test_opl_live_readback_provider_admission_candidate_suppresses_stale_projection",
@@ -1311,7 +1311,7 @@
         "tests/test_provider_admission_current_control_arbiter.py::test_provider_admission_current_control_records_retained_pending_arbiter_decision#opl_transition_event_consumption",
         "tests/test_provider_admission_current_control_cases/transition_request_consume_only_cases.py::test_provider_admission_current_control_treats_mas_request_without_opl_readback_as_non_advancing#bare_event_outbox_stage_run_fragment_rejected",
         "contracts/opl_domain_progress_transition_runtime_contract.json#/live_readback_contract/read_model_rebuild_required_sections",
-        "src/med_autoscience/controllers/domain_health_diagnostic_parts/opl_transition_readback.py::_read_model_rebuild_matches_live_sections",
+        "src/med_autoscience/controllers/domain_diagnostic_report_parts/opl_transition_readback.py::_read_model_rebuild_matches_live_sections",
         "tests/test_opl_transition_readback_contract.py::test_trusted_opl_transition_live_readback_requires_full_transaction_shape#read_model_identity_mismatch",
         "tests/test_paper_recovery_provider_admission_state.py::test_same_identity_live_readback_promotes_request_to_provider_admission",
         "tests/test_paper_recovery_provider_admission_state.py::test_cross_identity_live_readback_remains_request_pending",
@@ -1326,15 +1326,15 @@
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
         "live DM002/DM003 provider admission consumes an OPL event/outbox/StageRun readback for the same current transition identity",
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
         "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
         "DM002 current anti_loop_budget_exhausted owner resolution or accepted stable blocker closeout",
         "DM003 OPL readback backed admission/running proof or MAS owner answer for medical_prose_write_repair"
       ],
       "false_completion_boundary": [
-        "DHD_dry_run",
-        "DHD_observe_only",
+        "domain_diagnostic_dry_run",
+        "domain_diagnostic_observe_only",
         "provider_admission_pending_count=0",
         "managed_study_opl_provider_admission_candidates=0",
         "transition_request_pending_count=0",
@@ -1374,7 +1374,7 @@
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_action_request_materializer_request_tasks_projection",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/stage_outcome_authority",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_authority_refs_index",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_health_kernel",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::audit_runtime_surface_retirement_inventory",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
@@ -1397,7 +1397,7 @@
         "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_anti_loop_owner_gate_cases.py",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
-        "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_default_executor_task_until_running_provider_or_closeout",
+        "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_owner_callable_adapter_task_until_running_provider_or_closeout",
         "tests/study_progress_cases/current_executable_owner_action_cases/paper_recovery_successor_cases.py::test_paper_recovery_successor_survives_stale_repair_progress_during_fixed_point",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_lifecycle_payload_retention",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/runtime_lifecycle_payload_retention#opl_runtime_lifecycle_maintenance_tail_readback",
@@ -1415,32 +1415,32 @@
         "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_storage_maintenance_rejects_mas_storage_authority_regression",
         "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::test_runtime_storage_maintenance_rejects_mas_storage_authority_regression",
         "tests/test_adapter_retirement_boundary.py::test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy#default_candidates_canonical_only",
-        "tests/test_adapter_retirement_boundary.py::test_dhd_legacy_execution_fallback_is_refs_only_stage_run_intake",
+        "tests/test_adapter_retirement_boundary.py::test_domain_diagnostic_legacy_execution_fallback_is_refs_only_stage_run_intake",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_latest_default_fallback_violation",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_dispatch_request#legacy_stage_run_abi_provenance_boundary",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_dispatch_request#opl_default_executor_carrier_tail_readback",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_execution_latest_wire_projection#legacy_stage_run_abi_boundary",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/default_executor_execution_latest_wire_projection#legacy_stage_run_abi_boundary.active_stage_run_abi_caller_scan",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/owner_callable_dispatch_request#legacy_stage_run_abi_provenance_boundary",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/owner_callable_dispatch_request#opl_owner_callable_adapter_carrier_tail_readback",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/owner_callable_adapter_receipt_latest_wire_projection#legacy_stage_run_abi_boundary",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/owner_callable_adapter_receipt_latest_wire_projection#legacy_stage_run_abi_boundary.active_stage_run_abi_caller_scan",
         "src/med_autoscience/controllers/study_transition_receipt_consumption_parts/owner_callable_candidates.py::_execution_from_stage_closeout#legacy_stage_run_abi_provenance_only",
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_legacy_default_executor_carrier",
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_default_executor_carrier_tail_readback",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_legacy_owner_callable_adapter_carrier",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_owner_callable_adapter_carrier_tail_readback",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::_validate_legacy_stage_run_abi",
-        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#legacy_default_executor_carrier_stage_run_abi_boundary",
-        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#default_executor_carrier_tail_readback",
-        "tests/test_adapter_retirement_boundary.py::test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
+        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#legacy_owner_callable_adapter_carrier_stage_run_abi_boundary",
+        "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#owner_callable_adapter_carrier_tail_readback",
+        "tests/test_adapter_retirement_boundary.py::test_owner_callable_adapter_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
         "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_default_executor_carrier_authority_regression",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#default_executor_carrier_tail_false_completion_guard",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_owner_callable_adapter_carrier_authority_regression",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#owner_callable_adapter_carrier_tail_false_completion_guard",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_stage_outcome_authority",
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_health_diagnostic_obligation_actuator",
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_health_diagnostic_obligation_actuator#opl_obligation_actuator_tail_readback",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_diagnostic_obligation_actuator",
+        "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/private_runtime_residue_validators.py::validate_domain_diagnostic_obligation_actuator#opl_obligation_actuator_tail_readback",
         "src/med_autoscience/controllers/opl_transition_readback.py::provider_admission_opl_transition_readback",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_health_diagnostic_obligation_actuator#opl_obligation_actuator_tail_readback",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator#opl_obligation_actuator_tail_readback",
         "contracts/paper_autonomy_supervisor_contract.json#/control_boundaries/opl_obligation_actuator_tail_readback_requirement",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::audit_runtime_surface_retirement_inventory#obligation_actuator_tail_readback_readback",
         "src/med_autoscience/runtime_protocol/runtime_surface_retirement_parts/completion_evidence_layers.py::completion_evidence_layers#opl_obligation_actuator_tail_readback",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#stage_outcome_authority_authority_regression",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_health_diagnostic_obligation_actuator_authority_regression",
+        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#domain_diagnostic_obligation_actuator_authority_regression",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#obligation_actuator_tail_readback_false_completion_guard",
         "tests/test_paper_autonomy_supervisor_contract.py#opl_obligation_actuator_tail_readback_requirement",
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py::source_adapter_manifest",
@@ -1495,12 +1495,12 @@
       ],
       "missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
         "agent_tool_arsenal_scientific_capability_registry live-tail work order evidence required",
-        "domain_health_diagnostic_obligation_actuator live-tail work order evidence required",
+        "domain_diagnostic_obligation_actuator live-tail work order evidence required",
         "stage_outcome_authority live-tail work order evidence required",
         "progress_portal_study_workbench_overview_action_projection live-tail work order evidence required",
         "runtime_health_kernel live-tail work order evidence required",
@@ -1517,14 +1517,14 @@
         "current_execution_running_proof_without_opl_readback_as_soak",
         "explicit_replay_opt_in_as_live_opl_readback",
         "focused_tests_green",
-        "focused_tests_green_as_no_active_default_executor_carrier_caller",
+        "focused_tests_green_as_no_active_owner_callable_adapter_carrier_caller",
         "focused_tests_green_as_no_active_obligation_actuator_caller",
         "focused_tests_green_as_no_active_runtime_health_caller",
         "focused_tests_green_as_physical_delete",
         "history_replay_opt_in_as_runtime_active_caller",
         "hosted_opl_runtime_requirement_as_direct_hosted_parity",
         "inventory_entry_updated",
-        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+        "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback",
         "legacy_carrier_retained_as_provenance",
         "legacy_closeout_packet_identity_recovery_as_provider_admission_authority",
         "legacy_helper_no_active_scan_as_physical_delete",
@@ -1546,7 +1546,7 @@
         "refs_only_state_index_projection_as_storage_takeover",
         "registry_projection_no_active_scan_as_physical_delete",
         "repo_authorization_coverage_as_live_every_active_caller_soak",
-        "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
+        "repo_no_authority_guard_as_owner_callable_adapter_carrier_tail_readback",
         "repo_no_authority_guard_as_obligation_actuator_tail_readback",
         "repo_no_authority_guard_as_runtime_health_tail_readback",
         "repo_no_authority_guard_satisfied_without_live_soak",
@@ -1585,12 +1585,12 @@
       "repo_source_missing_evidence_tails": [],
       "live_runtime_readiness_missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
-        "DHD apply exactly-one live outcome when explicitly delegated",
+        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
         "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
         "agent_tool_arsenal_scientific_capability_registry live-tail work order evidence required",
-        "domain_health_diagnostic_obligation_actuator live-tail work order evidence required",
+        "domain_diagnostic_obligation_actuator live-tail work order evidence required",
         "stage_outcome_authority live-tail work order evidence required",
         "progress_portal_study_workbench_overview_action_projection live-tail work order evidence required",
         "runtime_health_kernel live-tail work order evidence required",
@@ -1609,7 +1609,7 @@
       ],
       "live_runtime_work_order_surface_ids": [
         "agent_tool_arsenal_scientific_capability_registry",
-        "domain_health_diagnostic_obligation_actuator",
+        "domain_diagnostic_obligation_actuator",
         "stage_outcome_authority",
         "progress_portal_study_workbench_overview_action_projection",
         "runtime_health_kernel",
@@ -1628,12 +1628,12 @@
     },
     {
       "gate_id": "lane_5_live_paper_line_acceptance",
-      "target_role": "DM002/DM003 live paper lines show exactly one allowed outcome family with fresh study_progress, DHD readback, OPL readback when applicable, and MAS owner evidence.",
+      "target_role": "DM002/DM003 live paper lines show exactly one allowed outcome family with fresh study_progress, domain diagnostic readback, OPL readback when applicable, and MAS owner evidence.",
       "status": "evidence_required",
       "required_evidence_refs": [
         "fresh_DM002_study_progress_ref",
         "fresh_DM003_study_progress_ref",
-        "fresh_DHD_readback_or_delegated_apply_ref",
+        "fresh_domain_diagnostic_readback_or_delegated_apply_ref",
         "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
         "OPL_current_control_or_StageRun_readback_ref_when_provider_claim_exists"
       ],
@@ -1643,8 +1643,8 @@
         "contracts/paper_progress_replay_live_evidence_status.json#/remaining_evidence_tails",
         "fresh_read_only:2026-06-19T04:23:50Z:DM002 study_progress typed_blocker anti_loop_budget_exhausted active_run_id=None provider_admission_pending_count=0 transition_request_pending_count=0 current_executable_owner_action=None",
         "fresh_read_only:2026-06-19T04:23:51Z:DM003 study_progress typed_blocker no_selected_dispatch_for_authorized_stage_packet active_run_id=None provider_admission_pending_count=0 transition_request_pending_count=0 current_executable_owner_action=None",
-        "fresh_read_only:2026-06-19T04:24:26Z:DHD dry-run observe_only will_start_llm=false provider_admission_pending_count=0 transition_request_pending_count=0 supervisor_decisions=None",
-        "fresh_read_only:2026-06-19T05:58:56Z:DM003 DHD dry-run stable blocker owner-resolution preview suppressed task_count=0",
+        "fresh_read_only:2026-06-19T04:24:26Z:domain diagnostic dry-run observe_only will_start_llm=false provider_admission_pending_count=0 transition_request_pending_count=0 supervisor_decisions=None",
+        "fresh_read_only:2026-06-19T05:58:56Z:DM003 domain diagnostic dry-run stable blocker owner-resolution preview suppressed task_count=0",
         "fresh_read_only:2026-06-19T05:58:36Z:DM003 domain-handler export pending_family_tasks=[] after stop_with_stable_typed_blocker readback"
       ],
       "missing_evidence_tails": [
@@ -1658,7 +1658,7 @@
         "contract_landed",
         "docs_updated",
         "OPL_repo_slice_landed",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_completed_without_mas_closeout_consumption",
         "active_run_id_present_without_same_identity_running_proof"
       ],
@@ -1679,8 +1679,8 @@
     "make_test_meta_passed",
     "scripts_verify_passed",
     "OPL_repo_slice_landed",
-    "DHD_dry_run",
-    "DHD_observe_only",
+    "domain_diagnostic_dry_run",
+    "domain_diagnostic_observe_only",
     "queue_empty",
     "provider_completed",
     "provider_admission_pending_count=0",
@@ -1710,16 +1710,16 @@
   "open_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",
     "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
-    "DHD apply exactly-one live outcome when explicitly delegated",
+    "domain diagnostic apply exactly-one live outcome when explicitly delegated",
     "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
     "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
     "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
     "DM002/DM003 fresh live paper-line outcome per allowed exactly-one family",
     "domain_authority_refs_index live OPL StateIndexKernel takeover plus physical-delete/tombstone proof after no-active replay/local-inspection proof and active caller source-adapter migration",
-    "domain_health_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
+    "domain_diagnostic_obligation_actuator physical retirement owner decision or no-active-caller proof",
     "stage_outcome_authority live every-active-caller soak or no-active-caller proof",
-    "legacy default-executor carrier OPL DomainProgressTransitionRuntime / outbox / StageRun live readback or no-active-carrier-caller physical delete proof after OPL StageRun ABI/provenance boundary proof",
-    "legacy default-executor carrier no-active StageRun ABI caller physical delete proof after OPL StageRun ABI/provenance boundary proof",
+    "legacy owner-callable carrier OPL DomainProgressTransitionRuntime / outbox / StageRun live readback or no-active-carrier-caller physical delete proof after OPL StageRun ABI/provenance boundary proof",
+    "legacy owner-callable carrier no-active StageRun ABI caller physical delete proof after OPL StageRun ABI/provenance boundary proof",
     "Agent Tool Arsenal current-owner-delta capability-consumption live readback",
     "Agent Tool Arsenal explicit capability-request resolution live readback",
     "Agent Tool Arsenal direct hosted tool-invocation runtime parity readback",
@@ -1737,7 +1737,7 @@
   "non_claims": {
     "all_mas_private_surfaces_physically_retired": false,
     "domain_progress_transition_runtime_live_complete": false,
-    "dhd_apply_runtime_ready": false,
+    "domain_diagnostic_apply_runtime_ready": false,
     "provider_admission_ready": false,
     "dm002_dm003_live_paper_progress": false,
     "paper_closure": false,

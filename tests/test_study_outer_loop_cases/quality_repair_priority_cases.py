@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_build_domain_health_diagnostic_outer_loop_tick_request_routes_quality_repair_batch_before_task_intake(
+def test_build_runtime_readback_outer_loop_tick_request_routes_quality_repair_batch_before_task_intake(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -113,13 +113,13 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_routes_quality_r
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
+        _domain_diagnostic_report_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_diagnostic_report_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
-        _domain_health_diagnostic_tick_request_module(),
+        _domain_diagnostic_report_tick_request_module(),
         "recommended_task_intake_action",
         lambda **_: {
             "action_id": "task-intake::001-risk::analysis-campaign",
@@ -140,7 +140,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_routes_quality_r
         },
     )
 
-    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
+    request = module.build_runtime_readback_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -327,16 +327,16 @@ def test_ai_reviewer_currentness_preempts_stale_methodology_intake_and_repair_ba
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
+        _domain_diagnostic_report_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
-    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module(), "recommended_task_intake_action", lambda **_: stale_analysis_action)
+    monkeypatch.setattr(_domain_diagnostic_report_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_diagnostic_report_tick_request_module(), "recommended_task_intake_action", lambda **_: stale_analysis_action)
     monkeypatch.setattr(module.quality_repair_batch, "build_quality_repair_batch_recommended_action", lambda **_: stale_analysis_action)
     monkeypatch.setattr(module.gate_clearing_batch, "build_gate_clearing_batch_recommended_action", lambda **_: None)
 
-    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
+    request = module.build_runtime_readback_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -578,20 +578,20 @@ def test_current_ai_reviewer_route_back_preempts_gate_and_quality_batch(
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
+        _domain_diagnostic_report_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
     monkeypatch.setattr(
-        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
+        _domain_diagnostic_report_tick_request_module().publication_gate_controller,
         "build_gate_report",
         lambda state: gate_report,
     )
-    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module(), "recommended_task_intake_action", lambda **_: None)
+    monkeypatch.setattr(_domain_diagnostic_report_tick_request_module(), "recommended_task_intake_action", lambda **_: None)
     monkeypatch.setattr(module.quality_repair_batch, "build_quality_repair_batch_recommended_action", lambda **_: stale_batch_action)
     monkeypatch.setattr(module.gate_clearing_batch, "build_gate_clearing_batch_recommended_action", lambda **_: stale_batch_action)
 
-    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
+    request = module.build_runtime_readback_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "002-dm-china-us-mortality-attribution",

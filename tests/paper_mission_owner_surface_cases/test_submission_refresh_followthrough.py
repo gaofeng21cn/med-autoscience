@@ -146,16 +146,16 @@ def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes
         "idempotency_key": "owner-route::dm003::post-submission-refresh",
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -385,16 +385,16 @@ def test_consumed_publication_gate_specificity_with_blocked_gate_routes_to_final
         "idempotency_key": "owner-route::dm003::publication-gate-specificity",
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -435,7 +435,7 @@ def test_consumed_publication_gate_specificity_with_blocked_gate_routes_to_final
     )
 
     study = result["studies"][0]
-    receipt = study["default_executor_execution_receipt_consumption"]
+    receipt = study["owner_callable_receipt_consumption"]
     assert receipt["status"] == "consumed"
     assert receipt["action_type"] == "publication_gate_specificity_required"
     assert receipt["owner_result_status"] == "blocked"
@@ -619,16 +619,16 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
         "idempotency_key": "owner-route::dm003::publication-gate-specificity",
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -651,7 +651,7 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
             ],
             "execution_ledger": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -681,7 +681,7 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
     )
 
     study = result["studies"][0]
-    receipt = study["default_executor_execution_receipt_consumption"]
+    receipt = study["owner_callable_receipt_consumption"]
     assert receipt["action_type"] == "publication_gate_specificity_required"
     assert receipt["consumption_mode"] == "followthrough_action_transition"
     assert [item["action_type"] for item in study["action_queue"]] == ["current_package_freshness_required"]
@@ -857,16 +857,16 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
         "idempotency_key": "owner-route::dm003::publication-gate-specificity",
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 2,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -885,7 +885,7 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
             ],
             "execution_ledger": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -923,7 +923,7 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
     )
 
     study = result["studies"][0]
-    receipt = study["default_executor_execution_receipt_consumption"]
+    receipt = study["owner_callable_receipt_consumption"]
     assert receipt["action_type"] == "current_package_freshness_required"
     assert receipt.get("consumption_mode") != "followthrough_action_transition"
     assert [item["action_type"] for item in study["action_queue"]] == ["publication_gate_specificity_required"]

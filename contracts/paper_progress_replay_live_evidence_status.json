@@ -22,7 +22,7 @@
     "same_identity_provider_admission_replay_status": "covered_by_focused_test_not_fresh_live_acceptance",
     "replay_to_live_separation_status": "active_gate_evidence_tail_open",
     "live_paper_progress_claim_allowed": false,
-    "dhd_dirty_lane_written": false,
+    "domain_diagnostic_dirty_lane_written": false,
     "yang_workspace_runtime_artifacts_written": false
   },
   "replay_coverage": [
@@ -90,11 +90,11 @@
       "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_current_work_unit_and_paper_recovery_state_disagreement_resolves_to_one_route_back_transition"
     },
     {
-      "trace_id": "dhd_request_without_opl_readback",
+      "trace_id": "domain_diagnostic_request_without_opl_readback",
       "status": "covered_by_focused_test",
       "accepted_transition": "StartProviderAttempt_then_NonAdvancingApply",
       "required_postcondition": "provider_admission_enqueued_or_blocked_then_non_advancing_apply_typed_blocker_ref",
-      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_dhd_provider_transition_request_without_opl_readback_becomes_non_advancing_apply"
+      "test_ref": "tests/test_paper_progress_transition_replay_fixtures.py::test_domain_diagnostic_provider_transition_request_without_opl_readback_becomes_non_advancing_apply"
     },
     {
       "trace_id": "provider_admission_same_identity_live_readback_consumes_transition_request",
@@ -138,13 +138,14 @@
     ],
     "source_read_order": [
       "fresh study_progress JSON per study",
-      "fresh domain-health-diagnostic dry-run or delegated apply/readback JSON",
+      "fresh paper-mission inspect JSON per study when mission/stage outcome state is required",
       "OPL current-control or StageRun readback when an active run, admission, or provider claim exists",
       "MAS owner receipt, typed blocker, human gate, route-back evidence, publication gate, or paper/artifact delta refs"
     ],
     "accepted_live_commands": [
       "scripts/run-python-clean.sh -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
-      "scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --dry-run"
+      "scripts/run-python-clean.sh -m med_autoscience.cli paper-mission inspect --profile <profile> --study-id <study_id> --format json",
+      "OPL current-control / StageRun readback command owned by OPL when provider/admission/running proof is claimed"
     ]
   },
   "replay_to_live_separation_gate": {
@@ -245,8 +246,8 @@
   "forbidden_completion_interpretations": [
     "queue_empty",
     "action_queue=[]",
-    "DHD_dry_run",
-    "DHD_observe_only",
+    "domain_diagnostic_dry_run",
+    "domain_diagnostic_observe_only",
     "provider_admission_pending_count=0",
     "managed_study_opl_provider_admission_candidates=0",
     "transition_request_pending_count=0",
@@ -269,7 +270,7 @@
   "remaining_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",
     "fresh live StageRun identity and transaction consistency readback from OPL for current DM002/DM003 transition requests",
-    "DHD apply exactly-one live outcome when explicitly delegated",
+    "domain diagnostic apply exactly-one live outcome when explicitly delegated",
     "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
     "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
     "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",

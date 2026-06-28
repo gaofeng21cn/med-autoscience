@@ -45,7 +45,7 @@ def test_current_work_unit_preserves_anti_loop_stop_loss_over_stage_readiness_bl
                 "run_quality_repair_batch"
             ),
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_82a2b164657c9b4d0c312db9.closeout.json"
             ),
             "anti_loop_budget": {
@@ -101,12 +101,12 @@ def test_current_work_unit_routes_opl_authorization_typed_blocker_over_stage_rea
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_e1063d97901cc3d70424fc5c.closeout.json"
             ),
             "typed_blocker_ref": (
                 "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-                "consumer/default_executor_execution/sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
+                "consumer/owner_callable_adapter_receipt/sat_e1063d97901cc3d70424fc5c.closeout.json#domain_blocker"
             ),
             "stage_attempt_id": "sat_e1063d97901cc3d70424fc5c",
             "terminal_closeout_status": "blocked",
@@ -170,7 +170,7 @@ def test_current_work_unit_opl_authorization_blocker_precedes_same_identity_acti
             "required_input": "OPL provider attempt, active lease, and execution authorization decision",
             "typed_blocker_ref": (
                 "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_execution/sat-b002.closeout.json#typed_blocker"
+                "consumer/owner_callable_adapter_receipt/sat-b002.closeout.json#typed_blocker"
             ),
         },
         next_owner="finalize",
@@ -207,7 +207,7 @@ def test_current_work_unit_normalizes_structured_terminal_authorization_blocker(
             "current_stage": "publication_supervision",
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
                     "stage_name": work_unit_id,
@@ -232,7 +232,7 @@ def test_current_work_unit_normalizes_structured_terminal_authorization_blocker(
                     },
                     "source_path": (
                         "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
-                        "artifacts/supervision/consumer/default_executor_execution/latest.json"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
                     ),
                 },
             },
@@ -275,7 +275,7 @@ def test_current_work_unit_terminal_rehydrate_blocker_keeps_opl_owner_over_domai
             "current_stage": "publication_supervision",
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "return_to_ai_reviewer_workflow",
                     "status": "blocked",
                     "blocked_reason": "medical_prose_review_request_rehydrate_required",

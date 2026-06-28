@@ -20,7 +20,7 @@ def test_provider_admission_current_control_wrappers_preserve_stage_authority_bo
     fingerprint = "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
     stage_packet_ref = (
         "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-        "consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/c4a596de.json"
+        "consumer/owner_callable_adapters/immutable/return_to_ai_reviewer_workflow/c4a596de.json"
     )
     candidate = {
         "surface": "opl_provider_admission_candidate",
@@ -196,14 +196,14 @@ def test_current_control_provider_admission_candidate_uses_opl_transition_reques
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / f"{action_type}.json"
     )
     dispatch_path.parent.mkdir(parents=True, exist_ok=True)
     dispatch_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_request",
+                "surface": "owner_callable_dispatch_request",
                 "study_id": study_id,
                 "quest_id": study_id,
                 "action_type": action_type,
@@ -326,7 +326,7 @@ def test_provider_admission_candidate_inherits_current_action_currentness_basis(
         "action_fingerprint": fingerprint,
         "dispatch_path": (
             "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-            "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            "consumer/owner_callable_adapters/run_quality_repair_batch.json"
         ),
         "execution_status": "handoff_ready",
         "provider_attempt_or_lease_required": True,
@@ -342,7 +342,7 @@ def test_provider_admission_candidate_inherits_current_action_currentness_basis(
 
     [candidate] = module.provider_admission_candidates_from_execution_payload(
         {"executions": [execution]},
-        execution_ref="studies/003/default_executor_execution/latest.json",
+        execution_ref="studies/003/owner_callable_adapter_receipt/latest.json",
         status_payload=status_payload,
     )
 
@@ -382,19 +382,19 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / f"{action_type}.json"
     )
     dispatch_path.parent.mkdir(parents=True, exist_ok=True)
     dispatch_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_request",
+                "surface": "owner_callable_dispatch_request",
                 "study_id": study_id,
                 "quest_id": study_id,
                 "action_type": action_type,
                 "dispatch_status": "ready",
-                "dispatch_authority": "consumer_default_executor_dispatch",
+                "dispatch_authority": "consumer_owner_callable_dispatch",
                 "next_executable_owner": "analysis-campaign",
                 "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
                 "action_fingerprint": fingerprint,
@@ -482,7 +482,7 @@ def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity
             "action_fingerprint": stale_fingerprint,
             "dispatch_path": (
                 "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+                "consumer/owner_callable_adapters/run_gate_clearing_batch.json"
             ),
             "execution_status": "blocked",
             "blocked_reason": "opl_execution_authorization_required",
@@ -496,7 +496,7 @@ def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity
                 },
             },
         },
-        execution_ref="studies/003/default_executor_execution/latest.json",
+        execution_ref="studies/003/owner_callable_adapter_receipt/latest.json",
         status_study_id=study_id,
         current_action_identity={
             "action_ids": [action_type, work_unit_id],
@@ -531,9 +531,9 @@ def test_provider_admission_candidate_does_not_synthesize_stage_packet_from_disp
             "action_fingerprint": fingerprint,
             "dispatch_path": (
                 "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+                "consumer/owner_callable_adapters/run_gate_clearing_batch.json"
             ),
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "execution_status": "handoff_ready",
             "provider_attempt_or_lease_required": True,
             "owner_route_current": True,
@@ -551,7 +551,7 @@ def test_provider_admission_candidate_does_not_synthesize_stage_packet_from_disp
                 },
             },
         },
-        execution_ref="studies/003/default_executor_execution/latest.json",
+        execution_ref="studies/003/owner_callable_adapter_receipt/latest.json",
         status_study_id=study_id,
         current_action_identity={
             "action_ids": [action_type, work_unit_id],
@@ -564,6 +564,6 @@ def test_provider_admission_candidate_does_not_synthesize_stage_packet_from_disp
     )
 
     assert candidate is not None
-    assert candidate["dispatch_ref"].endswith("default_executor_dispatches/run_gate_clearing_batch.json")
+    assert candidate["dispatch_ref"].endswith("owner_callable_adapters/run_gate_clearing_batch.json")
     assert "stage_packet_ref" not in candidate
     assert "stage_packet_refs" not in candidate

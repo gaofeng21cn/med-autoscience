@@ -115,7 +115,7 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
                 "cost_refs": ["cost:provider-attempt:sat-terminal"],
                 "missing_observability_fields": [],
                 "paper_stage_log": {
-                    "stage_name": "domain_owner/default-executor-dispatch",
+                    "stage_name": "stage_outcome/opl-handoff",
                     "stage_work_done": [
                         "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
                     ],

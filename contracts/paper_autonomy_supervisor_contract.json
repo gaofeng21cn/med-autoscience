@@ -62,13 +62,13 @@
     "read_models_can_create_obligations": false,
     "query_surfaces": [
       "study_progress",
-      "domain_health_diagnostic",
+      "domain_diagnostic_report",
       "progress_portal",
       "OPL current_control_state",
       "stage_artifact_index"
     ],
     "update_surfaces": [
-      "domain-health-diagnostic apply closeout consumer",
+      "domain-diagnostic-report apply closeout consumer",
       "domain-handler dispatch",
       "owner-gate decision intake",
       "recovery materializer"
@@ -363,9 +363,9 @@
       "OPL self-signed MAS owner receipt"
     ]
   },
-  "dhd_apply_consume_only_readback": {
-    "surface_kind": "domain_health_diagnostic_apply_consume_only_readback_contract",
-    "producer": "domain-health-diagnostic.apply",
+  "domain_diagnostic_apply_consume_only_readback": {
+    "surface_kind": "domain_diagnostic_report_apply_consume_only_readback_contract",
+    "producer": "domain-diagnostic-report.apply",
     "role": "consume supervisor transaction results and report identity-bound readback without redeciding MAS study truth",
     "required_binding_fields": [
       "paper_autonomy_supervisor_decision_id",
@@ -449,7 +449,7 @@
       "request_projection_is_success_outcome": false,
       "success_requires_opl_foundation_readback_boundary": true,
       "success_proof_required_for_postcondition_ok": true,
-      "success_proof_surface_kind": "dhd_apply_success_proof",
+      "success_proof_surface_kind": "domain_diagnostic_apply_success_proof",
       "success_proof_forbidden_when_request_projection_only": true,
       "success_proof_required_fields": [
         "surface_kind",
@@ -506,8 +506,8 @@
       }
     },
     "consume_only_readback_boundary": {
-      "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
-      "consumer": "med-autoscience.domain-health-diagnostic.apply",
+      "surface_kind": "domain_diagnostic_report_apply_consume_only_readback",
+      "consumer": "med-autoscience.domain-diagnostic-report.apply",
       "opl_runtime_owner": "one-person-lab",
       "opl_recovery_obligation_store_owner": "one-person-lab",
       "opl_supervisor_decision_engine_owner": "one-person-lab",
@@ -715,7 +715,7 @@
     ],
     "forbidden_authority_claims": [
       "OPL queue or attempt ledger owns medical truth",
-      "DHD read-model can close owner receipt",
+      "domain diagnostic read-model can close owner receipt",
       "Portal or workbench text can resume human gate",
       "MAS can generate human gate resume tokens",
       "trace span can close quality gate",
@@ -816,7 +816,7 @@
         "paper_progress_classification"
       ],
       "drilldown_only_fields": [
-        "DHD detail",
+        "domain diagnostic detail",
         "queue history",
         "stage index",
         "trace",
@@ -909,7 +909,7 @@
         "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py"
       ],
       "does_not_claim": [
-        "live DHD apply has consumed a real study route-back",
+        "live domain diagnostic apply has consumed a real study route-back",
         "OPL provider has executed the materialized recovery action",
         "live paper-line soak complete"
       ]

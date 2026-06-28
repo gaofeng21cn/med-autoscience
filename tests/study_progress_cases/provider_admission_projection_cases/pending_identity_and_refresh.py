@@ -31,13 +31,13 @@ def test_provider_admission_projection_uses_current_work_unit_pending_identity(t
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "dispatch_status": "ready",
             "study_id": study_id,
             "quest_id": study_id,
@@ -175,13 +175,13 @@ def test_existing_projection_refresh_promotes_progress_first_owner_action_admiss
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "dispatch_status": "ready",
             "study_id": study_id,
             "quest_id": study_id,

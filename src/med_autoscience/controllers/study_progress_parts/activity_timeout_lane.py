@@ -31,7 +31,7 @@ def activity_timeout_lane(
             or blocker_summary
             or next_system_action
         ),
-        "recommended_action_id": "domain_route/reconcile-apply",
+        "recommended_action_id": "stage_outcome/opl-handoff",
         "activity_timeout": dict(activity_timeout or {}),
         "progress_pressure": dict((activity_timeout or {}).get("progress_pressure") or {}),
         "terminal_failure": False,

@@ -67,7 +67,7 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json",
         {
             "schema_version": 1,
             "scanned_at": "2026-05-27T17:26:18+00:00",
@@ -192,7 +192,7 @@ def test_runtime_medical_publication_surface_projects_structured_and_invalid_blo
     result = surface.build_runtime_medical_publication_surface_projection(
         study_root=study_root,
         quest_root=quest_root,
-        domain_health_diagnostic_payload=None,
+        runtime_readback_payload=None,
     )
 
     assert result is not None

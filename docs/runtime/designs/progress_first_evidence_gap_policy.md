@@ -33,7 +33,7 @@ Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-ga
 - Core API: `med_autoscience.evidence_gap_decision`
 - Projection adapter: `med_autoscience.controllers.evidence_gap_projection.attach_evidence_gap_projection`
 - Study progress payload: 附加 `evidence_gap_decisions`、summary、ledger surfaces、typed blocker count 和 forbidden claims。
-- DHD read-model currentness: `domain_health_diagnostic` runtime scan 从 fresh `study_progress` currentness 携带同一 evidence-gap summary、ledger surfaces、typed blocker count 和 forbidden claims；它只做诊断投影，不从 pending count 推断 hard gate。
+- domain diagnostic read-model currentness: `domain_diagnostic_report` runtime scan 从 fresh `study_progress` currentness 携带同一 evidence-gap summary、ledger surfaces、typed blocker count 和 forbidden claims；它只做诊断投影，不从 pending count 推断 hard gate。
 - Domain action materializer: action/request/transition projection 携带 evidence gap summary；hard/human gate 变成 blocked dispatch；soft/assumption/backlog/tail 不改变当前 action dispatch。
 - OPL / Product Entry / MCP ABI: `contracts/evidence-gap-consumption-abi.json` 和 `med_autoscience.evidence_gap_abi` 固定 `EvidenceCondition`、`EvidenceBudget`、`HardGateRegistry`、`SoftGapLedger`、`AssumptionLedger`、`WorkbenchGapView` 六个消费面；action catalog、product-entry manifest、skill catalog 和 MCP tool metadata 只携带同一 ABI ref，不生成第二真相源。
 - Stage / default executor policy: `contracts/stage_control_plane.json`、`stage_throughput_contracts` 和 `owner_callable_action_policy` 的 missing-evidence 口径统一为 `classify_with_evidence_gap_decision_then_progress_first`；普通 evidence gap 不再直接 fallback 到 typed blocker。
@@ -52,8 +52,8 @@ Machine boundary: 本文是人读导航。机器合同归 `contracts/evidence-ga
 - `production_ready`
 - `provider_running`
 
-Contract landed、docs updated、focused tests passed、projection clean、queue empty、DHD dry-run 或 evidence tail recorded 都不能被解释成以上 claim。
+Contract landed、docs updated、focused tests passed、projection clean、queue empty、domain diagnostic dry-run 或 evidence tail recorded 都不能被解释成以上 claim。
 
 ## 非目标
 
-本策略不启动 provider，不运行 DHD apply / hydrate / tick / redrive，不写 study runtime artifacts、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper body、owner receipt、typed blocker 或 human gate。真实 paper progress / readiness 仍只能由 fresh runtime readback、owner receipt、stable typed blocker、human gate、route-back evidence、quality gate receipt 或 canonical paper/gate/artifact semantic delta 证明。
+本策略不启动 provider，不运行 domain diagnostic apply / hydrate / tick / redrive，不写 study runtime artifacts、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper body、owner receipt、typed blocker 或 human gate。真实 paper progress / readiness 仍只能由 fresh runtime readback、owner receipt、stable typed blocker、human gate、route-back evidence、quality gate receipt 或 canonical paper/gate/artifact semantic delta 证明。

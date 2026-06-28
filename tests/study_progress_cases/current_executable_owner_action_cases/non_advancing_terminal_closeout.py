@@ -112,7 +112,7 @@ def _non_advancing_current_work_unit() -> dict[str, object]:
 def _record_only_terminal_closeout() -> dict[str, object]:
     return {
         "stage_attempt_id": "sat_f22f2e9d25d336fa2a2a4306",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "stage_outcome/opl-handoff",
         "status": "closed",
         "stage_name": WRITE_WORK_UNIT,
         "outcome": (

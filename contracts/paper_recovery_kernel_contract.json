@@ -21,7 +21,7 @@
     "execution_substrate_owner": "OPL Framework",
     "projection_consumers": [
       "study_progress",
-      "domain_health_diagnostic",
+      "domain_diagnostic_report",
       "operator_status_card",
       "intervention_lane",
       "operator_verdict",
@@ -29,7 +29,7 @@
       "recovery_contract",
       "autonomy_contract",
       "user_visible_projection",
-      "DHD provider admission current-control",
+      "domain diagnostic provider admission current-control",
       "OPL admission projection"
     ],
     "manual_adoption_policy_ref": "manual_foreground_adoption_boundary"
@@ -123,7 +123,7 @@
           "when_all": [
             "phase=admission_pending",
             "identity_bound_provider_admission_candidate_absent",
-            "DHD.action_class=observe_only"
+            "domain diagnostic.action_class=observe_only"
           ],
           "effect": "admission_blocked",
           "reason": "observe_only cannot create pending recovery execution without an identity-bound provider admission candidate or count"
@@ -202,7 +202,7 @@
         "type": "ProjectionConsistent",
         "status": "False",
         "effect": "fail_closed",
-        "next_safe_action": "inspect_fresh_study_progress_and_dhd_dry_run_then_rebuild_projection"
+        "next_safe_action": "inspect_fresh_study_progress_and_domain_diagnostic_dry_run_then_rebuild_projection"
       }
     },
     "next_safe_action_contract": {
@@ -282,7 +282,7 @@
         "current_work_unit",
         "current_execution_envelope",
         "study_progress",
-        "domain_health_diagnostic.provider_admission_current_control",
+        "domain_diagnostic_report.provider_admission_current_control",
         "domain_handler_export.pending_family_tasks",
         "operator_status_card",
         "OPL admission projection",
@@ -298,7 +298,7 @@
       ],
       "migration_sequence": [
         "introduce_pure_kernel_decision_fixture",
-        "route_current_work_unit_and_dhd_provider_admission_through_kernel_output",
+        "route_current_work_unit_and_domain_diagnostic_provider_admission_through_kernel_output",
         "route_domain_handler_export_through_kernel_admission_output",
         "retire_duplicate_projection_precedence_logic"
       ],
@@ -340,7 +340,7 @@
     "implementation_status": "runtime_reducer_projection_and_meta_guard_landed",
     "required_live_readback_before_use": [
       "fresh study_progress",
-      "domain-health-diagnostic --dry-run",
+      "domain-diagnostic-report --dry-run",
       "OPL current-control / attempt ledger readback",
       "owner receipt / typed blocker refs"
     ],
@@ -452,7 +452,7 @@
     ],
     "derived_surfaces_must_read_from_paper_recovery": [
       "study_progress",
-      "DHD provider admission",
+      "domain diagnostic provider admission",
       "operator_status_card",
       "intervention_lane",
       "operator_verdict",
@@ -476,7 +476,7 @@
     "forbidden_authority_claims": [
       "OPL execution substrate owns PaperRecovery",
       "study_progress derives paper recovery independently from PaperRecovery",
-      "DHD observe_only alone creates pending recovery execution",
+      "domain diagnostic observe_only alone creates pending recovery execution",
       "operator card status is recovery truth",
       "provider terminal completion is MAS acceptance",
       "manual foreground edit is governed recovery without adoption refs"
@@ -515,14 +515,14 @@
     "replay_read_sequence": [
       "fresh study_progress",
       "paper_recovery_state",
-      "domain-health-diagnostic --dry-run",
+      "domain-diagnostic-report --dry-run",
       "OPL current-control / attempt ledger",
       "owner receipt / typed blocker / human gate / route-back refs"
     ],
     "replay_cases": [
       {
         "case_id": "pending_without_identity_bound_provider_admission",
-        "symptom": "read-model shows pending or actionable owner card while no identity-bound provider admission candidate/count exists and DHD dry-run is observe_only",
+        "symptom": "read-model shows pending or actionable owner card while no identity-bound provider admission candidate/count exists and domain diagnostic dry-run is observe_only",
         "required_outcome": "admission_blocked",
         "next_safe_action": "authorize_opl_transport_recovery_or_stable_typed_blocker"
       },
@@ -534,7 +534,7 @@
       },
       {
         "case_id": "successor_owner_action_shadowed_by_stale_observe_only_admission",
-        "symptom": "repair and gate replay evidence prove a successor owner action, but stale provider-admission residue and DHD observe_only would otherwise return admission_blocked",
+        "symptom": "repair and gate replay evidence prove a successor owner action, but stale provider-admission residue and domain diagnostic observe_only would otherwise return admission_blocked",
         "required_outcome": "owner_action_ready",
         "next_safe_action": "materialize_successor_owner_action"
       },

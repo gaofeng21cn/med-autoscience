@@ -23,7 +23,7 @@ def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> d
             / "artifacts"
             / "supervision"
             / "consumer"
-            / "default_executor_dispatches"
+            / "owner_callable_adapters"
             / "return_to_ai_reviewer_workflow.json"
         ),
         "next_executable_owner": "ai_reviewer",
@@ -53,7 +53,7 @@ def _write_record_only_closeout(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / f"{closeout_name}.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +72,7 @@ def _write_record_only_closeout(
         json.dumps(
             {
                 "surface_kind": "stage_attempt_closeout_packet",
-                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_id": "stage_outcome/opl-handoff",
                 "status": "closed_with_domain_owner_refs",
                 "study_id": study_id,
                 "quest_id": study_id,
@@ -232,7 +232,7 @@ def test_provider_admission_report_consumes_closeout_with_top_level_owner_route_
             / "artifacts"
             / "supervision"
             / "consumer"
-            / "default_executor_dispatches"
+            / "owner_callable_adapters"
             / "run_quality_repair_batch.json"
         ),
         "next_executable_owner": "write",
@@ -252,7 +252,7 @@ def test_provider_admission_report_consumes_closeout_with_top_level_owner_route_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat-quality-repair.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -260,7 +260,7 @@ def test_provider_admission_report_consumes_closeout_with_top_level_owner_route_
         json.dumps(
             {
                 "surface_kind": "stage_attempt_closeout_packet",
-                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_id": "stage_outcome/opl-handoff",
                 "status": "executed",
                 "study_id": study_id,
                 "quest_id": study_id,
@@ -380,7 +380,7 @@ def test_provider_admission_report_consumes_progress_currentness_candidate_root_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat-quality-repair.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -388,7 +388,7 @@ def test_provider_admission_report_consumes_progress_currentness_candidate_root_
         json.dumps(
             {
                 "surface_kind": "stage_attempt_closeout_packet",
-                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_id": "stage_outcome/opl-handoff",
                 "status": "executed",
                 "study_id": study_id,
                 "quest_id": study_id,
@@ -556,7 +556,7 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat-record-only-existing-scan.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -564,7 +564,7 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
         json.dumps(
             {
                 "surface_kind": "stage_attempt_closeout_packet",
-                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_id": "stage_outcome/opl-handoff",
                 "status": "closed_with_domain_owner_refs",
                 "study_id": study_id,
                 "quest_id": study_id,

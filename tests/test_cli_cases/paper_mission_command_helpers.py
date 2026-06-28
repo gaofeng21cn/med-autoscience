@@ -346,7 +346,7 @@ def _write_matching_domain_gate_closeout(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
     )
     closeout_root.mkdir(parents=True, exist_ok=True)
     closeout_ref = closeout_root / "sat-terminal.closeout.json"
@@ -375,13 +375,13 @@ def _write_matching_domain_gate_closeout(
                 "domain_completion_claimed": False,
                 "domain_ready_claimed": False,
                 "typed_blocker_ref": (
-                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-terminal.closeout.json#domain_blocker"
                 ),
                 "blocked_reason": "domain_gate_pending",
                 "closeout_refs": [
                     f"{transaction['transaction_id']}#opl_route_command",
-                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-terminal.closeout.json",
                     "typed-blocker:domain_gate_pending",
                 ],

@@ -302,7 +302,7 @@ def test_real_workspace_soak_monitor_materializer_writes_only_monitor_artifact(
         "writable_surfaces": ["real_workspace_soak_monitor"],
         "prohibited_runtime_owned_surfaces": [
             "progress_projection",
-            "domain_health_diagnostic",
+            "domain_diagnostic_report",
             "publication_eval/latest.json",
             "runtime_escalation_record.json",
             "controller_decisions/latest.json",
@@ -312,7 +312,7 @@ def test_real_workspace_soak_monitor_materializer_writes_only_monitor_artifact(
     }
     assert result["read_only_monitor_contract"] == persisted["read_only_monitor_contract"]
     assert not (root / "progress_projection.json").exists()
-    assert not (root / "domain_health_diagnostic.json").exists()
+    assert not (root / "domain_diagnostic_report.json").exists()
     assert not (root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (root / "runtime_escalation_record.json").exists()
     assert not (root / "controller_decisions" / "latest.json").exists()

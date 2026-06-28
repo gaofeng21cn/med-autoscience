@@ -3,13 +3,13 @@
 Owner: `MedAutoScience`
 Purpose: `paper_recovery_authority_and_replay_runbook`
 State: `active_control_design`
-Machine boundary: 本文是人读设计与事故 replay runbook。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、fresh `study_progress`、DHD dry-run / apply、OPL current-control、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
+Machine boundary: 本文是人读设计与事故 replay runbook。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、fresh `study_progress`、domain diagnostic dry-run / apply、OPL current-control、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
 
 ## 当前结论
 
 `PaperRecovery` 是 MAS authority kernel。OPL 是 recovery obligation 的 execution substrate，负责 StageRun、attempt ledger、provider liveness、terminal closeout transport、queue / retry / dead-letter 与 workbench shell；OPL 不选择 recovery obligation，不签 MAS owner receipt，不声明 paper progress、publication readiness 或 manual foreground adoption。
 
-所有 `study_progress`、DHD provider admission、operator card、OPL admission 和 human workbench card 都必须从 `paper_recovery_state` 派生。它们只能展示、执行或运输 `PaperRecovery` 当前义务，不能从 queue、active run、transport status、operator card、old handoff 或 docs claim 反向生成 paper recovery truth。
+所有 `study_progress`、domain diagnostic provider admission、operator card、OPL admission 和 human workbench card 都必须从 `paper_recovery_state` 派生。它们只能展示、执行或运输 `PaperRecovery` 当前义务，不能从 queue、active run、transport status、operator card、old handoff 或 docs claim 反向生成 paper recovery truth。
 
 目标接口详见 [PaperRecovery Obligation 目标架构](../designs/paper_recovery_obligation_target_architecture.md)：`RecoveryObligationKernel` 接收 MAS owner evidence、OPL execution observation、terminal closeout refs、manual / human gate refs 和 read-model projection status，输出唯一 `paper_recovery_state`。所有 operator projection 都必须消费该输出，不能各自重判 currentness。
 
@@ -34,7 +34,7 @@ Provider admission 若要从 `paper_recovery_state` 派生为 OPL StageRun admis
 
 关键禁区：
 
-- `admission_pending` 必须有 identity-bound provider admission candidate / count。`DHD.action_class=observe_only` 不能创建或证明 recovery execution；但已有 identity-bound provider admission candidate / count 时，observe-only 只是诊断，不覆盖 `paper_recovery_state` 的 pending truth。
+- `admission_pending` 必须有 identity-bound provider admission candidate / count。`domain diagnostic.action_class=observe_only` 不能创建或证明 recovery execution；但已有 identity-bound provider admission candidate / count 时，observe-only 只是诊断，不覆盖 `paper_recovery_state` 的 pending truth。
 - `terminal_closeout_ready` 必须走 consume 或 reject。terminal closeout 不能悬挂成隐式 paper progress，也不能触发同 identity redrive。
 - `domain_blocked` 中的 stop-loss / anti-loop blocker 必须有 successor obligation 或 human gate。没有 successor / human gate 时保持 fail closed，禁止同 work-unit 重跑。
 - `manual_foreground_unadopted` 没有 MAS/OPL adoption refs 时只能是 manual work product，不能写成 governed recovery。
@@ -45,7 +45,7 @@ Replay 读取顺序固定为：
 
 1. fresh `study_progress`
 2. `paper_recovery_state`
-3. `domain-health-diagnostic --dry-run`
+3. `domain-diagnostic-report --dry-run`
 4. OPL current-control / attempt ledger
 5. owner receipt / typed blocker / human gate / route-back refs
 
@@ -53,7 +53,7 @@ Replay 读取顺序固定为：
 
 | Case | 症状 | 裁决 | 下一安全动作 |
 | --- | --- | --- | --- |
-| `pending_without_identity_bound_provider_admission` | read-model 或 operator card 仍显示 pending/actionable，但没有 identity-bound provider admission candidate / count，且 DHD dry-run 是 `observe_only` | `admission_blocked` | run admission apply or report operator gate |
+| `pending_without_identity_bound_provider_admission` | read-model 或 operator card 仍显示 pending/actionable，但没有 identity-bound provider admission candidate / count，且 domain diagnostic dry-run 是 `observe_only` | `admission_blocked` | run admission apply or report operator gate |
 | `terminal_closeout_not_consumed` | OPL/default executor terminal closeout 已存在，但 MAS 未 consume/reject | `terminal_closeout_ready` | consume or reject terminal closeout |
 | `same_work_unit_stop_loss` | stop-loss / anti-loop budget 后同一 work unit 继续 redrive | `domain_blocked` | create successor recovery obligation or open human gate |
 | `manual_foreground_unadopted` | 前台/人工 paper-local 输出存在，但没有 adoption refs | `manual_foreground_unadopted` | adopt through MAS owner receipt or keep non-authority |
@@ -91,7 +91,7 @@ OPL 持有：
 - terminal closeout transport
 - workbench / operator shell projection
 
-Derived surfaces 必须从 `PaperRecovery` 读取，不得自造 recovery truth。尤其是 `study_progress`、DHD provider admission、operator status card 和 OPL admission 都只能投影 `paper_recovery_state` 的当前义务、phase、conditions、next safe action 与 authority boundary。
+Derived surfaces 必须从 `PaperRecovery` 读取，不得自造 recovery truth。尤其是 `study_progress`、domain diagnostic provider admission、operator status card 和 OPL admission 都只能投影 `paper_recovery_state` 的当前义务、phase、conditions、next safe action 与 authority boundary。
 
 ## 派生可见面收口
 

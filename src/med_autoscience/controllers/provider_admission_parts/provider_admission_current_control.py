@@ -76,7 +76,7 @@ def materialize_provider_admission_current_control_state(
                     scanned_studies_by_id=scanned_studies_by_id,
                 )
             ),
-            source="dhd.provider_admission_current_control",
+            source="domain_diagnostic.provider_admission_current_control",
         )
         for candidate in candidates
     ]
@@ -258,7 +258,7 @@ def materialize_provider_admission_current_control_state(
     )
     payload["stage_route_arbiter_decisions"] = arbiter_decisions
     payload["unscanned_handoff_retention"] = unscanned_audit
-    payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
+    payload["current_control_refresh_source"] = "runtime_readback.provider_admission_candidates"
     if previous_terminal_consumed_readback:
         payload["latest_provider_admission_terminal_consumed_readback"] = dict(
             previous_terminal_consumed_readback
@@ -285,7 +285,7 @@ def materialize_provider_admission_current_control_state(
                     "active_action_suppressed_count"
                 ],
                 "latest_action_count": len(output_actions),
-                "source": "domain_health_diagnostic.provider_admission_candidates",
+                "source": "runtime_readback.provider_admission_candidates",
             },
         )
     payload["written"] = bool(apply)
@@ -1178,7 +1178,7 @@ def _study_with_terminal_precedence(
 
 
 def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
-    receipt = _mapping(study.get("default_executor_execution_receipt_consumption")) or _mapping(
+    receipt = _mapping(study.get("owner_callable_receipt_consumption")) or _mapping(
         study.get("opl_provider_attempt")
     )
     current_work_unit = _mapping(study.get("current_work_unit"))

@@ -65,12 +65,12 @@ from med_autoscience.controllers.study_outer_loop_parts import tick_request as _
 from med_autoscience.controllers.study_outer_loop_task_intake import recommended_task_intake_action
 
 
-def build_domain_health_diagnostic_outer_loop_tick_request(
+def build_runtime_readback_outer_loop_tick_request(
     *,
     study_root: Path,
     status_payload: dict[str, Any],
 ) -> dict[str, Any] | None:
-    return _tick_request.build_domain_health_diagnostic_outer_loop_tick_request(
+    return _tick_request.build_runtime_readback_outer_loop_tick_request(
         study_root=study_root,
         status_payload=status_payload,
         publication_gate_controller_override=publication_gate_controller,

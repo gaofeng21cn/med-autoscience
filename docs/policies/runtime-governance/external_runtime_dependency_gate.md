@@ -162,7 +162,7 @@ uv run --python 3.14 python -m med_autoscience.cli doctor backend-audit --profil
 uv run --python 3.14 python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>
 uv run --python 3.14 python -m med_autoscience.cli study progress-projection --profile <profile> --study-id <study_id>
 uv run --python 3.14 python -m med_autoscience.cli publication gate --quest-root <quest_root> --apply
-uv run --python 3.14 python -m med_autoscience.cli runtime domain-health-diagnostic --quest-root <quest_root> --apply
+uv run --python 3.14 python -m med_autoscience.cli runtime domain-diagnostic-report --quest-root <quest_root> --apply
 ```
 
 但 repo-side 不能替外部 workspace / study 自动清除：
@@ -226,4 +226,4 @@ uv run --python 3.14 python -m med_autoscience.cli runtime domain-health-diagnos
 
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 
-只能作为历史 cutover blocker 语义保留。当前 MAS 默认路径的状态必须从 `docs/status.md`、`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json` 和 MAS owner receipts 判断。
+只能作为历史 cutover blocker 语义保留。当前 MAS 默认路径的状态必须从 `docs/status.md`、`progress_projection`、`domain_diagnostic_report`、`publication_eval/latest.json`、`controller_decisions/latest.json` 和 MAS owner receipts 判断。

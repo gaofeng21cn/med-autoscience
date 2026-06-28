@@ -67,7 +67,7 @@ def test_monorepo_scaffold_contracts_define_only_allowed_cross_module_refs() -> 
     assert "opl_provider_attempt_ref" in runtime["consumes_refs"]
     assert "controller_summary_ref" in controller["emits_refs"]
     assert "controller_summary_ref" in eval_hygiene["consumes_refs"]
-    assert "domain_health_diagnostic_ref" in runtime["emits_refs"]
+    assert "runtime_readback_report_ref" in runtime["emits_refs"]
     assert "typed_blocker_ref" in runtime["emits_refs"]
     assert "runtime_escalation_record_ref" in runtime["emits_refs"]
     assert "runtime_escalation_record_ref" in eval_hygiene["consumes_refs"]

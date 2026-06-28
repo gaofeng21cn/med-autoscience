@@ -6,13 +6,13 @@ from typing import Any, Mapping
 _ACTION_BY_BOTTLENECK = {
     "opl_runtime_owner_handoff_required": {
         "action_type": "request_opl_handoff_hydration",
-        "controller_surface": "domain_health_diagnostic",
+        "controller_surface": "domain_diagnostic_report",
         "priority": "now",
         "summary": "Require OPL current_control_state to hydrate the MAS owner handoff.",
     },
     "repeated_controller_decision": {
         "action_type": "dedupe_controller_dispatch",
-        "controller_surface": "domain_health_diagnostic",
+        "controller_surface": "domain_diagnostic_report",
         "priority": "now",
         "summary": "Suppress repeated controller dispatches for the same blocker fingerprint.",
     },

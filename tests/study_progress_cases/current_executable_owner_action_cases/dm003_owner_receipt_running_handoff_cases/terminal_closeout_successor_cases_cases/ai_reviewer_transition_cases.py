@@ -286,7 +286,7 @@ def test_paper_recovery_refresh_reaches_ai_reviewer_after_gate_and_write_receipt
     dispatch_path.write_text(
         json.dumps(
             {
-                "surface": "default_executor_dispatch_request",
+                "surface": "owner_callable_dispatch_request",
                 "study_id": STUDY_ID,
                 "quest_id": STUDY_ID,
                 "action_type": "return_to_ai_reviewer_workflow",

@@ -199,7 +199,7 @@ def test_current_work_unit_does_not_treat_unbound_running_attempt_as_guarded_app
             "active_run_id": "opl-stage-attempt://sat-stale-default",
             "active_stage_attempt_id": "sat-stale-default",
             "active_workflow_id": "wf-stale-default",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "work_unit_id": "run_quality_repair_batch",
             "action_type": "run_quality_repair_batch",
             "runtime_health": {
@@ -216,7 +216,7 @@ def test_current_work_unit_does_not_treat_unbound_running_attempt_as_guarded_app
     assert work_unit["status"] != "running_provider_attempt"
 
 
-def test_current_work_unit_projects_guarded_apply_owner_answer_missing_over_stale_default_executor() -> None:
+def test_current_work_unit_projects_guarded_apply_owner_answer_missing_over_stale_owner_callable_adapter() -> None:
     module = _module()
 
     work_unit = module.build_current_work_unit(
@@ -252,9 +252,9 @@ def test_current_work_unit_projects_guarded_apply_owner_answer_missing_over_stal
                 "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
                 "action_type": "run_quality_repair_batch",
                 "owner": "write",
-                "next_work_unit": "stale_default_executor_repair",
-                "work_unit_id": "stale_default_executor_repair",
-                "work_unit_fingerprint": "stale-default-executor-fingerprint",
+                "next_work_unit": "stale_owner_callable_adapter_repair",
+                "work_unit_id": "stale_owner_callable_adapter_repair",
+                "work_unit_fingerprint": "stale-owner-callable-fingerprint",
             }
         ],
     )

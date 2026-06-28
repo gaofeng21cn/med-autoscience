@@ -412,7 +412,7 @@ def test_gate_followthrough_specificity_targets_supersede_stale_terminal_prose_t
                 "latest_terminal_stage": {
                     "status": "completed",
                     "action_type": "run_quality_repair_batch",
-                    "source_path": "artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                    "source_path": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat.closeout.json",
                     "paper_stage_log": {
                         "next_forced_delta": {
                             "required_delta_kind": "review_current_paper_delta",

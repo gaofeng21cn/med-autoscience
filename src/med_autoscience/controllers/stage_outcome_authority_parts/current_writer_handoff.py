@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.study_transition_receipt_consumption import (
-    default_executor_execution_receipt_consumption,
+    owner_callable_receipt_consumption,
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -108,7 +108,7 @@ def consumed_quality_repair_writer_handoff_dispatch(
     if not route:
         return False
     return bool(
-        default_executor_execution_receipt_consumption(
+        owner_callable_receipt_consumption(
             study_root=profile.studies_root / study_id,
             owner_route=route,
             actions=[{"action_type": "run_quality_repair_batch"}],

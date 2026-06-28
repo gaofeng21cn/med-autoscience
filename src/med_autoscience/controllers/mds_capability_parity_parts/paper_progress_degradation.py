@@ -60,7 +60,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "crash_recovery_and_auto_resume",
         "rationale": "Recovery is OPL-owned and MDS-independent; MAS must return owner receipts, route-back, or typed blockers when provider recovery closes.",
-        "required_guard_surface": "OPL current_control_state plus MAS domain_health_diagnostic typed blocker",
+        "required_guard_surface": "OPL current_control_state plus MAS domain_diagnostic_report typed blocker",
     },
     "queued_user_messages_mailbox": {
         "classification": "production_risk",

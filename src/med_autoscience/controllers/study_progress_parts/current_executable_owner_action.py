@@ -1239,7 +1239,7 @@ def _action_consumed_by_dispatch_receipt(
         consumption = _mapping_copy(_mapping_copy(payload.get("domain_transition")).get("completion_receipt_consumption"))
     if not consumption:
         consumption = _mapping_copy(
-            _mapping_copy(payload.get("domain_transition")).get("default_executor_execution_receipt_consumption")
+            _mapping_copy(payload.get("domain_transition")).get("owner_callable_receipt_consumption")
         )
     consumption_status = _non_empty_text(consumption.get("consumption_status")) or _non_empty_text(
         consumption.get("status")

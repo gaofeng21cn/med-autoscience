@@ -6,8 +6,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK = {
-    "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
+OWNER_CALLABLE_ADAPTER_TAIL_READBACK = {
+    "surface_kind": "opl_owner_callable_adapter_carrier_tail_readback_requirement",
     "status": "tail_open",
     "runtime_owner": "one-person-lab",
     "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
@@ -17,20 +17,20 @@ DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK = {
         "opl_stagerun_owner_callable_adapter_live_readback",
     ],
     "required_before_physical_delete": (
-        "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+        "owner_callable_dispatch_request_opl_owner_callable_adapter_carrier_tail_readback_ref"
     ),
     "physical_delete_requires": [
         "opl_domain_progress_transition_runtime_live_readback",
         "opl_command_event_outbox_live_readback",
         "opl_stagerun_owner_callable_adapter_live_readback",
-        "no_active_default_executor_carrier_caller_scan",
+        "no_active_owner_callable_adapter_carrier_caller_scan",
         "no_forbidden_write_proof",
         "replacement_parity_ref",
         "owner_retirement_decision_ref",
         "tombstone_or_provenance_ref",
     ],
     "tail_readback_proven": False,
-    "no_active_default_executor_carrier_caller_proven": False,
+    "no_active_owner_callable_adapter_carrier_caller_proven": False,
     "physical_delete_allowed": False,
     "legacy_carrier_provenance_can_satisfy_readback": False,
     "transition_request_pending_can_satisfy_readback": False,
@@ -39,10 +39,10 @@ DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK = {
     "request_only_carrier_can_authorize_provider_admission": False,
     "request_only_carrier_can_claim_running_or_progress": False,
     "forbidden_completion_claims": [
-        "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+        "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback",
         "transition_request_pending_as_opl_live_readback",
-        "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
-        "focused_tests_green_as_no_active_default_executor_carrier_caller",
+        "repo_no_authority_guard_as_owner_callable_adapter_carrier_tail_readback",
+        "focused_tests_green_as_no_active_owner_callable_adapter_carrier_caller",
         "request_only_carrier_as_provider_admission",
         "request_only_carrier_as_running_or_progress",
     ],
@@ -119,7 +119,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_health_diagnostic_obligation_actuator_owner_retirement_decision_ref"
+        "domain_diagnostic_obligation_actuator_owner_retirement_decision_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
@@ -146,20 +146,20 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         item["surface_id"]: item
         for item in layers["live_soak_or_no_active_caller"]["open_surface_tails"]
     }
-    assert "default_executor_dispatch_request" not in evidence_tails
+    assert "owner_callable_dispatch_request" not in evidence_tails
     assert "domain_authority_refs_index" not in evidence_tails
-    assert "default_executor_execution_latest_wire_projection" not in evidence_tails
-    actuator_tail = evidence_tails["domain_health_diagnostic_obligation_actuator"]
+    assert "owner_callable_adapter_receipt_latest_wire_projection" not in evidence_tails
+    actuator_tail = evidence_tails["domain_diagnostic_obligation_actuator"]
     assert (
-        "domain_health_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref"
+        "domain_diagnostic_obligation_actuator_opl_obligation_actuator_tail_readback_ref"
         in actuator_tail["required_ref_families"]
     )
     assert (
-        "domain_health_diagnostic_obligation_actuator_owner_retirement_decision_ref"
+        "domain_diagnostic_obligation_actuator_owner_retirement_decision_ref"
         in actuator_tail["required_ref_families"]
     )
     assert (
-        "domain_health_diagnostic_obligation_actuator_no_active_caller_scan_ref"
+        "domain_diagnostic_obligation_actuator_no_active_caller_scan_ref"
         in actuator_tail["required_ref_families"]
     )
     assert (
@@ -349,7 +349,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert layers["physical_retirement"]["allowed"] is False
     assert "stage_outcome_authority" in layers["physical_retirement"]["blocked_surface_ids"]
     assert {
-        "domain_health_diagnostic_obligation_actuator",
+        "domain_diagnostic_obligation_actuator",
         "runtime_health_kernel",
         "progress_portal_study_workbench_overview_action_projection",
         "agent_tool_arsenal_scientific_capability_registry",
@@ -377,8 +377,8 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     ]["legacy_helper_active_caller_scan"]
     open_surfaces = {surface["surface_id"]: surface for surface in audit["open_surfaces"]}
     assert "domain_authority_refs_index" not in open_surfaces
-    assert "default_executor_dispatch_request" not in open_surfaces
-    assert "default_executor_execution_latest_wire_projection" not in open_surfaces
+    assert "owner_callable_dispatch_request" not in open_surfaces
+    assert "owner_callable_adapter_receipt_latest_wire_projection" not in open_surfaces
     refs_inventory = inventory_surfaces["domain_authority_refs_index"]
     assert refs_inventory["current_disposition"] == "physically_retired"
     assert refs_inventory["retirement_gate"]["repo_source_physical_retirement_authorized"] is True
@@ -388,7 +388,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "legacy_helper_no_active_scan_as_physical_delete"
         in legacy_helper_scan["forbidden_completion_claims"]
     )
-    legacy_carrier_inventory = inventory_surfaces["default_executor_dispatch_request"]
+    legacy_carrier_inventory = inventory_surfaces["owner_callable_dispatch_request"]
     assert legacy_carrier_inventory["current_disposition"] == "physically_retired"
     assert (
         legacy_carrier_inventory["retirement_gate"][
@@ -397,8 +397,8 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         is True
     )
     assert (
-        legacy_carrier_inventory["opl_default_executor_carrier_tail_readback"]
-        == DEFAULT_EXECUTOR_CARRIER_TAIL_READBACK
+        legacy_carrier_inventory["opl_owner_callable_adapter_carrier_tail_readback"]
+        == OWNER_CALLABLE_ADAPTER_TAIL_READBACK
     )
     assert legacy_carrier_inventory["legacy_source_contamination_boundary"] == {
         "source_dispatch_claims_are_diagnostic_only": True,
@@ -421,22 +421,22 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
             "provider_admission_pending",
         ],
     }
-    assert open_surfaces["domain_health_diagnostic_obligation_actuator"]["authority_status"] == (
+    assert open_surfaces["domain_diagnostic_obligation_actuator"]["authority_status"] == (
         "consume_only_readback_projection_live_tail_open"
     )
-    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert open_surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_actuator_tail_status"
     ] == "tail_open"
-    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert open_surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_actuator_tail_readback_proven"
     ] is False
-    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert open_surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_actuator_no_active_caller_proven"
     ] is False
-    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert open_surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_actuator_physical_delete_allowed"
     ] is False
-    assert open_surfaces["domain_health_diagnostic_obligation_actuator"][
+    assert open_surfaces["domain_diagnostic_obligation_actuator"][
         "obligation_actuator_required_active_caller_readback_count"
     ] == 2
     assert open_surfaces["runtime_health_kernel"]["authority_status"] == (
@@ -507,7 +507,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "stage_outcome_authority_active_caller_family_count"
     ] >= 7
     legacy_latest_inventory = inventory_surfaces[
-        "default_executor_execution_latest_wire_projection"
+        "owner_callable_adapter_receipt_latest_wire_projection"
     ]
     assert legacy_latest_inventory["current_disposition"] == "physically_retired"
     assert (

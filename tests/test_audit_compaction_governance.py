@@ -13,11 +13,11 @@ def test_audit_compaction_governance_builds_maintainability_read_model(tmp_path:
     module = importlib.import_module("med_autoscience.controllers.audit_compaction_governance")
     boundary = importlib.import_module("med_autoscience.controllers.boundary_fitness")
     repo_root = tmp_path
-    domain_health_diagnostic = repo_root / "src/med_autoscience/controllers/provider_admission_parts/provider_admission_report.py"
+    domain_diagnostic_report = repo_root / "src/med_autoscience/controllers/provider_admission_parts/provider_admission_report.py"
     gate_clearing = repo_root / "src/med_autoscience/controllers/gate_clearing_batch.py"
     study_progress = repo_root / "src/med_autoscience/controllers/study_progress.py"
-    domain_health_diagnostic.parent.mkdir(parents=True)
-    domain_health_diagnostic.write_text("\n".join("line" for _ in range(1025)), encoding="utf-8")
+    domain_diagnostic_report.parent.mkdir(parents=True)
+    domain_diagnostic_report.write_text("\n".join("line" for _ in range(1025)), encoding="utf-8")
     gate_clearing.write_text("\n".join("line" for _ in range(1015)), encoding="utf-8")
     study_progress.write_text("line\n", encoding="utf-8")
 

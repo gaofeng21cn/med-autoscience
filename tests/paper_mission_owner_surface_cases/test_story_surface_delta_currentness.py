@@ -398,7 +398,7 @@ def test_dm003_quality_batch_writer_handoff_stays_current_without_publication_ev
             "quest_id": quest_id,
             "next_owner": "write",
             "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
+                "surface": "owner_callable_dispatch_request",
                 "schema_version": 1,
                 "study_id": study_id,
                 "quest_id": quest_id,
@@ -626,7 +626,7 @@ def test_dm003_quality_batch_writer_handoff_preempts_consumed_finalize_gate_repl
             "quest_id": quest_id,
             "next_owner": "write",
             "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
+                "surface": "owner_callable_dispatch_request",
                 "schema_version": 1,
                 "study_id": study_id,
                 "quest_id": quest_id,

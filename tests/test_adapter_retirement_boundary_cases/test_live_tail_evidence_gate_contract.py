@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 EXPECTED_TAIL_OWNERS = {
     "agent_tool_arsenal_scientific_capability_registry": "one-person-lab Capability Runtime owner",
-    "domain_health_diagnostic_obligation_actuator": (
+    "domain_diagnostic_obligation_actuator": (
         "one-person-lab RecoveryObligationStore / SupervisorDecisionEngine owner"
     ),
     "stage_outcome_authority": "one-person-lab StageRun / execution authorization owner",

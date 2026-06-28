@@ -24,7 +24,7 @@ def test_terminal_provider_attempt_closeout_projection_reads_completed_accepted_
             "stage_attempt_id": "sat-terminal",
             "idempotency_key": idempotency_key,
             "domain_id": "medautoscience",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "status": "completed",
             "task_id": "frt-terminal",
             "updated_at": "2026-06-20T02:28:40Z",
@@ -51,8 +51,8 @@ def test_terminal_provider_attempt_closeout_projection_reads_completed_accepted_
                 "work_unit_fingerprint": fingerprint,
                 "route_identity_key": idempotency_key,
                 "attempt_idempotency_key": idempotency_key,
-                "dispatch_ref": f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
-                "stage_packet_ref": f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/immutable/run_quality_repair_batch/packet.json",
+                "dispatch_ref": f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
+                "stage_packet_ref": f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/immutable/run_quality_repair_batch/packet.json",
             },
         }
 
@@ -109,7 +109,7 @@ def test_terminal_provider_attempt_closeout_inspects_compact_attempt_before_pref
     compact_attempt = {
         "stage_attempt_id": "sat-compact-terminal",
         "domain_id": "medautoscience",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "stage_outcome/opl-handoff",
         "study_id": study_id,
         "status": "completed",
         "task_id": "frt-compact-terminal",
@@ -137,7 +137,7 @@ def test_terminal_provider_attempt_closeout_inspects_compact_attempt_before_pref
             "work_unit_fingerprint": fingerprint,
             "route_identity_key": idempotency_key,
             "attempt_idempotency_key": idempotency_key,
-            "dispatch_ref": f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+            "dispatch_ref": f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
         },
     }
 
@@ -191,7 +191,7 @@ def test_terminal_provider_attempt_closeout_prioritizes_preferred_attempt_within
     unrelated_attempt = {
         "stage_attempt_id": "sat-unrelated-terminal",
         "domain_id": "medautoscience",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "stage_outcome/opl-handoff",
         "study_id": study_id,
         "status": "completed",
         "updated_at": "2026-06-20T03:00:00Z",
@@ -207,7 +207,7 @@ def test_terminal_provider_attempt_closeout_prioritizes_preferred_attempt_within
     preferred_attempt = {
         "stage_attempt_id": "sat-preferred-terminal",
         "domain_id": "medautoscience",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "stage_outcome/opl-handoff",
         "study_id": study_id,
         "status": "completed",
         "updated_at": "2026-06-20T02:28:40Z",

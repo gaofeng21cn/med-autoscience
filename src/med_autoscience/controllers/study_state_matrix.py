@@ -586,7 +586,7 @@ def _transition_consumed_owner_action(transition: Mapping[str, Any]) -> bool:
 
 def _transition_dispatch_consumption(transition: Mapping[str, Any]) -> dict[str, Any]:
     completion = _dict(transition.get("completion_receipt_consumption"))
-    execution = _dict(transition.get("default_executor_execution_receipt_consumption"))
+    execution = _dict(transition.get("owner_callable_receipt_consumption"))
     if not completion and not execution:
         return {}
     identity = canonical_work_unit_identity_from_completion(completion or execution)

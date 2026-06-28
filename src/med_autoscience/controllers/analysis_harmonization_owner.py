@@ -274,7 +274,7 @@ def _prerequisite_assessment(
     if isinstance(ratio, int | float) and ratio > 10:
         blocking_reasons.append("hdl_unit_scale_mismatch")
     mapping_text = _read_text(study_root / _MAPPING_TABLE).lower()
-    if "lbdhdd" in mapping_text and "lbdhddsi" not in mapping_text:
+    if "lbdomain_diagnosticd" in mapping_text and "lbdomain_diagnosticdsi" not in mapping_text:
         blocking_reasons.append("nhanes_hdl_mapping_uses_raw_mg_dl_field_without_si_conversion_surface")
     model_text = _read_text(study_root / _MODEL_SPEC).lower()
     input_cache = _read_json_object(study_root / _INPUT_CACHE)

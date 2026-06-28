@@ -12,7 +12,7 @@ IMMUTABLE_PACKET_DIRNAME = "immutable"
 OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY = {
     "surface_kind": "opl_stage_attempt_carrier_packet_boundary",
     "active_caller_class": "abi_provenance_carrier_only",
-    "allowed_reference_class": "OPL StageRun ABI carrier",
+    "allowed_reference_class": "retired_handoff_provenance",
     "diagnostic_role": "retired_default_paper_dispatch",
     "replacement_task_kind": "paper_mission/start_or_resume",
     "ordinary_schedulable": False,
@@ -70,7 +70,7 @@ def dispatch_with_immutable_packet_ref(
     payload["refs"] = refs
     payload["opl_stage_attempt_carrier_boundary"] = dict(OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY)
     payload["active_caller_class"] = "abi_provenance_carrier_only"
-    payload["allowed_reference_class"] = "OPL StageRun ABI carrier"
+    payload["allowed_reference_class"] = "retired_handoff_provenance"
     payload["diagnostic_role"] = "retired_default_paper_dispatch"
     payload["replacement_task_kind"] = "paper_mission/start_or_resume"
     payload["ordinary_schedulable"] = False

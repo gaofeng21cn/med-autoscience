@@ -270,7 +270,7 @@ flowchart LR
 - provider_admission_projection_shape: provider_admission_pending_count=0, provider_admission_candidates=[]; empty_semantics=explicit_no_current_provider_admission_candidate_not_missing_projection; candidate_presence_is_not_running_proof=true.
 A terminal closeout for the same stage attempt suppresses stale running projection before any running watch is reported; a terminal closeout for an old identity must not consume a different current successor owner action.
 A `typed blocker` is a stop or owner-route signal, not execution authority. Blocker-only state must not execute `complete_medical_paper_readiness_surface` or redrive the same work unit without a new owner receipt, route-back, human gate, successor identity, or owner-authorized action.
-DHD dry-run, DHD apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are defined by `runtime_supervision_operator_policy` (mas_opl_runtime_supervision_operator_policy); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.
+domain diagnostic dry-run, domain diagnostic apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are defined by `runtime_supervision_operator_policy` (mas_opl_runtime_supervision_operator_policy); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.
 
 ### Stage-route Invocation Graph
 
@@ -282,14 +282,14 @@ flowchart TD
   provider_admission_current_control["provider admission current-control"] -->|"request_opl_stagerun_admission"| opl_stage_run_attempt["OPL StageRun attempt"]
   opl_stage_run_attempt["OPL StageRun attempt"] -->|"observe_strict_liveness_for_same_identity"| provider_running["strict provider running proof"]
   provider_running["strict provider running proof"] -->|"produce_terminal_closeout_or_typed_closeout"| terminal_closeout["terminal closeout"]
-  terminal_closeout["terminal closeout"] -->|"consume_closeout_or_materialize_current_control_for_matching_identity"| domain_health_diagnostic_apply["DHD apply / closeout consumer"]
-  domain_health_diagnostic_apply["DHD apply / closeout consumer"] -->|"accept_domain_owner_answer_or_stable_blocker"| mas_owner_receipt_or_typed_blocker["MAS owner receipt or stable typed blocker"]
+  terminal_closeout["terminal closeout"] -->|"consume_closeout_or_materialize_current_control_for_matching_identity"| domain_diagnostic_report_apply["domain diagnostic apply / closeout consumer"]
+  domain_diagnostic_report_apply["domain diagnostic apply / closeout consumer"] -->|"accept_domain_owner_answer_or_stable_blocker"| mas_owner_receipt_or_typed_blocker["MAS owner receipt or stable typed blocker"]
   mas_owner_receipt_or_typed_blocker["MAS owner receipt or stable typed blocker"] -->|"project_successor_or_stop_loss"| next_current_owner_delta["next current_owner_delta"]
   provider_admission_current_control["provider admission current-control"] -->|"explain_retained_or_suppressed_provider_admission"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
   trace_span_refs["trace/span refs"] -->|"correlate_observability_refs"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
 ```
 
-- same_identity_order: current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> opl_stage_run_attempt -> provider_running -> terminal_closeout -> domain_health_diagnostic_apply -> mas_owner_receipt_or_typed_blocker -> next_current_owner_delta
+- same_identity_order: current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> opl_stage_run_attempt -> provider_running -> terminal_closeout -> domain_diagnostic_report_apply -> mas_owner_receipt_or_typed_blocker -> next_current_owner_delta
 - feedback_edge: next_current_owner_delta -> current_owner_delta
 - feedback_requires_any: new_work_unit_identity | new_owner_receipt_ref | quality_gate_receipt_ref | canonical_changed_surface_ref | stable_typed_blocker_ref | human_gate_ref | route_back_evidence_ref | stop_loss
 - feedback_forbidden_when: same_work_unit_without_new_consumed_evidence | same_identity_terminal_closeout_unconsumed | same_identity_anti_loop_budget_exhausted | status_or_observability_only_delta

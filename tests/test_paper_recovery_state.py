@@ -316,7 +316,7 @@ def test_terminal_selector_residue_yields_successor_over_stale_progress_first_ow
                         "work_unit_id": "medical_prose_write_repair",
                         "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                         "latest_owner_answer_kind": "typed_blocker",
-                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/default_executor_execution/sat.closeout.json",
+                        "latest_owner_answer_ref": "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat.closeout.json",
                     },
                 },
             },
@@ -396,7 +396,7 @@ def test_opl_consumed_terminal_closeout_blocks_same_identity_successor_revival()
     fingerprint = "publication-blockers::0915410f804b3697"
     closeout_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+        "owner_callable_adapter_receipt/sat_08da46bea43329723d2fbbea.closeout.json"
     )
 
     state = _module().build_paper_recovery_state(
@@ -907,7 +907,7 @@ def test_terminal_closeout_matching_obligation_waits_for_owner_consumption() -> 
                 "work_unit_id": "medical_prose_write_repair",
                 "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                 "stage_attempt_id": "sat-complete",
-                "closeout_ref": "artifacts/supervision/consumer/default_executor_execution/sat-complete.closeout.json",
+                "closeout_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-complete.closeout.json",
             },
         }
     )
@@ -916,7 +916,7 @@ def test_terminal_closeout_matching_obligation_waits_for_owner_consumption() -> 
     assert state["next_safe_action"]["kind"] == "consume_terminal_closeout"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
     assert state["evidence_refs"] == [
-        "artifacts/supervision/consumer/default_executor_execution/sat-complete.closeout.json"
+        "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-complete.closeout.json"
     ]
 
 
@@ -932,7 +932,7 @@ def test_terminal_closeout_with_stale_fingerprint_does_not_match_current_obligat
                 "work_unit_fingerprint": "publication-blockers::old",
                 "action_fingerprint": "publication-blockers::old",
                 "stage_attempt_id": "sat-stale",
-                "closeout_ref": "artifacts/supervision/consumer/default_executor_execution/sat-stale.closeout.json",
+                "closeout_ref": "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-stale.closeout.json",
             },
         }
     )

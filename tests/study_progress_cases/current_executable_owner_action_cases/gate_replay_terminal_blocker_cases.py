@@ -28,7 +28,7 @@ def test_blocked_terminal_gate_replay_routes_to_publication_eval_repair_successo
     )
     closeout_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
-        f"artifacts/supervision/consumer/default_executor_execution/{gate_attempt_id}.closeout.json"
+        f"artifacts/supervision/consumer/owner_callable_adapter_receipt/{gate_attempt_id}.closeout.json"
     )
 
     action = module.build_current_executable_owner_action(
@@ -235,7 +235,7 @@ def test_terminal_gate_blocker_does_not_reopen_same_eval_write_repair() -> None:
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_d2b4c700b31294ab17c225d4",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "status": "blocked",
                     "stage_name": "run_gate_clearing_batch",
@@ -264,7 +264,7 @@ def test_terminal_gate_blocker_does_not_reopen_same_eval_write_repair() -> None:
                         gate_record,
                         gate_report,
                         f"studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/sat_d2b4c700b31294ab17c225d4.closeout.json",
+                        "owner_callable_adapter_receipt/sat_d2b4c700b31294ab17c225d4.closeout.json",
                     ],
                 }
             },

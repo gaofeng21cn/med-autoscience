@@ -139,6 +139,15 @@ def project_stale_ai_reviewer_record_transition(
             publication_eval_payload=publication_eval,
         )
     )
+    current_record_transition = _current_ai_reviewer_record_route_back_transition(
+        study_id=study_id,
+        study_root=study_root,
+        publication_eval_relative_path=publication_eval_relative_path,
+        source_refs=source_refs,
+        completion_receipt_consumption=completion_receipt_consumption,
+    )
+    if current_record_transition is not None:
+        return current_record_transition
     if projected_lifecycle.get("assessment_written") is True and not _text(projected_lifecycle.get("blocked_reason")):
         return None
     request_kind = (
@@ -172,6 +181,53 @@ def project_stale_ai_reviewer_record_transition(
     )
 
 
+def _current_ai_reviewer_record_route_back_transition(
+    *,
+    study_id: str,
+    study_root: Path,
+    publication_eval_relative_path: Path,
+    source_refs: Iterable[str],
+    completion_receipt_consumption: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    record = _latest_ai_reviewer_record(study_root)
+    if record is None:
+        return None
+    record_payload, record_path = record
+    route_back_action = current_ai_reviewer_route_back_action(record_payload)
+    if route_back_action is None:
+        return None
+    return _route_back_transition(
+        study_id=study_id,
+        action=route_back_action,
+        active_run_id=None,
+        publication_eval_relative_path=publication_eval_relative_path,
+        source_refs=[*source_refs, str(record_path)],
+        completion_receipt_consumption={
+            **dict(completion_receipt_consumption),
+            "status": "consumed",
+            "receipt_kind": "ai_reviewer_publication_eval_record",
+            "receipt_ref": str(record_path),
+            "eval_id": _text(record_payload.get("eval_id")),
+        },
+    )
+
+
+def _latest_ai_reviewer_record(study_root: Path) -> tuple[dict[str, Any], Path] | None:
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    for path in sorted(
+        response_root.glob("*_publication_eval_record.json"),
+        key=lambda item: item.name,
+        reverse=True,
+    ):
+        payload = _read_json_mapping(path)
+        if _text(_mapping(payload.get("assessment_provenance")).get("source_kind")) != "publication_eval_ai_reviewer":
+            continue
+        if current_ai_reviewer_route_back_action(payload) is None:
+            continue
+        return payload, path.resolve()
+    return None
+
+
 def _route_back_transition(
     *,
     study_id: str,
@@ -184,14 +240,14 @@ def _route_back_transition(
     if active_run_id:
         return _transition(
             study_id=study_id,
-            decision_type="active_domain_health_diagnostic",
+            decision_type="active_runtime_readback",
             route_target="diagnostic",
             next_work_unit=_work_unit(
-                "domain_health_diagnostic_active_run",
+                "runtime_readback_active_run",
                 "diagnostic",
-                "Observe the active MAS runtime run through domain health diagnostic refs.",
+                "Observe the active MAS runtime run through runtime readback refs.",
             ),
-            controller_action="domain_health_diagnostic",
+            controller_action="runtime_readback",
             owner="med-autoscience",
             typed_blocker=None,
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=True),

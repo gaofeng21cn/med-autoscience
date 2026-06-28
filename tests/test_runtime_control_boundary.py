@@ -16,7 +16,7 @@ RETIRED_RUNTIME_WATCH_HELPERS = (
     Path("src/med_autoscience/controllers/provider_admission_parts/authority_dispatch_gate.py"),
     Path("src/med_autoscience/controllers/provider_admission_parts/gate_specificity.py"),
 )
-def test_domain_health_diagnostic_execution_helpers_are_retired() -> None:
+def test_domain_diagnostic_report_execution_helpers_are_retired() -> None:
     for path in RETIRED_RUNTIME_WATCH_HELPERS:
         assert not path.exists(), f"{path} should remain physically retired"
 

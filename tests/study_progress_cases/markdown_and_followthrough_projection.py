@@ -340,7 +340,7 @@ def test_render_study_progress_markdown_prefers_shared_human_status_narration() 
     assert "旧版 next_system_action 字段" not in markdown
 
 
-def test_study_progress_surfaces_figure_loop_guard_blockers_from_domain_health_diagnostic(monkeypatch, tmp_path: Path) -> None:
+def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_readback(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
@@ -357,7 +357,7 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_domain_health_d
         reason="MAS should keep repairing the current publication blockers autonomously.",
     )
     _write_runtime_escalation(quest_root, study_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
 
     status_payload = {
         "schema_version": 1,
@@ -454,9 +454,9 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
             },
         },
     )
-    domain_health_diagnostic_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
+    runtime_readback_report_path = quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json"
     _write_json(
-        domain_health_diagnostic_path,
+        runtime_readback_report_path,
         {
             "schema_version": 1,
             "scanned_at": "2026-04-14T01:34:45+00:00",
@@ -551,7 +551,7 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
     assert result["latest_events"][0]["summary"] == (
         "论文包雏形已经存在，但当前硬阻塞仍在论文可发表性面；在门控放行前，投稿包相关建议都只是后续件。"
     )
-    assert all(item["category"] != "domain_health_diagnostic" for item in result["latest_events"])
+    assert all(item["category"] != "runtime_readback" for item in result["latest_events"])
     assert all(item["category"] != "launch_report" for item in result["latest_events"])
     assert "活跃主稿图数量仍低于投稿级下限，当前图证不足以支撑投稿级稿件。" in result["current_blockers"]
     assert "论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。" in result["current_blockers"]
@@ -585,7 +585,7 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json",
         {
             "schema_version": 1,
             "scanned_at": "2026-04-16T16:01:16+00:00",
@@ -698,7 +698,7 @@ def test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json",
         {
             "schema_version": 1,
             "scanned_at": "2026-04-16T16:01:16+00:00",
@@ -788,7 +788,7 @@ def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, 
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json",
         {
             "schema_version": 1,
             "scanned_at": "2026-04-16T16:01:16+00:00",

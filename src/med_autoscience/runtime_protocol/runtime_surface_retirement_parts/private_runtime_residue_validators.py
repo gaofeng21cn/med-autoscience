@@ -1064,7 +1064,7 @@ def validate_stage_outcome_authority(
         if consumer.get("canonical_current_surface") != "domain_progress_transition_requests":
             violations.append(_violation(surface_id, "owner_dispatch_canonical_surface_not_transition_requests"))
         for key in (
-            "inline_default_executor_dispatch_request_candidate_allowed",
+            "inline_owner_callable_dispatch_request_candidate_allowed",
             "owner_callable_adapters_candidate_allowed",
             "can_authorize_provider_admission",
             "can_create_provider_attempt",
@@ -1112,7 +1112,7 @@ def validate_stage_outcome_authority(
     return violations
 
 
-def validate_domain_health_diagnostic_obligation_actuator(
+def validate_domain_diagnostic_obligation_actuator(
     surface_id: str,
     surface: Mapping[str, Any],
 ) -> list[dict[str, str]]:
@@ -1180,7 +1180,7 @@ def validate_domain_health_diagnostic_obligation_actuator(
         if tail.get("runtime_kind") != "RecoveryObligationStore/SupervisorDecisionEngine":
             violations.append(_violation(surface_id, "obligation_actuator_tail_runtime_kind_invalid"))
         if tail.get("required_before_physical_delete") != (
-            "domain_health_diagnostic_obligation_actuator_"
+            "domain_diagnostic_obligation_actuator_"
             "opl_obligation_actuator_tail_readback_ref"
         ):
             violations.append(
@@ -1338,7 +1338,7 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "audit_workbench_projection_fields",
     "validate_domain_action_request_materializer_surface",
-    "validate_domain_health_diagnostic_obligation_actuator",
+    "validate_domain_diagnostic_obligation_actuator",
     "validate_stage_outcome_authority",
     "validate_progress_portal_study_workbench_overview_action_projection",
     "validate_runtime_lifecycle_payload_retention",

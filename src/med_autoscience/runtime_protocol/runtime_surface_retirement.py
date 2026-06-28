@@ -5,7 +5,7 @@ from typing import Any
 
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_runtime_residue_validators import (
     audit_workbench_projection_fields as _audit_workbench_projection_fields,
-    validate_domain_health_diagnostic_obligation_actuator as _validate_domain_health_diagnostic_obligation_actuator,
+    validate_domain_diagnostic_obligation_actuator as _validate_domain_diagnostic_obligation_actuator,
     validate_domain_action_request_materializer_surface as _validate_domain_action_request_materializer_surface,
     validate_stage_outcome_authority as _validate_stage_outcome_authority,
     validate_progress_portal_study_workbench_overview_action_projection as _validate_progress_portal_study_workbench_overview_action_projection,
@@ -19,7 +19,7 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_validators impo
     GENERIC_RUNTIME_OWNER,
     _text,
     _violation,
-    validate_legacy_default_executor_carrier as _validate_legacy_default_executor_carrier,
+    validate_legacy_owner_callable_adapter_carrier as _validate_legacy_owner_callable_adapter_carrier,
     validate_legacy_latest_wire as _validate_legacy_latest_wire,
     validate_legacy_stage_run_abi as _validate_legacy_stage_run_abi,
 )
@@ -218,9 +218,9 @@ def validate_runtime_surface_retirement_inventory(
             if not _text(surface.get("tombstone_or_provenance_ref")):
                 violations.append(_violation(surface_id, "physically_retired_missing_tombstone_or_provenance_ref"))
             continue
-        if surface_id == "default_executor_dispatch_request":
-            violations.extend(_validate_legacy_default_executor_carrier(surface_id, surface))
-        if surface_id == "default_executor_execution_latest_wire_projection":
+        if surface_id == "owner_callable_dispatch_request":
+            violations.extend(_validate_legacy_owner_callable_adapter_carrier(surface_id, surface))
+        if surface_id == "owner_callable_adapter_receipt_latest_wire_projection":
             violations.extend(_validate_legacy_latest_wire(surface_id, surface))
             violations.extend(_validate_legacy_stage_run_abi(surface_id, surface))
         if surface_id == "domain_authority_refs_index":
@@ -229,8 +229,8 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_domain_action_request_materializer_surface(surface_id, surface))
         if surface_id == "stage_outcome_authority":
             violations.extend(_validate_stage_outcome_authority(surface_id, surface))
-        if surface_id == "domain_health_diagnostic_obligation_actuator":
-            violations.extend(_validate_domain_health_diagnostic_obligation_actuator(surface_id, surface))
+        if surface_id == "domain_diagnostic_obligation_actuator":
+            violations.extend(_validate_domain_diagnostic_obligation_actuator(surface_id, surface))
         if surface_id == "runtime_health_kernel":
             violations.extend(_validate_runtime_health_kernel(surface_id, surface))
         if surface_id == "agent_tool_arsenal_scientific_capability_registry":
@@ -923,7 +923,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
     )
     materializer_tail = surface.get("opl_materializer_projection_tail_readback")
     workbench_tail = surface.get("opl_workbench_shell_readback_tail")
-    default_executor_carrier_tail = surface.get("opl_default_executor_carrier_tail_readback")
+    owner_callable_adapter_carrier_tail = surface.get("opl_owner_callable_adapter_carrier_tail_readback")
     lifecycle_maintenance_tail = surface.get("opl_runtime_lifecycle_maintenance_tail_readback")
     storage_maintenance_tail = surface.get("opl_runtime_storage_maintenance_tail_readback")
     return {
@@ -1154,33 +1154,33 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             and isinstance(workbench_tail.get("required_active_caller_readbacks"), list)
             else None
         ),
-        "default_executor_carrier_tail_status": (
-            default_executor_carrier_tail.get("status")
-            if isinstance(default_executor_carrier_tail, Mapping)
+        "owner_callable_adapter_carrier_tail_status": (
+            owner_callable_adapter_carrier_tail.get("status")
+            if isinstance(owner_callable_adapter_carrier_tail, Mapping)
             else None
         ),
-        "default_executor_carrier_tail_readback_proven": (
-            default_executor_carrier_tail.get("tail_readback_proven")
-            if isinstance(default_executor_carrier_tail, Mapping)
+        "owner_callable_adapter_carrier_tail_readback_proven": (
+            owner_callable_adapter_carrier_tail.get("tail_readback_proven")
+            if isinstance(owner_callable_adapter_carrier_tail, Mapping)
             else None
         ),
-        "default_executor_carrier_no_active_caller_proven": (
-            default_executor_carrier_tail.get(
-                "no_active_default_executor_carrier_caller_proven"
+        "owner_callable_adapter_carrier_no_active_caller_proven": (
+            owner_callable_adapter_carrier_tail.get(
+                "no_active_owner_callable_adapter_carrier_caller_proven"
             )
-            if isinstance(default_executor_carrier_tail, Mapping)
+            if isinstance(owner_callable_adapter_carrier_tail, Mapping)
             else None
         ),
-        "default_executor_carrier_physical_delete_allowed": (
-            default_executor_carrier_tail.get("physical_delete_allowed")
-            if isinstance(default_executor_carrier_tail, Mapping)
+        "owner_callable_adapter_carrier_physical_delete_allowed": (
+            owner_callable_adapter_carrier_tail.get("physical_delete_allowed")
+            if isinstance(owner_callable_adapter_carrier_tail, Mapping)
             else None
         ),
-        "default_executor_carrier_required_active_caller_readback_count": (
-            len(default_executor_carrier_tail.get("required_active_caller_readbacks"))
-            if isinstance(default_executor_carrier_tail, Mapping)
+        "owner_callable_adapter_carrier_required_active_caller_readback_count": (
+            len(owner_callable_adapter_carrier_tail.get("required_active_caller_readbacks"))
+            if isinstance(owner_callable_adapter_carrier_tail, Mapping)
             and isinstance(
-                default_executor_carrier_tail.get("required_active_caller_readbacks"),
+                owner_callable_adapter_carrier_tail.get("required_active_caller_readbacks"),
                 list,
             )
             else None
@@ -1287,7 +1287,7 @@ def _authority_status(surface: Mapping[str, Any]) -> str:
         return "opl_authorized_owner_callable_adapter_live_tail_open"
     if surface_id in {"runtime_lifecycle_payload_retention", "runtime_storage_maintenance"}:
         return "opl_authorized_maintenance_callable_adapter_live_tail_open"
-    if surface_id == "domain_health_diagnostic_obligation_actuator":
+    if surface_id == "domain_diagnostic_obligation_actuator":
         return "consume_only_readback_projection_live_tail_open"
     if surface_id == "domain_authority_refs_index":
         return "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
@@ -1295,10 +1295,10 @@ def _authority_status(surface: Mapping[str, Any]) -> str:
         return "opl_capability_runtime_projection_live_owner_soak_tail_open"
     if surface_id == "progress_portal_study_workbench_overview_action_projection":
         return "read_only_workbench_projection_opl_shell_tail_open"
-    if surface_id == "default_executor_execution_latest_wire_projection":
+    if surface_id == "owner_callable_adapter_receipt_latest_wire_projection":
         return "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
-    if surface_id == "default_executor_dispatch_request":
-        return "legacy_default_executor_carrier_opl_stage_run_abi_provenance_only"
+    if surface_id == "owner_callable_dispatch_request":
+        return "legacy_owner_callable_adapter_carrier_opl_stage_run_abi_provenance_only"
     if disposition.startswith("read_only"):
         return "read_only_projection_no_authority"
     if "projection" in disposition or "refs_only" in disposition:
@@ -1314,7 +1314,7 @@ def _allowed_effect(surface: Mapping[str, Any]) -> str:
         return str(boundary["active_caller_effect"])
     if surface.get("surface_id") == "stage_outcome_authority":
         return "execute_only_with_trusted_opl_authorization_or_bound_readback"
-    if surface.get("surface_id") == "default_executor_execution_latest_wire_projection":
+    if surface.get("surface_id") == "owner_callable_adapter_receipt_latest_wire_projection":
         return "canonical_owner_receipt_or_legacy_stage_run_closeout_provenance_only"
     if isinstance(surface.get("apply_gate"), Mapping):
         return "mutate_only_when_bound_opl_maintenance_authorization_is_present"
@@ -1360,7 +1360,7 @@ def _physical_delete_gate_open(surface: Mapping[str, Any]) -> bool:
         or gate.get("live_opl_cleanup_policy_takeover_required")
         or gate.get("live_opl_storage_policy_takeover_required")
         or gate.get("owner_retirement_decision_required")
-        or gate.get("opl_default_executor_carrier_tail_readback_required")
+        or gate.get("opl_owner_callable_adapter_carrier_tail_readback_required")
         or gate.get("opl_materializer_projection_tail_readback_required")
         or gate.get("opl_workbench_shell_readback_required")
     )

@@ -107,7 +107,7 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": quest_id,
             "action_type": "return_to_ai_reviewer_workflow",

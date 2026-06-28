@@ -18,11 +18,11 @@ def build_runtime_medical_publication_surface_projection(
     *,
     study_root: Path,
     quest_root: Path | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     source_path = _runtime_surface_path(
         quest_root=quest_root,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
     )
     runtime_payload = _read_json_object(source_path) if source_path is not None else None
     if runtime_payload is None:
@@ -104,10 +104,10 @@ def _is_medical_publication_surface_report(
 def _runtime_surface_path(
     *,
     quest_root: Path | None,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
 ) -> Path | None:
     controller_payload = _medical_publication_surface_controller_payload(
-        domain_health_diagnostic_payload,
+        runtime_readback_payload,
     )
     report_path = _candidate_path(controller_payload.get("report_json"))
     latest_path = (
@@ -125,11 +125,11 @@ def _runtime_surface_path(
 
 
 def _medical_publication_surface_controller_payload(
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
     controllers = (
-        domain_health_diagnostic_payload.get("controllers")
-        if isinstance(domain_health_diagnostic_payload, dict)
+        runtime_readback_payload.get("controllers")
+        if isinstance(runtime_readback_payload, dict)
         else None
     )
     payload = controllers.get("medical_publication_surface") if isinstance(controllers, Mapping) else None

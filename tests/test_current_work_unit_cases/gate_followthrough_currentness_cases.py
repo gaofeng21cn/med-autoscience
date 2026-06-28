@@ -330,7 +330,7 @@ def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_select
             "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
             "source_ref": (
                 f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                "default_executor_execution/sat_08da46bea43329723d2fbbea.closeout.json"
+                "owner_callable_adapter_receipt/sat_08da46bea43329723d2fbbea.closeout.json"
             ),
         },
         next_owner="one-person-lab",
@@ -423,7 +423,7 @@ def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_zero_d
             "blocked_reason": "stage_outcome_authority_zero_selected_dispatch",
             "action_type": "run_gate_clearing_batch",
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_8365e11154b896e37d7a5344.closeout.json"
             ),
         },
@@ -517,7 +517,7 @@ def test_current_work_unit_actionable_gate_followthrough_supersedes_consumed_typ
             "work_unit_id": gate_work_unit_id,
             "work_unit_fingerprint": gate_fingerprint,
             "source_ref": (
-                "artifacts/supervision/consumer/default_executor_execution/"
+                "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                 "sat_cbe7d09ebd4ca572b544c073.closeout.json"
             ),
         },
@@ -593,7 +593,7 @@ def test_current_work_unit_gate_followthrough_current_repair_supersedes_executed
                     "source_eval_id": source_eval_id,
                     "source_path": (
                         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/sat_gate.closeout.json"
+                        "owner_callable_adapter_receipt/sat_gate.closeout.json"
                     ),
                 },
             },
@@ -767,7 +767,7 @@ def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_
             "opl_current_control_state_handoff": {
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat_8fb0009e8384954d24ab28cf",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "blocked",
                     "work_unit_id": stale_work_unit_id,
@@ -801,7 +801,7 @@ def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_
                     },
                     "source_path": (
                         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                        "default_executor_execution/sat_8fb0009e8384954d24ab28cf.closeout.json"
+                        "owner_callable_adapter_receipt/sat_8fb0009e8384954d24ab28cf.closeout.json"
                     ),
                 }
             },
@@ -847,7 +847,7 @@ def test_current_work_unit_terminal_gate_routeback_action_supersedes_consumed_ga
     gate_fingerprint = "sha256:12592784fb257f669d5a5678f6c3a6e93a03c5d16ec1d661d1f88c19692bb4df"
     closeout_ref = (
         f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_execution/sat_e4dbaf4c7df74333010d29ae.closeout.json"
+        "owner_callable_adapter_receipt/sat_e4dbaf4c7df74333010d29ae.closeout.json"
     )
 
     work_unit = module.build_current_work_unit(
@@ -859,7 +859,7 @@ def test_current_work_unit_terminal_gate_routeback_action_supersedes_consumed_ga
             "progress_first_monitoring_summary": {
                 "latest_terminal_stage": {
                     "stage_attempt_id": "sat_e4dbaf4c7df74333010d29ae",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_gate_clearing_batch",
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": gate_fingerprint,

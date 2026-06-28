@@ -15,7 +15,7 @@ Delivery / inspection package 使用 OPL lifecycle substrate 时，只能消费 
 
 - `study_root/paper/` 下的 canonical manuscript source、draft、figures、tables、evidence ledger、review ledger、study charter、revision / rebuttal input。
 - 已存在的 generated DOCX/PDF/figure/table projection，前提是在 manifest 中标记为 `existing_projection_snapshot`。
-- `publication_gate`、`publication_supervisor_state`、`domain_health_diagnostic` 或 `study_progress` 的 blocked context，前提是仅作为 provenance。
+- `publication_gate`、`publication_supervisor_state`、`domain_diagnostic_report` 或 `study_progress` 的 blocked context，前提是仅作为 provenance。
 - `delivery_inspector` 已判定为 current 的 `manuscript/current_package.zip`，仅可作为 `authorized_current_package_available` review pointer，不可作为 canonical snapshot source 或 authority root。
 
 禁止把以下对象作为 authority 输入：

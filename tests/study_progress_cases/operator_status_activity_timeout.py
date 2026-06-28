@@ -63,7 +63,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
             },
         },
     )
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
@@ -138,7 +138,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
         "no_progress_is_terminal_failure": False,
         "continuation_required": True,
         "next_owner": "one-person-lab",
-        "next_action_type": "domain_route/reconcile-apply",
+        "next_action_type": "stage_outcome/opl-handoff",
         "quality_gate_relaxation_allowed": False,
     }
     assert result["intervention_lane"]["lane_id"] == "progress_continuation_required"
@@ -146,10 +146,10 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
     assert result["intervention_lane"]["terminal_failure"] is False
     assert result["operator_status_card"]["handling_state"] == "progress_continuation_required"
     assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
-    assert "domain_route/reconcile-apply" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "stage_outcome/opl-handoff" in result["operator_status_card"]["next_confirmation_signal"]
     assert result["operator_verdict"]["decision_mode"] == "continue_owner_route"
     assert result["operator_verdict"]["needs_intervention"] is True
-    assert result["recovery_contract"]["action_mode"] == "domain_route/reconcile-apply"
+    assert result["recovery_contract"]["action_mode"] == "stage_outcome/opl-handoff"
 
 
 def test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_projection(

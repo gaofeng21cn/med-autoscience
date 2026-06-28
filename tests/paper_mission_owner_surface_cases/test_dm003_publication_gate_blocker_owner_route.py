@@ -830,16 +830,16 @@ def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
         "idempotency_key": "owner-route::dm003::gate-replay",
     }
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
         {
-            "surface": "default_executor_dispatch_execution_study_latest",
+            "surface": "owner_callable_dispatch_execution_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "default_executor_dispatch_execution",
+                    "surface": "owner_callable_dispatch_execution",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": quest_id,
@@ -941,7 +941,7 @@ def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
     study = result["studies"][0]
     assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
     assert [item["action_type"] for item in result["action_queue"]] == ["run_quality_repair_batch"]
-    assert study["default_executor_execution_receipt_consumption"] is None
+    assert study["owner_callable_receipt_consumption"] is None
     action = study["action_queue"][0]
     assert action["owner"] == "write"
     assert action["reason"] == "publication_gate_route_back_write_required"

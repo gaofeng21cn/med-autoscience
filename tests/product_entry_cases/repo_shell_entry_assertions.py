@@ -66,8 +66,8 @@ def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref)
         entry.get("path") == "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
         for entry in payload["artifact_inventory"]["supporting_files"]
     )
-    assert payload["executor_defaults"]["default_executor_name"] == "codex_cli"
-    assert payload["executor_defaults"]["default_executor_mode"] == "autonomous"
+    assert payload["executor_defaults"]["owner_callable_adapter_name"] == "codex_cli"
+    assert payload["executor_defaults"]["owner_callable_adapter_mode"] == "autonomous"
     assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
     assert payload["executor_defaults"]["default_reasoning_effort"] == "inherit_local_codex_default"
     assert payload["executor_defaults"]["executor_labels"] == {
@@ -82,7 +82,7 @@ def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref)
 
 def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -> None:
     assert payload["executor_defaults"]["hermes_agent_requires_full_agent_loop"] is True
-    assert "default_executor" not in payload["executor_defaults"]
+    assert "owner_callable_adapter" not in payload["executor_defaults"]
     assert "hermes_native_requires_full_agent_loop" not in payload["executor_defaults"]
     assert payload["executor_defaults"]["current_backend_chain"] == [
         "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",

@@ -93,7 +93,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_matching_opl_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_execution"
+        / "owner_callable_adapter_receipt"
         / "sat_08da46bea43329723d2fbbea.closeout.json"
     )
     _write_json(
@@ -392,7 +392,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
             "surface_kind": "stage_attempt_closeout_packet",
             "generated_at": "2026-06-20T16:05:54Z",
             "study_id": study_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "stage_attempt_id": stage_attempt_id,
             "action_type": "run_quality_repair_batch",
             "work_unit_id": work_unit_id,
@@ -430,7 +430,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
                 },
             },
             "closeout_refs": [
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/{stage_attempt_id}.closeout.json",
+                f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/{stage_attempt_id}.closeout.json",
                 f"studies/{study_id}/artifacts/supervision/consumer/stage_attempt_closeouts/{stage_attempt_id}.json",
             ],
         },
@@ -467,7 +467,7 @@ def test_study_progress_opl_current_control_state_handoff_uses_transition_reques
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     transition_candidate = {

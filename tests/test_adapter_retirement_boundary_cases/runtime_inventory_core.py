@@ -8,7 +8,7 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
         "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier"
     )
     assert set(carrier_persistence["retired_symbols"]) == {
-        "persist_default_executor_dispatches",
+        "persist_owner_callable_adapters",
         "persist_request_packets",
         "persist_consumer_payload",
         "request_packet_for_persistence",
@@ -18,7 +18,7 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
     assert "mas_local_dispatch_carrier_persistence" in carrier_persistence["forbidden_claims"]
     assert "mas_local_request_packet_persistence" in carrier_persistence["forbidden_claims"]
 
-    default_dispatch = surfaces["default_executor_dispatch_request"]
+    default_dispatch = surfaces["owner_callable_dispatch_request"]
     assert default_dispatch["legacy_carrier_fallback_only"] is True
     assert (
         default_dispatch["priority_boundary"]
@@ -41,14 +41,14 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
         "current_entry_allowed": False,
         "historical_receipt_ref": (
             "contracts/standard_agent_completion_evidence_status.json#/"
-            "historical_default_executor_dispatch_residue_cleanup_receipt"
+            "historical_owner_callable_dispatch_residue_cleanup_receipt"
         ),
-        "retired_command": "default-executor-dispatch-residue-cleanup",
-        "retired_module": "med_autoscience.controllers.default_executor_dispatch_residue_cleanup",
+        "retired_command": "owner-callable-adapter-residue-cleanup",
+        "retired_module": "med_autoscience.controllers.owner_callable_dispatch_residue_cleanup",
     }
     assert default_dispatch["legacy_stage_run_abi_provenance_boundary"] == {
         "carrier_kind": "opl_domain_progress_transition_request_carrier",
-        "legacy_surface": "default_executor_dispatch_request",
+        "legacy_surface": "owner_callable_dispatch_request",
         "mas_can_create_stage_run": False,
         "mas_can_mark_provider_admission": False,
         "mas_can_mark_provider_running": False,
@@ -56,11 +56,11 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
         "running_provider_attempt_provenance_without_opl_live_readback": "observability_only",
         "provenance_only_until_opl_readback": True,
         "requires_opl_domain_progress_transition_runtime_intake": True,
-        "task_kind_retained_for_opl_stage_run_abi": "domain_owner/default-executor-dispatch",
+        "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
         "transition_request_pending_only": True,
     }
-    assert default_dispatch["opl_default_executor_carrier_tail_readback"] == {
-        "surface_kind": "opl_default_executor_carrier_tail_readback_requirement",
+    assert default_dispatch["opl_owner_callable_adapter_carrier_tail_readback"] == {
+        "surface_kind": "opl_owner_callable_adapter_carrier_tail_readback_requirement",
         "status": "tail_open",
         "runtime_owner": "one-person-lab",
         "runtime_kind": "DomainProgressTransitionRuntime/TransactionalOutbox/StageRun",
@@ -70,20 +70,20 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
             "opl_stagerun_owner_callable_adapter_live_readback",
         ],
         "required_before_physical_delete": (
-            "default_executor_dispatch_request_opl_default_executor_carrier_tail_readback_ref"
+            "owner_callable_dispatch_request_opl_owner_callable_adapter_carrier_tail_readback_ref"
         ),
         "physical_delete_requires": [
             "opl_domain_progress_transition_runtime_live_readback",
             "opl_command_event_outbox_live_readback",
             "opl_stagerun_owner_callable_adapter_live_readback",
-            "no_active_default_executor_carrier_caller_scan",
+            "no_active_owner_callable_adapter_carrier_caller_scan",
             "no_forbidden_write_proof",
             "replacement_parity_ref",
             "owner_retirement_decision_ref",
             "tombstone_or_provenance_ref",
         ],
         "tail_readback_proven": False,
-        "no_active_default_executor_carrier_caller_proven": False,
+        "no_active_owner_callable_adapter_carrier_caller_proven": False,
         "physical_delete_allowed": False,
         "legacy_carrier_provenance_can_satisfy_readback": False,
         "transition_request_pending_can_satisfy_readback": False,
@@ -92,10 +92,10 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
         "request_only_carrier_can_authorize_provider_admission": False,
         "request_only_carrier_can_claim_running_or_progress": False,
         "forbidden_completion_claims": [
-            "legacy_carrier_provenance_as_default_executor_carrier_tail_readback",
+            "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback",
             "transition_request_pending_as_opl_live_readback",
-            "repo_no_authority_guard_as_default_executor_carrier_tail_readback",
-            "focused_tests_green_as_no_active_default_executor_carrier_caller",
+            "repo_no_authority_guard_as_owner_callable_adapter_carrier_tail_readback",
+            "focused_tests_green_as_no_active_owner_callable_adapter_carrier_caller",
             "request_only_carrier_as_provider_admission",
             "request_only_carrier_as_running_or_progress",
         ],
@@ -137,20 +137,20 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
         "explicit domain_progress_transition_requests projection plus OPL DomainProgressTransitionRuntime readback"
     )
     assert legacy_alias["retired_symbols"] == [
-        "default_executor_dispatches owner_callable_adapters fallback alias"
+        "owner_callable_adapters owner_callable_adapters fallback alias"
     ]
-    assert "legacy_default_executor_dispatches_as_owner_callable_adapters" in legacy_alias["forbidden_claims"]
+    assert "legacy_owner_callable_adapters_as_owner_callable_adapters" in legacy_alias["forbidden_claims"]
 
-    current_default_preview = surfaces["domain_action_request_materializer_current_default_executor_dispatches_api"]
+    current_default_preview = surfaces["domain_action_request_materializer_current_owner_callable_adapters_api"]
     assert current_default_preview["retained_mas_role"] == "none_physically_retired_no_alias"
     assert current_default_preview["replacement_surface"] == (
         "current_owner_callable_adapters projection plus OPL DomainProgressTransitionRuntime readback"
     )
     assert set(current_default_preview["retired_symbols"]) == {
-        "current_default_executor_dispatches",
-        "domain_action_request_materializer_parts.current_default_executor_dispatches",
+        "current_owner_callable_adapters",
+        "domain_action_request_materializer_parts.current_owner_callable_adapters",
     }
-    assert "legacy_current_default_executor_dispatches_preview_api" in current_default_preview["forbidden_claims"]
+    assert "legacy_current_owner_callable_adapters_preview_api" in current_default_preview["forbidden_claims"]
 
     owner_callable_projection = surfaces["domain_action_request_materializer_owner_callable_adapter_projection"]
     assert owner_callable_projection["active_caller_migrated"] is True

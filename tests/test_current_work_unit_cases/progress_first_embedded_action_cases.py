@@ -93,7 +93,7 @@ def test_current_work_unit_uses_progress_first_embedded_actionable_gate_followth
             "work_unit_fingerprint": "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f",
             "source_ref": (
                 f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
-                "default_executor_execution/sat_d2b4c700b31294ab17c225d4.closeout.json"
+                "owner_callable_adapter_receipt/sat_d2b4c700b31294ab17c225d4.closeout.json"
             ),
         },
         next_owner="publication_gate",

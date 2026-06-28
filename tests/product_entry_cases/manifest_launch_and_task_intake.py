@@ -404,7 +404,7 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
         evidence_boundary=("必须补齐外部验证",),
         trusted_inputs=("study.yaml", "数据字典"),
         reference_papers=("PMID:12345678",),
-        first_cycle_outputs=("study-progress", "domain_health_diagnostic", "publication_eval/latest.json"),
+        first_cycle_outputs=("study-progress", "domain_diagnostic_report", "publication_eval/latest.json"),
     )
 
     latest_json = Path(payload["artifacts"]["latest_json"])
@@ -521,7 +521,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         entry_mode="full_research",
         journal_target="JAMA Network Open",
         evidence_boundary=("必须保留 publication gate",),
-        first_cycle_outputs=("study-progress", "domain_health_diagnostic"),
+        first_cycle_outputs=("study-progress", "domain_diagnostic_report"),
     )
 
     payload = module.build_product_entry(
@@ -670,7 +670,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.opl_runtime_owner_handoff_path",
-                "refs.domain_health_diagnostic_report_path",
+                "refs.runtime_readback_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },

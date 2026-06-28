@@ -547,6 +547,6 @@ def _activity_timeout_progress_pressure() -> dict[str, Any]:
         "no_progress_is_terminal_failure": False,
         "continuation_required": True,
         "next_owner": "one-person-lab",
-        "next_action_type": "domain_route/reconcile-apply",
+        "next_action_type": "stage_outcome/opl-handoff",
         "quality_gate_relaxation_allowed": False,
     }

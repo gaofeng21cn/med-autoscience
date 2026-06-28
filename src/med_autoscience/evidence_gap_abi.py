@@ -35,7 +35,7 @@ ABI_COMPONENTS = (
 
 CONSUMER_REFS = {
     "study_progress": "/study_progress/evidence_gap_decisions",
-    "domain_health_diagnostic": "/domain_health_diagnostic/evidence_gap_decisions",
+    "domain_diagnostic_report": "/domain_diagnostic_report/evidence_gap_decisions",
     "domain_action_materializer": "/domain_progress_transition_requests/*/evidence_gap_decisions",
     "opl_stage_control_plane": "/product_entry_manifest/evidence_gap_consumption_abi",
     "workbench": "/study_workbench/evidence_gap_view",
@@ -54,7 +54,7 @@ def build_evidence_gap_consumption_abi() -> dict[str, Any]:
         "decision_schema_ref": DECISION_SCHEMA_REF,
         "machine_boundary": (
             "This ABI projects EvidenceGapDecision for OPL, Workbench, MCP, action-catalog, "
-            "study-progress, DHD, and action materializer consumers. It does not create a second "
+            "study-progress, domain diagnostic, and action materializer consumers. It does not create a second "
             "truth source and does not authorize paper progress, provider running, publication "
             "readiness, submission readiness, live runtime readiness, or production readiness."
         ),

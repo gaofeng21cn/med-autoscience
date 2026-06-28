@@ -15,7 +15,7 @@ def test_provider_hosted_stage_attempt_uses_bound_dispatch_owner_route_when_scan
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
         "immutable/run_gate_clearing_batch/203c0b81fd948c1ceb0b990e.json"
     )
     owner_route = {
@@ -53,7 +53,7 @@ def test_provider_hosted_stage_attempt_uses_bound_dispatch_owner_route_when_scan
         },
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": study_id,

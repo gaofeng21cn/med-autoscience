@@ -732,7 +732,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
             ],
         },
     )
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(

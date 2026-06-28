@@ -83,7 +83,7 @@
       "provider_completion_is_domain_completion",
       "read_model_status_is_stage_terminal_decision",
       "queue_empty_is_paper_progress",
-      "dhd_clean_is_paper_progress"
+      "domain_diagnostic_clean_is_paper_progress"
     ]
   },
   "opl_runtime_carrier": {

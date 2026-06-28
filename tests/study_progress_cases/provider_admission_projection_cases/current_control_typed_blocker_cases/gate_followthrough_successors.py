@@ -82,7 +82,7 @@ def test_existing_projection_refresh_promotes_progress_first_gate_followthrough_
                     "work_unit_fingerprint": gate_fingerprint,
                     "action_fingerprint": gate_fingerprint,
                     "source_ref": (
-                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                         "sat_d2b4c700b31294ab17c225d4.closeout.json"
                     ),
                 },

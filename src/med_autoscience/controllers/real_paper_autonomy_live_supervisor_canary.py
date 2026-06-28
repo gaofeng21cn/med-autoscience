@@ -26,7 +26,7 @@ READ_ONLY_CONTRACT = {
     "mode": "read_only_live_canary",
     "may_call_study_progress": True,
     "may_call_legacy_diagnostic_reader": True,
-    "may_apply_domain_health_diagnostic": False,
+    "may_apply_domain_diagnostic_report": False,
     "may_hydrate": False,
     "may_tick": False,
     "may_redrive": False,

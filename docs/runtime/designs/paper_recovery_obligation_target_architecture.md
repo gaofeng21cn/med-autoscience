@@ -3,7 +3,7 @@
 Owner: `MedAutoScience / OPL Framework`
 Purpose: `paper_recovery_obligation_target_architecture`
 State: `active_target_design`
-Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、源码、测试、fresh `study_progress`、DHD dry-run / apply、OPL current-control / attempt ledger、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
+Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、源码、测试、fresh `study_progress`、domain diagnostic dry-run / apply、OPL current-control / attempt ledger、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
 
 ## 结论
 
@@ -11,7 +11,7 @@ DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多
 
 `RecoveryObligationKernel input evidence -> paper_recovery_state -> derived projections`
 
-`current_work_unit`、`current_execution_envelope`、`study_progress`、DHD provider admission、domain-handler export、operator card 和 OPL admission 都只能消费 `paper_recovery_state` 的 `phase`、`conditions`、`next_safe_action`、identity 和 closeout refs；它们不能从 queue、旧 dispatch、transport status、operator card、trace/span 或 read-model refresh 反向生成恢复真相。
+`current_work_unit`、`current_execution_envelope`、`study_progress`、domain diagnostic provider admission、domain-handler export、operator card 和 OPL admission 都只能消费 `paper_recovery_state` 的 `phase`、`conditions`、`next_safe_action`、identity 和 closeout refs；它们不能从 queue、旧 dispatch、transport status、operator card、trace/span 或 read-model refresh 反向生成恢复真相。
 
 ## 目标调用图
 
@@ -25,7 +25,7 @@ flowchart TD
   S --> W["current_work_unit"]
   S --> E["current_execution_envelope"]
   S --> P["study_progress"]
-  S --> H["DHD provider admission current-control"]
+  S --> H["domain diagnostic provider admission current-control"]
   S --> X["domain-handler pending_family_tasks"]
   S --> O["operator / workbench projections"]
   H --> R["OPL StageRun admission"]
@@ -77,7 +77,7 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 ## 迁移顺序
 
 1. 引入纯 decision object / fixture：用 DM002 `stage_packet_not_current_selected_dispatch` 和 DM003 pending admission / projection inconsistent 作为 golden negative fixtures，不触碰 live recovery。
-2. 让 `current_work_unit` 与 DHD provider admission 消费同一个 kernel 输出；删除重复 currentness precedence。
+2. 让 `current_work_unit` 与 domain diagnostic provider admission 消费同一个 kernel 输出；删除重复 currentness precedence。
 3. 让 `domain-handler export` 只消费 kernel admission output，旧 dispatch / queue residue 只能进入 diagnostic。
 4. 让 operator card / workbench projection 只显示 PaperRecovery phase 和 next safe action，清除 old parked / explicit wakeup residue。
 5. 退役重复 selector / projection 分支；保留 OPL substrate readout 为 current/status drilldown。
@@ -92,7 +92,7 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 
 行为验证：
 
-- `current_work_unit`、DHD provider admission、domain-handler export 对同一 fixture 给出同一 phase / next safe action。
+- `current_work_unit`、domain diagnostic provider admission、domain-handler export 对同一 fixture 给出同一 phase / next safe action。
 - 缺 `route_identity_key`、`attempt_idempotency_key`、stage packet refs 或 owner-route currentness basis 时，provider admission 被 suppress。
 - terminal closeout 未被 MAS consume/reject 时，只进入 `terminal_closeout_ready`，不产生 paper progress。
 - stop-loss 同一 obligation 无 successor / human gate 时保持 fail closed。

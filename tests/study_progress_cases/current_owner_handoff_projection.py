@@ -35,7 +35,7 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
             "opl_current_control_state_handoff": {
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat-001",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "typed_blocker",
                     "typed_blocker_reason": "typed_closeout_packet_required",
@@ -50,7 +50,7 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
                     "token_usage": {},
                     "cost": {},
                     "closeout_refs": [
-                        "artifacts/supervision/consumer/default_executor_execution/sat-001.json"
+                        "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-001.json"
                     ],
                     "paper_stage_log": {
                         "outcome": "typed_blocker",
@@ -59,7 +59,7 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
                         "changed_paper_surfaces": [],
                         "remaining_blockers": ["typed_closeout_packet_required"],
                         "evidence_refs": [
-                            "artifacts/supervision/consumer/default_executor_execution/sat-001.json"
+                            "artifacts/supervision/consumer/owner_callable_adapter_receipt/sat-001.json"
                         ],
                     },
                 },
@@ -205,7 +205,7 @@ def test_progress_first_monitoring_counts_paper_delta_despite_missing_closeout_o
             "opl_current_control_state_handoff": {
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat-003",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "executed",
                     "missing_user_stage_log_fields": ["progress_delta_classification"],
@@ -271,7 +271,7 @@ def test_progress_first_monitoring_counts_stage_delta_despite_missing_closeout_o
             "opl_current_control_state_handoff": {
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat-002",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "executed",
                     "typed_blocker_reason": "typed_closeout_packet_required",
@@ -329,7 +329,7 @@ def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() 
             "opl_current_control_state_handoff": {
                 "latest_terminal_stage_log": {
                     "stage_attempt_id": "sat-002",
-                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_id": "stage_outcome/opl-handoff",
                     "action_type": "run_quality_repair_batch",
                     "status": "executed",
                     "observability_status": "observed",

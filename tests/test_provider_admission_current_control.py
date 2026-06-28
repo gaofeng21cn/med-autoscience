@@ -28,7 +28,7 @@ def test_current_control_provider_admission_rejects_queue_without_current_identi
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     action_fingerprint = "sha256:gate-replay-without-current-identity"
@@ -36,12 +36,12 @@ def test_current_control_provider_admission_rejects_queue_without_current_identi
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": action_fingerprint,
@@ -108,7 +108,7 @@ def test_current_control_provider_admission_rejects_root_action_queue_identity_u
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     work_unit_id = "manuscript_story_repair"
@@ -116,7 +116,7 @@ def test_current_control_provider_admission_rejects_root_action_queue_identity_u
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
@@ -232,7 +232,7 @@ def test_current_control_provider_admission_rejects_action_queue_self_identity_u
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     work_unit_id = "medical_prose_write_repair"
@@ -240,7 +240,7 @@ def test_current_control_provider_admission_rejects_action_queue_self_identity_u
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
@@ -346,7 +346,7 @@ def test_current_control_provider_admission_uses_study_current_work_unit_identit
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     stale_fingerprint = "sha256:stale-ai-reviewer-with-current-study-work-unit"
@@ -354,7 +354,7 @@ def test_current_control_provider_admission_uses_study_current_work_unit_identit
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "return_to_ai_reviewer_workflow",
@@ -435,7 +435,7 @@ def test_current_control_provider_admission_uses_study_current_action_when_top_l
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     action_fingerprint = "domain-transition::route_back_same_line::dpcc_publication_gate_replay"
@@ -443,12 +443,12 @@ def test_current_control_provider_admission_uses_study_current_action_when_top_l
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "refs": {"dispatch_path": str(dispatch_path)},
@@ -688,7 +688,7 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     work_unit_id = "ai_reviewer_record_gate_consumption"
@@ -696,12 +696,12 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "write",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "refs": {"dispatch_path": str(dispatch_path)},
@@ -809,19 +809,19 @@ def test_current_control_provider_admission_rejects_write_owner_gate_clearing_wi
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     work_unit_id = "ai_reviewer_record_gate_consumption"
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "write",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "refs": {"dispatch_path": str(dispatch_path)},
@@ -898,7 +898,7 @@ def test_current_control_provider_admission_allows_write_quality_repair_from_stu
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     work_unit_id = "medical_prose_write_repair"
@@ -906,7 +906,7 @@ def test_current_control_provider_admission_allows_write_quality_repair_from_stu
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
@@ -991,7 +991,7 @@ def test_provider_admission_candidate_never_promotes_provider_completion_to_doma
     action_fingerprint = "sha256:current-provider-admission-boundary"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     execution = {
-        "source": "default_executor_execution",
+        "source": "owner_callable_adapter_receipt",
         "execution_status": "handoff_ready",
         "study_id": study_id,
         "quest_id": study_id,
@@ -1022,7 +1022,7 @@ def test_provider_admission_candidate_never_promotes_provider_completion_to_doma
 
     candidate = provider_admission.provider_admission_candidate_from_execution(
         execution,
-        execution_ref="runtime/artifacts/supervision/consumer/default_executor_execution/latest.json",
+        execution_ref="runtime/artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
         status_study_id=study_id,
         current_action_identity={
             "action_type": "return_to_ai_reviewer_workflow",

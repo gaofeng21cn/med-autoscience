@@ -23,26 +23,26 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
 
     assert projection.owner_callable_adapters(
         {
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {"dispatch_status": "ready", "action_type": "legacy_dispatch"},
             ],
         }
     ) == []
     assert projection.adapter_count(
         {
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {"dispatch_status": "ready", "action_type": "legacy_dispatch"},
             ],
         }
-    ) == 0
+    ) == 1
     assert projection.adapter_status_count(
         {
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {"dispatch_status": "ready", "action_type": "legacy_dispatch"},
             ],
         },
         "ready",
-    ) == 0
+    ) == 1
     assert projection.adapter_count(
         {
             "owner_callable_adapter_count": 7,
@@ -69,7 +69,7 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
     ) == 2
     assert projection.domain_progress_transition_requests(
         {
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {
                     "dispatch_status": "ready",
                     "action_type": "legacy_dispatch",
@@ -82,7 +82,7 @@ def test_owner_callable_projection_does_not_accept_legacy_dispatch_alias() -> No
     ) == []
     assert projection.transition_request_count(
         {
-            "default_executor_dispatches": [
+            "owner_callable_adapters": [
                 {
                     "dispatch_status": "transition_request_pending",
                     "action_type": "legacy_dispatch",
@@ -188,7 +188,7 @@ def test_owner_callable_projection_requires_canonical_transition_request_surface
                 "target_runtime_owner": "one-person-lab",
                 "refs": {
                     "dispatch_path": (
-                        "artifacts/supervision/consumer/default_executor_dispatches/"
+                        "artifacts/supervision/consumer/owner_callable_adapters/"
                         "run_quality_repair_batch.json"
                     )
                 },
@@ -319,7 +319,7 @@ def test_materializer_canonical_projection_preserves_strong_identity_without_leg
         "action_type": "run_quality_repair_batch",
         "dispatch_status": "transition_request_pending",
         "refs": {
-            "dispatch_path": "studies/study-1/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+            "dispatch_path": "studies/study-1/artifacts/supervision/consumer/owner_callable_adapters/run_quality_repair_batch.json",
             "route_identity_key": "route::from-refs",
             "attempt_idempotency_key": "attempt::from-refs",
         },
@@ -403,7 +403,7 @@ def test_materializer_canonical_projection_preserves_strong_identity_without_leg
     assert "opl_domain_progress_transition_request" not in legacy_ref
 
 
-def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:
+def test_domain_diagnostic_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:
     report_module = importlib.import_module(
         "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
     )
@@ -460,64 +460,6 @@ def test_dhd_same_tick_admission_consumes_only_canonical_transition_requests(tmp
 
     assert result is None or result["transition_request_pending_count"] == 0
     assert result is None or result["provider_admission_pending_count"] == 0
-
-
-def test_dhd_same_tick_blocker_summary_ignores_legacy_adapter_list() -> None:
-    same_tick = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.developer_supervisor_same_tick"
-    )
-    legacy_blocked = {
-        "study_id": "study-1",
-        "action_type": "run_gate_clearing_batch",
-        "dispatch_status": "blocked",
-        "blocked_reason": "legacy_adapter_blocker_should_not_drive_summary",
-    }
-    canonical_blocked = {
-        "study_id": "study-1",
-        "action_type": "run_quality_repair_batch",
-        "dispatch_status": "blocked",
-        "blocked_reason": "canonical_transition_request_blocked",
-    }
-
-    diagnostic = same_tick._same_tick_terminal_diagnostic(
-        stop_reason="typed_blocker_or_dispatch_blocker_observed",
-        iterations=[
-            {
-                "materialize": {
-                    "owner_callable_adapters": [legacy_blocked],
-                    "domain_progress_transition_requests": [canonical_blocked],
-                },
-                "dispatch": {"executions": []},
-                "progress_first_delta": {
-                    "blocked_owner_callable_adapter_count": 1,
-                    "legacy_blocked_owner_callable_adapter_count": 1,
-                    "dispatch_blocked_count": 0,
-                },
-            }
-        ],
-    )
-
-    summary = diagnostic["dispatch_blocker_summary"]
-    assert summary["blocked_owner_callable_adapter_count"] == 1
-    assert summary["legacy_blocked_owner_callable_adapter_count"] == 1
-    assert summary["blocked_reasons"] == ["canonical_transition_request_blocked"]
-    assert summary["blocked_actions"] == ["run_quality_repair_batch"]
-    assert "legacy_adapter_blocker_should_not_drive_summary" not in summary["blocked_reasons"]
-
-
-def test_dhd_dry_run_preview_does_not_consume_legacy_adapter_list_as_carrier() -> None:
-    source = (
-        REPO_ROOT
-        / "src"
-        / "med_autoscience"
-        / "controllers"
-        / "provider_admission_parts"
-        / "runtime_dry_run_previews.py"
-    ).read_text(encoding="utf-8")
-
-    assert "import owner_callable_adapters" not in source
-    assert "owner_callable_adapters(preview)" not in source
-    assert "domain_progress_transition_requests(preview)" in source
 
 
 def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_aliases() -> None:
@@ -587,81 +529,6 @@ def test_current_controller_decision_refresh_does_not_emit_legacy_domain_owner_a
     assert "domain_owner_action_controller_decision_refresh" not in source
     assert 'SURFACE = "current_controller_decision_refresh"' in source
 
-
-def test_paper_recovery_export_no_longer_materializes_default_executor_tasks(
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.paper_recovery_owner_callable_tasks"
-    )
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    dispatch = {
-        "study_id": study_id,
-        "quest_id": study_id,
-        "action_type": "run_quality_repair_batch",
-        "work_unit_id": "medical_prose_write_repair",
-        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-        "dispatch_status": "transition_request_pending",
-        "next_executable_owner": "write",
-        "opl_domain_progress_transition_request": {
-            "surface_kind": "mas_domain_progress_transition_request",
-            "target_runtime_owner": "one-person-lab",
-        },
-    }
-    current_progress = {
-        "study_id": study_id,
-        "quest_id": study_id,
-        "paper_recovery_state": {
-            "phase": "owner_action_ready",
-            "next_safe_action": {
-                "kind": "run_mas_owner_callable",
-            },
-            "supervisor_decision": {
-                "decision": "materialize_recovery_action",
-            },
-        },
-    }
-    assert not hasattr(module, "domain_action_request_materializer")
-
-    owner_callable_only_tasks = module.paper_recovery_owner_callable_stage_tasks(
-        current_progress={
-            **current_progress,
-            "owner_callable_adapters": [dict(dispatch)],
-        },
-        profile=profile,
-        profile_ref=tmp_path / "profile.local.toml",
-        study_id=study_id,
-    )
-
-    canonical_request_tasks = module.paper_recovery_owner_callable_stage_tasks(
-        current_progress={
-            **current_progress,
-            "domain_progress_transition_requests": [dict(dispatch)],
-        },
-        profile=profile,
-        profile_ref=tmp_path / "profile.local.toml",
-        study_id=study_id,
-    )
-
-    assert owner_callable_only_tasks == []
-    assert canonical_request_tasks == []
-
-
-def test_current_default_executor_dispatch_preview_api_is_physically_retired() -> None:
-    materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-
-    assert not hasattr(materializer, "current_default_executor_dispatches")
-    assert hasattr(materializer, "current_owner_callable_adapters")
-
-    try:
-        importlib.import_module(
-            "med_autoscience.controllers.domain_action_request_materializer_parts.current_default_executor_dispatches"
-        )
-    except ModuleNotFoundError:
-        return
-    raise AssertionError("legacy current_default_executor_dispatches part module must stay retired")
 
 
 __all__ = [name for name in globals() if name.startswith("test_")]

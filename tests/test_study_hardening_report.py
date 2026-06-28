@@ -13,7 +13,7 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
         "case_family": "same_line_quality_gate_fast_lane",
         "required_truth_surfaces": [
             "progress_projection",
-            "domain_health_diagnostic",
+            "domain_diagnostic_report",
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
             "study_charter",
@@ -64,7 +64,7 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
                 }
             ]
         },
-        "domain_health_diagnostic_wakeup_dedupe_summary": {"status": "not_confirmed"},
+        "domain_diagnostic_wakeup_dedupe_summary": {"status": "not_confirmed"},
         "gate_blocker_summary": {
             "status": "blocked",
             "current_blockers": ["claim_evidence_consistency_failed"],
@@ -138,7 +138,7 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
     assert report["regression_manifest"]["cases"] == [replay_case]
     assert report["regression_manifest"]["required_truth_surfaces"] == [
         "controller_decisions/latest.json",
-        "domain_health_diagnostic",
+        "domain_diagnostic_report",
         "progress_projection",
         "publication_eval/latest.json",
         "study_charter",
@@ -180,7 +180,7 @@ def test_study_hardening_report_classifies_external_provider_and_human_gate() ->
             },
             "study_soak_replay_case": {
                 "case_id": "study-soak-replay::002-provider::opl_runtime_owner_handoff_hydration",
-                "required_truth_surfaces": ["domain_health_diagnostic"],
+                "required_truth_surfaces": ["domain_diagnostic_report"],
                 "must_assert": ["external_runtime_blocker_is_not_retried_as_mas_work"],
                 "gate_relaxation_allowed": False,
                 "edits_paper_body": False,

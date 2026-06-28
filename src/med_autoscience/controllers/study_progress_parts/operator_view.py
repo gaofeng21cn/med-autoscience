@@ -97,7 +97,7 @@ def _recovery_contract(
     elif lane_id == "progress_continuation_required":
         steps = [
             _recovery_step(
-                step_id="domain_route/reconcile-apply",
+                step_id="stage_outcome/opl-handoff",
                 title="提交 OPL owner-route continuation",
                 surface_kind="domain_handler_export",
                 command=commands["study_progress"],
@@ -115,7 +115,7 @@ def _recovery_contract(
                 command=commands["study_progress"],
             ),
         ]
-        action_mode = "domain_route/reconcile-apply"
+        action_mode = "stage_outcome/opl-handoff"
     elif lane_id in {"runtime_recovery_required", "runtime_blocker"}:
         steps = [
             _recovery_step(
@@ -275,11 +275,11 @@ def _restore_point(
 def _latest_outer_loop_dispatch(
     *,
     study_id: str,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     dispatch_block = (
-        dict((domain_health_diagnostic_payload or {}).get("managed_study_outer_loop_dispatch") or {})
-        if isinstance((domain_health_diagnostic_payload or {}).get("managed_study_outer_loop_dispatch"), dict)
+        dict((runtime_readback_payload or {}).get("managed_study_outer_loop_dispatch") or {})
+        if isinstance((runtime_readback_payload or {}).get("managed_study_outer_loop_dispatch"), dict)
         else {}
     )
     if dispatch_block and _non_empty_text(dispatch_block.get("study_id")) == study_id:
@@ -287,7 +287,7 @@ def _latest_outer_loop_dispatch(
     else:
         dispatches = [
             dict(item)
-            for item in ((domain_health_diagnostic_payload or {}).get("managed_study_outer_loop_dispatches") or [])
+            for item in ((runtime_readback_payload or {}).get("managed_study_outer_loop_dispatches") or [])
             if isinstance(item, dict)
         ]
     for item in reversed(dispatches):
@@ -325,7 +325,7 @@ def _autonomy_contract(
     next_system_action: str,
     continuation_state: dict[str, Any],
     family_checkpoint_lineage: dict[str, Any],
-    domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_readback_payload: dict[str, Any] | None,
     needs_physician_decision: bool,
     manual_finish_contract: dict[str, Any] | None,
     auto_runtime_parked: dict[str, Any] | None,
@@ -337,7 +337,7 @@ def _autonomy_contract(
     )
     latest_outer_loop_dispatch = _latest_outer_loop_dispatch(
         study_id=study_id,
-        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+        runtime_readback_payload=runtime_readback_payload,
     )
     lane_id = _non_empty_text(intervention_lane.get("lane_id")) or "monitor_only"
     if bool((auto_runtime_parked or {}).get("parked")):
@@ -390,7 +390,7 @@ def _autonomy_soak_status(
     *,
     autonomy_contract: dict[str, Any],
     progress_freshness: dict[str, Any],
-    domain_health_diagnostic_path: Path | None,
+    runtime_readback_report_path: Path | None,
     controller_decision_path: Path,
 ) -> dict[str, Any] | None:
     latest_outer_loop_dispatch = dict(autonomy_contract.get("latest_outer_loop_dispatch") or {})
@@ -410,7 +410,7 @@ def _autonomy_soak_status(
         "proof_refs": [
             ref
             for ref in (
-                str(domain_health_diagnostic_path) if domain_health_diagnostic_path is not None else None,
+                str(runtime_readback_report_path) if runtime_readback_report_path is not None else None,
                 str(controller_decision_path),
             )
             if ref is not None
@@ -431,7 +431,7 @@ def _research_runtime_control_projection(
     publication_eval_ref: str,
     controller_decision_ref: str,
     opl_runtime_owner_handoff_ref: str | None,
-    domain_health_diagnostic_ref: str | None,
+    runtime_readback_report_ref: str | None,
 ) -> dict[str, Any]:
     restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
     interrupt_policy = _non_empty_text(intervention_lane.get("recommended_action_id"))
@@ -440,7 +440,7 @@ def _research_runtime_control_projection(
         publication_eval_ref=publication_eval_ref,
         controller_decision_ref=controller_decision_ref,
         opl_runtime_owner_handoff_ref=opl_runtime_owner_handoff_ref,
-        domain_health_diagnostic_ref=domain_health_diagnostic_ref,
+        runtime_readback_report_ref=runtime_readback_report_ref,
     )
     return {
         "surface_kind": "research_runtime_control_projection",
@@ -483,7 +483,7 @@ def _research_runtime_control_projection(
                 "publication_eval_path": publication_eval_ref,
                 "controller_decision_path": controller_decision_ref,
                 "opl_runtime_owner_handoff_path": opl_runtime_owner_handoff_ref,
-                "domain_health_diagnostic_report_path": domain_health_diagnostic_ref,
+                "runtime_readback_report_path": runtime_readback_report_ref,
             },
         },
         "artifact_pickup_surface": {
@@ -493,7 +493,7 @@ def _research_runtime_control_projection(
                 "refs.publication_eval_path",
                 "refs.controller_decision_path",
                 "refs.opl_runtime_owner_handoff_path",
-                "refs.domain_health_diagnostic_report_path",
+                "refs.runtime_readback_report_path",
             ],
             "pickup_refs": pickup_refs,
         },
@@ -620,8 +620,8 @@ def _latest_events(
     publication_eval_path: Path,
     controller_decision_payload: dict[str, Any] | None,
     controller_decision_path: Path,
-    domain_health_diagnostic_payload: dict[str, Any] | None,
-    domain_health_diagnostic_path: Path | None,
+    runtime_readback_payload: dict[str, Any] | None,
+    runtime_readback_report_path: Path | None,
     details_projection_payload: dict[str, Any] | None,
     details_projection_path: Path | None,
     bash_summary_payload: dict[str, Any] | None,
@@ -710,8 +710,8 @@ def _latest_events(
         )
         if item is not None:
             events.append(item)
-    if domain_health_diagnostic_payload is not None:
-        publication_gate = ((domain_health_diagnostic_payload.get("controllers") or {}).get("publication_gate"))
+    if runtime_readback_payload is not None:
+        publication_gate = ((runtime_readback_payload.get("controllers") or {}).get("publication_gate"))
         if not _publication_supervisor_state_conflicts(
             current=publication_supervisor_state,
             candidate=publication_gate if isinstance(publication_gate, dict) else None,
@@ -732,12 +732,12 @@ def _latest_events(
                     if blockers:
                         watch_summary = blockers[0]
             item = _event(
-                timestamp=_non_empty_text(domain_health_diagnostic_payload.get("scanned_at")),
-                category="domain_health_diagnostic",
+                timestamp=_non_empty_text(runtime_readback_payload.get("scanned_at")),
+                category="runtime_readback",
                 title="运行时巡检完成",
                 summary=watch_summary,
-                source="domain_health_diagnostic",
-                artifact_path=domain_health_diagnostic_path,
+                source="runtime_readback",
+                artifact_path=runtime_readback_report_path,
             )
             if item is not None:
                 events.append(item)

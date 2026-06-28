@@ -302,7 +302,7 @@ def test_run_controller_defers_stop_when_called_from_same_quest(tmp_path: Path, 
     assert result["intervention_handoff"]["queue_owner"] == "one-person-lab"
     assert result["quest_stop_applied"] is False
     assert result["quest_stop_deferred"] is True
-    assert result["quest_stop_defer_reason"] == "self_owned_domain_health_diagnostic"
+    assert result["quest_stop_defer_reason"] == "self_owned_domain_diagnostic_report"
     assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 

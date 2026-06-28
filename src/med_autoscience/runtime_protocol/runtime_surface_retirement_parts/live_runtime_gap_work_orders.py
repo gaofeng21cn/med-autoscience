@@ -43,7 +43,7 @@ ACCEPTED_EVIDENCE_SOURCE_PREFIXES = (
     "runtime_readback:",
 )
 FORBIDDEN_EVIDENCE_SOURCE_PREFIXES = (
-    "DHD_dry_run",
+    "domain_diagnostic_dry_run",
     "contract_landed",
     "docs",
     "focused_tests",
@@ -55,7 +55,7 @@ FORBIDDEN_EVIDENCE_SOURCE_PREFIXES = (
     "scripts_verify",
 )
 TRANSITION_IDENTITY_REF_REQUIRED_FAMILIES = (
-    "DHD_apply_exactly_one_live_outcome_ref",
+    "domain_diagnostic_apply_exactly_one_live_outcome_ref",
     "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
     "OPL_command_event_outbox_live_readback_ref",
     "OPL_domain_progress_transition_runtime_live_readback_same_identity_ref",
@@ -434,9 +434,9 @@ def _work_order_from_gap(gap: str) -> dict[str, Any]:
 
 
 def _acceptable_refs_for_gap(gap: str) -> list[str]:
-    if "DHD apply" in gap:
+    if "domain diagnostic apply" in gap:
         return [
-            "DHD_apply_exactly_one_live_outcome_ref",
+            "domain_diagnostic_apply_exactly_one_live_outcome_ref",
             "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref",
         ]
     if "paper-line accepted outcome" in gap:
@@ -471,7 +471,7 @@ def _forbidden_substitutes_for_gap(gap: str) -> list[str]:
         "make_test_meta_passed",
         "scripts_verify_passed",
         "queue_empty",
-        "DHD_dry_run",
+        "domain_diagnostic_dry_run",
         "provider_admission_pending_count=0",
         "transition_request_pending_count=0",
     ]
@@ -483,8 +483,8 @@ def _forbidden_substitutes_for_gap(gap: str) -> list[str]:
 
 
 def _next_owner_for_gap(gap: str) -> str:
-    if "DHD apply" in gap:
-        return "MAS DHD apply owner with OPL runtime authorization"
+    if "domain diagnostic apply" in gap:
+        return "MAS domain diagnostic apply owner with OPL runtime authorization"
     if "provider admission arbiter" in gap:
         return "MAS provider-admission arbiter owner plus OPL transition runtime owner"
     if "provider-admission live readback" in gap:

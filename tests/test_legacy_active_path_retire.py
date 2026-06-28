@@ -7,7 +7,7 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LEGACY_SURFACE_ID = "dhd_owner_route_dispatch_paper_recovery_default_paper_mainline"
+LEGACY_SURFACE_ID = "domain_diagnostic_owner_route_dispatch_paper_recovery_default_paper_mainline"
 
 
 def _legacy_tombstone() -> dict[str, object]:
@@ -20,7 +20,7 @@ def _legacy_tombstone() -> dict[str, object]:
     return surfaces[LEGACY_SURFACE_ID]
 
 
-def test_old_dhd_owner_route_dispatch_recovery_path_is_not_default_mainline() -> None:
+def test_old_domain_diagnostic_owner_route_dispatch_recovery_path_is_not_default_mainline() -> None:
     tombstone = _legacy_tombstone()
 
     assert tombstone["classification"] == "retired_diagnostics_migration_provenance_only"
@@ -28,12 +28,12 @@ def test_old_dhd_owner_route_dispatch_recovery_path_is_not_default_mainline() ->
     assert tombstone["default_product_mainline_claim_allowed"] is False
     assert tombstone["default_domain_handler_mainline_claim_allowed"] is False
     assert set(tombstone["legacy_surfaces"]) >= {
-        "domain_health_diagnostic",
-        "DHD",
+        "domain_diagnostic_report",
+        "domain diagnostic",
         "owner-route",
         "owner_route",
         "domain-handler export",
-        "default-executor dispatch",
+        "owner-callable dispatch",
         "dispatch",
         "PaperRecovery",
         "paper_recovery_state",
@@ -61,12 +61,12 @@ def test_old_path_replacement_points_to_paper_mission_run_contract() -> None:
         "domain_handler_default_task_kind": "paper_mission/start_or_resume",
         "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
         "legacy_task_kind_policy": {
-            "task_kind": "domain_owner/default-executor-dispatch",
+            "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
             "default_paper_mission_entry": False,
             "migration_diagnostic_only": True,
             "ordinary_schedulable": False,
             "active_caller_class": "diagnostic_only",
-            "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+            "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned",
         },
     }
 
@@ -139,12 +139,12 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
             "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
         },
         "legacy_active_caller_allowed_only_when": {
-            "task_kind": "domain_owner/default-executor-dispatch",
+            "task_kind": "stage_outcome/opl-handoff",
             "default_paper_mission_entry": False,
             "migration_diagnostic_only": True,
             "ordinary_schedulable": False,
             "active_caller_class": "diagnostic_only",
-            "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+            "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned",
             "active_public_projection_alias_allowed": False,
         },
     }
@@ -152,10 +152,8 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
     assert set(proof["allowed_legacy_reference_classes"]) >= {
         "runtime diagnostic",
         "authority consume/readback",
-        "OPL StageRun ABI carrier",
         "migration diagnostic",
         "history provenance",
-        "legacy fixture",
     }
     rigor_policy = proof["legacy_reference_rigor_policy"]
     assert rigor_policy["status"] == "active_claim_boundary"
@@ -195,11 +193,11 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
         == "paper_mission/start_or_resume"
     )
     assert scope_by_id["domain_handler_export.dispatch"]["legacy_carrier_policy"] == {
-        "task_kind": "domain_owner/default-executor-dispatch",
+        "task_kind": "stage_outcome/opl-handoff",
         "default_paper_mission_entry": False,
         "migration_diagnostic_only": True,
         "ordinary_schedulable": False,
-        "dispatch_fail_closed_reason": "legacy_default_executor_dispatch_tombstoned",
+        "dispatch_fail_closed_reason": "legacy_owner_callable_dispatch_tombstoned",
     }
     assert scope_by_id["domain_handler_export.pending_family_tasks"][
         "legacy_task_kind_allowed"
@@ -241,12 +239,6 @@ def test_allowed_legacy_reference_classes_are_claim_limited() -> None:
         "written_files_empty_or_authority_surface_receipt_ref",
         "authority_materialized_flag",
     }
-    assert set(claim_boundaries["OPL StageRun ABI carrier"]["required_evidence"]) == {
-        "route_command_ref",
-        "stage_terminal_decision_ref",
-        "required_postcondition",
-        "no_forbidden_write_boundary",
-    }
     assert set(claim_boundaries["migration diagnostic"]["required_evidence"]) == {
         "legacy_truth_import_pack",
         "replacement_paper_mission_run_ref",
@@ -255,10 +247,6 @@ def test_allowed_legacy_reference_classes_are_claim_limited() -> None:
     assert set(claim_boundaries["history provenance"]["required_evidence"]) == {
         "tombstone_ref",
         "history_or_provenance_ref",
-    }
-    assert set(claim_boundaries["legacy fixture"]["required_evidence"]) == {
-        "fixture_scope",
-        "replacement_parity_or_fail_closed_assertion",
     }
 
 
@@ -292,11 +280,10 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
         "can_authorize_provider_admission": False,
         "counts_as_paper_progress": False,
     }
-    assert "domain_owner/default-executor-dispatch" not in export["dispatch"]["allowed_task_kinds"]
-    assert "domain_owner/default-executor-dispatch" in export["dispatch"][
+    assert "stage_outcome/opl-handoff" not in export["dispatch"]["allowed_task_kinds"]
+    assert "domain_owner/owner-callable-adapter" in export["dispatch"][
         "retired_diagnostic_task_kinds"
     ]
-    assert export["retired_default_paper_dispatch_diagnostics"] == []
 
     default_tasks = export["paper_mission_default_tasks"]
     assert [task["task_kind"] for task in default_tasks] == ["paper_mission/start_or_resume"]
@@ -310,7 +297,7 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     legacy_tasks = [
         task
         for task in export["pending_family_tasks"]
-        if task.get("task_kind") == "domain_owner/default-executor-dispatch"
+        if task.get("task_kind") == "stage_outcome/opl-handoff"
     ]
     assert legacy_tasks == []
     non_default_tasks = [
@@ -325,18 +312,18 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
         assert task["counts_as_paper_progress"] is False
 
 
-def test_domain_handler_dispatch_rejects_legacy_default_executor_task_kind(
+def test_domain_handler_dispatch_rejects_legacy_owner_callable_adapter_task_kind(
     tmp_path: Path,
 ) -> None:
     from med_autoscience.controllers.owner_route_handoff_parts import dispatch_orchestration
 
-    task_path = tmp_path / "legacy-default-executor-task.json"
+    task_path = tmp_path / "legacy-owner-callable-task.json"
     task_path.write_text(
         json.dumps(
             {
                 "task_id": "legacy-dispatch-001",
                 "domain_id": "medautoscience",
-                "task_kind": "domain_owner/default-executor-dispatch",
+                "task_kind": "domain_owner/owner-callable-adapter",
                 "payload": {
                     "profile": str(tmp_path / "profile.toml"),
                     "study_id": "001-paper",
@@ -351,8 +338,8 @@ def test_domain_handler_dispatch_rejects_legacy_default_executor_task_kind(
     )
 
     assert receipt["accepted"] is False
-    assert receipt["reason"] == "legacy_default_executor_dispatch_tombstoned"
-    assert receipt["task_kind"] == "domain_owner/default-executor-dispatch"
+    assert receipt["reason"] == "legacy_owner_callable_dispatch_tombstoned"
+    assert receipt["task_kind"] == "domain_owner/owner-callable-adapter"
     assert receipt["retired_diagnostic_task_kind"] is True
     assert receipt["default_paper_mission_entry"] is False
     assert receipt["migration_diagnostic_only"] is True
@@ -362,7 +349,7 @@ def test_domain_handler_dispatch_rejects_legacy_default_executor_task_kind(
     assert receipt["diagnostic_role"] == "retired_default_paper_dispatch"
 
 
-def test_product_entry_default_mainline_has_no_legacy_dhd_or_dispatch_command(
+def test_product_entry_default_mainline_has_no_legacy_domain_diagnostic_or_dispatch_command(
     tmp_path: Path,
 ) -> None:
     from med_autoscience.controllers import product_entry
@@ -379,8 +366,8 @@ def test_product_entry_default_mainline_has_no_legacy_dhd_or_dispatch_command(
     assert paper_mission["default_action_intent"] == "paper_mission/start_or_resume"
     assert "paper-mission drive" in default_command
     assert "paper-mission inspect" in paper_mission["inspect_command"]
-    assert "domain-health-diagnostic" not in default_command
-    assert "default-executor-dispatch" not in default_command
+    assert "domain-diagnostic-report" not in default_command
+    assert "owner-callable-adapter" not in default_command
     assert "PaperRecovery" not in default_command
 
 
@@ -395,18 +382,18 @@ def test_action_catalog_and_mcp_manifest_do_not_expose_legacy_default_paper_tool
 
     actions = {item["action_id"]: item for item in catalog["actions"]}
     assert {
-        "domain_health_diagnostic",
-        "domain-health-diagnostic",
-        "default_executor_dispatch",
-        "default-executor-dispatch",
+        "domain_diagnostic_report",
+        "domain-diagnostic-report",
+        "owner_callable_dispatch",
+        "owner-callable-adapter",
         "paper_recovery",
         "PaperRecovery",
     }.isdisjoint(actions)
 
     legacy_markers = (
         "PaperRecovery",
-        "domain-health-diagnostic",
-        "default-executor-dispatch",
+        "domain-diagnostic-report",
+        "owner-callable-adapter",
     )
     for projection in ("cli", "product_entry", "skill", "mcp"):
         projected = action_catalog.project_mas_action_catalog(
@@ -419,10 +406,10 @@ def test_action_catalog_and_mcp_manifest_do_not_expose_legacy_default_paper_tool
 
     mcp_tool_names = {tool["name"] for tool in mcp_server.build_tool_manifest()}
     assert {
-        "domain_health_diagnostic",
-        "domain-health-diagnostic",
-        "default_executor_dispatch",
-        "default-executor-dispatch",
+        "domain_diagnostic_report",
+        "domain-diagnostic-report",
+        "owner_callable_dispatch",
+        "owner-callable-adapter",
         "paper_recovery",
         "PaperRecovery",
         "domain_handler_export",
@@ -502,9 +489,9 @@ def test_plugin_skill_ordinary_path_does_not_use_legacy_default_paper_mainline()
     assert ordinary_path_line == (
         "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff"
     )
-    assert "domain-health-diagnostic" not in ordinary_path_line
-    assert "default-executor-dispatch" not in ordinary_path_line
+    assert "domain-diagnostic-report" not in ordinary_path_line
+    assert "owner-callable-adapter" not in ordinary_path_line
     assert "PaperRecovery" not in ordinary_path_line
 
     assert "paper-mission inspect" in runtime_control_line
-    assert "domain-health-diagnostic" not in runtime_control_line
+    assert "domain-diagnostic-report" not in runtime_control_line

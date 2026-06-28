@@ -289,7 +289,7 @@ def test_study_progress_invalidates_live_run_after_no_selected_dispatch_closeout
             "schema_version": 1,
             "study_id": "003-dm",
             "stage_attempt_id": attempt_id,
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "stage_outcome/opl-handoff",
             "action_type": "return_to_ai_reviewer_workflow",
             "status": "blocked",
             "blocked_reason": "no_selected_dispatch_for_requested_action_types",

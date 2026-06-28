@@ -462,7 +462,7 @@ def test_codex_first_landing_program_is_parallel_and_contract_light() -> None:
     assert program["program_status"] == "ready_for_parallel_landing"
     assert program["landing_model"] == "parallel_lanes_absorbed_to_main_after_focused_receipts"
     end_state = program["end_state"]
-    assert end_state["default_executor"] == "Codex CLI"
+    assert end_state["owner_callable_adapter"] == "Codex CLI"
     assert end_state["stage_unit"] == "domain_stage"
     assert end_state["agent_shape"] == (
         "Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions"

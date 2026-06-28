@@ -48,7 +48,7 @@ def build_opl_lifecycle_inventory_surface() -> dict[str, Any]:
         "mas_domain_specific": [
             _inventory_item(
                 "study_truth_and_runtime_health",
-                "StudyTruth, RuntimeHealth, study macro state, domain_health_diagnostic, and progress_projection authority.",
+                "StudyTruth, RuntimeHealth, study macro state, domain_diagnostic_report, and progress_projection authority.",
                 "retain_in_mas",
                 owner=DOMAIN_OWNER,
             ),

@@ -11,7 +11,7 @@ globals().update({
 
 def test_next_work_unit_filter_preserves_submission_refresh_dependency_closure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    scheduler = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_scheduler")
+    scheduler = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_planner")
     work_units = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
     profile = make_profile(tmp_path)
     paper_root = tmp_path / "paper"

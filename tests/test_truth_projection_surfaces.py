@@ -313,7 +313,7 @@ def test_mcp_compact_projection_carries_study_macro_state() -> None:
     }
 
 
-def test_domain_health_diagnostic_managed_study_action_carries_truth_snapshot_summary() -> None:
+def test_domain_diagnostic_report_managed_study_action_carries_truth_snapshot_summary() -> None:
     module = importlib.import_module("med_autoscience.controllers.provider_admission_parts.managed_wakeup")
 
     action = module._serialize_managed_study_action(

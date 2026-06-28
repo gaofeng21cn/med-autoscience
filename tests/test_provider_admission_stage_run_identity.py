@@ -7,20 +7,20 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_sta
 )
 
 
-def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_identity_only() -> None:
+def test_owner_callable_adapter_receipt_dispatch_ref_opt_in_recovers_stage_packet_identity_only() -> None:
     study_root = Path("/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap")
     dispatch_path = (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
 
     candidate = candidate_with_stage_run_admission_identity(
         {
-            "source": "default_executor_execution",
+            "source": "owner_callable_adapter_receipt",
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "work_unit_fingerprint": "sha256:current",
             "source_refs": {
@@ -29,8 +29,8 @@ def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_id
             },
         },
         execution={
-            "source": "default_executor_execution",
-            "surface": "default_executor_dispatch_execution",
+            "source": "owner_callable_adapter_receipt",
+            "surface": "owner_callable_dispatch_execution",
             "dispatch_path": str(dispatch_path),
             "owner_route_current": True,
         },
@@ -40,7 +40,7 @@ def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_id
 
     expected_ref = (
         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
-        "consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+        "consumer/owner_callable_adapters/run_gate_clearing_batch.json"
     )
     assert candidate["dispatch_ref"] == expected_ref
     assert candidate["stage_packet_ref"] == expected_ref
@@ -56,14 +56,14 @@ def test_default_executor_execution_dispatch_ref_opt_in_recovers_stage_packet_id
 def test_dispatch_ref_stage_packet_identity_recovery_requires_explicit_opt_in() -> None:
     candidate = candidate_with_stage_run_admission_identity(
         {
-            "source": "default_executor_execution",
+            "source": "owner_callable_adapter_receipt",
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "work_unit_fingerprint": "sha256:current",
         },
         execution={
-            "source": "default_executor_execution",
-            "surface": "default_executor_dispatch_execution",
-            "dispatch_path": "/workspace/studies/003/default_executor_dispatches/run.json",
+            "source": "owner_callable_adapter_receipt",
+            "surface": "owner_callable_dispatch_execution",
+            "dispatch_path": "/workspace/studies/003/owner_callable_adapters/run.json",
             "owner_route_current": True,
         },
     )
@@ -79,9 +79,9 @@ def test_dispatch_ref_stage_packet_identity_recovery_rejects_stale_owner_route()
             "work_unit_fingerprint": "sha256:current",
         },
         execution={
-            "source": "default_executor_execution",
-            "surface": "default_executor_dispatch_execution",
-            "dispatch_path": "/workspace/studies/003/default_executor_dispatches/run.json",
+            "source": "owner_callable_adapter_receipt",
+            "surface": "owner_callable_dispatch_execution",
+            "dispatch_path": "/workspace/studies/003/owner_callable_adapters/run.json",
             "owner_route_current": False,
         },
     )
@@ -98,7 +98,7 @@ def test_generic_dispatch_ref_does_not_replace_stage_packet_ref() -> None:
         },
         execution={
             "surface": "queue_projection",
-            "dispatch_path": "/workspace/studies/003/default_executor_dispatches/run.json",
+            "dispatch_path": "/workspace/studies/003/owner_callable_adapters/run.json",
             "owner_route_current": True,
         },
     )

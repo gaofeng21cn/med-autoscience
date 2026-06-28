@@ -43,7 +43,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/requests/publication_handoff_owner_gate/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/current_package_freshness/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/artifact_display_materialization/latest.json",
-    "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
+    "studies/<study_id>/artifacts/supervision/consumer/owner_callable_adapters/*.json",
     "studies/<study_id>/artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/quality_repair_batch/latest.json",
@@ -58,8 +58,8 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/requests/provenance_limited_harmonization/latest.json",
 ]
 
-DEFAULT_EXECUTOR_SEARCH_DISCIPLINE = {
-    "surface": "default_executor_search_discipline.v1",
+OWNER_CALLABLE_SEARCH_DISCIPLINE = {
+    "surface": "owner_callable_search_discipline.v1",
     "policy": "bounded_refs_and_scoped_text_search_only",
     "forbidden_command_patterns": [
         "grep -R",
@@ -90,7 +90,7 @@ DEFAULT_EXECUTOR_SEARCH_DISCIPLINE = {
         "artifacts/publication_eval/",
         "artifacts/eval_hygiene/",
         "artifacts/supervision/requests/",
-        "artifacts/supervision/consumer/default_executor_dispatches/",
+        "artifacts/supervision/consumer/owner_callable_adapters/",
         "study.yaml",
     ],
     "missing_evidence_policy": MISSING_EVIDENCE_POLICY,
@@ -310,13 +310,13 @@ def request_packet_ref_for_dispatch(action_type: str) -> str | None:
     return None
 
 
-def default_executor_search_discipline() -> dict[str, object]:
+def owner_callable_search_discipline() -> dict[str, object]:
     return {
-        **DEFAULT_EXECUTOR_SEARCH_DISCIPLINE,
-        "forbidden_command_patterns": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["forbidden_command_patterns"]),
-        "forbidden_path_globs": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["forbidden_path_globs"]),
-        "recommended_search_commands": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["recommended_search_commands"]),
-        "allowed_search_roots": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["allowed_search_roots"]),
+        **OWNER_CALLABLE_SEARCH_DISCIPLINE,
+        "forbidden_command_patterns": list(OWNER_CALLABLE_SEARCH_DISCIPLINE["forbidden_command_patterns"]),
+        "forbidden_path_globs": list(OWNER_CALLABLE_SEARCH_DISCIPLINE["forbidden_path_globs"]),
+        "recommended_search_commands": list(OWNER_CALLABLE_SEARCH_DISCIPLINE["recommended_search_commands"]),
+        "allowed_search_roots": list(OWNER_CALLABLE_SEARCH_DISCIPLINE["allowed_search_roots"]),
     }
 
 
@@ -334,7 +334,7 @@ def _deep_copy_mapping(payload: dict[str, object]) -> dict[str, object]:
 
 __all__ = [
     "ALLOWED_WRITE_SURFACES",
-    "DEFAULT_EXECUTOR_SEARCH_DISCIPLINE",
+    "OWNER_CALLABLE_SEARCH_DISCIPLINE",
     "FORBIDDEN_SURFACES",
     "REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE",
     "REQUEST_OUTPUT_TARGET_SURFACE_BY_ACTION_TYPE",
@@ -347,7 +347,7 @@ __all__ = [
     "request_output_surface_for_action_type",
     "request_output_target_surface_for_action_type",
     "request_owner_for_action_type",
-    "default_executor_search_discipline",
+    "owner_callable_search_discipline",
     "request_packet_ref_for_action_type",
     "request_packet_ref_for_dispatch",
 ]

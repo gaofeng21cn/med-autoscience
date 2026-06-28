@@ -94,7 +94,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 
 ### runtime execution
 
-- MAS contract: `progress_projection` / `domain_health_diagnostic` 持有 runtime decision 与 recovery visibility。
+- MAS contract: `progress_projection` / `domain_diagnostic_report` 持有 runtime decision 与 recovery visibility。
 - MDS oracle: MDS quest execution trace 只能作为 backend behavior fixture 被 replay。
 - Proof: MAS recovery decision 必须匹配或显式 supersede replayed MDS behavior。
 

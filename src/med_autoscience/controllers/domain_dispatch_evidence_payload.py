@@ -44,7 +44,7 @@ def build_domain_dispatch_evidence_record_payload(
     reason_source_refs: Sequence[str | Mapping[str, Any]] = (),
     explanation: str | None = None,
 ) -> dict[str, Any]:
-    normalized_task_kind = _text(task_kind) or "domain_route/reconcile-apply"
+    normalized_task_kind = _text(task_kind) or "stage_outcome/opl-handoff"
     normalized_study_id = _text(study_id)
     normalized_stage_id = _text(stage_id)
     normalized_stage_evidence_stage_id = _text(stage_evidence_stage_id) or normalized_stage_id

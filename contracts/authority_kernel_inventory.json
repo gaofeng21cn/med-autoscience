@@ -356,19 +356,11 @@
       "upcollect_target": "OPL Capability Registry / Tool Arsenal runtime consumption"
     },
     {
-      "active_caller_refs": [
-        "medautosci runtime domain-health-diagnostic --dry-run",
-        "src/med_autoscience/mcp_server.py::domain_health_diagnostic",
-        "docs/status.md#Accepted typed closeout currentness hardening"
-      ],
-      "allowed_writes": [
-        "artifacts/runtime/domain_health_diagnostic/*.json",
-        "diagnostic projection refs",
-        "typed blocker candidates"
-      ],
-      "cannot_lift_to_opl_reason": "The probe can diagnose currentness and owner-route gaps but cannot be a generic runtime owner; MAS keeps the diagnostic boundary so probe output does not become owner answer, publication verdict, or paper progress.",
-      "category": "diagnostic_probe",
-      "disposition": "temporary_refs_projection",
+      "active_caller_refs": [],
+      "allowed_writes": [],
+      "cannot_lift_to_opl_reason": "Retired from active MAS paper/stage progression; retained only as historical diagnostic provenance so it cannot own runtime, queue, stage handoff, paper progress, owner receipt, or typed blocker authority.",
+      "category": "retired_diagnostic_provenance",
+      "disposition": "tombstone_only",
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -377,21 +369,23 @@
         "memory_accept_reject",
         "current_package"
       ],
-      "item_id": "diagnostic_probe.domain_health_diagnostic",
-      "no_active_caller": "required_before_retiring_MAS_private_diagnostic_probe",
+      "item_id": "diagnostic_probe.domain_diagnostic_report",
+      "no_active_caller": "proven_for_default_product_mcp_workspace_generated_guidance_and_live_evidence_commands",
       "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
-        "domain_health_diagnostic_ref",
-        "currentness_probe_ref",
-        "route_back_evidence_ref",
-        "typed_blocker_candidate_ref"
+        "retired diagnostic provenance refs"
       ],
       "owner": "MedAutoScience",
-      "replacement_parity": "OPL Route Reconciler and Observability Plane consume same owner receipt and typed blocker refs",
-      "retirement_gate": "Retire MAS-private diagnostic implementation only after OPL Route Reconciler consumes the same MAS owner receipt / typed blocker refs and focused parity tests prove no authority drift.",
-      "surface_ref": "src/med_autoscience/controllers/domain_health_diagnostic.py",
-      "tombstone_or_provenance": "required_before_physical_delete",
-      "upcollect_target": "OPL Route Reconciler and Observability Plane"
+      "replacement_parity": "PaperMission/study_progress/OPL readback are active progression/readback surfaces; domain diagnostic is historical provenance only",
+      "retirement_gate": "retired_from_active_MAS_private_diagnostic_probe; retain tombstone/provenance only",
+      "surface_ref": "contracts/runtime/legacy-active-path-tombstones.json#/domain-diagnostic-report",
+      "tombstone_or_provenance": "tombstone_only",
+      "upcollect_target": "OPL Route Reconciler and Observability Plane",
+      "retired_caller_refs": [
+        "historical medautosci runtime domain-diagnostic-report diagnostic runs",
+        "historical MCP/report projection refs",
+        "docs/history and explicit tombstone provenance"
+      ]
     }
   ],
   "non_claims": {

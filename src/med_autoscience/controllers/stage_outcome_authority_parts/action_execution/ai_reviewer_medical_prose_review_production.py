@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_closeout_contract import (
-    default_executor_typed_closeout_contract,
+    owner_callable_typed_closeout_contract,
 )
 from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
-from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.medical_prose_review_request import materialize_medical_prose_review_request
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -125,10 +125,10 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / f"{ACTION_TYPE}.json"
     )
-    closeout_contract = default_executor_typed_closeout_contract(action_type=ACTION_TYPE)
+    closeout_contract = owner_callable_typed_closeout_contract(action_type=ACTION_TYPE)
     repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
@@ -186,7 +186,7 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
     return {
         "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
-        **default_executor_policy(),
+        **owner_callable_policy(),
         "study_id": study_id,
         "quest_id": study_id,
         "action_type": ACTION_TYPE,

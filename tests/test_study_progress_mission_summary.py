@@ -285,7 +285,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
             },
             "refs": {
                 "progress_projection": "studies/002/progress_projection.json",
-                "domain_health_diagnostic": "studies/002/artifacts/domain_health_diagnostic/latest.json",
+                "domain_diagnostic_report": "studies/002/artifacts/domain_diagnostic_report/latest.json",
             },
             "opl_current_control_state_handoff": {
                 "blocked_reason": "currentness_drift",
@@ -363,7 +363,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert paper_mission_run["claim_permissions"]["can_claim_artifact_delta"] is False
     assert summary["platform_diagnostics"]["count"] == 1
     assert summary["platform_diagnostics"]["counts_as_paper_progress"] is False
-    assert "DHD" in summary["platform_diagnostics"]["folded_surfaces"]
+    assert "domain diagnostic" in summary["platform_diagnostics"]["folded_surfaces"]
     assert "dispatch" in summary["platform_diagnostics"]["folded_surfaces"]
     assert summary["paper_progress_counting_policy"]["platform_repair_counts_as_paper_progress"] is False
     assert (

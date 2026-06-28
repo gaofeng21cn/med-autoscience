@@ -209,7 +209,7 @@ def test_current_work_unit_running_attempt_supersedes_prior_opl_authorization_te
                     "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
                     "source_path": (
                         "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                        "supervision/consumer/default_executor_execution/latest.json"
+                        "supervision/consumer/owner_callable_adapter_receipt/latest.json"
                     ),
                 }
             },
@@ -486,7 +486,7 @@ def test_current_work_unit_ignores_terminal_log_without_matching_attempt_id() ->
             latest_terminal_stage_log={
                 "stage_attempt_id": None,
                 "status": "blocked",
-                "source_path": "studies/003/artifacts/supervision/consumer/default_executor_execution/latest.json",
+                "source_path": "studies/003/artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json",
             },
         ),
     )

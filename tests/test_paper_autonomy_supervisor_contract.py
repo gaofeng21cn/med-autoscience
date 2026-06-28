@@ -339,11 +339,11 @@ def test_recovery_action_and_progress_accounting_keep_platform_repair_out_of_pap
     assert accounting["yang_artifact_repair_counts_as_paper_progress"] is False
 
 
-def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
+def test_domain_diagnostic_apply_consume_only_readback_binds_supervisor_transaction() -> None:
     contract = _contract()
 
-    readback = contract["dhd_apply_consume_only_readback"]
-    assert readback["surface_kind"] == "domain_health_diagnostic_apply_consume_only_readback_contract"
+    readback = contract["domain_diagnostic_apply_consume_only_readback"]
+    assert readback["surface_kind"] == "domain_diagnostic_report_apply_consume_only_readback_contract"
     assert readback["required_binding_fields"] == [
         "paper_autonomy_supervisor_decision_id",
         "paper_autonomy_supervisor_decision_kind",
@@ -387,7 +387,7 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         "request_projection_is_success_outcome": False,
         "success_requires_opl_foundation_readback_boundary": True,
         "success_proof_required_for_postcondition_ok": True,
-        "success_proof_surface_kind": "dhd_apply_success_proof",
+        "success_proof_surface_kind": "domain_diagnostic_apply_success_proof",
         "success_proof_forbidden_when_request_projection_only": True,
         "success_proof_required_fields": [
             "surface_kind",
@@ -427,8 +427,8 @@ def test_dhd_apply_consume_only_readback_binds_supervisor_transaction() -> None:
         ),
     }
     assert readback["consume_only_readback_boundary"] == {
-        "surface_kind": "domain_health_diagnostic_apply_consume_only_readback",
-        "consumer": "med-autoscience.domain-health-diagnostic.apply",
+        "surface_kind": "domain_diagnostic_report_apply_consume_only_readback",
+        "consumer": "med-autoscience.domain-diagnostic-report.apply",
         "opl_runtime_owner": "one-person-lab",
         "opl_recovery_obligation_store_owner": "one-person-lab",
         "opl_supervisor_decision_engine_owner": "one-person-lab",
@@ -544,7 +544,7 @@ def test_opl_foundation_and_mas_authority_split_forbid_read_model_authority() ->
     ]
     assert authority["forbidden_authority_claims"] == [
         "OPL queue or attempt ledger owns medical truth",
-        "DHD read-model can close owner receipt",
+        "domain diagnostic read-model can close owner receipt",
         "Portal or workbench text can resume human gate",
         "MAS can generate human gate resume tokens",
         "trace span can close quality gate",

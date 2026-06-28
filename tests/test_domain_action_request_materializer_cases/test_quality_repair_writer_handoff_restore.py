@@ -95,7 +95,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     request_path = (
@@ -115,7 +115,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": quest_id,
             "action_type": "run_quality_repair_batch",
@@ -208,15 +208,15 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert "paper/draft.md" in dispatch["prompt_contract_ref"]["allowed_write_surfaces"]
-    assert dispatch["prompt_contract_ref"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
-    assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_command_patterns"]
-    assert "runtime/**/codex_homes/**" in dispatch["prompt_contract_ref"]["search_boundaries"]["forbidden_path_globs"]
+    assert dispatch["prompt_contract_ref"]["search_boundaries_ref"]["surface"] == "owner_callable_search_discipline.v1"
+    assert "grep -R" in dispatch["prompt_contract_ref"]["search_boundaries_ref"]["forbidden_command_patterns"]
+    assert "runtime/**/codex_homes/**" in dispatch["prompt_contract_ref"]["search_boundaries_ref"]["forbidden_path_globs"]
     assert dispatch["refs"]["dispatch_path"] == str(dispatch_path)
-    assert dispatch["owner_route"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
+    assert dispatch["owner_route_ref"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["mas_dispatch_authority"] is False
@@ -278,7 +278,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     request_path = (
@@ -298,7 +298,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": quest_id,
             "action_type": "run_quality_repair_batch",
@@ -395,9 +395,9 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["owner_route"]["idempotency_key"] == writer_route["idempotency_key"]
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["idempotency_key"] == writer_route["idempotency_key"]
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert "paper/draft.md" in dispatch["prompt_contract_ref"]["allowed_write_surfaces"]
     assert dispatch["prompt_contract_ref"]["medical_claim_authoring_allowed"] is True
@@ -450,7 +450,7 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     repair_evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
@@ -509,8 +509,8 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
-    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["owner_route_ref"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert dispatch["prompt_contract_ref"]["medical_claim_authoring_allowed"] is True
     assert dispatch["prompt_contract_ref"]["allowed_write_surfaces"] == [
@@ -520,8 +520,8 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
         "paper/evidence_ledger.json",
         "paper/review/**",
     ]
-    assert dispatch["source_action"]["surface"] == "quality_repair_batch"
-    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["source_action_ref"]["surface"] == "quality_repair_batch"
+    assert dispatch["source_action_ref"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert dispatch["refs"]["repair_execution_evidence_path"] == str(repair_evidence_path)
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True

@@ -202,7 +202,7 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     _add_common_args(inspect_parser)
     inspect_parser.add_argument("--one-shot-migration", action="store_true")
     inspect_parser.add_argument("--study-progress-payload")
-    inspect_parser.add_argument("--diagnostic-payload", dest="domain_health_diagnostic_payload")
+    inspect_parser.add_argument("--runtime-readback-payload", dest="runtime_readback_payload")
     inspect_parser.add_argument("--output-root")
 
     package_parser = mission_subparsers.add_parser("package-candidate")
@@ -272,9 +272,9 @@ def handle_paper_mission_command(
         opl_bin=getattr(args, "opl_bin", None),
         one_shot_migration=bool(getattr(args, "one_shot_migration", False)),
         study_progress_payload=getattr(args, "study_progress_payload", None),
-        domain_health_diagnostic_payload=getattr(
+        runtime_readback_payload=getattr(
             args,
-            "domain_health_diagnostic_payload",
+            "runtime_readback_payload",
             None,
         ),
         output_root=getattr(args, "output_root", None),
@@ -300,7 +300,7 @@ def build_paper_mission_readback(
     opl_bin: str | Path | None = None,
     one_shot_migration: bool = False,
     study_progress_payload: str | Path | None = None,
-    domain_health_diagnostic_payload: str | Path | None = None,
+    runtime_readback_payload: str | Path | None = None,
     output_root: str | Path | None = None,
     paper_facing_delta_ref: str | Path | None = None,
     dry_run: bool = False,
@@ -313,7 +313,7 @@ def build_paper_mission_readback(
             profile_ref=profile_ref,
             study_id=study_id,
             study_progress_payload=study_progress_payload,
-            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            runtime_readback_payload=runtime_readback_payload,
             output_root=output_root,
             source=source,
         )
@@ -538,7 +538,7 @@ def build_paper_mission_readback(
                 if consume_output_manifest is not None
                 else "dry_run_no_write"
             ),
-            "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
+            "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
         },
     }
 
@@ -3154,7 +3154,7 @@ def _consume_candidate_missing_readback(
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": "candidate_package_missing_no_write",
-            "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
+            "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
         },
     }
 
@@ -3211,8 +3211,8 @@ def paper_mission_domain_handler_dispatch_receipt(
         opl_bin=_optional_text(payload.get("opl_bin")),
         one_shot_migration=bool(payload.get("one_shot_migration", False)),
         study_progress_payload=_optional_text(payload.get("study_progress_payload")),
-        domain_health_diagnostic_payload=_optional_text(
-            payload.get("domain_health_diagnostic_payload")
+        runtime_readback_payload=_optional_text(
+            payload.get("runtime_readback_payload")
         ),
         output_root=_optional_text(payload.get("output_root")),
         dry_run=dry_run,
@@ -3487,7 +3487,7 @@ def _build_materialized_mission_readback_if_available(
             "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": "materialized_mission_readback_no_write",
-            "old_default_executor_dispatch_role": "diagnostic_or_migration_only",
+            "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
             "opl_consumes": "paper_mission_transaction.opl_route_command",
             "mas_terminalizes": "paper_mission_transaction.stage_terminal_decision",
         },
@@ -4256,23 +4256,23 @@ def _build_one_shot_migration_cli_readback(
     profile_ref: str | Path,
     study_id: str,
     study_progress_payload: str | Path | None,
-    domain_health_diagnostic_payload: str | Path | None,
+    runtime_readback_payload: str | Path | None,
     output_root: str | Path | None,
     source: str,
 ) -> dict[str, Any]:
     if study_progress_payload is None:
         raise ValueError("--study-progress-payload is required for --one-shot-migration")
     progress_path = Path(study_progress_payload).expanduser().resolve()
-    dhd_path = (
-        Path(domain_health_diagnostic_payload).expanduser().resolve()
-        if domain_health_diagnostic_payload is not None
+    domain_diagnostic_path = (
+        Path(runtime_readback_payload).expanduser().resolve()
+        if runtime_readback_payload is not None
         else None
     )
     progress = _load_json_object(progress_path)
-    dhd = _load_json_object(dhd_path) if dhd_path is not None else {}
+    domain_diagnostic = _load_json_object(domain_diagnostic_path) if domain_diagnostic_path is not None else {}
     migration_pack = build_paper_mission_one_shot_migration_pack(
         study_progress_payloads=progress,
-        domain_health_diagnostic_payload=dhd,
+        runtime_readback_payload=domain_diagnostic,
         profile_ref=str(profile_ref),
     )
     mission = paper_mission_by_study(migration_pack, study_id)
@@ -4312,8 +4312,8 @@ def _build_one_shot_migration_cli_readback(
         "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
         "study_progress_payload_ref": str(progress_path),
         **(
-            {"domain_health_diagnostic_payload_ref": str(dhd_path)}
-            if dhd_path is not None
+            {"runtime_readback_payload_ref": str(domain_diagnostic_path)}
+            if domain_diagnostic_path is not None
             else {}
         ),
         "migration_pack": migration_pack,

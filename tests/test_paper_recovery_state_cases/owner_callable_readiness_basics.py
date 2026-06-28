@@ -237,11 +237,11 @@ def test_terminal_publication_gate_typed_blocker_does_not_rerun_same_owner_calla
     current_work_unit["state"]["owner_answer_binding"] = {
         "answer_kind": "typed_blocker_ref",
         "typed_blocker_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_d2b4c700b31294ab17c225d4.closeout.json"
         ),
         "latest_owner_answer_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_d2b4c700b31294ab17c225d4.closeout.json"
         ),
         "work_unit_id": "publication_gate_replay",
@@ -250,7 +250,7 @@ def test_terminal_publication_gate_typed_blocker_does_not_rerun_same_owner_calla
     }
     current_work_unit["state"]["typed_blocker"] |= {
         "latest_owner_answer_ref": (
-            "artifacts/supervision/consumer/default_executor_execution/"
+            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
             "sat_d2b4c700b31294ab17c225d4.closeout.json"
         ),
         "latest_owner_answer_kind": "typed_blocker",

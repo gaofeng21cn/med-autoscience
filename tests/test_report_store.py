@@ -5,26 +5,6 @@ import json
 from pathlib import Path
 
 
-def test_load_domain_health_diagnostic_state_returns_default_when_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.adapters.report_store")
-    quest_root = tmp_path / "runtime" / "quests" / "q001"
-
-    result = module.load_domain_health_diagnostic_state(quest_root)
-
-    assert result == {"schema_version": 1, "controllers": {}}
-
-
-def test_save_domain_health_diagnostic_state_persists_state_json(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.adapters.report_store")
-    quest_root = tmp_path / "runtime" / "quests" / "q001"
-    payload = {"schema_version": 1, "updated_at": "2026-03-29T00:00:00+00:00", "controllers": {"gate": {}}}
-
-    module.save_domain_health_diagnostic_state(quest_root, payload)
-
-    state_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "state.json"
-    assert json.loads(state_path.read_text(encoding="utf-8")) == payload
-
-
 def test_write_timestamped_report_writes_json_markdown_and_latest_aliases(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.adapters.report_store")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
@@ -32,7 +12,7 @@ def test_write_timestamped_report_writes_json_markdown_and_latest_aliases(tmp_pa
 
     json_path, md_path = module.write_timestamped_report(
         quest_root=quest_root,
-        report_group="domain_health_diagnostic",
+        report_group="domain_diagnostic_report",
         timestamp="2026-03-29T03:50:50+00:00",
         report=report,
         markdown="# Report\n",
@@ -42,7 +22,7 @@ def test_write_timestamped_report_writes_json_markdown_and_latest_aliases(tmp_pa
     assert md_path.name == "2026-03-29T035050Z.md"
     assert json.loads(json_path.read_text(encoding="utf-8")) == report
     assert md_path.read_text(encoding="utf-8") == "# Report\n"
-    latest_json_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
-    latest_md_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.md"
+    latest_json_path = quest_root / "artifacts" / "reports" / "domain_diagnostic_report" / "latest.json"
+    latest_md_path = quest_root / "artifacts" / "reports" / "domain_diagnostic_report" / "latest.md"
     assert json.loads(latest_json_path.read_text(encoding="utf-8")) == report
     assert latest_md_path.read_text(encoding="utf-8") == "# Report\n"

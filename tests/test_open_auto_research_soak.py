@@ -95,7 +95,7 @@ def _write_dm002_like_surfaces(study_root: Path, quest_root: Path) -> None:
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
+        quest_root / "artifacts" / "reports" / "domain_diagnostic_report" / "latest.json",
         {
             "schema_version": 1,
             "study_id": "002-dm-china-us-mortality-attribution",

@@ -60,8 +60,8 @@ def test_study_state_matrix_command_projects_macro_state_without_writing(
     assert payload["studies"][0]["domain_transition"]["decision_type"] == "human_gate"
     assert payload["studies"][1]["study_macro_state"]["writer_state"] == "live"
     assert payload["studies"][1]["active_run_id"] == "run-002"
-    assert payload["studies"][1]["domain_transition"]["decision_type"] == "active_domain_health_diagnostic"
-    assert payload["domain_transition_table"]["counts"] == {"human_gate": 1, "active_domain_health_diagnostic": 1}
+    assert payload["studies"][1]["domain_transition"]["decision_type"] == "active_runtime_readback"
+    assert payload["domain_transition_table"]["counts"] == {"human_gate": 1, "active_runtime_readback": 1}
 
 
 def test_study_state_matrix_markdown_uses_short_macro_status(
@@ -203,8 +203,8 @@ def test_study_state_matrix_top_active_run_uses_macro_truth_when_status_top_leve
     assert exit_code == 0
     assert study["active_run_id"] == "run-from-truth"
     assert study["study_macro_state"]["writer_state"] == "live"
-    assert study["domain_transition"]["decision_type"] == "active_domain_health_diagnostic"
-    assert study["domain_transition"]["controller_action"] == "domain_health_diagnostic"
+    assert study["domain_transition"]["decision_type"] == "active_runtime_readback"
+    assert study["domain_transition"]["controller_action"] == "runtime_readback"
 
 
 def test_study_state_matrix_prefers_materialized_macro_state_surface(
@@ -974,4 +974,4 @@ def test_study_state_matrix_fails_closed_per_study_progress_projection_error(
     assert "manual_finish.compatibility_guard_only" in (
         studies["old-config"]["study_macro_state"]["details"]["status_projection_error"]["message"]
     )
-    assert rows["still-running"]["decision_type"] == "active_domain_health_diagnostic"
+    assert rows["still-running"]["decision_type"] == "active_runtime_readback"

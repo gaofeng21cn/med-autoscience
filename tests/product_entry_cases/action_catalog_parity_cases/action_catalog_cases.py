@@ -190,7 +190,7 @@ def test_mas_action_catalog_projects_domain_handler_without_new_mcp_tool(tmp_pat
     assert "Boundary for OPL typed task consumption" in domain_handler_dispatch["summary"]
     assert "paper_mission/start_or_resume" in domain_handler_dispatch["summary"]
     assert "non-authority" in domain_handler_dispatch["summary"]
-    assert "legacy default-executor dispatch is tombstoned" in domain_handler_dispatch["summary"]
+    assert "legacy owner-callable dispatch is tombstoned" in domain_handler_dispatch["summary"]
     assert "does not create owner receipts" in domain_handler_dispatch["summary"]
     assert "typed blockers" in domain_handler_dispatch["summary"]
     assert "domain truth" in domain_handler_dispatch["summary"]

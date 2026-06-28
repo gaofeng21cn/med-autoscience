@@ -29,7 +29,7 @@ def _status_payload(value: dict[str, Any] | Any) -> dict[str, Any]:
         payload = to_dict()
         if isinstance(payload, dict):
             return dict(payload)
-    raise TypeError("domain health diagnostic status payload must be dict or expose to_dict()")
+    raise TypeError("domain diagnostic status payload must be dict or expose to_dict()")
 
 
 def _mapping_value(payload: dict[str, Any], key: str) -> dict[str, Any]:

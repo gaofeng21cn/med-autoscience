@@ -73,7 +73,7 @@ def _writer_handoff_dispatch_shape(dispatch: Mapping[str, Any]) -> bool:
             _text(source_action.get("surface")) == "quality_repair_batch"
             and _text(source_action.get("blocked_reason")) == "manuscript_story_surface_delta_missing"
         )
-    if dispatch_authority in {None, "consumer_default_executor_dispatch"}:
+    if dispatch_authority in {None, "consumer_owner_callable_dispatch"}:
         return _text(source_action.get("reason")) == "manuscript_story_surface_delta_missing"
     return False
 

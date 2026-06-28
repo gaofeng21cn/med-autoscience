@@ -379,7 +379,7 @@ def _writer_stage_attempt_handoff_execution(*, dispatch: Mapping[str, Any], ques
     return {
         "execution_status": "handoff_ready",
         "blocked_reason": None,
-        "owner_callable_surface": "opl_default_executor.stage_attempt",
+        "owner_callable_surface": "opl_owner_callable_adapter.stage_attempt",
         "writer_worker_handoff": dict(dispatch),
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,

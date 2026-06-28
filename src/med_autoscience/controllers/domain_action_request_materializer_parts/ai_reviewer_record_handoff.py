@@ -98,7 +98,7 @@ def ai_reviewer_record_production_handoff_dispatch(
         action=action,
     )
     dispatch["owner_route"] = transition_owner_route
-    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    owner_route_attempt_envelope = owner_route_attempt_protocol.owner_callable_attempt_envelope(dispatch=dispatch)
     work_unit_fingerprint = _record_production_route_fingerprint(transition_owner_route)
     source_generation = work_unit_fingerprint or _text(dispatch.get("source_fingerprint"))
     transition_request = build_transition_request(

@@ -23,7 +23,7 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     action_fingerprint = "sha256:current-repair-progress-ai-reviewer"
@@ -31,7 +31,7 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "return_to_ai_reviewer_workflow",
@@ -119,7 +119,7 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     assert candidate["dispatch_path"] == str(dispatch_path)
     expected_stage_packet_ref = (
         f"studies/{study_id}/artifacts/supervision/consumer/"
-        "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+        "owner_callable_adapters/return_to_ai_reviewer_workflow.json"
     )
     assert candidate["stage_packet_ref"] == expected_stage_packet_ref
     assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
@@ -154,7 +154,7 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_gate_clearing_batch.json"
     )
     action_fingerprint = "sha256:current-repair-progress-gate-replay"
@@ -162,12 +162,12 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_gate_clearing_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "gate_clearing_batch",
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
             "action_fingerprint": "study-progress-current-owner-ticket::stale-gate-dispatch",
@@ -275,7 +275,7 @@ def test_provider_admission_candidate_carries_top_level_work_unit_identity_from_
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     work_unit_id = "medical_prose_write_repair"
@@ -284,12 +284,12 @@ def test_provider_admission_candidate_carries_top_level_work_unit_identity_from_
     dump_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": study_id,
             "action_type": "run_quality_repair_batch",
             "dispatch_status": "ready",
-            "dispatch_authority": "consumer_default_executor_dispatch",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
             "next_executable_owner": "write",
             "required_output_surface": (
                 "canonical manuscript story-surface delta or "

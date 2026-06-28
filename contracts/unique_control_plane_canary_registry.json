@@ -115,7 +115,7 @@
         "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py"
       ],
       "opl_transport_fixture_refs": [
-        "opl:agent-lab/transport/default-executor-dispatch",
+        "opl:agent-lab/transport/owner-callable-adapter",
         "contracts/generated_surface_handoff.json"
       ],
       "owner_route_regression_refs": [
@@ -165,7 +165,7 @@
             "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py"
           ],
           "opl_transport_fixture_refs": [
-            "opl:agent-lab/transport/default-executor-dispatch",
+            "opl:agent-lab/transport/owner-callable-adapter",
             "contracts/generated_surface_handoff.json"
           ],
           "no_forbidden_write_proof_refs": [
@@ -276,7 +276,7 @@
       },
       "mas_fixture_refs": [
         "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
-        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
+        "tests/test_domain_diagnostic_report_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
       ],
       "opl_transport_fixture_refs": [
         "opl:agent-lab/transport/owner-route-precedence",
@@ -326,7 +326,7 @@
           ],
           "mas_fixture_refs": [
             "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
-            "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
+            "tests/test_domain_diagnostic_report_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
           ],
           "opl_transport_fixture_refs": [
             "opl:agent-lab/transport/owner-route-precedence",

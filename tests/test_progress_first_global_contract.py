@@ -116,7 +116,7 @@ def test_quality_repair_and_gate_clearing_contexts_share_effective_eval_id() -> 
     assert gate["batch_kind"] == "gate_clearing_batch"
 
 
-def test_closeout_first_admission_blocks_new_default_executor_task_when_binding_missing() -> None:
+def test_closeout_first_admission_blocks_new_owner_callable_adapter_task_when_binding_missing() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_first_closeout")
 
     result = module.closeout_first_admission(
@@ -138,16 +138,16 @@ def test_closeout_first_admission_blocks_new_default_executor_task_when_binding_
     )
 
     assert result["admission_status"] == "blocked"
-    assert result["blocked_reason"] == "closeout_required_before_new_default_executor_task"
-    assert result["export_new_default_executor_task"] is False
+    assert result["blocked_reason"] == "closeout_required_before_new_owner_callable_adapter_task"
+    assert result["export_new_owner_callable_adapter_task"] is False
     blocker = result["typed_blocker"]
     assert blocker["surface_kind"] == "mas_domain_typed_blocker"
-    assert blocker["reason"] == "closeout_required_before_new_default_executor_task"
+    assert blocker["reason"] == "closeout_required_before_new_owner_callable_adapter_task"
     assert blocker["work_unit_id"] == "publishability_repair_sprint"
     assert blocker["next_owner"] == "med-autoscience"
 
 
-def test_domain_action_materializer_blocks_new_default_executor_task_until_running_attempt_closeout(
+def test_domain_action_materializer_blocks_new_owner_callable_adapter_task_until_running_attempt_closeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -219,8 +219,8 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
 
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "blocked"
-    assert dispatch["blocked_reason"] == "closeout_required_before_new_default_executor_task"
-    assert dispatch["progress_first_closeout_admission"]["export_new_default_executor_task"] is False
+    assert dispatch["blocked_reason"] == "closeout_required_before_new_owner_callable_adapter_task"
+    assert dispatch["progress_first_closeout_admission"]["export_new_owner_callable_adapter_task"] is False
     assert dispatch["progress_first_closeout_admission"]["typed_blocker"]["work_unit_id"] == "publishability_repair_sprint"
     [request_task] = _legacy_request_task_refs(result)
     assert request_task["surface"] == "supervisor_request_handoff_task_ref"
@@ -235,7 +235,7 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     ).exists()
 
@@ -396,7 +396,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "run_quality_repair_batch.json"
     )
     owner_route = {
@@ -419,7 +419,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
         },
     }
     dispatch = {
-        "surface": "default_executor_dispatch_request",
+        "surface": "owner_callable_dispatch_request",
         "schema_version": 1,
         "executor_kind": "codex_cli_default",
         "chat_completion_only_executor_forbidden": True,
@@ -462,9 +462,9 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
         },
         "progress_first_closeout_admission": {
             "admission_status": "blocked",
-            "blocked_reason": "closeout_required_before_new_default_executor_task",
+            "blocked_reason": "closeout_required_before_new_owner_callable_adapter_task",
             "typed_blocker": {
-                "reason": "closeout_required_before_new_default_executor_task",
+                "reason": "closeout_required_before_new_owner_callable_adapter_task",
                 "next_owner": "med-autoscience",
             },
         },
@@ -498,9 +498,9 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
 
     execution = result["executions"][0]
     assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "closeout_required_before_new_default_executor_task"
+    assert execution["blocked_reason"] == "closeout_required_before_new_owner_callable_adapter_task"
     blocker = execution["progress_first_typed_blocker"]
-    assert blocker["blocker_family"] == "closeout_required_before_new_default_executor_task"
+    assert blocker["blocker_family"] == "closeout_required_before_new_owner_callable_adapter_task"
     assert blocker["work_unit_id"] == "publishability_repair_sprint"
     assert blocker["eval_id"] == "eval-current"
     assert blocker["next_escalation"] == "same_owner_retry_budget"

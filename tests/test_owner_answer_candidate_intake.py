@@ -104,7 +104,7 @@ def test_b003_package_candidate_preserves_stable_owner_gate_blocker_without_redr
         "MAS paper recovery / publication gate governed owner answer"
     )
     assert result["next_legal_surface"]["kind"] == "publication_gate_owner_answer_or_human_gate"
-    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
+    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_domain_diagnostic_apply"] is True
 
 
 def test_b002_0910_response_candidate_fails_closed_without_governed_ref(tmp_path: Path) -> None:
@@ -166,7 +166,7 @@ def test_b003_0915_response_candidate_fails_closed_and_preserves_blocker(tmp_pat
     )
     assert result["governed_answer_consumed"] is False
     assert result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
-    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
+    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_domain_diagnostic_apply"] is True
 
 
 def test_b002_1055_governed_answer_target_fails_closed_without_governed_ref(tmp_path: Path) -> None:
@@ -233,7 +233,7 @@ def test_b003_1105_governed_answer_target_fails_closed_and_preserves_blocker(
     )
     assert result["governed_answer_consumed"] is False
     assert result["write_plan"]["can_write_runtime_queues_or_provider_attempts"] is False
-    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_dhd_apply"] is True
+    assert result["forbidden_authority_writes"]["provider_redrive_hydrate_tick_replay_domain_diagnostic_apply"] is True
     assert result["next_legal_surface"]["kind"] == (
         "publication_gate_write_repair_stable_blocker_owner_answer"
     )

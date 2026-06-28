@@ -199,7 +199,7 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 - `medautosci sidecar export --profile <profile> --format json` 会在每个 study projection 中输出 `autonomy_continuation`，并在顶层输出 `pending_family_tasks[]`。
 - 当 OPL current-control-state 显示 provider attempt blocked/stale、或 MAS owner-route / typed blocker refs 显示可安全 route-back，且 controller 没有 `stop_loss` / terminal stop / hard human gate 时，OPL hydrate 生成对应 queue/stage attempt；MAS 不再从 `runtime_owner_receipt_handoff` 自行生成 provider recovery task。
 - OPL/Hermes 的职责是 hydration、dedupe、queue、retry、dead-letter、approval 和 local inbox notification；它只能消费 MAS 显式导出的 `pending_family_tasks[]`，不能从只读 projection 自行推断医学动作。
-- `medautosci sidecar dispatch --task <task.json> --format json` 收到 `domain_route/reconcile-apply` 后，回到 MAS owner 内调用 `owner-route-reconcile --apply-safe-actions --developer-supervisor-mode developer_apply_safe`，再由 MAS domain-authority handoff refs、consumer 和 owner dispatch receipt 说明 no-op、typed blocker、owner receipt 或 human gate；queue、attempt 与 retry/dead-letter 继续由 OPL current-control-state 承载。
+- `medautosci sidecar dispatch --task <task.json> --format json` 收到 `stage_outcome/opl-handoff` 后，回到 MAS owner 内调用 `owner-route-reconcile --apply-safe-actions --developer-supervisor-mode developer_apply_safe`，再由 MAS domain-authority handoff refs、consumer 和 owner dispatch receipt 说明 no-op、typed blocker、owner receipt 或 human gate；queue、attempt 与 retry/dead-letter 继续由 OPL current-control-state 承载。
 - 这个桥仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/current_package、submission package 或 artifact gate；它只把“发现了可自动处理的 blocker”转换成 durable executable ticket。
 
 当 `action_queue` 包含 `publication_gate_specificity_required` 或 `return_to_ai_reviewer_workflow` 时，supervisor scan 只能物化 request packet：

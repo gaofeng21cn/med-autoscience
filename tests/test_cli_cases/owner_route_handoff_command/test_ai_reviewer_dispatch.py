@@ -62,7 +62,7 @@ def test_domain_handler_dispatch_materializes_embedded_ai_reviewer_handoff_insid
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     ).is_file()
     assert not (study_root / "manuscript" / "current_package").exists()

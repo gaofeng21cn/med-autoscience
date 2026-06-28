@@ -539,7 +539,7 @@ def test_current_work_unit_typed_blocker_suppresses_stale_provider_attempt_write
             "latest_terminal_stage_log": {
                 "paper_stage_log": {
                     "changed_stage_surfaces": [
-                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_execution/sat_590.closeout.json"
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/owner_callable_adapter_receipt/sat_590.closeout.json"
                     ],
                     "changed_paper_surfaces": [],
                 }

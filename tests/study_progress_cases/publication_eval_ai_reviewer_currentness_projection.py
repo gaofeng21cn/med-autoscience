@@ -9,7 +9,7 @@ from .shared import (
     timezone,
     write_study,
     _write_bash_summary,
-    _write_domain_health_diagnostic,
+    _write_runtime_readback_report,
     _write_json,
     _write_publication_eval,
     _write_publishability_gate_report,
@@ -200,7 +200,7 @@ def test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gat
     )
     _write_json(publication_eval_path, ai_reviewer_eval)
     _write_runtime_escalation(quest_root, study_root)
-    _write_domain_health_diagnostic(quest_root)
+    _write_runtime_readback_report(quest_root)
     gate_report_path = _write_publishability_gate_report(quest_root)
     gate_report = json.loads(gate_report_path.read_text(encoding="utf-8"))
     gate_report.update(
@@ -378,7 +378,7 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
         quest_id="quest-001",
         publication_eval_path=publication_eval_path,
         runtime_escalation_path=None,
-        domain_health_diagnostic_payload=None,
+        runtime_readback_payload=None,
     )
     refreshed_publication_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))
 

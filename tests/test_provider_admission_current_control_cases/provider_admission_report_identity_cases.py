@@ -43,7 +43,7 @@ def test_provider_admission_report_accepts_record_only_owner_refs_closeout_witho
                 "owner": "ai_reviewer",
                 "owner_receipt_ref": (
                     "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                    "supervision/consumer/default_executor_execution/"
+                    "supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-record-only-without-fingerprint.closeout.json#owner_receipt"
                 ),
                 "publication_eval_record_ref": (
@@ -98,7 +98,7 @@ def test_provider_admission_report_preserves_action_fingerprint_from_owner_route
                 "owner": "ai_reviewer",
                 "owner_receipt_ref": (
                     "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
-                    "supervision/consumer/default_executor_execution/"
+                    "supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-action-fingerprint-basis.closeout.json#owner_receipt"
                 ),
                 "publication_eval_record_ref": (

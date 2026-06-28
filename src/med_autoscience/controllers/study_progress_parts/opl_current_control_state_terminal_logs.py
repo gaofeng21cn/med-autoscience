@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
-    default_executor_execution_candidates,
+    owner_callable_receipt_candidates,
 )
 from med_autoscience.controllers.stage_outcome_authority_parts import execution_surfaces
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
@@ -27,8 +27,10 @@ from .opl_current_control_state_handoff_values import (
 )
 from .shared_base import _mapping_copy, _non_empty_text, _read_json_object
 
+STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND = "stage_outcome/opl-handoff"
+
 TERMINAL_STAGE_CLOSEOUT_ROOT_REFS = (
-    Path("artifacts/supervision/consumer/default_executor_execution"),
+    Path("artifacts/supervision/consumer/owner_callable_adapter_receipt"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
 )
 TERMINAL_STAGE_LOG_CLOSEOUT_SURFACES = frozenset(
@@ -206,7 +208,7 @@ def _terminal_stage_log_from_execution_record(
                 "generated_at": _non_empty_text(execution.get("generated_at")),
                 "study_id": study_id,
                 "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
-                "stage_id": _non_empty_text(execution.get("stage_id")) or "domain_owner/default-executor-dispatch",
+                "stage_id": _non_empty_text(execution.get("stage_id")) or STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND,
                 "action_type": _non_empty_text(execution.get("action_type")),
                 "status": _non_empty_text(execution.get("execution_status"))
                 or _non_empty_text(execution.get("status")),
@@ -606,7 +608,7 @@ def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[float, str]:
     return (mtime, _non_empty_text(value.get("generated_at")) or "")
 
 
-def _latest_typed_default_executor_closeout_projection(
+def _latest_typed_owner_callable_closeout_projection(
     *,
     profile: WorkspaceProfile,
     study_id: str,
@@ -615,7 +617,7 @@ def _latest_typed_default_executor_closeout_projection(
     if not study_root.is_dir():
         return None
     candidates: list[dict[str, Any]] = []
-    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+    for execution, receipt_ref in owner_callable_receipt_candidates(study_root=study_root):
         if not is_blocked_typed_closeout(execution=execution, receipt_ref=receipt_ref):
             continue
         owner_result = _observability_mapping(execution.get("owner_result"))
@@ -641,7 +643,7 @@ def _latest_typed_default_executor_closeout_projection(
         source_path = study_root / receipt_ref
         candidates.append(
             {
-                "surface_kind": "mas_latest_default_executor_typed_closeout_projection",
+                "surface_kind": "mas_latest_owner_callable_adapter_typed_closeout_projection",
                 "read_model": "study_opl_current_control_state_handoff_projection",
                 "authority": "observability_only",
                 "source_path": str(source_path),

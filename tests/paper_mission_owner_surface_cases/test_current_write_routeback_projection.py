@@ -130,7 +130,7 @@ def test_scan_routes_accepted_repair_reviewer_queue_overrides_stage_readiness_ty
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "default_executor_dispatches"
+        / "owner_callable_adapters"
         / "return_to_ai_reviewer_workflow.json"
     )
     ai_reviewer_lifecycle = (
@@ -201,7 +201,7 @@ def test_scan_routes_accepted_repair_reviewer_queue_overrides_stage_readiness_ty
     _write_json(
         dispatch_path,
         {
-            "surface": "default_executor_dispatch_request",
+            "surface": "owner_callable_dispatch_request",
             "study_id": study_id,
             "quest_id": quest_id,
             "action_type": "return_to_ai_reviewer_workflow",

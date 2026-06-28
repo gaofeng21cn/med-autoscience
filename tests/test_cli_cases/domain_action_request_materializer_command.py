@@ -209,7 +209,7 @@ def test_domain_owner_refresh_controller_decisions_command_is_retired(
     assert "domain-owner-action-refresh-controller-decisions" in captured.err
 
 
-def test_default_executor_dispatch_residue_cleanup_command_is_retired(
+def test_owner_callable_dispatch_residue_cleanup_command_is_retired(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -220,7 +220,7 @@ def test_default_executor_dispatch_residue_cleanup_command_is_retired(
     with pytest.raises(SystemExit) as excinfo:
         cli.main(
             [
-                "default-executor-dispatch-residue-cleanup",
+                "owner-callable-adapter-residue-cleanup",
                 "--profile",
                 str(profile_path),
                 "--studies",
@@ -233,7 +233,7 @@ def test_default_executor_dispatch_residue_cleanup_command_is_retired(
 
     assert excinfo.value.code == 2
     assert "invalid choice" in captured.err
-    assert "default-executor-dispatch-residue-cleanup" in captured.err
+    assert "owner-callable-adapter-residue-cleanup" in captured.err
 
 
 def test_medical_paper_readiness_owner_blocker_command_materializes_controller_decision(
