@@ -220,7 +220,7 @@ def test_current_work_unit_reports_consumed_gate_replay_blocker_after_fresh_gate
                     "outcome": "blocked_with_domain_typed_blocker",
                     "progress_delta_classification": "typed_blocker",
                     "remaining_blockers": [
-                        "domain_owner_action_dispatch_zero_selected_dispatch",
+                        "stage_outcome_authority_zero_selected_dispatch",
                         "display_surface_materialization_failed",
                     ],
                     "source_path": (

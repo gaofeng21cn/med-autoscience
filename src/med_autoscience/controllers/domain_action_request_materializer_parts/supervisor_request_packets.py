@@ -4,7 +4,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     RETIRED_ABSENT_SURFACES,
     request_output_surface_for_action_type,
     request_output_target_surface_for_action_type,

@@ -28,7 +28,7 @@
   "intervention_lane": {
     "lane_id": "current_owner_action_ready",
     "route_target": "med-autoscience",
-    "route_key_question": "domain_owner_action_dispatch_execution_count_zero",
+    "route_key_question": "stage_outcome_authority_execution_count_zero",
     "work_unit_id": "analysis_claim_evidence_repair",
     "route_back_checklist": {
       "route_back_required": true,

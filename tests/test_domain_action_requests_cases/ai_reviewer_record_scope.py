@@ -55,7 +55,7 @@ def test_ai_reviewer_request_materialization_skips_invalid_record_scope(tmp_path
     packet = build_ai_reviewer_publication_eval_request(
         study_id="002-risk",
         quest_id="quest-002",
-        source_surface="owner_route_reconcile",
+        source_surface="paper_mission_owner_surface",
         workflow_state={
             "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
             "route_back": {"required": True, "target": "ai_reviewer"},

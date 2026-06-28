@@ -78,7 +78,7 @@ def test_unit_harmonization_uses_body_free_precise_target_surface(
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route, "meaningful_artifact_delta": False}],
             "action_queue": [

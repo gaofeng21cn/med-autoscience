@@ -7,7 +7,7 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_r
     audit_workbench_projection_fields as _audit_workbench_projection_fields,
     validate_domain_health_diagnostic_obligation_actuator as _validate_domain_health_diagnostic_obligation_actuator,
     validate_domain_action_request_materializer_surface as _validate_domain_action_request_materializer_surface,
-    validate_domain_owner_action_dispatch as _validate_domain_owner_action_dispatch,
+    validate_stage_outcome_authority as _validate_stage_outcome_authority,
     validate_progress_portal_study_workbench_overview_action_projection as _validate_progress_portal_study_workbench_overview_action_projection,
     validate_runtime_lifecycle_payload_retention as _validate_runtime_lifecycle_payload_retention,
     validate_runtime_storage_maintenance as _validate_runtime_storage_maintenance,
@@ -227,8 +227,8 @@ def validate_runtime_surface_retirement_inventory(
             violations.extend(_validate_domain_authority_refs_index(surface_id, surface))
         if surface_id.startswith("domain_action_request_materializer_"):
             violations.extend(_validate_domain_action_request_materializer_surface(surface_id, surface))
-        if surface_id == "domain_owner_action_dispatch":
-            violations.extend(_validate_domain_owner_action_dispatch(surface_id, surface))
+        if surface_id == "stage_outcome_authority":
+            violations.extend(_validate_stage_outcome_authority(surface_id, surface))
         if surface_id == "domain_health_diagnostic_obligation_actuator":
             violations.extend(_validate_domain_health_diagnostic_obligation_actuator(surface_id, surface))
         if surface_id == "runtime_health_kernel":
@@ -981,25 +981,25 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
             and isinstance(legacy_stage_run_scan.get("active_callers"), list)
             else None
         ),
-        "domain_owner_action_dispatch_live_soak_status": (
+        "stage_outcome_authority_live_soak_status": (
             active_caller_soak.get("status") if isinstance(active_caller_soak, Mapping) else None
         ),
-        "domain_owner_action_dispatch_live_every_active_caller_soak_proven": (
+        "stage_outcome_authority_live_every_active_caller_soak_proven": (
             active_caller_soak.get("live_every_active_caller_soak_proven")
             if isinstance(active_caller_soak, Mapping)
             else None
         ),
-        "domain_owner_action_dispatch_no_active_caller_proven": (
+        "stage_outcome_authority_no_active_caller_proven": (
             active_caller_soak.get("no_active_caller_proven")
             if isinstance(active_caller_soak, Mapping)
             else None
         ),
-        "domain_owner_action_dispatch_physical_delete_allowed": (
+        "stage_outcome_authority_physical_delete_allowed": (
             active_caller_soak.get("physical_delete_allowed")
             if isinstance(active_caller_soak, Mapping)
             else None
         ),
-        "domain_owner_action_dispatch_active_caller_family_count": (
+        "stage_outcome_authority_active_caller_family_count": (
             len(active_caller_soak.get("active_caller_families"))
             if isinstance(active_caller_soak, Mapping)
             and isinstance(active_caller_soak.get("active_caller_families"), list)
@@ -1283,7 +1283,7 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
 def _authority_status(surface: Mapping[str, Any]) -> str:
     surface_id = surface.get("surface_id")
     disposition = _text(surface.get("current_disposition")) or ""
-    if surface_id == "domain_owner_action_dispatch":
+    if surface_id == "stage_outcome_authority":
         return "opl_authorized_owner_callable_adapter_live_tail_open"
     if surface_id in {"runtime_lifecycle_payload_retention", "runtime_storage_maintenance"}:
         return "opl_authorized_maintenance_callable_adapter_live_tail_open"
@@ -1312,7 +1312,7 @@ def _allowed_effect(surface: Mapping[str, Any]) -> str:
     boundary = surface.get("active_caller_boundary")
     if isinstance(boundary, Mapping) and _text(boundary.get("active_caller_effect")):
         return str(boundary["active_caller_effect"])
-    if surface.get("surface_id") == "domain_owner_action_dispatch":
+    if surface.get("surface_id") == "stage_outcome_authority":
         return "execute_only_with_trusted_opl_authorization_or_bound_readback"
     if surface.get("surface_id") == "default_executor_execution_latest_wire_projection":
         return "canonical_owner_receipt_or_legacy_stage_run_closeout_provenance_only"

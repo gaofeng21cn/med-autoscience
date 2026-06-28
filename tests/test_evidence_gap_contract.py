@@ -166,7 +166,7 @@ def test_ordinary_missing_evidence_fallback_strings_are_not_resurrected() -> Non
     scanned_roots = [
         REPO_ROOT / "contracts" / "stage_control_plane.json",
         REPO_ROOT / "src" / "med_autoscience" / "opl_domain_pack" / "stage_throughput_contracts.py",
-        REPO_ROOT / "src" / "med_autoscience" / "controllers" / "default_executor_action_policy.py",
+        REPO_ROOT / "src" / "med_autoscience" / "controllers" / "owner_callable_action_policy.py",
     ]
 
     for path in scanned_roots:

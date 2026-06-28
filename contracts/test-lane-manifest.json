@@ -68,7 +68,7 @@
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
-        "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
+        "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
         "tests/test_study_progress.py",
         "tests/test_progress_portal.py",
         "tests/test_product_entry.py"
@@ -124,7 +124,7 @@
         "tests/test_autonomy_ai_doctor.py",
         "tests/test_runtime_health_kernel.py",
         "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_owner_route_reconcile.py",
+        "tests/test_paper_mission_owner_surface.py",
         "tests/test_opl_runtime_contract.py",
         "tests/test_opl_runtime_contract_no_provider_backend.py"
       ],
@@ -911,7 +911,7 @@
         "declarative_pack_generated_surface": [
           "workspace_source_intake_shell",
           "workbench_portal_generic_shell",
-          "owner_route_reconcile_materialize_dispatch_shell",
+          "paper_mission_owner_surface_materialize_dispatch_shell",
           "generic_cli_mcp_product_wrappers",
           "generic_daemon_or_scheduler_lifecycle",
           "generic_queue_attempt_retry_dead_letter",
@@ -959,7 +959,7 @@
         "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -1245,7 +1245,7 @@
             "evidence_required": "OPL default caller readiness is present; repo-local source shape is reduced to domain handlers, refs-only projections, and workspace read-model carrier boundary without generic owner claims",
             "former_wrapper_tail_module_ids": [
               "generic_cli_mcp_product_wrappers",
-              "owner_route_reconcile_materialize_dispatch_shell",
+              "paper_mission_owner_surface_materialize_dispatch_shell",
               "workbench_portal_generic_shell"
             ],
             "functional_structure_gap": false,
@@ -1295,7 +1295,7 @@
             "evidence_required": "generic locator/index/projection shell is moved to OPL primitives, reduced to refs-only domain adapters, or isolated as delete-gated workspace read-model carrier",
             "former_wrapper_tail_module_ids": [
               "workbench_portal_generic_shell",
-              "owner_route_reconcile_materialize_dispatch_shell"
+              "paper_mission_owner_surface_materialize_dispatch_shell"
             ],
             "functional_structure_gap": false,
             "gate_id": "domain_ref_consumer_physical_thinning",
@@ -1324,7 +1324,7 @@
         ],
         "former_repo_local_wrapper_tail_module_ids": [
           "generic_cli_mcp_product_wrappers",
-          "owner_route_reconcile_materialize_dispatch_shell",
+          "paper_mission_owner_surface_materialize_dispatch_shell",
           "workbench_portal_generic_shell"
         ],
         "functional_structure_gap_count": 0,
@@ -2029,7 +2029,7 @@
             "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
             "domain_ref_owner": "med-autoscience",
             "domain_repo_physical_delete_authorized": false,
-            "gate_id": "mas.default_caller_deletion.owner_route_reconcile_materialize_dispatch_shell.domain_ref_exit.v1",
+            "gate_id": "mas.default_caller_deletion.paper_mission_owner_surface_materialize_dispatch_shell.domain_ref_exit.v1",
             "mas_can_own_generated_default_caller": false,
             "mas_can_write_generic_runtime": false,
             "mas_domain_authority_refs": [
@@ -2038,10 +2038,10 @@
               "safe_action_refs"
             ],
             "no_forbidden_write_evidence_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/owner_route_reconcile_materialize_dispatch_shell/refs-only-boundary"
+              "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
             ],
             "no_forbidden_write_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/owner_route_reconcile_materialize_dispatch_shell/refs-only-boundary"
+              "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
             ],
             "opl_can_declare_publication_quality_or_export_verdict": false,
             "opl_can_issue_mas_owner_receipt": false,
@@ -2060,15 +2060,15 @@
             ],
             "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
             "typed_blocker_refs": [
-              "typed-blocker:mas/default-caller-deletion/owner_route_reconcile_materialize_dispatch_shell/physical-delete-requires-explicit-owner-receipt"
+              "typed-blocker:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/physical-delete-requires-explicit-owner-receipt"
             ]
           },
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
-            "src/med_autoscience/controllers/owner_route_reconcile.py",
+            "src/med_autoscience/controllers/paper_mission_owner_surface.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
-            "src/med_autoscience/controllers/default_executor_action_policy.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py",
+            "src/med_autoscience/controllers/owner_callable_action_policy.py"
           ],
           "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
           "current_surface_refs": [
@@ -2098,7 +2098,7 @@
               "artifact_body"
             ],
             "domain_repo_physical_delete_authorized": false,
-            "policy_module": "src/med_autoscience/controllers/default_executor_action_policy.py",
+            "policy_module": "src/med_autoscience/controllers/owner_callable_action_policy.py",
             "single_source_fields": [
               "supported_action_types",
               "forbidden_surfaces",
@@ -2110,10 +2110,10 @@
               "request_output_surface_by_action_type",
               "request_packet_ref_by_action_type"
             ],
-            "status": "default_executor_action_policy_single_source_landed",
+            "status": "owner_callable_action_policy_single_source_landed",
             "thin_entrypoints": [
               "src/med_autoscience/controllers/domain_action_request_materializer.py",
-              "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+              "src/med_autoscience/controllers/stage_outcome_authority.py"
             ]
           },
           "mas_domain_authority_refs": [
@@ -2122,7 +2122,7 @@
             "safe_action_refs"
           ],
           "migration_action": "declare_owner_route_policy_and_consume_opl_runtime_manager_loop",
-          "module_id": "owner_route_reconcile_materialize_dispatch_shell",
+          "module_id": "paper_mission_owner_surface_materialize_dispatch_shell",
           "opl_expected_primitives": [
             "opl_generic_runner",
             "opl_attempt_retry_dead_letter",
@@ -2403,7 +2403,7 @@
         ],
         "former_repo_local_wrapper_tail_module_ids": [
           "generic_cli_mcp_product_wrappers",
-          "owner_route_reconcile_materialize_dispatch_shell",
+          "paper_mission_owner_surface_materialize_dispatch_shell",
           "workbench_portal_generic_shell"
         ],
         "functional_structure_gap_count": 0,
@@ -2586,7 +2586,7 @@
         "domain_repo_physical_delete_authorized": false,
         "former_repo_local_wrapper_tail_module_ids": [
           "generic_cli_mcp_product_wrappers",
-          "owner_route_reconcile_materialize_dispatch_shell",
+          "paper_mission_owner_surface_materialize_dispatch_shell",
           "workbench_portal_generic_shell"
         ],
         "proof_items": [
@@ -2629,11 +2629,11 @@
       "paths": [
         "tests/test_mds_capability_parity.py",
         "tests/test_study_runtime_execution_evidence_adoption_cases/test_standard_agent_purity_boundary.py",
-        "tests/owner_route_reconcile_cases/test_non_persistent_projection.py",
-        "tests/owner_route_reconcile_cases/test_control_surface_artifact_delta.py",
+        "tests/paper_mission_owner_surface_cases/test_non_persistent_scan_projection.py",
+        "tests/paper_mission_owner_surface_cases/test_control_surface_artifact_delta.py",
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
-        "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
+        "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
         "tests/test_paper_autonomy_stability_evidence.py",
         "tests/test_real_workspace_soak_monitor.py",
         "tests/test_study_progress.py",

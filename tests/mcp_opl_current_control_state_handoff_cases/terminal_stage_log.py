@@ -17,7 +17,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-05-27T20:32:10+00:00",
             "studies": [
                 {
@@ -129,7 +129,7 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-05-27T21:13:12+00:00",
             "studies": [
                 {
@@ -276,7 +276,7 @@ def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tm
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-08T17:18:00+00:00",
             "studies": [
                 {
@@ -352,7 +352,7 @@ def test_handoff_projection_fail_closed_when_terminal_closeout_lacks_owner_answe
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-10T12:00:00+00:00",
             "studies": [
                 {
@@ -439,7 +439,7 @@ def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-10T12:00:00+00:00",
             "studies": [
                 {
@@ -528,7 +528,7 @@ def test_handoff_projection_accepts_terminal_closeout_next_handoff_refs(tmp_path
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-10T12:00:00+00:00",
             "studies": [
                 {

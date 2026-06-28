@@ -5,7 +5,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
     {
         "live_worker_requires_worker_running",
         "managed_runtime_audit_unhealthy",
-        "domain_owner_action_dispatch_execution_count_zero",
+        "stage_outcome_authority_execution_count_zero",
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
         "no_selected_dispatch_for_requested_action_types",
@@ -42,8 +42,8 @@ MEDICAL_READINESS_BLOCKERS = frozenset(
 CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
     {
         "ai_reviewer_record_stale_after_current_inputs",
-        "domain_owner_action_dispatch_execution_count_zero",
-        "domain_owner_action_dispatch_zero_selected_dispatch",
+        "stage_outcome_authority_execution_count_zero",
+        "stage_outcome_authority_zero_selected_dispatch",
         "domain_owner_dispatch_zero_selected_after_materialized_current_request",
         "current_work_unit_already_typed_closeout_packet_required",
         "gate_clearing_batch_source_eval_currentness_mismatch",

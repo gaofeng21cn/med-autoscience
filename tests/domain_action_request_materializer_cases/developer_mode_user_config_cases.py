@@ -99,7 +99,7 @@ def _write_consumer_scan(profile, study_id: str, quest_id: str) -> None:
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [_unsupported_domain_action(study_id, quest_id)],
         },
@@ -132,7 +132,7 @@ def _write_executable_current_work_unit_scan(profile, study_id: str, quest_id: s
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {

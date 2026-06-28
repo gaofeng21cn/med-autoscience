@@ -11,7 +11,7 @@ ACTION_EXECUTION_DIR = (
     / "src"
     / "med_autoscience"
     / "controllers"
-    / "domain_owner_action_dispatch_parts"
+    / "stage_outcome_authority_parts"
     / "action_execution"
 )
 AUTHORITY_MODULE = ACTION_EXECUTION_DIR / "publication_handoff_stage_projection.py"

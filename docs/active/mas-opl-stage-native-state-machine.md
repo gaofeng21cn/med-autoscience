@@ -234,7 +234,7 @@ MAS signs OwnerReceipt or TypedBlocker
 OPL projects current_owner_delta
 ```
 
-这不是新增 MAS controller，而是减少 MAS controller：让现有 `owner-route-reconcile`、`domain-action-request-materialize`、`domain-owner-action-dispatch` 这类互相补偿的路径逐步退役或合并到一个 Stage closeout loop。
+这不是新增 MAS controller，而是减少 MAS controller：让现有 `paper-mission-owner-surface`、`domain-action-request-materialize` 与旧 `domain-owner-action-dispatch` 这类互相补偿的路径退役或合并到 StageOutcome / owner-callable closeout loop。
 
 ## 防止解释层打架的规则
 
@@ -267,7 +267,7 @@ Canary 完成标准：
 
 - DM002 / DM003 各自产生一个 fresh `OwnerReceipt` 或 stable `TypedBlocker`；当前 terminal handoff 已满足 typed-blocker closeout，并把下一 owner delta 指向 `complete_medical_paper_readiness_surface`。
 - OPL StageRun status、MAS receipt/blocker、stage manifest、MAS `study progress` 四者一致，且 owner answer 已带 `closeout_binding` / `current_pointer_ref` / `source_fingerprint` / `idempotency_key` 绑定。
-- 不需要人工运行 `owner-route-reconcile` 才能看见新状态。
+- 不需要人工运行 `paper-mission-owner-surface` 才能看见新状态。
 - 旧 attempt / 旧 request 不再消耗新 generation 的 retry budget。
 
 ## 推荐落地顺序

@@ -58,7 +58,7 @@ _CODE_PATH_ROLES = [
         "allowed_mas_role": "domain_intent_refs_and_typed_blocker_adapter",
     },
     {
-        "path": "src/med_autoscience/controllers/owner_route_reconcile.py",
+        "path": "src/med_autoscience/controllers/paper_mission_owner_surface.py",
         "current_role": "owner_route_source_ref_projection",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "domain_route_and_blocker_projection",
@@ -70,7 +70,7 @@ _CODE_PATH_ROLES = [
         "allowed_mas_role": "no_forbidden_write_guard_and_receipt_signer",
     },
     {
-        "path": "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+        "path": "src/med_autoscience/controllers/stage_outcome_authority.py",
         "current_role": "domain_handler_dispatch_receipt_writer",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "domain_dispatch_receipt_adapter",
@@ -97,7 +97,7 @@ _STANDARD_AGENT_PURITY = {
     "repo_local_wrapper_tail_module_ids": [],
     "former_repo_local_wrapper_tail_module_ids": [
         "generic_cli_mcp_product_wrappers",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     ],
     "domain_repo_physical_delete_authorized": False,

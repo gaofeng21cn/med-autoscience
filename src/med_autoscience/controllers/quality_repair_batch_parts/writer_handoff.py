@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
-from med_autoscience.controllers.default_executor_closeout_contract import default_executor_typed_closeout_contract
+from med_autoscience.controllers.owner_callable_action_policy import default_executor_search_discipline
+from med_autoscience.controllers.owner_callable_closeout_contract import default_executor_typed_closeout_contract
 from med_autoscience.controllers.provider_admission_parts.provider_admission_boundaries import (
     domain_progress_transition_request_transport_fields,
 )

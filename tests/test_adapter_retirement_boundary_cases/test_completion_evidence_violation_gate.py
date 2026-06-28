@@ -18,7 +18,7 @@ def _surface(inventory: dict, surface_id: str) -> dict:
 
 
 def _force_all_live_tail_proofs(inventory: dict) -> None:
-    _surface(inventory, "domain_owner_action_dispatch")["active_caller_soak_boundary"][
+    _surface(inventory, "stage_outcome_authority")["active_caller_soak_boundary"][
         "live_every_active_caller_soak_proven"
     ] = True
     _surface(inventory, "domain_authority_refs_index")["opl_state_index_takeover_bridge"][
@@ -52,7 +52,7 @@ def _force_all_live_tail_proofs(inventory: dict) -> None:
 def test_completion_evidence_layers_do_not_satisfy_live_evidence_when_authority_violates() -> None:
     inventory = _inventory()
     _force_all_live_tail_proofs(inventory)
-    _surface(inventory, "domain_owner_action_dispatch")["mas_owner_claim_allowed"] = True
+    _surface(inventory, "stage_outcome_authority")["mas_owner_claim_allowed"] = True
 
     retirement = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement"
@@ -70,7 +70,7 @@ def test_completion_evidence_layers_do_not_satisfy_live_evidence_when_authority_
         item["surface_id"]: item
         for item in layers["live_soak_or_no_active_caller"]["open_surface_tails"]
     }
-    dispatch_tail = tails["domain_owner_action_dispatch"]
+    dispatch_tail = tails["stage_outcome_authority"]
     assert dispatch_tail["status"] == "evidence_required"
     assert dispatch_tail["live_or_no_active_proven"] is False
     assert (
@@ -81,7 +81,7 @@ def test_completion_evidence_layers_do_not_satisfy_live_evidence_when_authority_
 
 def test_owner_dispatch_tail_rejects_running_proof_as_live_soak_completion() -> None:
     inventory = _inventory()
-    owner_dispatch = _surface(inventory, "domain_owner_action_dispatch")
+    owner_dispatch = _surface(inventory, "stage_outcome_authority")
     soak = owner_dispatch["active_caller_soak_boundary"]
     soak["repo_authorization_coverage_can_satisfy_live_soak"] = True
     soak["current_execution_running_proof_can_satisfy_live_soak"] = True
@@ -104,7 +104,7 @@ def test_owner_dispatch_tail_rejects_running_proof_as_live_soak_completion() -> 
         item["surface_id"]: item
         for item in layers["live_soak_or_no_active_caller"]["open_surface_tails"]
     }
-    dispatch_tail = tails["domain_owner_action_dispatch"]
+    dispatch_tail = tails["stage_outcome_authority"]
     assert dispatch_tail["live_or_no_active_proven"] is False
     assert {
         (

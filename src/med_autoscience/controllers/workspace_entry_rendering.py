@@ -57,7 +57,7 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "`bin/study-state-matrix --format json` 读取 workspace 级 study 矩阵。\n\n"
         "默认 stage/runtime lifecycle 由 OPL current_control_state refs-only handoff 承接。"
         "MAS 默认入口保留 `paper-mission`、owner receipt、typed blocker 与 domain authority refs；"
-        "旧 `domain-health-diagnostic` / `owner-route-reconcile` 仅属于 tombstone/provenance 或显式诊断语境；"
+        "旧 `domain-health-diagnostic` / `paper-mission-owner-surface` 仅属于 tombstone/provenance 或显式诊断语境；"
         "`bin/domain-action-request-materialize` 和 `bin/domain-owner-action-dispatch` "
         "已物理退役为 tombstone/provenance-only；generic transition runtime 和 owner-callable execution "
         "必须经 OPL primitive/readback 承接。\n"

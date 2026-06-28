@@ -131,8 +131,8 @@ def test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume
         "active_caller_db_path_does_not_imply_persistence": True,
         "active_callers": [
             "stage_artifact_materializer.opl_state_index_source_adapter.emit_stage_artifact_delta_source",
-            "owner_route_reconcile.scan_output.opl_state_index_source_adapter.emit_owner_route_receipt_source",
-            "domain_owner_action_dispatch.opl_state_index_source_adapter.emit_dispatch_receipt_source",
+            "paper_mission_owner_surface.scan_output.opl_state_index_source_adapter.emit_owner_route_receipt_source",
+            "stage_outcome_authority.opl_state_index_source_adapter.emit_dispatch_receipt_source",
             "paper_progress_transition_refs.opl_state_index_source_adapter.emit_paper_progress_transition_source",
             "runtime_storage_maintenance.opl_state_index_source_adapter.emit_archive_ref_source",
         ],

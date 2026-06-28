@@ -178,7 +178,7 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -386,7 +386,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -482,7 +482,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": "quest-002", "owner_route": owner_route}],
         },

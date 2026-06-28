@@ -5,9 +5,9 @@ import json
 import os
 from pathlib import Path
 
-from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
+from med_autoscience.controllers.stage_outcome_authority_parts import output_readiness
 
-from tests.domain_owner_action_dispatch_helpers import (
+from tests.stage_outcome_authority_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
     write_current_dispatch as _write_current_dispatch,
@@ -73,7 +73,7 @@ def test_execute_dispatch_does_not_repeat_suppress_current_manuscript_pending_ev
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -177,7 +177,7 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {

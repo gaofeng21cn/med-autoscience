@@ -9,9 +9,9 @@ from med_autoscience.controllers.ai_reviewer_record_work_units import (
     AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
     CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts import action_decorators
-from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
-from med_autoscience.controllers.owner_route_reconcile_parts import domain_transition_actions
+from med_autoscience.controllers.paper_mission_owner_surface_parts import action_decorators
+from med_autoscience.controllers.paper_mission_owner_surface_parts import ai_reviewer_actions
+from med_autoscience.controllers.paper_mission_owner_surface_parts import domain_transition_actions
 
 
 def current_request_lifecycle(

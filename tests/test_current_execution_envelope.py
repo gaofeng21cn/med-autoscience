@@ -36,7 +36,7 @@ def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explici
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-cvd-mortality-risk"

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
-from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
+from med_autoscience.controllers.owner_callable_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 
 

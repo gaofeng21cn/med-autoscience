@@ -36,7 +36,7 @@ def test_init_workspace_omits_retired_local_runtime_control_wrappers(tmp_path: P
         assert not path.exists()
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
     assert not (workspace_root / "ops" / "medautoscience" / "supervisor").exists()
-    scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile"
+    scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission-owner-surface"
     paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
     assert not scan_domain_routes.exists()
     assert paper_mission.is_file()

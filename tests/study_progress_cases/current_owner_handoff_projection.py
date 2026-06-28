@@ -145,7 +145,7 @@ def test_progress_first_monitoring_treats_current_work_unit_typed_blocker_as_not
                 "state": {
                     "state_kind": "typed_blocker",
                     "typed_blocker": {
-                        "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                        "blocker_type": "stage_packet_not_selected_by_stage_outcome_authority",
                         "work_unit_id": "medical_prose_write_repair",
                         "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
                     },
@@ -155,7 +155,7 @@ def test_progress_first_monitoring_treats_current_work_unit_typed_blocker_as_not
                 "state_kind": "typed_blocker",
                 "owner": "MedAutoScience",
                 "typed_blocker": {
-                    "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                    "blocker_type": "stage_packet_not_selected_by_stage_outcome_authority",
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
                 },
@@ -182,7 +182,7 @@ def test_progress_first_monitoring_treats_current_work_unit_typed_blocker_as_not
     )
     assert monitoring["execution_state_kind"] == "typed_blocker"
     assert monitoring["typed_blocker"]["blocker_type"] == (
-        "stage_packet_not_selected_by_domain_owner_action_dispatch"
+        "stage_packet_not_selected_by_stage_outcome_authority"
     )
 
 

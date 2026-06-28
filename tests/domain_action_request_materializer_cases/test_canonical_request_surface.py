@@ -56,7 +56,7 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {

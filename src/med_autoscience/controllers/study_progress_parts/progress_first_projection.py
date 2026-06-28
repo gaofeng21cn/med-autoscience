@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     request_output_surface_for_action_type,
     request_output_target_surface_for_action_type,
     request_owner_for_action_type,
@@ -416,7 +416,7 @@ def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[s
         "target_surface_source": (
             "opl_current_control_state.action_queue.required_output_surface"
             if required_output_surface is not None
-            else "default_executor_action_policy.request_output_surface_for_action_type"
+            else "owner_callable_action_policy.request_output_surface_for_action_type"
         ),
     }
     if source_fingerprint := _text(source_refs.get("source_fingerprint")):
@@ -487,7 +487,7 @@ def _owner_route_with_policy_target_surface(route: Mapping[str, Any]) -> dict[st
         }
     payload["route_target"] = route_target
     payload["target_surface"] = target_surface
-    payload["target_surface_source"] = "default_executor_action_policy.request_output_surface_for_action_type"
+    payload["target_surface_source"] = "owner_callable_action_policy.request_output_surface_for_action_type"
     if not _mapping(payload.get("owner_action")):
         payload["owner_action"] = {
             "next_owner": _text(payload.get("next_owner")) or request_owner_for_action_type(action_type),
@@ -608,10 +608,10 @@ def _domain_transition_target_surface_source(
     if action_type is not None and (
         _publication_gate_replay_action(action_type) or _write_quality_repair_work_unit(work_unit_id)
     ):
-        return "default_executor_action_policy.request_output_surface_for_action_type"
+        return "owner_callable_action_policy.request_output_surface_for_action_type"
     if _text(guard.get("required_owner_surface")) is not None:
         return "domain_transition.guard_boundary.required_owner_surface"
-    return "default_executor_action_policy.request_output_surface_for_action_type"
+    return "owner_callable_action_policy.request_output_surface_for_action_type"
 
 
 def _publication_gate_replay_work_unit(work_unit_id: str | None) -> bool:

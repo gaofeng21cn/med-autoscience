@@ -82,7 +82,7 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
             "domain_route_owner_route",
-            "domain_owner_action_dispatch_receipt",
+            "stage_outcome_authority_receipt",
             "paper_progress_transition_ref_receipt",
         ],
         "standard_agent_purity_absent_surface_ids": [

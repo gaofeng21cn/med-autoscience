@@ -188,7 +188,7 @@ def test_dm002_20260529_current_positive_ai_reviewer_archive_replays_gate_withou
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [

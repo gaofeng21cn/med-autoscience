@@ -153,7 +153,7 @@ workspace alerts 必须保留解释层。每条可见告警或降级诊断都要
 - 用途：这条信息用来提醒运行、进度、质量还是诊断缺口。
 - 当前输出：原始 read-model 当前给出的文本或状态。
 - 期望输出：恢复后应该看到的具体状态或更具体 blocker。
-- 修复/查看命令：如果已有受控 CLI，例如 `domain-health-diagnostic`、`owner-route-reconcile` 或 `doctor --profile`，应显示命令；没有命令时保持为空。
+- 修复/查看命令：如果已有受控 CLI，例如 `domain-health-diagnostic`、`paper-mission-owner-surface` 或 `doctor --profile`，应显示命令；没有命令时保持为空。
 
 `Supervisor scheduler 尚未注册。`、`MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。` 这类旧 local scheduler 文案只应作为 tombstone/provenance 诊断展示，不得指向可执行 `--manager local` 命令；默认 scheduler owner 是 OPL provider/runtime manager。诊断必须同时显示当前 `adapter_id`（默认 `opl_family_runtime_provider`，显式 Hermes 为 `hermes_gateway_cron`），不能把 Hermes-hosted 或 local LaunchAgent 文案当成默认架构事实。`状态需要检查。` 这类泛化旧文案应标为低信息诊断，由具体 study 行和 runtime health blocker 取代。
 

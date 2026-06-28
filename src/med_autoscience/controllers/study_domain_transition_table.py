@@ -8,11 +8,11 @@ from typing import Any
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
-from med_autoscience.controllers.study_domain_transition_table_parts import default_executor_receipts
+from med_autoscience.controllers.study_domain_transition_table_parts import owner_callable_receipts
 from med_autoscience.controllers.study_domain_transition_table_parts import family_transition_spec
 from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import story_surface_recheck_transition
-from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
+from med_autoscience.controllers.paper_mission_owner_surface_parts import current_truth_owner
 from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed, live_delivered_package_handoff_allowed
 
 
@@ -515,7 +515,7 @@ def _consumed_default_executor_transition(
     transition: Mapping[str, Any],
     active_run_id: str | None,
 ) -> dict[str, Any] | None:
-    receipt = default_executor_receipts.consumed_current_transition_receipt(
+    receipt = owner_callable_receipts.consumed_current_transition_receipt(
         study_id=study_id,
         quest_id=quest_id,
         study_root=study_root,

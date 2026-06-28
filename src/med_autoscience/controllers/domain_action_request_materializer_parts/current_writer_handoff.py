@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
+from med_autoscience.controllers.owner_callable_action_policy import request_output_surface_for_action_type
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff as quality_repair_writer_handoff
 from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_receipt_consumption,

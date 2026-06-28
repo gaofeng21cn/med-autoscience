@@ -56,7 +56,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     _write_json(
         latest_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -293,7 +293,7 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
     _write_json(
         latest_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -351,7 +351,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
     _write_json(
         latest_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -506,7 +506,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {

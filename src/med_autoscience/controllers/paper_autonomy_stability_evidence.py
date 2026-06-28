@@ -7,7 +7,7 @@ from typing import Any
 from med_autoscience.controllers import paper_progress_degradation_evidence
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
-from med_autoscience.controllers import owner_route_reconcile
+from med_autoscience.controllers import paper_mission_owner_surface
 from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -34,7 +34,7 @@ READ_ONLY_CONTRACT = {
     ],
     "prohibited_actions": [
         "runtime_relaunch",
-        "owner_route_reconcile_receipt_write",
+        "paper_mission_owner_surface_receipt_write",
         "workspace_migration_apply",
         "current_package_write",
         "publication_eval_write",
@@ -200,7 +200,7 @@ def _owner_route_handoff_observation(
     study_ids: Sequence[str],
 ) -> dict[str, Any]:
     try:
-        before_scan = owner_route_reconcile.scan_domain_routes(
+        before_scan = paper_mission_owner_surface.scan_domain_routes(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=False,
@@ -497,7 +497,7 @@ def _resolved_study_ids(
     )
     if from_inventory:
         return from_inventory
-    return owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
+    return paper_mission_owner_surface.resolve_paper_mission_owner_surface_study_ids(profile)
 
 
 def _stable_blockers(scan_payload: Mapping[str, Any]) -> list[dict[str, str]]:

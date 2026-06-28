@@ -5,20 +5,20 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
     default_executor_execution_candidates,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts import (
     missing_refs_typed_closeout,
     nonconsumable_redrive_budget,
 )
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_result_policy import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_result_policy import (
     default_executor_consumed_blocked_reason,
     default_executor_dispatch_zero_execution_blocker,
     default_executor_owner_result_consumable,
     gate_replay_blocker_fields,
 )
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_followthrough import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_followthrough import (
     default_executor_execution_followthrough_receipt_consumption,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_receipts import (

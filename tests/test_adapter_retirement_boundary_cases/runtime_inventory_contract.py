@@ -55,7 +55,7 @@ def assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory()
         "domain_action_request_materializer_current_default_executor_dispatches_api",
         "domain_action_request_materializer_owner_callable_adapter_projection",
         "default_executor_execution_latest_wire_projection",
-        "domain_owner_action_dispatch",
+        "stage_outcome_authority",
         "domain_health_diagnostic_obligation_actuator",
         "agent_tool_arsenal_scientific_capability_registry",
     }

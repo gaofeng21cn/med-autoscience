@@ -120,7 +120,7 @@ def test_private_surface_retirement_contracts_expose_completion_gates() -> None:
     )
     assert dispositions_by_id["generic_transition_runner"] == "opl_primitive_replacement"
     assert dispositions_by_id["workbench_portal_generic_shell"] == "temporary_refs_projection"
-    assert dispositions_by_id["owner_route_reconcile_materialize_dispatch_shell"] == (
+    assert dispositions_by_id["paper_mission_owner_surface_materialize_dispatch_shell"] == (
         "temporary_refs_projection"
     )
     assert dispositions_by_id["owner_receipt"] == "retained_minimal_authority_function"
@@ -513,7 +513,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -603,13 +603,13 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     )
     assert inventory_by_id["artifact_authority"]["migration_action"] == "authority_stays_in_mas"
     owner_dispatch_thinning = inventory_by_id[
-        "owner_route_reconcile_materialize_dispatch_shell"
+        "paper_mission_owner_surface_materialize_dispatch_shell"
     ]["latest_thinning_evidence"]
     assert owner_dispatch_thinning["status"] == (
-        "default_executor_action_policy_single_source_landed"
+        "owner_callable_action_policy_single_source_landed"
     )
     assert owner_dispatch_thinning["policy_module"] == (
-        "src/med_autoscience/controllers/default_executor_action_policy.py"
+        "src/med_autoscience/controllers/owner_callable_action_policy.py"
     )
     assert owner_dispatch_thinning["domain_repo_physical_delete_authorized"] is False
     assert "owner_chain_closed" in owner_dispatch_thinning["does_not_claim"]
@@ -684,7 +684,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "repo_local_wrapper_tail_module_ids": [],
         "former_repo_local_wrapper_tail_module_ids": [
             "generic_cli_mcp_product_wrappers",
-            "owner_route_reconcile_materialize_dispatch_shell",
+            "paper_mission_owner_surface_materialize_dispatch_shell",
             "workbench_portal_generic_shell",
         ],
         "domain_repo_physical_delete_authorized": False,

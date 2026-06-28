@@ -263,7 +263,7 @@ def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-05-28T03:44:00+00:00",
             "studies": [{"study_id": "001-risk", "quest_status": "active"}],
         },
@@ -330,7 +330,7 @@ def test_latest_terminal_stage_log_preserves_zero_observability_values(tmp_path)
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-05-28T03:44:00+00:00",
             "studies": [{"study_id": "001-risk", "quest_status": "active"}],
         },

@@ -126,11 +126,11 @@ REQUIRED_ANTI_LOOP_FORBIDDEN_SHAPES = (
     "repeat_same_work_unit_without_new_consumed_evidence",
     "repeat_no_op_without_duplicate_failed_path_stale_or_forbidden_ref",
     "provider_completion_claims_domain_completion_without_owner_receipt_or_typed_blocker",
-    "dry_run_owner_route_reconcile_or_dispatch",
+    "dry_run_paper_mission_owner_surface_or_dispatch",
 )
 REQUIRED_ANTI_LOOP_DRY_RUN_WRITE_FALSE_FIELDS = (
     "may_write_study_truth",
-    "may_write_owner_route_reconcile",
+    "may_write_paper_mission_owner_surface",
     "may_dispatch_owner_action",
     "may_mutate_paper_or_package",
 )

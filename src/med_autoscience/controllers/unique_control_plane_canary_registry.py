@@ -7,7 +7,7 @@ from typing import Any
 FORBIDDEN_RUNTIME_PATCH_REFS = [
     "src/med_autoscience/controllers/runtime_control/owner_route.py",
     "src/med_autoscience/controllers/domain_action_request_materializer.py",
-    "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+    "src/med_autoscience/controllers/stage_outcome_authority.py",
 ]
 
 ALLOWED_PATCH_REFS = [
@@ -126,7 +126,7 @@ REGISTRY: dict[str, Any] = {
                 "contracts/generated_surface_handoff.json",
             ],
             owner_route_regression_refs=[
-                "tests/test_domain_owner_action_dispatch_cases/quality_repair_owner_route_cases.py",
+                "tests/test_stage_outcome_authority_cases/quality_repair_owner_route_cases.py",
                 "regression-suite:mas/owner-route/stale-dispatch",
             ],
             no_forbidden_write_proof_refs=[

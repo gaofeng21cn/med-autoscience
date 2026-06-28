@@ -38,7 +38,7 @@ This patch does not write DM003 study truth, `publication_eval/latest.json`, `co
 - `primary_care_gap` is now a supported manuscript family and resolves to STROBE rather than falling through an unsupported-family path.
 - The clinical subtype reconstruction display shell admits `primary_care_gap` descriptive manuscripts, so DPCC phenotype / treatment-gap displays can be planned without pretending the paper is a prediction-model or generic clinical-observation manuscript.
 - `medical_prose_write_repair` now shares the story-surface delta contract with `manuscript_story_repair`; the write owner must change `paper/draft.md` or `paper/build/review_manuscript.md`, and ledger-only repair remains blocked.
-- `owner-route-reconcile` and `domain-owner-action-dispatch` can materialize and execute persisted `run_quality_repair_batch` requests for this write route, preserving `manuscript_story_surface_delta_missing` as a typed blocker when the manuscript surface has not moved.
+- `paper-mission-owner-surface` and `stage-outcome-authority` can materialize and execute persisted `run_quality_repair_batch` requests for this write route, preserving `manuscript_story_surface_delta_missing` as a typed blocker when the manuscript surface has not moved.
 - `quality_repair_batch` now includes a writer-owner materializer for `medical_prose_write_repair` that writes canonical manuscript story surfaces from methods/cohort/display/treatment-gap/transition/table/evidence refs while avoiding current-package, delivery mirror, publication-eval, controller-decision, and submission-package writes.
 - `paper_repair_executor` now targets `paper/draft.md` as the canonical text-repair surface and classifies `paper/draft.md` / `paper/build/review_manuscript.md` as `canonical_manuscript_story_surface`.
 
@@ -113,12 +113,12 @@ This route-priority repair does not authorize DM003 quality readiness. It only p
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_surface`
 - `tests/test_publication_work_units_cases/delivery_specificity_cases.py::test_current_delivery_reporting_checklist_blockers_route_to_write_repair`
 - `tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py::test_treatment_gap_reporting_repair_requires_story_surface_delta`
-- `tests/test_domain_owner_action_dispatch_cases/quality_repair_writer_handoff_contract.py::test_quality_repair_writer_handoff_carries_structured_reporting_checklist`
+- `tests/test_stage_outcome_authority_cases/quality_repair_writer_handoff_contract.py::test_quality_repair_writer_handoff_carries_structured_reporting_checklist`
 - `tests/test_publication_gate_cases/supervisor_cases.py::test_build_gate_report_blocks_forbidden_manuscript_terminology`
 - `tests/test_paper_repair_executor.py::test_paper_repair_executor_executes_text_repair_on_canonical_sources`
 - `tests/test_medical_reporting_contract.py::test_resolve_medical_reporting_contract_for_primary_care_gap_manuscript`
 - `tests/test_medical_startup_contract_support.py::test_reporting_contract_supports_primary_care_gap_manuscript_family`
 - `tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases.py::test_progress_projection_keeps_medical_prose_write_route_when_story_surface_delta_is_missing`
-- `tests/test_domain_owner_action_dispatch_owner_route.py::test_execute_quality_repair_batch_from_persisted_dispatch_and_owner_request`
+- `tests/test_stage_outcome_authority_owner_route.py::test_execute_quality_repair_batch_from_persisted_dispatch_and_owner_request`
 
 Full verification commands and results are recorded in the implementation closeout for this patch.

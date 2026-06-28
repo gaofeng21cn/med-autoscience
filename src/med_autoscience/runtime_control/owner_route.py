@@ -5,7 +5,7 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     request_output_surface_for_action_type,
     request_output_target_surface_for_action_type,
 )
@@ -315,7 +315,7 @@ def _target_surface_for_action_type(action_type: str | None) -> dict[str, Any] |
         "schema_version": 1,
         "action_type": action_type,
         "surface_ref": output_surface,
-        "source": "default_executor_action_policy.request_output_surface",
+        "source": "owner_callable_action_policy.request_output_surface",
     }
 
 

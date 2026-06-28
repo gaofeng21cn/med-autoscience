@@ -74,7 +74,7 @@ def test_request_bound_record_projection_source_ref_closes_cleared_lifecycle_req
             "publication_eval_record_ref": str(record_path.resolve()),
             "ai_reviewer_record": current_record,
             "source_workflow_ref": {
-                "surface": "owner_route_reconcile",
+                "surface": "paper_mission_owner_surface",
                 "authority_owner": "ai_reviewer",
                 "authority_state": "projection_only",
                 "route_back_required": True,

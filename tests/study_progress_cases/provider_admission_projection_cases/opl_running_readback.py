@@ -234,9 +234,9 @@ def test_provider_admission_projection_consumes_terminal_closeout_after_owner_re
     )
     typed_blocker = {
         "surface_kind": "domain_stage_typed_blocker",
-        "blocker_id": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
-        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
-        "blocked_reason": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+        "blocker_id": "stage_outcome_authority_apply_selected_zero_dispatch",
+        "blocker_type": "stage_outcome_authority_apply_selected_zero_dispatch",
+        "blocked_reason": "stage_outcome_authority_apply_selected_zero_dispatch",
         "owner": "MedAutoScience",
         "action_type": "run_quality_repair_batch",
         "work_unit_id": work_unit_id,
@@ -351,7 +351,7 @@ def test_provider_admission_projection_consumes_terminal_closeout_after_owner_re
     assert fields["transition_request_candidates"] == []
     consumed = fields["provider_admission_terminal_closeout_consumed"]
     assert consumed["stage_attempt_id"] == stage_attempt_id
-    assert consumed["blocker_type"] == "domain_owner_action_dispatch_apply_selected_zero_dispatch"
+    assert consumed["blocker_type"] == "stage_outcome_authority_apply_selected_zero_dispatch"
     assert consumed["typed_blocker"]["work_unit_id"] == work_unit_id
     assert consumed["authority_boundary"]["can_authorize_provider_admission"] is False
     assert consumed["authority_boundary"]["provider_completion_is_domain_completion"] is False

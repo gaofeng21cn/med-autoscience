@@ -220,7 +220,7 @@ def test_autonomy_slo_read_model_explains_existing_low_information_breach(tmp_pa
                 },
                 "runtime_reconcile_trigger": {
                     "safe_to_request": True,
-                    "recommended_command": "owner-route-reconcile --developer-supervisor-mode external_observe --studies 003-dpcc",
+                    "recommended_command": "paper-mission-owner-surface --developer-supervisor-mode external_observe --studies 003-dpcc",
                     "action_class": "reconcile_dry_run",
                 },
                 "controller_apply_receipt": {

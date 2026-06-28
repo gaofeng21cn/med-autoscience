@@ -428,7 +428,7 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
             "quest_id": quest_id,
             **route_context,
             "last_controller_decision_authorization": {
-                "source": "owner_route_reconcile_opl_runtime_handoff",
+                "source": "paper_mission_owner_surface_opl_runtime_handoff",
                 "decision_id": "decision-003-current",
                 "work_unit_id": "submission_minimal_refresh",
                 "work_unit_fingerprint": "publication-blockers::current",

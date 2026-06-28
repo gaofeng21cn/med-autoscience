@@ -174,7 +174,7 @@ def _record_only_ai_reviewer_closeout_routes_to_publication_repair(payload: Mapp
     if next_action_type != "consume_record_only_ai_reviewer_closeout_or_route_next_owner":
         return False
     if _non_empty_text(next_forced_delta.get("required_delta_kind")) != (
-        "mas_owner_route_reconcile_or_typed_blocker_consumption"
+        "mas_paper_mission_owner_surface_or_typed_blocker_consumption"
     ):
         return False
     reviewer_record_ref = _non_empty_text(next_forced_delta.get("reviewer_record_ref"))
@@ -231,7 +231,7 @@ def _record_only_ai_reviewer_closeout_routes_to_write_repair(
     if status != "closed_with_domain_owner_refs" and outcome != "closed_with_domain_owner_refs":
         return False
     if _non_empty_text(next_forced_delta.get("required_delta_kind")) != (
-        "mas_owner_route_reconcile_or_typed_blocker_consumption"
+        "mas_paper_mission_owner_surface_or_typed_blocker_consumption"
     ):
         return False
     next_owner = _non_empty_text(next_forced_delta.get("owner"))

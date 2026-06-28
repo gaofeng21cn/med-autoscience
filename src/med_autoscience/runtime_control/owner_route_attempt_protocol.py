@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.default_executor_closeout_contract import (
+from med_autoscience.controllers.owner_callable_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
-from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
+from med_autoscience.controllers.owner_callable_action_policy import default_executor_search_discipline
 from med_autoscience.runtime_control import decision_trace_ledger
 
 
@@ -440,7 +440,7 @@ def _ai_reviewer_entry(*regression_refs: str) -> dict[str, Any]:
         allowed_actions=["return_to_ai_reviewer_workflow"],
         required_output="artifacts/publication_eval/latest.json",
         priority_class="ai_reviewer_currentness",
-        regression_refs=regression_refs or ("tests/owner_route_reconcile_cases",),
+        regression_refs=regression_refs or ("tests/paper_mission_owner_surface_cases",),
     )
 
 
@@ -453,7 +453,7 @@ def _write_entry(*regression_refs: str) -> dict[str, Any]:
             "typed blocker:manuscript_story_surface_delta_missing"
         ),
         priority_class="write_route_back",
-        regression_refs=regression_refs or ("tests/owner_route_reconcile_cases",),
+        regression_refs=regression_refs or ("tests/paper_mission_owner_surface_cases",),
     )
 
 
@@ -466,7 +466,7 @@ def _artifact_entry(*regression_refs: str) -> dict[str, Any]:
         ],
         required_output="artifacts/controller/current_package_freshness/latest.json",
         priority_class="package_freshness",
-        regression_refs=regression_refs or ("tests/owner_route_reconcile_cases",),
+        regression_refs=regression_refs or ("tests/paper_mission_owner_surface_cases",),
     )
 
 
@@ -476,7 +476,7 @@ def _gate_clearing_entry(*regression_refs: str) -> dict[str, Any]:
         allowed_actions=["run_gate_clearing_batch"],
         required_output="artifacts/controller/gate_clearing_batch/latest.json",
         priority_class="package_freshness",
-        regression_refs=regression_refs or ("tests/owner_route_reconcile_cases",),
+        regression_refs=regression_refs or ("tests/paper_mission_owner_surface_cases",),
     )
 
 
@@ -550,7 +550,7 @@ _REASON_REGISTRY = {
         allowed_actions=["run_quality_repair_batch", "return_to_ai_reviewer_workflow"],
         required_output="owner-specific receipt or typed blocker",
         priority_class="write_route_back",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
         allow_route_action=True,
     ),
     "controller_work_unit_owner_handoff_required": _entry(
@@ -562,7 +562,7 @@ _REASON_REGISTRY = {
         ],
         required_output="owner-specific receipt or typed blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
         allow_route_action=True,
     ),
     "publication_gate_specificity_required": _entry(
@@ -610,14 +610,14 @@ _REASON_REGISTRY = {
             "or typed blocker:medical_paper_readiness_surface_input_required"
         ),
         priority_class="hard_methodology_or_source_blocker",
-        regression_refs=("tests/owner_route_reconcile_cases/test_stage_artifact_owner_action.py",),
+        regression_refs=("tests/paper_mission_owner_surface_cases/test_stage_artifact_owner_action.py",),
     ),
     "gate_needs_specificity": _entry(
         owner="publication_gate",
         allowed_actions=["publication_gate_specificity_required"],
         required_output="specific publication gate blocker target refs",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "current_package_freshness_required": _artifact_entry("DM002:package_freshness"),
     "artifact_work_required": _artifact_entry("tests:artifact_owner_route"),
@@ -691,7 +691,7 @@ _REASON_REGISTRY = {
         allowed_actions=["return_to_ai_reviewer_workflow"],
         required_output="new MAS paper authority surface or typed blocker",
         priority_class="ai_reviewer_currentness",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "paper_clean_room_rebuild_required": _entry(
         owner="MedAutoScience",
@@ -713,49 +713,49 @@ _REASON_REGISTRY = {
         allowed_actions=[],
         required_output="study completion contract blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "runtime_controller_redrive_required": _entry(
         owner="one-person-lab",
         allowed_actions=[],
         required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "runtime_recovery_not_authorized": _entry(
         owner="one-person-lab",
         allowed_actions=[],
         required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "runtime_recovery_retry_budget_exhausted": _entry(
         owner="one-person-lab",
         allowed_actions=[],
         required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "abnormal_stopped_runtime_resume_required": _entry(
         owner="one-person-lab",
         allowed_actions=[],
         required_output="OPL runtime owner handoff or typed blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases/test_abnormal_stopped_runtime.py",),
+        regression_refs=("tests/paper_mission_owner_surface_cases/test_abnormal_stopped_runtime.py",),
     ),
     "failed_quest_runtime_relaunch_required": _entry(
         owner="one-person-lab",
         allowed_actions=[],
         required_output="OPL runtime owner handoff or typed blocker",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases/test_failed_quest_autorepair.py",),
+        regression_refs=("tests/paper_mission_owner_surface_cases/test_failed_quest_autorepair.py",),
     ),
     "opl_runtime_owner_route_required": _entry(
         owner="one-person-lab",
         allowed_actions=[],
         required_output="OPL owner route transport receipt",
         priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/owner_route_reconcile_cases",),
+        regression_refs=("tests/paper_mission_owner_surface_cases",),
     ),
     "typed_closeout_packet_required": _entry(
         owner="one-person-lab",

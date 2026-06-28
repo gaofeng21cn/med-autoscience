@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.owner_route_reconcile_parts.queue_slo import (
+from med_autoscience.controllers.paper_mission_owner_surface_parts.queue_slo import (
     DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
     OWNER_PICKUP_OVERDUE_HOURS,
 )

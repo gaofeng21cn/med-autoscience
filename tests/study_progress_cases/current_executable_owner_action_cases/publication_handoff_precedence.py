@@ -252,7 +252,7 @@ def test_current_executable_owner_action_consumes_record_only_ai_reviewer_termin
                     "paper_stage_log": {
                         "next_forced_delta": {
                             "required_delta_kind": (
-                                "mas_owner_route_reconcile_or_typed_blocker_consumption"
+                                "mas_paper_mission_owner_surface_or_typed_blocker_consumption"
                             ),
                             "owner": "mas_controller",
                             "action_type": (
@@ -616,7 +616,7 @@ def test_current_executable_owner_action_prefers_publication_eval_repair_over_re
                     "paper_stage_log": {
                         "next_forced_delta": {
                             "required_delta_kind": (
-                                "mas_owner_route_reconcile_or_typed_blocker_consumption"
+                                "mas_paper_mission_owner_surface_or_typed_blocker_consumption"
                             ),
                             "owner": "mas_controller",
                             "action_type": (

@@ -229,7 +229,7 @@ def test_current_work_unit_projects_matching_current_control_repair_over_prior_a
     module = _module()
 
     for blocked_reason in (
-        "domain_owner_action_dispatch_execution_count_zero",
+        "stage_outcome_authority_execution_count_zero",
         "no_selected_dispatch_for_requested_action_types",
         "stage_packet_superseded_by_current_consumed_domain_transition",
         "stale_stage_attempt_current_owner_route_superseded",
@@ -353,7 +353,7 @@ def test_current_work_unit_preserves_prior_action_blocker_over_mismatched_curren
     module = _module()
 
     for blocked_reason in (
-        "domain_owner_action_dispatch_execution_count_zero",
+        "stage_outcome_authority_execution_count_zero",
         "no_selected_dispatch_for_requested_action_types",
         "stage_packet_superseded_by_current_consumed_domain_transition",
     ):

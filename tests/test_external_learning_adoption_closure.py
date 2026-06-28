@@ -235,10 +235,10 @@ def test_external_learning_sidecar_owner_action_writes_opl_request_only(
     tmp_path: Path,
 ) -> None:
     router = importlib.import_module(
-        "med_autoscience.controllers.domain_owner_action_dispatch_parts.action_router"
+        "med_autoscience.controllers.stage_outcome_authority_parts.action_router"
     )
     output_readiness = importlib.import_module(
-        "med_autoscience.controllers.domain_owner_action_dispatch_parts.output_readiness"
+        "med_autoscience.controllers.stage_outcome_authority_parts.output_readiness"
     )
     profile = make_profile(tmp_path)
     study_id = "001-risk"

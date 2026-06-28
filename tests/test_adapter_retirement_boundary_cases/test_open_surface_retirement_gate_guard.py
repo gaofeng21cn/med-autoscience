@@ -20,7 +20,7 @@ def _surface(inventory: dict, surface_id: str) -> dict:
 
 def test_open_surface_without_retirement_gate_cannot_satisfy_completion_evidence() -> None:
     inventory = _inventory()
-    surface = copy.deepcopy(_surface(inventory, "domain_owner_action_dispatch"))
+    surface = copy.deepcopy(_surface(inventory, "stage_outcome_authority"))
     surface["surface_id"] = "future_open_surface_without_retirement_gate"
     surface.pop("retirement_gate")
 

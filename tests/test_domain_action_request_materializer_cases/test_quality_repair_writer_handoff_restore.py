@@ -165,7 +165,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -349,7 +349,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -462,7 +462,7 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {

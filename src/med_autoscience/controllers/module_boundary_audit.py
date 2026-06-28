@@ -392,7 +392,7 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
         ),
         "projection_consumers": [
             "domain_action_request_materializer",
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "domain_health_diagnostic",
             "study_progress",
             "workbench",

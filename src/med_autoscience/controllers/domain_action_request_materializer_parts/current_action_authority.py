@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     request_owner_for_action_type,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (

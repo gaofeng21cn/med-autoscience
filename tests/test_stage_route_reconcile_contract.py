@@ -257,7 +257,7 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
         "src/med_autoscience/controllers/current_execution_envelope.py",
         "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
         "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
-        "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py",
+        "src/med_autoscience/controllers/stage_outcome_authority_parts/persisted_dispatches.py",
     ]
 
     nodes = {item["id"]: item for item in graph["nodes"]}
@@ -503,7 +503,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert dispatch_policy["surface_kind"] == "mas_owner_action_dispatch_authority_policy"
     assert dispatch_policy["scope"] == [
         "domain_action_request_materializer",
-        "domain_owner_action_dispatch",
+        "stage_outcome_authority",
     ]
     assert dispatch_policy["typed_blocker_can_self_authorize_owner_action"] is False
     assert dispatch_policy["blocker_only_effect"] == (

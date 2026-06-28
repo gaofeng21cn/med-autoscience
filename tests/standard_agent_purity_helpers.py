@@ -67,7 +67,7 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
     assert purity["repo_local_wrapper_tail_module_ids"] == []
     assert set(purity["former_repo_local_wrapper_tail_module_ids"]) == {
         "generic_cli_mcp_product_wrappers",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     }
     assert purity["domain_repo_physical_delete_authorized"] is False
@@ -100,7 +100,7 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
     assert guard["repo_local_wrapper_tail_module_ids"] == []
     assert set(guard["former_repo_local_wrapper_tail_module_ids"]) == {
         "generic_cli_mcp_product_wrappers",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     }
     assert guard["domain_repo_physical_delete_authorized"] is False
@@ -126,7 +126,7 @@ def assert_standard_agent_purity_handoff(handoff: Mapping[str, object]) -> None:
     assert purity["repo_local_wrapper_tail_module_ids"] == []
     assert set(purity["former_repo_local_wrapper_tail_module_ids"]) == {
         "generic_cli_mcp_product_wrappers",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     }
     assert purity["domain_repo_physical_delete_authorized"] is False

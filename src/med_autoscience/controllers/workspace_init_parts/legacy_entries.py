@@ -184,8 +184,8 @@ def legacy_supervisor_entry_reason(
     _ = path
     supervisor_specs = (
         (
-            ("ops", "medautoscience", "bin", "owner-route-reconcile"),
-            ("run_medautosci owner-route-reconcile",),
+            ("ops", "medautoscience", "bin", "paper-mission-owner-surface"),
+            ("run_medautosci paper-mission-owner-surface",),
             "legacy_scan_domain_routes_entry",
         ),
         (

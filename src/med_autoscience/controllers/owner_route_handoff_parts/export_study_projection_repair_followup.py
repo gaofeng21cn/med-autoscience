@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from ..default_executor_action_policy import (
+from ..owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES,
     request_output_surface_for_action_type,
     request_owner_for_action_type,

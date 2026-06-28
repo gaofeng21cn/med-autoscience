@@ -11,7 +11,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_bou
     domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
-from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.ai_reviewer_record_production import (
+from med_autoscience.controllers.stage_outcome_authority_parts.action_execution.ai_reviewer_record_production import (
     build_ai_reviewer_record_production_request,
     build_ai_reviewer_record_worker_handoff,
 )

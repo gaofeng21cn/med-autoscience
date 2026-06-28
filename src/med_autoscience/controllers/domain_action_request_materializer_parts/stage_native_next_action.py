@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES,
     request_owner_for_action_type,
 )

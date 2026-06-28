@@ -427,7 +427,7 @@ def test_opl_authorization_typed_blocker_without_fingerprint_matches_current_wor
 
     result = provider_admission.provider_admission_candidates_from_execution_payload(
         {
-            "surface": "domain_owner_action_dispatch",
+            "surface": "stage_outcome_authority",
             "executions": [
                 {
                     "surface": "default_executor_dispatch_execution",

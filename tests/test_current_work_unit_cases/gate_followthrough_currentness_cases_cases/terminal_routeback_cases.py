@@ -282,7 +282,7 @@ def test_current_work_unit_prefers_raw_terminal_handoff_over_flattened_monitorin
         "outcome": "blocked_with_domain_typed_blocker",
         "progress_delta_classification": "typed_blocker",
         "remaining_blockers": [
-            "domain_owner_action_dispatch_zero_selected_dispatch",
+            "stage_outcome_authority_zero_selected_dispatch",
             "display_surface_materialization_failed",
         ],
         "source_path": (
@@ -298,7 +298,7 @@ def test_current_work_unit_prefers_raw_terminal_handoff_over_flattened_monitorin
             "outcome": "blocked_with_domain_typed_blocker",
             "progress_delta_classification": "typed_blocker",
             "remaining_blockers": [
-                "domain_owner_action_dispatch_zero_selected_dispatch",
+                "stage_outcome_authority_zero_selected_dispatch",
                 "display_surface_materialization_failed",
                 "template_execution_mode_mismatch",
             ],

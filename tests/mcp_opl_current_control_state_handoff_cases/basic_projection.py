@@ -17,7 +17,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_reads_devel
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-05-04T06:00:00+00:00",
             "developer_supervisor_mode": {
                 "mode": "developer_apply_safe",
@@ -57,7 +57,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_preserves_s
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-05-09T08:54:24+00:00",
             "studies": [
                 {
@@ -83,7 +83,7 @@ def test_study_progress_opl_current_control_state_handoff_rejects_incomplete_top
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-17T02:51:08+00:00",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [
@@ -109,9 +109,9 @@ def test_study_progress_opl_current_control_state_handoff_rejects_incomplete_top
                 {
                     "study_id": "001-risk",
                     "quest_status": "blocked",
-                    "blocked_reason": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                    "blocked_reason": "stage_outcome_authority_apply_selected_zero_dispatch",
                     "typed_blocker": {
-                        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                        "blocker_type": "stage_outcome_authority_apply_selected_zero_dispatch",
                     },
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": "publication-blockers::abc",
@@ -124,9 +124,9 @@ def test_study_progress_opl_current_control_state_handoff_rejects_incomplete_top
 
     assert projection["provider_admission_pending_count"] == 0
     assert projection["provider_admission_candidates"] == []
-    assert projection["blocked_reason"] == "domain_owner_action_dispatch_apply_selected_zero_dispatch"
+    assert projection["blocked_reason"] == "stage_outcome_authority_apply_selected_zero_dispatch"
     assert projection["typed_blocker"]["blocker_type"] == (
-        "domain_owner_action_dispatch_apply_selected_zero_dispatch"
+        "stage_outcome_authority_apply_selected_zero_dispatch"
     )
 
 
@@ -150,7 +150,7 @@ def test_study_progress_opl_current_control_state_handoff_merges_complete_top_le
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-17T02:51:08+00:00",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [
@@ -177,9 +177,9 @@ def test_study_progress_opl_current_control_state_handoff_merges_complete_top_le
                 {
                     "study_id": study_id,
                     "quest_status": "blocked",
-                    "blocked_reason": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                    "blocked_reason": "stage_outcome_authority_apply_selected_zero_dispatch",
                     "typed_blocker": {
-                        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+                        "blocker_type": "stage_outcome_authority_apply_selected_zero_dispatch",
                     },
                     "work_unit_id": "publication_gate_replay",
                     "work_unit_fingerprint": fingerprint,
@@ -221,7 +221,7 @@ def test_study_progress_opl_current_control_state_handoff_binds_root_readback_to
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T17:45:32+00:00",
             "provider_admission_pending_count": 1,
             "transition_request_pending_count": 0,

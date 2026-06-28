@@ -64,7 +64,7 @@ def transition_request_pending_dispatch_result(
             }
         )
     return {
-        "surface": "domain_owner_action_dispatch",
+        "surface": "stage_outcome_authority",
         "schema_version": 1,
         "execution_count": 0,
         "executed_count": 0,

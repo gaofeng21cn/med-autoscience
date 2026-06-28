@@ -18,7 +18,7 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_routeback_curr
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions import (
+from med_autoscience.controllers.paper_mission_owner_surface_parts.stage_artifact_owner_actions import (
     READINESS_GATE_REPAIR_WORK_UNIT,
 )
 from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (

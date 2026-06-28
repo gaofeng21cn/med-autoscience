@@ -22,10 +22,10 @@ from med_autoscience.controllers.opl_transition_readback import (
     non_advancing_apply_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts import (
+from med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts import (
     terminal_provider_attempt_closeout_for_study,
 )
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
     default_executor_execution_candidates,
 )
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
@@ -843,7 +843,7 @@ def _terminal_default_executor_closeout_for_preferred_actions(
     study_id: str,
     preferred_actions: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    study_root = _study_root_for_default_executor_candidates(profile=profile, study_id=study_id)
+    study_root = _study_root_for_owner_callable_candidates(profile=profile, study_id=study_id)
     if study_root is None:
         return None
     for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
@@ -869,7 +869,7 @@ def _default_executor_closeout_can_consume_preferred_action(
     return True
 
 
-def _study_root_for_default_executor_candidates(
+def _study_root_for_owner_callable_candidates(
     *,
     profile: WorkspaceProfile,
     study_id: str,

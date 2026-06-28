@@ -3,8 +3,8 @@ from __future__ import annotations
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from ..publication_and_submission import *  # noqa: F403
 from med_autoscience import opl_runtime_contract
-from med_autoscience.controllers.domain_owner_action_dispatch_parts import execution_surfaces
-from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
+from med_autoscience.controllers.stage_outcome_authority_parts import execution_surfaces
+from med_autoscience.controllers.paper_mission_owner_surface_parts import hard_methodology_currentness
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
 

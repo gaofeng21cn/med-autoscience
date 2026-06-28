@@ -19,7 +19,7 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
     owner_dispatch = next(
         surface
         for surface in owner_dispatch_bad_inventory["surfaces"]
-        if surface["surface_id"] == "domain_owner_action_dispatch"
+        if surface["surface_id"] == "stage_outcome_authority"
     )
     owner_dispatch["execution_authorization_boundary"][
         "closeout_binding_authorizes_execution"
@@ -69,7 +69,7 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
         "repo_authorization_coverage"
     ]
     owner_dispatch["active_caller_soak_boundary"]["active_caller_families"] = [
-        "domain_owner_action_dispatch.execute_dispatch"
+        "stage_outcome_authority.execute_dispatch"
     ]
     owner_dispatch["active_caller_soak_boundary"]["forbidden_completion_claims"].remove(
         "repo_authorization_coverage_as_live_every_active_caller_soak"
@@ -94,132 +94,132 @@ def test_owner_dispatch_and_obligation_violation_guards() -> None:
 
     assert {
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "truthy_authority_flag:execution_authorization_boundary."
                 "closeout_binding_authorizes_execution"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_closeout_binding_authorizes_execution",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_repo_authorization_coverage_not_complete",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_missing_authorization_outcome_not_typed_blocker",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_running_attempt_selector_allows_no_proof",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_active_caller_families_incomplete",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_must_not_claim_live_every_active_caller",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_must_not_claim_no_active_caller",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_must_not_allow_physical_delete",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "repo_authorization_coverage_can_satisfy_live_soak"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "current_execution_running_proof_can_satisfy_live_soak"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "study_progress_running_proof_can_satisfy_live_soak"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "provider_completion_can_satisfy_dispatch_retirement"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "owner_callable_receipt_projection_can_satisfy_opl_readback"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "opl_execution_authorization_required_blocker_can_satisfy_live_soak"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_soak_forbidden:"
                 "provider_handoff_or_completion_can_satisfy_physical_delete"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_missing_physical_delete_ref",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_physical_delete_refs_incomplete",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_active_readbacks_incomplete",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_soak_missing_false_completion_guards",
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_consumer_boundary_forbidden:"
                 "inline_default_executor_dispatch_request_candidate_allowed"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_consumer_boundary_forbidden:"
                 "can_create_opl_event_outbox_or_stage_run"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             (
                 "owner_dispatch_stage_native_boundary_invalid:"
                 "candidate_without_opl_proof_can_authorize_execution"
             ),
         ),
         (
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
             "owner_dispatch_retirement_missing_live_soak",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in owner_dispatch_violations}

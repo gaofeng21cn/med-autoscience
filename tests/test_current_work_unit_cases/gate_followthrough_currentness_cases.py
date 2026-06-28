@@ -413,14 +413,14 @@ def test_current_work_unit_actionable_gate_followthrough_supersedes_stale_zero_d
         typed_blocker={
             "surface_kind": "mas_domain_typed_blocker",
             "schema_version": 1,
-            "blocker_id": "domain_owner_action_dispatch_zero_selected_dispatch",
+            "blocker_id": "stage_outcome_authority_zero_selected_dispatch",
             "status": "blocked",
-            "reason": "domain_owner_action_dispatch_zero_selected_dispatch",
+            "reason": "stage_outcome_authority_zero_selected_dispatch",
             "owner": "gate_clearing_batch",
             "next_owner": "med-autoscience",
             "requested_action_type": "run_gate_clearing_batch",
-            "blocker_type": "domain_owner_action_dispatch_zero_selected_dispatch",
-            "blocked_reason": "domain_owner_action_dispatch_zero_selected_dispatch",
+            "blocker_type": "stage_outcome_authority_zero_selected_dispatch",
+            "blocked_reason": "stage_outcome_authority_zero_selected_dispatch",
             "action_type": "run_gate_clearing_batch",
             "source_ref": (
                 "artifacts/supervision/consumer/default_executor_execution/"

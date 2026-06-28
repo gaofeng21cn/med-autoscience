@@ -122,7 +122,7 @@ def _opl_owner_route_handoff_without_live_worker(
     authorization = runtime_state.get("last_controller_decision_authorization")
     if isinstance(authorization, dict):
         source = str(authorization.get("source") or "").strip()
-        if source == "owner_route_reconcile_current_controller_authorization":
+        if source == "paper_mission_owner_surface_current_controller_authorization":
             return True
     handoff = runtime_state.get("opl_runtime_owner_route_handoff")
     return isinstance(handoff, dict) and str(handoff.get("queue_owner") or "").strip() == "one-person-lab"

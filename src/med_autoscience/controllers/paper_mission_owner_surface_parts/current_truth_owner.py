@@ -1,0 +1,865 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import provenance_limited_harmonization_owner_result
+from med_autoscience.controllers import ai_reviewer_publication_eval_records
+from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+)
+from med_autoscience.controllers.story_surface_work_units import (
+    is_claim_evidence_alignment_write_work_unit,
+    is_story_surface_delta_write_work_unit,
+)
+from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
+from med_autoscience.controllers.paper_mission_owner_surface_parts import gate_replay_routes
+from med_autoscience.controllers.current_truth_owner_parts import writer_handoff
+from med_autoscience.controllers.current_truth_owner_parts.package_closure import (
+    package_closure_matches_work_unit as _package_closure_matches_work_unit,
+    read_json_artifact_object as _read_json_artifact_object,
+    runtime_artifact_ref_is_json_payload as _runtime_artifact_ref_is_json_payload,
+)
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
+
+
+RUNTIME_CONTROLLER_REDRIVE_REASON = "runtime_controller_redrive_required"
+OPL_STAGE_ATTEMPT_ADMISSION_REASON = "opl_stage_attempt_admission_required"
+QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
+GATE_CLEARING_BATCH_RELATIVE_PATH = gate_replay_routes.GATE_CLEARING_BATCH_RELATIVE_PATH
+SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
+RUNTIME_REDRIVE_ACTIONS = {
+    "request_opl_stage_attempt",
+    "request_opl_stage_attempt_relaunch",
+    "run_gate_clearing_batch",
+    "run_quality_repair_batch",
+}
+DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
+    "ai_reviewer_re_eval": {"return_to_ai_reviewer_workflow"},
+    "bundle_stage_finalize": {"request_opl_stage_attempt"},
+    "publication_gate_blocker": {"run_gate_clearing_batch"},
+    "route_back_same_line": {"run_quality_repair_batch"},
+}
+METHODOLOGY_REFRAME_DECISION_FINGERPRINT = "decision::methodology_reframe_route_decision"
+METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "provenance_limited_harmonization_audit"
+METHODOLOGY_REFRAME_REBUILD_WORK_UNIT = "unit_harmonized_external_validation_rerun"
+
+
+def next_owner_for_reason(reason: str | None) -> str | None:
+    if reason in {RUNTIME_CONTROLLER_REDRIVE_REASON, OPL_STAGE_ATTEMPT_ADMISSION_REASON}:
+        return "one-person-lab"
+    if reason in {
+        "runtime_recovery_not_authorized",
+        "runtime_recovery_retry_budget_exhausted",
+        "runtime_relaunch_no_live_run_started",
+    }:
+        return "one-person-lab"
+    return None
+
+
+def current_controller_runtime_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    decision_path, decision = _current_controller_decision_candidate(
+        decision_path=decision_path,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if decision is None or decision.get("requires_human_confirmation") is True:
+        return None
+    work_unit = _mapping(decision.get("next_work_unit"))
+    work_unit_id = _text(work_unit.get("unit_id"))
+    if work_unit_id is None:
+        return None
+    action_types = _canonical_controller_action_types(decision=decision, work_unit=work_unit)
+    decision_fingerprint = _text(decision.get("work_unit_fingerprint")) or _text(work_unit.get("fingerprint"))
+    if decision_fingerprint is None:
+        return None
+    domain_transition_allowed = domain_transition_runtime_route_allowed(
+        work_unit_fingerprint=decision_fingerprint,
+        action_types=action_types,
+        work_unit_id=work_unit_id,
+    )
+    methodology_reframe_allowed = methodology_reframe_runtime_route_allowed(
+        decision=decision,
+        work_unit=work_unit,
+        work_unit_fingerprint=decision_fingerprint,
+        action_types=action_types,
+        work_unit_id=work_unit_id,
+    )
+    if not domain_transition_allowed and not methodology_reframe_allowed:
+        if not action_types & RUNTIME_REDRIVE_ACTIONS:
+            return None
+        publication_fingerprints = _publication_work_unit_fingerprints(publication_eval_payload)
+        if decision_fingerprint not in publication_fingerprints:
+            return None
+    if work_unit_id in SPECIFICITY_WORK_UNIT_IDS and not domain_transition_allowed and not methodology_reframe_allowed:
+        if not _publication_eval_specificity_targets_complete_for_fingerprint(
+            publication_eval_payload,
+            decision_fingerprint=decision_fingerprint,
+        ):
+            return None
+    if _publication_work_unit_closed(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=decision_fingerprint,
+    ):
+        return None
+    if (
+        work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
+        and provenance_limited_harmonization_owner_result.required_output_satisfied(study_root=study_root)
+    ):
+        return None
+    if (
+        work_unit_id == METHODOLOGY_REFRAME_REBUILD_WORK_UNIT
+        and analysis_harmonization_owner_result.required_output_satisfied(study_root=study_root)
+    ):
+        return None
+    return {
+        "decision_path": str(decision_path),
+        "decision_id": _text(decision.get("decision_id")),
+        "controller_actions": sorted(action_types),
+        "route_target": _text(decision.get("route_target")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": decision_fingerprint,
+    }
+
+
+def _current_controller_decision_candidate(
+    *,
+    decision_path: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> tuple[Path, dict[str, Any] | None]:
+    decision = _read_json_object(decision_path)
+    if not _medical_readiness_owner_blocker(decision):
+        return decision_path, decision
+    archived = _latest_archived_runtime_redrive_decision(
+        controller_decisions_root=decision_path.parent,
+        study_root=decision_path.parent.parent.parent,
+        publication_eval_payload=publication_eval_payload,
+    )
+    return archived if archived is not None else (decision_path, decision)
+
+
+def _medical_readiness_owner_blocker(decision: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(decision)
+    return _text(payload.get("decision_type")) == "medical_paper_readiness_owner_blocker"
+
+
+def _latest_archived_runtime_redrive_decision(
+    *,
+    controller_decisions_root: Path,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> tuple[Path, dict[str, Any]] | None:
+    try:
+        paths = sorted(
+            (
+                path
+                for path in controller_decisions_root.glob("*.json")
+                if path.name != "latest.json"
+            ),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return None
+    for path in paths:
+        decision = _read_json_object(path)
+        if _archived_runtime_redrive_decision_current(
+            decision=decision,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        ):
+            return path.resolve(), decision
+    return None
+
+
+def _archived_runtime_redrive_decision_current(
+    *,
+    decision: Mapping[str, Any] | None,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    payload = _mapping(decision)
+    if not payload or payload.get("requires_human_confirmation") is True:
+        return False
+    work_unit = _mapping(payload.get("next_work_unit"))
+    work_unit_id = _text(work_unit.get("unit_id"))
+    fingerprint = _text(payload.get("work_unit_fingerprint")) or _text(work_unit.get("fingerprint"))
+    if work_unit_id is None or fingerprint is None:
+        return False
+    action_types = _canonical_controller_action_types(decision=payload, work_unit=work_unit)
+    if not domain_transition_runtime_route_allowed(
+        work_unit_fingerprint=fingerprint,
+        action_types=action_types,
+        work_unit_id=work_unit_id,
+    ):
+        return False
+    if _publication_work_unit_closed(
+        study_root=Path(_text(payload.get("study_root")) or study_root),
+        publication_eval_payload=publication_eval_payload,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=fingerprint,
+    ):
+        return False
+    return True
+
+
+def current_story_surface_delta_blocker_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    batch_path = resolved_study_root / QUALITY_REPAIR_BATCH_RELATIVE_PATH
+    batch = _read_json_object(batch_path)
+    if batch is None:
+        return None
+    source_eval_id = _text(batch.get("source_eval_id"))
+    if source_eval_id is None or source_eval_id != _text(publication_eval_payload.get("eval_id")):
+        return None
+    if not _story_surface_delta_blocker_present(batch):
+        return None
+    if _text(batch.get("next_owner")) != "write":
+        return None
+    action = _publication_story_repair_action(publication_eval_payload)
+    if action is None:
+        return None
+    next_work_unit = _mapping(action.get("next_work_unit"))
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    action_route_target = _text(action.get("route_target"))
+    gate_batch = _mapping(batch.get("gate_clearing_batch"))
+    route = {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["run_quality_repair_batch"],
+        "route_target": "write",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
+        or _text(gate_batch.get("work_unit_fingerprint"))
+        or _text(gate_batch.get("source_work_unit_fingerprint")),
+        "quality_repair_batch_path": str(batch_path),
+        "authorization_basis": "quality_repair_story_surface_delta_blocker",
+    }
+    if action_route_target and action_route_target != "write":
+        route["original_route_target"] = action_route_target
+    return route
+
+
+def current_quality_repair_writer_handoff_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return writer_handoff.current_quality_repair_writer_handoff_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+
+
+def current_gate_replay_routeback_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return gate_replay_routes.current_gate_replay_routeback_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+
+
+def current_gate_replay_submission_refresh_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return gate_replay_routes.current_gate_replay_submission_refresh_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+
+
+def current_manuscript_digest_mismatch_ai_reviewer_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    batch_path = resolved_study_root / QUALITY_REPAIR_BATCH_RELATIVE_PATH
+    batch = _read_json_object(batch_path)
+    if batch is None:
+        return None
+    source_eval_id = _text(batch.get("source_eval_id"))
+    if source_eval_id is None or source_eval_id != _text(publication_eval_payload.get("eval_id")):
+        return None
+    blocker = _current_manuscript_digest_mismatch_blocker(batch)
+    if blocker is None:
+        return None
+    if _current_ai_reviewer_eval_consumes_digest_mismatch(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        blocker=blocker,
+    ):
+        return None
+    action = _publication_story_repair_action(publication_eval_payload)
+    next_work_unit = _mapping(action.get("next_work_unit")) if action is not None else {}
+    blocker_work_unit_id = _text(blocker.get("work_unit_id"))
+    work_unit_id = blocker_work_unit_id or _text(next_work_unit.get("unit_id"))
+    publication_eval_latest_path = resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
+    stale_record_ref = _text(batch.get("source_eval_artifact_path")) or ai_reviewer_publication_eval_records.projection_source_ref(
+        publication_eval_payload,
+        publication_eval_latest_path,
+    )
+    return {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["return_to_ai_reviewer_workflow"],
+        "route_target": "review",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint")) if action is not None else None,
+        "publication_eval_id": source_eval_id,
+        "publication_eval_ref": {
+            "eval_id": source_eval_id,
+            "artifact_path": stale_record_ref,
+        },
+        "quality_repair_batch_path": str(batch_path),
+        "authorization_basis": "quality_repair_current_manuscript_digest_mismatch",
+        "blocked_reason": EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+        "stale_record_ref": stale_record_ref,
+        "source_ref": str(batch_path),
+        "required_currentness_refs": _current_story_surface_refs(blocker),
+        "reviewer_manuscript_ref": _text(blocker.get("reviewer_manuscript_ref")),
+        "reviewer_manuscript_digest": _text(blocker.get("reviewer_manuscript_digest")),
+        "story_surface_digests": [
+            dict(item)
+            for item in blocker.get("story_surface_digests") or []
+            if isinstance(item, Mapping)
+        ],
+    }
+
+
+def current_ai_reviewer_write_routeback_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if ai_reviewer_transitions.requires_owner_authorized_publication_gate_recheck_only(publication_eval_payload):
+        return None
+    if not _ai_reviewer_write_routeback_current(publication_eval_payload):
+        return None
+    action = _publication_story_repair_action(publication_eval_payload)
+    if action is None:
+        return None
+    next_work_unit = _publication_story_repair_work_unit(action)
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    if not _is_ai_reviewer_write_repair_work_unit(next_work_unit):
+        return None
+    source_eval_id = _text(publication_eval_payload.get("eval_id"))
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    action_route_target = _text(action.get("route_target"))
+    route = {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["run_quality_repair_batch"],
+        "route_target": "write",
+        "route_key_question": _text(action.get("route_key_question")),
+        "route_rationale": _text(action.get("route_rationale")) or _text(action.get("reason")),
+        "source_route_key_question": _text(action.get("route_key_question")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint")),
+        "publication_eval_id": source_eval_id,
+        "publication_eval_ref": {
+            "eval_id": source_eval_id,
+            "artifact_path": ai_reviewer_publication_eval_records.projection_source_ref(
+                publication_eval_payload,
+                (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve(),
+            ),
+        },
+        "next_work_unit": dict(next_work_unit),
+        "blocking_work_units": [dict(next_work_unit)] if next_work_unit else [],
+        "source": "paper_mission_owner_surface_ai_reviewer_write_routeback",
+        "authorization_basis": "ai_reviewer_current_write_routeback",
+    }
+    if action_route_target and action_route_target != "write":
+        route["original_route_target"] = action_route_target
+    return route
+
+
+def _ai_reviewer_write_routeback_current(publication_eval_payload: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
+    currentness = _mapping(reviewer_os.get("currentness_checks"))
+    prose = _mapping(currentness.get("medical_prose_review"))
+    current_manuscript = _mapping(currentness.get("current_manuscript"))
+    prose_current = _text(prose.get("status")) == "current"
+    manuscript_current = _text(current_manuscript.get("status")) == "current"
+    if not prose_current and not manuscript_current:
+        return False
+    if prose_current and prose.get("route_back_required") is not True:
+        return False
+    if _text(prose.get("route_target")) not in {None, "write"}:
+        return False
+    if prose_current:
+        for key in ("request_digest", "manuscript_ref", "manuscript_digest"):
+            if _text(prose.get(key)) is None:
+                return False
+    if manuscript_current:
+        for key in ("manuscript_ref", "manuscript_digest"):
+            if _text(current_manuscript.get(key)) is None:
+                return False
+    return _publication_story_repair_action(publication_eval_payload) is not None
+
+
+def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = _publication_story_repair_work_unit(action)
+        work_unit_id = _text(next_work_unit.get("unit_id"))
+        if _text(action.get("action_type")) != "route_back_same_line":
+            continue
+        if (
+            _text(action.get("route_target")) != "write"
+            and _text(next_work_unit.get("lane")) != "write"
+            and not is_story_surface_delta_write_work_unit(work_unit_id)
+        ):
+            continue
+        return dict(action)
+    return None
+
+
+def _publication_story_repair_work_unit(action: Mapping[str, Any]) -> dict[str, Any]:
+    next_work_unit = _mapping(action.get("next_work_unit"))
+    if next_work_unit:
+        return next_work_unit
+    for item in action.get("blocking_work_units") or []:
+        if not isinstance(item, Mapping):
+            continue
+        candidate = dict(item)
+        if _is_ai_reviewer_write_repair_work_unit(candidate):
+            return candidate
+    return {}
+
+
+def _is_ai_reviewer_write_repair_work_unit(next_work_unit: Mapping[str, Any]) -> bool:
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    return (
+        _text(next_work_unit.get("lane")) == "write"
+        or is_story_surface_delta_write_work_unit(work_unit_id)
+        or is_claim_evidence_alignment_write_work_unit(work_unit_id)
+    )
+
+
+def _story_surface_delta_blocker_present(batch: Mapping[str, Any]) -> bool:
+    if _text(batch.get("blocked_reason")) == "manuscript_story_surface_delta_missing":
+        return True
+    evidence = _mapping(batch.get("repair_execution_evidence"))
+    if _text(evidence.get("status")) != "blocked":
+        return False
+    blockers = _string_set(evidence.get("blockers"))
+    if "manuscript_story_surface_delta_missing" in blockers:
+        return True
+    artifact_delta = _mapping(evidence.get("canonical_artifact_delta"))
+    return (
+        _text(artifact_delta.get("status")) == "blocked"
+        and artifact_delta.get("meaningful_artifact_delta") is False
+        and "forbidden_manuscript_terms_present" in blockers
+    )
+
+
+def _current_manuscript_digest_mismatch_blocker(batch: Mapping[str, Any]) -> dict[str, Any] | None:
+    fallback: dict[str, Any] | None = None
+    for payload in _current_manuscript_digest_mismatch_candidates(batch):
+        if _text(payload.get("blocked_reason")) == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER:
+            candidate = dict(payload)
+            if candidate.get("story_surface_digests") or _text(candidate.get("reviewer_manuscript_ref")):
+                return candidate
+            if fallback is None:
+                fallback = candidate
+    return fallback
+
+
+def _current_manuscript_digest_mismatch_candidates(batch: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    if _text(batch.get("blocked_reason")) == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER or _text(
+        batch.get("typed_blocker")
+    ) == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER:
+        candidates.append(dict(batch))
+    for unit in _mapping(batch.get("gate_clearing_batch")).get("unit_results") or []:
+        if not isinstance(unit, Mapping):
+            continue
+        result = _mapping(unit.get("result"))
+        currentness_blocker = _mapping(result.get("currentness_blocker"))
+        if currentness_blocker:
+            candidates.append(
+                {
+                    **currentness_blocker,
+                    "work_unit_id": _text(result.get("work_unit_id")) or _text(unit.get("unit_id")),
+                }
+            )
+        if result:
+            candidates.append(
+                {
+                    **result,
+                    "work_unit_id": _text(result.get("work_unit_id")) or _text(unit.get("unit_id")),
+                }
+            )
+    upstream_result = _mapping(batch.get("upstream_unit_result"))
+    upstream_currentness = _mapping(_mapping(upstream_result.get("result")).get("currentness_blocker"))
+    if upstream_currentness:
+        candidates.append(
+            {
+                **upstream_currentness,
+                "work_unit_id": _text(_mapping(upstream_result.get("result")).get("work_unit_id"))
+                or _text(upstream_result.get("unit_id")),
+            }
+        )
+    return candidates
+
+
+def _current_story_surface_refs(blocker: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for item in blocker.get("story_surface_digests") or []:
+        if not isinstance(item, Mapping) or item.get("present") is not True:
+            continue
+        if path := _text(item.get("path")):
+            refs.append(path)
+    if not refs and (manuscript_ref := _text(blocker.get("reviewer_manuscript_ref"))):
+        refs.append(manuscript_ref)
+    return list(dict.fromkeys(refs))
+
+
+def _current_ai_reviewer_eval_consumes_digest_mismatch(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+) -> bool:
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    currentness = _mapping(_mapping(publication_eval_payload.get("reviewer_operating_system")).get("currentness_checks"))
+    current_manuscript = _mapping(currentness.get("current_manuscript"))
+    if _text(current_manuscript.get("status")) != "current":
+        return False
+    current_ref = _text(current_manuscript.get("manuscript_ref"))
+    current_digest = _text(current_manuscript.get("manuscript_digest"))
+    if current_ref is None or current_digest is None:
+        return False
+    reviewer_digest = _text(blocker.get("reviewer_manuscript_digest"))
+    if reviewer_digest is not None and reviewer_digest == current_digest:
+        return False
+    current_path = _resolve_study_ref(study_root, current_ref)
+    if current_path is None or _sha256_path(current_path) != current_digest:
+        return False
+    story_items = [
+        dict(item)
+        for item in blocker.get("story_surface_digests") or []
+        if isinstance(item, Mapping) and item.get("present") is True and _text(item.get("path"))
+    ]
+    if not story_items:
+        return False
+    authority_refs = [
+        ref
+        for ref in [_text(current_ref), *[_text(item) for item in provenance.get("source_refs") or []]]
+        if ref is not None
+    ]
+    current_ref_seen = False
+    for item in story_items:
+        story_ref = _text(item.get("path"))
+        story_digest = _text(item.get("digest"))
+        if story_ref is None or story_digest is None:
+            return False
+        story_path = _resolve_study_ref(study_root, story_ref)
+        if story_path is None or _sha256_path(story_path) != story_digest:
+            return False
+        if story_digest != current_digest:
+            return False
+        if not _ref_in_authority_refs(study_root=study_root, ref=story_ref, authority_refs=authority_refs):
+            return False
+        if _refs_equal(study_root=study_root, left=story_ref, right=current_ref):
+            current_ref_seen = True
+    return current_ref_seen
+
+
+def methodology_reframe_runtime_route_allowed(
+    *,
+    decision: Mapping[str, Any],
+    work_unit: Mapping[str, Any],
+    work_unit_fingerprint: str | None,
+    action_types: set[str],
+    work_unit_id: str | None,
+) -> bool:
+    if not (
+        _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
+        and work_unit_fingerprint == METHODOLOGY_REFRAME_DECISION_FINGERPRINT
+        and "request_opl_stage_attempt" in action_types
+        and work_unit.get("hard_methodology") is True
+        and work_unit.get("terminal_source_provenance_blocker_consumed") is True
+        and work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True
+    ):
+        return False
+    if (
+        work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
+        and _text(work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit"
+    ):
+        return True
+    return bool(
+        work_unit_id == METHODOLOGY_REFRAME_REBUILD_WORK_UNIT
+        and _text(work_unit.get("selected_route_option")) == "rebuild_reproducible_model_route"
+        and work_unit.get("clean_reproducible_model_rebuild_authorized") is True
+    )
+
+
+def domain_transition_runtime_route_allowed(
+    *,
+    work_unit_fingerprint: str | None,
+    action_types: set[str],
+    work_unit_id: str | None,
+) -> bool:
+    decision_type, fingerprint_work_unit_id = _domain_transition_fingerprint_parts(work_unit_fingerprint)
+    if decision_type is None or fingerprint_work_unit_id is None or work_unit_id is None:
+        return False
+    if fingerprint_work_unit_id != work_unit_id:
+        return False
+    if work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS and "run_gate_clearing_batch" in action_types:
+        return True
+    allowed_actions = DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE.get(decision_type, set())
+    return bool(action_types & allowed_actions)
+
+
+def _domain_transition_fingerprint_parts(work_unit_fingerprint: str | None) -> tuple[str | None, str | None]:
+    fingerprint = _text(work_unit_fingerprint)
+    if fingerprint is None:
+        return None, None
+    parts = fingerprint.split("::", 2)
+    if len(parts) != 3 or parts[0] != "domain-transition" or not parts[1] or not parts[2]:
+        return None, None
+    return parts[1], parts[2]
+
+
+def _publication_work_unit_fingerprints(publication_eval_payload: Mapping[str, Any]) -> set[str]:
+    fingerprints: set[str] = set()
+    for action in publication_eval_payload.get("recommended_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        if fingerprint := _text(action.get("work_unit_fingerprint")):
+            fingerprints.add(fingerprint)
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        if fingerprint := _text(next_work_unit.get("fingerprint")):
+            fingerprints.add(fingerprint)
+    return fingerprints
+
+
+def _publication_eval_specificity_targets_complete_for_fingerprint(
+    publication_eval_payload: Mapping[str, Any],
+    *,
+    decision_fingerprint: str,
+) -> bool:
+    for action in publication_eval_payload.get("recommended_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint"))
+        if action_fingerprint != decision_fingerprint:
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
+            return True
+    return False
+
+
+def _publication_work_unit_closed(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    work_unit_id: str,
+    work_unit_fingerprint: str | None = None,
+) -> bool:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    lifecycle_path = (
+        resolved_study_root
+        / "artifacts"
+        / "controller"
+        / "publication_work_unit_lifecycle"
+        / "latest.json"
+    )
+    lifecycle = _read_json_object(lifecycle_path)
+    if lifecycle is not None and publication_work_unit_lifecycle.lifecycle_payload_is_closed(lifecycle):
+        source_eval_id = _text(lifecycle.get("source_eval_id"))
+        current_eval_id = _text(publication_eval_payload.get("eval_id"))
+        if source_eval_id is not None and current_eval_id is not None and source_eval_id == current_eval_id:
+            lifecycle_work_unit = _mapping(lifecycle.get("work_unit"))
+            if _text(lifecycle_work_unit.get("unit_id")) == work_unit_id:
+                return True
+    return _runtime_turn_closeout_closes_work_unit(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+
+
+def _runtime_turn_closeout_closes_work_unit(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    work_unit_id: str,
+    work_unit_fingerprint: str | None,
+) -> bool:
+    quest_root = _publication_eval_quest_root(publication_eval_payload)
+    if quest_root is None:
+        return False
+    closeout_root = quest_root / "artifacts" / "runtime" / "turn_closeouts"
+    if not closeout_root.exists():
+        return False
+    for closeout_path in sorted(closeout_root.glob("*.json")):
+        closeout = _read_json_object(closeout_path)
+        if closeout is None or closeout.get("status") != "completed":
+            continue
+        if closeout.get("meaningful_artifact_delta") is not True:
+            continue
+        for artifact_ref in closeout.get("artifact_refs") or []:
+            artifact_path = _resolve_runtime_artifact_ref(quest_root, artifact_ref)
+            if artifact_path is None or not _runtime_artifact_ref_is_json_payload(artifact_path):
+                continue
+            package_closure = _read_json_artifact_object(artifact_path)
+            if _package_closure_matches_work_unit(
+                package_closure,
+                study_root=study_root,
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=work_unit_fingerprint,
+            ):
+                return True
+    return False
+
+
+def _publication_eval_quest_root(publication_eval_payload: Mapping[str, Any]) -> Path | None:
+    runtime_context_refs = _mapping(publication_eval_payload.get("runtime_context_refs"))
+    runtime_escalation_ref = _text(runtime_context_refs.get("runtime_escalation_ref"))
+    if runtime_escalation_ref is not None:
+        path = Path(runtime_escalation_ref).expanduser()
+        parts = path.parts
+        if "artifacts" in parts:
+            artifacts_index = parts.index("artifacts")
+            if artifacts_index > 0:
+                return Path(*parts[:artifacts_index]).resolve()
+    return None
+
+
+def _resolve_runtime_artifact_ref(quest_root: Path, artifact_ref: object) -> Path | None:
+    text = _text(artifact_ref)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (quest_root / path).resolve()
+
+
+def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:
+    action_types: set[str] = set()
+    for action in payload.get("controller_actions") or []:
+        if isinstance(action, Mapping):
+            text = _text(action.get("action_type"))
+        else:
+            text = _text(action)
+        if text is not None:
+            action_types.add(text)
+    return action_types
+
+
+def _canonical_controller_action_types(*, decision: Mapping[str, Any], work_unit: Mapping[str, Any]) -> set[str]:
+    action_types = _controller_action_types(decision)
+    if _text(decision.get("decision_type")) != "route_back_same_line":
+        return action_types
+    work_unit_id = _text(work_unit.get("unit_id"))
+    if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return action_types
+    route_target = _text(decision.get("route_target"))
+    work_unit_lane = _text(work_unit.get("lane"))
+    if route_target in {"finalize", "publication_gate", "write"} or work_unit_lane in {"finalize", "publication_gate"}:
+        return {"run_gate_clearing_batch"}
+    return action_types
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _string_set(value: object) -> set[str]:
+    if isinstance(value, str):
+        item = value.strip()
+        return {item} if item else set()
+    if not isinstance(value, list | tuple | set):
+        return set()
+    return {text for item in value if (text := _text(item)) is not None}
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _resolve_study_ref(study_root: Path, ref: str | None) -> Path | None:
+    text = _text(ref)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute():
+        path = study_root / path
+    return path.resolve()
+
+
+def _sha256_path(path: Path) -> str | None:
+    try:
+        return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+    except OSError:
+        return None
+
+
+def _refs_equal(*, study_root: Path, left: str, right: str) -> bool:
+    left_path = _resolve_study_ref(study_root, left)
+    right_path = _resolve_study_ref(study_root, right)
+    return left_path is not None and right_path is not None and left_path == right_path
+
+
+def _ref_in_authority_refs(*, study_root: Path, ref: str, authority_refs: list[str]) -> bool:
+    return any(_refs_equal(study_root=study_root, left=ref, right=authority_ref) for authority_ref in authority_refs)
+
+
+__all__ = [
+    "GATE_CLEARING_BATCH_RELATIVE_PATH",
+    "QUALITY_REPAIR_BATCH_RELATIVE_PATH",
+    "OPL_STAGE_ATTEMPT_ADMISSION_REASON",
+    "RUNTIME_CONTROLLER_REDRIVE_REASON",
+    "current_gate_replay_submission_refresh_route",
+    "current_gate_replay_routeback_route",
+    "current_manuscript_digest_mismatch_ai_reviewer_route",
+    "current_quality_repair_writer_handoff_route",
+    "current_story_surface_delta_blocker_route",
+    "current_controller_runtime_route",
+    "next_owner_for_reason",
+]

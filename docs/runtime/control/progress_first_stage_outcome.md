@@ -347,14 +347,14 @@ rtk scripts/run-python-clean.sh -m med_autoscience.cli paper-mission inspect \
   --format json
 ```
 
-上述 readback 是当前默认只读监督入口，用来读取 PaperMission、StageOutcome、OPL transition readback、typed blocker、next owner 与 artifact delta。旧 `domain-health-diagnostic` / `owner-route-reconcile` 只保留为 explicit diagnostic / migration provenance，不作为默认推进入口。
+上述 readback 是当前默认只读监督入口，用来读取 PaperMission、StageOutcome、OPL transition readback、typed blocker、next owner 与 artifact delta。旧 `domain-health-diagnostic` / `paper-mission-owner-surface` 只保留为 explicit diagnostic / migration provenance，不作为默认推进入口。
 
 ```bash
 rtk scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic \
   --profile "${DM_CVD_PROFILE}" \
   --studies 002-dm-china-us-mortality-attribution 003-dpcc-primary-care-phenotype-treatment-gap \
   --request-opl-stage-attempts \
-  --request-opl-owner-route-reconcile \
+  --request-opl-paper-mission-owner-surface \
   --apply
 ```
 

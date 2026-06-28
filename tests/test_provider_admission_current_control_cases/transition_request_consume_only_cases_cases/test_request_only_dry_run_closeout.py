@@ -250,7 +250,7 @@ def test_request_only_successor_transition_candidate_carries_current_work_unit_s
         },
     }
     current_control_payload = {
-        "surface": "portable_owner_route_reconcile",
+        "surface": "portable_paper_mission_owner_surface",
         "generated_at": "2026-06-20T15:25:00+00:00",
         "provider_admission_pending_count": 0,
         "provider_admission_candidates": [],

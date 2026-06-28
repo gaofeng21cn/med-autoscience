@@ -107,7 +107,7 @@ def current_quality_repair_writer_handoff_route(
         "quality_repair_batch_path": str(batch_path),
         "repair_execution_evidence_path": _text(_mapping(handoff.get("refs")).get("repair_execution_evidence_path"))
         or _text(source_action.get("repair_execution_evidence_ref")),
-        "source": "owner_route_reconcile_quality_repair_writer_handoff",
+        "source": "paper_mission_owner_surface_quality_repair_writer_handoff",
         "authorization_basis": "quality_repair_writer_handoff",
         "source_eval_id": source_eval_id,
         "owner_route": dict(route),

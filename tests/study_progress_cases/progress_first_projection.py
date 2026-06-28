@@ -366,7 +366,7 @@ def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_trans
     assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
     assert result["next_forced_delta"]["target_surface_diagnostic"] == {
         "specificity": "precise",
-        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "source": "owner_callable_action_policy.request_output_surface_for_action_type",
         "missing_explicit_target_surface": False,
     }
     assert result["next_forced_delta"]["owner_action"] == {
@@ -595,7 +595,7 @@ def test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_
     assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
     assert result["next_forced_delta"]["target_surface_diagnostic"] == {
         "specificity": "precise",
-        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "source": "owner_callable_action_policy.request_output_surface_for_action_type",
         "missing_explicit_target_surface": False,
     }
     assert result["next_forced_delta"]["owner_action"] == {
@@ -652,7 +652,7 @@ def test_next_forced_delta_maps_current_ai_reviewer_consumption_write_route_to_q
     assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
     assert result["next_forced_delta"]["target_surface_diagnostic"] == {
         "specificity": "precise",
-        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "source": "owner_callable_action_policy.request_output_surface_for_action_type",
         "missing_explicit_target_surface": False,
     }
     assert result["next_forced_delta"]["owner_action"] == {
@@ -700,7 +700,7 @@ def test_next_forced_delta_maps_current_handoff_owner_route_action_to_quality_re
     assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
     assert result["next_forced_delta"]["target_surface_diagnostic"] == {
         "specificity": "precise",
-        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "source": "owner_callable_action_policy.request_output_surface_for_action_type",
         "missing_explicit_target_surface": False,
     }
     assert result["next_forced_delta"]["owner_action"] == {

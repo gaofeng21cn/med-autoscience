@@ -731,7 +731,7 @@ def test_current_work_unit_ignores_provider_handoff_residue_without_opl_readback
         "surface_kind": "current_executable_owner_action",
         "schema_version": 1,
         "status": "ready",
-        "source": "owner_route_reconcile.current_executable_owner_action",
+        "source": "paper_mission_owner_surface.current_executable_owner_action",
         "next_owner": "write",
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": repair_fingerprint,

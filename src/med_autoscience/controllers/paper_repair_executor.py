@@ -35,7 +35,7 @@ from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_resu
     writer_worker_handoff,
 )
 from med_autoscience.controllers.paper_repair_executor_parts import (
-    ai_reviewer_default_executor_dispatch,
+    ai_reviewer_owner_callable_dispatch,
     opl_execution_preflight,
     owner_route_currentness_blockers,
     unsupported_callable,
@@ -372,7 +372,7 @@ def _ai_reviewer_owner_handoff_result(
         owner_route=owner_route,
     )
     dispatch_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches" / f"{action_type}.json"
-    handoff = ai_reviewer_default_executor_dispatch.build(
+    handoff = ai_reviewer_owner_callable_dispatch.build(
         study_id=study_id,
         quest_id=quest_id,
         work_unit=work_unit,

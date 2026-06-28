@@ -169,7 +169,7 @@
       "applies_to": [
         "current_work_unit action selection",
         "domain_action_request_materializer currentness preemption",
-        "domain_owner_action_dispatch fresh typed-blocker gate",
+        "stage_outcome_authority fresh typed-blocker gate",
         "study_progress current owner action projection reconcile"
       ],
       "canonical_match_fields": [
@@ -429,7 +429,7 @@
       "src/med_autoscience/controllers/current_execution_envelope.py",
       "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
       "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
-      "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py"
+      "src/med_autoscience/controllers/stage_outcome_authority_parts/persisted_dispatches.py"
     ],
     "nodes": [
       {
@@ -1079,7 +1079,7 @@
     "surface_kind": "mas_owner_action_dispatch_authority_policy",
     "scope": [
       "domain_action_request_materializer",
-      "domain_owner_action_dispatch"
+      "stage_outcome_authority"
     ],
     "typed_blocker_can_self_authorize_owner_action": false,
     "blocker_only_effect": "suppress_stale_transition_queue_or_dispatch_and_emit_diagnostic",
@@ -1917,7 +1917,7 @@
   },
   "verification_refs": [
     "tests/test_stage_route_reconcile_contract.py",
-    "tests/owner_route_reconcile_cases/test_opl_provider_attempt_projection.py",
+    "tests/paper_mission_owner_surface_cases/test_opl_provider_attempt_projection.py",
     "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
     "tests/test_current_work_unit.py",
     "scripts/verify.sh",
@@ -1930,7 +1930,7 @@
       "MAS owner callables",
       "OPL StageRun provider attempts",
       "domain_action_request_materializer",
-      "domain_owner_action_dispatch"
+      "stage_outcome_authority"
     ],
     "ordinary_executor_route": "MAS/OPL-governed recovery route uses a MAS owner callable, MAS domain-handler dispatch, or OPL StageRun provider attempt that may invoke Codex as an internal executor",
     "enforcement_model": "authority_acceptance_not_filesystem_prevention",

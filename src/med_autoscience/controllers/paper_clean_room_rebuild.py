@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_workspace_status
-from med_autoscience.controllers.owner_route_reconcile_parts import study_identity
+from med_autoscience.controllers.paper_mission_owner_surface_parts import study_identity
 from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -428,7 +428,7 @@ def _resolve_study_ids(*, profile: WorkspaceProfile, study_ids: Iterable[str] | 
     selected = tuple(item for raw in (study_ids or ()) if (item := _text(raw)) is not None)
     if selected:
         return selected
-    return tuple(study_identity.resolve_owner_route_reconcile_study_ids(profile))
+    return tuple(study_identity.resolve_paper_mission_owner_surface_study_ids(profile))
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:

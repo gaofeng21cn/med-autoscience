@@ -12,7 +12,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_rep
     closeout_evidence_with_identity as _closeout_evidence_with_identity,
     closeout_identity_matches_current as _closeout_identity_matches_current,
 )
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
     default_executor_execution_candidates,
 )
 from med_autoscience.profiles import WorkspaceProfile

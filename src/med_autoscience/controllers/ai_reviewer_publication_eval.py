@@ -13,7 +13,7 @@ from med_autoscience.publication_eval_record import PublicationEvalRecord
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 
 from . import ai_reviewer_publication_eval_workflow, domain_status_projection, paper_authority_migration
-from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
+from .stage_outcome_authority_parts.action_execution import ai_reviewer_request_refs
 from .domain_action_request_lifecycle import read_ai_reviewer_request, stable_ai_reviewer_request_path
 from .domain_action_request_lifecycle_parts.ai_reviewer_input_contract import (
     input_contract_with_normalized_refs,

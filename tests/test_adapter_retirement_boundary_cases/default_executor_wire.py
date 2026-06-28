@@ -39,7 +39,7 @@ def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -
         assert "legacy_caller_exists" not in str(surface.get("retention_reason", ""))
         if surface["surface_id"] in {
             "domain_action_request_materializer_owner_callable_adapter_projection",
-            "domain_owner_action_dispatch",
+            "stage_outcome_authority",
         }:
             gate = surface["retirement_gate"]
             assert gate["active_caller_alone_retains_surface"] is False
@@ -52,7 +52,7 @@ def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -
 
 def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_path) -> None:
     candidates = importlib.import_module(
-        "med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates"
+        "med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates"
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"
@@ -141,7 +141,7 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     )
     assert {
         (
-            "study_transition_receipt_consumption_parts.default_executor_candidates."
+            "study_transition_receipt_consumption_parts.owner_callable_candidates."
             "default_executor_execution_candidates::_stage_closeout_candidates"
         ),
         "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
@@ -182,7 +182,7 @@ def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
     tmp_path,
 ) -> None:
     execution_io = importlib.import_module(
-        "med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_io"
+        "med_autoscience.controllers.stage_outcome_authority_parts.execution_io"
     )
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.WorkspaceProfile(
@@ -240,7 +240,7 @@ def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
 def test_domain_owner_dispatch_persist_does_not_merge_legacy_wire(
     tmp_path,
 ) -> None:
-    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.WorkspaceProfile(
         name="test",
@@ -325,7 +325,7 @@ def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_pa
         "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
     )
     recovery_actions = importlib.import_module(
-        "med_autoscience.controllers.owner_route_reconcile_parts.recovery_actions"
+        "med_autoscience.controllers.paper_mission_owner_surface_parts.recovery_actions"
     )
     study_root = tmp_path / "studies" / "study-1"
     legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"
@@ -406,7 +406,7 @@ def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tm
         "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
     )
     recovery_actions = importlib.import_module(
-        "med_autoscience.controllers.owner_route_reconcile_parts.recovery_actions"
+        "med_autoscience.controllers.paper_mission_owner_surface_parts.recovery_actions"
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"

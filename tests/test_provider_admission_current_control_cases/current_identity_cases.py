@@ -518,7 +518,7 @@ def test_provider_admission_execution_requires_current_identity_for_current_cont
     dispatch_path = tmp_path / "dispatches" / "run_gate_clearing_batch.json"
     action_fingerprint = "sha256:stale-persisted-default-executor"
     execution_payload = {
-        "surface": "domain_owner_action_dispatch",
+        "surface": "stage_outcome_authority",
         "executions": [
             {
                 "source": "default_executor_execution",

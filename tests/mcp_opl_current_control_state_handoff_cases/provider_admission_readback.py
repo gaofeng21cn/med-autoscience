@@ -86,7 +86,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_live_transiti
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T16:36:14+00:00",
             "transition_request_pending_count": 1,
             "provider_admission_pending_count": 0,
@@ -162,7 +162,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-17T23:22:40+00:00",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [
@@ -273,7 +273,7 @@ def test_study_progress_opl_current_control_state_handoff_preserves_runtime_back
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-18T04:00:00+00:00",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [
@@ -437,7 +437,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_global_termin
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-21T07:15:22+00:00",
             "provider_admission_pending_count": 0,
             "transition_request_pending_count": 0,
@@ -494,7 +494,7 @@ def test_study_progress_opl_current_control_state_handoff_preserves_replayed_pro
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T04:07:15+00:00",
             "current_control_refresh_source": "opl_transition_runtime_readback_provider_admission",
             "provider_admission_pending_count": 1,

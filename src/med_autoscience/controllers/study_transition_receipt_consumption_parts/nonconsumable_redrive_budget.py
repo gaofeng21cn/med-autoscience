@@ -38,7 +38,7 @@ def reason(
 ) -> str:
     if action_type == "run_quality_repair_batch":
         if dispatch_zero_execution_blocker:
-            return "domain_owner_action_dispatch_execution_count_zero"
+            return "stage_outcome_authority_execution_count_zero"
         hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
         if (
             hygiene.get("story_surface_delta_required") is True

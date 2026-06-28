@@ -10,7 +10,7 @@ from med_autoscience.controllers.opl_execution_boundary import (
     OPL_EXECUTION_AUTHORIZATION_BLOCKER,
     OPL_EXECUTION_AUTHORIZATION_OWNER,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions import (
+from med_autoscience.controllers.paper_mission_owner_surface_parts.stage_artifact_owner_actions import (
     READINESS_GATE_REPAIR_WORK_UNIT,
 )
 from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (

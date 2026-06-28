@@ -36,7 +36,7 @@ def runtime_continuity_payload() -> dict[str, object]:
         "runtime_reconcile_trigger": {
             "safe_to_request": True,
             "recommended_command": (
-                "uv run python -m med_autoscience.cli owner-route-reconcile "
+                "uv run python -m med_autoscience.cli paper-mission-owner-surface "
                 "--profile /workspace/profile.toml --studies 001-risk "
                 "--developer-supervisor-mode external_observe"
             ),

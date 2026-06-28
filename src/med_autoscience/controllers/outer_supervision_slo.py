@@ -162,7 +162,7 @@ def _is_current_reconcile_payload(payload: Mapping[str, Any] | None) -> bool:
         return False
     if _text(payload.get("surface")) == "opl_current_control_state_handoff":
         return True
-    if _text(payload.get("surface_kind")) == "owner_route_reconcile_receipt":
+    if _text(payload.get("surface_kind")) == "paper_mission_owner_surface_receipt":
         return True
     if _text(payload.get("surface")) == "domain_route_reconcile_receipt":
         return True

@@ -200,7 +200,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
     _write_json(
         latest_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id}],
             "action_queue": [],
@@ -242,7 +242,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     _write_json(
         latest_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {

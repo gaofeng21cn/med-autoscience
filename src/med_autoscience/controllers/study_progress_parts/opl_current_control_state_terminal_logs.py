@@ -4,10 +4,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
     default_executor_execution_candidates,
 )
-from med_autoscience.controllers.domain_owner_action_dispatch_parts import execution_surfaces
+from med_autoscience.controllers.stage_outcome_authority_parts import execution_surfaces
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
     is_blocked_typed_closeout,
 )

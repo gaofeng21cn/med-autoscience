@@ -5,12 +5,12 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
     latest_owner_callable_adapter_receipt_payload,
 )
 
 from ..domain_action_request_materializer_parts import current_writer_handoff
-from ..default_executor_action_policy import (
+from ..owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES,
     request_output_surface_for_action_type,
     request_owner_for_action_type,
@@ -115,7 +115,7 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         current_repair_followup=repair_progress_followup_owner_action,
     )
-    owner_route_reconcile_repair_action = owner_route_reconcile_readiness_repair_owner_action_record(
+    paper_mission_owner_surface_repair_action = paper_mission_owner_surface_readiness_repair_owner_action_record(
         study_root=study_root,
         profile=profile,
     )
@@ -129,7 +129,7 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         or provider_admission_owner_action
         or repair_progress_followup_owner_action
         or stage_native_owner_action
-        or owner_route_reconcile_repair_action
+        or paper_mission_owner_surface_repair_action
         or current_control_owner_action
         or current_readiness_owner_action
     )
@@ -424,7 +424,7 @@ def stage_native_next_action_owner_action_record(
     }
 
 
-def owner_route_reconcile_readiness_repair_owner_action_record(
+def paper_mission_owner_surface_readiness_repair_owner_action_record(
     *,
     study_root: Path,
     profile: WorkspaceProfile,
@@ -460,7 +460,7 @@ def owner_route_reconcile_readiness_repair_owner_action_record(
     return {
         "surface_kind": "mas_current_owner_action_record",
         "schema_version": 1,
-        "source": "owner_route_reconcile_readiness_blocker_repair",
+        "source": "paper_mission_owner_surface_readiness_blocker_repair",
         "study_id": study_root.name,
         "quest_id": text(action.get("quest_id")) or text(matching.get("quest_id")) or study_root.name,
         "recorded_at": recorded_at,

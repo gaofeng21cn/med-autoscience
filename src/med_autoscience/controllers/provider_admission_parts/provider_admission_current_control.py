@@ -37,7 +37,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_hel
     mapping as _mapping,
     text_items as _text_items,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts import scan_output, supervision_surfaces
+from med_autoscience.controllers.paper_mission_owner_surface_parts import scan_output, supervision_surfaces
 from med_autoscience.profiles import WorkspaceProfile
 
 

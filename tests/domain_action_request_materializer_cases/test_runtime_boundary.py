@@ -70,7 +70,7 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {

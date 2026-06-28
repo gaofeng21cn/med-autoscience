@@ -139,7 +139,7 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id}],
             "action_queue": [],
@@ -487,7 +487,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [
@@ -599,7 +599,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [

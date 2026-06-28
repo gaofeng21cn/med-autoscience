@@ -2,7 +2,7 @@ from __future__ import annotations
 
 FUNCTIONAL_SURFACE_CLASSIFICATION = {
     "declarative_pack_generated_surface": [
-        "workspace_source_intake_shell", "workbench_portal_generic_shell", "owner_route_reconcile_materialize_dispatch_shell",
+        "workspace_source_intake_shell", "workbench_portal_generic_shell", "paper_mission_owner_surface_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers", "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter", "generic_transition_runner",
     ],
@@ -28,7 +28,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
 }
 DEFAULT_CALLER_DELETION_BRIDGE_MODULE_IDS = {
     "generic_cli_mcp_product_wrappers",
-    "owner_route_reconcile_materialize_dispatch_shell",
+    "paper_mission_owner_surface_materialize_dispatch_shell",
     "workbench_portal_generic_shell",
 }
 DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
@@ -503,13 +503,13 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "proof_refs": ["product_entry_manifest.functional_consumer_boundary.generated_surface_handoff", "domain_handler_export.functional_consumer_boundary.generated_surface_handoff"],
     },
     {
-        "module_id": "owner_route_reconcile_materialize_dispatch_shell",
+        "module_id": "paper_mission_owner_surface_materialize_dispatch_shell",
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/owner_route_reconcile.py", "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
-            "src/med_autoscience/controllers/default_executor_action_policy.py",
+            "src/med_autoscience/controllers/paper_mission_owner_surface.py", "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/stage_outcome_authority.py",
+            "src/med_autoscience/controllers/owner_callable_action_policy.py",
         ],
         "retired_code_paths": ["src/med_autoscience/controllers/domain_route_reconcile.py"],
         "domain_ref_consumers": ["owner-route one-shot tick", "runtime owner-route reconcile", "domain-handler dispatch"],
@@ -525,11 +525,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "mas_domain_authority_refs": ["owner_route", "publication_gate", "safe_action_refs"],
         "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
         "latest_thinning_evidence": {
-            "status": "default_executor_action_policy_single_source_landed",
-            "policy_module": "src/med_autoscience/controllers/default_executor_action_policy.py",
+            "status": "owner_callable_action_policy_single_source_landed",
+            "policy_module": "src/med_autoscience/controllers/owner_callable_action_policy.py",
             "thin_entrypoints": [
                 "src/med_autoscience/controllers/domain_action_request_materializer.py",
-                "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+                "src/med_autoscience/controllers/stage_outcome_authority.py",
             ],
             "single_source_fields": [
                 "supported_action_types",

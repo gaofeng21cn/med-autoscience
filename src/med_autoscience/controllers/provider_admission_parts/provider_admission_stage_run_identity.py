@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.domain_owner_action_dispatch_parts import execution_surfaces
+from med_autoscience.controllers.stage_outcome_authority_parts import execution_surfaces
 from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
     non_empty_text as _non_empty_text,

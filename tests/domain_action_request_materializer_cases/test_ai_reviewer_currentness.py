@@ -84,7 +84,7 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -156,7 +156,7 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -252,7 +252,7 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_action_when_t
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -772,7 +772,7 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
                 "source_ref": str(source_ref.resolve()),
             },
             "source_workflow_ref": {
-                "surface": "owner_route_reconcile",
+                "surface": "paper_mission_owner_surface",
                 "route_back_target": "ai_reviewer",
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
             },
@@ -844,7 +844,7 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [action],

@@ -7,7 +7,7 @@ from med_autoscience.controllers import (
     study_macro_state,
     study_state_matrix,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
+from med_autoscience.controllers.paper_mission_owner_surface_parts import hard_methodology_currentness
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.progress_projection_parts import ProgressProjectionStatus
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict

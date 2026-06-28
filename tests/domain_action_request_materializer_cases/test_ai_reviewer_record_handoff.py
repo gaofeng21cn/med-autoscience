@@ -50,7 +50,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     dispatch_contract = importlib.import_module(
-        "med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract"
+        "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -93,7 +93,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [
@@ -242,7 +242,7 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [
@@ -408,7 +408,7 @@ def test_materialize_ai_reviewer_record_handoff_does_not_suppress_stale_current_
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
             "action_queue": [

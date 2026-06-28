@@ -346,7 +346,7 @@ def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeo
         handoff={
             "surface_kind": "opl_current_control_state_study_handoff",
             "running_provider_attempt": False,
-            "blocked_reason": "blocked:domain_owner_action_dispatch_execution_count_zero",
+            "blocked_reason": "blocked:stage_outcome_authority_execution_count_zero",
             "next_owner": "write",
             "current_work_unit": handoff_work_unit,
             "current_execution_envelope": {
@@ -355,8 +355,8 @@ def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeo
                 "typed_blocker": None,
             },
             "typed_blocker": {
-                "blocker_type": "blocked:domain_owner_action_dispatch_execution_count_zero",
-                "blocked_reason": "blocked:domain_owner_action_dispatch_execution_count_zero",
+                "blocker_type": "blocked:stage_outcome_authority_execution_count_zero",
+                "blocked_reason": "blocked:stage_outcome_authority_execution_count_zero",
                 "owner": "write",
                 "action_type": "run_quality_repair_batch",
                 "work_unit_id": WRITE_WORK_UNIT,
@@ -365,7 +365,7 @@ def test_current_execution_refresh_keeps_handoff_owner_receipt_over_stale_closeo
             },
             "latest_typed_default_executor_closeout": {
                 "status": "typed_blocker",
-                "blocked_reason": "blocked:domain_owner_action_dispatch_execution_count_zero",
+                "blocked_reason": "blocked:stage_outcome_authority_execution_count_zero",
                 "action_type": "run_quality_repair_batch",
                 "work_unit_id": WRITE_WORK_UNIT,
                 "work_unit_fingerprint": WRITE_FINGERPRINT,

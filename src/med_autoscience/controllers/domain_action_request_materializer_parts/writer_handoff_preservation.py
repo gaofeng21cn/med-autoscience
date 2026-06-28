@@ -5,11 +5,11 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
+from med_autoscience.controllers.stage_outcome_authority_parts import (
     dispatch_contract,
     persisted_dispatches,
 )
-from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
+from med_autoscience.controllers.owner_callable_action_policy import default_executor_search_discipline
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part

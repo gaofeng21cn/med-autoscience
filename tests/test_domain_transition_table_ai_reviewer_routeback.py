@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path
 
 from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
+from med_autoscience.controllers.paper_mission_owner_surface_parts import current_truth_owner
 from med_autoscience.controllers.study_outer_loop_parts.domain_transition_actions import (
     domain_transition_recommended_action,
 )

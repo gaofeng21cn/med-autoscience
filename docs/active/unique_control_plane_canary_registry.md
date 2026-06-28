@@ -19,7 +19,7 @@ Agent Lab 消费 registry 后必须输出 executable regression/work order。wor
 - `can_write_study_truth=false`
 - `can_authorize_quality_verdict=false`
 
-允许修改面限定在 canary/contract/docs/test 素材。`runtime_control/owner_route.py`、`domain_action_request_materializer.py` 和 `domain_owner_action_dispatch.py` 是本 registry work order 的 forbidden patch refs。
+允许修改面限定在 canary/contract/docs/test 素材。`runtime_control/owner_route.py`、`domain_action_request_materializer.py` 和 `stage_outcome_authority.py` 是本 registry work order 的 forbidden patch refs。
 
 ## 覆盖证明
 

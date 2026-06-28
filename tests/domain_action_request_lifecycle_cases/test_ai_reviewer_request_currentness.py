@@ -419,7 +419,7 @@ def test_current_input_record_only_request_is_written_when_lifecycle_blocker_was
             "publication_eval_record_ref": str(record_path.resolve()),
             "ai_reviewer_record": current_record,
             "source_workflow_ref": {
-                "surface": "owner_route_reconcile",
+                "surface": "paper_mission_owner_surface",
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
             },
             "input_contract": {

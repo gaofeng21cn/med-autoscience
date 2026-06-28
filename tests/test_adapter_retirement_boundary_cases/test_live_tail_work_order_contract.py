@@ -141,8 +141,8 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
         is True
     )
     assert {
-        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
-        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
+        "stage_outcome_authority_current_execution_running_proof_live_readback_ref",
+        "stage_outcome_authority_provider_hosted_stage_packet_live_readback_ref",
         "progress_portal_study_workbench_overview_action_projection_opl_domain_progress_transition_runtime_readback_ref",
         "runtime_health_kernel_opl_route_reconciler_live_readback_ref",
     } <= set(schema["transition_identity_ref_required_for_families"])
@@ -428,17 +428,17 @@ def test_live_tail_evidence_requires_current_transition_identity_for_readback_fa
     contract = _contract()
     owner_dispatch = {
         order["surface_id"]: order for order in contract["work_orders"]
-    }["domain_owner_action_dispatch"]
-    readback_family = "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref"
+    }["stage_outcome_authority"]
+    readback_family = "stage_outcome_authority_current_execution_running_proof_live_readback_ref"
 
     generic_readback = work_orders.evaluate_live_tail_evidence_record(
         owner_dispatch,
         {
-            "surface_id": "domain_owner_action_dispatch",
+            "surface_id": "stage_outcome_authority",
             "evidence_source": "runtime_readback:current-execution-running-proof",
             "evidence_ref_families": [readback_family],
             "evidence_refs": [
-                "live-tail-evidence:domain_owner_action_dispatch:current_execution"
+                "live-tail-evidence:stage_outcome_authority:current_execution"
             ],
         },
     )
@@ -453,11 +453,11 @@ def test_live_tail_evidence_requires_current_transition_identity_for_readback_fa
     complete_identity = work_orders.evaluate_live_tail_evidence_record(
         owner_dispatch,
         {
-            "surface_id": "domain_owner_action_dispatch",
+            "surface_id": "stage_outcome_authority",
             "evidence_source": "runtime_readback:current-execution-running-proof",
             "evidence_ref_families": [readback_family],
             "evidence_refs": [
-                "live-tail-evidence:domain_owner_action_dispatch:current_execution"
+                "live-tail-evidence:stage_outcome_authority:current_execution"
             ],
             **_transition_identity(),
         },
@@ -481,16 +481,16 @@ def test_live_tail_no_active_caller_evidence_does_not_require_transition_identit
     contract = _contract()
     owner_dispatch = {
         order["surface_id"]: order for order in contract["work_orders"]
-    }["domain_owner_action_dispatch"]
-    no_active_family = "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref"
+    }["stage_outcome_authority"]
+    no_active_family = "stage_outcome_authority_no_active_owner_callable_adapter_caller_scan_ref"
 
     no_active_scan = work_orders.evaluate_live_tail_evidence_record(
         owner_dispatch,
         {
-            "surface_id": "domain_owner_action_dispatch",
+            "surface_id": "stage_outcome_authority",
             "evidence_source": "no_active_caller_scan:owner-callable-adapter",
             "evidence_ref_families": [no_active_family],
-            "evidence_refs": ["repo-scan:domain_owner_action_dispatch:no-active-caller"],
+            "evidence_refs": ["repo-scan:stage_outcome_authority:no-active-caller"],
         },
     )
 
@@ -513,7 +513,7 @@ def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
     mismatched = work_orders.evaluate_live_tail_evidence_record(
         runtime_health,
         {
-            "surface_id": "domain_owner_action_dispatch",
+            "surface_id": "stage_outcome_authority",
             "evidence_source": "runtime_readback:observability:2026-06-20T00:00:00Z",
             "evidence_ref_families": [ref_family],
             "evidence_refs": [
@@ -524,7 +524,7 @@ def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
     )
 
     assert mismatched["status"] == "typed_blocker_required"
-    assert mismatched["evidence_record_surface_id"] == "domain_owner_action_dispatch"
+    assert mismatched["evidence_record_surface_id"] == "stage_outcome_authority"
     assert mismatched["evidence_record_id_mismatch"] is True
     assert mismatched["matched_evidence_ref_families"] == [ref_family]
     assert mismatched["live_runtime_readiness_claim_allowed"] is False

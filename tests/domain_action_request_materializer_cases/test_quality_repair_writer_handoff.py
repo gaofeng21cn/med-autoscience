@@ -108,7 +108,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -190,7 +190,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     dispatch_contract = importlib.import_module(
-        "med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract"
+        "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
@@ -260,7 +260,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -328,9 +328,9 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     dispatch_contract = importlib.import_module(
-        "med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract"
+        "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
@@ -453,7 +453,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {
@@ -644,7 +644,7 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [
                 {

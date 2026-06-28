@@ -19,7 +19,7 @@ EXPECTED_CATEGORIES = {
 FORBIDDEN_RUNTIME_FILES = {
     "src/med_autoscience/controllers/runtime_control/owner_route.py",
     "src/med_autoscience/controllers/domain_action_request_materializer.py",
-    "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+    "src/med_autoscience/controllers/stage_outcome_authority.py",
 }
 
 

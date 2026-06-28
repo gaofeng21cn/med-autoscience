@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES,
 )
 
@@ -45,7 +45,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     assert set(execution_latest["canonical_first_readers"]) == {
         "provider_admission_parts.provider_admission.persisted_provider_admission_candidates",
         "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
-        "owner_route_reconcile_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
+        "paper_mission_owner_surface_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
     }
     assert "mas_local_execution_ledger_authority" in execution_latest["forbidden_claims"]
     assert "legacy_wire_latest_as_current_provider_admission" in execution_latest["forbidden_claims"]
@@ -98,13 +98,13 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             ),
             "active_callers": [
                 (
-                    "study_transition_receipt_consumption_parts.default_executor_candidates."
+                    "study_transition_receipt_consumption_parts.owner_callable_candidates."
                     "default_executor_execution_candidates::_stage_closeout_candidates"
                 ),
                 "study_transition_receipt_consumption.default_executor_execution_receipt_consumption",
                 "study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout",
                 (
-                    "study_transition_receipt_consumption_parts.default_executor_followthrough."
+                    "study_transition_receipt_consumption_parts.owner_callable_followthrough."
                     "default_executor_execution_followthrough_receipt_consumption"
                 ),
                 "provider_admission_parts.provider_admission_report_closeout_scan",
@@ -134,7 +134,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "tombstone_or_provenance_proven": True,
     }
 
-    owner_dispatch = surfaces["domain_owner_action_dispatch"]
+    owner_dispatch = surfaces["stage_outcome_authority"]
     assert owner_dispatch["active_caller_migrated"] is True
     assert owner_dispatch["current_disposition"] == "opl_authorized_owner_callable_adapter"
     assert (
@@ -182,10 +182,10 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     assert owner_dispatch["execution_authorization_coverage"] == {
         "coverage_status": "repo_fail_closed_all_supported_actions_live_readback_tail_open",
         "supported_action_types_ref": (
-            "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES"
+            "src/med_autoscience/controllers/owner_callable_action_policy.py#SUPPORTED_ACTION_TYPES"
         ),
         "repo_fail_closed_test_ref": (
-            "tests/test_domain_owner_action_dispatch_contract.py::"
+            "tests/test_stage_outcome_authority_contract.py::"
             "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
         ),
         "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
@@ -207,17 +207,17 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "opl_execution_authorization_required_blocker_can_satisfy_live_soak": False,
         "provider_handoff_or_completion_can_satisfy_physical_delete": False,
         "required_before_physical_delete": (
-            "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
+            "stage_outcome_authority_live_every_active_caller_soak_or_no_active_caller_ref"
         ),
         "physical_delete_requires": [
-            "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
-            "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
-            "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
-            "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
-            "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
-            "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
-            "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
-            "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref",
+            "stage_outcome_authority_execute_dispatch_live_readback_ref",
+            "stage_outcome_authority_stage_native_owner_action_live_readback_ref",
+            "stage_outcome_authority_provider_hosted_stage_packet_live_readback_ref",
+            "stage_outcome_authority_ai_reviewer_authorization_live_readback_ref",
+            "stage_outcome_authority_gate_clearing_authorization_live_readback_ref",
+            "stage_outcome_authority_current_execution_running_proof_live_readback_ref",
+            "stage_outcome_authority_study_progress_running_proof_live_readback_ref",
+            "stage_outcome_authority_no_active_owner_callable_adapter_caller_scan_ref",
             "no_forbidden_write_proof",
             "replacement_parity_ref",
             "tombstone_or_provenance_ref",
@@ -232,11 +232,11 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             "study_progress_provider_admission_running_proof_live_readback",
         ],
         "active_caller_families": [
-            "domain_owner_action_dispatch.execute_dispatch",
-            "domain_owner_action_dispatch.stage_native_owner_action",
-            "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
-            "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
-            "domain_owner_action_dispatch.gate_clearing_authorization",
+            "stage_outcome_authority.execute_dispatch",
+            "stage_outcome_authority.stage_native_owner_action",
+            "stage_outcome_authority.provider_hosted_exact_stage_packet_selection",
+            "stage_outcome_authority.ai_reviewer_provider_hosted_authorization",
+            "stage_outcome_authority.gate_clearing_authorization",
             "current_execution_envelope.running_provider_attempt_priority",
             "study_progress.provider_admission_running_proof",
         ],
@@ -253,7 +253,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             "provider_handoff_or_completion_as_physical_delete",
         ],
     }
-    assert "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py" in owner_dispatch[
+    assert "tests/test_stage_outcome_authority_cases/opl_authorization_boundary.py" in owner_dispatch[
         "verified_by"
     ]
     assert "mas_local_dispatch_authority" in owner_dispatch["forbidden_claims"]

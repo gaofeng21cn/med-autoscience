@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers import stage_native_next_action_admission
-from tests.domain_owner_action_dispatch_helpers import (
+from tests.stage_outcome_authority_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
     write_current_dispatch as _write_current_dispatch,
@@ -313,7 +313,7 @@ def test_domain_owner_dispatch_executes_paper_clean_room_rebuild_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -379,7 +379,7 @@ def test_domain_owner_dispatch_executes_clean_room_publication_surface_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -461,7 +461,7 @@ def test_domain_owner_dispatch_executes_clean_room_publication_surface_action(
 
 
 def test_clean_room_publication_surface_blocks_when_descriptor_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -479,7 +479,7 @@ def test_clean_room_publication_surface_blocks_when_descriptor_missing(tmp_path:
 
 
 def test_clean_room_publication_surface_blocks_when_verified_paper_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
     clean_room = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -602,7 +602,7 @@ def test_domain_owner_dispatch_ignores_stage_native_clean_room_transition_reques
     tmp_path: Path,
 ) -> None:
     request_module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -704,7 +704,7 @@ def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_o
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

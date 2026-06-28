@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.owner_route_reconcile_parts import (
+from med_autoscience.controllers.paper_mission_owner_surface_parts import (
     domain_transition_actions,
 )
 

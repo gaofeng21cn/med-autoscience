@@ -83,39 +83,39 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert layers["live_soak_or_no_active_caller"]["status"] == "evidence_required"
     assert layers["live_soak_or_no_active_caller"]["proven"] is False
     assert (
-        "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
+        "stage_outcome_authority_live_every_active_caller_soak_or_no_active_caller_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref"
+        "stage_outcome_authority_execute_dispatch_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref"
+        "stage_outcome_authority_stage_native_owner_action_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref"
+        "stage_outcome_authority_provider_hosted_stage_packet_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref"
+        "stage_outcome_authority_ai_reviewer_authorization_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref"
+        "stage_outcome_authority_gate_clearing_authorization_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref"
+        "stage_outcome_authority_current_execution_running_proof_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref"
+        "stage_outcome_authority_study_progress_running_proof_live_readback_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref"
+        "stage_outcome_authority_no_active_owner_callable_adapter_caller_scan_ref"
         in layers["live_soak_or_no_active_caller"]["required_ref_families"]
     )
     assert (
@@ -166,17 +166,17 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         "mas_policy_projection_as_opl_recovery_obligation_store_readback"
         in actuator_tail["forbidden_completion_interpretations"]
     )
-    owner_dispatch_tail = evidence_tails["domain_owner_action_dispatch"]
+    owner_dispatch_tail = evidence_tails["stage_outcome_authority"]
     assert (
-        "domain_owner_action_dispatch_execute_dispatch_live_readback_ref"
+        "stage_outcome_authority_execute_dispatch_live_readback_ref"
         in owner_dispatch_tail["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref"
+        "stage_outcome_authority_provider_hosted_stage_packet_live_readback_ref"
         in owner_dispatch_tail["required_ref_families"]
     )
     assert (
-        "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref"
+        "stage_outcome_authority_no_active_owner_callable_adapter_caller_scan_ref"
         in owner_dispatch_tail["required_ref_families"]
     )
     assert (
@@ -347,7 +347,7 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     )
     assert layers["physical_retirement"]["status"] == "evidence_required"
     assert layers["physical_retirement"]["allowed"] is False
-    assert "domain_owner_action_dispatch" in layers["physical_retirement"]["blocked_surface_ids"]
+    assert "stage_outcome_authority" in layers["physical_retirement"]["blocked_surface_ids"]
     assert {
         "domain_health_diagnostic_obligation_actuator",
         "runtime_health_kernel",
@@ -488,23 +488,23 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert open_surfaces[
         "progress_portal_study_workbench_overview_action_projection"
     ]["workbench_required_active_caller_readback_count"] == 3
-    assert open_surfaces["domain_owner_action_dispatch"]["authority_status"] == (
+    assert open_surfaces["stage_outcome_authority"]["authority_status"] == (
         "opl_authorized_owner_callable_adapter_live_tail_open"
     )
-    assert open_surfaces["domain_owner_action_dispatch"][
-        "domain_owner_action_dispatch_live_soak_status"
+    assert open_surfaces["stage_outcome_authority"][
+        "stage_outcome_authority_live_soak_status"
     ] == "live_every_active_caller_soak_tail_open"
-    assert open_surfaces["domain_owner_action_dispatch"][
-        "domain_owner_action_dispatch_live_every_active_caller_soak_proven"
+    assert open_surfaces["stage_outcome_authority"][
+        "stage_outcome_authority_live_every_active_caller_soak_proven"
     ] is False
-    assert open_surfaces["domain_owner_action_dispatch"][
-        "domain_owner_action_dispatch_no_active_caller_proven"
+    assert open_surfaces["stage_outcome_authority"][
+        "stage_outcome_authority_no_active_caller_proven"
     ] is False
-    assert open_surfaces["domain_owner_action_dispatch"][
-        "domain_owner_action_dispatch_physical_delete_allowed"
+    assert open_surfaces["stage_outcome_authority"][
+        "stage_outcome_authority_physical_delete_allowed"
     ] is False
-    assert open_surfaces["domain_owner_action_dispatch"][
-        "domain_owner_action_dispatch_active_caller_family_count"
+    assert open_surfaces["stage_outcome_authority"][
+        "stage_outcome_authority_active_caller_family_count"
     ] >= 7
     legacy_latest_inventory = inventory_surfaces[
         "default_executor_execution_latest_wire_projection"
@@ -603,6 +603,6 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
         surface["active_caller_retains_runtime_authority"] is False
         for surface in open_surfaces.values()
     )
-    assert open_surfaces["domain_owner_action_dispatch"][
-        "domain_owner_action_dispatch_active_caller_family_count"
+    assert open_surfaces["stage_outcome_authority"][
+        "stage_outcome_authority_active_caller_family_count"
     ] == 7

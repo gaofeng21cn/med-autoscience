@@ -181,7 +181,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "owner_route_reconcile_materialize_dispatch_shell",
+        "paper_mission_owner_surface_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -228,14 +228,14 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
     assert by_id["artifact_authority"]["migration_action"] == "authority_stays_in_mas"
-    owner_dispatch_thinning = by_id["owner_route_reconcile_materialize_dispatch_shell"][
+    owner_dispatch_thinning = by_id["paper_mission_owner_surface_materialize_dispatch_shell"][
         "latest_thinning_evidence"
     ]
     assert owner_dispatch_thinning["status"] == (
-        "default_executor_action_policy_single_source_landed"
+        "owner_callable_action_policy_single_source_landed"
     )
     assert owner_dispatch_thinning["policy_module"] == (
-        "src/med_autoscience/controllers/default_executor_action_policy.py"
+        "src/med_autoscience/controllers/owner_callable_action_policy.py"
     )
     assert owner_dispatch_thinning["domain_repo_physical_delete_authorized"] is False
     assert "publication_eval/latest.json" in owner_dispatch_thinning["does_not_write"]

@@ -226,7 +226,7 @@ def _next_owner_for_tail(surface_id: str, surface: Mapping[str, Any]) -> str:
         return "one-person-lab Capability Runtime owner"
     if surface_id == "domain_health_diagnostic_obligation_actuator":
         return "one-person-lab RecoveryObligationStore / SupervisorDecisionEngine owner"
-    if surface_id == "domain_owner_action_dispatch":
+    if surface_id == "stage_outcome_authority":
         return "one-person-lab StageRun / execution authorization owner"
     if surface_id == "progress_portal_study_workbench_overview_action_projection":
         return "one-person-lab Workbench Shell owner"

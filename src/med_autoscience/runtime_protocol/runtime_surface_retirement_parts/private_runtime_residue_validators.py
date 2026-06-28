@@ -900,7 +900,7 @@ def _validate_maintenance_retirement_gate(
         violations.append(_violation(surface_id, f"{reason_prefix}_missing_live_readback_completion_gate"))
 
 
-def validate_domain_owner_action_dispatch(
+def validate_stage_outcome_authority(
     surface_id: str,
     surface: Mapping[str, Any],
 ) -> list[dict[str, str]]:
@@ -972,11 +972,11 @@ def validate_domain_owner_action_dispatch(
             active_caller_families if isinstance(active_caller_families, list) else []
         )
         required_families = {
-            "domain_owner_action_dispatch.execute_dispatch",
-            "domain_owner_action_dispatch.stage_native_owner_action",
-            "domain_owner_action_dispatch.provider_hosted_exact_stage_packet_selection",
-            "domain_owner_action_dispatch.ai_reviewer_provider_hosted_authorization",
-            "domain_owner_action_dispatch.gate_clearing_authorization",
+            "stage_outcome_authority.execute_dispatch",
+            "stage_outcome_authority.stage_native_owner_action",
+            "stage_outcome_authority.provider_hosted_exact_stage_packet_selection",
+            "stage_outcome_authority.ai_reviewer_provider_hosted_authorization",
+            "stage_outcome_authority.gate_clearing_authorization",
             "current_execution_envelope.running_provider_attempt_priority",
             "study_progress.provider_admission_running_proof",
         }
@@ -1005,19 +1005,19 @@ def validate_domain_owner_action_dispatch(
                 violations.append(_violation(surface_id, f"owner_dispatch_soak_forbidden:{key}"))
         if (
             soak.get("required_before_physical_delete")
-            != "domain_owner_action_dispatch_live_every_active_caller_soak_or_no_active_caller_ref"
+            != "stage_outcome_authority_live_every_active_caller_soak_or_no_active_caller_ref"
         ):
             violations.append(_violation(surface_id, "owner_dispatch_soak_missing_physical_delete_ref"))
         physical_delete_requires = soak.get("physical_delete_requires")
         required_physical_refs = {
-            "domain_owner_action_dispatch_execute_dispatch_live_readback_ref",
-            "domain_owner_action_dispatch_stage_native_owner_action_live_readback_ref",
-            "domain_owner_action_dispatch_provider_hosted_stage_packet_live_readback_ref",
-            "domain_owner_action_dispatch_ai_reviewer_authorization_live_readback_ref",
-            "domain_owner_action_dispatch_gate_clearing_authorization_live_readback_ref",
-            "domain_owner_action_dispatch_current_execution_running_proof_live_readback_ref",
-            "domain_owner_action_dispatch_study_progress_running_proof_live_readback_ref",
-            "domain_owner_action_dispatch_no_active_owner_callable_adapter_caller_scan_ref",
+            "stage_outcome_authority_execute_dispatch_live_readback_ref",
+            "stage_outcome_authority_stage_native_owner_action_live_readback_ref",
+            "stage_outcome_authority_provider_hosted_stage_packet_live_readback_ref",
+            "stage_outcome_authority_ai_reviewer_authorization_live_readback_ref",
+            "stage_outcome_authority_gate_clearing_authorization_live_readback_ref",
+            "stage_outcome_authority_current_execution_running_proof_live_readback_ref",
+            "stage_outcome_authority_study_progress_running_proof_live_readback_ref",
+            "stage_outcome_authority_no_active_owner_callable_adapter_caller_scan_ref",
             "no_forbidden_write_proof",
             "replacement_parity_ref",
             "tombstone_or_provenance_ref",
@@ -1339,7 +1339,7 @@ __all__ = [
     "audit_workbench_projection_fields",
     "validate_domain_action_request_materializer_surface",
     "validate_domain_health_diagnostic_obligation_actuator",
-    "validate_domain_owner_action_dispatch",
+    "validate_stage_outcome_authority",
     "validate_progress_portal_study_workbench_overview_action_projection",
     "validate_runtime_lifecycle_payload_retention",
     "validate_runtime_storage_maintenance",

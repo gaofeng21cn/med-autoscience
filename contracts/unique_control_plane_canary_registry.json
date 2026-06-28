@@ -71,7 +71,7 @@
           "forbidden_patch_refs": [
             "src/med_autoscience/controllers/runtime_control/owner_route.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
             "tests/test_paper_progress_state.py",
@@ -153,7 +153,7 @@
           "forbidden_patch_refs": [
             "src/med_autoscience/controllers/runtime_control/owner_route.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
             "tests/test_paper_repair_executor.py",
@@ -235,7 +235,7 @@
           "forbidden_patch_refs": [
             "src/med_autoscience/controllers/runtime_control/owner_route.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
             "tests/test_opl_agent_lab_longline_migration.py",
@@ -317,7 +317,7 @@
           "forbidden_patch_refs": [
             "src/med_autoscience/controllers/runtime_control/owner_route.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
             "tests/test_gate_clearing_batch_cases/quality_repair_route_context.py",
@@ -400,7 +400,7 @@
           "forbidden_patch_refs": [
             "src/med_autoscience/controllers/runtime_control/owner_route.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
             "tests/test_paper_work_unit_lifecycle_contract.py",
@@ -483,7 +483,7 @@
           "forbidden_patch_refs": [
             "src/med_autoscience/controllers/runtime_control/owner_route.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
             "tests/test_gate_clearing_batch_cases/submission_authority_sync.py",

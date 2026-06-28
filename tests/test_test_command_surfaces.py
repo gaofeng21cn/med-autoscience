@@ -818,7 +818,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert focused_lanes["paper-autonomy-stability-evidence"]["completion_claim_rule"] == (
         "landed_only_when_real_evidence_has_no_blockers"
     )
-    assert "owner-route-reconcile" not in focused_lanes
+    assert "paper-mission-owner-surface" not in focused_lanes
     assert "portal_console_soak_retired" not in focused_lanes
 
 

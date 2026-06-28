@@ -398,7 +398,7 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
     assert policy["dry_run_write_policy"] == {
         "may_refresh_diagnostic_reports": True,
         "may_write_study_truth": False,
-        "may_write_owner_route_reconcile": False,
+        "may_write_paper_mission_owner_surface": False,
         "may_dispatch_owner_action": False,
         "may_mutate_paper_or_package": False,
     }

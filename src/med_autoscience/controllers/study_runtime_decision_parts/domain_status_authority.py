@@ -15,7 +15,7 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
 
 from . import publication_and_submission as _publication_and_submission
 from med_autoscience.controllers import study_truth_kernel
-from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
+from med_autoscience.controllers.paper_mission_owner_surface_parts import opl_provider_attempts
 from med_autoscience.runtime_protocol import quest_state as quest_state_protocol
 
 _OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60

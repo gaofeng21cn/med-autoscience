@@ -86,7 +86,7 @@ OPS_MEDAUTOSCIENCE_ACTIVE_BIN_ENTRIES = {
     "study-progress",
     "study-state-matrix",
     "domain-health-diagnostic",
-    "owner-route-reconcile",
+    "paper-mission-owner-surface",
     "publication-gate",
     "medical-surface",
     "figure-loop-guard",

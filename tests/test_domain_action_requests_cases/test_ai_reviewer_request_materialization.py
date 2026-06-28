@@ -108,7 +108,7 @@ def test_ai_reviewer_request_materialization_attaches_latest_owner_record(tmp_pa
     packet = build_ai_reviewer_publication_eval_request(
         study_id="002-risk",
         quest_id="quest-002",
-        source_surface="owner_route_reconcile",
+        source_surface="paper_mission_owner_surface",
         workflow_state={
             "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
             "route_back": {"required": True, "target": "ai_reviewer"},
@@ -149,7 +149,7 @@ def test_ai_reviewer_request_materialization_rejects_record_with_manuscript_stor
     packet = build_ai_reviewer_publication_eval_request(
         study_id="002-risk",
         quest_id="quest-002",
-        source_surface="owner_route_reconcile",
+        source_surface="paper_mission_owner_surface",
         workflow_state={
             "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
             "route_back": {"required": True, "target": "ai_reviewer"},

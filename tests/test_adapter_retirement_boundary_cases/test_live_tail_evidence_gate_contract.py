@@ -12,7 +12,7 @@ EXPECTED_TAIL_OWNERS = {
     "domain_health_diagnostic_obligation_actuator": (
         "one-person-lab RecoveryObligationStore / SupervisorDecisionEngine owner"
     ),
-    "domain_owner_action_dispatch": "one-person-lab StageRun / execution authorization owner",
+    "stage_outcome_authority": "one-person-lab StageRun / execution authorization owner",
     "progress_portal_study_workbench_overview_action_projection": (
         "one-person-lab Workbench Shell owner"
     ),

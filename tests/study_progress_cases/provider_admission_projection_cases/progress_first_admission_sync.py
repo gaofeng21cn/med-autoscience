@@ -153,7 +153,7 @@ def test_sync_progress_first_owner_action_admission_suppresses_terminal_closeout
     fingerprint = "publication-blockers::0915410f804b3697"
     typed_blocker = {
         "surface_kind": "domain_stage_typed_blocker",
-        "blocker_type": "domain_owner_action_dispatch_apply_selected_zero_dispatch",
+        "blocker_type": "stage_outcome_authority_apply_selected_zero_dispatch",
         "action_type": "run_quality_repair_batch",
         "work_unit_id": "medical_prose_write_repair",
         "work_unit_fingerprint": fingerprint,

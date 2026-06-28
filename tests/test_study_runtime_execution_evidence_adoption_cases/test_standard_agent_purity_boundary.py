@@ -27,8 +27,8 @@ def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -
     for module_name in (
         "med_autoscience.controllers.study_runtime_execution",
         "med_autoscience.controllers.study_runtime_transport",
-        f"med_autoscience.controllers.owner_route_reconcile_parts.{retired_runtime_module}",
-        *(f"med_autoscience.controllers.domain_owner_action_dispatch_parts.{part}" for part in retired_dispatch_parts),
+        f"med_autoscience.controllers.paper_mission_owner_surface_parts.{retired_runtime_module}",
+        *(f"med_autoscience.controllers.stage_outcome_authority_parts.{part}" for part in retired_dispatch_parts),
     ):
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module(module_name)
@@ -38,8 +38,8 @@ def test_tombstoned_runtime_actions_are_not_mas_owner_callables_or_dispatch_acti
     owner_route = importlib.import_module("med_autoscience.runtime_control.owner_route")
     attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
     registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
-    dispatcher = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    router = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.action_router")
+    dispatcher = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
+    router = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_router")
     retired_action = _legacy_runtime_repair_marker()
 
     assert retired_action not in owner_route.ALLOWED_ACTION_TYPES
@@ -63,9 +63,9 @@ def test_tombstoned_runtime_actions_are_not_mas_owner_callables_or_dispatch_acti
     assert retired_action not in inspect.getsource(router.execute_owner_dispatch_action)
 
 
-def test_owner_route_reconcile_no_longer_accepts_tombstoned_runtime_apply_flags() -> None:
-    owner_route_reconcile = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
-    signature = inspect.signature(owner_route_reconcile.scan_domain_routes)
+def test_paper_mission_owner_surface_no_longer_accepts_tombstoned_runtime_apply_flags() -> None:
+    paper_mission_owner_surface = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
+    signature = inspect.signature(paper_mission_owner_surface.scan_domain_routes)
     retired_apply_flag = f"apply_{_legacy_runtime_repair_marker()}"
 
     assert retired_apply_flag not in signature.parameters

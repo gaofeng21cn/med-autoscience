@@ -58,7 +58,7 @@ def test_dm002_retry_budget_opl_route_requires_stage_attempt_admission() -> None
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli owner-route-reconcile "
+                    "uv run python -m med_autoscience.cli paper-mission-owner-surface "
                     "--profile /tmp/profile.json --studies 002-dm-china-us-mortality-attribution --dry-run"
                 ),
             },
@@ -145,7 +145,7 @@ def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner()
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli owner-route-reconcile "
+                    "uv run python -m med_autoscience.cli paper-mission-owner-surface "
                     "--profile /tmp/profile.json --studies 003-dpcc-primary-care-phenotype-treatment-gap --dry-run"
                 ),
             },
@@ -516,7 +516,7 @@ def test_current_work_unit_typed_blocker_suppresses_stale_provider_attempt_write
                 "state": {
                     "state_kind": "typed_blocker",
                     "typed_blocker": {
-                        "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                        "blocker_type": "stage_packet_not_selected_by_stage_outcome_authority",
                     },
                 },
             },
@@ -524,7 +524,7 @@ def test_current_work_unit_typed_blocker_suppresses_stale_provider_attempt_write
                 "state_kind": "typed_blocker",
                 "owner": "MedAutoScience",
                 "typed_blocker": {
-                    "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                    "blocker_type": "stage_packet_not_selected_by_stage_outcome_authority",
                 },
             },
             "opl_current_control_state_handoff": {

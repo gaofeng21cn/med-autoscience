@@ -102,8 +102,8 @@ def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admissi
                 "typed_blocker": {
                     "surface_kind": "mas_domain_typed_blocker",
                     "status": "blocked",
-                    "blocker_id": "domain_owner_action_dispatch_execution_count_zero",
-                    "blocker_type": "domain_owner_action_dispatch_execution_count_zero",
+                    "blocker_id": "stage_outcome_authority_execution_count_zero",
+                    "blocker_type": "stage_outcome_authority_execution_count_zero",
                     "owner": "med-autoscience",
                     "write_permitted": False,
                 },
@@ -163,7 +163,7 @@ def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admissi
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
     assert result["current_executable_owner_action"] is None
-    assert result["typed_blocker"]["blocker_type"] == "domain_owner_action_dispatch_execution_count_zero"
+    assert result["typed_blocker"]["blocker_type"] == "stage_outcome_authority_execution_count_zero"
     assert result["typed_blocker"]["owner"] == "med-autoscience"
     assert result["current_work_unit"]["status"] == "typed_blocker"
     assert result["current_work_unit"]["action_type"] == "run_gate_clearing_batch"

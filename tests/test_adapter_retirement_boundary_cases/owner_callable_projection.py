@@ -524,12 +524,12 @@ def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_al
     action_execution_root = (
         SRC_ROOT
         / "controllers"
-        / "domain_owner_action_dispatch_parts"
+        / "stage_outcome_authority_parts"
         / "action_execution"
     )
     forbidden_tokens = (
         "domain-action-request-materialize",
-        "domain-owner-action-dispatch",
+        "stage-outcome-authority",
     )
     violations: list[str] = []
     for path in sorted(action_execution_root.rglob("*.py")):
@@ -541,7 +541,7 @@ def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_al
 
 
 def test_domain_owner_controller_refresh_public_wrapper_is_retired() -> None:
-    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     public_surface = importlib.import_module("med_autoscience.cli_public_surface")
 
     assert not hasattr(dispatch_module, "refresh_controller_decisions_for_current_publication_eval")
@@ -580,7 +580,7 @@ def test_current_controller_decision_refresh_does_not_emit_legacy_domain_owner_a
     source = (
         SRC_ROOT
         / "controllers"
-        / "domain_owner_action_dispatch_parts"
+        / "stage_outcome_authority_parts"
         / "controller_refresh.py"
     ).read_text(encoding="utf-8")
 
@@ -592,7 +592,7 @@ def test_paper_recovery_export_no_longer_materializes_default_executor_tasks(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.paper_recovery_default_executor_tasks"
+        "med_autoscience.controllers.owner_route_handoff_parts.paper_recovery_owner_callable_tasks"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -625,7 +625,7 @@ def test_paper_recovery_export_no_longer_materializes_default_executor_tasks(
     }
     assert not hasattr(module, "domain_action_request_materializer")
 
-    owner_callable_only_tasks = module.paper_recovery_default_executor_dispatch_tasks(
+    owner_callable_only_tasks = module.paper_recovery_owner_callable_stage_tasks(
         current_progress={
             **current_progress,
             "owner_callable_adapters": [dict(dispatch)],
@@ -635,7 +635,7 @@ def test_paper_recovery_export_no_longer_materializes_default_executor_tasks(
         study_id=study_id,
     )
 
-    canonical_request_tasks = module.paper_recovery_default_executor_dispatch_tasks(
+    canonical_request_tasks = module.paper_recovery_owner_callable_stage_tasks(
         current_progress={
             **current_progress,
             "domain_progress_transition_requests": [dict(dispatch)],

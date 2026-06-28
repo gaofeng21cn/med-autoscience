@@ -11,7 +11,7 @@ FUNCTIONAL_STRUCTURE_GAP_CLASSIFICATION = "functional_structure_followthrough_ga
 SOURCE_PURITY_CUTOVER_STATUS = "standard_agent_source_shape_landed"
 SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS = (
     "generic_cli_mcp_product_wrappers",
-    "owner_route_reconcile_materialize_dispatch_shell",
+    "paper_mission_owner_surface_materialize_dispatch_shell",
     "workbench_portal_generic_shell",
 )
 MEMORY_ARTIFACT_LIFECYCLE_TYPED_BLOCKER_REFS = (
@@ -181,7 +181,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "functional_structure_gap": False,
         "former_wrapper_tail_module_ids": [
             "workbench_portal_generic_shell",
-            "owner_route_reconcile_materialize_dispatch_shell",
+            "paper_mission_owner_surface_materialize_dispatch_shell",
         ],
         "physical_delete_authorized": False,
         "delete_or_tombstone_after": [
@@ -380,7 +380,7 @@ PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX = {
                 "artifact_lifecycle_storage_audit_shell",
                 "workspace_source_intake_shell",
                 "workbench_portal_generic_shell",
-                "owner_route_reconcile_materialize_dispatch_shell",
+                "paper_mission_owner_surface_materialize_dispatch_shell",
                 "generic_cli_mcp_product_wrappers",
             ],
             "no_active_caller": (

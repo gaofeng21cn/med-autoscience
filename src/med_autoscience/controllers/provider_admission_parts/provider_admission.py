@@ -78,10 +78,10 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_sta
 from med_autoscience.controllers.provider_admission_parts.current_ai_reviewer_gate_replay import (
     source_eval_id_from_mapping,
 )
-from med_autoscience.controllers.domain_owner_action_dispatch_parts.execution_surfaces import (
+from med_autoscience.controllers.stage_outcome_authority_parts.execution_surfaces import (
     OWNER_CALLABLE_RECEIPT_SURFACE,
 )
-from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
     latest_owner_callable_adapter_receipt_payload,
 )
 

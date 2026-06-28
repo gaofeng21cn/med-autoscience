@@ -21,14 +21,14 @@ OPL 承接 durable execution、queue、retry、dead-letter、provider liveness�
 ```mermaid
 flowchart TD
   A["DHD runtime domain-health-diagnostic"] --> B["_run_developer_supervisor_same_tick"]
-  B --> C["owner_route_reconcile.scan_domain_routes"]
+  B --> C["paper_mission_owner_surface.scan_domain_routes"]
   C --> D["live_provider_attempt_for_study"]
   D --> D1["OPL queue list / inspect"]
   D --> D2["OPL attempt list / inspect"]
   D --> D3["MAS default-executor terminal closeout check"]
   C --> E["current_execution_envelope / provider admission candidates"]
   B --> F["domain_action_request_materializer"]
-  F --> G["domain_owner_action_dispatch"]
+  F --> G["stage_outcome_authority"]
   G --> H["provider admission pending or owner output"]
   H --> I["provider_admission_current_control"]
   I --> I2["stage_route_arbiter decisions"]

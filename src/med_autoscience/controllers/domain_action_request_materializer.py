@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.default_executor_closeout_contract import (
+from med_autoscience.controllers.owner_callable_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
@@ -36,7 +36,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     currentness_identity,
     current_owner_callable_adapters as current_owner_callable_adapters_part,
     current_writer_handoff,
-    default_executor_prompt,
+    owner_callable_prompt,
     evidence_gap_decision as evidence_gap_decision_part,
     execution_gate,
     publication_owner_materialization,
@@ -46,8 +46,8 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     writer_handoff_preservation,
 )
 from med_autoscience.controllers import medical_paper_readiness_payload_authoring
-from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.stage_outcome_authority_parts import output_readiness
+from med_autoscience.controllers.owner_callable_action_policy import (
     ALLOWED_WRITE_SURFACES,
     FORBIDDEN_SURFACES,
     RETIRED_ABSENT_SURFACES,
@@ -61,7 +61,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_packet_ref_for_action_type,
     request_packet_ref_for_dispatch,
 )
-from med_autoscience.controllers.owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
+from med_autoscience.controllers.paper_mission_owner_surface import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -1042,7 +1042,7 @@ def _default_executor_dispatch_payload(
             adapter_contract=adapter_contract,
         ),
         "progress_first_closeout_admission": dict(progress_first_closeout_admission),
-        "executor_prompt": default_executor_prompt.executor_prompt(
+        "executor_prompt": owner_callable_prompt.executor_prompt(
             action_type=action_type,
             study_id=study_id,
             next_executable_owner=next_executable_owner,

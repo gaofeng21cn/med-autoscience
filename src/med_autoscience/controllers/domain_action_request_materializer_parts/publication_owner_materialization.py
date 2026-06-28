@@ -11,7 +11,7 @@ from med_autoscience.controllers.ai_reviewer_record_work_units import (
     AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
-from med_autoscience.controllers.default_executor_action_policy import (
+from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
 )
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS

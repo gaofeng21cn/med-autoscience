@@ -33,7 +33,7 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
         "source_refs": {"progress_projection": "studies/001-risk/progress_projection.json"},
     }
     dispatch_receipt = {
-        "surface": "domain_owner_action_dispatch_receipt",
+        "surface": "stage_outcome_authority_receipt",
         "dispatch_id": "dispatch-001",
         "study_id": "001-risk",
         "quest_id": "quest-001",

@@ -33,7 +33,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_matching_opl_
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T04:07:15+00:00",
             "current_control_refresh_source": "opl_transition_runtime_readback_provider_admission",
             "provider_admission_pending_count": 1,
@@ -208,7 +208,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T20:39:39+00:00",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [candidate],
@@ -341,7 +341,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T20:39:39+00:00",
             "provider_admission_pending_count": 1,
             "provider_admission_candidates": [candidate],
@@ -494,7 +494,7 @@ def test_study_progress_opl_current_control_state_handoff_uses_transition_reques
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T10:46:28+00:00",
             "provider_admission_pending_count": 0,
             "provider_admission_candidates": [],
@@ -578,7 +578,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_top_level_tra
     _write_json(
         handoff_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "generated_at": "2026-06-20T13:59:38+00:00",
             "provider_admission_pending_count": 0,
             "provider_admission_candidates": [],

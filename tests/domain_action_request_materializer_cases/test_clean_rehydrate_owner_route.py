@@ -59,7 +59,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
             "action_queue": [
@@ -149,7 +149,7 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
             "action_queue": [
@@ -243,7 +243,7 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
             "action_queue": [
@@ -337,7 +337,7 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
             "action_queue": [
@@ -441,7 +441,7 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -533,7 +533,7 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
     _write_json(
         profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
             "action_queue": [
                 {

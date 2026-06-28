@@ -173,7 +173,7 @@ anti_loop_policy:
   - route_back_without_next_owner_target_surface_or_escalation
   - advisory_signal_generates_default_next_action
   - provider_completion_claims_domain_completion_without_owner_receipt_or_typed_blocker
-  - dry_run_owner_route_reconcile_or_dispatch
+  - dry_run_paper_mission_owner_surface_or_dispatch
   terminal_diagnostics:
   - no_owner_action_remaining
   - dispatch_materialized_but_not_selected
@@ -194,7 +194,7 @@ anti_loop_policy:
   dry_run_write_policy:
     may_refresh_diagnostic_reports: true
     may_write_study_truth: false
-    may_write_owner_route_reconcile: false
+    may_write_paper_mission_owner_surface: false
     may_dispatch_owner_action: false
     may_mutate_paper_or_package: false
 route_contracts:

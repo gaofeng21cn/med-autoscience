@@ -288,7 +288,7 @@ def test_current_work_unit_running_attempt_supersedes_prior_dispatch_zero_blocke
             "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "current_stage": "publication_supervision",
         },
-        blocked_reason="domain_owner_action_dispatch_execution_count_zero",
+        blocked_reason="stage_outcome_authority_execution_count_zero",
         next_owner="med-autoscience",
         live_provider_attempt=_running_attempt(
             "003-dpcc-primary-care-phenotype-treatment-gap",
