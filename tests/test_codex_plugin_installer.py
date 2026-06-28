@@ -50,7 +50,7 @@ def test_install_repo_local_codex_plugin_uses_tracked_plugin_source_without_mark
     assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
     assert manifest["name"] == "mas"
     assert manifest["skills"] == "./skills/"
-    assert manifest["mcpServers"] == "./.mcp.json"
+    assert "mcpServers" not in manifest
     assert skill_path.is_file()
 
 

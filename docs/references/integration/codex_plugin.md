@@ -13,7 +13,7 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 - 通过 `.codex-plugin/plugin.json` 提供 Codex 可发现、可安装的入口
 - 提供一层 plugin skill，让 Codex 通过稳定接口操作 `MedAutoScience`
-- 提供 `plugins/mas/.mcp.json`，让 Codex 直接接入 `medautosci-mcp`
+- 保留 `plugins/mas/bin/medautosci-mcp` 作为显式 direct / proof lane；默认 Codex App 可见 MCP 能力由 OPL family registry / generated descriptor 统一投影，不由 MAS plugin manifest 单独暴露
 
 ## 这个 plugin 不替代什么
 
@@ -41,7 +41,7 @@ Compatibility note:
 
 ## Agent-first 推荐用法
 
-1. 如果还没有病种级 workspace，优先调用 MCP tool `init_workspace`
+1. 如果还没有病种级 workspace，优先走 OPL generated surface 或 MAS CLI 初始化；只有显式接入 `medautosci-mcp` direct lane 时才调用 MCP tool `init_workspace`
 2. 用 `profiles/*.local.toml` 绑定具体 workspace
 3. 先跑 `doctor report` 或 `doctor profile`，确认路径、profile 和 overlay 策略
 4. 再跑 `workspace bootstrap`，初始化 overlay 和数据资产状态
@@ -77,7 +77,7 @@ Compatibility note:
 
 仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。MAS skill 默认随本仓库工作目录发现，不应安装到系统级 skill 目录。
 
-- 仓库内状态：plugin source 由 `plugins/mas/.codex-plugin/plugin.json`、`plugins/mas/skills/mas/SKILL.md` 和 `plugins/mas/.mcp.json` 维护。
+- 仓库内状态：plugin source 由 `plugins/mas/.codex-plugin/plugin.json` 和 `plugins/mas/skills/mas/SKILL.md` 维护；`plugins/mas/bin/medautosci-mcp` 只保留为 direct / proof lane launcher，不写入 Codex plugin manifest 的 `mcpServers`。
 - 退役状态：repo-local `.agents/plugins/marketplace.json` 是 retired local-state surface；MAS 仓库不再跟踪、生成或写回它。
 - 全局状态：`scripts/install-codex-plugin.sh` 只安装 `~/.local/bin/medautosci` 和 `~/.local/bin/medautosci-mcp` clean-runner wrappers；不安装 `mas` shell wrapper，不写入 `~/.agents/skills`、`~/.codex/skills`、`~/.agents/plugins/marketplace.json` 或 repo-local `.agents/plugins/marketplace.json`。`mas` 是 plugin / series agent id，不是本机 PATH readiness 证据；macOS 上 `mas` 常是 Mac App Store CLI。
 - Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。修改 `plugins/mas/**` 后，在 OPL 仓运行 `opl connect sync-skills --domain mas --json` 重新物化 `OPL_STATE_DIR/codex-plugin-marketplaces/mas-local`；Codex plugin cache 仍旧时需要刷新/重启 Codex App。

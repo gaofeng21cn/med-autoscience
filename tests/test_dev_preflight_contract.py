@@ -336,7 +336,6 @@ def test_classify_changed_files_routes_mcp_plugin_config_to_codex_plugin_surface
 
     result = module.classify_changed_files(
         [
-            "plugins/mas/.mcp.json",
             "plugins/mas/skills/mas/SKILL.md",
             "scripts/install-codex-plugin.sh",
         ]
@@ -1069,7 +1068,6 @@ def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
     result = module.classify_changed_files(
         [
             ".agents/plugins/marketplace.json",
-            "plugins/mas/.mcp.json",
             "plugins/mas/.codex-plugin/plugin.json",
             "plugins/mas/skills/mas/SKILL.md",
             "tests/test_codex_plugin_scaffold.py",

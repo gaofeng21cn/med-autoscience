@@ -16,7 +16,6 @@
     "controller"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Med Auto Science",
     "shortDescription": "Medical research orchestration for Codex.",

@@ -24,7 +24,7 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert manifest["version"] == pyproject_data["project"]["version"]
     assert manifest["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
     assert manifest["skills"] == "./skills/"
-    assert manifest["mcpServers"] == "./.mcp.json"
+    assert "mcpServers" not in manifest
     assert manifest["interface"]["displayName"] == "Med Auto Science"
     assert manifest["interface"]["category"] == "Research"
     assert manifest["interface"]["composerIcon"] == "./assets/icon.png"
@@ -74,7 +74,7 @@ def test_codex_plugin_marketplace_surface_is_opl_owned_not_repo_local() -> None:
     assert manifest["interface"]["displayName"] == "Med Auto Science"
     assert manifest["interface"]["category"] == "Research"
     assert manifest["skills"] == "./skills/"
-    assert manifest["mcpServers"] == "./.mcp.json"
+    assert "mcpServers" not in manifest
 
 
 def test_mas_skill_ui_metadata_tracks_plugin_display_contract() -> None:

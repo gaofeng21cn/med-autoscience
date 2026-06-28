@@ -8,7 +8,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
-PLUGIN_MCP_PATH = PLUGIN_ROOT / ".mcp.json"
 
 
 def test_codex_plugin_scaffold_exists_as_tracked_plugin_source() -> None:
@@ -17,15 +16,8 @@ def test_codex_plugin_scaffold_exists_as_tracked_plugin_source() -> None:
     assert PLUGIN_ROOT.is_dir()
     assert manifest["name"] == "mas"
     assert manifest["skills"] == "./skills/"
-    assert manifest["mcpServers"] == "./.mcp.json"
+    assert "mcpServers" not in manifest
     assert manifest["interface"]["displayName"] == "Med Auto Science"
-    mcp_server = json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]
-    assert mcp_server["command"] == "./bin/medautosci-mcp"
-    metadata = mcp_server["metadata"]
-    assert metadata["series_command_surface"] == "medautosci foundry interfaces"
-    assert metadata["replacement_command_surface"] == "medautosci foundry"
-    assert "series_frontdoor" not in metadata
-    assert "replacement_frontdoor" not in metadata
     launcher = PLUGIN_ROOT / "bin" / "medautosci-mcp"
     assert launcher.is_file()
     launcher_text = launcher.read_text(encoding="utf-8")

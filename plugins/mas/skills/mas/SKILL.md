@@ -28,7 +28,7 @@ OPL series command surface: `opl foundry agents inspect mas --json`
 
 优先走已有的 `MedAutoScience` 运行时 contract：
 
-- 如果 workspace 还不存在，优先调用 MCP tool `init_workspace`
+- 如果 workspace 还不存在，优先走 OPL generated surface 或 `medautosci workspace init`；只有显式接入 `medautosci-mcp` direct lane 时才调用 MCP tool `init_workspace`
 - `medautosci workspace init`
 - `medautosci doctor report --profile <profile>`
 - `medautosci doctor profile --profile <profile>`
