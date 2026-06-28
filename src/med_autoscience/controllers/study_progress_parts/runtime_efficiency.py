@@ -178,14 +178,20 @@ def _token_usage_surface(
 
 
 def _token_usage_total(token_usage: Mapping[str, Any]) -> int | None:
-    total = _number(token_usage.get("total_tokens"))
+    total = _first_number(
+        token_usage.get("total_tokens"),
+        token_usage.get("total"),
+        token_usage.get("token_total"),
+        token_usage.get("totalTokens"),
+        token_usage.get("tokenTotal"),
+    )
     if total is not None:
         return total
     parts = [
-        _number(token_usage.get("input_tokens")),
-        _number(token_usage.get("cached_input_tokens")),
-        _number(token_usage.get("output_tokens")),
-        _number(token_usage.get("reasoning_tokens")),
+        _first_number(token_usage.get("input_tokens"), token_usage.get("inputTokens"), token_usage.get("prompt_tokens"), token_usage.get("promptTokens")),
+        _first_number(token_usage.get("cached_input_tokens"), token_usage.get("cachedInputTokens")),
+        _first_number(token_usage.get("output_tokens"), token_usage.get("outputTokens"), token_usage.get("completion_tokens"), token_usage.get("completionTokens")),
+        _first_number(token_usage.get("reasoning_tokens"), token_usage.get("reasoningTokens")),
     ]
     present = [value for value in parts if value is not None]
     return sum(present) if present else None
@@ -209,10 +215,18 @@ def _number(value: object) -> int | None:
     return None
 
 
+def _first_number(*values: object) -> int | None:
+    for value in values:
+        number = _number(value)
+        if number is not None:
+            return number
+    return None
+
+
 def _token_usage_from_mapping(value: Mapping[str, Any]) -> dict[str, Any] | None:
     total = _token_usage_total(value)
-    input_tokens = _number(value.get("input_tokens"))
-    output_tokens = _number(value.get("output_tokens"))
+    input_tokens = _first_number(value.get("input_tokens"), value.get("inputTokens"), value.get("prompt_tokens"), value.get("promptTokens"))
+    output_tokens = _first_number(value.get("output_tokens"), value.get("outputTokens"), value.get("completion_tokens"), value.get("completionTokens"))
     if total is None and input_tokens is None and output_tokens is None:
         return None
     result = dict(value)
@@ -248,12 +262,30 @@ def _token_usage_from_stage_records(records: list[dict[str, Any]]) -> dict[str, 
 
 
 def _stage_log_token_usage(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    for key in ("paper_stage_log", "user_stage_log", "stage_log_summary"):
-        stage_log = _mapping_copy(payload.get(key))
-        token_usage = _mapping_copy(stage_log.get("token_usage"))
-        if usage := _token_usage_from_mapping(token_usage):
-            return usage
+    for container in _token_usage_containers(payload):
+        for key in ("token_usage", "usage", "tokenUsage"):
+            token_usage = _mapping_copy(container.get(key))
+            if usage := _token_usage_from_mapping(token_usage):
+                return usage
     return None
+
+
+def _token_usage_containers(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    containers: list[Mapping[str, Any]] = [payload]
+    for key in (
+        "paper_stage_log",
+        "user_stage_log",
+        "stage_log_summary",
+        "domain_execution",
+        "owner_result",
+        "execution",
+        "provider_attempt",
+        "runtime_telemetry",
+    ):
+        container = _mapping_copy(payload.get(key))
+        if container:
+            containers.append(container)
+    return containers
 
 
 def _closeout_ref_path(*, study_root: Path, ref: str) -> Path | None:
