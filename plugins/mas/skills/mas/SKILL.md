@@ -49,6 +49,19 @@ OPL series command surface: `opl foundry agents inspect mas --json`
 uv run python -m med_autoscience.cli doctor report --profile <profile>
 ```
 
+## OPL ScholarSkills 外挂能力边界
+
+`ScholarSkills` 的 `display`、`tables`、`stats`、`omics`、`lit`、`write`、`review`、`submit`、`data` 和 `intake` 模块是 OPL-managed academic capability pack，不是 MAS 私有执行器。MAS 直接调用入口不变：先通过 MAS owner surface 读取 `study progress`、current owner delta、publication supervisor state 和 authority boundary，再用 `scientific_capability_registry` 做能力发现、resolve、refs-only invocation projection 或 owner-consumption evidence。
+
+执行可用性来自 OPL Connect 同步到 workspace 或 quest 的本地 skill，而不是 MAS 仓内 plugin mirror：
+
+```bash
+opl connect sync-skills --domain scholarskills --scope workspace --target-workspace <workspace_root> --json
+opl connect sync-skills --domain scholarskills --scope quest --target-quest <quest_root> --json
+```
+
+ScholarSkills 产物默认只是 refs-only candidate、materialized package refs 或 execution receipt candidate。只有 MAS owner receipt、typed blocker、reviewer receipt、route-back evidence、publication gate 或 controller decision 接受后，才可计入 study truth、paper progress、artifact authority、current package freshness 或 publication readiness。
+
 ## OPL terminal attempt / next work unit 快速入口
 
 当 OPL terminal attempt 已完成，但 MAS study progress 仍停在 queued、handoff、stale current-control 或旧 work unit 时，不要先找 `--format` 参数，也不要只跑 read-only `study progress` 期待它消费 closeout。`study progress --format json` 只读当前投影；消费 OPL terminal attempt closeout、刷新 current-control 并推导唯一 next work unit 的入口是 `runtime domain-health-diagnostic`。
