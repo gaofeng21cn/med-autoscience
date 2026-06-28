@@ -32,6 +32,41 @@
     "repo_source_retirement_first": true
   },
   "surface_kind": "mas_runtime_surface_retirement_inventory",
+  "tombstone_index": {
+    "purpose": "compressed tombstone index for MAS private runtime substrate retirement after dated closeout docs were thinned",
+    "history_index_ref": "docs/history/runtime/README.md#tombstone--provenance-index",
+    "canonical_human_ref": "docs/history/runtime/mas-private-surface-retirement.md",
+    "no_resurrection_guard": true,
+    "retired_surface_families": [
+      "runtime transport and turn runner substrate",
+      "worker lease and residency projection",
+      "domain authority refs private index",
+      "default-executor and owner-callable carrier projections",
+      "domain action request materializer local persistence",
+      "domain diagnostic obligation actuator",
+      "runtime health kernel",
+      "Progress Portal / workbench action projection",
+      "runtime lifecycle payload retention",
+      "runtime storage maintenance"
+    ],
+    "allowed_residual_roles": [
+      "OPL-authorized adapter",
+      "MAS minimal authority adapter",
+      "body-free read-only projection",
+      "tombstone/provenance",
+      "no-resurrection guard"
+    ],
+    "forbidden_use": [
+      "MAS generic runtime substrate",
+      "MAS queue or attempt owner",
+      "provider admission proof",
+      "runtime readiness proof",
+      "paper progress proof",
+      "publication-ready proof",
+      "public CLI alias",
+      "compatibility shim"
+    ]
+  },
   "surfaces": [
     {
       "active_caller_migrated": true,

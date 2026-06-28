@@ -35,4 +35,14 @@ Machine boundary: 人读 runtime 历史索引。当前 runtime truth 继续归 `
 | [runtime supervision loop](runtime_supervision_loop.md) | 旧 MAS supervision loop tombstone 与 owner receipt provenance。 | OPL current-control-state / provider attempt projection；MAS active 面为 owner receipt、typed blockers、domain authority refs 与 refs-only projection。 |
 | [workspace knowledge and literature implementation plan](workspace_knowledge_and_literature_implementation_plan.md) | 已完成的 workspace knowledge / literature 实施计划。 | [workspace knowledge and literature contract](../../runtime/contracts/workspace_knowledge_and_literature_contract.md)。 |
 
+## Tombstone / Provenance Index
+
+以下索引是退役残留的唯一维护入口；不要再新增逐项 closeout 文档来重复这些口径。
+
+| retired surface family | tombstone owner | current read rule |
+| --- | --- | --- |
+| old domain-health diagnostic / owner-route / domain-owner dispatch / default-executor / Progress Portal control-plane wording | `contracts/runtime/legacy-active-path-tombstones.json` and [legacy active path tombstones](legacy_active_path_tombstones.md) | 只能作为 diagnostics、migration input、history provenance、consume/readback evidence 或 no-resurrection guard；不得恢复为 PaperMission 默认主线、runtime readiness、paper progress、owner receipt、typed blocker 或 publication-ready 证据。 |
+| MAS private runtime substrate, local carrier persistence, owner-callable/default-executor carriers, runtime health/workbench/capability projections, runtime lifecycle/storage maintenance | `contracts/runtime/mas-runtime-surface-retirement-inventory.json` and [MAS private surface physical retirement](mas-private-surface-retirement.md) | repo-source retirement 与 live-runtime readiness 分账读取；旧 module / CLI alias / wrapper / compat shim 不再作为 active public surface。允许残留只限 OPL-authorized adapter、MAS minimal authority adapter、body-free projection、tombstone/provenance 或 no-resurrection guard。 |
+| legacy public helper retirements such as `progress-projection`, `legacy-control-surface-clean-migration`, `legacy-ds-retire`, and runtime supervisor test helper shims | this index plus theme-level [program history index](../program/README.md) | 只保留退役事实和当前 owner surface 指向；不要维护多份 dated active-looking closeout。需要当前命令或测试入口时读取 active docs、parser/source、workspace renderer 和 focused tests。 |
+
 Runtime 历史只保留 provenance。它可以解释当前合同为什么这样设计，但不能重开旧 MDS daemon、WebUI、workspace-local service 或已退役 scheduler 路径。活跃 runtime 变更必须先更新当前 contract / control / projection / display 层。

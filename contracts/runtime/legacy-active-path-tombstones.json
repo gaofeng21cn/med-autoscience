@@ -1,5 +1,38 @@
 {
   "surface_kind": "mas_legacy_active_path_tombstone_contract",
+  "tombstone_index": {
+    "purpose": "compressed tombstone index for retired active-path wording after dated closeout docs were thinned",
+    "history_index_ref": "docs/history/runtime/README.md#tombstone--provenance-index",
+    "canonical_human_ref": "docs/history/runtime/legacy_active_path_tombstones.md",
+    "no_resurrection_guard": true,
+    "retired_wording_families": [
+      "domain-health-diagnostic",
+      "owner-route-reconcile",
+      "domain-owner-action-dispatch",
+      "default-executor",
+      "Progress Portal",
+      "MAS workbench",
+      "workspace-local scheduler",
+      "Hermes scheduler hosted runtime"
+    ],
+    "allowed_read_classes": [
+      "runtime diagnostic",
+      "authority consume/readback",
+      "migration diagnostic",
+      "history provenance",
+      "retired workbench projection"
+    ],
+    "forbidden_use": [
+      "product default paper mission mainline",
+      "runtime readiness proof",
+      "provider running proof",
+      "paper progress proof",
+      "owner receipt proof",
+      "typed blocker proof",
+      "publication-ready proof",
+      "compatibility alias"
+    ]
+  },
   "version": "mas-legacy-active-path-tombstone-contract.v1",
   "target_domain_id": "medautoscience",
   "status": "legacy_active_paths_retired_tombstoned",
