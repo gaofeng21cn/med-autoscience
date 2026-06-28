@@ -10,7 +10,9 @@ STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS = frozenset(
         "dm002_same_line_publication_paper_repair",
         "dm002_same_line_display_table_package_repair",
         "dm002_same_line_methods_display_package_repair",
+        "consume_current_ai_reviewer_record_then_replay_publication_gate",
         "manuscript_story_repair",
+        "medical_prose_and_publishability_gate_repair",
         "medical_prose_write_repair",
         "treatment_gap_reporting_repair",
     }

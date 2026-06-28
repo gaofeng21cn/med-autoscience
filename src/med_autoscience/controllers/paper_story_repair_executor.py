@@ -26,6 +26,8 @@ SCHEMA_VERSION = 1
 BLOCKER = "manuscript_story_surface_delta_missing"
 DM002_STORY_WORK_UNIT = "dm002_same_line_publication_paper_repair"
 DEFAULT_DPCC_STORY_WORK_UNIT = medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
+DM002_GATE_REPLAY_STORY_WORK_UNIT = "consume_current_ai_reviewer_record_then_replay_publication_gate"
+DPCC_GATE_REPLAY_STORY_WORK_UNIT = "medical_prose_and_publishability_gate_repair"
 
 
 def run_story_repair(
@@ -71,6 +73,7 @@ def run_story_repair(
             source_eval_id=_text(publication_eval.get("eval_id")),
             previous_quality_repair_batch=quality_batch,
             publication_eval_payload=publication_eval,
+            study_root=resolved_study_root,
         )
     except RuntimeError as exc:
         return _blocked_result(
@@ -212,8 +215,14 @@ def _select_story_work_unit_id(
 
 
 def _normalize_story_work_unit_id(*, study_id: str, work_unit_id: str) -> str:
-    if study_id.startswith("002-") and work_unit_id in {"manuscript_story_repair", DEFAULT_DPCC_STORY_WORK_UNIT}:
+    if study_id.startswith("002-") and work_unit_id in {
+        "manuscript_story_repair",
+        DEFAULT_DPCC_STORY_WORK_UNIT,
+        DM002_GATE_REPLAY_STORY_WORK_UNIT,
+    }:
         return DM002_STORY_WORK_UNIT
+    if work_unit_id == DPCC_GATE_REPLAY_STORY_WORK_UNIT:
+        return DEFAULT_DPCC_STORY_WORK_UNIT
     return work_unit_id
 
 
@@ -235,7 +244,18 @@ def _candidate_work_unit_ids(payload: object) -> list[str]:
             candidates.extend(_candidate_work_unit_ids(value))
         elif text := _text(value):
             candidates.append(text)
-    for key in ("owner_route", "source_refs", "prompt_contract", "source_action"):
+    for key in (
+        "owner_route",
+        "source_refs",
+        "prompt_contract",
+        "source_action",
+        "gate_clearing_batch_followthrough",
+        "quality_repair_batch_followthrough",
+        "work_unit_currentness",
+        "explicit_publication_work_unit",
+        "selected_publication_work_unit",
+        "current_publication_work_unit",
+    ):
         value = mapping.get(key)
         if isinstance(value, Mapping):
             candidates.extend(_candidate_work_unit_ids(value))

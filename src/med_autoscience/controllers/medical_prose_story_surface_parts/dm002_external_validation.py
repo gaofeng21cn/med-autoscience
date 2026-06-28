@@ -44,14 +44,12 @@ DM002_PERFORMANCE_TABLE_RELATIVE_PATH = (
 )
 
 
-def materialize_dm002_external_validation_story_surface(*, paper_root: Path) -> tuple[str, list[str]]:
-    evidence = _read_json_object(
-        paper_root.parent
-        / "artifacts"
-        / "controller"
-        / "analysis_harmonization"
-        / "unit_harmonized_external_validation_rerun.json"
-    )
+def materialize_dm002_external_validation_story_surface(
+    *,
+    paper_root: Path,
+    study_root: Path | None = None,
+) -> tuple[str, list[str]]:
+    evidence = _read_json_object(_dm002_rerun_evidence_path(paper_root=paper_root, study_root=study_root))
     if not evidence:
         return "", []
     values = _dm002_values(evidence)
@@ -78,6 +76,24 @@ def materialize_dm002_external_validation_story_surface(*, paper_root: Path) -> 
         if section
     )
     return manuscript, changed_paths
+
+
+def _dm002_rerun_evidence_path(*, paper_root: Path, study_root: Path | None) -> Path:
+    if study_root is not None:
+        return (
+            Path(study_root).expanduser().resolve()
+            / "artifacts"
+            / "controller"
+            / "analysis_harmonization"
+            / "unit_harmonized_external_validation_rerun.json"
+        )
+    return (
+        paper_root.parent
+        / "artifacts"
+        / "controller"
+        / "analysis_harmonization"
+        / "unit_harmonized_external_validation_rerun.json"
+    )
 
 
 def _dm002_values(evidence: Mapping[str, Any]) -> dict[str, Any]:

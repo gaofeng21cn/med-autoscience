@@ -46,6 +46,7 @@ def materialize_medical_prose_story_surfaces(
     source_eval_id: str | None = None,
     previous_quality_repair_batch: Mapping[str, Any] | None = None,
     publication_eval_payload: Mapping[str, Any] | None = None,
+    study_root: Path | None = None,
 ) -> list[str]:
     currentness_blocker = eval_bound_current_story_delta_blocker(
         paper_root=paper_root,
@@ -82,7 +83,10 @@ def materialize_medical_prose_story_surfaces(
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)
     elif work_unit_id in DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS:
-        manuscript, extra_changed_paths = materialize_dm002_external_validation_story_surface(paper_root=paper_root)
+        manuscript, extra_changed_paths = materialize_dm002_external_validation_story_surface(
+            paper_root=paper_root,
+            study_root=study_root,
+        )
     else:
         return []
     if not manuscript.strip():

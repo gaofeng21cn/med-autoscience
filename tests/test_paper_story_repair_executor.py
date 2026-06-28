@@ -283,6 +283,140 @@ def test_story_repair_executor_blocks_without_handoff_or_work_unit(tmp_path: Pat
     assert result["changed_artifact_refs"] == []
 
 
+def test_story_repair_executor_normalizes_gate_selected_publishability_work_units(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    story_surface = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    _write_json(
+        paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Current medical prose story surface is supported.",
+                    "status": "supported_with_limitations",
+                    "paper_role": "main_text",
+                    "evidence_items": [
+                        {
+                            "item_id": "C1-story",
+                            "support_level": "primary",
+                            "source_paths": ["paper/draft.md"],
+                            "summary": "Story surface evidence.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-current"})
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "handoff_ready",
+            "gate_clearing_batch_followthrough": {
+                "work_unit_id": "medical_prose_and_publishability_gate_repair",
+            },
+            "source_action": {"blocked_reason": "manuscript_story_surface_delta_missing"},
+        },
+    )
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["work_unit_id"] == "medical_prose_write_repair"
+        path = paper_root / "draft.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Current manuscript\n\nStory delta.\n", encoding="utf-8")
+        return [str(path.resolve())]
+
+    monkeypatch.setattr(story_surface, "materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_story_repair(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-003",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "progress_delta_candidate"
+    assert result["work_unit_id"] == "medical_prose_write_repair"
+    assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
+
+
+def test_story_repair_executor_normalizes_dm002_ai_reviewer_gate_work_unit(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    story_surface = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    paper_root = study_root / "paper"
+    _write_json(
+        paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "DM002-C1",
+                    "statement": "Current DM002 story surface is supported.",
+                    "status": "supported_with_limitations",
+                    "paper_role": "main_text",
+                    "evidence_items": [
+                        {
+                            "item_id": "DM002-C1-story",
+                            "support_level": "primary",
+                            "source_paths": ["paper/draft.md"],
+                            "summary": "Story surface evidence.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-dm002-current"})
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "handoff_ready",
+            "gate_clearing_batch_followthrough": {
+                "work_unit_id": "consume_current_ai_reviewer_record_then_replay_publication_gate",
+            },
+            "source_action": {"blocked_reason": "manuscript_story_surface_delta_missing"},
+        },
+    )
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+        path = paper_root / "draft.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Current DM002 manuscript\n\nStory delta.\n", encoding="utf-8")
+        return [str(path.resolve())]
+
+    monkeypatch.setattr(story_surface, "materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_story_repair(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-002",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "progress_delta_candidate"
+    assert result["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
+
+
 def test_story_repair_executor_accepts_idempotent_dm002_story_surface(
     tmp_path: Path,
 ) -> None:
@@ -392,3 +526,97 @@ def test_story_repair_executor_accepts_idempotent_dm002_story_surface(
         str((paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").resolve())
     ]
     assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
+
+
+def test_story_repair_executor_uses_study_root_dm002_evidence_for_body_authority(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    authority_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    _write_dm002_rerun_evidence(study_root)
+    _write_json(
+        authority_paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "DM002-C1",
+                    "statement": "The fixed China-derived score retained risk ranking but underpredicted NHANES absolute mortality.",
+                    "status": "supported_with_limitations",
+                    "paper_role": "main_text",
+                    "evidence_items": [
+                        {
+                            "item_id": "DM002-C1-performance",
+                            "support_level": "primary",
+                            "source_paths": [
+                                "paper/draft.md",
+                                "paper/tables/generated/T2_time_to_event_performance_summary.md",
+                            ],
+                            "summary": "The external-validation manuscript and performance table report c-index and calibration.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    (authority_paper_root / "draft.md").write_text("# Stale DM002 manuscript\n\nBefore repair.\n", encoding="utf-8")
+    (authority_paper_root / "build" / "review_manuscript.md").parent.mkdir(parents=True, exist_ok=True)
+    (authority_paper_root / "build" / "review_manuscript.md").write_text(
+        "# Stale DM002 review manuscript\n\nBefore repair.\n",
+        encoding="utf-8",
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "eval-dm002-current",
+            "recommended_actions": [
+                {
+                    "next_work_unit": {
+                        "unit_id": "consume_current_ai_reviewer_record_then_replay_publication_gate",
+                        "lane": "write",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "handoff_ready",
+            "source_eval_id": "eval-dm002-current",
+            "gate_clearing_batch_followthrough": {
+                "work_unit_id": "consume_current_ai_reviewer_record_then_replay_publication_gate",
+            },
+            "source_action": {"blocked_reason": "manuscript_story_surface_delta_missing"},
+        },
+    )
+
+    result = module.run_story_repair(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-002",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "progress_delta_candidate"
+    assert result["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    changed_paths = {
+        Path(ref["path"]).relative_to(authority_paper_root).as_posix()
+        for ref in result["changed_artifact_refs"]
+        if Path(ref["path"]).is_relative_to(authority_paper_root)
+    }
+    assert "draft.md" in changed_paths
+    assert "build/review_manuscript.md" in changed_paths
+    assert "tables/generated/T2_time_to_event_performance_summary.md" in changed_paths
+    assert result["repair_execution_evidence"]["manuscript_surface_hygiene"]["story_surface_delta_present"] is True
