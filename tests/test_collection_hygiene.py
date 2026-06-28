@@ -236,8 +236,6 @@ def _is_marker_managed_nested_path(path: str) -> bool:
         or relative_test_path in tests_conftest.DISPLAY_HEAVY_FILES
         or relative_test_path in tests_conftest.FAMILY_FILES
         or relative_test_path in tests_conftest.SOAK_OR_GOLDEN_FILES
-        or relative_test_path in tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_FILES
-        or relative_test_path.startswith(tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES)
         or "pytestmark = pytest.mark." in _read(relative_test_path)
     )
 
@@ -464,13 +462,6 @@ def test_aggregate_entrypoints_explicitly_import_nested_case_reexport_surfaces()
             surface=entrypoint,
             missing_imports=missing_imports,
         )
-
-
-def test_submission_minimal_display_surface_uses_write_route_legacy_default() -> None:
-    assert (
-        "tests/test_submission_minimal_display_surface.py"
-        in tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_FILES
-    )
 
 
 def test_nested_case_modules_are_not_default_collection_surfaces() -> None:

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import inspect
-from pathlib import Path
 import fnmatch
-from collections.abc import Iterable, Mapping
-from typing import Any, Callable
+from pathlib import Path
 
 import pytest
 
@@ -85,35 +82,6 @@ SOAK_OR_GOLDEN_FILES = {
     "tests/progress_portal_cases/test_stage_kernel_cross_domain_soak_projection.py",
 }
 
-WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
-    "tests/test_submission_minimal.py",
-    "tests/test_submission_minimal_display_surface.py",
-    "tests/test_study_delivery_sync.py",
-    "tests/test_journal_package_controller.py",
-    "tests/test_publication_gate.py",
-    "tests/test_quality_repair_batch.py",
-    "tests/test_gate_clearing_batch.py",
-    "tests/test_fast_lane_executor.py",
-    "tests/test_artifact_lifecycle_inventory.py",
-}
-
-WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES = (
-    "tests/submission_minimal_cases/",
-    "tests/test_study_delivery_sync_cases/",
-    "tests/test_publication_gate_cases/",
-    "tests/test_gate_clearing_batch_cases/",
-)
-WRITE_ROUTE_LEGACY_FUNCTIONS = {
-    "med_autoscience.controllers.submission_minimal": ("create_submission_minimal_package",),
-    "med_autoscience.controllers.study_delivery_sync": ("sync_study_delivery",),
-    "med_autoscience.controllers.journal_package": ("materialize_journal_package",),
-    "med_autoscience.controllers.publication_gate": ("run_controller",),
-    "med_autoscience.controllers.publication_gate_parts.supervisor_and_cli": ("run_controller",),
-    "med_autoscience.controllers.quality_repair_batch": ("run_quality_repair_batch",),
-    "med_autoscience.controllers.gate_clearing_batch": ("run_gate_clearing_batch",),
-    "med_autoscience.controllers.fast_lane_executor": ("build_fast_lane_execution_manifest",),
-}
-
 
 def _relative_test_path(item: pytest.Item) -> str:
     path = Path(str(item.fspath)).resolve()
@@ -123,13 +91,6 @@ def _relative_test_path(item: pytest.Item) -> str:
 def _is_nested_case_collection_path(relative_test_path: str) -> bool:
     relative_to_tests = relative_test_path.removeprefix("tests/")
     return any(fnmatch.fnmatch(relative_to_tests, pattern) for pattern in NESTED_CASE_COLLECTION_IGNORE_GLOBS)
-
-
-def pytest_configure(config: pytest.Config) -> None:
-    config.addinivalue_line(
-        "markers",
-        "write_route_legacy_default: legacy focused write tests that inject explicit control-plane route authority",
-    )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -149,71 +110,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.materialization_heavy)
         if relative_path in SOAK_OR_GOLDEN_FILES:
             item.add_marker(pytest.mark.soak_or_golden)
-        if relative_path in WRITE_ROUTE_LEGACY_DEFAULT_FILES or relative_path.startswith(
-            WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES
-        ):
-            item.add_marker(pytest.mark.write_route_legacy_default)
 
 
 @pytest.fixture
 def writable_authority_route_context() -> dict[str, object]:
     return writable_route_context()
-
-
-@pytest.fixture(autouse=True)
-def _inject_legacy_write_route_context(
-    request: pytest.FixtureRequest,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    if not _should_inject_legacy_write_route_context(request.node):
-        return
-    route_context = writable_route_context()
-    for module, function_name in _iter_legacy_write_route_targets():
-        function = getattr(module, function_name, None)
-        if callable(function):
-            monkeypatch.setattr(module, function_name, _wrap_legacy_write_route_function(function, route_context))
-
-
-def _should_inject_legacy_write_route_context(node: pytest.Item) -> bool:
-    if node.get_closest_marker("write_route_legacy_default") is None:
-        return False
-    return "test_authority_write_route_authority.py" not in _relative_test_path(node)
-
-
-def _iter_legacy_write_route_targets() -> Iterable[tuple[Any, str]]:
-    for module_name, function_names in WRITE_ROUTE_LEGACY_FUNCTIONS.items():
-        try:
-            module = __import__(module_name, fromlist=["_"])
-        except ImportError:
-            continue
-        for function_name in function_names:
-            yield module, function_name
-
-
-def _wrap_legacy_write_route_function(
-    function: Callable[..., Any],
-    route_context: dict[str, object],
-) -> Callable[..., Any]:
-    signature = inspect.signature(function)
-
-    def wrapped(*args: Any, **kwargs: Any) -> Any:
-        if _missing_route_context(kwargs):
-            _inject_route_context_kwarg(kwargs, signature, route_context)
-        return function(*args, **kwargs)
-
-    return wrapped
-
-
-def _missing_route_context(kwargs: Mapping[str, Any]) -> bool:
-    return kwargs.get("authority_route_context") is None and kwargs.get("route_context") is None
-
-
-def _inject_route_context_kwarg(
-    kwargs: dict[str, Any],
-    signature: inspect.Signature,
-    route_context: dict[str, object],
-) -> None:
-    if "authority_route_context" in signature.parameters:
-        kwargs["authority_route_context"] = route_context
-    elif "route_context" in signature.parameters:
-        kwargs["route_context"] = route_context

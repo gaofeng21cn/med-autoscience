@@ -46,7 +46,7 @@ test-smoke:
 	scripts/run-pytest-clean.sh tests/test_smoke_entrypoints.py tests/test_line_budget.py -q
 
 test-regression:
-	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden and not write_route_legacy_default"
+	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden"
 
 test-ci-preflight:
 	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
