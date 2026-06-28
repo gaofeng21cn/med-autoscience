@@ -371,7 +371,7 @@
     },
     "workbench_cross_domain_soak": {
       "surface_kind": "mas_opl_stage_kernel_cross_domain_soak_projection",
-      "implementation_ref": "src/med_autoscience/controllers/progress_portal_parts/runtime_workbench_projection.py",
+      "implementation_ref": "opl_app_workbench_shell_readback",
       "required_domain_lanes": [
         "MAS",
         "MAG",

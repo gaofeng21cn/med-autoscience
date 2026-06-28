@@ -60,7 +60,6 @@ def test_mas_plugin_skill_tracks_current_domain_handler_and_doc_boundaries() -> 
         "docs/runtime/contracts/runtime_boundary.md",
         "docs/runtime/domain_authority_refs_index_guard.md",
         "docs/history/runtime/runtime_supervision_loop.md",
-        "docs/runtime/display/progress_portal.md",
         "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md",
     ):
         assert (REPO_ROOT / doc_path).is_file()

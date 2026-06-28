@@ -75,11 +75,6 @@ def build_generated_surface_handoff(
             {
                 "surface_id": "workbench",
                 "current_paths": [
-                    "src/med_autoscience/controllers/progress_portal.py",
-                    (
-                        "src/med_autoscience/controllers/progress_portal_parts/"
-                        "read_model_materializer.py"
-                    ),
                     "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 ],
                 "current_role": "domain_refs_workbench_projection_source",
@@ -89,7 +84,6 @@ def build_generated_surface_handoff(
                 "surface_id": "projection_shell",
                 "current_paths": [
                     "src/med_autoscience/controllers/product_entry_parts/",
-                    "src/med_autoscience/controllers/progress_portal_parts/",
                 ],
                 "current_role": "domain_refs_projection_builder_source",
                 "target_role": "opl_generated_projection_shell",

@@ -1656,9 +1656,6 @@
       },
       "surface_id": "progress_portal_study_workbench_overview_action_projection",
       "verified_by": [
-        "tests/progress_portal_cases/test_study_workbench_and_routes.py",
-        "tests/test_progress_portal.py",
-        "tests/test_progress_portal_workbench_boundary.py",
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py"
       ]

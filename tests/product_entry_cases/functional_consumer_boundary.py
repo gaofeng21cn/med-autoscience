@@ -241,21 +241,15 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert "publication_eval/latest.json" in owner_dispatch_thinning["does_not_write"]
     assert "owner_chain_closed" in owner_dispatch_thinning["does_not_claim"]
     workbench_thinning = by_id["workbench_portal_generic_shell"]["latest_thinning_evidence"]
-    assert workbench_thinning["status"] == (
-        "opl_hosted_workbench_projection_and_read_model_materializer_landed"
-    )
+    assert workbench_thinning["status"] == "mas_local_progress_portal_physical_delete_landed"
     materializer_boundary = workbench_thinning["read_model_materializer_boundary"]
-    assert materializer_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
-    assert materializer_boundary["hosted_package_role"] == "read_model_projection_package"
+    assert materializer_boundary["status"] == "retired_local_materializer_replaced_by_opl_hosted_workbench"
+    assert materializer_boundary["hosted_package_role"] == "opl_owned_read_model_projection_package"
     assert materializer_boundary["hosted_package_truth_role"] == "projection_only_no_workspace_runtime_truth"
-    assert materializer_boundary["physical_module"] == (
-        "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
-    )
-    assert materializer_boundary["materializer_scope"] == (
-        "domain_owned_payload_html_and_hosted_package_projection"
-    )
+    assert materializer_boundary["physical_module"] is None
+    assert materializer_boundary["materializer_scope"] == "opl_owned_payload_html_and_hosted_package_projection"
     assert materializer_boundary["active_callers"] == []
-    assert materializer_boundary["domain_repo_physical_delete_authorized"] is False
+    assert materializer_boundary["domain_repo_physical_delete_authorized"] is True
     assert "local_http_service_owner" in materializer_boundary["does_not_claim"]
     assert "runtime_control_owner" in materializer_boundary["does_not_claim"]
     assert "publication_eval/latest.json" in materializer_boundary["does_not_write"]

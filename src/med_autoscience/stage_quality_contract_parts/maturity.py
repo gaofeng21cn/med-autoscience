@@ -250,7 +250,7 @@ PACK_PROMOTION_EVIDENCE: dict[str, tuple[dict[str, str], ...]] = {
             "reader_grounding_focused_tests",
             "focused_tests",
             "test",
-            "tests/progress_portal_cases/test_stage_review_surface.py",
+            "tests/test_stage_knowledge_visibility.py",
             "stage_review_page_and_index_source_grounding_projection",
             strength="strong",
         ),

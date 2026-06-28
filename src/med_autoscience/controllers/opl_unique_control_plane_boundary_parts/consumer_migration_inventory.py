@@ -406,7 +406,6 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/progress_portal.py", "src/med_autoscience/controllers/progress_portal_parts/",
             "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
             "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
@@ -420,7 +419,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
         "retention_reason": (
             "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, "
-            "plus the domain-owned Progress Portal payload/static HTML materializer consumed by OPL hosted workbench refs."
+            "while OPL owns the hosted workbench and generated projection shell."
         ),
         "current_surface_refs": [
             "product_status",
@@ -434,30 +433,19 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "mas_domain_authority_refs": ["study_progress_projection", "safe_action_refs"],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
         "latest_thinning_evidence": {
-            "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed",
+            "status": "mas_local_progress_portal_physical_delete_landed",
             "extracted_paths": [
                 "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
                 "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             ],
             "read_model_materializer_boundary": {
-                "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
-                "hosted_package_role": "read_model_projection_package",
+                "status": "retired_local_materializer_replaced_by_opl_hosted_workbench",
+                "hosted_package_role": "opl_owned_read_model_projection_package",
                 "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
-                "physical_module": (
-                    "src/med_autoscience/controllers/progress_portal_parts/"
-                    "read_model_materializer.py"
-                ),
-                "materializer_scope": (
-                    "domain_owned_payload_html_and_hosted_package_projection"
-                ),
+                "physical_module": None,
+                "materializer_scope": "opl_owned_payload_html_and_hosted_package_projection",
                 "active_callers": [],
-                "writes_only": [
-                    "runtime/artifacts/progress_portal/latest.json",
-                    "runtime/artifacts/progress_portal/hosted_package.json",
-                    "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
-                    "ops/mas/progress/index.html",
-                    "ops/mas/progress/studies/<study_id>/index.html",
-                ],
+                "writes_only": [],
                 "does_not_claim": [
                     "workspace_workbench_owner",
                     "status_wrapper_owner",
@@ -465,9 +453,9 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                     "local_http_service_owner",
                     "runtime_control_owner",
                 ],
-                "domain_repo_physical_delete_authorized": False,
+                "domain_repo_physical_delete_authorized": True,
                 "retention_reason": (
-                    "The retained module materializes MAS-owned read-model evidence and hosted package refs; "
+                    "The MAS-local materializer is retired; MAS retains only domain refs consumed by OPL-hosted projection surfaces; "
                     "it is not a workspace helper, service wrapper, or runtime control owner."
                 ),
                 "does_not_write": [

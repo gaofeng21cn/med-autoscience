@@ -5,13 +5,14 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import progress_portal
 from med_autoscience.profiles import WorkspaceProfile
 
 
 SURFACE = "paper_progress_degradation_evidence"
 SCHEMA_VERSION = 1
 READ_MODEL = "paper_progress_degradation_evidence_read_model"
+PROGRESS_PROJECTION_PAYLOAD_REF = Path("runtime/artifacts/progress_portal/latest.json")
+PROGRESS_PROJECTION_HTML_REF = Path("ops/mas/progress/index.html")
 
 READ_ONLY_CONTRACT = {
     "mode": "read_only_degradation_evidence",
@@ -443,12 +444,12 @@ def _progress_portal_refs(workspace_root: Path) -> dict[str, Any]:
     refs = [
         _ref_status(
             label="progress_portal_payload",
-            path=workspace_root / progress_portal.PROGRESS_PORTAL_PAYLOAD_REF,
+            path=workspace_root / PROGRESS_PROJECTION_PAYLOAD_REF,
             kind="json",
         ),
         _ref_status(
             label="progress_portal_html",
-            path=workspace_root / progress_portal.PROGRESS_PORTAL_HTML_REF,
+            path=workspace_root / PROGRESS_PROJECTION_HTML_REF,
             kind="text",
         ),
     ]

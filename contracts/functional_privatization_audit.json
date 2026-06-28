@@ -329,7 +329,7 @@
             "functional_consumer_boundary.standard_agent_purity",
             "opl_unique_control_plane_handoff.standard_agent_purity",
             "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
-            "progress_portal_parts.read_model_materializer.read_model_materializer_boundary"
+            "workbench_portal_generic_shell.retired_local_materializer_boundary"
           ],
           "closure_status": "closed",
           "delete_or_tombstone_after": [
@@ -1015,8 +1015,6 @@
         },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/progress_portal.py",
-          "src/med_autoscience/controllers/progress_portal_parts/",
           "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
           "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
           "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
@@ -1064,20 +1062,14 @@
               "current_package",
               "runtime_state"
             ],
-            "domain_repo_physical_delete_authorized": false,
-            "hosted_package_role": "read_model_projection_package",
+            "domain_repo_physical_delete_authorized": true,
+            "hosted_package_role": "opl_owned_read_model_projection_package",
             "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
-            "materializer_scope": "domain_owned_payload_html_and_hosted_package_projection",
-            "physical_module": "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
-            "retention_reason": "The retained module materializes MAS-owned read-model evidence and hosted package refs; it is not a workspace helper, service wrapper, or runtime control owner.",
-            "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
-            "writes_only": [
-              "runtime/artifacts/progress_portal/latest.json",
-              "runtime/artifacts/progress_portal/hosted_package.json",
-              "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
-              "ops/mas/progress/index.html",
-              "ops/mas/progress/studies/<study_id>/index.html"
-            ]
+            "materializer_scope": "opl_owned_payload_html_and_hosted_package_projection",
+            "physical_module": null,
+            "retention_reason": "The MAS-local materializer is retired; MAS retains only domain refs consumed by OPL-hosted projection surfaces; it is not a workspace helper, service wrapper, or runtime control owner.",
+            "status": "retired_local_materializer_replaced_by_opl_hosted_workbench",
+            "writes_only": []
           },
           "retired_combined_portal_runtime_soak_provenance": {
             "does_not_claim_active_entry": true,
@@ -1092,7 +1084,7 @@
             "scope": "retired_read_model_evidence_shell_provenance",
             "status": "physically_retired_no_alias"
           },
-          "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed"
+          "status": "mas_local_progress_portal_physical_delete_landed"
         },
         "mas_domain_authority_refs": [
           "study_progress_projection",
@@ -1110,7 +1102,7 @@
           "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
           "domain_handler_export.functional_consumer_boundary.generated_surface_handoff"
         ],
-        "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, plus the domain-owned Progress Portal payload/static HTML materializer consumed by OPL hosted workbench refs."
+        "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, while OPL owns the hosted workbench and generated projection shell."
       },
       {
         "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
@@ -1760,8 +1752,6 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/progress_portal.py",
-            "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
             "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
           ],
           "current_role": "domain_refs_workbench_projection_source",
@@ -1770,8 +1760,7 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/",
-            "src/med_autoscience/controllers/progress_portal_parts/"
+            "src/med_autoscience/controllers/product_entry_parts/"
           ],
           "current_role": "domain_refs_projection_builder_source",
           "surface_id": "projection_shell",
@@ -2438,7 +2427,7 @@
           "functional_consumer_boundary.standard_agent_purity",
           "opl_unique_control_plane_handoff.standard_agent_purity",
           "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
-          "progress_portal_parts.read_model_materializer.read_model_materializer_boundary"
+          "workbench_portal_generic_shell.retired_local_materializer_boundary"
         ],
         "closure_status": "closed",
         "delete_or_tombstone_after": [

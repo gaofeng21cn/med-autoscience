@@ -33,12 +33,11 @@ Related contracts: `live-console-parity`, `mds_behavior_equivalence_matrix`
 - `QuestBashExecOperation` 提供 bash execution status、progress、command/workdir、tool call/result 展示。
 - `daemon/app.py` 的 terminal attach path 使用 WebSocket token，支持 active runtime snapshot replay、logged terminal replay、input、binary input、resize、detach、ping/pong 和 terminal exit/error event。
 
-当前 MAS 落地能力：
+- Historical MAS Progress Portal capability, now retired:
 
-- `src/med_autoscience/controllers/progress_portal.py` 能生成 `ops/mas/progress/index.html` 和 payload，默认 workspace overview 下会解析 cockpit studies，并选择一个 active study 或 `workspace-overview`。
-- `progress_portal_parts/workspace_overview.py` 已生成 study table，包含 `study_id`、状态、`active_run_id`、runtime health、supervisor、freshness、paper/current stage、焦点/下一步。
-- `progress_portal_parts/read_model_materializer.py` 只作为 read-model materializer 写 `artifacts/runtime/progress_portal/*` 与 `ops/mas/progress/*` display/read-model evidence；hosted package 暴露 `read_model_materializer_boundary` / `mas_progress_portal_read_model_materializer_boundary`，旧 `workspace_carrier.py` 模块已物理退役且无 alias。
-- `progress_portal_parts/study_workbench.py`、`route_decision_trail.py` 和 `route_map.py` 提供 per-study workbench、route-decision trail 与路线地图 read-only projection，不重新解释 study truth、runtime truth 或 medical quality。
+- The old MAS-local `progress_portal` source tree and tests were removed from the active source tree. It is preserved here only as provenance for the MDS parity review.
+- Current workbench/display ownership belongs to OPL hosted workbench surfaces. MAS supplies study progress, owner receipt, typed blocker, route, artifact, and source refs for OPL to consume.
+- MAS no longer materializes local Progress Portal HTML or hosted packages; any workbench readback must come from OPL current-control/app workbench surfaces or MAS refs-only projections.
 - MAS private Live Console / conversation/session read model / terminal attach gate 已从当前控制面物理退役；terminal/log/provider drilldown 归 OPL `current_control_state`。
 
 差距不在“有没有任何进度页”，而在“用户是否能以单篇论文为核心稳定理解系统正在做什么”。当前 MAS 已有 per-study workbench repo contract；Progress Portal 是论文/domain progress 与 evidence refs 入口，不是运行控制面或 terminal owner。terminal/log/provider drilldown、live execution drilldown 和 attach/control 必须并列展示 OPL `current_control_state` 或 provider attempt projection。另一个原 P0 语义缺口已经有机器合同承接：旧 MDS WebUI 能让用户看到类似研究路线的演进，MAS 现在用 `focused_lanes.portal-route-decision-trail`、`mas_progress_portal_route_decision_trail` 和 `mas_progress_portal_route_map` helper 固定 read-only projection，展示先尝试哪条分析/写作路径，哪一步因为证据、质量、数据或运行 blocker 走不通，为什么切换到另一条路线，以及最终哪条路线仍是 active / winning path。真实 workspace 若缺 controller decision、evidence/review ledger 或 runtime lineage 输入，页面必须显示 missing，不得编造路线。

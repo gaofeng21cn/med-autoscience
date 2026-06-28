@@ -78,7 +78,6 @@ SOAK_OR_GOLDEN_FILES = {
     "tests/test_real_workspace_soak_monitor.py",
     "tests/test_storage_governance_read_only_soak.py",
     "tests/test_study_truth_kernel_golden_fixtures.py",
-    "tests/progress_portal_cases/test_stage_kernel_cross_domain_soak_projection.py",
 }
 
 

@@ -70,7 +70,6 @@
         "tests/test_runtime_supervision.py",
         "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
         "tests/test_study_progress.py",
-        "tests/test_progress_portal.py",
         "tests/test_product_entry.py"
       ],
       "overlap_policy": "allowed_with_regression",
@@ -187,7 +186,6 @@
     "portal-route-decision-trail": {
       "kind": "focused_portal_route_decision_trail_contract_gate",
       "paths": [
-        "tests/test_progress_portal.py",
         "tests/progress_portal_cases",
         "tests/test_mds_capability_parity.py"
       ],
@@ -231,9 +229,7 @@
     },
     "paper-facing-stage-log-summary": {
       "kind": "focused_paper_facing_stage_log_summary_contract_gate",
-      "paths": [
-        "tests/progress_portal_cases/test_stage_review_surface.py"
-      ],
+      "paths": [],
       "docs": [
         "docs/runtime/display/progress_portal.md"
       ],
@@ -276,10 +272,7 @@
     },
     "mas-workbench-projection": {
       "kind": "focused_mas_opl_runtime_workbench_projection_gate",
-      "paths": [
-        "tests/test_progress_portal.py",
-        "tests/progress_portal_cases/test_study_workbench_and_routes.py"
-      ],
+      "paths": [],
       "docs": [
         "docs/active/opl_app_mas_runtime_workbench_program.md"
       ],
@@ -429,103 +422,100 @@
         "surface_kind": "mas_declarative_pack_compiler_input"
       },
       "generated_surface_handoff": {
-        "current_mas_role": "domain_handler_and_refs_projection_source",
-        "domain_refs_projection_exit_criteria": [
-          "opl_pack_compiler_generated_surface_available",
-          "opl_generated_default_owner_consumes_domain_refs",
-          "focused_lane_green",
-          "no_forbidden_write",
-          "history_tombstone_or_delete_unowned_shell"
-        ],
+        "surface_kind": "mas_generated_surface_handoff",
+        "schema_version": 1,
         "generated_surface_owner": "one-person-lab",
+        "current_mas_role": "domain_handler_and_refs_projection_source",
+        "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_standard_agent_purity_guarded",
+        "long_term_mas_owner": false,
+        "mas_handwritten_shell_expansion_allowed": false,
         "handoff_surfaces": [
           {
+            "surface_id": "cli",
             "current_paths": [
               "src/med_autoscience/cli.py",
               "src/med_autoscience/cli_parts/"
             ],
             "current_role": "domain_handler_command_target_refs_only",
-            "surface_id": "cli",
             "target_role": "opl_generated_command_surface"
           },
           {
+            "surface_id": "mcp",
             "current_paths": [
               "src/med_autoscience/mcp_server.py"
             ],
             "current_role": "domain_handler_tool_target_refs_only",
-            "surface_id": "mcp",
             "target_role": "opl_generated_mcp_descriptor_surface"
           },
           {
+            "surface_id": "skill",
             "current_paths": [
               "plugins/mas/skills/mas/SKILL.md",
               "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py"
             ],
             "current_role": "domain_skill_handler_target_and_pack_refs_only",
-            "surface_id": "skill",
             "target_role": "opl_generated_skill_descriptor_surface"
           },
           {
+            "surface_id": "product_entry",
             "current_paths": [
               "src/med_autoscience/controllers/product_entry.py"
             ],
             "current_role": "domain_manifest_ref_source_no_default_caller",
-            "surface_id": "product_entry",
             "target_role": "opl_generated_product_entry_surface"
           },
           {
+            "surface_id": "domain_handler",
             "current_paths": [
               "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
               "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_functional_closure.py",
               "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
             ],
             "current_role": "domain_owner_route_refs_export_dispatch_source",
-            "surface_id": "domain_handler",
             "target_role": "opl_generated_domain_handler_handoff_surface"
           },
           {
+            "surface_id": "status",
             "current_paths": [
               "src/med_autoscience/controllers/product_entry_parts/",
               "src/med_autoscience/controllers/progress_projection.py"
             ],
             "current_role": "domain_truth_refs_status_projection_source",
-            "surface_id": "status",
             "target_role": "opl_generated_status_wrapper_over_mas_truth_refs"
           },
           {
+            "surface_id": "workbench",
             "current_paths": [
-              "src/med_autoscience/controllers/progress_portal.py",
-              "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
               "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
             ],
             "current_role": "domain_refs_workbench_projection_source",
-            "surface_id": "workbench",
             "target_role": "opl_hosted_workbench_shell_consuming_mas_refs"
           },
           {
+            "surface_id": "projection_shell",
             "current_paths": [
-              "src/med_autoscience/controllers/product_entry_parts/",
-              "src/med_autoscience/controllers/progress_portal_parts/"
+              "src/med_autoscience/controllers/product_entry_parts/"
             ],
             "current_role": "domain_refs_projection_builder_source",
-            "surface_id": "projection_shell",
             "target_role": "opl_generated_projection_shell"
           },
           {
+            "surface_id": "test_lane_harness",
             "current_paths": [
               "contracts/test-lane-manifest.json",
               "tests/"
             ],
             "current_role": "focused_contract_guard_for_standard_agent_purity",
-            "surface_id": "test_lane_harness",
             "target_role": "opl_generated_harness_consumer_over_mas_pack"
           }
         ],
-        "long_term_mas_owner": false,
-        "mas_handwritten_shell_expansion_allowed": false,
-        "schema_version": 1,
-        "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_standard_agent_purity_guarded",
-        "surface_kind": "mas_generated_surface_handoff"
+        "domain_refs_projection_exit_criteria": [
+          "opl_pack_compiler_generated_surface_available",
+          "opl_generated_default_owner_consumes_domain_refs",
+          "focused_lane_green",
+          "no_forbidden_write",
+          "history_tombstone_or_delete_unowned_shell"
+        ]
       },
       "minimal_authority_function_manifest": {
         "ai_first_record_validator_function_ids": [
@@ -1143,13 +1133,22 @@
         "publication_route_memory_body"
       ],
       "functional_module_inventory_summary": {
-        "active_private_generic_residue_count": 0,
+        "total_count": 15,
         "classification_counts": {
-          "declarative_pack_generated_surface": 7,
           "domain_authority_refs": 5,
+          "declarative_pack_generated_surface": 7,
           "minimal_authority_function": 3
         },
+        "long_term_opl_owned_replacement_count": 0,
+        "retire_tombstone_classification_count": 0,
         "classification_gap_count": 0,
+        "functional_structure_gap_count": 0,
+        "active_private_generic_residue_count": 0,
+        "repo_local_wrapper_tail_count": 0,
+        "repo_local_wrapper_tail_module_ids": [],
+        "source_purity_cutover_status": "standard_agent_source_shape_landed",
+        "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
+        "remaining_functional_followthrough_gate_ids": [],
         "closed_functional_structure_gate_ids": [
           "generated_surface_default_owner_cutover",
           "domain_authority_refs_thinning",
@@ -1157,16 +1156,7 @@
           "opl_app_workbench_drilldown",
           "lifecycle_locator_retention_restore_ledger_reconciliation",
           "domain_ref_consumer_physical_thinning"
-        ],
-        "functional_structure_gap_count": 0,
-        "long_term_opl_owned_replacement_count": 0,
-        "remaining_functional_followthrough_gate_ids": [],
-        "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
-        "repo_local_wrapper_tail_count": 0,
-        "repo_local_wrapper_tail_module_ids": [],
-        "retire_tombstone_classification_count": 0,
-        "source_purity_cutover_status": "standard_agent_source_shape_landed",
-        "total_count": 15
+        ]
       },
       "functional_module_inventory_classification_allowed_values": [
         "declarative_pack_generated_surface",
@@ -1174,25 +1164,25 @@
         "minimal_authority_function"
       ],
       "functional_followthrough_gap_summary": {
-        "active_private_generic_residue_count": 0,
-        "classification_counts": {
-          "declarative_pack_generated_surface": 7,
-          "domain_authority_refs": 5,
-          "minimal_authority_function": 3
-        },
+        "surface_kind": "mas_functional_followthrough_gap_summary",
+        "status": "functional_structure_closed_evidence_gates_remaining",
         "classification_gap_count": 0,
-        "cleared_by_surfaces": [
-          "functional_module_inventory",
-          "declarative_pack_compiler_input",
-          "generated_surface_handoff",
-          "minimal_authority_function_manifest",
-          "stale_surface_scan_clean",
-          "opl_functional_harness_consumer_coverage",
-          "opl_generated_interface_default_owner_target_proof",
-          "opl_app_operator_workbench_drilldown",
-          "opl_lifecycle_index_cleanup_restore_ledger"
+        "functional_structure_gap_count": 0,
+        "active_private_generic_residue_count": 0,
+        "repo_local_wrapper_tail_count": 0,
+        "repo_local_wrapper_tail_module_ids": [],
+        "former_repo_local_wrapper_tail_module_ids": [
+          "generic_cli_mcp_product_wrappers",
+          "paper_mission_owner_surface_materialize_dispatch_shell",
+          "workbench_portal_generic_shell"
         ],
-        "clears_only": "functional_structure_closure_not_live_paper_soak_or_publication_ready",
+        "default_caller_readiness_status": "opl_generated_default_caller_ready",
+        "source_purity_cutover_status": "standard_agent_source_shape_landed",
+        "domain_repo_physical_delete_authorized": false,
+        "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
+        "remaining_items_are_evidence_gates": true,
+        "remaining_functional_followthrough_gate_ids": [],
+        "remaining_functional_followthrough_gates": [],
         "closed_functional_structure_gate_ids": [
           "generated_surface_default_owner_cutover",
           "domain_authority_refs_thinning",
@@ -1203,171 +1193,159 @@
         ],
         "closed_functional_structure_gates": [
           {
+            "gate_id": "generated_surface_default_owner_cutover",
+            "owner": "one-person-lab",
+            "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
+            "evidence_required": "OPL generated surfaces own default shells, MAS exposes domain refs/handlers only, focused no-regression lane green",
+            "closure_status": "closed",
             "closure_proof_refs": [
               "contracts/generated_surface_handoff.json",
               "contracts/pack_compiler_input.json",
               "opl agents interfaces --repo-dir /Users/gaofeng/workspace/med-autoscience --json"
             ],
-            "closure_status": "closed",
-            "evidence_required": "OPL generated surfaces own default shells, MAS exposes domain refs/handlers only, focused no-regression lane green",
-            "functional_structure_gap": false,
-            "gate_id": "generated_surface_default_owner_cutover",
-            "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
-            "owner": "one-person-lab"
+            "functional_structure_gap": false
           },
           {
+            "gate_id": "domain_authority_refs_thinning",
+            "owner": "med-autoscience",
+            "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
+            "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
+            "closure_status": "closed",
             "closure_proof_refs": [
               "functional_module_inventory.domain_authority_refs",
               "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
               "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain"
             ],
-            "closure_status": "closed",
-            "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
-            "functional_structure_gap": false,
-            "gate_id": "domain_authority_refs_thinning",
-            "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
-            "owner": "med-autoscience"
+            "functional_structure_gap": false
           },
           {
+            "gate_id": "standard_agent_purity_guard",
+            "owner": "med-autoscience",
+            "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
+            "evidence_required": "OPL default caller readiness is present; repo-local source shape is reduced to domain handlers, refs-only projections, and workspace read-model carrier boundary without generic owner claims",
+            "closure_status": "closed",
             "closure_proof_refs": [
               "functional_consumer_boundary.standard_agent_purity",
               "opl_unique_control_plane_handoff.standard_agent_purity",
               "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
-              "progress_portal_parts.read_model_materializer.read_model_materializer_boundary"
+              "workbench_portal_generic_shell.retired_local_materializer_boundary"
             ],
-            "closure_status": "closed",
-            "delete_or_tombstone_after": [
-              "OPL generated/default caller parity remains green",
-              "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
-              "no-active-caller proof covers repo-local product/status/workbench/domain-handler/controller/progress shell",
-              "tombstone/provenance proof exists before physical deletion"
-            ],
-            "evidence_required": "OPL default caller readiness is present; repo-local source shape is reduced to domain handlers, refs-only projections, and workspace read-model carrier boundary without generic owner claims",
+            "functional_structure_gap": false,
             "former_wrapper_tail_module_ids": [
               "generic_cli_mcp_product_wrappers",
               "paper_mission_owner_surface_materialize_dispatch_shell",
               "workbench_portal_generic_shell"
             ],
-            "functional_structure_gap": false,
-            "gate_id": "standard_agent_purity_guard",
-            "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
-            "owner": "med-autoscience",
-            "physical_delete_authorized": false
+            "physical_delete_authorized": false,
+            "delete_or_tombstone_after": [
+              "OPL generated/default caller parity remains green",
+              "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
+              "no-active-caller proof covers repo-local product/status/workbench/domain-handler/controller/progress shell",
+              "tombstone/provenance proof exists before physical deletion"
+            ]
           },
           {
+            "gate_id": "opl_app_workbench_drilldown",
+            "owner": "one-person-lab",
+            "mas_role": "provide_domain_route_quality_artifact_memory_and_owner_route_handoff_refs",
+            "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and owner-route handoff routing",
+            "closure_status": "closed",
             "closure_proof_refs": [
               "workbench_portal_generic_shell.proof_refs",
               "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain",
               "OPL runtime-app-operator-drilldown read model"
             ],
-            "closure_status": "closed",
-            "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and owner-route handoff routing",
-            "functional_structure_gap": false,
-            "gate_id": "opl_app_workbench_drilldown",
-            "mas_role": "provide_domain_route_quality_artifact_memory_and_owner_route_handoff_refs",
-            "owner": "one-person-lab"
+            "functional_structure_gap": false
           },
           {
+            "gate_id": "lifecycle_locator_retention_restore_ledger_reconciliation",
+            "owner": "one-person-lab",
+            "mas_role": "return_domain_artifact_authority_receipt_refs_only",
+            "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
+            "closure_status": "closed",
             "closure_proof_refs": [
               "domain_authority_refs_index_role.mas_consumes_opl_current_control_state_refs=true",
               "artifact_lifecycle_storage_audit_shell.proof_refs",
               "OPL current_control_state read model"
             ],
-            "closure_status": "closed",
-            "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
-            "functional_structure_gap": false,
-            "gate_id": "lifecycle_locator_retention_restore_ledger_reconciliation",
-            "mas_role": "return_domain_artifact_authority_receipt_refs_only",
-            "owner": "one-person-lab"
+            "functional_structure_gap": false
           },
           {
+            "gate_id": "domain_ref_consumer_physical_thinning",
+            "owner": "med-autoscience",
+            "mas_role": "thin_domain_ref_consumers_to_owner_refs_receipts_blockers_and_medical_helpers",
+            "evidence_required": "generic locator/index/projection shell is moved to OPL primitives, reduced to refs-only domain adapters, or isolated as delete-gated workspace read-model carrier",
+            "closure_status": "closed",
             "closure_proof_refs": [
               "functional_module_inventory.domain_authority_refs",
               "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
               "workbench_portal_generic_shell.read_model_materializer_boundary"
             ],
-            "closure_status": "closed",
-            "delete_or_tombstone_after": [
-              "body-free owner refs and typed blockers remain available",
-              "generic locator/index/projection responsibility has an OPL primitive replacement",
-              "MAS retained path is proven minimal authority or domain-native helper"
-            ],
-            "evidence_required": "generic locator/index/projection shell is moved to OPL primitives, reduced to refs-only domain adapters, or isolated as delete-gated workspace read-model carrier",
+            "functional_structure_gap": false,
             "former_wrapper_tail_module_ids": [
               "workbench_portal_generic_shell",
               "paper_mission_owner_surface_materialize_dispatch_shell"
             ],
-            "functional_structure_gap": false,
-            "gate_id": "domain_ref_consumer_physical_thinning",
-            "mas_role": "thin_domain_ref_consumers_to_owner_refs_receipts_blockers_and_medical_helpers",
-            "owner": "med-autoscience",
-            "physical_delete_authorized": false
+            "physical_delete_authorized": false,
+            "delete_or_tombstone_after": [
+              "body-free owner refs and typed blockers remain available",
+              "generic locator/index/projection responsibility has an OPL primitive replacement",
+              "MAS retained path is proven minimal authority or domain-native helper"
+            ]
           }
         ],
-        "default_caller_readiness_status": "opl_generated_default_caller_ready",
-        "does_not_clear": [
+        "classification_counts": {
+          "domain_authority_refs": 5,
+          "declarative_pack_generated_surface": 7,
+          "minimal_authority_function": 3
+        },
+        "remaining_evidence_gate_ids": [
           "live_provider_paper_apply_scaleout",
           "publication_route_memory_receipt_scaleout",
           "artifact_lifecycle_receipt_scaleout",
           "provider_slo_long_soak"
         ],
-        "domain_repo_physical_delete_authorized": false,
-        "forbidden_remaining_functional_gap_claims": [
-          "mas_owned_generic_scheduler",
-          "mas_owned_generic_queue",
-          "mas_owned_attempt_ledger",
-          "mas_owned_generic_transition_runner",
-          "mas_owned_generic_workbench",
-          "mas_owned_generic_memory_locator",
-          "mas_owned_generic_artifact_lifecycle",
-          "mas_owned_generic_observability"
+        "remaining_evidence_gates": [
+          {
+            "gate_id": "live_provider_paper_apply_scaleout",
+            "owner": "med-autoscience",
+            "mas_role": "return_owner_receipt_artifact_delta_gate_replay_human_gate_stop_loss_or_typed_blocker",
+            "evidence_required": "multi paper-line OPL provider attempts leave MAS owner receipts and no-forbidden-write proof",
+            "functional_structure_gap": false
+          },
+          {
+            "gate_id": "publication_route_memory_receipt_scaleout",
+            "owner": "med-autoscience",
+            "mas_role": "accept_reject_or_block_publication_route_memory_writeback_in_workspace_owner_surface",
+            "evidence_required": "more real paper-line accepted/rejected/blocked router receipts and body-free inventory refs",
+            "functional_structure_gap": false
+          },
+          {
+            "gate_id": "artifact_lifecycle_receipt_scaleout",
+            "owner": "med-autoscience",
+            "mas_role": "authorize_artifact_mutation_and_surface_refs_only_cleanup_restore_retention_receipts",
+            "evidence_required": "real workspace cleanup, restore, retention, rebuild, and artifact-authority receipt instances",
+            "functional_structure_gap": false
+          },
+          {
+            "gate_id": "provider_slo_long_soak",
+            "owner": "one-person-lab",
+            "mas_role": "consume_provider_attempt_receipts_without_claiming_paper_closure",
+            "evidence_required": "long provider SLO, restart/re-query, retry/dead-letter, and domain activity soak evidence",
+            "functional_structure_gap": false
+          }
         ],
-        "former_repo_local_wrapper_tail_module_ids": [
-          "generic_cli_mcp_product_wrappers",
-          "paper_mission_owner_surface_materialize_dispatch_shell",
-          "workbench_portal_generic_shell"
-        ],
-        "functional_structure_gap_count": 0,
         "owner_followthrough_evidence": [
           {
-            "accepted_owner_result_shape": "typed_blocker_ref",
-            "authority_boundary": {
-              "mas_authorizes_export_readiness": false,
-              "mas_authorizes_package_readiness": false,
-              "mas_mutates_artifact_body": false,
-              "mas_writes_domain_truth": false,
-              "mas_writes_memory_body": false,
-              "opl_can_claim_domain_ready": false,
-              "opl_can_claim_production_ready": false,
-              "opl_cleanup_apply_can_execute": true
-            },
-            "blocked_decision_count": 25,
-            "closes_artifact_lifecycle_receipt_scaleout": false,
-            "closes_memory_or_artifact_ready": false,
-            "closes_work_order_followthrough": true,
-            "domain_repo_physical_delete_authorized": false,
-            "forbidden_claims": [
-              "memory_body_saved_or_accepted",
-              "artifact_body_mutated",
-              "artifact_ready",
-              "package_ready",
-              "export_ready",
-              "domain_ready",
-              "production_ready",
-              "domain_physical_delete_authorization"
-            ],
-            "observed_ref_count": 126,
-            "open_count_zero_can_claim_ready": false,
-            "owner_followthrough_kind": "stable_typed_blocker_refs",
-            "ready_claim_authorized": false,
-            "safe_decision_count": 0,
-            "source_lane_id": "memory_artifact_lifecycle_apply",
-            "source_open_count": 0,
-            "source_projection_policy": "refs_only_counts_from_memory_artifact_package_export_domain_dispatch_and_lifecycle_surfaces_no_body_or_mutation_authority",
-            "source_readiness_status": "typed_blocker_work_order_required_not_ready",
-            "source_work_order_ref": "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision",
-            "status": "typed_blocker_followthrough_recorded_not_ready",
             "surface_kind": "mas_memory_artifact_lifecycle_owner_followthrough",
+            "status": "typed_blocker_followthrough_recorded_not_ready",
+            "source_work_order_ref": "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision",
+            "source_lane_id": "memory_artifact_lifecycle_apply",
+            "source_readiness_status": "typed_blocker_work_order_required_not_ready",
+            "source_projection_policy": "refs_only_counts_from_memory_artifact_package_export_domain_dispatch_and_lifecycle_surfaces_no_body_or_mutation_authority",
+            "observed_ref_count": 126,
+            "source_open_count": 0,
+            "open_count_zero_can_claim_ready": false,
             "typed_blocker_reason": "canonical-regeneration-required-before-projection-removal",
             "typed_blocker_ref_count": 25,
             "typed_blocker_refs": [
@@ -1396,54 +1374,38 @@
               "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:df7ac9400b641e86",
               "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:e5ccb4e804e5c97f",
               "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:ee885717be533f07"
-            ]
+            ],
+            "safe_decision_count": 0,
+            "blocked_decision_count": 25,
+            "accepted_owner_result_shape": "typed_blocker_ref",
+            "owner_followthrough_kind": "stable_typed_blocker_refs",
+            "closes_work_order_followthrough": true,
+            "closes_artifact_lifecycle_receipt_scaleout": false,
+            "closes_memory_or_artifact_ready": false,
+            "domain_repo_physical_delete_authorized": false,
+            "ready_claim_authorized": false,
+            "forbidden_claims": [
+              "memory_body_saved_or_accepted",
+              "artifact_body_mutated",
+              "artifact_ready",
+              "package_ready",
+              "export_ready",
+              "domain_ready",
+              "production_ready",
+              "domain_physical_delete_authorization"
+            ],
+            "authority_boundary": {
+              "mas_writes_domain_truth": false,
+              "mas_writes_memory_body": false,
+              "mas_mutates_artifact_body": false,
+              "mas_authorizes_package_readiness": false,
+              "mas_authorizes_export_readiness": false,
+              "opl_cleanup_apply_can_execute": true,
+              "opl_can_claim_domain_ready": false,
+              "opl_can_claim_production_ready": false
+            }
           }
         ],
-        "remaining_evidence_gate_ids": [
-          "live_provider_paper_apply_scaleout",
-          "publication_route_memory_receipt_scaleout",
-          "artifact_lifecycle_receipt_scaleout",
-          "provider_slo_long_soak"
-        ],
-        "remaining_evidence_gates": [
-          {
-            "evidence_required": "multi paper-line OPL provider attempts leave MAS owner receipts and no-forbidden-write proof",
-            "functional_structure_gap": false,
-            "gate_id": "live_provider_paper_apply_scaleout",
-            "mas_role": "return_owner_receipt_artifact_delta_gate_replay_human_gate_stop_loss_or_typed_blocker",
-            "owner": "med-autoscience"
-          },
-          {
-            "evidence_required": "more real paper-line accepted/rejected/blocked router receipts and body-free inventory refs",
-            "functional_structure_gap": false,
-            "gate_id": "publication_route_memory_receipt_scaleout",
-            "mas_role": "accept_reject_or_block_publication_route_memory_writeback_in_workspace_owner_surface",
-            "owner": "med-autoscience"
-          },
-          {
-            "evidence_required": "real workspace cleanup, restore, retention, rebuild, and artifact-authority receipt instances",
-            "functional_structure_gap": false,
-            "gate_id": "artifact_lifecycle_receipt_scaleout",
-            "mas_role": "authorize_artifact_mutation_and_surface_refs_only_cleanup_restore_retention_receipts",
-            "owner": "med-autoscience"
-          },
-          {
-            "evidence_required": "long provider SLO, restart/re-query, retry/dead-letter, and domain activity soak evidence",
-            "functional_structure_gap": false,
-            "gate_id": "provider_slo_long_soak",
-            "mas_role": "consume_provider_attempt_receipts_without_claiming_paper_closure",
-            "owner": "one-person-lab"
-          }
-        ],
-        "remaining_functional_followthrough_gate_ids": [],
-        "remaining_functional_followthrough_gates": [],
-        "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
-        "remaining_items_are_evidence_gates": true,
-        "repo_local_wrapper_tail_count": 0,
-        "repo_local_wrapper_tail_module_ids": [],
-        "source_purity_cutover_status": "standard_agent_source_shape_landed",
-        "status": "functional_structure_closed_evidence_gates_remaining",
-        "surface_kind": "mas_functional_followthrough_gap_summary",
         "retirement_gate_checklist": {
           "surface_kind": "mas_private_surface_retirement_gate_checklist",
           "completion_percent_policy": "do_not_report_100_percent_without_fresh_live_owner_or_OPL_readback_evidence_for_each_open_gate",
@@ -1474,47 +1436,59 @@
               "status": "required_before_completion_claim"
             }
           ]
-        }
+        },
+        "cleared_by_surfaces": [
+          "functional_module_inventory",
+          "declarative_pack_compiler_input",
+          "generated_surface_handoff",
+          "minimal_authority_function_manifest",
+          "stale_surface_scan_clean",
+          "opl_functional_harness_consumer_coverage",
+          "opl_generated_interface_default_owner_target_proof",
+          "opl_app_operator_workbench_drilldown",
+          "opl_lifecycle_index_cleanup_restore_ledger"
+        ],
+        "clears_only": "functional_structure_closure_not_live_paper_soak_or_publication_ready",
+        "does_not_clear": [
+          "live_provider_paper_apply_scaleout",
+          "publication_route_memory_receipt_scaleout",
+          "artifact_lifecycle_receipt_scaleout",
+          "provider_slo_long_soak"
+        ],
+        "forbidden_remaining_functional_gap_claims": [
+          "mas_owned_generic_scheduler",
+          "mas_owned_generic_queue",
+          "mas_owned_attempt_ledger",
+          "mas_owned_generic_transition_runner",
+          "mas_owned_generic_workbench",
+          "mas_owned_generic_memory_locator",
+          "mas_owned_generic_artifact_lifecycle",
+          "mas_owned_generic_observability"
+        ]
       },
       "functional_module_inventory": [
         {
-          "authority_boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
+          "module_id": "domain_authority_refs_index",
+          "owner": "med-autoscience",
           "classification": "domain_authority_refs",
+          "migration_class": "refs_only_domain_adapter",
           "code_paths": [
             "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
             "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
             "src/med_autoscience/opl_domain_pack/",
             "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py"
           ],
-          "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
           "domain_ref_consumers": [
             "owner-route handoff domain authority refs",
             "paper work-unit and dispatch owner receipt refs",
             "domain-handler/product-entry domain authority refs projections"
           ],
-          "forbidden_mas_roles": [
-            "generic_persistence_engine",
-            "generic_lifecycle_engine",
-            "generic_runtime_lifecycle_owner",
-            "generic_restore_retention_owner"
-          ],
-          "mas_domain_authority_refs": [
-            "owner_receipt",
-            "progress_projection"
-          ],
-          "migration_action": "declare_domain_authority_refs_index_and_consume_opl_current_control_state",
-          "migration_class": "refs_only_domain_adapter",
-          "module_id": "domain_authority_refs_index",
-          "opl_expected_primitives": [
-            "opl_current_control_state_projection",
-            "opl_provider_attempt_receipt_ledger",
-            "opl_restore_retention_receipt_shell"
-          ],
-          "owner": "med-autoscience",
+          "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
+          "authority_boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
           "provenance_boundary": {
-            "body_policy": "refs_receipts_blockers_only",
-            "generic_owner_claim_allowed": false,
+            "surface_role": "domain_authority_receipt_locator_and_ref_index",
             "history_role": "retired_runtime_lifecycle_sqlite_provenance",
+            "body_policy": "refs_receipts_blockers_only",
             "may_emit": [
               "owner_receipt_ref",
               "typed_blocker_ref",
@@ -1527,161 +1501,137 @@
               "generic_restore_verdict",
               "paper_closure_verdict"
             ],
-            "surface_role": "domain_authority_receipt_locator_and_ref_index"
+            "generic_owner_claim_allowed": false
           },
+          "migration_action": "declare_domain_authority_refs_index_and_consume_opl_current_control_state",
           "retention_reason": "MAS can index paper-line owner receipts, typed blockers, and locators as domain authority refs; generic persistence, runtime lifecycle indexing, restore/retention, queue, and receipt ledger ownership stay in OPL.",
+          "opl_expected_primitives": [
+            "opl_current_control_state_projection",
+            "opl_provider_attempt_receipt_ledger",
+            "opl_restore_retention_receipt_shell"
+          ],
+          "forbidden_mas_roles": [
+            "generic_persistence_engine",
+            "generic_lifecycle_engine",
+            "generic_runtime_lifecycle_owner",
+            "generic_restore_retention_owner"
+          ],
+          "mas_domain_authority_refs": [
+            "owner_receipt",
+            "progress_projection"
+          ],
           "retirement_gate": {
-            "can_emit_generic_owner_verdict": false,
-            "can_emit_paper_closure_verdict": false,
+            "module_id": "domain_authority_refs_index",
             "classification": "domain_authority_refs",
+            "migration_class": "refs_only_domain_adapter",
             "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
-            "delete_or_tombstone_after": [
-              "domain_authority_refs_replaced_by_opl_generated_ref_index",
-              "owner_receipt_ref_parity_proven",
-              "no_forbidden_write_proof_recorded",
-              "focused_domain_authority_refs_tests_green"
-            ],
             "domain_ref_consumer_count": 3,
             "domain_ref_consumer_refs": [
               "owner-route handoff records owner-receipt refs",
               "domain-handler/product-entry projections consume domain authority refs only",
               "workspace maintenance records archive/source/artifact locator refs only"
             ],
+            "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner",
+            "delete_or_tombstone_after": [
+              "domain_authority_refs_replaced_by_opl_generated_ref_index",
+              "owner_receipt_ref_parity_proven",
+              "no_forbidden_write_proof_recorded",
+              "focused_domain_authority_refs_tests_green"
+            ],
             "generic_owner_claim_allowed": false,
-            "migration_class": "refs_only_domain_adapter",
-            "module_id": "domain_authority_refs_index",
+            "can_emit_paper_closure_verdict": false,
+            "can_emit_generic_owner_verdict": false,
             "must_not_emit": [
               "generic_runtime_verdict",
               "generic_persistence_engine_owner",
               "generic_runtime_lifecycle_owner",
               "paper_closure_verdict"
-            ],
-            "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner"
+            ]
           }
         },
         {
+          "module_id": "paper_progress_transition_refs",
+          "owner": "med-autoscience",
           "classification": "domain_authority_refs",
+          "migration_class": "refs_only_domain_adapter",
           "code_paths": [
             "src/med_autoscience/controllers/paper_progress_transition_refs.py"
           ],
-          "current_ref_status": "transition_request_refs_no_queue_attempt_or_outbox_owner",
           "domain_ref_consumers": [
             "paper policy adapter and domain-handler dispatch transition refs"
           ],
-          "mas_domain_authority_refs": [
-            "paper_work_unit_semantics",
-            "publication_gate",
-            "owner_receipt"
-          ],
+          "current_ref_status": "transition_request_refs_no_queue_attempt_or_outbox_owner",
           "migration_action": "declare_paper_transition_refs_and_opl_runtime_readback_requirements",
-          "migration_class": "refs_only_domain_adapter",
-          "module_id": "paper_progress_transition_refs",
+          "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
           "opl_expected_primitives": [
             "domain_progress_transition_runtime",
             "transactional_outbox",
             "stage_run_identity",
             "non_advancing_apply"
           ],
-          "owner": "med-autoscience",
-          "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
+          "mas_domain_authority_refs": [
+            "paper_work_unit_semantics",
+            "publication_gate",
+            "owner_receipt"
+          ],
           "retirement_gate": {
-            "can_emit_generic_owner_verdict": false,
-            "can_emit_paper_closure_verdict": false,
+            "module_id": "paper_progress_transition_refs",
             "classification": "domain_authority_refs",
+            "migration_class": "refs_only_domain_adapter",
             "current_ref_status": "transition_request_refs_no_queue_attempt_or_outbox_owner",
+            "domain_ref_consumer_count": 2,
+            "domain_ref_consumer_refs": [
+              "paper progress policy adapter keeps paper work-unit identity refs",
+              "domain-handler dispatch consumes OPL transition request refs"
+            ],
+            "retirement_gate_status": "transition_request_refs_until_opl_runtime_readback_parity",
             "delete_or_tombstone_after": [
               "opl_domain_progress_transition_runtime_consumes_policy_refs",
               "opl_transition_runtime_readback_parity_proven",
               "paper_work_unit_identity_refs_projected_by_opl",
               "focused_transition_runtime_tests_green"
             ],
-            "domain_ref_consumer_count": 2,
-            "domain_ref_consumer_refs": [
-              "paper progress policy adapter keeps paper work-unit identity refs",
-              "domain-handler dispatch consumes OPL transition request refs"
-            ],
             "generic_owner_claim_allowed": false,
-            "migration_class": "refs_only_domain_adapter",
-            "module_id": "paper_progress_transition_refs",
+            "can_emit_paper_closure_verdict": false,
+            "can_emit_generic_owner_verdict": false,
             "must_not_emit": [
               "generic_queue_owner",
               "generic_outbox_owner",
               "attempt_lifecycle_owner",
               "attempt_completion_is_publication_ready",
               "paper_closure_verdict"
-            ],
-            "retirement_gate_status": "transition_request_refs_until_opl_runtime_readback_parity"
+            ]
           }
         },
         {
-          "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
+          "module_id": "runtime_storage_maintenance",
+          "owner": "med-autoscience",
           "classification": "domain_authority_refs",
+          "migration_class": "refs_only_domain_adapter",
           "code_paths": [
-            "legacy_mas_storage_maintenance_python_namespace",
-            "legacy_mas_storage_maintenance_python_namespace",
-            "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
             "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
           ],
-          "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
           "domain_ref_consumers": [
             "runtime grouped storage audit commands",
             "workspace storage reports"
           ],
-          "latest_thinning_evidence": {
-            "does_not_claim_generic_cleanup_policy_owner": true,
-            "does_not_claim_opl_default_caller": true,
-            "does_not_claim_physical_delete": true,
-            "does_not_touch_publication_or_package_authority": true,
-            "domain_refs_entry_role": "workspace_storage_refs_and_runtime_audit_entry",
-            "domain_refs_entry_shell": "legacy_mas_storage_maintenance_python_namespace",
-            "extracted_paths": [
-              "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
-              "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
-            ],
-            "live_report_boundary_payload": {
-              "body_policy": "workspace_refs_sizes_receipts_blockers_only",
-              "can_write_controller_decision": false,
-              "can_write_current_package": false,
-              "can_write_domain_truth": false,
-              "can_write_publication_eval": false,
-              "must_not_emit": [
-                "generic_cleanup_policy",
-                "restore_ready_verdict",
-                "paper_closure_verdict",
-                "publication_ready_verdict",
-                "artifact_mutation_authorization"
-              ],
-              "report_modes": [
-                "workspace_storage_audit",
-                "study_runtime_storage_maintenance",
-                "orphan_quest_runtime_storage_maintenance"
-              ],
-              "surface_kind": "mas_runtime_storage_refs_only_adapter_boundary"
-            },
-            "scope": "workspace_study_orphan_runtime_storage_reports_emit_refs_only_boundary",
-            "status": "runtime_storage_live_report_boundary_payload_landed"
-          },
-          "mas_domain_authority_refs": [
-            "artifact_authority",
-            "workspace_artifact_refs"
-          ],
+          "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
           "migration_action": "declare_storage_audit_refs_and_consume_opl_lifecycle_cleanup_policy",
-          "migration_class": "refs_only_domain_adapter",
-          "module_id": "runtime_storage_maintenance",
+          "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
           "opl_expected_primitives": [
             "opl_artifact_lifecycle_storage_audit_shell",
             "opl_restore_retention_receipt_shell",
             "opl_runtime_lifecycle_cleanup_policy"
           ],
-          "owner": "med-autoscience",
-          "proof_refs": [
-            "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
-            "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"
+          "mas_domain_authority_refs": [
+            "artifact_authority",
+            "workspace_artifact_refs"
           ],
+          "authority_boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
           "provenance_boundary": {
-            "body_policy": "workspace_refs_sizes_receipts_blockers_only",
-            "generic_owner_claim_allowed": false,
+            "surface_role": "workspace_storage_ref_report_and_artifact_authority_receipt_adapter",
             "history_role": "storage_maintenance_provenance",
+            "body_policy": "workspace_refs_sizes_receipts_blockers_only",
             "may_emit": [
               "workspace_artifact_ref",
               "cleanup_receipt_ref",
@@ -1696,37 +1646,78 @@
               "publication_ready_verdict",
               "artifact_mutation_authorization"
             ],
-            "surface_role": "workspace_storage_ref_report_and_artifact_authority_receipt_adapter"
+            "generic_owner_claim_allowed": false
           },
-          "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
+          "latest_thinning_evidence": {
+            "status": "runtime_storage_physical_modules_retired",
+            "scope": "restore_and_cold_store_helpers_moved_to_neutral_controller_module",
+            "extracted_paths": [
+              "src/med_autoscience/controllers/restore_proof_compaction_helpers.py"
+            ],
+            "retired_physical_modules": [
+              "legacy_mas_storage_maintenance_python_namespace"
+            ],
+            "domain_refs_entry_shell": null,
+            "domain_refs_entry_role": "retired_storage_adapter_provenance_only",
+            "live_report_boundary_payload": {
+              "surface_kind": "mas_runtime_storage_refs_only_adapter_boundary",
+              "report_modes": [
+                "workspace_storage_audit",
+                "study_runtime_storage_maintenance",
+                "orphan_quest_runtime_storage_maintenance"
+              ],
+              "body_policy": "workspace_refs_sizes_receipts_blockers_only",
+              "must_not_emit": [
+                "generic_cleanup_policy",
+                "restore_ready_verdict",
+                "paper_closure_verdict",
+                "publication_ready_verdict",
+                "artifact_mutation_authorization"
+              ],
+              "can_write_domain_truth": false,
+              "can_write_publication_eval": false,
+              "can_write_controller_decision": false,
+              "can_write_current_package": false
+            },
+            "does_not_claim_physical_delete": true,
+            "does_not_claim_opl_default_caller": true,
+            "does_not_claim_generic_cleanup_policy_owner": true,
+            "does_not_touch_publication_or_package_authority": true
+          },
+          "proof_refs": [
+            "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
+            "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"
+          ],
           "retirement_gate": {
-            "can_emit_generic_owner_verdict": false,
-            "can_emit_paper_closure_verdict": false,
+            "module_id": "runtime_storage_maintenance",
             "classification": "domain_authority_refs",
+            "migration_class": "refs_only_domain_adapter",
             "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+            "domain_ref_consumer_count": 2,
+            "domain_ref_consumer_refs": [
+              "runtime grouped storage audit commands read workspace storage refs",
+              "workspace storage reports expose sizes and cleanup receipts only"
+            ],
+            "retirement_gate_status": "storage_refs_until_opl_cleanup_policy_parity",
             "delete_or_tombstone_after": [
               "opl_cleanup_policy_consumes_storage_refs",
               "opl_artifact_lifecycle_storage_audit_shell_parity_proven",
               "artifact_authority_receipt_parity_proven",
               "focused_storage_maintenance_tests_green"
             ],
-            "domain_ref_consumer_count": 2,
-            "domain_ref_consumer_refs": [
-              "runtime grouped storage audit commands read workspace storage refs",
-              "workspace storage reports expose sizes and cleanup receipts only"
-            ],
             "generic_owner_claim_allowed": false,
-            "migration_class": "refs_only_domain_adapter",
-            "module_id": "runtime_storage_maintenance",
+            "can_emit_paper_closure_verdict": false,
+            "can_emit_generic_owner_verdict": false,
             "must_not_emit": [
               "generic_cleanup_policy",
               "restore_ready_verdict",
               "paper_closure_verdict"
-            ],
-            "retirement_gate_status": "storage_refs_until_opl_cleanup_policy_parity"
+            ]
           }
         },
         {
+          "module_id": "workspace_source_intake_shell",
+          "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/controllers/workspace_init.py",
@@ -1734,199 +1725,154 @@
             "src/med_autoscience/controllers/workspace_literature.py",
             "src/med_autoscience/controllers/literature_provider_runtime.py"
           ],
-          "current_ref_status": "domain_source_adapter_active",
           "domain_ref_consumers": [
             "workspace init/readiness CLI",
             "MCP workspace readiness tools",
             "product-entry workspace surfaces"
           ],
-          "mas_domain_authority_refs": [
-            "source_readiness_verdict",
-            "evidence_ledger_refs"
-          ],
+          "current_ref_status": "domain_source_adapter_active",
           "migration_action": "declare_source_intake_policy_in_pack_and_keep_mas_source_readiness_verdict",
-          "module_id": "workspace_source_intake_shell",
+          "retention_reason": "Source quality, medical evidence readiness, and literature relevance remain MAS domain authority.",
           "opl_expected_primitives": [
             "workspace_source_intake_shell",
             "source_locator_index"
           ],
-          "owner": "med-autoscience",
-          "retention_reason": "Source quality, medical evidence readiness, and literature relevance remain MAS domain authority."
+          "mas_domain_authority_refs": [
+            "source_readiness_verdict",
+            "evidence_ledger_refs"
+          ]
         },
         {
+          "module_id": "publication_route_memory_locator_transport_shell",
+          "owner": "med-autoscience",
           "classification": "domain_authority_refs",
+          "migration_class": "refs_only_domain_adapter",
           "code_paths": [
             "src/med_autoscience/controllers/stage_knowledge_plane.py",
             "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_inventory.py",
             "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_writeback.py"
           ],
-          "current_ref_status": "body_free_locator_transport_active",
           "domain_ref_consumers": [
             "publication-route memory CLI",
             "stage knowledge packet",
             "typed closeout memory writeback"
           ],
-          "mas_domain_authority_refs": [
-            "publication_route_memory_body",
-            "memory_writeback_decision"
-          ],
+          "current_ref_status": "body_free_locator_transport_active",
           "migration_action": "declare_publication_route_memory_refs_no_memory_body_transport",
-          "migration_class": "refs_only_domain_adapter",
-          "module_id": "publication_route_memory_locator_transport_shell",
+          "retention_reason": "MAS keeps publication-route memory body, recall policy, and accept/reject/blocker writeback verdict.",
           "opl_expected_primitives": [
             "generic_memory_locator",
             "memory_writeback_transport",
             "body_free_memory_projection"
           ],
-          "owner": "med-autoscience",
-          "retention_reason": "MAS keeps publication-route memory body, recall policy, and accept/reject/blocker writeback verdict.",
+          "mas_domain_authority_refs": [
+            "publication_route_memory_body",
+            "memory_writeback_decision"
+          ],
           "retirement_gate": {
-            "can_emit_generic_owner_verdict": false,
-            "can_emit_paper_closure_verdict": false,
+            "module_id": "publication_route_memory_locator_transport_shell",
             "classification": "domain_authority_refs",
+            "migration_class": "refs_only_domain_adapter",
             "current_ref_status": "body_free_locator_transport_active",
-            "delete_or_tombstone_after": [
-              "opl_memory_locator_consumes_body_free_refs",
-              "opl_generic_memory_locator_parity_proven",
-              "publication_route_memory_body_stays_domain_owned",
-              "focused_memory_writeback_chain_tests_green"
-            ],
             "domain_ref_consumer_count": 3,
             "domain_ref_consumer_refs": [
               "publication-route memory CLI reads locator refs",
               "stage knowledge packet consumes body-free memory refs",
               "typed closeout memory writeback records receipt refs"
             ],
+            "retirement_gate_status": "domain_memory_refs_until_opl_memory_locator_parity",
+            "delete_or_tombstone_after": [
+              "opl_memory_locator_consumes_body_free_refs",
+              "opl_generic_memory_locator_parity_proven",
+              "publication_route_memory_body_stays_domain_owned",
+              "focused_memory_writeback_chain_tests_green"
+            ],
             "generic_owner_claim_allowed": false,
-            "migration_class": "refs_only_domain_adapter",
-            "module_id": "publication_route_memory_locator_transport_shell",
+            "can_emit_paper_closure_verdict": false,
+            "can_emit_generic_owner_verdict": false,
             "must_not_emit": [
               "memory_body_write",
               "memory_accept_reject_verdict_without_ai_first_record",
               "paper_closure_verdict"
-            ],
-            "retirement_gate_status": "domain_memory_refs_until_opl_memory_locator_parity"
+            ]
           }
         },
         {
-          "authority_boundary": "opl_owns_lifecycle_shell_mas_authorizes_artifact_mutation",
+          "module_id": "artifact_lifecycle_storage_audit_shell",
+          "owner": "med-autoscience",
           "classification": "domain_authority_refs",
+          "migration_class": "refs_only_domain_adapter",
           "code_paths": [
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/artifact_retention_operations_plan.py",
             "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py"
           ],
-          "current_ref_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
           "domain_ref_consumers": [
             "artifact lifecycle CLI/MCP",
             "product-entry artifact projection"
           ],
-          "mas_domain_authority_refs": [
-            "artifact_authority",
-            "current_package_authority"
-          ],
+          "current_ref_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
           "migration_action": "declare_artifact_refs_audit_and_leave_mutation_authority_in_mas",
-          "migration_class": "refs_only_domain_adapter",
-          "module_id": "artifact_lifecycle_storage_audit_shell",
+          "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority.",
           "opl_expected_primitives": [
             "opl_generic_artifact_lifecycle",
             "opl_artifact_locator",
             "opl_restore_retention_receipt_shell"
           ],
-          "owner": "med-autoscience",
+          "mas_domain_authority_refs": [
+            "artifact_authority",
+            "current_package_authority"
+          ],
+          "authority_boundary": "opl_owns_lifecycle_shell_mas_authorizes_artifact_mutation",
           "proof_refs": [
             "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
             "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"
           ],
-          "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority.",
           "retirement_gate": {
-            "can_emit_generic_owner_verdict": false,
-            "can_emit_paper_closure_verdict": false,
+            "module_id": "artifact_lifecycle_storage_audit_shell",
             "classification": "domain_authority_refs",
+            "migration_class": "refs_only_domain_adapter",
             "current_ref_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
+            "domain_ref_consumer_count": 2,
+            "domain_ref_consumer_refs": [
+              "artifact lifecycle CLI/MCP consumes artifact refs",
+              "product-entry artifact projection consumes mutation-authority refs"
+            ],
+            "retirement_gate_status": "domain_artifact_refs_until_opl_artifact_lifecycle_parity",
             "delete_or_tombstone_after": [
               "opl_artifact_lifecycle_consumes_artifact_refs",
               "opl_generic_artifact_lifecycle_parity_proven",
               "artifact_mutation_authority_receipt_parity_proven",
               "focused_artifact_lifecycle_tests_green"
             ],
-            "domain_ref_consumer_count": 2,
-            "domain_ref_consumer_refs": [
-              "artifact lifecycle CLI/MCP consumes artifact refs",
-              "product-entry artifact projection consumes mutation-authority refs"
-            ],
             "generic_owner_claim_allowed": false,
-            "migration_class": "refs_only_domain_adapter",
-            "module_id": "artifact_lifecycle_storage_audit_shell",
+            "can_emit_paper_closure_verdict": false,
+            "can_emit_generic_owner_verdict": false,
             "must_not_emit": [
               "generic_artifact_lifecycle_owner",
               "artifact_mutation_authorized_without_mas_receipt",
               "paper_closure_verdict"
-            ],
-            "retirement_gate_status": "domain_artifact_refs_until_opl_artifact_lifecycle_parity"
+            ]
           }
         },
         {
-          "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
-          "bridge_exit_gate": {
-            "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
-            "current_surface_refs": [
-              "product_status",
-              "status_read_model",
-              "workbench",
-              "workbench_drilldown",
-              "portal",
-              "cockpit"
-            ],
-            "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
-            "domain_ref_owner": "med-autoscience",
-            "domain_repo_physical_delete_authorized": false,
-            "gate_id": "mas.default_caller_deletion.workbench_portal_generic_shell.domain_ref_exit.v1",
-            "mas_can_own_generated_default_caller": false,
-            "mas_can_write_generic_runtime": false,
-            "mas_domain_authority_refs": [
-              "study_progress_projection",
-              "safe_action_refs"
-            ],
-            "no_forbidden_write_evidence_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary"
-            ],
-            "no_forbidden_write_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary"
-            ],
-            "opl_can_declare_publication_quality_or_export_verdict": false,
-            "opl_can_issue_mas_owner_receipt": false,
-            "opl_can_write_study_truth": false,
-            "physical_delete_authorized_by_refs": false,
-            "provenance_refs": [
-              "product_status",
-              "status_read_model",
-              "workbench",
-              "workbench_drilldown",
-              "portal",
-              "cockpit"
-            ],
-            "replacement_owner": "one-person-lab",
-            "required_before_retire": [
-              "domain_authority_refs_preserved",
-              "no_forbidden_write_proof_recorded",
-              "explicit_owner_receipt_authorizes_physical_delete"
-            ],
-            "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
-            "typed_blocker_refs": [
-              "typed-blocker:mas/default-caller-deletion/workbench_portal_generic_shell/physical-delete-requires-explicit-owner-receipt"
-            ]
-          },
+          "module_id": "workbench_portal_generic_shell",
+          "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
-            "src/med_autoscience/controllers/progress_portal.py",
-            "src/med_autoscience/controllers/progress_portal_parts/",
             "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
             "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
           ],
+          "domain_ref_consumers": [
+            "progress portal read-model materializer",
+            "workspace cockpit",
+            "product-entry manifest"
+          ],
           "current_ref_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
+          "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
+          "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, while OPL owns the hosted workbench and generated projection shell.",
           "current_surface_refs": [
             "product_status",
             "status_read_model",
@@ -1935,42 +1881,30 @@
             "portal",
             "cockpit"
           ],
-          "domain_ref_consumers": [
-            "progress portal read-model materializer",
-            "workspace cockpit",
-            "product-entry manifest"
+          "opl_expected_primitives": [
+            "opl_generic_workbench",
+            "opl_operator_attention_queue",
+            "opl_route_decision_drilldown_shell"
           ],
+          "mas_domain_authority_refs": [
+            "study_progress_projection",
+            "safe_action_refs"
+          ],
+          "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
           "latest_thinning_evidence": {
-            "does_not_claim_opl_default_caller": true,
-            "does_not_claim_physical_delete": true,
-            "does_not_touch_publication_or_package_authority": true,
-            "domain_projection_entry_shells": [
-              "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
-              "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
-              "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py"
-            ],
+            "status": "mas_local_progress_portal_physical_delete_landed",
             "extracted_paths": [
               "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
               "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
             ],
-            "retired_combined_portal_runtime_soak_provenance": {
-              "does_not_claim_active_entry": true,
-              "does_not_touch_publication_or_package_authority": true,
-              "domain_ref_consumer_count": 0,
-              "replacement_owner": "one-person-lab",
-              "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
-              "retired_paths": [
-                "retired_combined_portal_runtime_soak_entry_removed_no_alias",
-                "retired_combined_portal_runtime_soak_parts_removed_no_alias"
-              ],
-              "scope": "retired_read_model_evidence_shell_provenance",
-              "status": "physically_retired_no_alias"
-            },
-            "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed",
             "read_model_materializer_boundary": {
-              "active_callers": [],
-              "hosted_package_role": "read_model_projection_package",
+              "status": "retired_local_materializer_replaced_by_opl_hosted_workbench",
+              "hosted_package_role": "opl_owned_read_model_projection_package",
               "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
+              "physical_module": null,
+              "materializer_scope": "opl_owned_payload_html_and_hosted_package_projection",
+              "active_callers": [],
+              "writes_only": [],
               "does_not_claim": [
                 "workspace_workbench_owner",
                 "status_wrapper_owner",
@@ -1978,91 +1912,95 @@
                 "local_http_service_owner",
                 "runtime_control_owner"
               ],
+              "domain_repo_physical_delete_authorized": true,
+              "retention_reason": "The MAS-local materializer is retired; MAS retains only domain refs consumed by OPL-hosted projection surfaces; it is not a workspace helper, service wrapper, or runtime control owner.",
               "does_not_write": [
                 "study_truth",
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",
                 "current_package",
                 "runtime_state"
-              ],
-              "domain_repo_physical_delete_authorized": false,
-              "materializer_scope": "domain_owned_payload_html_and_hosted_package_projection",
-              "physical_module": "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
-              "retention_reason": "The retained module materializes MAS-owned read-model evidence and hosted package refs; it is not a workspace helper, service wrapper, or runtime control owner.",
-              "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
-              "writes_only": [
-                "runtime/artifacts/progress_portal/latest.json",
-                "runtime/artifacts/progress_portal/hosted_package.json",
-                "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
-                "ops/mas/progress/index.html",
-                "ops/mas/progress/studies/<study_id>/index.html"
               ]
-            }
+            },
+            "retired_combined_portal_runtime_soak_provenance": {
+              "status": "physically_retired_no_alias",
+              "scope": "retired_read_model_evidence_shell_provenance",
+              "retired_paths": [
+                "retired_combined_portal_runtime_soak_entry_removed_no_alias",
+                "retired_combined_portal_runtime_soak_parts_removed_no_alias"
+              ],
+              "domain_ref_consumer_count": 0,
+              "replacement_owner": "one-person-lab",
+              "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
+              "does_not_claim_active_entry": true,
+              "does_not_touch_publication_or_package_authority": true
+            },
+            "domain_projection_entry_shells": [
+              "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
+              "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
+              "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py"
+            ],
+            "does_not_claim_physical_delete": true,
+            "does_not_claim_opl_default_caller": true,
+            "does_not_touch_publication_or_package_authority": true
           },
-          "mas_domain_authority_refs": [
-            "study_progress_projection",
-            "safe_action_refs"
-          ],
-          "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
-          "module_id": "workbench_portal_generic_shell",
-          "opl_expected_primitives": [
-            "opl_generic_workbench",
-            "opl_operator_attention_queue",
-            "opl_route_decision_drilldown_shell"
-          ],
-          "owner": "med-autoscience",
           "proof_refs": [
             "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
             "domain_handler_export.functional_consumer_boundary.generated_surface_handoff"
           ],
-          "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, plus the domain-owned Progress Portal payload/static HTML materializer consumed by OPL hosted workbench refs."
-        },
-        {
-          "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
           "bridge_exit_gate": {
-            "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
-            "current_surface_refs": [
-              "domain_handler",
-              "domain_handler_export",
-              "domain_handler_dispatch"
-            ],
-            "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
+            "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
+            "gate_id": "mas.default_caller_deletion.workbench_portal_generic_shell.domain_ref_exit.v1",
             "domain_ref_owner": "med-autoscience",
-            "domain_repo_physical_delete_authorized": false,
-            "gate_id": "mas.default_caller_deletion.paper_mission_owner_surface_materialize_dispatch_shell.domain_ref_exit.v1",
-            "mas_can_own_generated_default_caller": false,
-            "mas_can_write_generic_runtime": false,
-            "mas_domain_authority_refs": [
-              "owner_route",
-              "publication_gate",
-              "safe_action_refs"
-            ],
-            "no_forbidden_write_evidence_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
-            ],
-            "no_forbidden_write_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
-            ],
-            "opl_can_declare_publication_quality_or_export_verdict": false,
-            "opl_can_issue_mas_owner_receipt": false,
-            "opl_can_write_study_truth": false,
-            "physical_delete_authorized_by_refs": false,
-            "provenance_refs": [
-              "domain_handler",
-              "domain_handler_export",
-              "domain_handler_dispatch"
-            ],
             "replacement_owner": "one-person-lab",
+            "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
             "required_before_retire": [
               "domain_authority_refs_preserved",
               "no_forbidden_write_proof_recorded",
               "explicit_owner_receipt_authorizes_physical_delete"
             ],
-            "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
+            "current_surface_refs": [
+              "product_status",
+              "status_read_model",
+              "workbench",
+              "workbench_drilldown",
+              "portal",
+              "cockpit"
+            ],
+            "mas_domain_authority_refs": [
+              "study_progress_projection",
+              "safe_action_refs"
+            ],
+            "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
             "typed_blocker_refs": [
-              "typed-blocker:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/physical-delete-requires-explicit-owner-receipt"
-            ]
-          },
+              "typed-blocker:mas/default-caller-deletion/workbench_portal_generic_shell/physical-delete-requires-explicit-owner-receipt"
+            ],
+            "no_forbidden_write_refs": [
+              "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary"
+            ],
+            "no_forbidden_write_evidence_refs": [
+              "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary"
+            ],
+            "provenance_refs": [
+              "product_status",
+              "status_read_model",
+              "workbench",
+              "workbench_drilldown",
+              "portal",
+              "cockpit"
+            ],
+            "domain_repo_physical_delete_authorized": false,
+            "physical_delete_authorized_by_refs": false,
+            "mas_can_write_generic_runtime": false,
+            "mas_can_own_generated_default_caller": false,
+            "opl_can_write_study_truth": false,
+            "opl_can_declare_publication_quality_or_export_verdict": false,
+            "opl_can_issue_mas_owner_receipt": false
+          }
+        },
+        {
+          "module_id": "paper_mission_owner_surface_materialize_dispatch_shell",
+          "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/controllers/paper_mission_owner_surface.py",
@@ -2070,35 +2008,41 @@
             "src/med_autoscience/controllers/stage_outcome_authority.py",
             "src/med_autoscience/controllers/owner_callable_action_policy.py"
           ],
-          "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
-          "current_surface_refs": [
-            "domain_handler",
-            "domain_handler_export",
-            "domain_handler_dispatch"
+          "retired_code_paths": [
+            "src/med_autoscience/controllers/domain_route_reconcile.py"
           ],
           "domain_ref_consumers": [
             "owner-route one-shot tick",
             "runtime owner-route reconcile",
             "domain-handler dispatch"
           ],
+          "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
+          "migration_action": "declare_owner_route_policy_and_consume_opl_runtime_manager_loop",
+          "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
+          "current_surface_refs": [
+            "domain_handler",
+            "domain_handler_export",
+            "domain_handler_dispatch"
+          ],
+          "opl_expected_primitives": [
+            "opl_generic_runner",
+            "opl_attempt_retry_dead_letter",
+            "opl_repair_projection",
+            "opl_provider_runtime_manager"
+          ],
+          "mas_domain_authority_refs": [
+            "owner_route",
+            "publication_gate",
+            "safe_action_refs"
+          ],
+          "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
           "latest_thinning_evidence": {
-            "does_not_claim": [
-              "owner_chain_closed",
-              "domain_ready",
-              "production_ready",
-              "publication_ready",
-              "artifact_mutation_authorized"
-            ],
-            "does_not_write": [
-              "study_truth",
-              "publication_eval/latest.json",
-              "controller_decisions/latest.json",
-              "current_package",
-              "memory_body",
-              "artifact_body"
-            ],
-            "domain_repo_physical_delete_authorized": false,
+            "status": "owner_callable_action_policy_single_source_landed",
             "policy_module": "src/med_autoscience/controllers/owner_callable_action_policy.py",
+            "thin_entrypoints": [
+              "src/med_autoscience/controllers/domain_action_request_materializer.py",
+              "src/med_autoscience/controllers/stage_outcome_authority.py"
+            ],
             "single_source_fields": [
               "supported_action_types",
               "forbidden_surfaces",
@@ -2110,93 +2054,92 @@
               "request_output_surface_by_action_type",
               "request_packet_ref_by_action_type"
             ],
-            "status": "owner_callable_action_policy_single_source_landed",
-            "thin_entrypoints": [
-              "src/med_autoscience/controllers/domain_action_request_materializer.py",
-              "src/med_autoscience/controllers/stage_outcome_authority.py"
+            "domain_repo_physical_delete_authorized": false,
+            "does_not_write": [
+              "study_truth",
+              "publication_eval/latest.json",
+              "controller_decisions/latest.json",
+              "current_package",
+              "memory_body",
+              "artifact_body"
+            ],
+            "does_not_claim": [
+              "owner_chain_closed",
+              "domain_ready",
+              "production_ready",
+              "publication_ready",
+              "artifact_mutation_authorized"
             ]
           },
-          "mas_domain_authority_refs": [
-            "owner_route",
-            "publication_gate",
-            "safe_action_refs"
-          ],
-          "migration_action": "declare_owner_route_policy_and_consume_opl_runtime_manager_loop",
-          "module_id": "paper_mission_owner_surface_materialize_dispatch_shell",
-          "opl_expected_primitives": [
-            "opl_generic_runner",
-            "opl_attempt_retry_dead_letter",
-            "opl_repair_projection",
-            "opl_provider_runtime_manager"
-          ],
-          "owner": "med-autoscience",
           "proof_refs": [
             "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
             "product_entry_manifest.functional_consumer_boundary.opl_functional_harness_consumer_coverage"
           ],
-          "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
-          "retired_code_paths": [
-            "src/med_autoscience/controllers/domain_route_reconcile.py"
-          ]
-        },
-        {
-          "authority_boundary": "opl_generates_wrapper_and_skill_metadata_mas_executes_domain_authority_handlers",
           "bridge_exit_gate": {
-            "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
-            "current_surface_refs": [
-              "cli",
-              "mcp",
-              "skill",
-              "product_entry",
-              "product_entry_manifest",
-              "product_session"
-            ],
-            "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
+            "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
+            "gate_id": "mas.default_caller_deletion.paper_mission_owner_surface_materialize_dispatch_shell.domain_ref_exit.v1",
             "domain_ref_owner": "med-autoscience",
-            "domain_repo_physical_delete_authorized": false,
-            "gate_id": "mas.default_caller_deletion.generic_cli_mcp_product_wrappers.domain_ref_exit.v1",
-            "mas_can_own_generated_default_caller": false,
-            "mas_can_write_generic_runtime": false,
-            "mas_domain_authority_refs": [
-              "domain_action_handler",
-              "owner_receipt"
-            ],
-            "no_forbidden_write_evidence_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
-            ],
-            "no_forbidden_write_refs": [
-              "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
-            ],
-            "opl_can_declare_publication_quality_or_export_verdict": false,
-            "opl_can_issue_mas_owner_receipt": false,
-            "opl_can_write_study_truth": false,
-            "physical_delete_authorized_by_refs": false,
-            "provenance_refs": [
-              "cli",
-              "mcp",
-              "skill",
-              "product_entry",
-              "product_entry_manifest",
-              "product_session"
-            ],
             "replacement_owner": "one-person-lab",
+            "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
             "required_before_retire": [
               "domain_authority_refs_preserved",
               "no_forbidden_write_proof_recorded",
               "explicit_owner_receipt_authorizes_physical_delete"
             ],
-            "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
+            "current_surface_refs": [
+              "domain_handler",
+              "domain_handler_export",
+              "domain_handler_dispatch"
+            ],
+            "mas_domain_authority_refs": [
+              "owner_route",
+              "publication_gate",
+              "safe_action_refs"
+            ],
+            "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
             "typed_blocker_refs": [
-              "typed-blocker:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/physical-delete-requires-explicit-owner-receipt"
-            ]
-          },
+              "typed-blocker:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/physical-delete-requires-explicit-owner-receipt"
+            ],
+            "no_forbidden_write_refs": [
+              "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
+            ],
+            "no_forbidden_write_evidence_refs": [
+              "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
+            ],
+            "provenance_refs": [
+              "domain_handler",
+              "domain_handler_export",
+              "domain_handler_dispatch"
+            ],
+            "domain_repo_physical_delete_authorized": false,
+            "physical_delete_authorized_by_refs": false,
+            "mas_can_write_generic_runtime": false,
+            "mas_can_own_generated_default_caller": false,
+            "opl_can_write_study_truth": false,
+            "opl_can_declare_publication_quality_or_export_verdict": false,
+            "opl_can_issue_mas_owner_receipt": false
+          }
+        },
+        {
+          "module_id": "generic_cli_mcp_product_wrappers",
+          "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/domain_entry.py",
             "src/med_autoscience/controllers/product_entry.py",
+            "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
+            "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
             "plugins/mas/skills/mas/SKILL.md"
           ],
+          "domain_ref_consumers": [
+            "MAS CLI",
+            "MCP tool handlers",
+            "skill direct domain entry",
+            "product-entry manifest"
+          ],
           "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
+          "migration_action": "derive_wrapper_metadata_from_declarative_pack_and_opl_generated_surfaces",
+          "retention_reason": "MAS keeps domain command handlers, direct domain entry, and owner receipts; OPL owns CLI/MCP/Skill/product/status descriptor projection and routing shell.",
           "current_surface_refs": [
             "cli",
             "mcp",
@@ -2205,18 +2148,6 @@
             "product_entry_manifest",
             "product_session"
           ],
-          "domain_ref_consumers": [
-            "MAS CLI",
-            "MCP tool handlers",
-            "skill direct domain entry",
-            "product-entry manifest"
-          ],
-          "mas_domain_authority_refs": [
-            "domain_action_handler",
-            "owner_receipt"
-          ],
-          "migration_action": "derive_wrapper_metadata_from_declarative_pack_and_opl_generated_surfaces",
-          "module_id": "generic_cli_mcp_product_wrappers",
           "opl_expected_primitives": [
             "opl_action_catalog_projection",
             "opl_product_entry_shell",
@@ -2224,7 +2155,11 @@
             "opl_skill_descriptor_projection",
             "opl_generated_command_surface"
           ],
-          "owner": "med-autoscience",
+          "mas_domain_authority_refs": [
+            "domain_action_handler",
+            "owner_receipt"
+          ],
+          "authority_boundary": "opl_generates_wrapper_and_skill_metadata_mas_executes_domain_authority_handlers",
           "proof_refs": [
             "declarative_pack_compiler_input.family_action_catalog",
             "generated_surface_handoff.cli",
@@ -2232,111 +2167,160 @@
             "generated_surface_handoff.skill",
             "generated_surface_handoff.product_entry"
           ],
-          "retention_reason": "MAS keeps domain command handlers, direct domain entry, and owner receipts; OPL owns CLI/MCP/Skill/product/status descriptor projection and routing shell."
+          "bridge_exit_gate": {
+            "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
+            "gate_id": "mas.default_caller_deletion.generic_cli_mcp_product_wrappers.domain_ref_exit.v1",
+            "domain_ref_owner": "med-autoscience",
+            "replacement_owner": "one-person-lab",
+            "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
+            "required_before_retire": [
+              "domain_authority_refs_preserved",
+              "no_forbidden_write_proof_recorded",
+              "explicit_owner_receipt_authorizes_physical_delete"
+            ],
+            "current_surface_refs": [
+              "cli",
+              "mcp",
+              "skill",
+              "product_entry",
+              "product_entry_manifest",
+              "product_session"
+            ],
+            "mas_domain_authority_refs": [
+              "domain_action_handler",
+              "owner_receipt"
+            ],
+            "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
+            "typed_blocker_refs": [
+              "typed-blocker:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/physical-delete-requires-explicit-owner-receipt"
+            ],
+            "no_forbidden_write_refs": [
+              "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
+            ],
+            "no_forbidden_write_evidence_refs": [
+              "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
+            ],
+            "provenance_refs": [
+              "cli",
+              "mcp",
+              "skill",
+              "product_entry",
+              "product_entry_manifest",
+              "product_session"
+            ],
+            "domain_repo_physical_delete_authorized": false,
+            "physical_delete_authorized_by_refs": false,
+            "mas_can_write_generic_runtime": false,
+            "mas_can_own_generated_default_caller": false,
+            "opl_can_write_study_truth": false,
+            "opl_can_declare_publication_quality_or_export_verdict": false,
+            "opl_can_issue_mas_owner_receipt": false
+          }
         },
         {
+          "module_id": "generic_daemon_or_scheduler_lifecycle",
+          "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
           ],
-          "current_ref_status": "opl_replacement_default_local_tombstone_only",
           "domain_ref_consumers": [
             "opl_current_control_state owner refs"
           ],
-          "mas_domain_authority_refs": [
-            "paper_progress_slo_semantics",
-            "typed_blocker"
-          ],
+          "current_ref_status": "opl_replacement_default_local_tombstone_only",
           "migration_action": "declare_scheduler_requirement_in_pack_and_keep_retired_provenance_refs",
-          "module_id": "generic_daemon_or_scheduler_lifecycle",
+          "retention_reason": "MAS supplies paper-progress domain SLO semantics and retired scheduler provenance refs only; OPL owns lifecycle, cadence, queue, attempt, and control.",
           "opl_expected_primitives": [
             "scheduler_lifecycle",
             "cadence_slo",
             "provider_slo"
           ],
-          "owner": "med-autoscience",
-          "retention_reason": "MAS supplies paper-progress domain SLO semantics and retired scheduler provenance refs only; OPL owns lifecycle, cadence, queue, attempt, and control."
+          "mas_domain_authority_refs": [
+            "paper_progress_slo_semantics",
+            "typed_blocker"
+          ]
         },
         {
-          "authority_boundary": "opl_owns_queue_attempt_retry_transport_mas_signs_stage_closeout_receipts",
+          "module_id": "generic_queue_attempt_retry_dead_letter",
+          "owner": "one-person-lab",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/controllers/study_runtime_execution_parts/controller_authorization_receipts.py"
           ],
-          "current_ref_status": "opl_owned_runtime_control_mas_consumes_closeout_refs",
           "domain_ref_consumers": [
             "OPL provider stage runtime",
             "MAS owner receipt / typed blocker consumers"
           ],
-          "mas_domain_authority_refs": [
-            "stage_closeout_domain_semantics",
-            "owner_receipt"
-          ],
+          "current_ref_status": "opl_owned_runtime_control_mas_consumes_closeout_refs",
           "migration_action": "declare_queue_attempt_requirements_and_return_mas_stage_closeout_receipts",
-          "module_id": "generic_queue_attempt_retry_dead_letter",
+          "retention_reason": "OPL owns queue/attempt/retry/dead-letter; MAS keeps stage closeout semantics, owner receipts, and typed blockers.",
           "opl_expected_primitives": [
             "opl_generic_queue",
             "opl_attempt_ledger",
             "opl_retry_dead_letter",
             "opl_worker_lifecycle_transport"
           ],
-          "owner": "one-person-lab",
+          "mas_domain_authority_refs": [
+            "stage_closeout_domain_semantics",
+            "owner_receipt"
+          ],
+          "authority_boundary": "opl_owns_queue_attempt_retry_transport_mas_signs_stage_closeout_receipts",
           "proof_refs": [
             "opl_functional_harness_consumer_coverage.queue_stage_attempt_typed_closeout",
             "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain"
-          ],
-          "retention_reason": "OPL owns queue/attempt/retry/dead-letter; MAS keeps stage closeout semantics, owner receipts, and typed blockers."
+          ]
         },
         {
+          "module_id": "generic_transition_runner",
+          "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/controllers/study_domain_transition_table.py",
             "src/med_autoscience/controllers/study_state_matrix.py",
             "src/med_autoscience/controllers/study_domain_transition_guard.py"
           ],
-          "current_ref_status": "domain_transition_spec_active_generic_runner_owned_by_opl",
           "domain_ref_consumers": [
             "study-state-matrix CLI",
             "runtime consumer guard",
             "OPL transition descriptor"
           ],
-          "mas_domain_authority_refs": [
-            "domain_transition_table",
-            "publication_quality_verdict",
-            "artifact_authority"
-          ],
+          "current_ref_status": "domain_transition_spec_active_generic_runner_owned_by_opl",
           "migration_action": "declare_domain_transition_spec_for_opl_generic_runner",
-          "module_id": "generic_transition_runner",
+          "retention_reason": "MAS owns medical transition semantics and oracle fixtures; OPL executes the generic state-machine transport.",
           "opl_expected_primitives": [
             "generic_transition_runner",
             "transition_matrix_runner",
             "idempotent_tick"
           ],
-          "owner": "med-autoscience",
-          "retention_reason": "MAS owns medical transition semantics and oracle fixtures; OPL executes the generic state-machine transport."
+          "mas_domain_authority_refs": [
+            "domain_transition_table",
+            "publication_quality_verdict",
+            "artifact_authority"
+          ]
         },
         {
-          "cannot_absorb_reason": "Medical study truth and paper route state are domain facts, not framework runtime state.",
+          "module_id": "study_truth",
+          "owner": "med-autoscience",
           "classification": "minimal_authority_function",
           "code_paths": [
             "src/med_autoscience/controllers/study_truth_kernel.py",
             "src/med_autoscience/controllers/progress_projection.py"
           ],
-          "current_ref_status": "domain_authority_active",
           "domain_ref_consumers": [
             "MAS controller owner route",
             "study progress/read models"
           ],
+          "current_ref_status": "domain_authority_active",
+          "migration_action": "authority_stays_in_mas",
+          "cannot_absorb_reason": "Medical study truth and paper route state are domain facts, not framework runtime state.",
           "mas_domain_authority_refs": [
             "study_truth",
             "progress_projection"
-          ],
-          "migration_action": "authority_stays_in_mas",
-          "module_id": "study_truth",
-          "owner": "med-autoscience"
+          ]
         },
         {
-          "cannot_absorb_reason": "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts.",
+          "module_id": "publication_quality_verdict",
+          "owner": "med-autoscience",
           "classification": "minimal_authority_function",
           "code_paths": [
             "src/med_autoscience/controllers/publication_gate.py",
@@ -2344,42 +2328,41 @@
             "src/med_autoscience/controllers/ai_reviewer_runtime_workflow.py",
             "src/med_autoscience/controllers/ai_reviewer_publication_eval.py"
           ],
-          "current_ref_status": "domain_authority_active",
           "domain_ref_consumers": [
             "AI reviewer workflow",
             "publication gate",
             "controller decision"
           ],
+          "current_ref_status": "domain_authority_active",
+          "migration_action": "authority_stays_in_mas",
+          "cannot_absorb_reason": "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts.",
           "mas_domain_authority_refs": [
             "publication_quality_verdict",
             "ai_reviewer_workflow",
             "publication_gate"
-          ],
-          "migration_action": "authority_stays_in_mas",
-          "module_id": "publication_quality_verdict",
-          "owner": "med-autoscience"
+          ]
         },
         {
-          "cannot_absorb_reason": "Canonical manuscript/package mutation and submission authority are MAS artifact authority.",
+          "module_id": "artifact_authority",
+          "owner": "med-autoscience",
           "classification": "minimal_authority_function",
           "code_paths": [
             "src/med_autoscience/controllers/canonical_artifact_contract.py",
             "src/med_autoscience/controllers/study_delivery_sync.py",
             "src/med_autoscience/controllers/submission_minimal.py"
           ],
-          "current_ref_status": "domain_authority_active",
           "domain_ref_consumers": [
             "delivery sync",
             "package freshness proof",
             "submission package handoff"
           ],
+          "current_ref_status": "domain_authority_active",
+          "migration_action": "authority_stays_in_mas",
+          "cannot_absorb_reason": "Canonical manuscript/package mutation and submission authority are MAS artifact authority.",
           "mas_domain_authority_refs": [
             "artifact_authority",
             "current_package_authority"
-          ],
-          "migration_action": "authority_stays_in_mas",
-          "module_id": "artifact_authority",
-          "owner": "med-autoscience"
+          ]
         }
       ],
       "standard_agent_purity": {
@@ -2636,8 +2619,7 @@
         "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
         "tests/test_paper_autonomy_stability_evidence.py",
         "tests/test_real_workspace_soak_monitor.py",
-        "tests/test_study_progress.py",
-        "tests/test_progress_portal.py"
+        "tests/test_study_progress.py"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "paper_progress_read_model_owner_handoff_guard",

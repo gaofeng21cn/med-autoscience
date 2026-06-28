@@ -6,7 +6,6 @@ from pathlib import Path
 from med_autoscience.controllers import portfolio_memory
 from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers import stage_knowledge_visibility
-from med_autoscience.controllers.progress_portal_parts import build_study_workbench_payload, render_study_workbench_sections
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
@@ -103,25 +102,3 @@ def test_stage_knowledge_visibility_projects_entry_closeout_receipt_and_route_im
     assert rejected_by_id["claim-specific"]["reason"] == "study_specific_claim_not_workspace_memory"
     assert visibility["next_owner"] in {"mas_controller", "literature_provider"}
     assert visibility["authority_boundary"]["can_authorize_publication_quality"] is False
-
-
-def test_progress_portal_workbench_renders_stage_knowledge_visibility(tmp_path: Path) -> None:
-    _, study_root = _materialize_stage_loop_fixture(tmp_path)
-
-    payload = build_study_workbench_payload(
-        progress=_progress_payload(study_root),
-        cockpit={},
-        runtime={"study_id": "S1", "active_run_id": "run-S1"},
-        package={"study_id": "S1"},
-        study_id="S1",
-    )
-    html = render_study_workbench_sections(payload)
-
-    stage_knowledge = payload["stage_knowledge"]
-    assert stage_knowledge["status"] == "partial"
-    assert any(tab["id"] == "stage_knowledge" for tab in payload["tabs"])
-    assert "stage_knowledge:missing_stage_knowledge_packet:scout" in payload["conditions"]["missing"]
-    assert "Stage Knowledge" in html
-    assert "citation-gap-1" in html
-    assert "claim-specific" in html
-    assert "Route impact" in html

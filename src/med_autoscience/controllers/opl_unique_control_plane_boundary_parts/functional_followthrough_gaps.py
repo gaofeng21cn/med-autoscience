@@ -129,7 +129,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
             "functional_consumer_boundary.standard_agent_purity",
             "opl_unique_control_plane_handoff.standard_agent_purity",
             "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
-            "progress_portal_parts.read_model_materializer.read_model_materializer_boundary",
+            "workbench_portal_generic_shell.retired_local_materializer_boundary",
         ],
         "functional_structure_gap": False,
         "former_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
