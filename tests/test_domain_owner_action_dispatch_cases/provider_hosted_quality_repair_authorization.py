@@ -87,7 +87,7 @@ def test_provider_hosted_quality_repair_dispatch_survives_own_running_provider_e
         "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
         "opl://stage-attempts/sat-provider-hosted-quality-repair/execution-authorizations/current",
     )
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", "run_quality_repair_batch")

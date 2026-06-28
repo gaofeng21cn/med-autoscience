@@ -58,8 +58,8 @@ def _attach_readiness_closeout_binding(dispatch: dict[str, object], *, study_id:
     )
     binding = {
         "surface_kind": "medical_paper_readiness_closeout_binding",
-        "stage_run_id": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
-        "stage_run_ref": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
+        "stage_run_id": f"stage-run::{study_id}::paper_mission/stage-outcome",
+        "stage_run_ref": f"stage-run::{study_id}::paper_mission/stage-outcome",
         "stage_manifest_ref": (
             "artifacts/supervision/consumer/stage_manifests/"
             "domain_owner_default_executor_dispatch.json"

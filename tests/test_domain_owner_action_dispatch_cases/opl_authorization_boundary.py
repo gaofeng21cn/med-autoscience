@@ -179,7 +179,7 @@ def test_provider_hosted_exact_stage_attempt_authorizes_only_matching_stage_pack
     )
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat-current")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", "stage-packet-a")
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STUDY_ID", "study-a")
     monkeypatch.setenv("OPL_ACTION_TYPE", "run_quality_repair_batch")
     monkeypatch.setenv("OPL_WORK_UNIT_ID", "write_delta")

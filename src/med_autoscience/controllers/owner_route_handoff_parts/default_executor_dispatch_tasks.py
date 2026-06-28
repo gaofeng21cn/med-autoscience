@@ -39,7 +39,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts impo
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
-TASK_KIND = "domain_owner/default-executor-dispatch"
+TASK_KIND = "paper_mission/stage-outcome"
 DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_dispatches")
 REQUIRED_SURFACE = "default_executor_dispatch_request"
 REQUIRED_EXECUTOR_KIND = "codex_cli_default"

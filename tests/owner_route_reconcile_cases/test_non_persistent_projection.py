@@ -617,7 +617,7 @@ def test_default_executor_dispatch_tasks_overlay_current_action_identity_on_stal
     )
 
     assert len(tasks) == 1
-    assert tasks[0]["task_kind"] == "domain_owner/default-executor-dispatch"
+    assert tasks[0]["task_kind"] == "paper_mission/stage-outcome"
     assert tasks[0]["work_unit_id"] == "medical_prose_write_repair"
     assert tasks[0]["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
     assert tasks[0]["payload"]["work_unit_id"] == "medical_prose_write_repair"

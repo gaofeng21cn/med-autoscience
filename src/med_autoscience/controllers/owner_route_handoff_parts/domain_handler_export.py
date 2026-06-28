@@ -768,7 +768,7 @@ def _split_retired_default_paper_tasks(
     ordinary_tasks: list[dict[str, Any]] = []
     retired_diagnostics: list[dict[str, Any]] = []
     for task in tasks:
-        if text(task.get("task_kind")) == "domain_owner/default-executor-dispatch":
+        if text(task.get("task_kind")) == "paper_mission/stage-outcome":
             retired_diagnostics.append(_retired_default_paper_task_diagnostic(task))
             continue
         ordinary_tasks.append(task)
@@ -906,7 +906,7 @@ def _current_control_transition_request_tasks(
     )
     action["opl_domain_progress_transition_request"] = transition_request
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_owner/default-executor-dispatch",
+        task_kind="paper_mission/stage-outcome",
         study_id=study_id,
         reason="current_control_transition_request_pending",
         evidence_refs=source_refs,
@@ -934,7 +934,7 @@ def _current_control_transition_request_tasks(
     return [
         {
             "domain_id": "medautoscience",
-            "task_kind": "domain_owner/default-executor-dispatch",
+            "task_kind": "paper_mission/stage-outcome",
             "study_id": study_id,
             "quest_id": text(candidate.get("quest_id")) or study_id,
             "action_type": action_type,

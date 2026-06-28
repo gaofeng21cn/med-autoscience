@@ -50,7 +50,7 @@ def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -
             assert gate["tombstone_or_provenance_required"] is True
 
 
-def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_legacy(tmp_path) -> None:
+def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_path) -> None:
     candidates = importlib.import_module(
         "med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates"
     )
@@ -104,139 +104,6 @@ def test_owner_callable_receipt_latest_reader_prefers_canonical_and_normalizes_l
     assert payload is None
     assert receipt_ref == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     assert candidates.default_executor_execution_candidates(study_root=study_root) == []
-
-    payload, receipt_ref = candidates.latest_owner_callable_adapter_receipt_payload(
-        study_root=study_root,
-        allow_legacy_fallback=True,
-    )
-
-    assert receipt_ref == "artifacts/supervision/consumer/default_executor_execution/latest.json"
-    assert payload["executions"][0]["action_type"] == "legacy_action"
-    assert payload["executions"][0]["surface"] == "owner_callable_adapter_receipt"
-    assert payload["executions"][0]["legacy_wire_surface"] == "default_executor_dispatch_execution"
-    assert payload["execution_ledger_authority"] is False
-    assert payload["attempt_lifecycle_authority"] is False
-    replay_candidates = candidates.default_executor_execution_candidates(
-        study_root=study_root,
-        allow_legacy_fallback=True,
-    )
-    assert len(replay_candidates) == 1
-    assert replay_candidates[0][0]["action_type"] == "legacy_action"
-    assert replay_candidates[0][1] == "artifacts/supervision/consumer/default_executor_execution/latest.json"
-
-
-def test_default_executor_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only(
-    tmp_path,
-) -> None:
-    candidates = importlib.import_module(
-        "med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates"
-    )
-    study_root = tmp_path / "studies" / "study-1"
-    closeout_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_execution"
-        / "sat_001.closeout.json"
-    )
-    closeout_path.parent.mkdir(parents=True)
-    closeout_path.write_text(
-        json.dumps(
-            {
-                "surface_kind": "stage_attempt_closeout_packet",
-                "schema_version": 1,
-                "stage_id": "domain_owner/default-executor-dispatch",
-                "stage_attempt_id": "sat_001",
-                "study_id": "study-1",
-                "quest_id": "study-1",
-                "action_type": "run_quality_repair_batch",
-                "work_unit_id": "medical_prose_write_repair",
-                "work_unit_fingerprint": "fingerprint-current",
-                "status": "closed_with_domain_owner_refs",
-                "execution_status": "executed",
-                "owner_receipt": {
-                    "owner": "write",
-                    "status": "executed",
-                    "quality_authorized": False,
-                    "submission_authorized": False,
-                    "current_package_write_authorized": False,
-                },
-                "domain_execution": {
-                    "action_type": "run_quality_repair_batch",
-                    "domain_owner": "write",
-                    "execution_status": "executed",
-                },
-                "closeout_refs": [
-                    "studies/study-1/artifacts/supervision/consumer/default_executor_execution/"
-                    "sat_001.closeout.json",
-                ],
-                "paper_stage_log": {
-                    "surface_kind": "mas_paper_facing_stage_log_summary",
-                    "status": "available",
-                    "stage_name": "medical_prose_write_repair",
-                    "problem_summary": "Quality repair completed with owner receipt.",
-                    "stage_goal": "Complete repair.",
-                    "stage_work_done": ["repair finished"],
-                    "paper_work_done": ["repair finished"],
-                    "changed_stage_surfaces": [],
-                    "changed_paper_surfaces": [],
-                    "outcome": "executed",
-                    "remaining_blockers": [],
-                    "duration": {"status": "missing", "value": None},
-                    "token_usage": {"status": "missing", "value": None, "total_tokens": None},
-                    "cost": {"status": "missing", "value": None, "total_cost": None},
-                    "usage_refs": [],
-                    "cost_refs": [],
-                    "progress_delta_classification": "typed_blocker",
-                    "deliverable_progress_delta": {"count": 0, "token_usage_total": None},
-                    "paper_progress_delta": {"count": 0, "token_usage_total": None},
-                    "platform_repair_delta": {"count": 0, "token_usage_total": None},
-                    "next_forced_delta": {
-                        "required_delta_kind": "paper_progress_delta_or_typed_blocker",
-                        "work_unit_id": "medical_prose_write_repair",
-                    },
-                    "evidence_refs": [
-                        "studies/study-1/artifacts/supervision/consumer/default_executor_execution/"
-                        "sat_001.closeout.json",
-                    ],
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    [candidate] = [
-        execution
-        for execution, _receipt_ref in candidates.default_executor_execution_candidates(
-            study_root=study_root
-        )
-    ]
-
-    assert candidate["receipt_ref"] == (
-        "artifacts/supervision/consumer/default_executor_execution/sat_001.closeout.json"
-    )
-    assert candidate["legacy_stage_run_abi_role"] == (
-        "opl_stagerun_closeout_provenance_identity_recovery_only"
-    )
-    assert candidate["stage_closeout_packet_role"] == (
-        "terminal_closeout_provenance_and_identity_recovery"
-    )
-    assert candidate["stage_closeout_packets_can_authorize_provider_admission"] is False
-    assert candidate["stage_closeout_packets_can_authorize_execution"] is False
-    assert candidate["stage_closeout_packets_can_create_provider_attempt"] is False
-    assert candidate["stage_closeout_packets_can_create_opl_event_outbox_or_stage_run"] is False
-    assert candidate["stage_closeout_packets_can_claim_running_or_progress"] is False
-    assert (
-        candidate["stage_closeout_packets_can_satisfy_current_receipt_without_owner_result"]
-        is False
-    )
-    assert candidate["dispatch_ref_stage_packet_identity_recovery_is_authority"] is False
-    assert candidate["provider_admission_authority"] is False
-    assert candidate["execution_authority"] is False
-    assert candidate["attempt_lifecycle_authority"] is False
-    assert candidate["queue_authority"] is False
-
 
 def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker() -> None:
     inventory = json.loads(
@@ -311,7 +178,7 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 
 
-def test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in(
+def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
     tmp_path,
 ) -> None:
     execution_io = importlib.import_module(
@@ -363,17 +230,14 @@ def test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy
 
     assert execution_io.execution_latest_payload(profile, "study-1") is None
 
-    legacy_payload = execution_io.execution_latest_payload(
+    assert execution_io.execution_latest_payload(
         profile,
         "study-1",
         allow_legacy_fallback=True,
-    )
-
-    assert legacy_payload is not None
-    assert legacy_payload["surface"] == "default_executor_dispatch_execution_study_latest"
+    ) is None
 
 
-def test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance(
+def test_domain_owner_dispatch_persist_does_not_merge_legacy_wire(
     tmp_path,
 ) -> None:
     dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
@@ -443,9 +307,7 @@ def test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance(
     latest_path = Path(written[0])
     latest = json.loads(latest_path.read_text(encoding="utf-8"))
     ledger = {item["execution_id"]: item for item in latest["execution_ledger"]}
-    assert set(ledger) == {"legacy-execution", "canonical-execution"}
-    assert ledger["legacy-execution"]["surface"] == "owner_callable_adapter_receipt"
-    assert ledger["legacy-execution"]["legacy_wire_surface"] == "default_executor_dispatch_execution"
+    assert set(ledger) == {"canonical-execution"}
     assert latest["projection_authority"] is False
     assert latest["execution_ledger_authority"] is False
     assert latest["attempt_lifecycle_authority"] is False

@@ -80,7 +80,7 @@ def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
     closeout_binding = {
         "surface_kind": "opl_stage_run_closeout_binding",
         "trusted_opl_execution_authorization": True,
-        "stage_run_id": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
+        "stage_run_id": f"stage-run::{study_id}::paper_mission/stage-outcome",
         "stage_manifest_ref": "opl://stage-manifests/domain_owner%2Fdefault-executor-dispatch",
         "current_pointer_ref": (
             "opl://stage-runs/stage-run%3A"

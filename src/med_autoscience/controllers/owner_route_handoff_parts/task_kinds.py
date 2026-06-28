@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .default_executor_dispatch_tasks import TASK_KIND as RETIRED_DEFAULT_PAPER_DISPATCH_TASK_KIND
+from .default_executor_dispatch_tasks import TASK_KIND as PAPER_MISSION_STAGE_OUTCOME_TASK_KIND
 
 
 FORBIDDEN_PAYLOAD_FLAGS = (
@@ -14,6 +14,7 @@ FORBIDDEN_PAYLOAD_FLAGS = (
     "memory_write_router_accept",
 )
 ALLOWED_TASK_KINDS = {
+    PAPER_MISSION_STAGE_OUTCOME_TASK_KIND: "default_executor_dispatch_request",
     "domain_route/reconcile-apply": "domain_route_owner_handoff",
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
@@ -29,5 +30,5 @@ ALLOWED_TASK_KINDS = {
     "notification/receipt": "notification_receipt",
 }
 RETIRED_DIAGNOSTIC_TASK_KINDS = {
-    RETIRED_DEFAULT_PAPER_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
+    "domain_owner/default-executor-dispatch": "default_executor_dispatch_request",
 }

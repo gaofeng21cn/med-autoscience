@@ -17,9 +17,12 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_cu
 from med_autoscience.controllers.opl_execution_boundary import (
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
+from med_autoscience.controllers.domain_owner_action_dispatch_parts.stage_outcome import (
+    STAGE_OUTCOME_TASK_KIND,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
-TASK_KIND = "domain_owner/default-executor-dispatch"
+TASK_KIND = STAGE_OUTCOME_TASK_KIND
 AI_REVIEWER_CURRENT_MANUSCRIPT_RECORD_WORK_UNIT = (
     "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
 )

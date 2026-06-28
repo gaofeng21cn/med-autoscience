@@ -17,7 +17,6 @@ from .owner_callable_adapter_projection import (
     domain_progress_transition_requests,
     owner_callable_adapters,
 )
-from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import current_dispatch_materialization
@@ -32,6 +31,7 @@ from .domain_owner_action_dispatch_parts import owner_route_selection
 from .domain_owner_action_dispatch_parts import paper_progress_stall_diagnostic
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import record_only_handoff
+from .domain_owner_action_dispatch_parts import stage_outcome
 from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
@@ -51,8 +51,6 @@ EXECUTION_HISTORY_RELATIVE_PATH = execution_io.EXECUTION_HISTORY_RELATIVE_PATH
 EXECUTION_LEDGER_LIMIT = execution_io.EXECUTION_LEDGER_LIMIT
 OWNER_CALLABLE_RECEIPT_SURFACE = execution_io.OWNER_CALLABLE_RECEIPT_SURFACE
 OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE = execution_io.OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE
-LEGACY_EXECUTION_SURFACE = execution_io.LEGACY_EXECUTION_SURFACE
-LEGACY_EXECUTION_STUDY_LATEST_SURFACE = execution_io.LEGACY_EXECUTION_STUDY_LATEST_SURFACE
 SUPERVISION_LATEST_RELATIVE_PATH = persisted_dispatches.SUPERVISION_LATEST_RELATIVE_PATH
 _append_json_line = execution_io.append_json_line
 _consumer_latest_path = execution_io.consumer_latest_path
@@ -320,7 +318,6 @@ def _owner_callable_adapter_boundary() -> dict[str, Any]:
         "forbidden_completion_interpretations": list(
             OWNER_CALLABLE_ADAPTER_FORBIDDEN_COMPLETION_INTERPRETATIONS
         ),
-        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "replacement_owner_surface": "OPL DomainProgressTransitionRuntime / StageRun",
     }
 
@@ -996,8 +993,6 @@ def _dispatch_execution_payload(
     execution_payload = {
         "surface": OWNER_CALLABLE_RECEIPT_SURFACE,
         "canonical_surface": OWNER_CALLABLE_RECEIPT_SURFACE,
-        "legacy_surface_alias": LEGACY_EXECUTION_SURFACE,
-        "legacy_wire_surface": LEGACY_EXECUTION_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "adapter_kind": _text(dispatch.get("adapter_kind")) or "opl_authorized_owner_callable_adapter",
         "source_dispatch_target_runtime_owner": _text(dispatch.get("target_runtime_owner")),
@@ -1043,7 +1038,6 @@ def _dispatch_execution_payload(
         "attempt_lifecycle_authority": False,
         "queue_authority": False,
         "retry_or_dead_letter_authority": False,
-        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
         "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "generated_at": generated_at,
@@ -1056,7 +1050,7 @@ def _dispatch_execution_payload(
         "required_output_surface": _text(dispatch.get("required_output_surface")),
         "dispatch_path": str(dispatch_path),
         "dispatch_status": _text(dispatch.get("dispatch_status")),
-        "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch",
+        "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "owner_callable_adapter_receipt",
         "provider_admission_requires_opl_runtime_result": (
             dispatch.get("provider_admission_requires_opl_runtime_result") is True
             or prompt_contract.get("provider_admission_requires_opl_runtime_result") is True
@@ -1161,19 +1155,14 @@ def _dispatch_execution_payload(
     )
     if progress_first_typed_blocker is not None:
         execution_payload["progress_first_typed_blocker"] = progress_first_typed_blocker
-    if "paper_stage_log" not in execution_payload:
-        execution_payload["paper_stage_log"] = paper_stage_log_for_default_executor_execution(
+    if "stage_outcome" not in execution_payload:
+        execution_payload["stage_outcome"] = stage_outcome.stage_outcome_for_owner_callable_receipt(
             study_id=study_id,
             action_type=action_type,
-            next_executable_owner=_text(dispatch.get("next_executable_owner")),
-            required_output_surface=_text(dispatch.get("required_output_surface")),
             dispatch_path=dispatch_path,
             dispatch=dispatch,
             execution=execution_payload,
         )
-    if isinstance(execution_payload.get("paper_stage_log"), Mapping):
-        execution_payload.setdefault("user_stage_log", execution_payload["paper_stage_log"])
-        execution_payload.setdefault("stage_log_summary", execution_payload["paper_stage_log"])
     return execution_payload
 
 
@@ -1200,11 +1189,7 @@ def _persist_study_executions(
 ) -> list[str]:
     latest_path = _execution_latest_path(profile, study_id)
     history_path = _execution_history_path(profile, study_id)
-    previous_payload = _execution_latest_payload(
-        profile,
-        study_id,
-        allow_legacy_fallback=True,
-    )
+    previous_payload = _execution_latest_payload(profile, study_id)
     execution_ledger = _merged_execution_ledger(
         previous_payload=previous_payload,
         study_executions=study_executions,
@@ -1212,9 +1197,6 @@ def _persist_study_executions(
     study_payload = {
         "surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
         "canonical_surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
-        "legacy_surface_alias": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
-        "legacy_wire_surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
-        "legacy_wire_path": str(execution_io.LEGACY_EXECUTION_LATEST_RELATIVE_PATH),
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "study_id": study_id,
@@ -1225,7 +1207,6 @@ def _persist_study_executions(
         "queue_authority": False,
         "retry_or_dead_letter_authority": False,
         "target_runtime_owner": "one-person-lab",
-        "legacy_default_executor_execution_path_role": "wire_compatibility_and_provenance_ref_only",
         "owner_callable_adapter_boundary": _owner_callable_adapter_boundary(),
         "opl_owner_callable_adapter_readback_requirement": _opl_owner_callable_adapter_readback_requirement(),
         "executions": study_executions,

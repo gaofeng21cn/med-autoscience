@@ -560,45 +560,29 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
 
     dispatch = result["domain_progress_transition_requests"][0]
     packet = _legacy_request_task_refs(result)[0]
-    assert dispatch["owner_route"]["schema_version"] == 2
-    assert dispatch["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == owner_route["source_fingerprint"]
-    prompt_route = dispatch["prompt_contract_ref"]["owner_route"]
-    assert prompt_route["schema_version"] == dispatch["owner_route"]["schema_version"]
-    assert prompt_route["study_id"] == dispatch["owner_route"]["study_id"]
-    assert prompt_route["quest_id"] == dispatch["owner_route"]["quest_id"]
-    assert prompt_route["next_owner"] == dispatch["owner_route"]["next_owner"]
-    assert prompt_route["owner_reason"] == dispatch["owner_route"]["owner_reason"]
-    assert prompt_route["idempotency_key"] == dispatch["owner_route"]["idempotency_key"]
+    assert dispatch["owner_route_body_omitted"] is True
+    assert "owner_route" not in dispatch
+    route_ref = dispatch["owner_route_ref"]
+    assert route_ref["schema_version"] == 2
+    assert route_ref["truth_epoch"] == owner_route["route_epoch"]
+    assert route_ref["work_unit_fingerprint"] == owner_route["source_fingerprint"]
+    prompt_route = dispatch["prompt_contract_ref"]["owner_route_ref"]
+    assert prompt_route["schema_version"] == route_ref["schema_version"]
+    assert prompt_route["study_id"] == route_ref["study_id"]
+    assert prompt_route["quest_id"] == route_ref["quest_id"]
+    assert prompt_route["next_owner"] == route_ref["next_owner"]
+    assert prompt_route["owner_reason"] == route_ref["owner_reason"]
+    assert prompt_route["idempotency_key"] == route_ref["idempotency_key"]
     assert (
         prompt_route["source_refs"]["owner_route_currentness_basis"]["work_unit_fingerprint"]
-        == dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]["work_unit_fingerprint"]
+        == route_ref["source_refs"]["owner_route_currentness_basis"]["work_unit_fingerprint"]
     )
-    assert dispatch["prompt_contract_ref"]["idempotency_key"] == owner_route["idempotency_key"]
-    closeout_packet = dispatch["prompt_contract_ref"]["required_closeout_packet"]
-    assert closeout_packet["typed_closeout_required_for_completion"] is True
-    assert closeout_packet["free_text_closeout_accepted"] is False
-    assert closeout_packet["required_user_stage_log_field"] == "paper_stage_log"
-    assert "stage_work_done" in closeout_packet["required_user_stage_log_fields"]
-    assert "paper_work_done" in closeout_packet["required_user_stage_log_fields"]
-    assert "changed_stage_surfaces" in closeout_packet["required_user_stage_log_fields"]
-    assert "duration" in closeout_packet["required_user_stage_log_fields"]
-    assert "token_usage" in closeout_packet["required_user_stage_log_fields"]
-    assert "cost" in closeout_packet["required_user_stage_log_fields"]
+    assert prompt_route["idempotency_key"] == owner_route["idempotency_key"]
+    assert dispatch["prompt_contract_ref"]["payload_body_omitted"] is True
+    assert dispatch["prompt_contract_ref"]["request_packet_ref"] == "artifacts/supervision/requests/ai_reviewer/latest.json"
     assert packet["surface"] == "supervisor_request_handoff_task_ref"
     assert packet["handoff_packet_body_omitted"] is True
     assert "handoff_packet" not in packet
-    assert "usage_refs" in closeout_packet["required_user_stage_log_fields"]
-    assert "cost_refs" in closeout_packet["required_user_stage_log_fields"]
-    assert "progress_delta_classification" in closeout_packet["required_user_stage_log_fields"]
-    assert "deliverable_progress_delta" in closeout_packet["required_user_stage_log_fields"]
-    assert "paper_progress_delta" in closeout_packet["required_user_stage_log_fields"]
-    assert "platform_repair_delta" in closeout_packet["required_user_stage_log_fields"]
-    assert "next_forced_delta" in closeout_packet["required_user_stage_log_fields"]
-    assert closeout_packet["user_stage_log_policy"]["progress_delta_policy"][
-        "next_forced_delta_required_for_no_deliverable_progress"
-    ] is True
-    assert dispatch["prompt_contract_ref"]["required_closeout_packet"] == closeout_packet
     assert "executor_prompt" not in dispatch
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
         "DomainProgressTransitionRuntime"

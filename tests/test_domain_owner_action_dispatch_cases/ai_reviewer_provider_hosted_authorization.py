@@ -66,7 +66,7 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
             / "artifacts"
             / "supervision"
             / "consumer"
-            / "default_executor_execution"
+            / "owner_callable_adapter_receipts"
             / "latest.json"
         ).read_text(encoding="utf-8")
     )
@@ -139,7 +139,7 @@ def test_provider_hosted_stage_attempt_identity_authorizes_ai_reviewer_dispatch(
         "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
         "opl://stage-attempts/sat-provider-hosted/execution-authorizations/frt-provider-hosted/current",
     )
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", "return_to_ai_reviewer_workflow")
@@ -216,7 +216,7 @@ def test_provider_hosted_stage_attempt_identity_mismatch_keeps_ai_reviewer_dispa
         "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
         "opl://stage-attempts/sat-provider-hosted/execution-authorizations/frt-provider-hosted/current",
     )
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path) + ".stale")
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", "return_to_ai_reviewer_workflow")

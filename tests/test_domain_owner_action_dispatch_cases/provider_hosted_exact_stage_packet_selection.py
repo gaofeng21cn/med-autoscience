@@ -44,7 +44,7 @@ def _bind_provider_hosted_stage_packet(
     work_unit_id: str,
     dispatch_path: Path,
 ) -> None:
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat_2d9f8f3b252de25a6103779f")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
@@ -279,7 +279,7 @@ def test_provider_hosted_exact_stage_packet_selects_dispatch_despite_blocking_pr
             },
         },
     )
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat_2d9f8f3b252de25a6103779f")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)

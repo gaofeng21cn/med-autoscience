@@ -10,6 +10,7 @@ from med_autoscience.controllers.opl_execution_boundary import (
     first_trusted_opl_execution_authorization,
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
+from .stage_outcome import STAGE_OUTCOME_TASK_KIND
 
 def block_if_missing_authorization(
     *,
@@ -157,7 +158,7 @@ def _provider_hosted_stage_attempt_identity(*, dispatch: Mapping[str, Any]) -> d
     provider_attempt_ref = _env_text("OPL_PROVIDER_ATTEMPT_REF")
     if stage_attempt_id is None or stage_packet_ref is None or provider_attempt_ref is None:
         return None
-    if stage_id is not None and stage_id != "domain_owner/default-executor-dispatch":
+    if stage_id is not None and stage_id != STAGE_OUTCOME_TASK_KIND:
         return None
     if not _stage_packet_ref_matches_dispatch(stage_packet_ref=stage_packet_ref, dispatch=dispatch):
         return None

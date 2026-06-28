@@ -71,7 +71,7 @@ def test_provider_hosted_stage_attempt_identity_authorizes_publication_handoff(
     monkeypatch.setenv("OPL_SOURCE_FINGERPRINT", "mas_default_executor_source_provider_hosted_publication")
     monkeypatch.setenv("OPL_IDEMPOTENCY_KEY", "idem_provider_hosted_publication")
     monkeypatch.setenv("OPL_WORKFLOW_ID", "wf-provider-hosted-publication")
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", "publication_handoff_owner_gate")

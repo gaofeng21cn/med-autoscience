@@ -80,7 +80,7 @@ def test_provider_hosted_stage_attempt_identity_authorizes_gate_clearing_batch_d
         "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
         "opl://stage-attempts/sat-provider-hosted-gate-clearing/execution-authorizations/frt-provider-hosted-gate-clearing/current",
     )
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", "run_gate_clearing_batch")

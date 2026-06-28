@@ -46,7 +46,7 @@ def _write_readiness_dispatch(study_root: Path, profile, dispatch: dict[str, obj
 def _readiness_closeout_binding_env(*, study_id: str) -> dict[str, str]:
     source_fingerprint = f"truth-source::{study_id}::{ACTION_TYPE}"
     return {
-        "OPL_STAGE_RUN_ID": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
+        "OPL_STAGE_RUN_ID": f"stage-run::{study_id}::paper_mission/stage-outcome",
         "OPL_STAGE_MANIFEST_REF": (
             "artifacts/supervision/consumer/stage_manifests/"
             "domain_owner_default_executor_dispatch.json"
@@ -87,7 +87,7 @@ def test_readiness_owner_delta_carries_closeout_binding_from_provider_env(
     dispatch_path = _write_readiness_dispatch(study_root, profile, dispatch)
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", f"stage-attempt::{study_id}::{ACTION_TYPE}")
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", ACTION_TYPE)
 
@@ -103,7 +103,7 @@ def test_readiness_owner_delta_carries_closeout_binding_from_provider_env(
     binding = owner_delta["closeout_binding"]
     assert result["blocked_count"] == 1
     assert owner_delta["result_kind"] == "stable_typed_blocker"
-    assert binding["stage_run_id"] == f"stage-run::{study_id}::domain_owner/default-executor-dispatch"
+    assert binding["stage_run_id"] == f"stage-run::{study_id}::paper_mission/stage-outcome"
     assert binding["stage_manifest_ref"] == (
         "artifacts/supervision/consumer/stage_manifests/"
         "domain_owner_default_executor_dispatch.json"

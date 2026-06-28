@@ -124,7 +124,7 @@ def test_execute_dispatch_does_not_execute_consumed_quality_repair_handoff_when_
         study_root / "paper" / "review" / "domain_stage_closeout_sat_story_delta_20260602T202258Z.json",
         {
             "surface_kind": "domain_stage_closeout_packet",
-            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_id": "paper_mission/stage-outcome",
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
             "action_type": "run_quality_repair_batch",

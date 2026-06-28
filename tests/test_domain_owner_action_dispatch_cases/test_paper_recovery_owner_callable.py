@@ -325,7 +325,6 @@ def test_execute_dispatch_blocks_persisted_paper_recovery_owner_callable_without
     assert boundary["can_create_provider_attempt"] is False
     assert boundary["can_generate_next_action"] is False
     assert boundary["can_satisfy_opl_readback"] is False
-    assert boundary["legacy_default_executor_execution_path_role"] == "wire_compatibility_and_provenance_ref_only"
     assert boundary["replacement_owner_surface"] == "OPL DomainProgressTransitionRuntime / StageRun"
     requirement = boundary["opl_readback_requirement"]
     assert requirement["required_owner_surface"] == "one-person-lab DomainProgressTransitionRuntime / StageRun"

@@ -62,7 +62,7 @@ def test_provider_hosted_exact_stage_packet_survives_consumed_closeout_selection
             owner_route=owner_route,
         ),
     )
-    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", stage_attempt_id)
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(immutable_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
@@ -214,7 +214,7 @@ def _closeout(
     return {
         "surface_kind": "stage_attempt_closeout_packet",
         "status": "blocked",
-        "stage_id": "domain_owner/default-executor-dispatch",
+        "stage_id": "paper_mission/stage-outcome",
         "stage_attempt_id": stage_attempt_id,
         "study_id": study_id,
         "quest_id": study_id,
