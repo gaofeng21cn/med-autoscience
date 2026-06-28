@@ -21,7 +21,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 | [contracts](./contracts/) | MAS runtime-facing contracts、owner boundary、durable surface、artifact authority 和 backend/interface 规则。 |
 | [control](./control/) | MAS controller、domain transition control、owner route、safe action 和 runtime action surface。通用 provider/queue/attempt 归 OPL。 |
 | [projections](./projections/) | Read model、用户可见状态、observability 和非权威摘要。 |
-| [display](./display/) | Progress Portal 等 active 展示合同。 |
+| [display](./display/) | 历史展示合同目录；MAS-local Progress Portal 已退役，当前展示消费由 OPL-hosted workbench / App 读取 MAS refs-only projection。 |
 | [designs](./designs/) | 活跃 / 已落地 runtime design support。它们解释目标边界、已落地支撑和剩余设计判断，但不替代 source、contracts、tests、CLI/read-model 或 runtime receipts。 |
 
 ## 主入口
@@ -32,7 +32,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [MAS Stage / Route / Handoff 标准](./stage_route_handoff_standard.md)：解释 stage、route、handoff、owner route 与 OPL stage graph 的关系；route 不是 MAS 私有小 stage，route 间调度归 OPL runtime manager / transition runner。
 - [MAS / OPL Agent OS 目标运行架构与重构计划](./designs/mas_opl_agent_os_target_operating_architecture.md)：把 OPL Agent OS、MAS Medical Research Pack、MAS Authority Kernel、Scientific Capability Registry 和可并行重构 lane 固定为当前目标运行架构；它是可执行 target plan，不是 live study truth。
 - [OPL Domain Progress Transition Runtime 与 MAS Paper Policy Adapter 目标设计](./designs/paper_progress_transition_kernel_target.md)：把 DM002 / DM003 反复复发的 currentness、owner-route、owner receipt、provider admission 和 supervision 问题收敛到 OPL-owned 通用 transition runtime 与 MAS-owned paper policy adapter；通用 event log、fixed-point controller、outbox、StageRun identity、replay 和 projection metadata 属于 OPL，MAS 只提供医学论文领域裁决与 authority result shape。2026-06-20 蓝图 L0-L7 repo/source/control-plane 功能面已按 `contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance` 收为 `done`；这仍不是 live paper progress、runtime ready 或 provider running claim。
-- [MAS executor-first 重构目标与迁移计划](../active/mas_executor_first_rearchitecture_program.md)：固定 artifact-first paper mission 默认叙事、`PaperMissionRun` contract shape、Progress Portal / workbench mission summary 投影，以及旧 DHD / owner-route / dispatch / PaperRecovery 默认主路径退役边界；它不声明 live DM002/DM003 mission consume 完成。
+- [MAS executor-first 重构目标与迁移计划](../active/mas_executor_first_rearchitecture_program.md)：固定 artifact-first paper mission 默认叙事、`PaperMissionRun` contract shape、OPL-hosted workbench mission summary 投影，以及旧 DHD / owner-route / dispatch / PaperRecovery 默认主路径退役边界；它不声明 live DM002/DM003 mission consume 完成。
 - [Co-Scientist Stage / Route 重构设计与执行规格](./designs/coscientist_stage_route_restructure.md)：把 Co-Scientist 启发转译为 MAS Stage-native scientific work system 的 runtime-facing design 和下一 `/goal` 执行规格；它不替代 `docs/active/mas-ideal-state-gap-plan.md` 的 single Active Truth，不声明实现已完成，实际完成仍需落到 semantic pack、contracts、source、tests、owner receipts 和 runtime evidence。
 - [External Learning Adoption Closure Runbook](./control/external_learning_adoption_closure.md)：固定 Co-Scientist、Nature-skills、Academic Research Skills、AutoSci / OmegaWiki、EvoScientist / EvoSkills、ARK、ARIS、PaperSpine、Open Auto Research 等 external-learning intake 的完成口径。`adopt_contract` / reference intake / design doc 不等于 landed；只有进入 owner surface、read-model、worker/sidecar slot、callable/action catalog、quality pack consumer、controller-authorized soak 或等价 repo-native surface，且有验证证明 allowed writes / forbidden authority / nonblocking 边界，才算实际落地。
 - [Study runtime control surface](./control/study_runtime_control_surface.md)
@@ -40,7 +40,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [Domain Authority Refs Index Guard](./domain_authority_refs_index_guard.md)：domain authority refs、owner receipt、typed blocker、restore/archive provenance refs 和 SQLite/file boundary guard。
 - [Data Asset Storage Retention Runbook](./data_asset_storage_retention.md)：固定 `data/datasets/**` 数据资产 body 与 runtime residue、cold-store、SQLite compact 的分账边界；OPL 只消费 locator/ref/projection，不持有 MAS 医学数据 authority。
 - [Study progress projection](./projections/study_progress_projection.md)
-- [Progress Portal](./display/progress_portal.md)
+- [Study progress projection](./projections/study_progress_projection.md)
 
 `designs/` 下的文档可以记录已经落地的 runtime support 设计，例如 journal requirements / journal package controller 边界；当前实现和 readiness 判断仍以对应 source、contracts、tests 和 CLI/read-model 为准。
 
