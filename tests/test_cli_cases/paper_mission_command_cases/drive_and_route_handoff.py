@@ -237,7 +237,9 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
     assert payload["action_intent"] == "paper_mission/drive"
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
-    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
     assert payload["drive_result"]["status"] == "opl_runtime_submission_failed"
     assert payload["drive_result"]["stage_terminal_decision"] == "continue_same_stage"
     assert payload["drive_result"]["route_command"] == "resume_stage"
@@ -698,7 +700,9 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
     assert payload["drive_result"]["status"] == "opl_stage_route_running"
     assert payload["drive_result"]["terminal_closeout_observed"] is False
     assert payload["drive_result"]["provider_attempt_running_observed"] is True
-    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
     assert enqueues[1]["payload"]["route_target"] == (

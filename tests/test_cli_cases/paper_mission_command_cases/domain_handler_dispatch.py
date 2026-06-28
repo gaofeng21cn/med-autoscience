@@ -496,7 +496,9 @@ def test_domain_handler_dispatch_drives_default_paper_mission_without_authority_
     result = payload["dispatch"]["result"]
     assert result["surface_kind"] == "paper_mission_drive_readback"
     assert result["paper_mission_command"] == "drive"
-    assert result["consume_candidate_status"] == "accepted_candidate"
+    assert result["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
     assert result["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert result["opl_route_command"]["command_kind"] == "resume_stage"
     assert result["drive_result"]["status"] == "opl_runtime_submission_failed"

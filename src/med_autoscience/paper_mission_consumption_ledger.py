@@ -461,6 +461,12 @@ def _consume_candidate_status_from_terminal(
     selected_outcome: str | None,
     stage_terminal_decision: Mapping[str, Any],
 ) -> str:
+    accepted = _accepted_candidate_status(
+        status=status,
+        selected_outcome=selected_outcome,
+    )
+    if accepted is not None:
+        return accepted
     decision_kind = _text(stage_terminal_decision.get("decision_kind"))
     if decision_kind == "route_back":
         return "route_back"
@@ -481,6 +487,16 @@ def _consume_candidate_status_from_terminal(
     if selected_outcome == "rejected_candidate" or status == "rejected_candidate":
         return "rejected"
     return selected_outcome or status or "not_consumed"
+
+
+def _accepted_candidate_status(
+    *,
+    status: str | None,
+    selected_outcome: str | None,
+) -> str | None:
+    if selected_outcome == "accepted_candidate" or status == "accepted_candidate":
+        return "accepted_submission_milestone_candidate"
+    return None
 
 
 def _consumption_required_followthrough(

@@ -242,7 +242,9 @@ def test_paper_mission_consume_candidate_counts_accepted_package_delta_as_semant
     assert payload["authority_consume_readback"]["consume_result"][
         "authority_materialized"
     ] is False
-    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
     idempotency_key = payload["paper_mission_transaction"]["idempotency"][
         "idempotency_key"
     ]
@@ -470,7 +472,9 @@ def test_paper_mission_consume_candidate_can_write_governed_consume_record(
         transaction["stage_terminal_decision"]
     )
     assert consume_readback["opl_route_command"] == transaction["opl_route_command"]
-    assert consume_readback["consume_candidate_status"] == "accepted_candidate"
+    assert consume_readback["consume_candidate_status"] == (
+        "accepted_submission_milestone_candidate"
+    )
     assert consume_readback["route_handoff_status"] == "ready_for_opl_route_command"
     assert consume_readback["next_owner"] == "analysis-campaign"
     assert consume_readback["can_submit_to_opl_runtime"] is True
