@@ -3,32 +3,15 @@ from __future__ import annotations
 from .shared import *  # noqa: F403,F401
 
 
-def test_domain_handler_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
-    monkeypatch,
+def test_domain_handler_dispatch_materializes_embedded_ai_reviewer_handoff_inside_mas_owner(
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
     write_profile(profile_path, workspace_root=workspace_root)
-    calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
-        calls.append(kwargs)
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 1,
-            "blocked_count": 0,
-        }
-
-    monkeypatch.setattr(
-        adapter.paper_repair_executor.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        fake_dispatch_domain_owner_actions,
-    )
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
@@ -63,53 +46,36 @@ def test_domain_handler_dispatch_routes_embedded_ai_reviewer_callable_inside_mas
     assert payload["accepted"] is True
     assert payload["dispatch"]["action_type"] == "paper_repair_executor_dispatch"
     paper_receipt = payload["dispatch"]["result"]
-    assert paper_receipt["execution_status"] == "executed"
+    assert paper_receipt["execution_status"] == "handoff_ready"
     assert paper_receipt["owner_callable_surface"] == (
         "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
     )
-    assert len(calls) == 1
-    assert calls[0]["profile"].name == "nfpitnet"
-    assert calls[0]["study_ids"] == ("001-risk",)
-    assert calls[0]["action_types"] == ("return_to_ai_reviewer_workflow",)
-    assert calls[0]["mode"] == "developer_apply_safe"
-    assert calls[0]["apply"] is True
+    handoff = paper_receipt["ai_reviewer_record_worker_handoff"]
+    assert handoff["surface"] == "mas_domain_progress_transition_request_projection"
+    assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert handoff["next_executable_owner"] == "ai_reviewer"
+    assert payload["dispatch"]["downstream_worker_handoff"] == handoff
     assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
+    assert (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").is_file()
+    assert (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    ).is_file()
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
-def test_domain_handler_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
-    monkeypatch,
+def test_domain_handler_dispatch_blocks_embedded_ai_reviewer_callable_without_opl_authorization(
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-
-    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 1,
-            "repeat_suppressed_count": 0,
-            "executions": [
-                {
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_request_missing",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(
-        adapter.paper_repair_executor.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        fake_dispatch_domain_owner_actions,
-    )
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
@@ -121,7 +87,6 @@ def test_domain_handler_dispatch_preserves_embedded_ai_reviewer_callable_blocker
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
-                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-ai-reviewer-blocked",
                     "work_unit_type": "ai_reviewer_recheck",
@@ -140,56 +105,23 @@ def test_domain_handler_dispatch_preserves_embedded_ai_reviewer_callable_blocker
     exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 1
+    assert exit_code == 0
+    assert payload["stable_typed_blocker"] == "opl_execution_authorization_required"
     paper_receipt = payload["dispatch"]["result"]
     assert paper_receipt["accepted"] is False
     assert paper_receipt["execution_status"] == "blocked"
-    assert paper_receipt["typed_blocker"] == "ai_reviewer_request_missing"
+    assert paper_receipt["typed_blocker"] == "opl_execution_authorization_required"
 
 
 def test_domain_handler_dispatch_preserves_ai_reviewer_record_production_handoff(
-    monkeypatch,
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
     write_profile(profile_path, workspace_root=workspace_root)
-
-    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 1,
-            "blocked_count": 0,
-            "codex_dispatch_count": 1,
-            "repeat_suppressed_count": 0,
-            "executions": [
-                {
-                    "execution_status": "handoff_ready",
-                    "blocked_reason": None,
-                    "owner_callable_surface": "publication materialize-ai-reviewer-record",
-                    "ai_reviewer_record_worker_handoff": {
-                        "surface": "default_executor_dispatch_request",
-                        "dispatch_status": "ready",
-                        "dispatch_authority": "ai_reviewer_record_production_handoff",
-                        "next_executable_owner": "ai_reviewer",
-                        "required_output_surface": (
-                            "artifacts/publication_eval/ai_reviewer_responses/"
-                            "*_publication_eval_record.json"
-                        ),
-                    },
-                }
-            ],
-        }
-
-    monkeypatch.setattr(
-        adapter.paper_repair_executor.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        fake_dispatch_domain_owner_actions,
-    )
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,

@@ -385,6 +385,7 @@ def _ai_reviewer_owner_handoff_result(
         callable_surface=AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
         opl_execution_authorization=opl_execution_authorization,
     )
+    handoff["dispatch_authority"] = "ai_reviewer_record_production_handoff"
     _write_json(dispatch_path, handoff)
     return {
         "surface": "paper_repair_ai_reviewer_owner_handoff",

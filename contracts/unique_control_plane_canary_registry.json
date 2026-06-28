@@ -119,7 +119,7 @@
         "contracts/generated_surface_handoff.json"
       ],
       "owner_route_regression_refs": [
-        "tests/test_domain_owner_action_dispatch_cases/quality_repair_owner_route_cases.py",
+        "tests/test_paper_repair_executor.py",
         "regression-suite:mas/owner-route/stale-dispatch"
       ],
       "no_forbidden_write_proof_refs": [
@@ -156,7 +156,7 @@
             "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
           ],
           "target_test_refs": [
-            "tests/test_domain_owner_action_dispatch_cases/quality_repair_owner_route_cases.py",
+            "tests/test_paper_repair_executor.py",
             "regression-suite:mas/owner-route/stale-dispatch",
             "tests/test_unique_control_plane_canary_registry.py"
           ],

@@ -285,7 +285,7 @@
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
-        "tests/test_domain_owner_action_dispatch_cases/anti_loop_budget.py::test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt",
+        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_anti_loop_owner_gate_cases.py",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
       ]
     },
@@ -1138,7 +1138,7 @@
           "run_quality_repair_batch",
           "unit_harmonized_external_validation_rerun"
         ],
-        "repo_fail_closed_test_ref": "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
+        "repo_fail_closed_test_ref": "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
         "request_projection_without_opl_proof_outcome": "opl_execution_authorization_required",
         "supported_action_types_ref": "src/med_autoscience/controllers/default_executor_action_policy.py#SUPPORTED_ACTION_TYPES"
       },
@@ -1191,24 +1191,14 @@
       },
       "surface_id": "domain_owner_action_dispatch",
       "verified_by": [
-        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action",
-        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_accepts_matching_opl_transition_readback",
-        "tests/test_domain_owner_action_dispatch_contract.py::test_transition_request_projection_rejects_readback_without_explicit_route_attempt_identity",
-        "tests/test_domain_owner_action_dispatch_contract.py::test_current_consumer_dispatches_ignore_inline_default_executor_dispatch",
-        "tests/test_domain_owner_action_dispatch_contract.py::test_current_consumer_dispatches_ignore_owner_callable_adapter_list",
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
-        "tests/test_domain_owner_action_dispatch_cases/test_paper_recovery_owner_callable.py::test_execute_dispatch_blocks_paper_recovery_provider_successor_without_opl_authorization",
-        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py",
+        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py",
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_requires_opl_execution_proof",
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_trusted_opl_authorization",
         "tests/test_domain_owner_action_currentness_selectors.py::test_live_provider_attempt_route_accepts_bound_opl_transition_readback",
         "tests/study_progress_cases/opl_current_control_state_handoff_projection_cases/running_attempt_identity.py::test_running_handoff_without_opl_readback_does_not_consume_current_execution",
         "tests/study_progress_cases/provider_admission_projection_cases/opl_running_readback.py::test_provider_admission_projection_consumes_current_identity_running_proof",
-        "tests/test_current_execution_envelope_cases/provider_attempt_priority.py::test_envelope_prefers_running_provider_attempt_over_stale_action_queue",
-        "tests/test_domain_owner_action_dispatch_cases/provider_hosted_exact_stage_packet_selection.py",
-        "tests/test_domain_owner_action_dispatch_cases/stage_native_write_repair_authorization.py",
-        "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_provider_hosted_authorization.py",
-        "tests/test_domain_owner_action_dispatch_cases/provider_hosted_gate_clearing_authorization.py"
+        "tests/test_current_execution_envelope_cases/provider_attempt_priority.py::test_envelope_prefers_running_provider_attempt_over_stale_action_queue"
       ]
     },
     {

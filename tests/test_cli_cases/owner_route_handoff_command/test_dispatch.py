@@ -245,7 +245,7 @@ def test_domain_handler_dispatch_accepts_quality_repair_writer_handoff_without_d
             "repair_execution_evidence": evidence,
             "repair_execution_evidence_path": str(evidence_path),
             "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
+                "surface": "mas_domain_progress_transition_request_projection",
                 "dispatch_status": "ready",
                 "next_executable_owner": "write",
                 "required_output_surface": (
@@ -295,7 +295,7 @@ def test_domain_handler_dispatch_accepts_quality_repair_writer_handoff_without_d
     assert paper_receipt["typed_blocker"] is None
     assert paper_receipt["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
     handoff = paper_receipt["writer_worker_handoff"]
-    assert handoff["surface"] == "default_executor_dispatch_request"
+    assert handoff["surface"] == "mas_domain_progress_transition_request_projection"
     assert handoff["dispatch_status"] == "ready"
     assert handoff["next_executable_owner"] == "write"
     assert "canonical manuscript story-surface delta" in handoff["required_output_surface"]
@@ -421,30 +421,13 @@ def test_domain_handler_dispatch_fail_fast_blocks_unsupported_embedded_callable(
 
 
 def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_changes(
-    monkeypatch,
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-    calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
-        calls.append(kwargs)
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 1,
-            "blocked_count": 0,
-        }
-
-    monkeypatch.setattr(
-        adapter.paper_repair_executor.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        fake_dispatch_domain_owner_actions,
-    )
     task_path = tmp_path / "task.json"
     task = {
         "task_id": "paper-task-ai-reviewer-callable",
@@ -503,56 +486,25 @@ def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_chan
     assert exit_code == 0
     assert payload.get("idempotent_noop") is None
     assert payload["accepted"] is True
-    assert payload["dispatch"]["result"]["execution_status"] == "executed"
+    assert payload["dispatch"]["result"]["execution_status"] == "handoff_ready"
     assert payload["dispatch"]["result"]["owner_callable_surface"] == (
         "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
     )
-    assert len(calls) == 1
-    assert calls[0]["action_types"] == ("return_to_ai_reviewer_workflow",)
+    assert payload["dispatch"]["result"]["ai_reviewer_record_worker_handoff"]["action_type"] == (
+        "return_to_ai_reviewer_workflow"
+    )
     assert payload["receipt_ref"].startswith("runtime/artifacts/opl_family_domain_handler/dispatch_receipts/")
     assert payload["receipt_ref"] != str(stale_receipt_path.relative_to(workspace_root))
 
 
 def test_domain_handler_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(
-    monkeypatch,
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-    calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(
-        *,
-        profile,
-        study_ids,
-        action_types,
-        mode: str,
-        apply: bool,
-    ) -> dict[str, object]:
-        calls.append(
-            {
-                "profile": profile.name,
-                "study_ids": tuple(study_ids),
-                "action_types": tuple(action_types),
-                "mode": mode,
-                "apply": apply,
-            }
-        )
-        return {
-            "surface": "domain_owner_action_dispatch_execution",
-            "executed_count": 1,
-            "blocked_count": 0,
-        }
-
-    monkeypatch.setattr(
-        adapter.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        fake_dispatch_domain_owner_actions,
-    )
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
@@ -573,46 +525,16 @@ def test_domain_handler_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_
     assert payload["stable_typed_blocker"] == "opl_execution_authorization_required"
     assert payload["dispatch"]["result"]["execution_status"] == "blocked"
     assert payload["dispatch"]["result"]["typed_blocker"] == "opl_execution_authorization_required"
-    assert calls == []
 
 
 def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
-    monkeypatch,
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-    reviewer_calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(
-        *,
-        profile,
-        study_ids,
-        action_types,
-        mode: str,
-        apply: bool,
-    ) -> dict[str, object]:
-        reviewer_calls.append(
-            {
-                "profile": profile.name,
-                "study_ids": tuple(study_ids),
-                "action_types": tuple(action_types),
-                "mode": mode,
-                "apply": apply,
-            }
-        )
-        return {"surface": "domain_owner_action_dispatch_execution", "executed_count": 1}
-
-    monkeypatch.delattr(adapter, "domain_route_reconcile", raising=False)
-    monkeypatch.setattr(
-        adapter.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        fake_dispatch_domain_owner_actions,
-    )
     analysis_task_path = tmp_path / "analysis-task.json"
     reviewer_task_path = tmp_path / "reviewer-task.json"
     _write_json(
@@ -654,7 +576,6 @@ def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_c
     assert analysis_payload["dispatch"]["result"]["mas_executes_reconcile_apply"] is False
     assert reviewer_payload["dispatch"]["result"]["execution_status"] == "blocked"
     assert reviewer_payload["dispatch"]["result"]["typed_blocker"] == "opl_execution_authorization_required"
-    assert reviewer_calls == []
     assert analysis_payload["authority_boundary"]["writes_domain_truth"] is False
     assert reviewer_payload["authority_boundary"]["writes_artifact_gate"] is False
     assert analysis_payload["forbidden_write_guard_proof"]["can_authorize_publication_quality"] is False

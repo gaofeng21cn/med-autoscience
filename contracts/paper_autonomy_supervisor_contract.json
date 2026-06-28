@@ -904,7 +904,7 @@
         "src/med_autoscience/controllers/provider_admission_parts/provider_admission_report.py",
         "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/opl_execution_preflight.py",
         "tests/domain_action_request_materializer_cases/current_control_authority_selection_cases.py",
-        "tests/test_domain_owner_action_dispatch_cases/current_control_authority_selection.py",
+        "tests/domain_action_request_materializer_cases/test_current_control_authority_selection.py",
         "tests/test_provider_admission_current_control_cases/owner_gate_route_back_cases.py",
         "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py"
       ],

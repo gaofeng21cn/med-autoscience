@@ -246,7 +246,7 @@ def test_paper_repair_executor_accepts_quality_repair_writer_handoff_without_ter
             "repair_execution_evidence": evidence,
             "repair_execution_evidence_path": str(evidence_path),
             "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
+                "surface": "mas_domain_progress_transition_request_projection",
                 "dispatch_status": "ready",
                 "next_executable_owner": "write",
                 "required_output_surface": (
@@ -286,7 +286,7 @@ def test_paper_repair_executor_does_not_promote_unproven_writer_handoff() -> Non
         "ok": True,
         "status": "handoff_ready",
         "writer_worker_handoff": {
-            "surface": "default_executor_dispatch_request",
+            "surface": "mas_domain_progress_transition_request_projection",
             "dispatch_status": "ready",
             "next_executable_owner": "write",
         },
@@ -311,33 +311,12 @@ def test_paper_repair_executor_does_not_promote_unproven_writer_handoff() -> Non
     )["next_executable_owner"] == "write"
 
 
-def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
-    monkeypatch,
+def test_paper_repair_executor_materializes_ai_reviewer_owner_handoff(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
-    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     profile = make_profile(tmp_path)
     study_root = profile.studies_root / "006-dpcc"
-    calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
-        calls.append(kwargs)
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 1,
-            "blocked_count": 0,
-            "executions": [
-                {
-                    "execution_status": "executed",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
 
     result = module.dispatch_repair_work_unit(
         profile=profile,
@@ -356,30 +335,20 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     )
 
     assert result["accepted"] is True
-    assert result["execution_status"] == "executed"
+    assert result["execution_status"] == "handoff_ready"
     assert result["typed_blocker"] is None
     assert result["owner_callable_surface"] == (
         "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
     )
-    assert result["owner_result"]["executed_count"] == 1
-    assert len(calls) == 1
-    call = calls[0]
-    assert call["profile"] == profile
-    assert call["study_ids"] == ("006-dpcc",)
-    assert call["action_types"] == ("return_to_ai_reviewer_workflow",)
-    assert call["mode"] == "developer_apply_safe"
-    assert call["apply"] is True
-    consumer_payload = call["consumer_payload"]
-    assert consumer_payload["canonical_transition_request_surface"] == "domain_progress_transition_requests"
-    assert consumer_payload["domain_progress_transition_request_count"] == 1
-    dispatch = consumer_payload["domain_progress_transition_requests"][0]
-    legacy_dispatch = consumer_payload["owner_callable_adapters"][0]
+    assert result["owner_result"]["surface"] == "paper_repair_ai_reviewer_owner_handoff"
+    dispatch = result["ai_reviewer_record_worker_handoff"]
+    assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
     assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["owner_route"]["next_owner"] == "ai_reviewer"
     assert "return_to_ai_reviewer_workflow" in dispatch["owner_route"]["allowed_actions"]
-    assert legacy_dispatch["action_type"] == dispatch["action_type"]
     assert (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").is_file()
     assert (
         study_root
@@ -393,34 +362,12 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
 
 
 def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoch(
-    monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
-    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
     profile = make_profile(tmp_path)
     study_root = profile.studies_root / "006c-dpcc"
-    calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
-        calls.append(kwargs)
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 1,
-            "executions": [
-                {
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
     work_unit = {
         **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-currentness"),
         "owner": "ai_reviewer",
@@ -451,8 +398,9 @@ def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoc
         apply=True,
     )
 
-    assert result["accepted"] is False
-    dispatch = calls[0]["consumer_payload"]["domain_progress_transition_requests"][0]
+    assert result["accepted"] is True
+    assert result["execution_status"] == "handoff_ready"
+    dispatch = result["ai_reviewer_record_worker_handoff"]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     assert dispatch["prompt_contract"]["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
     envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
@@ -573,22 +521,17 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
     )
 
     assert result["accepted"] is True
-    assert result["execution_status"] == "executed"
+    assert result["execution_status"] == "handoff_ready"
     assert result["typed_blocker"] is None
-    assert result["owner_result"]["execution_count"] == 1
-    execution = result["owner_result"]["executions"][0]
-    assert execution["execution_status"] == "executed"
-    assert execution["action_type"] == "return_to_ai_reviewer_workflow"
-    assert execution["dispatch_authority"] == "paper_repair_executor_inline_owner_dispatch"
-    assert execution["opl_execution_authorization_required"] is True
-    assert execution["opl_execution_authorization_present"] is True
-    assert execution["provider_admission_pending"] is False
-    assert execution["owner_callable_requires_opl_authorization"] is True
-    assert execution["mas_private_attempt_loop_forbidden"] is True
-    assert execution["blocked_reason"] is None
-    assert execution["owner_route_current"] is True
-    assert calls
-    assert calls[0]["manuscript_ref"] == str(manuscript.resolve())
+    assert calls == []
+    handoff = result["ai_reviewer_record_worker_handoff"]
+    assert handoff["action_type"] == "return_to_ai_reviewer_workflow"
+    assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert handoff["opl_execution_authorization_required"] is True
+    assert handoff["opl_execution_authorization_present"] is True
+    assert handoff["provider_admission_pending"] is False
+    assert handoff["owner_callable_requires_opl_authorization"] is True
+    assert handoff["mas_private_attempt_loop_forbidden"] is True
     request = json.loads(
         (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").read_text(
             encoding="utf-8"
@@ -605,36 +548,14 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
 
 
 def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_runtime_health_epoch(
-    monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
-    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
     profile = make_profile(tmp_path)
     study_id = "006e-dpcc"
     quest_id = "quest-006e"
     study_root = profile.studies_root / study_id
-    calls: list[dict[str, object]] = []
-
-    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
-        calls.append(kwargs)
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 1,
-            "executions": [
-                {
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
     work_unit = {
         **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-owner-route-currentness"),
         "owner": "ai_reviewer",
@@ -661,8 +582,9 @@ def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_ru
         apply=True,
     )
 
-    assert result["accepted"] is False
-    dispatch = calls[0]["consumer_payload"]["domain_progress_transition_requests"][0]
+    assert result["accepted"] is True
+    assert result["execution_status"] == "handoff_ready"
+    dispatch = result["ai_reviewer_record_worker_handoff"]
     assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-from-work-unit-route"
     assert (
         dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]["runtime_health_epoch"]
@@ -674,161 +596,6 @@ def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_ru
         "runtime-health-event-from-work-unit-route"
     )
     assert envelope["dispatchable"] is True
-
-
-def test_paper_repair_executor_preserves_ai_reviewer_dispatch_blocked_reason(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
-    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    profile = make_profile(tmp_path)
-    study_root = profile.studies_root / "006b-dpcc"
-
-    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 1,
-            "repeat_suppressed_count": 0,
-            "executions": [
-                {
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_request_missing",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
-
-    result = module.dispatch_repair_work_unit(
-        profile=profile,
-        study_id="006b-dpcc",
-        quest_id="quest-006b",
-        study_root=study_root,
-        repair_work_unit={
-            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-blocked"),
-            "owner": "ai_reviewer",
-            "callable_surface": (
-                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-            ),
-        },
-        opl_execution_authorization=_opl_auth("ai-reviewer-blocked"),
-        apply=True,
-    )
-
-    assert result["accepted"] is False
-    assert result["execution_status"] == "blocked"
-    assert result["typed_blocker"] == "ai_reviewer_request_missing"
-    assert result["owner_receipt"]["blocked_reason"] == "ai_reviewer_request_missing"
-
-
-def test_paper_repair_executor_marks_stale_owner_route_blocker_non_retryable(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
-    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    profile = make_profile(tmp_path)
-    study_root = profile.studies_root / "006d-dpcc"
-
-    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 1,
-            "repeat_suppressed_count": 0,
-            "executions": [
-                {
-                    "execution_status": "blocked",
-                    "blocked_reason": "owner_route_stale",
-                    "owner_route_current": False,
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
-
-    result = module.dispatch_repair_work_unit(
-        profile=profile,
-        study_id="006d-dpcc",
-        quest_id="quest-006d",
-        study_root=study_root,
-        repair_work_unit={
-            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-stale-route"),
-            "owner": "ai_reviewer",
-            "callable_surface": (
-                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-            ),
-        },
-        opl_execution_authorization=_opl_auth("ai-reviewer-stale"),
-        apply=True,
-    )
-
-    assert result["accepted"] is False
-    assert result["execution_status"] == "blocked"
-    assert result["typed_blocker"] == "owner_route_stale"
-    assert result["retryable"] is False
-    assert result["owner_receipt"]["blocked_reason"] == "owner_route_stale"
-    assert result["owner_receipt"]["retryable"] is False
-    assert result["repair_execution_evidence"]["retryable"] is False
-
-
-def test_paper_repair_executor_preserves_ai_reviewer_repeat_suppressed_reason(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
-    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    profile = make_profile(tmp_path)
-    study_root = profile.studies_root / "006c-dpcc"
-
-    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
-        return {
-            "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 0,
-            "repeat_suppressed_count": 1,
-            "executions": [
-                {
-                    "execution_status": "repeat_suppressed",
-                    "blocked_reason": "repeat_suppressed",
-                    "why_not_applied": "repeat_suppressed",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
-
-    result = module.dispatch_repair_work_unit(
-        profile=profile,
-        study_id="006c-dpcc",
-        quest_id="quest-006c",
-        study_root=study_root,
-        repair_work_unit={
-            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-repeat"),
-            "owner": "ai_reviewer",
-            "callable_surface": (
-                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-            ),
-        },
-        opl_execution_authorization=_opl_auth("ai-reviewer-repeat"),
-        apply=True,
-    )
-
-    assert result["accepted"] is False
-    assert result["execution_status"] == "blocked"
-    assert result["typed_blocker"] == "repeat_suppressed"
-    assert result["owner_result"]["repeat_suppressed_count"] == 1
 
 
 def test_paper_repair_executor_blocks_apply_without_opl_execution_authorization(tmp_path: Path) -> None:

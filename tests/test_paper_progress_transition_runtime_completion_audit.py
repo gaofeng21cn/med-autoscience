@@ -607,12 +607,8 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         not in physical_gate["missing_evidence_tails"]
     )
     assert (
-        "tests/test_domain_owner_action_dispatch_contract.py::"
-        "test_transition_request_projection_requires_opl_execution_authorization_for_every_supported_action"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_domain_owner_action_dispatch_cases/opl_authorization_boundary.py::"
-        "test_owner_dispatch_accepts_bound_domain_progress_transition_readback_only"
+        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::"
+        "test_canonical_transition_request_projection_carries_dispatcher_boundary_fields"
     ) in physical_gate["observed_refs"]
     assert (
         "tests/test_opl_state_index_kernel.py::"
