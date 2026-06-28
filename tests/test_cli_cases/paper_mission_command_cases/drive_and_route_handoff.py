@@ -241,15 +241,17 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
     assert payload["consume_candidate_status"] == (
         "accepted_submission_milestone_candidate"
     )
-    assert payload["drive_result"]["status"] == "opl_runtime_submission_failed"
+    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
     assert payload["drive_result"]["stage_terminal_decision"] == "continue_same_stage"
     assert payload["drive_result"]["route_command"] == "resume_stage"
     assert payload["drive_result"]["next_owner"] == "mission_executor"
     assert payload["drive_result"]["can_submit_to_opl_runtime"] is True
-    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_configured"
+    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_actionable"
     assert payload["drive_result"]["opl_runtime_readback_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
+    assert payload["opl_runtime_submission"]["reason"] == "stage_closure_decision_missing"
+    assert payload["opl_runtime_submission"]["writes_runtime"] is False
     assert payload["drive_result"]["provider_attempt_running_observed"] is False
     assert payload["drive_result"]["terminal_closeout_observed"] is False
     assert payload["drive_result"]["can_claim_paper_progress"] is False
@@ -455,72 +457,28 @@ def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
         ]
     )
     payload = json.loads(capsys.readouterr().out)
-    captured = json.loads(capture_path.read_text(encoding="utf-8"))
-    enqueue_record = captured[0]
-    tick_record = captured[1]
 
     assert exit_code == 0
-    assert enqueue_record["argv"][:3] == ["family-runtime", "enqueue", "--domain"]
-    assert "--task-kind" in enqueue_record["argv"]
-    assert enqueue_record["argv"][enqueue_record["argv"].index("--task-kind") + 1] == (
-        "paper_mission/stage-route"
-    )
-    assert tick_record["argv"][:2] == ["family-runtime", "tick"]
-    assert "--hydrate" in tick_record["argv"]
-    assert "--payload-match" in tick_record["argv"]
-    submitted_payload = enqueue_record["payload"]
-    assert submitted_payload["surface_kind"] == (
-        "opl_mas_paper_mission_route_runtime_request"
-    )
-    assert submitted_payload["study_id"] == study_id
-    assert submitted_payload["command_kind"] == "resume_stage"
+    assert not capture_path.exists()
     handoff = payload["opl_route_handoff"]
-    expected_dedupe_key = ":".join(
-        [
-            "paper-mission-route",
-            commands.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION,
-            study_id,
-            handoff["request_idempotency_key"],
-            "resume_stage",
-        ]
-    )
-    assert enqueue_record["argv"][enqueue_record["argv"].index("--dedupe-key") + 1] == (
-        expected_dedupe_key
-    )
-    assert submitted_payload["route_identity_key"] == handoff["route_identity_key"]
-    assert submitted_payload["attempt_idempotency_key"] == (
-        handoff["attempt_idempotency_key"]
-    )
-    assert submitted_payload["request_idempotency_key"] == (
-        handoff["request_idempotency_key"]
-    )
-    assert submitted_payload["idempotency_key"] == handoff["request_idempotency_key"]
-    assert submitted_payload["candidate_ref"] == handoff["candidate_ref"]
-    assert submitted_payload["workspace_root"] == str(workspace_root.resolve())
-    assert submitted_payload["domain_workspace_root"] == str(workspace_root.resolve())
-    assert submitted_payload["authority_boundary"]["writes_opl_queue"] is True
-    assert submitted_payload["authority_boundary"]["writes_opl_stage_run"] is False
-    assert submitted_payload["authority_boundary"]["writes_provider_attempt"] is False
-    assert submitted_payload["authority_boundary"]["can_claim_paper_progress"] is False
+    assert handoff["route_identity_key"]
+    assert handoff["attempt_idempotency_key"]
+    assert handoff["candidate_ref"]
     submission = payload["opl_runtime_submission"]
-    assert submission["status"] == "submitted"
-    assert submission["stage_route_followthrough_attempted"] is True
-    assert submission["tick_readback"]["status"] == "completed"
-    assert submission["tick_readback"]["can_claim_provider_running"] is True
-    assert submission["writes_runtime"] is True
-    assert submission["writes_runtime_owner"] == "one-person-lab"
-    assert submission["writes_mas_authority"] is False
+    assert submission["status"] == "not_actionable"
+    assert submission["reason"] == "stage_closure_decision_missing"
+    assert submission["writes_runtime"] is False
     assert submission["can_claim_provider_running"] is False
     assert submission["can_claim_paper_progress"] is False
-    assert payload["mutation_policy"]["writes_runtime"] is True
+    assert payload["mutation_policy"]["writes_runtime"] is False
     assert payload["mutation_policy"]["writes_authority"] is False
-    assert payload["drive_result"]["opl_runtime_submission_status"] == "submitted"
-    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    assert payload["drive_result"]["opl_runtime_submission_status"] == "not_actionable"
+    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
     assert payload["drive_result"]["opl_runtime_readback_status"] == (
-        "opl_runtime_attempt_running_observed"
+        "waiting_for_opl_runtime_live_readback"
     )
-    assert payload["drive_result"]["provider_attempt_running_observed"] is True
-    assert payload["opl_runtime_readback_status"] == "opl_runtime_attempt_running_observed"
+    assert payload["drive_result"]["provider_attempt_running_observed"] is False
+    assert payload["opl_runtime_readback_status"] == "waiting_for_opl_runtime_live_readback"
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -710,33 +668,20 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
         ]
     )
     payload = json.loads(capsys.readouterr().out)
-    captured = json.loads(capture_path.read_text(encoding="utf-8"))
-    enqueues = [record for record in captured if "payload" in record]
 
     assert exit_code == 0
-    assert len(enqueues) == 2
-    assert payload["followthrough"]["attempted"] is True
-    assert payload["followthrough"]["round_count"] == 1
-    assert payload["followthrough"]["rounds"][0]["trigger"] == (
-        "terminal_owner_answer_route_back_followthrough"
-    )
-    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    assert not capture_path.exists()
+    assert payload["followthrough"]["attempted"] is False
+    assert payload["followthrough"]["round_count"] == 0
+    assert payload["followthrough"]["stop_reason"] == "stage_closure_decision_missing"
+    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
     assert payload["drive_result"]["terminal_closeout_observed"] is False
-    assert payload["drive_result"]["provider_attempt_running_observed"] is True
+    assert payload["drive_result"]["provider_attempt_running_observed"] is False
     assert payload["consume_candidate_status"] == (
         "accepted_submission_milestone_candidate"
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
-    assert enqueues[1]["payload"]["route_target"] == (
-        "paper_mission_stage_route_domain_gate_pending"
-    )
-    assert (
-        "MAS authority kernel observed"
-        not in enqueues[1]["payload"]["route_target"]
-    )
-    assert enqueues[1]["payload"]["mission_id"] == mission_id
-    assert "::followthrough" not in enqueues[1]["payload"]["mission_id"]
     followthrough_transaction = payload["consume_readback"][
         "paper_mission_transaction_readback"
     ][
@@ -745,17 +690,10 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
     assert followthrough_transaction["mission_id"] == mission_id
     assert (
         followthrough_transaction["transaction_id"]
-        == enqueues[1]["payload"]["paper_mission_transaction_ref"]
-    )
-    assert (
-        followthrough_transaction["transaction_id"]
         != payload["mission_id"]
     )
     assert payload["consume_readback"]["contract_validation"]["status"] == "validated"
-    assert enqueues[0]["payload"]["paper_mission_transaction_ref"] != (
-        enqueues[1]["payload"]["paper_mission_transaction_ref"]
-    )
-    assert payload["output_manifest"]["followthrough_round_count"] == 1
+    assert payload["output_manifest"]["followthrough_round_count"] == 0
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -932,24 +870,17 @@ def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
         ]
     )
     payload = json.loads(capsys.readouterr().out)
-    captured = json.loads(capture_path.read_text(encoding="utf-8"))
-    enqueues = [record for record in captured if "payload" in record]
 
     assert exit_code == 0
-    assert len(enqueues) >= 1
-    assert all(item["payload"]["command_kind"] == "resume_stage" for item in enqueues)
-    assert all(
-        "paper_mission_transaction_ref" in item["payload"] for item in enqueues
-    )
-    assert payload["followthrough"]["rounds"] == [] or payload["followthrough"][
-        "rounds"
-    ][0]["trigger"] == "terminal_owner_answer_route_back_followthrough"
-    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    assert not capture_path.exists()
+    assert payload["followthrough"]["rounds"] == []
+    assert payload["followthrough"]["stop_reason"] == "stage_closure_decision_missing"
+    assert payload["drive_result"]["status"] == "stage_closure_decision_missing"
     assert payload["stage_terminal_decision"]["decision_kind"] == (
         "continue_same_stage"
     )
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
     assert payload["opl_runtime_readback_status"] == (
-        "opl_runtime_attempt_running_observed"
+        "waiting_for_opl_runtime_live_readback"
     )
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)

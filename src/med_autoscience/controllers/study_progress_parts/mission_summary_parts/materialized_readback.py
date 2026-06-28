@@ -8,6 +8,9 @@ from typing import Any
 from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
 )
+from med_autoscience.paper_mission_stage_closure_ledger import (
+    latest_paper_mission_stage_closure_decision_readback,
+)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
@@ -319,11 +322,21 @@ def _materialized_mission_summary(
             owner_answer_readback=owner_answer_readback,
             terminal_owner_gate=terminal_owner_gate,
         )
+    stage_closure_ledger_readback = _latest_stage_closure_ledger_readback(
+        progress=progress,
+        study_id=study_id,
+        transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
+    )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             "paper_mission_transaction": effective_transaction,
             "stage_terminal_decision": _mapping(
                 effective_transaction.get("stage_terminal_decision")
+            ),
+            **(
+                {"stage_closure_decision": stage_closure_ledger_readback}
+                if stage_closure_ledger_readback
+                else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
             "route_back_budget": owner_answer_readback.get("route_back_budget"),
@@ -354,6 +367,7 @@ def _materialized_mission_summary(
         "current_mission": current_mission or None,
         "consume_candidate_status": effective_consume_candidate_status,
         "stage_closure_decision": stage_closure_decision,
+        "stage_closure_ledger_readback": stage_closure_ledger_readback or None,
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "terminal_owner_gate": terminal_owner_gate or None,
@@ -458,6 +472,23 @@ def _latest_consumption_ledger_readback(
     return latest_paper_mission_consumption_transaction_readback(
         workspace_root=workspace_root,
         study_id=study_id,
+    ) or {}
+
+
+def _latest_stage_closure_ledger_readback(
+    *,
+    progress: Mapping[str, Any],
+    study_id: str,
+    transaction_ref: str | None,
+) -> dict[str, Any]:
+    study_root = _materialized_study_root(progress=progress)
+    workspace_root = _workspace_root_from_study_root(study_root)
+    if workspace_root is None:
+        return {}
+    return latest_paper_mission_stage_closure_decision_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        transaction_ref=transaction_ref,
     ) or {}
 
 

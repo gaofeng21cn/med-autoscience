@@ -501,8 +501,9 @@ def test_domain_handler_dispatch_drives_default_paper_mission_without_authority_
     )
     assert result["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert result["opl_route_command"]["command_kind"] == "resume_stage"
-    assert result["drive_result"]["status"] == "opl_runtime_submission_failed"
-    assert result["drive_result"]["opl_runtime_submission_status"] == "not_configured"
+    assert result["drive_result"]["status"] == "stage_closure_decision_missing"
+    assert result["drive_result"]["opl_runtime_submission_status"] == "not_actionable"
+    assert result["opl_runtime_submission"]["reason"] == "stage_closure_decision_missing"
     assert result["mutation_policy"]["writes_authority"] is False
     assert result["mutation_policy"]["writes_runtime"] is False
     assert result["mutation_policy"]["writes_yang_authority"] is False

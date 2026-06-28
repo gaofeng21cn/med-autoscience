@@ -204,6 +204,7 @@ def stage_closure_decision_projection(
         _mapping(readback.get("stage_closure_decision")),
         _mapping(_mapping(readback.get("paper_mission_transaction")).get("stage_closure_decision")),
         _mapping(_mapping(readback.get("consume_readback")).get("stage_closure_decision")),
+        _mapping(_mapping(consumption_ledger_readback).get("stage_closure_decision")),
     )
     if explicit and _stage_closure_outcome_kind(explicit) in ALLOWED_OUTCOME_KINDS:
         return _normalize_stage_closure_decision(

@@ -47,6 +47,7 @@ def test_paper_mission_help_exposes_default_commands(capsys) -> None:
         "consume-candidate",
         "package-candidate",
         "drive",
+        "terminalize-stage",
     ):
         assert command in captured.out
 
@@ -123,6 +124,156 @@ def test_paper_mission_cli_returns_no_write_json_plan(
     )
     assert "publication_eval/latest.json" in payload["forbidden_authority_writes"]
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_terminalize_stage_materializes_non_authority_decision(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260628Tterminalize"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::submission-milestone::terminalize"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Terminalize a consumed submission milestone candidate.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [
+                    {
+                        "delta_id": "delta::dm003::submission-candidate",
+                        "artifact_ref": "mission://dm003/submission-candidate",
+                        "delta_kind": "formal_paper_mission_owner_decision_packet",
+                        "status": "candidate",
+                    }
+                ],
+                "source_refs": [],
+                "consume_result": {"status": "accepted"},
+                "one_shot_migration_readback": {
+                    "current_mission": {
+                        "objective_kind": "submission_milestone_candidate",
+                        "legacy_blocker_is_default_execution_state": False,
+                    },
+                    "required_output": {
+                        "next_owner": "mission_executor",
+                        "kind": "submission_milestone_candidate",
+                    },
+                    "stage_terminal_decision": transaction["stage_terminal_decision"],
+                    "opl_route_command": transaction["opl_route_command"],
+                    "consume_candidate_status": "accepted_submission_milestone_candidate",
+                },
+                "paper_mission_transaction": transaction,
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    initial = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert initial["stage_closure_outcome"] == "stage_closure_decision_missing"
+
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_closure"
+        / "20260628Tterminalize"
+    )
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(output_root),
+            "--format",
+            "json",
+        ]
+    )
+    terminalized = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert terminalized["surface_kind"] == (
+        "paper_mission_stage_closure_terminalizer_readback"
+    )
+    assert terminalized["status"] == "terminalizer_outcome_materialized"
+    assert terminalized["stage_closure_outcome"] in {
+        "next_stage_transition",
+        "typed_blocker",
+        "human_gate",
+        "owner_receipt",
+    }
+    output_manifest = terminalized["output_manifest"]
+    assert output_manifest["writes_authority"] is False
+    assert output_manifest["writes_runtime"] is False
+    assert output_manifest["writes_yang_authority"] is False
+    decision_ref = Path(output_manifest["stage_closure_decision_ref"])
+    assert decision_ref.exists()
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    observed = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert observed["stage_closure_decision"]["projection_status"] == (
+        "terminalizer_outcome_observed"
+    )
+    assert observed["stage_closure_decision_ref"] == str(decision_ref)
+    assert observed["stage_closure_outcome"] == terminalized["stage_closure_outcome"]
+    assert observed["mutation_policy"]["writes_authority"] is False
+    assert observed["mutation_policy"]["writes_runtime"] is False
+    assert observed["mutation_policy"]["writes_yang_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
 def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: Path) -> None:
