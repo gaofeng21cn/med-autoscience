@@ -9,6 +9,8 @@ from med_autoscience.controllers.delivery_visibility_projection import (
 )
 from med_autoscience.profiles import WorkspaceProfile
 
+from .user_visible_projection import build_user_visible_projection
+
 
 def read_delivery_inspection_projection(
     *,
@@ -39,6 +41,8 @@ def attach_delivery_inspection_projection(
         return payload
     updated = dict(payload)
     updated["delivery_inspection"] = delivery_inspection
+    if "study_macro_state" in updated:
+        updated["user_visible_projection"] = build_user_visible_projection(updated)
     return updated
 
 

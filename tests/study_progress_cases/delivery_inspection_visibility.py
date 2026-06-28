@@ -126,7 +126,60 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     assert delivery["can_authorize_publication_quality"] is False
     assert delivery["can_dispatch_delivery_sync"] is False
 
-    markdown = module.render_study_progress_markdown(result)
+
+def test_delivery_inspection_attach_refreshes_stale_user_visible_package_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.delivery_inspection"
+    )
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+
+    monkeypatch.setattr(
+        module,
+        "read_delivery_inspection_projection",
+        lambda **_: {
+            "surface": "delivery_inspector",
+            "study_id": "001-risk",
+            "freshness": {
+                "verdict": "current",
+                "delivery_status": "current",
+                "gate_freshness_handshake": {"status": "current"},
+            },
+        },
+    )
+
+    result = module.attach_delivery_inspection_projection(
+        {
+            "study_id": "001-risk",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"package_delivered": False},
+                "conditions": [],
+            },
+            "user_visible_projection": {
+                "package_delivered": False,
+                "paper_progress_state": {"package_delivered": False},
+            },
+        },
+        profile=profile,
+        profile_ref=None,
+        study_root=study_root,
+    )
+
+    assert result["delivery_inspection"]["freshness"]["delivery_status"] == "current"
+    assert result["user_visible_projection"]["package_delivered"] is True
+    assert result["user_visible_projection"]["paper_progress_state"]["package_delivered"] is True
+
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    markdown = progress_module.render_study_progress_markdown(result)
     assert markdown.strip()
 
 
