@@ -47,7 +47,7 @@ def request_currentness_refs_for_blocked_reason(
             study_root=study_root,
             request_packet=request_packet,
         )
-        return list(dict.fromkeys([*refs, *input_refs]))
+        return input_refs
     if refs:
         return refs
     if blocked_reason == stale_after_unit_harmonized_rerun:
