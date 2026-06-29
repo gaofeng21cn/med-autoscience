@@ -34,7 +34,7 @@ def _import_pack() -> dict:
     return build_dm_paper_mission_canary_import_pack(
         dm002_progress=_load_json("dm002_progress.json"),
         dm003_progress=_load_json("dm003_progress.json"),
-        runtime_readback_payload=_load_json("domain_diagnostic_dry_run.json"),
+        runtime_readback_payload=_load_json("runtime_readback.json"),
         profile_ref=(
             "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
             "ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml"
@@ -108,14 +108,14 @@ def test_dm003_canary_import_builds_prose_repair_typed_blocker_readback() -> Non
     )
 
 
-def test_domain_diagnostic_diagnostics_are_imported_as_platform_diagnostics_not_paper_progress() -> None:
+def test_runtime_readback_is_not_default_paper_progress_or_owner_truth() -> None:
     pack = _import_pack()
 
     assert pack["mode"] == "no_write_import_inspect"
     assert pack["paper_progress_accounting"]["import_pack_counts_as_paper_progress"] is False
-    assert pack["paper_progress_accounting"]["domain_diagnostic_diagnostics_count_as_paper_progress"] is False
-    assert pack["source_surfaces"]["domain_diagnostic_report"]["available"] is True
-    assert pack["source_surfaces"]["domain_diagnostic_report"]["dry_run_written"] is False
+    assert pack["paper_progress_accounting"]["runtime_readback_counts_as_paper_progress"] is False
+    assert pack["source_surfaces"]["runtime_readback"]["available"] is True
+    assert pack["source_surfaces"]["runtime_readback"]["dry_run_written"] is False
 
     for mission in pack["missions"]:
         PaperMissionRun.from_payload(mission)
@@ -123,14 +123,11 @@ def test_domain_diagnostic_diagnostics_are_imported_as_platform_diagnostics_not_
         assert readback["paper_progress"]["progress_delta_kind"] == "no_write_inspect_only"
         assert readback["paper_progress"]["mission_import_counts_as_paper_progress"] is False
         assert readback["paper_progress"]["platform_diagnostics_count_as_paper_progress"] is False
-        assert readback["platform_diagnostics"]["counts_as_paper_progress"] is False
-        assert readback["platform_diagnostics"]["domain_diagnostic_written"] is False
-        assert readback["platform_diagnostics"]["provider_admission_current_control"][
-            "provider_admission_pending_count"
-        ] == 0
-        assert readback["platform_diagnostics"]["provider_admission_current_control"][
-            "transition_request_pending_count"
-        ] == 0
+        assert "platform_diagnostics" not in readback
+        assert "current_work_unit" not in readback
+        assert "current_executable_owner_action" not in readback
+        assert "provider_admission_current_control" not in readback
+        assert "paper_recovery_state" not in readback
 
 
 def test_dm002_canary_candidate_is_consumable_without_authority_writes() -> None:
