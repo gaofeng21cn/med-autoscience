@@ -32,6 +32,10 @@ DPCC_GATE_REPLAY_STORY_WORK_UNIT = "medical_prose_and_publishability_gate_repair
 DM003_CURRENT_AI_REVIEWER_GATE_REPLAY_WORK_UNIT = (
     "dm003_publication_gate_replay_after_current_ai_reviewer_record"
 )
+DM003_BOUNDED_PROSE_REPAIR_AFTER_POST_SYNC_REVIEWER_RECORD_WORK_UNIT = (
+    "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+)
+DM003_MEDICAL_PROSE_AUTHORITY_REVISE_WORK_UNIT = "dm003_medical_prose_authority_revise"
 
 
 def run_story_repair(
@@ -229,6 +233,8 @@ def _normalize_story_work_unit_id(*, study_id: str, work_unit_id: str) -> str:
     if work_unit_id in {
         DPCC_GATE_REPLAY_STORY_WORK_UNIT,
         DM003_CURRENT_AI_REVIEWER_GATE_REPLAY_WORK_UNIT,
+        DM003_BOUNDED_PROSE_REPAIR_AFTER_POST_SYNC_REVIEWER_RECORD_WORK_UNIT,
+        DM003_MEDICAL_PROSE_AUTHORITY_REVISE_WORK_UNIT,
     }:
         return DEFAULT_DPCC_STORY_WORK_UNIT
     return work_unit_id

@@ -550,6 +550,84 @@ def test_story_repair_executor_normalizes_current_dm003_gate_replay_work_unit(
     assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
 
 
+def test_story_repair_executor_normalizes_dm003_post_sync_bounded_prose_route(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    story_surface = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    _write_json(
+        paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Current DM003 bounded prose story surface is supported.",
+                    "status": "supported_with_limitations",
+                    "paper_role": "main_text",
+                    "evidence_items": [
+                        {
+                            "item_id": "C1-story",
+                            "support_level": "primary",
+                            "source_paths": ["paper/draft.md"],
+                            "summary": "Bounded prose story surface evidence.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "eval-dm003-current",
+            "recommended_actions": [
+                {
+                    "route_target": "write",
+                    "blocking_work_units": [{"unit_id": "dm003_medical_prose_authority_revise"}],
+                    "next_work_unit": {
+                        "unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "source_eval_id": "eval-dm003-current",
+        },
+    )
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["work_unit_id"] == "medical_prose_write_repair"
+        path = paper_root / "draft.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Current DM003 manuscript\n\nPost-sync bounded prose story delta.\n", encoding="utf-8")
+        return [str(path.resolve())]
+
+    monkeypatch.setattr(story_surface, "materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_story_repair(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-003",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "progress_delta_candidate"
+    assert result["work_unit_id"] == "medical_prose_write_repair"
+    assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
+
+
 def test_story_repair_executor_accepts_idempotent_dm002_story_surface(
     tmp_path: Path,
 ) -> None:

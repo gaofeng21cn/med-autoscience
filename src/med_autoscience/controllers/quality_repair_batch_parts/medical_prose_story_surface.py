@@ -12,6 +12,7 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.dm002_externa
 )
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
     eval_bound_current_story_delta_blocker,
+    eval_bound_current_story_delta_refs,
     eval_bound_current_story_delta_is_preservable,
 )
 from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
@@ -68,7 +69,19 @@ def materialize_medical_prose_story_surfaces(
         source_eval_id=source_eval_id,
         publication_eval_payload=publication_eval_payload,
     ):
-        return []
+        return [
+            str(ref["path"])
+            for ref in eval_bound_current_story_delta_refs(
+                paper_root=paper_root,
+                work_unit_id=work_unit_id,
+                medical_prose_write_repair_work_unit_id=MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+                manuscript_story_surface_relative_paths=MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+                contains_forbidden_manuscript_terms=_contains_forbidden_manuscript_terms,
+                source_eval_id=source_eval_id,
+                publication_eval_payload=publication_eval_payload,
+            )
+            if ref.get("path")
+        ]
     if preserve_current_writer_story_delta(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
@@ -78,7 +91,7 @@ def materialize_medical_prose_story_surfaces(
         source_eval_id=source_eval_id,
         previous_quality_repair_batch=previous_quality_repair_batch,
     ):
-        return []
+        return _current_story_surface_paths(paper_root=paper_root)
     extra_changed_paths: list[str] = []
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)
@@ -117,6 +130,13 @@ def _current_story_surface_paths_if_already_materialized(*, paper_root: Path, ma
         if not all(path.read_text(encoding="utf-8") == rendered for path in paths):
             return []
     except OSError:
+        return []
+    return [str(path) for path in paths]
+
+
+def _current_story_surface_paths(*, paper_root: Path) -> list[str]:
+    paths = [(paper_root / relpath).resolve() for relpath in MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS]
+    if not all(path.exists() and path.is_file() for path in paths):
         return []
     return [str(path) for path in paths]
 
