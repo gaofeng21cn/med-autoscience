@@ -102,6 +102,7 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "manuscript_story_repair": frozenset({"paper_write"}),
     "medical_prose_quality_analysis_source_documentation_repair": frozenset({"paper_write"}),
     "medical_prose_write_repair": frozenset({"paper_write"}),
+    "dm002_medical_prose_write_repair_after_quality_batch": frozenset({"paper_write"}),
     **{
         work_unit_id: frozenset({"paper_write"})
         for work_unit_id in _AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS
@@ -359,6 +360,10 @@ def _controller_route_can_bypass_dispatch_reasons(
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _UPSTREAM_QUALITY_AUTHORITY_DISPATCH_BYPASS_REASONS
     if _controller_route_is_managed_publication_work_unit(controller_route_gate, action=action):
+        if action == "submission_materialize":
+            return set(dispatch_gate_reasons) <= (
+                _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS | _PAPER_WRITE_DISPATCH_BYPASS_REASONS
+            )
         return set(dispatch_gate_reasons) <= _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS
     return set(dispatch_gate_reasons) <= {"runtime_recovery_retry_budget_exhausted"}
 
