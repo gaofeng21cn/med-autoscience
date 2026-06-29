@@ -351,6 +351,41 @@ def test_allowed_legacy_reference_classes_are_claim_limited() -> None:
     }
 
 
+def test_legacy_control_receipt_markers_are_filter_only_not_active_aliases() -> None:
+    contract = json.loads(
+        (REPO_ROOT / "contracts/runtime/legacy-active-path-tombstones.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    policy = contract["legacy_control_receipt_exclusion_policy"]
+
+    assert {
+        "domain-health-diagnostic",
+        "domain-diagnostic-report",
+        "owner-route-reconcile",
+        "default-executor",
+        "workspace-local scheduler",
+        "Hermes scheduler hosted runtime",
+    } <= set(policy["legacy_markers"])
+    assert policy["marker_alias_policy"] == {
+        "legacy_markers_are_active_aliases": False,
+        "legacy_markers_are_default_entrypoints": False,
+        "legacy_markers_are_public_projection_aliases": False,
+        "legacy_markers_can_claim_no_active_caller": False,
+        "legacy_markers_can_satisfy_runtime_readiness": False,
+        "legacy_markers_can_satisfy_paper_progress": False,
+        "allowed_role": "duplicate_source_fingerprint_filter_marker_only",
+    }
+    assert policy["authority_boundary"] == {
+        "read_only": True,
+        "history_provenance_only": True,
+        "can_create_runtime_entrypoint": False,
+        "can_claim_generic_runtime_owner": False,
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+    }
+
+
 def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     tmp_path: Path,
 ) -> None:

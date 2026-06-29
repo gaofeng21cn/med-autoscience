@@ -248,13 +248,27 @@
       "supervisor-consume",
       "supervisor-execute-dispatch",
       "runtime_platform_repair",
+      "domain-health-diagnostic",
       "domain-diagnostic-report",
+      "owner-route-reconcile",
+      "default-executor",
       "stage_outcome/opl-handoff",
       "owner_callable_adapter_receipt",
       "progress_portal",
       "progress-portal",
-      "workbench"
+      "workbench",
+      "workspace-local scheduler",
+      "Hermes scheduler hosted runtime"
     ],
+    "marker_alias_policy": {
+      "legacy_markers_are_active_aliases": false,
+      "legacy_markers_are_default_entrypoints": false,
+      "legacy_markers_are_public_projection_aliases": false,
+      "legacy_markers_can_claim_no_active_caller": false,
+      "legacy_markers_can_satisfy_runtime_readiness": false,
+      "legacy_markers_can_satisfy_paper_progress": false,
+      "allowed_role": "duplicate_source_fingerprint_filter_marker_only"
+    },
     "authority_boundary": {
       "read_only": true,
       "history_provenance_only": true,
