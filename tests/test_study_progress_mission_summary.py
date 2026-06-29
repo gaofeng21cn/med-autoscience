@@ -328,16 +328,28 @@ def test_artifact_first_mission_summary_ignores_platform_repair_for_terminal_out
     assert PaperMissionTransaction.from_payload(
         summary["paper_mission_transaction"]
     ).mission_id == paper_mission_run["mission_id"]
-    assert summary["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
-    assert summary["stage_terminal_decision"]["status"] == "not_consumed"
-    assert summary["opl_route_command"]["command_kind"] == "resume_stage"
-    assert summary["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
-        "resume_stage"
+    assert summary["stage_terminal_decision"]["decision_kind"] == "human_gate"
+    assert summary["stage_terminal_decision"]["status"] == "human_gate"
+    assert summary["stage_terminal_decision"]["reason"] == (
+        "authoritative_stage_terminal_outcome_missing"
     )
-    assert summary["transaction_state"]["route_command_kind"] == "resume_stage"
+    assert summary["opl_route_command"]["command_kind"] == "wait_for_human"
+    assert summary["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
+        "wait_for_human"
+    )
+    assert summary["transaction_state"]["route_command_kind"] == "wait_for_human"
     assert "can_select_next_runtime_action" not in summary["read_model_source"]
     assert "fallback_transaction_is_runnable" not in summary["read_model_source"]
-    assert paper_mission_run["consume_result"] == {"status": "not_consumed"}
+    assert paper_mission_run["consume_result"] == {
+        "status": "human_gate",
+        "outcome": "paper_mission_readback_missing",
+        "reason": "authoritative_stage_terminal_outcome_missing",
+        "question": (
+            "Authoritative MAS stage terminal outcome is missing; do not infer "
+            "the next runtime action from legacy progress projections."
+        ),
+        "required_receipt": "paper_mission_readback_missing",
+    }
     assert paper_mission_run["forbidden_write_guard"]["candidate_writes_authority"] is False
     assert {
         "publication_eval/latest.json",
@@ -416,12 +428,12 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert payload["artifact_first_mission_summary"]["paper_mission_run"]["mission_state"] == (
         "candidate_ready_for_consumption"
     )
-    assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
-    assert payload["opl_route_command"]["command_kind"] == "resume_stage"
-    assert payload["stage_closure_decision"]["projection_status"] == (
-        "stage_closure_decision_missing"
-    )
-    assert payload["stage_closure_outcome"] == "stage_closure_decision_missing"
+    assert payload["stage_terminal_decision"]["decision_kind"] == "human_gate"
+    assert payload["stage_terminal_decision"]["status"] == "human_gate"
+    assert payload["opl_route_command"]["command_kind"] == "wait_for_human"
+    assert payload["next_owner_or_human_decision"].get("next_owner") is None
+    assert payload["stage_closure_decision"] == {}
+    assert payload["stage_closure_outcome"] is None
     assert payload["current_package"] == {
         "status": "current",
         "package_kind": "current_package",
@@ -438,23 +450,12 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
         "on_exhausted": "degraded_handoff",
     }
     assert payload["stage_closure"]["repair_budget"] == payload["repair_budget"]
-    assert payload["stage_closure_decision"]["can_continue_same_stage"] is False
     assert payload["artifact_first_mission_summary"]["stage_closure_decision"] == (
         payload["stage_closure_decision"]
     )
-    stage_closure_readback = payload["artifact_first_mission_summary"][
+    assert "stage_closure_readback" not in payload["artifact_first_mission_summary"][
         "paper_mission_run"
-    ]["stage_closure_readback"]
-    assert stage_closure_readback["projection_status"] == (
-        "stage_closure_decision_missing"
-    )
-    assert stage_closure_readback["outcome"]["kind"] == (
-        "stage_closure_decision_missing"
-    )
-    assert stage_closure_readback["outcome_kind"] == (
-        "stage_closure_decision_missing"
-    )
-    assert "not_consumed" in stage_closure_readback["known_blockers"]
+    ]
     assert payload["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
@@ -465,7 +466,7 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
         "can_change_stage_terminal_decision": False,
         "can_select_next_owner": False,
     }
-    assert payload["next_owner_or_human_decision"]["next_owner"] == "ai_reviewer"
+    assert "next_owner" not in payload["next_owner_or_human_decision"]
     assert "platform_diagnostics" not in payload
 
 
