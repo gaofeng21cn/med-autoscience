@@ -1047,6 +1047,7 @@ def materialize_ai_reviewer_publication_eval(
     entry_mode: str | None,
     record: PublicationEvalRecord | dict[str, Any],
     source: str,
+    build_production_trace: bool = False,
 ) -> dict[str, Any]:
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
@@ -1060,6 +1061,11 @@ def materialize_ai_reviewer_publication_eval(
         )
     )
     resolved_study_root = _resolved_study_root(status_payload)
+    if build_production_trace:
+        record = _record_with_production_trace(
+            study_root=resolved_study_root,
+            record=record,
+        )
     normalized_record = canonicalize_ai_reviewer_publication_eval_record(
         _normalize_publication_eval_record(record)
     )

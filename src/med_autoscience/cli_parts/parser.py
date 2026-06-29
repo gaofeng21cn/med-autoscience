@@ -719,6 +719,11 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     ai_reviewer_eval_parser.add_argument("--entry-mode", type=str)
     ai_reviewer_eval_parser.add_argument("--payload-file", type=str)
     ai_reviewer_eval_parser.add_argument("--payload-json", type=str)
+    ai_reviewer_eval_parser.add_argument(
+        "--build-production-trace",
+        action="store_true",
+        help="Rebuild the production reviewer_operating_system trace from the current AI reviewer request/input refs before writing publication_eval/latest.json.",
+    )
     ai_reviewer_record_parser = subparsers.add_parser("materialize-ai-reviewer-publication-eval-record")
     ai_reviewer_record_parser.add_argument("--profile", required=True)
     ai_reviewer_record_parser.add_argument("--study-id", type=str)

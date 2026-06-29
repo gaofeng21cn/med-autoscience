@@ -36,6 +36,7 @@ def test_publication_ai_reviewer_eval_command_dispatches_controller(monkeypatch,
         entry_mode: str | None,
         record: dict,
         source: str,
+        build_production_trace: bool = False,
     ) -> dict:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -43,6 +44,7 @@ def test_publication_ai_reviewer_eval_command_dispatches_controller(monkeypatch,
         called["entry_mode"] = entry_mode
         called["record"] = record
         called["source"] = source
+        called["build_production_trace"] = build_production_trace
         return {
             "status": "materialized",
             "eval_id": record["eval_id"],
@@ -76,6 +78,71 @@ def test_publication_ai_reviewer_eval_command_dispatches_controller(monkeypatch,
     assert called["entry_mode"] is None
     assert called["record"]["assessment_provenance"]["owner"] == "ai_reviewer"
     assert called["source"] == "cli"
+    assert called["build_production_trace"] is False
+    assert json.loads(captured.out)["assessment_owner"] == "ai_reviewer"
+
+
+def test_publication_ai_reviewer_eval_command_can_request_production_trace_rebuild(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    payload_file = tmp_path / "publication_eval.json"
+    payload_file.write_text(
+        json.dumps(
+            {
+                "eval_id": "publication-eval::001-risk::quest-001::2026-04-26T22:00:00+00:00",
+                "assessment_provenance": {"owner": "ai_reviewer"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    called: dict[str, object] = {}
+
+    def fake_materialize(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+        record: dict,
+        source: str,
+        build_production_trace: bool = False,
+    ) -> dict:
+        called["build_production_trace"] = build_production_trace
+        return {
+            "status": "materialized",
+            "eval_id": record["eval_id"],
+            "assessment_owner": record["assessment_provenance"]["owner"],
+        }
+
+    monkeypatch.setattr(
+        cli.ai_reviewer_publication_eval,
+        "materialize_ai_reviewer_publication_eval",
+        fake_materialize,
+    )
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "materialize-ai-reviewer-eval",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+            "--payload-file",
+            str(payload_file),
+            "--build-production-trace",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["build_production_trace"] is True
     assert json.loads(captured.out)["assessment_owner"] == "ai_reviewer"
 
 
