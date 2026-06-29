@@ -2,7 +2,7 @@
 
 Owner: `MedAutoScience`
 Purpose: `next_action_control_plane_design`
-State: `planned_landing`
+State: `source_control_plane_landed_live_evidence_tail_open`
 Machine boundary: 本文是人读控制面设计与退役说明。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、OPL StageRun / transition receipt、MAS owner receipts、typed blockers 和 human gates。本文不授权手写 runtime queue、provider attempt、Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper body 或 current package。
 
 ## 目标
@@ -128,8 +128,11 @@ Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前
 - `domain_next_action_projection.py` 已在无 active caller 后物理删除；旧字符串只允许出现在 history/docs/tests 的 no-resurrection 断言中。
 - `authority_route_gate` 已删除 per-work-unit / per-study exact-id route allowlist。controller route 授权只看 canonical `action_family`；旧 work-unit id 可作为 provenance/currentness input 帮助解析 family，但 gate/readback 字段固定 `work_unit_id_authority=false`。
 - `story_surface_work_units` 仍保留 legacy exact id registry 作为 provenance-to-family resolver 和 no-resurrection guard；它不是 route authority、dispatch authority 或 paper progress proof。
+- `stage_outcome_authority` 已退役 `control/next_action.json` / `stage_native_workspace_next_action` 作为默认 dispatch selector。`stage_native_dispatch_selection.next_action()` fail closed；`persisted_dispatches` 不再从旧 stage-native workspace next-action 推导 effective action type、selected dispatch 或 blocking bypass；owner route basis 只接受带 canonical `NextActionEnvelope` identity 的 dispatch。
+- `domain_action_request_materializer` 与 `study_progress` 已把旧 stage-native workspace next-action 降为 diagnostic-only。即使旧文件携带 OPL boundary 或 current-work-unit binding，也只能进入 ignored / diagnostic reason `stage_native_workspace_next_action_retired_use_next_action_envelope`；`current_executable_owner_action` 不再从 `stage_native_current_owner_action` 或 loose `current_work_unit` fallback 生成 ready owner action。
+- OPL StageRun currentness identity 已把 MAS request / NextAction identity 与 attempt identity 分开：`idempotency_key` 只来自 `next_action_id` 或 request idempotency；`attempt_idempotency_key` 仅作为 StageAttempt / provider receipt identity，不再兜底 MAS request identity。
 
-该切片不声明所有 read model 已投影 `NextActionEnvelope`、不声明 OPL runtime / DM002 / DM003 live readiness。
+该切片声明 repo-source / 默认控制面收口已落地：旧 stage-native workspace next-action、exact work-unit allowlist、projection fallback、attempt id fallback 都不能再作为默认 next action / owner selector。它不声明 OPL runtime / DM002 / DM003 live readiness、submission-ready、publication-ready 或 paper progress。
 
 ## 验收标准
 
@@ -146,4 +149,4 @@ Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前
 
 ## 当前状态
 
-当前状态是 `source_retirement_slice_landed`：本文把 StageOutcome 后的 next-action 单一控制面固定为目标设计和退役口径，并记录 `autonomy_state_surface` legacy projection 默认出口、`domain_next_action_projection.py` 源码入口与 `authority_route_gate` exact-id route allowlist 的退役切片。它不声称现有全部 runtime projection、OPL transition runtime 或 DM002/DM003 live evidence 已全部切换完成。
+当前状态是 `source_control_plane_landed_live_evidence_tail_open`：StageOutcome 后的 next-action 默认控制面已经收口到 `NextActionEnvelope` / `action_family` / OPL transition receipt 边界；旧 stage-native workspace next-action、legacy projection、exact-id route allowlist、loose current-work-unit fallback 和 OPL attempt-id fallback 不能再决定默认 next action。仍开放的是 live evidence tail：真实 DM002/DM003 runtime receipt、owner receipt、typed blocker、human gate、route-back、artifact delta、publication / submission readiness 必须 fresh 读取对应 owner surface，不能由源码退役、focused tests 或文档状态代替。
