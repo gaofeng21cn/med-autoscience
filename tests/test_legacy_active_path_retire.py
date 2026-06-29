@@ -8,16 +8,25 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_SURFACE_ID = "domain_diagnostic_owner_route_dispatch_paper_recovery_default_paper_mainline"
+LEGACY_NEXT_ACTION_SURFACE_ID = "legacy_next_action_projection_and_selector_surfaces"
 
 
-def _legacy_tombstone() -> dict[str, object]:
+def _tombstone(surface_id: str) -> dict[str, object]:
     contract = json.loads(
         (REPO_ROOT / "contracts/runtime/legacy-active-path-tombstones.json").read_text(
             encoding="utf-8"
         )
     )
     surfaces = {item["surface_id"]: item for item in contract["tombstoned_surfaces"]}
-    return surfaces[LEGACY_SURFACE_ID]
+    return surfaces[surface_id]
+
+
+def _legacy_tombstone() -> dict[str, object]:
+    return _tombstone(LEGACY_SURFACE_ID)
+
+
+def _legacy_next_action_tombstone() -> dict[str, object]:
+    return _tombstone(LEGACY_NEXT_ACTION_SURFACE_ID)
 
 
 def test_old_domain_diagnostic_owner_route_dispatch_recovery_path_is_not_default_mainline() -> None:
@@ -104,6 +113,97 @@ def test_old_path_forbidden_claims_include_progress_and_dm_completion() -> None:
         "can_claim_runtime_ready": False,
         "can_claim_dm002_complete": False,
         "can_claim_dm003_complete": False,
+    }
+
+
+def test_legacy_next_action_projection_and_selector_surfaces_are_tombstoned() -> None:
+    tombstone = _legacy_next_action_tombstone()
+
+    assert tombstone["classification"] == "retired_next_action_diagnostics_provenance_only"
+    assert tombstone["default_caller"] is False
+    assert tombstone["default_next_action_selector_allowed"] is False
+    assert tombstone["default_provider_admission_authority_allowed"] is False
+    assert tombstone["replacement_projection_ref"] == "study_progress.next_action_envelope"
+    assert tombstone["replacement_contract"] == {
+        "contract_ref": "docs/runtime/control/next_action_control_plane.md",
+        "machine_contract": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+        "canonical_projection_ref": "study_progress.next_action_envelope",
+        "canonical_owner": "mas_next_action_compiler",
+    }
+    assert set(tombstone["legacy_surfaces"]) >= {
+        "domain_next_action_projection",
+        "current_executable_owner_action",
+        "current_work_unit",
+        "current_execution_envelope",
+        "paper_recovery_state",
+        "PaperRecovery",
+        "domain_transition",
+        "provider_admission",
+        "managed_study_opl_provider_admission_candidates",
+        "OPL queue",
+        "OPL attempt",
+        "control/next_action.json",
+        "Stage Native next_action",
+    }
+
+
+def test_legacy_next_action_tombstone_forbids_default_authority_claims() -> None:
+    contract = json.loads(
+        (REPO_ROOT / "contracts/runtime/legacy-active-path-tombstones.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    tombstone = _legacy_next_action_tombstone()
+
+    assert {
+        "current_work_unit",
+        "current_executable_owner_action",
+        "current_execution_envelope",
+        "domain_next_action_projection",
+        "Stage Native control/next_action.json",
+        "provider admission as next-action selector",
+        "OPL queue / attempt next-action inference",
+    } <= set(contract["tombstone_index"]["retired_wording_families"])
+    assert {
+        "default next action selector",
+        "provider admission authority",
+        "submission-ready proof",
+    } <= set(contract["tombstone_index"]["forbidden_use"])
+    assert set(tombstone["forbidden_default_claims"]) >= {
+        "default_next_action_selector",
+        "provider_admission_authority",
+        "paper_progress",
+        "publication_ready",
+        "submission_ready",
+        "runtime_ready",
+        "provider_running",
+        "owner_receipt_written",
+        "typed_blocker_written",
+        "human_gate_written",
+        "current_package",
+        "DM002_complete",
+        "DM003_complete",
+    }
+    assert tombstone["authority_boundary"] == {
+        "read_only": True,
+        "retired_tombstone": True,
+        "history_provenance_only": True,
+        "diagnostics_only": True,
+        "migration_input_only": True,
+        "can_select_default_next_action": False,
+        "can_authorize_provider_admission": False,
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_artifact_mutation": False,
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "can_claim_submission_ready": False,
+        "can_claim_runtime_ready": False,
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
+        "can_write_human_gate": False,
+        "can_claim_current_package": False,
+        "can_claim_provider_running": False,
     }
 
 
