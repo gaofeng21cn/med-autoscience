@@ -176,7 +176,13 @@ def _apply_typed_blocker_resolution(
     blocker: str | None,
     apply_mode: str,
 ) -> dict[str, Any]:
-    if apply_mode != "route_redesign":
+    apply_plan = _apply_mode_plan(
+        apply_mode=apply_mode,
+        study_id=study_id,
+        package=package,
+        blocker=blocker,
+    )
+    if apply_plan is None:
         return {
             "surface_kind": "paper_mission_typed_blocker_resolution",
             "schema_version": 1,
@@ -185,7 +191,11 @@ def _apply_typed_blocker_resolution(
             "profile_ref": profile_ref,
             "source": source,
             "requested_apply_mode": apply_mode,
-            "implemented_apply_modes": ["route_redesign"],
+            "implemented_apply_modes": [
+                "route_redesign",
+                "human_gate",
+                "owner_decision",
+            ],
             "write_permitted": False,
             "authority_materialized": False,
             "paper_ready_claim_authorized": False,
@@ -194,11 +204,7 @@ def _apply_typed_blocker_resolution(
             "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         }
     generated_at = _utc_now()
-    successor = _successor_work_unit(
-        study_id=study_id,
-        package=package,
-        blocker=blocker,
-    )
+    successor = _mapping(apply_plan.get("successor"))
     owner_decision_packet = {
         "surface_kind": "paper_mission_typed_blocker_resolution_owner_decision",
         "schema_version": 1,
@@ -206,8 +212,8 @@ def _apply_typed_blocker_resolution(
         "profile_ref": profile_ref,
         "source": source,
         "recorded_at": generated_at,
-        "decision_kind": "route_redesign",
-        "decision_status": "owner_route_redesign_applied",
+        "decision_kind": apply_plan["decision_kind"],
+        "decision_status": apply_plan["status"],
         "typed_blocker_evidence_ref": typed_ref,
         "blocker_type": blocker,
         "next_owner": successor["owner"],
@@ -241,7 +247,7 @@ def _apply_typed_blocker_resolution(
     return {
         "surface_kind": "paper_mission_typed_blocker_resolution",
         "schema_version": 1,
-        "status": "owner_route_redesign_applied",
+        "status": apply_plan["status"],
         "study_id": study_id,
         "profile_ref": profile_ref,
         "source": source,
@@ -310,6 +316,46 @@ def latest_typed_blocker_resolution_readback(
     return max(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
+def _apply_mode_plan(
+    *,
+    apply_mode: str,
+    study_id: str,
+    package: Mapping[str, Any],
+    blocker: str | None,
+) -> dict[str, Any] | None:
+    if apply_mode == "route_redesign":
+        return {
+            "status": "owner_route_redesign_applied",
+            "decision_kind": "route_redesign",
+            "successor": _successor_work_unit(
+                study_id=study_id,
+                package=package,
+                blocker=blocker,
+            ),
+        }
+    if apply_mode == "human_gate":
+        return {
+            "status": "human_gate_resolution_packet_materialized",
+            "decision_kind": "human_gate",
+            "successor": _human_gate_successor_work_unit(
+                study_id=study_id,
+                package=package,
+                blocker=blocker,
+            ),
+        }
+    if apply_mode == "owner_decision":
+        return {
+            "status": "owner_decision_resolution_packet_materialized",
+            "decision_kind": "owner_decision",
+            "successor": _owner_decision_successor_work_unit(
+                study_id=study_id,
+                package=package,
+                blocker=blocker,
+            ),
+        }
+    return None
+
+
 def _successor_work_unit(
     *,
     study_id: str,
@@ -321,6 +367,56 @@ def _successor_work_unit(
             "owner": "mas_authority_kernel",
             "work_unit_id": "submission_authority_owner_verdict",
             "next_action": "consume_submission_ready_package_authority_or_human_gate",
+            "successor_reason": "submission_ready_mirror_requires_authority_owner_verdict",
+            "resume_command": (
+                "paper-mission typed-blocker-resolution --apply-owner-decision "
+                f"--study-id {study_id}"
+            ),
+        }
+    return {
+        "owner": "mas_authority_kernel",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "next_action": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        "successor_reason": blocker or "current_package_not_submission_ready",
+        "resume_command": (
+            "paper-mission typed-blocker-resolution --apply-human-gate "
+            f"--study-id {study_id}"
+        ),
+    }
+
+
+def _human_gate_successor_work_unit(
+    *,
+    study_id: str,
+    package: Mapping[str, Any],
+    blocker: str | None,
+) -> dict[str, Any]:
+    return {
+        "owner": "mas_authority_kernel",
+        "work_unit_id": "submission_blocker_human_gate",
+        "next_action": "await_human_or_mas_authority_decision_for_submission_blocker",
+        "successor_reason": blocker or "submission_blocker_requires_human_gate",
+        "resume_command": (
+            "paper-mission typed-blocker-resolution --apply-owner-decision "
+            f"--study-id {study_id}"
+            if package.get("can_submit") is True
+            else "paper-mission typed-blocker-resolution --apply-route-redesign "
+            f"--study-id {study_id}"
+        ),
+    }
+
+
+def _owner_decision_successor_work_unit(
+    *,
+    study_id: str,
+    package: Mapping[str, Any],
+    blocker: str | None,
+) -> dict[str, Any]:
+    if package.get("can_submit") is True and _text(package.get("package_kind")) == "submission_ready_package":
+        return {
+            "owner": "mas_authority_kernel",
+            "work_unit_id": "submission_ready_authority_closeout",
+            "next_action": "materialize_submission_ready_owner_verdict_or_human_gate",
             "successor_reason": "submission_ready_mirror_requires_authority_owner_verdict",
             "resume_command": (
                 "paper-mission typed-blocker-resolution --apply-owner-decision "
@@ -486,7 +582,11 @@ def _valid_resolution_readback(
         return None
     if _text(payload.get("study_id")) != study_id:
         return None
-    if payload.get("status") != "owner_route_redesign_applied":
+    if payload.get("status") not in {
+        "owner_route_redesign_applied",
+        "human_gate_resolution_packet_materialized",
+        "owner_decision_resolution_packet_materialized",
+    }:
         return None
     if payload.get("resolution_packet_materialized") is not True:
         return None

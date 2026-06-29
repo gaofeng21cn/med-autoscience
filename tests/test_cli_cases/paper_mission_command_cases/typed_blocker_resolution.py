@@ -209,7 +209,7 @@ def test_typed_blocker_resolution_route_redesign_writes_non_authority_packet(
     assert packet["authority_materialized"] is False
 
 
-def test_typed_blocker_resolution_owner_decision_mode_fails_closed(
+def test_typed_blocker_resolution_owner_decision_writes_non_authority_packet(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -246,10 +246,81 @@ def test_typed_blocker_resolution_owner_decision_mode_fails_closed(
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert payload["status"] == "blocked_apply_mode_not_implemented"
-    assert payload["requested_apply_mode"] == "owner_decision"
-    assert payload["implemented_apply_modes"] == ["route_redesign"]
+    assert payload["status"] == "owner_decision_resolution_packet_materialized"
+    assert payload["apply_mode"] == "owner_decision"
+    assert payload["resolution_packet_materialized"] is True
     assert payload["authority_materialized"] is False
+    assert payload["writes_authority"] is False
+    assert payload["owner_decision_packet"]["decision_kind"] == "owner_decision"
+    assert payload["owner_decision_packet"]["authority_boundary"][
+        "writes_owner_receipt"
+    ] is False
+    assert payload["owner_decision_packet"]["authority_boundary"][
+        "writes_human_gate"
+    ] is False
+    assert payload["successor_work_unit"]["work_unit_id"] == (
+        "submission_ready_authority_closeout"
+    )
+    assert payload["next_owner_action"]["action_type"] == (
+        "materialize_submission_ready_owner_verdict_or_human_gate"
+    )
+
+
+def test_typed_blocker_resolution_human_gate_writes_non_authority_packet(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="current_package",
+                can_submit=False,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-human-gate",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "human_gate_resolution_packet_materialized"
+    assert payload["apply_mode"] == "human_gate"
+    assert payload["resolution_packet_materialized"] is True
+    assert payload["authority_materialized"] is False
+    assert payload["writes_authority"] is False
+    assert payload["owner_decision_packet"]["decision_kind"] == "human_gate"
+    assert payload["owner_decision_packet"]["authority_boundary"][
+        "writes_owner_receipt"
+    ] is False
+    assert payload["owner_decision_packet"]["authority_boundary"][
+        "writes_human_gate"
+    ] is False
+    assert payload["successor_work_unit"]["work_unit_id"] == (
+        "submission_blocker_human_gate"
+    )
+    assert payload["next_owner_action"]["action_type"] == (
+        "await_human_or_mas_authority_decision_for_submission_blocker"
+    )
 
 
 def test_typed_blocker_resolution_packet_projects_canonical_next_action(
