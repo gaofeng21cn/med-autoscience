@@ -277,20 +277,24 @@ domain diagnostic dry-run, domain diagnostic apply, worker restart, provider-slo
 
 ```mermaid
 flowchart TD
-  stage_outcome["MAS StageOutcome"] -->|"compile canonical next action"| next_action_envelope["NextActionEnvelope"]
-  next_action_envelope["NextActionEnvelope"] -->|"transport request only"| opl_transition_receipt["OPL TransitionReceipt / StageRun readback"]
-  opl_transition_receipt["OPL TransitionReceipt / StageRun readback"] -->|"consume same identity result"| mas_owner_consumption["MAS owner consumption"]
-  mas_owner_consumption["MAS owner consumption"] -->|"accept domain answer"| mas_owner_receipt_or_typed_blocker["MAS owner receipt / typed blocker / human gate / route-back"]
-  mas_owner_receipt_or_typed_blocker["MAS owner receipt / typed blocker / human gate / route-back"] -->|"terminalize next MAS stage result"| next_stage_outcome["next StageOutcome"]
-  legacy_diagnostics["legacy current_work_unit / current_execution_envelope / provider admission projections"] -->|"diagnostic only, cannot override"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
+  current_owner_delta["MAS current_owner_delta"] -->|"derive_canonical_operator_surface"| current_work_unit["canonical current_work_unit"]
+  current_work_unit["canonical current_work_unit"] -->|"derive_user_and_operator_execution_state"| current_execution_envelope["current_execution_envelope"]
+  current_execution_envelope["current_execution_envelope"] -->|"materialize_transport_intent_candidate"| provider_admission_current_control["provider admission current-control"]
+  provider_admission_current_control["provider admission current-control"] -->|"request_opl_stagerun_admission"| opl_stage_run_attempt["OPL StageRun attempt"]
+  opl_stage_run_attempt["OPL StageRun attempt"] -->|"observe_strict_liveness_for_same_identity"| provider_running["strict provider running proof"]
+  provider_running["strict provider running proof"] -->|"produce_terminal_closeout_or_typed_closeout"| terminal_closeout["terminal closeout"]
+  terminal_closeout["terminal closeout"] -->|"consume_closeout_or_materialize_current_control_for_matching_identity"| domain_diagnostic_report_apply["domain diagnostic apply / closeout consumer"]
+  domain_diagnostic_report_apply["domain diagnostic apply / closeout consumer"] -->|"accept_domain_owner_answer_or_stable_blocker"| mas_owner_receipt_or_typed_blocker["MAS owner receipt or stable typed blocker"]
+  mas_owner_receipt_or_typed_blocker["MAS owner receipt or stable typed blocker"] -->|"project_successor_or_stop_loss"| next_current_owner_delta["next current_owner_delta"]
+  provider_admission_current_control["provider admission current-control"] -->|"explain_retained_or_suppressed_provider_admission"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
   trace_span_refs["trace/span refs"] -->|"correlate_observability_refs"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
 ```
 
-- same_identity_order: StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt / StageRun readback -> MAS owner consumption -> MAS owner receipt / typed blocker / human gate / route-back -> next StageOutcome
-- feedback_edge: next StageOutcome -> NextActionEnvelope
+- same_identity_order: current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> opl_stage_run_attempt -> provider_running -> terminal_closeout -> domain_diagnostic_report_apply -> mas_owner_receipt_or_typed_blocker -> next_current_owner_delta
+- feedback_edge: next_current_owner_delta -> current_owner_delta
 - feedback_requires_any: new_work_unit_identity | new_owner_receipt_ref | quality_gate_receipt_ref | canonical_changed_surface_ref | stable_typed_blocker_ref | human_gate_ref | route_back_evidence_ref | stop_loss
 - feedback_forbidden_when: same_work_unit_without_new_consumed_evidence | same_identity_terminal_closeout_unconsumed | same_identity_anti_loop_budget_exhausted | status_or_observability_only_delta
-- forbidden_edges: trace_span_refs -> NextActionEnvelope: observability refs cannot generate next action | active_run_id_or_transport_status -> NextActionEnvelope: transport status cannot become canonical next action | typed_blocker_only -> provider_admission_current_control: typed blocker cannot self-authorize provider admission or readiness execution | provider_completion -> mas_owner_receipt_or_typed_blocker: provider completion is not MAS domain acceptance | old_persisted_dispatch -> provider_admission_current_control: stale dispatch cannot bypass selected-dispatch currentness
+- forbidden_edges: trace_span_refs -> current_owner_delta: observability refs cannot generate desired owner state | active_run_id_or_transport_status -> current_work_unit: transport status cannot become canonical current work unit | typed_blocker_only -> provider_admission_current_control: typed blocker cannot self-authorize provider admission or readiness execution | provider_completion -> mas_owner_receipt_or_typed_blocker: provider completion is not MAS domain acceptance | old_persisted_dispatch -> provider_admission_current_control: stale dispatch cannot bypass selected-dispatch currentness
 - dead_loop_risk_guards: typed_blocker_self_authorization blocked_by owner_action_dispatch_authority_policy.typed_blocker_can_self_authorize_owner_action=false, current_typed_blocker_precedes_provider_admission | stale_running_projection blocked_by currentness_precedence.terminal_closeout_for_same_stage_attempt, identity_policy.minimum_match_for_provider_running | same_work_unit_redrive_loop blocked_by anti_loop_policy.max_same_identity_terminal_without_progress, dm002_dm003_recovery_acceptance_policy.same_work_unit_stop_loss_policy | terminal_closeout_unconsumed blocked_by runtime_supervision_operator_policy.operator_actions.terminal_closeout_consumer_gate, closeout_handshake.required_sequence | stale_dispatch_reselected blocked_by owner_action_dispatch_authority_policy.stage_native_next_action_policy, identity_policy.shared_identity_helper
 - graph_authority_boundary: can_generate_owner_delta=false, can_authorize_provider_admission=false, can_mark_paper_progress=false.
 

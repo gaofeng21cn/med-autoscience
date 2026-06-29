@@ -337,13 +337,14 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     )
 
     stale = risks["stale_read_model"]
-    assert stale["canonical_current_source"] == "current_work_unit"
+    assert stale["canonical_current_source"] == "StageOutcome -> NextActionEnvelope"
     assert stale["valid_current_statuses"] == [
-        "executable_owner_action",
-        "running_provider_attempt",
-        "owner_receipt_recorded",
-        "typed_blocker",
-        "blocked_current_work_unit",
+        "next_action_envelope_present",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "transport_receipt_ref",
     ]
     assert "legacy_control_next_action_without_binding" in stale[
         "stale_sources_must_be_diagnostic_only"
