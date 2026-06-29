@@ -219,25 +219,11 @@ Plan Completion Audit 输出时，每一行都必须给出 `status`、`repo/sour
 | `tombstone_or_provenance` | 删除旧入口前已有 history / tombstone / provenance ref，且 active docs 不再把旧名写成 current adapter / callable alias。 | tombstone 不能声明 live takeover、paper progress、provider running 或 production readiness。 |
 | `compat_surface_removed` | 旧 module / alias / wrapper / compat shim / 只保护旧路径的兼容测试已删除，或只剩 history/provenance/negative-test mention。 | live owner receipt、stable typed blocker、human gate、route-back evidence 或同一 current identity 的 OPL StageRun readback用于后续 runtime readiness，不作为 compat 删除前置条件。 |
 
-## 当前测试/证据差距
+## 后置 Live Evidence 维护
 
-以下差距是 production evidence tail。它们不改变上面的结构口径，也不能声明 publication-ready、domain-ready、artifact mutation authorization 或 `current_package` 更新。Standard Agent “全部落地”的剩余项以 `contracts/standard_agent_completion_evidence_status.json` 为机器验收入口；聊天计划和人读文档不能关闭 ledger 中的 live owner evidence、human gate、provider long-soak 或 family conformance tail。`physical_source_morphology_scan` 现在只是 repo-backed scan proof，不授权物理删除、production caller consumption、long-soak 或 live paper progress。
+以下内容不再作为本文 active gap / next prompt 的默认工作清单维护：真实 paper-line provider apply、DM002/DM003 fresh outcome、owner-chain dispatch ledger scaleout、publication-route memory receipts、artifact lifecycle receipts、human gate / resume、provider SLO long soak、family transition live receipt、independent reviewer/auditor record scaleout、真实 `current_package` handoff 和 submission-ready gate。
 
-| 证据差距 | 当前状态 | 需要看到的下一层证据 |
-| --- | --- | --- |
-| 真实 paper-line provider apply | multi-profile guarded-apply、DM002 canary、research evidence pack read-model/schema/canary 已证明 refs-only owner-chain shape、stable blocker 和 fail-closed 审计链可见。`contracts/live_stage_run_progress_evidence.json` 已把 W7 owner evidence tail 的 `current_owner_delta_owner_answer_missing=true` 落成 MAS-owned `typed_blocker_ref` answer；`medautosci current-owner-delta-owner-answer` 可从 fresh OPL current owner delta 生成 MAS-owned typed blocker answer 与 OPL record payload，OPL 只能把它作为 refs-only current-owner answer / live-progress evidence 消费。 | 更多真实 paper line 产出 owner receipt、paper/artifact delta、independent reviewer/auditor record、human gate/resume、route decision、stop-loss、artifact/memory lifecycle receipt 或 stable typed blocker；现有 W7 typed blocker 需要被 MAS owner 后续解析为 route-back、human gate 或下一 paper delta，不能声明 publication-ready、domain-ready、artifact mutation authorization、current package freshness 或 production-ready。 |
-| Paper progress replay / live evidence acceptance | `tests/test_paper_progress_transition_replay_fixtures.py` 已把 DM002/DM003 replay 从 first slice 扩到 representative bad traces：owner receipt recorded 后不推进、terminal owner-receipt closeout 消费 stale transition-request projection、same-tick stale blocker/admission 冲突、`provider_admission_pending_count=0` forbidden interpretation、`current_work_unit` 与 `paper_recovery_state` 分歧、domain diagnostic/request 无 OPL readback -> `NonAdvancingApply`、human gate / route-back accepted shape；`contracts/paper_progress_replay_live_evidence_status.json` 记录 replay coverage、allowed live evidence exactly-one family 和 forbidden completion interpretations。2026-06-18 terminal handoff typed-blocker fixed-point 修复已补上 `paper_recovery_execution_refresh` 的末轮重建：handoff 消费后会重新计算 `paper_recovery_state`、`current_executable_owner_action`、provider projection 和 owner-action admission，防止 stale `materialize_successor_owner_action` 在 typed blocker 后继续残留；`current_execution_surfaces` 也会在同一 identity 的 `provider_admission_terminal_closeout_consumed` typed blocker 存在时，优先消费 blocker，即使 handoff `current_work_unit` 仍投影 `owner_receipt_recorded`。 | 这只关闭 replay/acceptance 和 repo-side projection fixed-point 口径，不关闭 live paper-line。下一层仍需 fresh live command/readback 对同一 current identity 给出 strict running proof、owner receipt、stable typed blocker、human gate、route-back evidence 或 paper/gate/artifact semantic delta exactly-one；queue empty、domain diagnostic dry-run、`provider_admission_pending_count=0`、focused tests 或 docs/contract updated 不能替代。 |
-| Co-Scientist-inspired Stage / Route 重构 | 执行规格已归入 [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md)；StageRun profile 已补充 canary 级机器边界：candidate generation、reflection、review、meta-review、ranking、proximity、evolution 只能作为 Stage 内 advisory evidence refs，不能定义硬编码 workflow、关闭 quality gate 或 promote stage。2026-06-10 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`reusable lesson extraction`、`triggered meta-review`、`opportunistic knowledge prefetch` 已进一步固定为 current-owner-native JIT affordance，并进入 semantic pack、portfolio validator/contract、current owner ticket projection、generated stage control plane、StageRun profile 与 focused tests。 | 后续只扩面真实 owner-chain evidence，必须继续证明这些机制只在 `current_delta_declares_or_implies_affordance_need` 时帮助 route 更快选下一步、reviewer 更快发现缺口、memory 复用失败路径；不得把 admission gate、quality closure、publication readiness、artifact authority、route blocking layer、platform repair、prefetch 或 review score 计为 paper progress。真实 owner-chain evidence、paper/artifact delta、memory/artifact lifecycle receipt、human gate/resume 和 independent reviewer/auditor record 仍开放。 |
-| EvoScientist / EvoSkills progress-first intake | [EvoScientist Progress-First Intake](../runtime/designs/evo_scientist_progress_first_intake.md) 已把 auxiliary background memory workers、tool selector、fire-and-forget observation memory 和 IDE / IVE / ESE lifecycle memory 折为完整目标态 sidecar execution architecture，并落地 repo callable refs-only writer、CLI observe/read-latest、`study_progress` materialize hook 和 refs-only index family。 | 机器合同、projection 和 family adoption contract 已固定 `remaining_learning_plan=false`、`mainline_waits_for_sidecar=false`、`sidecar_completion_required_for_dispatch=false`、`sidecar_completion_required_for_quality_gate=false`，并指向 `artifacts/runtime/evo_scientist_sidecar/` observation refs。后续 production scheduler / OPL worker scaleout 只能继续证明这些 sidecar fail open、refs-only、budgeted、current-owner-following；不得把 sidecar completion、tool selector score、observation memory、failed-path taxonomy 或 lifecycle skill match 写成 owner receipt、quality verdict、paper progress、memory accept/reject、artifact authority、production-ready 或 independent reviewer/auditor output。 |
-| StageRun Kernel 收敛 | 顶层设计和 foundation landing 已归入 [MAS / OPL Stage Native 状态机设计](./mas-opl-stage-native-state-machine.md)。MAS 已有 StageRun profile contract、controlled canary evidence fixture、adoption binding、stage folder projection helper、`study progress` projection binding、AI reviewer synthetic canary tests、canonical stage folder path follow-through、controlled canary operator summary / overclaim boundary / legacy runtime residue guard focused contract，以及 `publication_handoff_owner_gate` callable / dispatch tests；2026-06-06 MAS apply 侧已能消费 OPL execution authorization 并写 owner-answer closeout binding / current pointer / current owner delta，随后 live workspace owner evidence 已进入 MAS typed blocker follow-up。2026-06-07 `complete_medical_paper_readiness_surface` 已从 `owner_delta_result` closeout binding 推进到 stage-native owner-answer materialization：可信授权、完整 StageRun identity binding 和 `apply` 下可把 readiness result 写回 terminal `08-publication_package_handoff` 的 `receipts/owner_receipt.json` / `receipts/typed_blocker.json`、`current.json` 与 `projection/current_owner_delta.json`，并 fail closed 拒绝缺授权、缺完整 binding、缺 MAS stage manifest 或 dry-run 写入。OPL 侧 StageRun substrate / CLI / conformance 以 OPL repo live state 为准。 | `complete_medical_paper_readiness_surface` owner surface 的 repo-side StageRun closeout materialization gap 已关闭：`literature_provider_runtime`、`study_line_selection`、`archetype_analysis_contract`、`bounded_analysis_candidate_board` 和 `stop_loss_memo` 已证明 accepted operator payload或 owner-authored payload、stale dispatch rejection、canonical surface write、readiness rebuild、owner_delta_result closeout binding、readiness `surface_key` source identity、verified materialization provenance、no-forbidden-write 边界和 stage-native owner-answer write-back。剩余 tail 是真实 paper-line owner evidence scaleout、独立 reviewer/auditor record、human gate/resume、provider SLO long soak、后续 readiness surface completion，以及补偿链退役证据。当前 readout 的具体 next surface 属于 live study truth，必须 fresh 读取 `study_progress` / workspace artifact / OPL current-control / owner receipt refs；本文只保留完成门和误用边界。补偿链退役只按 `stage_native_compensation_retirement_gate`：四类 live evidence 必须对同一 work unit 一致；未通过时只保留 tombstone/provenance/delete-gate context。 |
-| DM002 / DM003 paused paper line | 2026-06-05 已执行 OPL queue hold / human gate pause closeout；dated 证据见 [DM002 / DM003 paper-line pause closeout 2026-06-05](../history/program/dm002_dm003_paper_line_pause_closeout_2026_06_05.md)。随后 stage-native refs-only materialization 不等于 OPL hold release、provider resume 或 queue approval。 | 恢复 provider/queue 前必须 fresh 读取 OPL current-control 并按 hold/release/human approval surface 操作；不得用全局 tick 或手写 workspace truth 恢复。Stage-native terminal handoff 只要求 publication owner receipt / typed blocker / human gate，不授权 publication-ready。 |
-| owner-chain dispatch ledger scaleout | `domain_dispatch_evidence_record_payload` 与 OPL refs-only identity preflight / record / verify 已覆盖 success refs path 和 typed-blocker path。2026-06-07 MAS CLI payload transport 已补齐；同日补齐 `complete_medical_paper_readiness_surface` readiness owner callable 的 dispatch-evidence payload exporter coverage，避免新 owner surface 落地后仍因 exporter action allowlist 漏项形成 refs-only worklist 残项。Fresh worklist readout 已显示 `open_worklist_item_count=0` / `domain_dispatch_evidence_workorder_count=0`；MAS `study progress` 可投影 current executable owner action，且 live active attempt id 可能随 owner run 波动。 | 在 fresh OPL worklist 暴露可绑定 MAS current owner delta 的 workorder 后，先取得 MAS owner receipt、stage receipt、monitor freshness receipt、current AI reviewer supersession、human-gate receipt 或 stable blocker，再经新的或 superseding OPL identity preflight record/verify。`current_executable_owner_action`、active attempt 和 zero-open refs-only worklist 只是合法下一 owner / running / accounting 线索，不是 owner answer；未产出 receipt/blocker 前不允许 apply owner answer 或声明 domain-ready。 |
-| publication-route memory receipts | Router/writeback refs 已进入 body-free evidence packets、paper-line result、domain-dispatch payload 和 stage expected refs。 | 多条真实 paper line 持续产生 accepted/rejected/blocked writeback receipts，并由 owner route 明确 memory accept/reject/blocker 结论。 |
-| artifact lifecycle receipts | Artifact lifecycle report / retention plan 已输出 bounded refs、physical-thinning handoff 和 stable typed blocker refs-only shape。 | OPL apply receipt、真实 cleanup/restore/freshness apply receipt 或 MAS artifact mutation permission；不能由 report/plan 直接授权 cleanup 或 artifact mutation。 |
-| human gate / resume | Stage replay human-gate refs 已有 MAS-owned body-free typed blocker path，`finalize_and_publication_handoff` 有 refs-only success path。 | Human approval、resume chain receipt、新 owner success receipt 或 paper closure。 |
-| provider SLO long soak | Provider/runtime read-model 能投影 live attempt、blocked closeout 和 admission/running distinction。 | 长时 provider-hosted run、restart/re-query、retry/dead-letter、no-forbidden-write 和 App/workbench drilldown 在真实 domain activity 中持续成立。 |
-| family transition live receipt | `study_state_matrix` 可把 MAS-owned domain transition table materialize 给 OPL generic matrix runner。 | Route/work-unit 进入 MAS owner chain，并产出 owner receipt、typed blocker、progress delta、gate replay、human gate 或 stop-loss。 |
-| independent reviewer/auditor record scaleout | AI-first quality gate boundary 和 record validator 已落地。 | 真实 paper-line reviewer/auditor invocation、独立 context/task record、quality receipt、route-back 或 typed blocker，不得由 executor 自审替代。 |
+这些 live evidence 只在声明 paper progress、publication-ready、domain-ready、artifact mutation authorization、`current_package` 更新、provider running 或 production-ready 时作为 hard gate。日常开发优先处理上方 `当前功能/结构差距`：source morphology、repo-source/control-plane cleanup、legacy path no-resurrection、no-second-truth guard、minimal authority function 与 OPL transition ABI 边界。Live evidence 缺失不反向重开已关闭的 repo/source/control-plane backlog；focused tests、projection clean、queue empty、contract pass 或 docs foldback 也不能替代 live evidence。
 
 ## MAS/OPL Stage 解耦风险彻底解决方案
 
@@ -329,43 +315,21 @@ Stage Closure Terminalizer 的 `contract / reducer / delivery split` 已按 repo
 
 ## 下一轮 Agent prompt
 
-- Write scope: MAS active truth owner、current status summary、owner-route/read-model
-  currentness、paper-line evidence tail、publication-route memory/artifact lifecycle refs、
-  human gate/resume、provider long-soak 和 docs lifecycle foldback。
+- Write scope: MAS active truth owner、source morphology、repo-source/control-plane cleanup、legacy path no-resurrection、minimal authority function、OPL transition ABI/policy adapter 边界和 docs lifecycle foldback。当前首选写集是 `src/med_autoscience/cli_parts/paper_mission_commands.py` 的 paper-mission CLI source morphology cleanup；已有 dirty Python 写集存在时不得覆盖或顺手吸收。
 - Non-goals: 不把 OPL provider proof、suite pass、queue completion、refs-only receipt、
   product-entry projection、doctor pass 或 descriptor readiness 写成 MAS paper closure、
   publication-ready、domain-ready、artifact mutation authorization、memory writeback success
   或 `current_package` 更新；不恢复旧 private runtime、retired alias、facade、wrapper 或
   fallback 文案。
-- Live truth inputs: 读取 MAS `agent/` pack、contracts、owner-route/domain-handler
-  exports、runtime/controller/read-model surfaces、study workspace refs、product-entry
-  manifest、focused tests、OPL refs-only worklist/readouts、runtime ledgers、owner receipts
-  和 typed blockers；dated closeout、receipt id 和旧 worklist 数字只作 provenance。
+- Functional truth inputs: 读取 MAS `agent/` pack、contracts、owner-route/domain-handler
+  exports、runtime/controller/read-model surfaces、product-entry manifest、focused tests、
+  source callers、OPL transition ABI / policy adapter contracts 和 docs/history/tombstone refs；
+  dated closeout、receipt id 和旧 worklist 数字只作 provenance。
 - Required actions:
-  1. 当前 platform lane 继续收口 `complete_medical_paper_readiness_surface` 的 owner
-     action、accepted provider-backed operator payload、payload-missing stable typed blocker、
-     surface artifact path、readiness rebuild 和 closeout binding；`literature_provider_runtime`、
-     `study_line_selection`、`archetype_analysis_contract`、`bounded_analysis_candidate_board`、`stop_loss_memo` 已进入该路径，后续按当前
-     `readiness.next_action.surface_key` 扩展或 fail closed。DM002 / DM003 真实 paper-line execution
-     由会话 `019e92c8-b940-7313-940b-ea892820d322` 处理，本轮不把平台 foldback 写成
-     paper-line progress。
-  2. 维护 Co-Scientist-inspired Stage / Route landed surface：`agent/` Stage-native
-     semantic pack、machine contracts、route supervisor/read-model、focused tests 和
-     runtime docs 已作为当前 Stage/Route 形态输入；progress-first affordance 已落入
-     semantic pack、machine contracts、owner ticket projection 和 focused tests，且仅包含
-     `next-delta tournament`、`bounded micro-candidate generation`、
-     `critique-as-repair-hint`、`reusable lesson extraction`、`triggered meta-review` 和
-     `opportunistic knowledge prefetch` 六项 JIT advisory affordance。后续只扩面真实
-     owner-chain evidence，不能把 advisory ranking/proximity、platform repair、
-     provider completion、prefetch、review score 或 route tournament 结果升级为
-     MAS authority。EvoScientist / EvoSkills 学习点只作为 async learning sidecar、
-     auxiliary helper、fail-open tool selector、observation memory 和 failed-path taxonomy
-     继续折回；不得把 sidecar 缺失、失败或低置信写成 admission blocker。
-  3. 对 read-model/currentness/dispatcher/lifecycle apply 类问题，先判断是否只是
-     platform repair；没有同步产生 domain delta 或 stable typed blocker时，只能记录为
-     platform repair，并把下一 owner 指回 MAS paper/artifact/reviewer/human gate 或
-     OPL generic lifecycle apply。
-  3a. 对 currentness / owner-route / owner receipt / provider admission 反复复发类问题，
+  1. 对 `paper_mission_commands.py` 做只读 source/caller map，按命令族、materializer、readback、output-root、OPL handoff、legacy/tombstone 边界选择最小拆分 lane；写入前确认同写集没有其他 owner dirty diff。
+  2. 维护 Co-Scientist-inspired Stage / Route、EvoScientist sidecar、Scientific Capability Registry 等 landed surface 的 active 文档口径：它们只作 JIT advisory / fail-open accelerator / refs-only support，不成为 admission blocker、quality closure 或 paper progress。
+  3. 对 read-model/currentness/dispatcher/lifecycle apply 类问题，先判断是否只是 platform repair；没有同步产生 domain delta 或 stable typed blocker时，只能记录为 platform repair，并把下一 owner 指回 MAS paper/artifact/reviewer/human gate 或 OPL generic lifecycle apply。
+  4. 对 currentness / owner-route / owner receipt / provider admission 反复复发类问题，
      默认按 `OPL DomainProgressTransitionRuntime + MAS PaperProgressPolicyAdapter` 目标态处理：
      通用 event log / fixed-point controller / outbox / replay / projection metadata 放到 OPL；
      MAS 只实现 paper-specific policy、authority result shape 和 forbidden-write 语义。新增修复
@@ -373,24 +337,12 @@ Stage Closure Terminalizer 的 `contract / reducer / delivery split` 已按 repo
      consume-only 或 `NonAdvancingApply` typed blocker 之一；不要继续在 domain diagnostic、
      `current_work_unit`、`paper_recovery_state`、provider admission、study_progress 或
      Workbench 中新增平行 priority / stale guard 来掩盖同一根因。
-  3b. 对 terminal handoff / provider admission / recovery successor 交织问题，repo-side projection
+  5. 对 terminal handoff / provider admission / recovery successor 交织问题，repo-side projection
      refresh 必须在 handoff 消费后重建 recovery state、current executable action、provider projection
      和 admission sync；当 `provider_admission_terminal_closeout_consumed` 与 handoff current
      identity 重合且无冲突时，即使 current_work_unit 仍是 `owner_receipt_recorded`，也必须优先
      投影 stable typed blocker / domain_blocked；不得保留 stale successor 或写成 provider-ready。
-  4. 对 owner-chain dispatch ledger，只处理 fresh OPL worklist 中可绑定 MAS current
-     owner delta 的 workorder；已 verified 的 OPL typed-blocker receipt 不能事后升级为
-     success receipt，已 verified success refs receipt 也不能写成 domain-ready 或
-     production-ready。
-  5. 对 publication-route memory receipt，优先取得真实 accepted/rejected/blocked
-     writeback receipt 或 stable typed blocker，并证明 receipt refs 经 owner result、
-     domain-dispatch payload、stage expected refs 与 body-free packet role 可复验，且不读取
-     memory body、不越过 publication verdict。
-  6. 对 artifact lifecycle receipt，优先从 stable typed blocker refs scaleout 前进到
-     owner-authorized physical thinning、真实 workspace cleanup/restore/retention/rebuild/
-     freshness apply receipt 或 artifact mutation permission，并证明 refs 进入
-     reproducibility / stage expected / domain-dispatch payload，且不越过 artifact authority。
-  7. 对文档治理，active/core 文档只保留 current conclusion、open gate、owner、
+  6. 对文档治理，active/core 文档只保留 current conclusion、open gate、owner、
      machine boundary 和下一步；过程 proof、receipt id、命令流水和 dated worklist 数字继续归
      history/provenance。
 - Verification commands: docs-only 维护运行 `rtk git diff --check`、
@@ -399,10 +351,7 @@ Stage Closure Terminalizer 的 `contract / reducer / delivery split` 已按 repo
   `rtk scripts/run-pytest-clean.sh tests/test_stage_run_kernel_profile_contract.py`；
   触及 broader source/contracts/runtime 时运行 `rtk scripts/verify.sh`
   及对应 focused `scripts/run-pytest-clean.sh ...`、`make test-meta` 或 OPL read-model check。
-- Completion gate: 本轮输出必须归类为 domain delta、stable typed blocker 或 platform
-  repair；platform repair 不写成 paper-line progress 或 production evidence closure；所有
-  open paper-line、memory/artifact/lifecycle、human gate/resume、provider SLO long-soak 和
-  independent reviewer/auditor record 继续留在当前测试/证据差距。
+- Completion gate: 本轮输出必须归类为 `source_morphology_cleanup`、`repo_source_control_plane_cleanup`、`legacy_no_resurrection_guard`、`policy_adapter_boundary_landed`、`docs_ssot_foldback`、`platform_repair` 或 `needs_owner_decision_for_irreversible_cleanup`；platform repair 不写成 paper-line progress 或 production evidence closure。Open paper-line、memory/artifact/lifecycle、human gate/resume、provider SLO long-soak 和 independent reviewer/auditor record 只进入后置 Live Evidence 维护，不作为本文 active backlog。
 - Foldback target: durable 当前结论折回本文、核心五件套、runtime/contracts/policies 或
   owner docs；dated proof、receipt id、OPL worklist 数字、命令流水和 closeout 过程折回
   `docs/history/**`、runtime ledger、真实 workspace receipt 或提交历史。
