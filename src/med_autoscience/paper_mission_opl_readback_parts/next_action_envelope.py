@@ -39,6 +39,7 @@ def paper_mission_next_action_envelope(
     carrier_readback = _mapping(opl_runtime_carrier_readback)
     transition_receipt = _mapping(carrier_readback.get("opl_transition_receipt"))
     terminal_closeout = _mapping(carrier_readback.get("terminal_closeout"))
+    mas_receipt_consumption = _mapping(carrier_readback.get("mas_receipt_consumption"))
     if not decision and not route:
         return None
     transaction_ref = _first_text(
@@ -116,15 +117,29 @@ def paper_mission_next_action_envelope(
             **handoff,
             **(
                 {
-                    "action_family": "blocked.typed"
-                    if _text(transition_receipt.get("receipt_status"))
-                    == "typed_runtime_blocker_observed"
-                    else "paper.gate.publishability_replay",
+                    "action_family": _transition_receipt_action_family(
+                        transition_receipt=transition_receipt,
+                        mas_receipt_consumption=mas_receipt_consumption,
+                    ),
                     "opl_transition_receipt": transition_receipt,
                     "terminal_closeout": terminal_closeout,
+                    **(
+                        {"mas_receipt_consumption": mas_receipt_consumption}
+                        if mas_receipt_consumption
+                        else {}
+                    ),
                     "allowed_actions": [
-                        "consume_opl_transition_receipt",
-                        "route_terminal_closeout_to_mas_owner_gate",
+                        *(
+                            ["record_typed_blocker"]
+                            if _transition_receipt_requires_typed_blocker(
+                                transition_receipt=transition_receipt,
+                                mas_receipt_consumption=mas_receipt_consumption,
+                            )
+                            else [
+                                "consume_opl_transition_receipt",
+                                "route_terminal_closeout_to_mas_owner_gate",
+                            ]
+                        ),
                     ],
                     "next_owner": "mas_authority_kernel",
                 }
@@ -218,6 +233,34 @@ def _dedupe_ref_items(refs: list[dict[str, str]]) -> list[dict[str, str]]:
         seen.add(key)
         result.append(ref)
     return result
+
+
+def _transition_receipt_action_family(
+    *,
+    transition_receipt: Mapping[str, Any],
+    mas_receipt_consumption: Mapping[str, Any],
+) -> str:
+    if _transition_receipt_requires_typed_blocker(
+        transition_receipt=transition_receipt,
+        mas_receipt_consumption=mas_receipt_consumption,
+    ):
+        return "blocked.typed"
+    return "paper.gate.publishability_replay"
+
+
+def _transition_receipt_requires_typed_blocker(
+    *,
+    transition_receipt: Mapping[str, Any],
+    mas_receipt_consumption: Mapping[str, Any],
+) -> bool:
+    return (
+        _text(transition_receipt.get("receipt_status"))
+        == "typed_runtime_blocker_observed"
+        or _text(transition_receipt.get("typed_runtime_blocker_ref")) is not None
+        or _text(mas_receipt_consumption.get("next_legal_action"))
+        == "record_typed_blocker"
+        or _text(mas_receipt_consumption.get("typed_runtime_blocker_ref")) is not None
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -199,6 +199,56 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
 
 
+def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owner() -> None:
+    envelope = paper_mission_next_action_envelope(
+        transaction={
+            "transaction_id": "paper-mission-transaction::dm002::followthrough",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "stage_id": "submission_milestone_candidate",
+            "stage_terminal_decision": {
+                "decision_kind": "continue_same_stage",
+                "next_work_unit": "submission_milestone_candidate::followthrough::followthrough-01",
+            },
+            "opl_route_command": {
+                "command_kind": "resume_stage",
+                "target": "submission_milestone_candidate::followthrough::followthrough-01",
+                "runtime_owner": "one-person-lab",
+                "route_target": "opl_runtime_live_readback",
+            },
+        },
+        opl_runtime_carrier_readback={
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "carrier_status": "opl_runtime_terminal_readback_observed",
+            "opl_transition_receipt": {
+                "surface_kind": "opl_transition_receipt",
+                "receipt_status": "terminal_closeout_observed",
+                "typed_runtime_blocker_ref": "opl://stage-attempts/sat-typed/typed-blocker",
+                "can_claim_paper_progress": False,
+            },
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "stage_attempt_ref": "opl://stage-attempts/sat-typed",
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "requires_mas_owner_consumption",
+                "next_legal_action": "record_typed_blocker",
+                "typed_runtime_blocker_ref": "opl://stage-attempts/sat-typed/typed-blocker",
+                "forbidden_next_action": "synonymous_route_back_redrive",
+            },
+        },
+    )
+
+    assert envelope is not None
+    assert envelope["action_family"] == FAMILY_BLOCKED_TYPED
+    assert envelope["action_kind"] == "stop_with_typed_blocker"
+    assert envelope["owner"] == "mas_authority_kernel"
+    assert envelope["executor_target"] == "mas_authority_kernel"
+    assert envelope["expected_output_contract"]["accepted_refs"] == ["typed_blocker_ref"]
+    assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
+    assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
+
+
 def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> None:
     transaction_id = "paper-mission-transaction::dm004::synthetic-family-route"
     route_target = "dm004_never_allowlisted_runtime_resume_target"
