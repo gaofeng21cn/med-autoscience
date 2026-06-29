@@ -411,6 +411,27 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
                 "action_type": "run_quality_repair_batch",
                 "work_unit_id": "quality-repair-003",
             },
+            "delivery_inspection": {
+                "current_package": {
+                    "status": "current",
+                    "package_kind": "current_package",
+                    "can_submit": False,
+                    "quality_gate_status": "blocked",
+                    "known_blockers": ["claim_evidence_consistency_failed"],
+                    "source_signature": "sha256:current",
+                    "generated_from_current_source": True,
+                }
+            },
+            "quality_repair_batch_followthrough": {
+                "surface_kind": "quality_repair_batch_followthrough",
+                "status": "executed",
+                "repair_budget": {
+                    "repair_budget_max": 3,
+                    "repair_attempt_count": 3,
+                    "repair_budget_status": "exhausted",
+                    "on_exhausted": "degraded_handoff",
+                },
+            },
         }
     )
 
@@ -426,6 +447,22 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
         "stage_closure_decision_missing"
     )
     assert payload["stage_closure_outcome"] == "stage_closure_decision_missing"
+    assert payload["current_package"] == {
+        "status": "current",
+        "package_kind": "current_package",
+        "can_submit": False,
+        "quality_gate_status": "blocked",
+        "known_blockers": ["claim_evidence_consistency_failed"],
+        "source_signature": "sha256:current",
+        "generated_from_current_source": True,
+    }
+    assert payload["repair_budget"] == {
+        "repair_budget_max": 3,
+        "repair_attempt_count": 3,
+        "repair_budget_status": "exhausted",
+        "on_exhausted": "degraded_handoff",
+    }
+    assert payload["stage_closure"]["repair_budget"] == payload["repair_budget"]
     assert payload["stage_closure_decision"]["can_continue_same_stage"] is False
     assert payload["artifact_first_mission_summary"]["stage_closure_decision"] == (
         payload["stage_closure_decision"]

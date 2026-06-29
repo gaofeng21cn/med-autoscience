@@ -209,6 +209,13 @@ def test_paper_mission_terminalize_stage_materializes_non_authority_decision(
     initial = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert initial["stage_closure_outcome"] == "stage_closure_decision_missing"
+    assert initial["durable_mission_stop_guard"][
+        "accepted_submission_milestone_candidate_is_durable_stop"
+    ] is False
+    assert initial["durable_mission_stop_guard"]["durable_stop_allowed"] is False
+    assert initial["durable_mission_stop_guard"][
+        "requires_terminalizer_outcome"
+    ] is True
 
     output_root = (
         workspace_root
@@ -1076,6 +1083,9 @@ def test_paper_mission_materialized_readback_consumes_matching_opl_terminal_clos
 
     assert exit_code == 0
     assert payload["surface_kind"] == "paper_mission_materialized_readback"
+    assert payload["durable_mission_stop_guard"][
+        "accepted_submission_milestone_candidate_is_durable_stop"
+    ] is False
     assert payload["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )

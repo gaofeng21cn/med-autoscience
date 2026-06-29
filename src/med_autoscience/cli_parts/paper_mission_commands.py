@@ -509,6 +509,13 @@ def build_paper_mission_readback(
         "stage_closure_outcome": _mapping(
             stage_closure_decision.get("outcome")
         ).get("kind"),
+        "durable_mission_stop_guard": _durable_mission_stop_guard(
+            consume_candidate_status=_consume_candidate_status_for_transaction_readback(
+                transaction_readback=transaction_readback,
+                authority_consume_readback=authority_consume_readback,
+            ),
+            stage_closure_decision=stage_closure_decision,
+        ),
         "mutation_policy": _mutation_policy(paper_mission_command=paper_mission_command),
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
@@ -3471,6 +3478,10 @@ def _build_materialized_mission_readback_if_available(
         "stage_closure_outcome": _mapping(
             stage_closure_decision.get("outcome")
         ).get("kind"),
+        "durable_mission_stop_guard": _durable_mission_stop_guard(
+            consume_candidate_status=consume_candidate_status,
+            stage_closure_decision=stage_closure_decision,
+        ),
         "default_readback": default_readback,
         **(
             {"candidate_manifest": candidate_manifest}
@@ -5593,6 +5604,37 @@ def _transaction_readback_output_fields(
             else {}
         ),
         "paper_mission_transaction_readback": transaction_readback,
+    }
+
+
+def _durable_mission_stop_guard(
+    *,
+    consume_candidate_status: str | None,
+    stage_closure_decision: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    decision = _mapping(stage_closure_decision)
+    outcome = _mapping(decision.get("outcome"))
+    status = str(consume_candidate_status or "").strip()
+    checkpoint_only = {
+        "accepted_submission_milestone_candidate",
+        "accepted_candidate",
+        "candidate_ready_for_consumption",
+        "route_back",
+    }
+    return {
+        "surface_kind": "paper_mission_durable_stop_guard",
+        "accepted_submission_milestone_candidate_is_durable_stop": False,
+        "checkpoint_only_statuses": sorted(checkpoint_only),
+        "observed_consume_candidate_status": status or None,
+        "observed_stage_closure_outcome": outcome.get("kind"),
+        "requires_terminalizer_outcome": True,
+        "requires_submission_or_presubmission_deliverable": True,
+        "requires_owner_receipt_or_human_gate_or_typed_blocker": True,
+        "durable_stop_allowed": (
+            status not in checkpoint_only
+            and str(outcome.get("kind") or "").strip()
+            in {"owner_receipt", "typed_blocker", "human_gate", "next_stage_transition"}
+        ),
     }
 
 

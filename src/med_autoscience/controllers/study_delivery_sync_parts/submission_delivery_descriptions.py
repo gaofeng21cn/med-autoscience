@@ -75,9 +75,22 @@ _ROLE_SPECIFIC_REPRODUCIBILITY_JSON_NAMES = (
     "artifact_lineage_graph.json",
 )
 
+_CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS = frozenset(
+    {
+        "package_kind",
+        "can_submit",
+        "quality_gate_status",
+        "known_blockers",
+        "generated_from_current_source",
+        "source_signature",
+    }
+)
+
 CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
     Path("evidence_ledger.json"): frozenset({"updated_at"}),
     Path("audit/evidence_ledger.json"): frozenset({"updated_at"}),
+    Path("submission_manifest.json"): _CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS,
+    Path("audit/submission_manifest.json"): _CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS,
     **{
         Path("reproducibility") / name: frozenset({"package_role"})
         for name in _ROLE_SPECIFIC_REPRODUCIBILITY_JSON_NAMES

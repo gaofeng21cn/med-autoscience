@@ -45,6 +45,12 @@ def _install_fake_delivery_inspector(monkeypatch, *, captured: dict[str, object]
                 "root": str(study_root / "manuscript" / "current_package"),
                 "layout_status": "legacy",
                 "role": "human_facing_mirror",
+                "source_signature": "sha256:current",
+                "package_kind": "current_package",
+                "can_submit": False,
+                "quality_gate_status": "blocked",
+                "known_blockers": ["claim_evidence_consistency_failed"],
+                "generated_from_current_source": True,
             },
             "wording": {
                 "source": "submission_minimal = controller-authorized source",
@@ -119,6 +125,21 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     }
     assert delivery["layout_migration_upgrade_note"] == "layout migration 会在下一次 authorized sync 升级"
     assert delivery["status"] == "layout_migration_pending_sync"
+    assert delivery["current_package"] == {
+        "status": "layout_migration_pending_sync",
+        "freshness_status": "legacy",
+        "delivery_status": "current",
+        "root": str(study_root / "manuscript" / "current_package"),
+        "zip_path": None,
+        "zip_exists": None,
+        "layout_status": "legacy",
+        "package_kind": "current_package",
+        "can_submit": False,
+        "quality_gate_status": "blocked",
+        "known_blockers": ["claim_evidence_consistency_failed"],
+        "source_signature": "sha256:current",
+        "generated_from_current_source": True,
+    }
     assert "legacy_layout_upgrade_note" not in delivery
     assert "legacy_layout_pending_sync" not in delivery
     assert delivery["authority"] == "observability_projection_only"
@@ -198,6 +219,7 @@ def test_delivery_visibility_projection_keeps_stale_visible_for_layout_migration
     )
 
     assert projection["status"] == "stale"
+    assert projection["current_package"]["status"] == "stale"
     assert projection["layout_migration_pending_sync"] is True
     assert "legacy_layout_pending_sync" not in projection
     assert projection["summary"] == "delivery status: stale_source_changed"

@@ -196,6 +196,9 @@ def _gate_clearing_batch_followthrough(
         for key, value in identity.items():
             if value:
                 result[key] = value
+    budget = _repair_budget_projection(record)
+    if budget:
+        result["repair_budget"] = budget
     return result
 
 
@@ -382,9 +385,52 @@ def _quality_repair_batch_followthrough(
         "explicit_publication_work_unit": dict(gate_batch.get("explicit_publication_work_unit") or {}),
     }
     payload = {key: value for key, value in payload.items() if value not in (None, "", [], {})}
+    budget = _repair_budget_projection(record) or _repair_budget_projection(gate_batch)
+    if budget:
+        payload["repair_budget"] = budget
     if recommended_command is not None:
         payload["recommended_step_id"] = "run_quality_repair_batch"
         payload["recommended_command"] = recommended_command
     return payload
+
+
+def _repair_budget_projection(record: Mapping[str, Any]) -> dict[str, Any]:
+    explicit = dict(record.get("repair_budget") or {}) if isinstance(record.get("repair_budget"), Mapping) else {}
+
+    def _int_value(value: object) -> int | None:
+        try:
+            return int(value) if value is not None and str(value).strip() else None
+        except (TypeError, ValueError):
+            return None
+
+    max_count = _int_value(
+        explicit.get("repair_budget_max")
+        or explicit.get("max_attempts")
+        or record.get("repair_budget_max")
+        or record.get("max_attempts")
+    )
+    attempt_count = _int_value(
+        explicit.get("repair_attempt_count")
+        or explicit.get("attempt_count")
+        or record.get("repair_attempt_count")
+        or record.get("attempt_count")
+    )
+    status = _non_empty_text(
+        explicit.get("repair_budget_status")
+        or record.get("repair_budget_status")
+        or record.get("budget_status")
+    )
+    if status is None and max_count is not None and attempt_count is not None:
+        status = "exhausted" if attempt_count >= max_count else "remaining"
+    budget = {
+        "repair_budget_max": max_count,
+        "repair_attempt_count": attempt_count,
+        "repair_budget_status": status,
+        "on_exhausted": _non_empty_text(
+            explicit.get("on_exhausted") or record.get("on_exhausted")
+        )
+        or ("degraded_handoff" if status == "exhausted" else None),
+    }
+    return {key: value for key, value in budget.items() if value not in (None, "")}
 
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

@@ -9,6 +9,24 @@ globals().update({
 })
 
 
+_CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS = {
+    "package_kind",
+    "can_submit",
+    "quality_gate_status",
+    "known_blockers",
+    "generated_from_current_source",
+    "source_signature",
+}
+
+
+def _without_current_package_overlay(payload: dict) -> dict:
+    return {
+        key: value
+        for key, value in payload.items()
+        if key not in _CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS
+    }
+
+
 def test_sync_study_delivery_mirrors_v2_source_manifest_into_v2_current_package(
     tmp_path: Path,
 ) -> None:
@@ -32,7 +50,12 @@ def test_sync_study_delivery_mirrors_v2_source_manifest_into_v2_current_package(
     assert manifest["delivery_layout"]["source_package_root"] == str(paper_root / "submission_minimal")
     assert manifest["delivery_layout"]["human_package_root"] == str(current_package_root)
     assert manifest["delivery_layout"]["audit_paths"]["submission_manifest"] == str(mirrored_manifest_path)
-    assert mirrored_manifest == source_manifest
+    assert _without_current_package_overlay(mirrored_manifest) == source_manifest
+    assert mirrored_manifest["package_kind"] == "current_package"
+    assert mirrored_manifest["can_submit"] is False
+    assert mirrored_manifest["quality_gate_status"] == "blocked"
+    assert "authority_snapshot_missing" in mirrored_manifest["known_blockers"]
+    assert mirrored_manifest["generated_from_current_source"] is True
     assert not (current_package_root / "submission_manifest.json").exists()
     assert not (current_package_root / "evidence_ledger.json").exists()
     assert not (current_package_root / "review" / "review_ledger.json").exists()

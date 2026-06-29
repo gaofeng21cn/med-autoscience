@@ -137,6 +137,38 @@ def _source_signature_payload_from_manifest(source_manifest_path: Path) -> dict[
     }
 
 
+def _overlay_current_package_manifest_metadata(
+    *,
+    current_package_root: Path,
+    source_signature_payload: dict[str, Any],
+    source_signature: str | None,
+    quality_gate_status: str,
+    known_blockers: tuple[str, ...],
+) -> None:
+    manifest_path = audit_path(current_package_root, "submission_manifest")
+    if not manifest_path.exists():
+        return
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return
+    if not isinstance(payload, dict):
+        return
+    payload.update(
+        {
+            "package_kind": "current_package",
+            "can_submit": False,
+            "quality_gate_status": quality_gate_status,
+            "known_blockers": list(known_blockers),
+            "generated_from_current_source": True,
+            "source_signature": str(
+                source_signature or source_signature_payload.get("source_signature") or ""
+            ),
+        }
+    )
+    dump_json(manifest_path, payload)
+
+
 def _write_current_package_reproducibility_documents(
     *,
     current_package_root: Path,
@@ -236,6 +268,9 @@ def sync_current_package_projection(
     generated_files: list[dict[str, str]],
     review_ledger_source: Path | None = None,
     charter_contract_linkage: dict[str, Any] | None = None,
+    quality_gate_status: str = "not_blocked",
+    known_blockers: tuple[str, ...] = (),
+    source_signature: str | None = None,
 ) -> dict[str, Any]:
     reset_directory(current_package_root)
     resolved_projected_current_package_root = (
@@ -299,9 +334,17 @@ def sync_current_package_projection(
             category="current_package_submission_todo",
             path=todo_path,
         )
+    source_signature_payload = _source_signature_payload_from_manifest(source_manifest_path)
+    _overlay_current_package_manifest_metadata(
+        current_package_root=current_package_root,
+        source_signature_payload=source_signature_payload,
+        source_signature=source_signature,
+        quality_gate_status=quality_gate_status,
+        known_blockers=known_blockers,
+    )
     _write_current_package_reproducibility_documents(
         current_package_root=current_package_root,
-        source_signature_payload=_source_signature_payload_from_manifest(source_manifest_path),
+        source_signature_payload=source_signature_payload,
         generated_files=generated_files,
     )
     _build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)

@@ -167,6 +167,31 @@ def test_sync_study_delivery_route_gate_blockers_do_not_block_current_package_pr
     assert manifest["package_kind"] == "current_package"
     assert manifest["can_submit"] is False
     assert "bundle_build_allowed_false" in manifest["known_blockers"]
+    current_package_manifest = json.loads(
+        (
+            study_root
+            / "manuscript"
+            / "current_package"
+            / "audit"
+            / "submission_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    source_manifest = json.loads(
+        (
+            paper_root
+            / "submission_minimal"
+            / "audit"
+            / "submission_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert current_package_manifest["package_kind"] == "current_package"
+    assert current_package_manifest["can_submit"] is False
+    assert current_package_manifest["quality_gate_status"] == "blocked"
+    assert "bundle_build_allowed_false" in current_package_manifest["known_blockers"]
+    assert current_package_manifest["generated_from_current_source"] is True
+    assert current_package_manifest["source_signature"] == manifest["source_signature"]
+    assert "package_kind" not in source_manifest
+    assert module.describe_submission_delivery(paper_root=paper_root)["status"] == "current"
 
 
 def test_submission_delivery_manifest_and_status_expose_authority_handshake_signatures(

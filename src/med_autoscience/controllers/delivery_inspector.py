@@ -106,6 +106,7 @@ def _inspect_package(*, package_root: Path, role: str) -> dict[str, Any]:
     audit_completeness = _status_for_required_paths(resolved_root, V2_AUDIT_RELATIVE_PATHS)
     reproducibility_completeness = _status_for_required_paths(resolved_root, V2_REPRODUCIBILITY_RELATIVE_PATHS)
     legacy_status = _legacy_root_file_status(resolved_root)
+    submission_manifest = _load_json_object(resolve_submission_manifest_path(resolved_root))
     return {
         "role": role,
         "root": str(resolved_root),
@@ -122,6 +123,13 @@ def _inspect_package(*, package_root: Path, role: str) -> dict[str, Any]:
         "reproducibility_completeness": reproducibility_completeness,
         "legacy_root_file_status": legacy_status,
         "source_signature": _read_source_signature(resolved_root),
+        "package_kind": submission_manifest.get("package_kind"),
+        "can_submit": submission_manifest.get("can_submit"),
+        "quality_gate_status": submission_manifest.get("quality_gate_status"),
+        "known_blockers": submission_manifest.get("known_blockers"),
+        "generated_from_current_source": submission_manifest.get(
+            "generated_from_current_source"
+        ),
     }
 
 
@@ -422,6 +430,8 @@ def inspect_study_delivery(
 
 
 def compact_delivery_inspection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    source_package = payload.get("source_package") if isinstance(payload.get("source_package"), dict) else {}
+    human_package = payload.get("human_package") if isinstance(payload.get("human_package"), dict) else {}
     return {
         "surface": payload.get("surface"),
         "schema_version": payload.get("schema_version"),
@@ -430,26 +440,25 @@ def compact_delivery_inspection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "freshness": payload.get("freshness"),
         "source_resolution": payload.get("source_resolution"),
         "source_package": {
-            "root": (payload.get("source_package") or {}).get("root")
-            if isinstance(payload.get("source_package"), dict)
-            else None,
-            "layout_status": (payload.get("source_package") or {}).get("layout_status")
-            if isinstance(payload.get("source_package"), dict)
-            else None,
-            "role": (payload.get("source_package") or {}).get("role")
-            if isinstance(payload.get("source_package"), dict)
-            else None,
+            "root": source_package.get("root"),
+            "layout_status": source_package.get("layout_status"),
+            "role": source_package.get("role"),
+            "source_signature": source_package.get("source_signature"),
+            "package_kind": source_package.get("package_kind"),
+            "can_submit": source_package.get("can_submit"),
         },
         "human_package": {
-            "root": (payload.get("human_package") or {}).get("root")
-            if isinstance(payload.get("human_package"), dict)
-            else None,
-            "layout_status": (payload.get("human_package") or {}).get("layout_status")
-            if isinstance(payload.get("human_package"), dict)
-            else None,
-            "role": (payload.get("human_package") or {}).get("role")
-            if isinstance(payload.get("human_package"), dict)
-            else None,
+            "root": human_package.get("root"),
+            "layout_status": human_package.get("layout_status"),
+            "role": human_package.get("role"),
+            "source_signature": human_package.get("source_signature"),
+            "package_kind": human_package.get("package_kind"),
+            "can_submit": human_package.get("can_submit"),
+            "quality_gate_status": human_package.get("quality_gate_status"),
+            "known_blockers": human_package.get("known_blockers"),
+            "generated_from_current_source": human_package.get(
+                "generated_from_current_source"
+            ),
         },
         "inspection_package": payload.get("inspection_package"),
         "zip": payload.get("zip"),

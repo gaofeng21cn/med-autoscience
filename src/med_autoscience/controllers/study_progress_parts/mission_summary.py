@@ -377,6 +377,8 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["opl_runtime_carrier_readback"] = summary["opl_runtime_carrier_readback"]
     updated["opl_runtime_readback_status"] = summary["opl_runtime_readback_status"]
     updated["transaction_state"] = summary["transaction_state"]
+    updated.update(_top_level_stage_closure_projection(updated))
+    updated.update(_top_level_current_package_projection(updated))
     return updated
 
 
@@ -678,6 +680,91 @@ def _paper_mission_run_with_stage_closure_readback(
         "stage_closure_outcome": stage_closure_readback.get("outcome_kind")
         or _mapping(stage_closure_readback.get("outcome")).get("kind"),
     }
+
+
+def _top_level_stage_closure_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    decision = _mapping(payload.get("stage_closure_decision"))
+    outcome = _mapping(decision.get("outcome"))
+    repair_budget = _stage_closure_repair_budget(payload)
+    return {
+        "repair_budget": repair_budget or None,
+        "stage_closure": _compact(
+            {
+                "projection_status": _non_empty_text(decision.get("projection_status")),
+                "decision_ref": _non_empty_text(decision.get("decision_ref")),
+                "outcome": outcome or None,
+                "outcome_kind": _non_empty_text(decision.get("outcome_kind"))
+                or _non_empty_text(outcome.get("kind")),
+                "next_transition": _non_empty_text(
+                    _mapping(outcome.get("next_transition")).get("transition_kind")
+                )
+                or _non_empty_text(outcome.get("next_action")),
+                "package_kind": _non_empty_text(decision.get("package_kind")),
+                "known_blockers": _text_list(decision.get("known_blockers")),
+                "repair_budget": repair_budget or None,
+            }
+        )
+        or None,
+    }
+
+
+def _stage_closure_repair_budget(payload: Mapping[str, Any]) -> dict[str, Any]:
+    decision = _mapping(payload.get("stage_closure_decision"))
+    candidates = (
+        _mapping(decision.get("repair_budget")),
+        _mapping(_mapping(payload.get("quality_repair_batch_followthrough")).get("repair_budget")),
+        _mapping(_mapping(payload.get("gate_clearing_batch_followthrough")).get("repair_budget")),
+        _mapping(payload.get("route_back_budget")),
+    )
+    for candidate in candidates:
+        budget = _normalize_repair_budget(candidate)
+        if budget:
+            return budget
+    return {}
+
+
+def _normalize_repair_budget(value: Mapping[str, Any]) -> dict[str, Any]:
+    budget = _mapping(value)
+    max_count = _int_value(
+        budget.get("repair_budget_max")
+        or budget.get("max_attempts")
+        or budget.get("max_opl_redrives")
+    )
+    attempt_count = _int_value(
+        budget.get("repair_attempt_count")
+        or budget.get("attempt_count")
+        or budget.get("next_observed_count")
+    )
+    status = _non_empty_text(budget.get("repair_budget_status"))
+    if status is None:
+        if budget.get("budget_exhausted") is True:
+            status = "exhausted"
+        elif max_count is not None and attempt_count is not None:
+            status = "exhausted" if attempt_count >= max_count else "remaining"
+    return _compact(
+        {
+            "repair_budget_max": max_count,
+            "repair_attempt_count": attempt_count,
+            "repair_budget_status": status,
+            "on_exhausted": _non_empty_text(budget.get("on_exhausted"))
+            or ("degraded_handoff" if status == "exhausted" else None),
+        }
+    )
+
+
+def _int_value(value: object) -> int | None:
+    try:
+        return int(value) if value is not None and str(value).strip() else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _top_level_current_package_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    delivery = _mapping(payload.get("delivery_inspection"))
+    current_package = _mapping(delivery.get("current_package"))
+    if not current_package:
+        return {}
+    return {"current_package": current_package}
 
 
 def _normalize_paper_mission_run_payload(

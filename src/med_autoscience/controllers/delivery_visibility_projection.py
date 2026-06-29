@@ -58,6 +58,38 @@ def _inspection_summary(inspection: Mapping[str, Any], *, status: str) -> str:
     return "Delivery inspection is available as a read-only projection."
 
 
+def _current_package_projection(
+    inspection: Mapping[str, Any],
+    *,
+    status: str,
+) -> dict[str, Any]:
+    human_package = _mapping(inspection.get("human_package"))
+    freshness = _mapping(inspection.get("freshness"))
+    zip_payload = _mapping(inspection.get("zip"))
+    package_status = status
+    if human_package.get("layout_status") == "missing":
+        package_status = "missing"
+    elif status not in {"current", "stale", "legacy", "layout_migration_pending_sync"}:
+        package_status = str(freshness.get("verdict") or status or "unknown")
+    return {
+        "status": package_status,
+        "freshness_status": freshness.get("verdict"),
+        "delivery_status": freshness.get("delivery_status"),
+        "root": human_package.get("root"),
+        "zip_path": zip_payload.get("path"),
+        "zip_exists": zip_payload.get("exists"),
+        "layout_status": human_package.get("layout_status"),
+        "package_kind": human_package.get("package_kind"),
+        "can_submit": human_package.get("can_submit"),
+        "quality_gate_status": human_package.get("quality_gate_status"),
+        "known_blockers": human_package.get("known_blockers") or [],
+        "source_signature": human_package.get("source_signature"),
+        "generated_from_current_source": human_package.get(
+            "generated_from_current_source"
+        ),
+    }
+
+
 def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | None:
     inspection = _mapping(value)
     if not inspection:
@@ -88,6 +120,10 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
     compact["status"] = status
     compact["summary"] = _inspection_summary(inspection, status=status)
     compact["layout_migration_pending_sync"] = _layout_pending_sync(inspection)
+    compact["current_package"] = _current_package_projection(
+        inspection,
+        status=status,
+    )
     compact["source_labels"] = {
         "submission_minimal": SUBMISSION_MINIMAL_LABEL,
         "current_package": CURRENT_PACKAGE_LABEL,

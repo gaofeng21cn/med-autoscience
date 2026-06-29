@@ -339,6 +339,9 @@ def sync_general_delivery(
             generated_files=generated_files,
             review_ledger_source=paper_root / "review" / "review_ledger.json",
             charter_contract_linkage=charter_contract_linkage,
+            quality_gate_status="blocked" if known_blockers else "not_blocked",
+            known_blockers=known_blockers,
+            source_signature=source_signature,
         )
         copy_review_ledger_to_delivery_root(
             paper_root=paper_root,
@@ -494,6 +497,9 @@ def _sync_current_package_mirror_delivery(
         generated_files=generated_files,
         review_ledger_source=paper_root / "review" / "review_ledger.json",
         charter_contract_linkage=charter_contract_linkage,
+        quality_gate_status="blocked" if known_blockers else "not_blocked",
+        known_blockers=known_blockers,
+        source_signature=source_signature,
     )
     manifest = {
         "schema_version": 1,
@@ -675,6 +681,7 @@ def sync_journal_specific_delivery(
         generated_files=generated_files,
         review_ledger_source=paper_root / "review" / "review_ledger.json",
         charter_contract_linkage=charter_contract_linkage,
+        source_signature=source_signature,
     )
     copy_review_ledger_to_delivery_root(
         paper_root=paper_root,
