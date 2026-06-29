@@ -3,9 +3,14 @@ from __future__ import annotations
 from med_autoscience.controllers.stage_outcome_authority_parts import (
     consumed_transition_currentness,
     fresh_progress_owner_actions,
+    owner_route_selection,
+    persisted_dispatches,
     scan_route_currentness,
+    stage_native_dispatch_selection,
 )
 from tests.stage_outcome_authority_helpers import opl_execution_authorization
+from tests.stage_outcome_authority_helpers import write_json
+from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
 
@@ -184,6 +189,112 @@ def test_live_provider_attempt_route_accepts_bound_opl_transition_readback() -> 
     assert ACTION_TYPE in route["allowed_actions"]
 
 
+def test_stage_native_workspace_next_action_file_is_not_default_dispatch_authority(tmp_path) -> None:
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, STUDY_ID, quest_id=f"quest-{STUDY_ID}")
+    write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_type": ACTION_TYPE,
+            "owner": "write",
+            "source_surface": "control/next_action.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "stage_transition_authority_boundary": {
+                "stage_transition_authority": "one-person-lab",
+                "intent_can_write_stage_current_pointer": False,
+                "intent_can_write_stage_run_terminal_state": False,
+                "intent_can_publish_current_owner_delta": False,
+            },
+            "current_work_unit_binding": {
+                "source": "canonical_current_work_unit",
+                "work_unit_id": WORK_UNIT_ID,
+                "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
+            },
+        },
+    )
+    route = _owner_route()
+    dispatch = _stage_native_dispatch(route=route)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapters"
+        / f"{ACTION_TYPE}.json"
+    )
+    write_json(dispatch_path, {**dispatch, "refs": {"dispatch_path": str(dispatch_path)}})
+    consumer_payload = {
+        "domain_progress_transition_requests": [
+            {**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}
+        ]
+    }
+
+    assert stage_native_dispatch_selection.next_action(
+        profile=profile,
+        study_id=STUDY_ID,
+    ) is None
+    assert stage_native_dispatch_selection.next_action_matches_dispatch(
+        profile=profile,
+        study_id=STUDY_ID,
+        dispatch=dispatch,
+    ) is False
+    assert persisted_dispatches.selected_dispatches(
+        profile=profile,
+        study_id=STUDY_ID,
+        action_types=(),
+        consumer_payload=consumer_payload,
+        consumer_latest_path=profile.workspace_root / "missing-consumer-latest.json",
+        scan_payload={"studies": []},
+        supported_action_types=frozenset({ACTION_TYPE}),
+        dispatch_relative_root=dispatch_path.parent.relative_to(study_root),
+        fresh_progress={},
+    ) == []
+
+
+def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority() -> None:
+    route = _owner_route()
+    dispatch = _stage_native_dispatch(
+        route=route,
+        next_action={
+            "surface_kind": "mas_next_action_envelope",
+            "action_id": "next-action::dm003::repair",
+            "idempotency_key": "request::dm003::repair",
+            "action_family": "runtime.opl_route",
+            "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        },
+        opl_proof=opl_execution_authorization(study_id=STUDY_ID, action_type=ACTION_TYPE),
+    )
+
+    assert stage_native_dispatch_selection.next_action_matches_dispatch(
+        profile=object(),
+        study_id=STUDY_ID,
+        dispatch=dispatch,
+    ) is True
+    assert stage_native_dispatch_selection.next_action_has_opl_execution_proof(
+        profile=object(),
+        study_id=STUDY_ID,
+        dispatch=dispatch,
+    ) is True
+
+    selected_route, basis = owner_route_selection.execution_owner_route(
+        profile=object(),
+        study_id=STUDY_ID,
+        action_type=ACTION_TYPE,
+        dispatch=dispatch,
+        scan_payload={"studies": []},
+        fresh_progress={},
+    )
+
+    assert selected_route is not None
+    assert selected_route["next_owner"] == "write"
+    assert selected_route["allowed_actions"] == [ACTION_TYPE]
+    assert selected_route["source_refs"]["work_unit_id"] == WORK_UNIT_ID
+    assert selected_route["source_refs"]["work_unit_fingerprint"] == WORK_UNIT_FINGERPRINT
+    assert basis == "canonical_next_action_envelope"
+
+
 def _running_attempt_dispatch() -> dict[str, object]:
     return {
         "study_id": STUDY_ID,
@@ -208,6 +319,66 @@ def _running_attempt_dispatch() -> dict[str, object]:
             "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
         },
     }
+
+
+def _owner_route() -> dict[str, object]:
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": STUDY_ID,
+        "quest_id": f"quest-{STUDY_ID}",
+        "truth_epoch": f"truth-epoch::{STUDY_ID}::{ACTION_TYPE}",
+        "runtime_health_epoch": f"runtime-health::{STUDY_ID}::{ACTION_TYPE}",
+        "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
+        "source_fingerprint": WORK_UNIT_FINGERPRINT,
+        "route_epoch": f"truth-epoch::{STUDY_ID}::{ACTION_TYPE}",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": ACTION_TYPE,
+        "allowed_actions": [ACTION_TYPE],
+        "blocked_actions": [],
+        "idempotency_key": "owner-route::dm003::repair",
+        "source_refs": {
+            "work_unit_id": WORK_UNIT_ID,
+            "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "owner_route_currentness_basis": {
+                "work_unit_id": WORK_UNIT_ID,
+                "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
+            },
+        },
+    }
+
+
+def _stage_native_dispatch(
+    *,
+    route: dict[str, object],
+    next_action: dict[str, object] | None = None,
+    opl_proof: dict[str, object] | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "surface": "mas_domain_progress_transition_request_projection",
+        "dispatch_status": "ready",
+        "study_id": STUDY_ID,
+        "quest_id": f"quest-{STUDY_ID}",
+        "action_type": ACTION_TYPE,
+        "next_executable_owner": "write",
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
+        "owner_route": route,
+        "source_action": {
+            "authority": "stage_native_workspace_next_action",
+            "action_type": ACTION_TYPE,
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "current_stage_id": "08-publication_package_handoff",
+        },
+    }
+    if next_action is not None:
+        payload["next_action"] = next_action
+    if opl_proof is not None:
+        payload["opl_execution_authorization"] = opl_proof
+    return payload
 
 
 def _running_attempt_study(
