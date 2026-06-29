@@ -11,6 +11,9 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.story_surface_work_units import (
+    canonical_action_family,
+)
 
 
 ROUTE_ACTIONS = frozenset(
@@ -304,13 +307,15 @@ def _controller_route_gate(action: str, route_context: Mapping[str, Any]) -> dic
         return {"present": False, "authorized": False, "blocking_reasons": []}
     blocking_reasons: list[str] = []
     work_unit_id = _text(controller_route.get("work_unit_id"))
+    action_family = canonical_action_family(controller_route)
+    allowed_actions = _controller_route_allowed_actions(work_unit_id=work_unit_id, action_family=action_family)
     controller_action_type = _text(controller_route.get("controller_action_type"))
     control_surface = _text(controller_route.get("control_surface"))
     if bool(controller_route.get("requires_human_confirmation")):
         blocking_reasons.append("controller_route_requires_human_confirmation")
-    if work_unit_id not in _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT:
+    if allowed_actions is None:
         blocking_reasons.append("controller_route_work_unit_unsupported")
-    elif action not in _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT[work_unit_id]:
+    elif action not in allowed_actions:
         blocking_reasons.append("controller_route_action_not_allowed_for_work_unit")
     if controller_action_type not in _CONTROLLER_ROUTE_ACTION_TYPES:
         blocking_reasons.append("controller_route_action_type_unsupported")
@@ -322,6 +327,7 @@ def _controller_route_gate(action: str, route_context: Mapping[str, Any]) -> dic
         "schema_version": 1,
         "authorized": not blocking_reasons,
         "action": action,
+        "action_family": action_family,
         "work_unit_id": work_unit_id,
         "controller_action_type": controller_action_type,
         "control_surface": control_surface,
@@ -345,6 +351,18 @@ def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, 
     ):
         return route_context
     return {}
+
+
+def _controller_route_allowed_actions(
+    *,
+    work_unit_id: str | None,
+    action_family: str | None,
+) -> frozenset[str] | None:
+    if action_family == "paper_write":
+        return frozenset({"paper_write"})
+    if action_family == "submission_materialize":
+        return frozenset({"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"})
+    return _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT.get(work_unit_id or "")
 
 
 def _controller_route_can_bypass_dispatch_reasons(
@@ -390,7 +408,10 @@ def _controller_route_is_upstream_publishability_repair(
 ) -> bool:
     return (
         action == "paper_write"
-        and _text(controller_route_gate.get("work_unit_id")) in _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS
+        and (
+            _text(controller_route_gate.get("action_family")) == "paper_write"
+            or _text(controller_route_gate.get("work_unit_id")) in _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS
+        )
     )
 
 
@@ -407,9 +428,14 @@ def _controller_route_is_managed_publication_work_unit(
     }:
         return False
     work_unit_id = _text(controller_route_gate.get("work_unit_id"))
+    action_family = _text(controller_route_gate.get("action_family"))
+    if action_family == "submission_materialize":
+        return True
+    if action_family == "paper_write":
+        return False
     if work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
         return False
-    allowed_actions = _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT.get(work_unit_id or "")
+    allowed_actions = _controller_route_allowed_actions(work_unit_id=work_unit_id, action_family=action_family)
     return allowed_actions is not None and action in allowed_actions
 
 
@@ -419,6 +445,7 @@ def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any
         "surface": "controller_repair_authorization",
         "authorized": bool(controller_route_gate.get("authorized")),
         "action": _text(controller_route_gate.get("action")),
+        "action_family": _text(controller_route_gate.get("action_family")),
         "work_unit_id": _text(controller_route_gate.get("work_unit_id")),
         "controller_action_type": _text(controller_route_gate.get("controller_action_type")),
         "control_surface": _text(controller_route_gate.get("control_surface")),

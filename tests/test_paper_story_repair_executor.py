@@ -628,6 +628,100 @@ def test_story_repair_executor_normalizes_dm003_post_sync_bounded_prose_route(
     assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
 
 
+def test_story_repair_executor_uses_dm002_action_family_when_exact_stage_work_unit_is_new(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    story_surface = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    paper_root = study_root / "paper"
+    _write_json(paper_root / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "eval-dm002-current",
+            "recommended_actions": [
+                {
+                    "next_work_unit": {
+                        "unit_id": "dm002_stage_outcome_current_manuscript_story_repair_after_owner_review",
+                        "action_family": "story_repair",
+                    },
+                }
+            ],
+        },
+    )
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+        path = paper_root / "draft.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Current DM002 manuscript\n\nFamily-routed story delta.\n", encoding="utf-8")
+        return [str(path.resolve())]
+
+    monkeypatch.setattr(story_surface, "materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_story_repair(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-002",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
+
+
+def test_story_repair_executor_uses_dm003_action_family_when_exact_stage_work_unit_is_new(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    story_surface = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    _write_json(paper_root / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "eval-dm003-current",
+            "recommended_actions": [
+                {
+                    "next_work_unit": {
+                        "unit_id": "dm003_stage_outcome_current_manuscript_prose_repair_after_owner_review",
+                        "action_family": "prose_repair",
+                    },
+                }
+            ],
+        },
+    )
+
+    def fake_materialize(**kwargs: Any) -> list[str]:
+        assert kwargs["work_unit_id"] == "medical_prose_write_repair"
+        path = paper_root / "draft.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Current DM003 manuscript\n\nFamily-routed prose delta.\n", encoding="utf-8")
+        return [str(path.resolve())]
+
+    monkeypatch.setattr(story_surface, "materialize_medical_prose_story_surfaces", fake_materialize)
+
+    result = module.run_story_repair(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-003",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["work_unit_id"] == "medical_prose_write_repair"
+    assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
+
+
 def test_story_repair_executor_accepts_idempotent_dm002_story_surface(
     tmp_path: Path,
 ) -> None:

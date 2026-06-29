@@ -788,6 +788,48 @@ def test_dm002_after_quality_medical_prose_repair_routes_to_paper_write_not_subm
     )
 
 
+@pytest.mark.parametrize(
+    "work_unit_id",
+    [
+        "dm002_stage_outcome_current_manuscript_story_repair_after_owner_review",
+        "dm003_stage_outcome_current_manuscript_prose_repair_after_owner_review",
+    ],
+)
+def test_stage_outcome_paper_write_family_routes_exact_ids_to_paper_write_not_submission_materialize(
+    work_unit_id: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+    route_context = {
+        "authority_snapshot": _snapshot(
+            gate_state="blocked",
+            gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+            bundle_build_allowed=False,
+        ),
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "action_family": "prose_repair",
+            "requires_human_confirmation": False,
+            "source_eval_id": f"publication-eval::{work_unit_id}::latest",
+            "work_unit_fingerprint": f"stage-outcome::{work_unit_id}",
+        },
+    }
+
+    paper_write_gate = module.authorize_authority_route("paper_write", route_context)
+    submission_gate = module.authorize_authority_route("submission_materialize", route_context)
+
+    assert paper_write_gate["authorized"] is True
+    assert paper_write_gate["controller_route_gate"]["action_family"] == "paper_write"
+    assert paper_write_gate["controller_route_gate"]["work_unit_id"] == work_unit_id
+    assert paper_write_gate["blocking_reasons"] == []
+    assert submission_gate["authorized"] is False
+    assert submission_gate["controller_route_gate"]["action_family"] == "paper_write"
+    assert "controller_route_action_not_allowed_for_work_unit" in (
+        submission_gate["controller_route_gate"]["blocking_reasons"]
+    )
+
+
 def test_analysis_claim_evidence_route_does_not_authorize_bundle_build_under_downstream_gate() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 

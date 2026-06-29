@@ -17,6 +17,7 @@ from med_autoscience.controllers.quality_repair_batch_parts import (
     medical_prose_story_surface,
 )
 from med_autoscience.controllers.story_surface_work_units import (
+    action_family_is_story_surface_write,
     is_story_surface_delta_write_work_unit,
 )
 
@@ -210,16 +211,25 @@ def _select_story_work_unit_id(
     quality_batch: Mapping[str, Any],
     route_context: Mapping[str, Any] | None,
 ) -> str | None:
-    for candidate in _candidate_work_unit_ids(route_context):
-        if is_story_surface_delta_write_work_unit(candidate):
-            return _normalize_story_work_unit_id(study_id=study_id, work_unit_id=candidate)
-    for candidate in _candidate_work_unit_ids(quality_batch):
-        if is_story_surface_delta_write_work_unit(candidate):
-            return _normalize_story_work_unit_id(study_id=study_id, work_unit_id=candidate)
-    for candidate in _publication_eval_work_unit_ids(publication_eval):
+    for payload in (route_context, quality_batch, publication_eval):
+        if work_unit_id := _story_work_unit_id_from_payload(study_id=study_id, payload=payload):
+            return work_unit_id
+    return None
+
+
+def _story_work_unit_id_from_payload(*, study_id: str, payload: object) -> str | None:
+    if _payload_action_family_is_story_write(payload):
+        return _canonical_story_family_work_unit_id(study_id=study_id)
+    for candidate in _candidate_work_unit_ids(payload):
         if is_story_surface_delta_write_work_unit(candidate):
             return _normalize_story_work_unit_id(study_id=study_id, work_unit_id=candidate)
     return None
+
+
+def _canonical_story_family_work_unit_id(*, study_id: str) -> str:
+    if study_id.startswith("002-"):
+        return DM002_STORY_WORK_UNIT
+    return DEFAULT_DPCC_STORY_WORK_UNIT
 
 
 def _normalize_story_work_unit_id(*, study_id: str, work_unit_id: str) -> str:
@@ -238,15 +248,6 @@ def _normalize_story_work_unit_id(*, study_id: str, work_unit_id: str) -> str:
     }:
         return DEFAULT_DPCC_STORY_WORK_UNIT
     return work_unit_id
-
-
-def _publication_eval_work_unit_ids(publication_eval: Mapping[str, Any]) -> list[str]:
-    result: list[str] = []
-    for action in _mappings(publication_eval.get("recommended_actions")):
-        result.extend(_candidate_work_unit_ids(action))
-        for work_unit in _mappings(action.get("blocking_work_units")):
-            result.extend(_candidate_work_unit_ids(work_unit))
-    return _dedupe_text(result)
 
 
 def _candidate_work_unit_ids(payload: object) -> list[str]:
@@ -269,13 +270,46 @@ def _candidate_work_unit_ids(payload: object) -> list[str]:
         "explicit_publication_work_unit",
         "selected_publication_work_unit",
         "current_publication_work_unit",
+        "current_work_unit_binding",
+        "next_action",
         "repair_execution_evidence",
         "repair_work_unit",
     ):
         value = mapping.get(key)
         if isinstance(value, Mapping):
             candidates.extend(_candidate_work_unit_ids(value))
+    for key in ("recommended_actions", "blocking_work_units"):
+        value = mapping.get(key)
+        if isinstance(value, list):
+            for item in _mappings(value):
+                candidates.extend(_candidate_work_unit_ids(item))
     return _dedupe_text(candidates)
+
+
+def _payload_action_family_is_story_write(payload: object) -> bool:
+    mapping = _mapping(payload)
+    if not mapping:
+        return False
+    if action_family_is_story_surface_write(mapping.get("action_family")):
+        return True
+    for key in (
+        "next_action",
+        "next_work_unit",
+        "current_work_unit_binding",
+        "current_work_unit",
+        "work_unit",
+        "owner_route",
+        "source_action",
+        "repair_work_unit",
+    ):
+        value = mapping.get(key)
+        if isinstance(value, Mapping) and _payload_action_family_is_story_write(value):
+            return True
+    for key in ("recommended_actions", "blocking_work_units"):
+        value = mapping.get(key)
+        if isinstance(value, list) and any(_payload_action_family_is_story_write(item) for item in value):
+            return True
+    return False
 
 
 def _materialize_review_ledger(
