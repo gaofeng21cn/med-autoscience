@@ -671,6 +671,31 @@ def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_run
                         "can_claim_paper_progress": False,
                     },
                 },
+                "receipt_evidence": {
+                    "surface_kind": "mas_receipt_evidence",
+                    "schema_version": 1,
+                    "receipt_kind": "opl_transition_receipt",
+                    "receipt_ref": "opl://stage-attempts/sat-terminal",
+                    "runtime_closeout_ref": (
+                        "opl://family-runtime/tasks/frt-stage-route/"
+                        "terminal-closeout-readback"
+                    ),
+                    "can_claim_paper_progress": False,
+                    "can_claim_publication_ready": False,
+                    "durable_stop_allowed": False,
+                },
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "schema_version": 1,
+                    "status": "requires_mas_owner_consumption",
+                    "next_legal_action": "consume_opl_transition_receipt",
+                    "receipt_evidence_ref": "opl://stage-attempts/sat-terminal",
+                    "forbidden_next_action": "synonymous_route_back_redrive",
+                    "durable_stop_allowed": False,
+                    "can_claim_paper_progress": False,
+                    "can_claim_publication_ready": False,
+                    "can_claim_runtime_ready": False,
+                },
             },
         }
     )
@@ -687,6 +712,23 @@ def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_run
     assert receipt["can_select_next_owner"] is False
     assert receipt["can_claim_paper_progress"] is False
     assert payload["artifact_first_mission_summary"]["opl_transition_receipt"] == receipt
+    assert payload["receipt_evidence"]["surface_kind"] == "mas_receipt_evidence"
+    assert payload["receipt_evidence"]["receipt_ref"] == "opl://stage-attempts/sat-terminal"
+    assert payload["mas_receipt_consumption"]["surface_kind"] == (
+        "mas_receipt_consumption_projection"
+    )
+    assert payload["mas_receipt_consumption"]["next_legal_action"] == (
+        "consume_opl_transition_receipt"
+    )
+    assert payload["mas_receipt_consumption"]["forbidden_next_action"] == (
+        "synonymous_route_back_redrive"
+    )
+    assert payload["artifact_first_mission_summary"]["receipt_evidence"] == (
+        payload["receipt_evidence"]
+    )
+    assert payload["artifact_first_mission_summary"]["mas_receipt_consumption"] == (
+        payload["mas_receipt_consumption"]
+    )
 
 
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:

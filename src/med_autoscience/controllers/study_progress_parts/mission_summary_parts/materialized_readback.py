@@ -274,7 +274,10 @@ def _materialized_mission_summary(
         ),
         "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
-        "opl_transition_receipt": helpers._opl_transition_receipt(),
+        "opl_transition_receipt": helpers._opl_transition_receipt(
+            progress=progress,
+            consumption_ledger_readback=consumption_ledger_readback,
+        ),
         "transaction_state": transaction_state,
         "mission_state": mission_state,
         "current_objective": current_objective,

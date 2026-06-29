@@ -63,9 +63,12 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     progress = _mapping(payload)
     materialized_mission = _latest_materialized_mission(progress)
     if materialized_mission:
-        return _materialized_mission_summary(
+        return _summary_with_receipt_projection(
+            _materialized_mission_summary(
+                progress=progress,
+                materialized_mission=materialized_mission,
+            ),
             progress=progress,
-            materialized_mission=materialized_mission,
         )
     paper_delta = _mapping(
         progress.get("paper_progress_delta")
@@ -261,6 +264,11 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "legacy_projection_accepted": False,
         },
     }
+    summary = _summary_with_receipt_projection(
+        summary,
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+    )
     summary["paper_mission_run"] = _paper_mission_run_with_stage_closure_readback(
         paper_mission_run=summary["paper_mission_run"],
         stage_closure_decision=summary["stage_closure_decision"],
@@ -305,9 +313,35 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
         )
         updated = without_legacy_next_action_authority(updated)
     updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
+    updated["receipt_evidence"] = summary["receipt_evidence"]
+    updated["mas_receipt_consumption"] = summary["mas_receipt_consumption"]
     updated["transaction_state"] = summary["transaction_state"]
     updated.update(_top_level_stage_closure_projection(updated))
     updated.update(_top_level_current_package_projection(updated))
+    return updated
+
+
+def _summary_with_receipt_projection(
+    summary: Mapping[str, Any],
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    updated = dict(summary)
+    updated.setdefault(
+        "receipt_evidence",
+        _receipt_evidence(
+            progress=progress,
+            consumption_ledger_readback=consumption_ledger_readback,
+        ),
+    )
+    updated.setdefault(
+        "mas_receipt_consumption",
+        _mas_receipt_consumption(
+            progress=progress,
+            consumption_ledger_readback=consumption_ledger_readback,
+        ),
+    )
     return updated
 
 
@@ -370,6 +404,76 @@ def _opl_transition_receipt(
         "role": "transport_receipt_only",
         "can_change_stage_terminal_decision": False,
         "can_select_next_owner": False,
+    }
+
+
+def _receipt_projection_sources(
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> tuple[Mapping[str, Any], ...]:
+    return (
+        _mapping(progress),
+        _mapping(consumption_ledger_readback),
+        _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
+        _mapping(_mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")),
+        _mapping(
+            _mapping(_mapping(progress).get("opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ),
+        _mapping(
+            _mapping(
+                _mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")
+            ).get("terminal_closeout")
+        ),
+    )
+
+
+def _receipt_evidence(
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    for source in _receipt_projection_sources(
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        evidence = _mapping(source.get("receipt_evidence"))
+        if _non_empty_text(evidence.get("surface_kind")) == "mas_receipt_evidence":
+            return dict(evidence)
+    return {
+        "surface_kind": "mas_receipt_evidence",
+        "status": "not_requested_from_study_progress",
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "durable_stop_allowed": False,
+    }
+
+
+def _mas_receipt_consumption(
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    for source in _receipt_projection_sources(
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        consumption = _mapping(source.get("mas_receipt_consumption"))
+        if _non_empty_text(consumption.get("surface_kind")) == (
+            "mas_receipt_consumption_projection"
+        ):
+            return dict(consumption)
+    return {
+        "surface_kind": "mas_receipt_consumption_projection",
+        "status": "not_requested_from_study_progress",
+        "next_legal_action": "request_opl_runtime_readback",
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "durable_stop_allowed": False,
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "can_claim_runtime_ready": False,
     }
 
 
