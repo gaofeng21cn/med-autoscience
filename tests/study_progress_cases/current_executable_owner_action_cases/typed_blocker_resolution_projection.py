@@ -22,7 +22,11 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "next_action": {
                 "surface_kind": "mas_next_action_envelope",
-                "action_family": "blocked.typed",
+                "action_family": "paper.package.submission_minimal",
+                "action_type": "consume_submission_ready_package_authority_or_human_gate",
+                "allowed_actions": [
+                    "consume_submission_ready_package_authority_or_human_gate"
+                ],
                 "action_id": "next-action-typed-blocker",
                 "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
                 "owner": "mas_authority_kernel",
@@ -45,9 +49,12 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
 
     assert action is not None
     assert action["surface_kind"] == "current_executable_owner_action"
-    assert action["source"] == "paper_mission.next_action.blocked_typed"
+    assert action["source"] == "paper_mission.next_action.owner_successor"
     assert action["next_owner"] == "mas_authority_kernel"
-    assert action["allowed_actions"] == ["materialize_typed_blocker_or_route_redesign"]
+    assert action["action_type"] == "consume_submission_ready_package_authority_or_human_gate"
+    assert action["allowed_actions"] == [
+        "consume_submission_ready_package_authority_or_human_gate"
+    ]
     assert action["work_unit_id"] == "submission_authority_owner_verdict"
     assert action["authority_boundary"]["can_write_owner_receipt"] is False
     assert action["authority_boundary"]["can_write_typed_blocker"] is False

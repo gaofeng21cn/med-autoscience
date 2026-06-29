@@ -93,7 +93,15 @@ PROSE_REPAIR_HINTS = frozenset(
 AI_REVIEWER_HINTS = frozenset({"ai_reviewer", "reviewer", "publication_eval"})
 GATE_REPLAY_HINTS = frozenset({"gate_replay", "gate-clearing", "gate_clearing", "publishability_gate"})
 SUBMISSION_PACKAGE_HINTS = frozenset(
-    {"submission_minimal", "submission_milestone", "submission_materialize", "package-candidate"}
+    {
+        "submission_minimal",
+        "submission_milestone",
+        "submission_materialize",
+        "package-candidate",
+        "submission_ready_package",
+        "submission_authority",
+        "degraded_handoff",
+    }
 )
 DELIVERY_SYNC_HINTS = frozenset({"delivery_sync", "mirror_sync", "current_package_mirror_sync"})
 RUNTIME_HINTS = frozenset({"opl", "runtime", "stage_attempt", "provider", "live_readback"})
@@ -181,6 +189,17 @@ def compile_next_action_envelope(
         "outcome_ref": _text(outcome_ref) or _text(outcome.get("stage_closure_decision_ref")),
         "action_family": family,
         "action_kind": action_kind,
+        "action_type": _first_text(
+            (owner, route, outcome),
+            ("action_type", "next_action", "controller_action_type", "controller_action"),
+        ),
+        "allowed_actions": _dedupe_texts(
+            [
+                *_text_items(owner.get("allowed_actions")),
+                *_text_items(route.get("allowed_actions")),
+                *_text_items(outcome.get("allowed_actions")),
+            ]
+        ),
         "owner": owner_name,
         "executor_target": FAMILY_EXECUTOR_TARGET[family],
         "work_unit_id": work_unit_id,
@@ -410,6 +429,15 @@ def _dedupe_refs(refs: Sequence[Mapping[str, str]]) -> list[dict[str, str]]:
             continue
         seen.add((role, uri))
         result.append({"role": role, "ref": uri})
+    return result
+
+
+def _dedupe_texts(values: Sequence[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = _text(value)
+        if text is not None and text not in result:
+            result.append(text)
     return result
 
 

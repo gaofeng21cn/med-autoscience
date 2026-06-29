@@ -296,7 +296,11 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
         ]
     )
     assert exit_code == 0
-    capsys.readouterr()
+    materialized_payload = json.loads(capsys.readouterr().out)
+    packet_path = Path(materialized_payload["output_manifest"]["packet_ref"])
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    packet["next_owner_action"].pop("action_type", None)
+    packet_path.write_text(json.dumps(packet), encoding="utf-8")
 
     exit_code = cli.main(
         [
@@ -320,8 +324,15 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
         "paper_mission_typed_blocker_resolution_ledger"
     )
     assert next_action["surface_kind"] == "mas_next_action_envelope"
-    assert next_action["action_family"] == "blocked.typed"
+    assert next_action["action_family"] == "paper.package.submission_minimal"
+    assert next_action["action_kind"] == "package_materialization"
     assert next_action["owner"] == "mas_authority_kernel"
+    assert next_action["action_type"] == (
+        "consume_submission_ready_package_authority_or_human_gate"
+    )
+    assert next_action["allowed_actions"] == [
+        "consume_submission_ready_package_authority_or_human_gate"
+    ]
     assert next_action["work_unit_id"] == "submission_authority_owner_verdict"
     assert next_action["authority_boundary"]["can_claim_submission_ready"] is False
     assert next_action["diagnostic_refs"] == [

@@ -3658,9 +3658,14 @@ def _next_action_for_stage_closure_decision(
         action = _mapping(resolution.get("next_owner_action"))
         if action:
             source_ref = _first_text(resolution.get("source_ref"), resolution.get("decision_ref"))
+            action_type = _first_text(
+                action.get("action_type"),
+                action.get("next_action"),
+                _first_text_item(action.get("allowed_actions")),
+            )
             return compile_next_action_envelope(
                 stage_outcome={
-                    "kind": "typed_blocker",
+                    "kind": "next_stage_transition",
                     "study_id": _first_text(decision.get("study_id"), action.get("study_id")),
                     "stage_id": _first_text(
                         decision.get("stage_id"),
@@ -3668,7 +3673,8 @@ def _next_action_for_stage_closure_decision(
                     ),
                     "work_unit_id": action.get("work_unit_id"),
                     "work_unit_fingerprint": action.get("work_unit_fingerprint"),
-                    "action_family": "blocked.typed",
+                    "action_family": "paper.package.submission_minimal",
+                    "next_action": action_type,
                     "decision_signature": action.get("work_unit_fingerprint"),
                     "required_input_refs": action.get("acceptance_refs"),
                 },
@@ -3681,8 +3687,9 @@ def _next_action_for_stage_closure_decision(
                 owner_route={
                     "next_owner": action.get("next_owner") or "mas_authority_kernel",
                     "allowed_actions": action.get("allowed_actions"),
+                    "action_type": action_type,
                     "idempotency_key": action.get("work_unit_fingerprint"),
-                    "action_family": "blocked.typed",
+                    "action_family": "paper.package.submission_minimal",
                 },
                 authority_boundary={
                     "projection_only": True,
@@ -6424,6 +6431,15 @@ def _first_text(*values: object) -> str | None:
         if text is not None:
             return text
     return None
+
+
+def _first_text_item(value: object) -> str | None:
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            text = _optional_text(item)
+            if text is not None:
+                return text
+    return _optional_text(value)
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:

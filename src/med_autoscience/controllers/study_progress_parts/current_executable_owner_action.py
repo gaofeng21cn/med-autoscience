@@ -10,7 +10,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     next_action = _mapping(payload.get("next_action"))
     if _non_empty_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None
-    if _non_empty_text(next_action.get("action_family")) != "blocked.typed":
+    action_family = _non_empty_text(next_action.get("action_family"))
+    if action_family not in {"blocked.typed", "paper.package.submission_minimal"}:
         return None
     study_id = _non_empty_text(next_action.get("study_id")) or _non_empty_text(
         payload.get("study_id")
@@ -27,19 +28,46 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     source_ref = _non_empty_text(next_action.get("outcome_ref")) or _first_ref(
         next_action.get("diagnostic_refs")
     )
-    action_type = "materialize_typed_blocker_or_route_redesign"
+    blocked_typed = action_family == "blocked.typed"
+    action_type = (
+        "materialize_typed_blocker_or_route_redesign"
+        if blocked_typed
+        else (
+            _non_empty_text(next_action.get("action_type"))
+            or _first_text(next_action.get("allowed_actions"))
+            or "consume_submission_package_successor_owner_action"
+        )
+    )
+    allowed_actions = (
+        [action_type]
+        if blocked_typed
+        else (_text_items(next_action.get("allowed_actions")) or [action_type])
+    )
+    next_owner = (
+        "mas_authority_kernel"
+        if blocked_typed
+        else (
+            _non_empty_text(next_action.get("owner"))
+            or _non_empty_text(next_action.get("next_owner"))
+            or "mas_authority_kernel"
+        )
+    )
     return _compact(
         {
             "surface_kind": SURFACE_KIND,
             "schema_version": 1,
             "status": "ready",
-            "source": "paper_mission.next_action.blocked_typed",
+            "source": (
+                "paper_mission.next_action.blocked_typed"
+                if blocked_typed
+                else "paper_mission.next_action.owner_successor"
+            ),
             "source_ref": source_ref,
             "study_id": study_id,
-            "next_owner": "mas_authority_kernel",
-            "owner": "mas_authority_kernel",
+            "next_owner": next_owner,
+            "owner": next_owner,
             "action_type": action_type,
-            "allowed_actions": [action_type],
+            "allowed_actions": allowed_actions,
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
@@ -116,6 +144,12 @@ def _first_ref(value: object) -> str | None:
         text = _non_empty_text(payload.get("ref"))
         if text is not None:
             return text
+    return None
+
+
+def _first_text(value: object) -> str | None:
+    for item in _text_items(value):
+        return item
     return None
 
 

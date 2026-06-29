@@ -9,6 +9,12 @@ import med_autoscience.controllers.pi_action_projection as pi_action_projection
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_next_action_envelope,
 )
+from med_autoscience.controllers.next_action_envelope import (
+    compile_next_action_envelope,
+)
+from med_autoscience.controllers.paper_mission_typed_blocker_resolution import (
+    latest_typed_blocker_resolution_readback,
+)
 from med_autoscience.controllers.production_blocker_impact_projection import (
     build_production_blocker_impact_projection,
 )
@@ -392,6 +398,11 @@ def assemble_study_progress_payload(
     payload = _sync_supervision_from_user_visible_projection(payload)
     payload = attach_artifact_first_mission_summary(payload)
     payload = _attach_single_next_action_projection(payload)
+    payload = _attach_typed_blocker_resolution_successor_projection(
+        payload=payload,
+        profile=profile,
+        study_id=study_id,
+    )
     payload = refresh_top_level_stage_closure_projection(payload)
     return _without_legacy_next_action_authority(payload)
 
@@ -442,6 +453,89 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
         updated["next_action"] = envelope
         updated["canonical_next_action_source"] = "paper_mission_next_action_envelope"
     return updated
+
+
+def _attach_typed_blocker_resolution_successor_projection(
+    *,
+    payload: Mapping[str, Any],
+    profile: Any | None,
+    study_id: str,
+) -> dict[str, Any]:
+    workspace_root = getattr(profile, "workspace_root", None)
+    if workspace_root is None:
+        return dict(payload)
+    readback = latest_typed_blocker_resolution_readback(
+        workspace_root=Path(workspace_root),
+        study_id=study_id,
+    )
+    envelope = _typed_blocker_resolution_successor_envelope(
+        payload=payload,
+        readback=readback,
+        study_id=study_id,
+    )
+    if envelope is None:
+        return dict(payload)
+    updated = dict(payload)
+    updated["typed_blocker_resolution_readback"] = readback
+    updated["next_action"] = envelope
+    updated["canonical_next_action_source"] = "paper_mission_typed_blocker_resolution"
+    updated["current_executable_owner_action"] = build_current_executable_owner_action(updated)
+    return updated
+
+
+def _typed_blocker_resolution_successor_envelope(
+    *,
+    payload: Mapping[str, Any],
+    readback: Mapping[str, Any] | None,
+    study_id: str,
+) -> dict[str, Any] | None:
+    resolution = _mapping_copy(readback)
+    action = _mapping_copy(resolution.get("next_owner_action"))
+    if not action:
+        return None
+    source_ref = _non_empty_text(resolution.get("source_ref")) or _non_empty_text(
+        resolution.get("decision_ref")
+    )
+    action_type = _non_empty_text(action.get("action_type")) or _first_text(
+        action.get("allowed_actions")
+    )
+    stage_closure = _mapping_copy(payload.get("stage_closure_decision"))
+    return compile_next_action_envelope(
+        stage_outcome={
+            "kind": "next_stage_transition",
+            "study_id": _non_empty_text(action.get("study_id")) or study_id,
+            "stage_id": _non_empty_text(stage_closure.get("stage_id"))
+            or "submission_milestone_candidate",
+            "work_unit_id": action.get("work_unit_id"),
+            "work_unit_fingerprint": action.get("work_unit_fingerprint"),
+            "action_family": "paper.package.submission_minimal",
+            "next_action": action_type,
+            "decision_signature": action.get("work_unit_fingerprint"),
+            "required_input_refs": action.get("acceptance_refs"),
+        },
+        study_id=_non_empty_text(action.get("study_id")) or study_id,
+        stage_id=_non_empty_text(stage_closure.get("stage_id"))
+        or "submission_milestone_candidate",
+        outcome_ref=source_ref,
+        owner_route={
+            "next_owner": action.get("next_owner") or "mas_authority_kernel",
+            "allowed_actions": action.get("allowed_actions"),
+            "action_type": action_type,
+            "action_family": "paper.package.submission_minimal",
+            "idempotency_key": action.get("work_unit_fingerprint"),
+        },
+        authority_boundary={
+            "projection_only": True,
+            "can_claim_stage_complete": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+        },
+        diagnostic_refs=[
+            {"role": "typed_blocker_resolution", "ref": source_ref}
+        ]
+        if source_ref is not None
+        else [],
+    )
 
 
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:

@@ -233,9 +233,28 @@ def _progress_first_status_payload(
 
 def _without_legacy_default_completion_surfaces(payload: dict[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
+    canonical_owner_action = _canonical_owner_successor_action(payload)
     for key in _LEGACY_DEFAULT_COMPLETION_KEYS:
         updated.pop(key, None)
+    if canonical_owner_action is not None:
+        updated["current_executable_owner_action"] = canonical_owner_action
     return updated
+
+
+def _canonical_owner_successor_action(payload: dict[str, Any]) -> dict[str, Any] | None:
+    action = payload.get("current_executable_owner_action")
+    next_action = payload.get("next_action")
+    if not isinstance(action, dict) or not isinstance(next_action, dict):
+        return None
+    if action.get("surface_kind") != "current_executable_owner_action":
+        return None
+    if action.get("source") != "paper_mission.next_action.owner_successor":
+        return None
+    if next_action.get("surface_kind") != "mas_next_action_envelope":
+        return None
+    if next_action.get("action_family") != "paper.package.submission_minimal":
+        return None
+    return dict(action)
 
 
 def _is_current_user_visible_projection(value: object) -> bool:
