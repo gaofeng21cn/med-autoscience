@@ -141,6 +141,44 @@ def test_consumption_currentness_prefers_external_delta_over_later_drive_noop(
     assert handoff["source_ref"] == str(external_record.parent / "opl_route_handoff.json")
 
 
+def test_consumption_currentness_prefers_newer_paper_facing_delta_over_old_external_delta(
+    tmp_path: Path,
+) -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    workspace_root = tmp_path / "workspace"
+    external_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260628T080615Z_quality_repair_delta",
+        transaction_ref="paper-mission-transaction::dm002::quality-repair",
+        fingerprint="fingerprint::dm002::quality-repair",
+        external_delta_ref="/workspace/studies/dm002/artifacts/controller/repair_execution_evidence/latest.json",
+    )
+    low_quality_handoff_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260629T_low_quality_handoff_consume_v3",
+        transaction_ref="paper-mission-transaction::dm002::low-quality-handoff",
+        fingerprint="fingerprint::dm002::low-quality-handoff",
+        paper_facing_delta_ref=(
+            "/workspace/ops/medautoscience/paper_mission_candidate_package/"
+            "20260629T_low_quality_handoff/dm002/paper_facing_candidate_delta.json"
+        ),
+    )
+    os.utime(external_record, (2_000_000_000, 2_000_000_000))
+    os.utime(low_quality_handoff_record, (3_000_000_000, 3_000_000_000))
+
+    readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+
+    assert readback["source_ref"] == str(low_quality_handoff_record)
+    assert readback["candidate_ref"] == str(
+        low_quality_handoff_record.parent / "package_manifest.json"
+    )
+
+
 def test_consumption_ledger_timestamp_keys_accept_z_run_ids(tmp_path: Path) -> None:
     z_run_path = (
         tmp_path
@@ -266,6 +304,7 @@ def _write_ledger(
     transaction_ref: str,
     fingerprint: str,
     external_delta_ref: str | None = None,
+    paper_facing_delta_ref: str | None = None,
 ) -> Path:
     ledger_root = (
         workspace_root
@@ -304,6 +343,13 @@ def _write_ledger(
         "can_claim_runtime_ready": False,
         "authority_boundary": _authority_boundary(),
     }
+    if paper_facing_delta_ref:
+        consume_record["consume_result"] = {
+            "status": "accepted",
+            "outcome": "accepted_candidate",
+            "authority_materialized": False,
+            "paper_facing_delta_ref": paper_facing_delta_ref,
+        }
     handoff = {
         "surface_kind": "mas_paper_mission_opl_route_handoff_record",
         "schema_version": 1,
@@ -337,6 +383,7 @@ def _write_ledger(
         json.dumps(
             {
                 "adopted_external_paper_delta_ref": external_delta_ref,
+                "paper_facing_candidate_delta_ref": paper_facing_delta_ref,
             }
         ),
         encoding="utf-8",

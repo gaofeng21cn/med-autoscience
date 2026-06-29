@@ -26,7 +26,7 @@ def latest_paper_mission_consumption_transaction_readback(
     )
     if not ledger_root.exists():
         return None
-    candidates: list[tuple[int, float, str, str, dict[str, Any]]] = []
+    candidates: list[tuple[int, float, int, float, str, str, dict[str, Any]]] = []
     for consume_record_ref in ledger_root.glob(f"**/{study_id}/consume_record.json"):
         readback = _valid_consumption_transaction_readback(
             consume_record_ref=consume_record_ref,
@@ -38,12 +38,20 @@ def latest_paper_mission_consumption_transaction_readback(
             mtime = consume_record_ref.stat().st_mtime
         except OSError:
             mtime = 0.0
+        paper_facing_delta_priority = _candidate_paper_facing_delta_priority(
+            candidate_ref=_text(readback.get("candidate_ref")),
+            consume_result=_mapping(readback.get("consume_record")).get(
+                "consume_result"
+            ),
+        )
         candidates.append(
             (
+                paper_facing_delta_priority,
+                mtime if paper_facing_delta_priority else 0.0,
                 _candidate_external_delta_priority(
                     _text(readback.get("candidate_ref")),
                 ),
-                mtime,
+                mtime if not paper_facing_delta_priority else 0.0,
                 _ledger_timestamp_key(consume_record_ref),
                 str(consume_record_ref),
                 readback,
@@ -51,7 +59,10 @@ def latest_paper_mission_consumption_transaction_readback(
         )
     if not candidates:
         return None
-    return max(candidates, key=lambda item: (item[0], item[1], item[2], item[3]))[4]
+    return max(
+        candidates,
+        key=lambda item: (item[0], item[1], item[2], item[3], item[4], item[5]),
+    )[6]
 
 
 def _valid_consumption_transaction_readback(
@@ -451,6 +462,27 @@ def _candidate_external_delta_priority(candidate_ref: str | None) -> int:
         bool(
             _text(manifest.get("adopted_external_paper_delta_ref"))
             or _text(delta.get("adopted_external_paper_delta_ref"))
+        )
+    )
+
+
+def _candidate_paper_facing_delta_priority(
+    *,
+    candidate_ref: str | None,
+    consume_result: object,
+) -> int:
+    if _text(_mapping(consume_result).get("paper_facing_delta_ref")):
+        return 1
+    if not candidate_ref:
+        return 0
+    manifest = _read_json_object(Path(candidate_ref))
+    if _text(manifest.get("paper_facing_candidate_delta_ref")):
+        return 1
+    delta = _mapping(manifest.get("paper_facing_candidate_delta"))
+    return int(
+        bool(
+            _text(delta.get("paper_facing_delta_ref"))
+            or _text(delta.get("source_paper_facing_delta_ref"))
         )
     )
 
