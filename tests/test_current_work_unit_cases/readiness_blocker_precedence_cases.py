@@ -111,7 +111,7 @@ def test_current_work_unit_projects_current_dpcc_gate_replay_over_stage_readines
     assert "typed_blocker" not in work_unit["state"]
 
 
-def test_current_work_unit_projects_matching_current_control_repair_over_stage_readiness_blocker_after_paper_delta() -> None:
+def test_current_work_unit_keeps_readiness_blocker_over_observability_only_current_control_queue_after_paper_delta() -> None:
     module = _module()
 
     work_unit = module.build_current_work_unit(
@@ -166,12 +166,12 @@ def test_current_work_unit_projects_matching_current_control_repair_over_stage_r
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["action_type"] == "run_quality_repair_batch"
-    assert work_unit["work_unit_id"] == "manuscript_story_repair"
-    assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "MedAutoScience"
+    assert work_unit["action_type"] == "complete_medical_paper_readiness_surface"
+    assert work_unit["work_unit_id"] == "complete_medical_paper_readiness_surface"
+    assert work_unit["state"]["source"] == "stage_owner_answer"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
 
 
 def test_current_work_unit_preserves_readiness_blocker_over_mismatched_current_control_repair_after_paper_delta() -> None:
@@ -225,7 +225,7 @@ def test_current_work_unit_preserves_readiness_blocker_over_mismatched_current_c
     assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
 
 
-def test_current_work_unit_projects_matching_current_control_repair_over_prior_action_blocker_after_paper_delta() -> None:
+def test_current_work_unit_keeps_prior_action_blocker_over_observability_only_current_control_queue_after_paper_delta() -> None:
     module = _module()
 
     for blocked_reason in (
@@ -283,12 +283,12 @@ def test_current_work_unit_projects_matching_current_control_repair_over_prior_a
         )
 
         _assert_contract_shape(work_unit)
-        assert work_unit["status"] == "executable_owner_action"
-        assert work_unit["owner"] == "write"
-        assert work_unit["action_type"] == "run_quality_repair_batch"
-        assert work_unit["work_unit_id"] == "manuscript_story_repair"
-        assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
-        assert "typed_blocker" not in work_unit["state"]
+        assert work_unit["status"] == "typed_blocker"
+        assert work_unit["owner"] == "MedAutoScience"
+        assert work_unit["action_type"] == "complete_medical_paper_readiness_surface"
+        assert work_unit["work_unit_id"] == "complete_medical_paper_readiness_surface"
+        assert work_unit["state"]["source"] == "stage_owner_answer"
+        assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
 
 
 def test_current_work_unit_projects_gate_replay_when_stale_quality_repair_closeout_is_superseded() -> None:

@@ -138,11 +138,11 @@ def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explici
     study = result["studies"][0]
     envelope = study["current_execution_envelope"]
     assert envelope == {
-        "state_kind": "executable_owner_action",
-        "owner": "ai_reviewer",
-        "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "state_kind": "parked",
+        "owner": "user",
+        "next_work_unit": None,
         "typed_blocker": None,
-        "parked_state": None,
+        "parked_state": "explicit_resume_pending",
         "source_refs": [
             str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             str(study_root / "artifacts" / "publication_eval" / "latest.json"),
@@ -811,7 +811,7 @@ def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
     assert_default_next_action_legacy_surfaces_retired(result)
 
 
-def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:
+def test_envelope_does_not_promote_bare_action_over_reason_only_blocker() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
     envelope = module.build_current_execution_envelope(
@@ -828,10 +828,10 @@ def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:
         next_owner="ai_reviewer",
     )
 
-    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["state_kind"] == "typed_blocker"
     assert envelope["owner"] == "ai_reviewer"
-    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-    assert envelope["typed_blocker"] is None
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "domain_transition_ai_reviewer_re_eval"
 
 
 def test_envelope_preserves_rehydrate_typed_closeout_over_stale_ai_reviewer_action() -> None:
@@ -855,7 +855,7 @@ def test_envelope_preserves_rehydrate_typed_closeout_over_stale_ai_reviewer_acti
     assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
 
 
-def test_envelope_domain_transition_supersedes_readiness_blocker_after_paper_delta() -> None:
+def test_envelope_domain_transition_action_list_is_diagnostic_after_paper_delta() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
     envelope = module.build_current_execution_envelope(
@@ -883,13 +883,13 @@ def test_envelope_domain_transition_supersedes_readiness_blocker_after_paper_del
         next_owner="MedAutoScience",
     )
 
-    assert envelope["state_kind"] == "executable_owner_action"
-    assert envelope["owner"] == "finalize"
-    assert envelope["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-    assert envelope["typed_blocker"] is None
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "MedAutoScience"
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "medical_paper_readiness_not_ready"
 
 
-def test_envelope_does_not_let_stale_waiting_user_decision_hide_executable_route() -> None:
+def test_envelope_does_not_let_bare_action_queue_override_waiting_user_decision() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
     envelope = module.build_current_execution_envelope(
@@ -927,11 +927,11 @@ def test_envelope_does_not_let_stale_waiting_user_decision_hide_executable_route
         next_owner="gate_clearing_batch",
     )
 
-    assert envelope["state_kind"] == "executable_owner_action"
-    assert envelope["owner"] == "gate_clearing_batch"
-    assert envelope["next_work_unit"] == "publication_gate_replay"
+    assert envelope["state_kind"] == "parked"
+    assert envelope["owner"] == "user"
+    assert envelope["next_work_unit"] is None
     assert envelope["typed_blocker"] is None
-    assert envelope["parked_state"] is None
+    assert envelope["parked_state"] == "waiting_user_decision"
 
 
 def test_envelope_treats_non_human_waiting_user_decision_as_stale_when_owner_action_exists() -> None:
@@ -973,17 +973,16 @@ def test_envelope_treats_non_human_waiting_user_decision_as_stale_when_owner_act
             "parked_state": "waiting_user_decision",
             "parked_owner": "user",
         },
-        actions=[
-            {
-                "action_type": "complete_medical_paper_readiness_surface",
-                "owner": "MedAutoScience",
-                "next_work_unit": "complete_medical_paper_readiness_surface",
-                "allowed_actions": ["complete_medical_paper_readiness_surface"],
-                "work_unit_fingerprint": "sha256:medical-readiness-current-action",
-                "action_fingerprint": "sha256:medical-readiness-current-action",
-                "source_surface": "stage_kernel_projection.current_owner_delta",
-            }
-        ],
+        current_work_unit_payload={
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "owner": "MedAutoScience",
+            "action_type": "complete_medical_paper_readiness_surface",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": "sha256:medical-readiness-current-action",
+            "action_fingerprint": "sha256:medical-readiness-current-action",
+            "state": {"source": "stage_kernel_projection.current_owner_delta"},
+        },
         blocked_reason="medical_paper_readiness_not_ready",
         next_owner="MedAutoScience",
     )

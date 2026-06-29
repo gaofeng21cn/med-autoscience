@@ -15,6 +15,9 @@ from med_autoscience.controllers.opl_transition_readback import (
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     action_supersedes_terminal_selector_residue,
 )
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_projection import (
+    paper_recovery_successor_action as _current_work_unit_paper_recovery_successor_action,
+)
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
     owner_reason_contract,
@@ -500,6 +503,9 @@ def _paper_recovery_successor_action(payload: Mapping[str, Any]) -> dict[str, An
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if paper_recovery_successor_action_ready(current_action):
         return current_action
+    current_work_unit_successor = _current_work_unit_paper_recovery_successor_action(payload)
+    if paper_recovery_successor_action_ready(current_work_unit_successor):
+        return dict(current_work_unit_successor)
     successor_action = build_current_executable_owner_action(payload)
     if paper_recovery_successor_action_ready(successor_action):
         return dict(successor_action)

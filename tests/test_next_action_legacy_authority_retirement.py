@@ -111,3 +111,41 @@ def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() 
 
     assert current_action.build_current_executable_owner_action(payload) is None
     assert not hasattr(current_action, "legacy_current_executable_owner_action_diagnostic")
+
+
+def test_missing_canonical_next_action_does_not_promote_bare_action_queue() -> None:
+    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
+
+    work_unit = current_work_unit.build_current_work_unit(
+        actions=[
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "sha256:legacy-queue-action",
+                "action_fingerprint": "sha256:legacy-queue-action",
+            }
+        ],
+        blocked_reason="domain_transition_ai_reviewer_re_eval",
+        next_owner="ai_reviewer",
+    )
+
+    assert work_unit["status"] == "blocked_current_work_unit"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "domain_transition_ai_reviewer_re_eval"
+
+
+def test_missing_canonical_next_action_does_not_resurrect_current_execution_envelope() -> None:
+    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
+
+    work_unit = current_work_unit.build_current_work_unit(
+        current_execution_envelope={
+            "state_kind": "executable_owner_action",
+            "owner": "write",
+            "next_work_unit": "legacy-envelope-work-unit",
+        },
+        blocked_reason="current_work_unit_unresolved",
+        next_owner="write",
+    )
+
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"

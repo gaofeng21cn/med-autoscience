@@ -3,16 +3,29 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (
-    work_unit_id,
-)
 from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping,
     text,
     text_items,
 )
+from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
+    PROVIDER_ADMISSION_AUTHORITIES,
+)
 from med_autoscience.controllers.stage_route_currentness_identity import (
     currentness_identities_match,
+)
+
+ALLOWED_CURRENT_OWNER_ACTION_SOURCES = frozenset(
+    {
+        "gate_clearing_batch_followthrough.actionable_current_work_unit",
+        "paper_recovery_state.accepted_owner_gate_decision",
+        "paper_recovery_state.next_safe_action.owner_callable",
+        "paper_recovery_state.next_safe_action.successor_owner_action",
+        "publication_eval.recommended_actions.readiness_blocker_repair",
+        "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "stage_kernel_projection.current_owner_delta",
+        "study_progress.next_forced_delta.owner_action",
+    }
 )
 
 
@@ -22,7 +35,7 @@ def selected_current_action(
     current_executable_owner_action: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
     current_action = action_from_current_action(current_executable_owner_action)
-    queued_action = first_action(actions)
+    queued_action = allowed_action(actions)
     if current_action is None:
         return queued_action
     if queued_action is None:
@@ -44,6 +57,10 @@ def action_from_current_action(
     current_work_unit_id = text(current.get("work_unit_id"))
     if action_type is None and owner is None and current_work_unit_id is None:
         return None
+    source = text(current.get("source_surface")) or text(current.get("source"))
+    authority = text(current.get("authority"))
+    if source not in ALLOWED_CURRENT_OWNER_ACTION_SOURCES and authority not in PROVIDER_ADMISSION_AUTHORITIES:
+        return None
     return {
         **current,
         "action_type": action_type,
@@ -52,37 +69,28 @@ def action_from_current_action(
         "next_owner": owner,
         "next_work_unit": current_work_unit_id or action_type,
         "work_unit_id": current_work_unit_id,
-        "source_surface": text(current.get("source_surface")) or text(current.get("source")),
+        "source_surface": source,
     }
 
 
-def action_from_envelope(envelope: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    payload = mapping(envelope)
-    if text(payload.get("state_kind")) != "executable_owner_action":
-        return None
-    current_work_unit_id = work_unit_id(payload.get("next_work_unit"))
-    owner = text(payload.get("owner"))
-    if owner is None and current_work_unit_id is None:
-        return None
-    return {
-        "owner": owner,
-        "next_owner": owner,
-        "work_unit_id": current_work_unit_id,
-        "next_work_unit": current_work_unit_id,
-        "source_surface": "current_execution_envelope",
-    }
+def provider_admission_action(actions: Sequence[Mapping[str, Any]] | None) -> dict[str, Any] | None:
+    return allowed_action(actions)
 
 
-def first_action(actions: Sequence[Mapping[str, Any]] | None) -> dict[str, Any] | None:
+def allowed_action(actions: Sequence[Mapping[str, Any]] | None) -> dict[str, Any] | None:
     for item in actions or []:
-        if isinstance(item, Mapping):
-            return dict(item)
+        action = mapping(item)
+        source = text(action.get("source_surface")) or text(action.get("source"))
+        authority = text(action.get("authority"))
+        if source in ALLOWED_CURRENT_OWNER_ACTION_SOURCES or authority in PROVIDER_ADMISSION_AUTHORITIES:
+            return dict(action)
     return None
 
 
 __all__ = [
+    "ALLOWED_CURRENT_OWNER_ACTION_SOURCES",
+    "allowed_action",
     "action_from_current_action",
-    "action_from_envelope",
-    "first_action",
+    "provider_admission_action",
     "selected_current_action",
 ]

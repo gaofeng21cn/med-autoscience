@@ -28,7 +28,6 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     work_unit_id as _work_unit_id,
 )
 from med_autoscience.controllers.current_work_unit_parts.current_action_selection import (
-    action_from_envelope as _action_from_envelope,
     selected_current_action as _selected_current_action,
 )
 from med_autoscience.controllers.current_work_unit_parts.currentness_identity import (
@@ -53,6 +52,7 @@ from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successo
 )
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_projection import (
     owner_receipt_recorded_recovery as _owner_receipt_recorded_recovery,
+    paper_recovery_successor_action as _paper_recovery_successor_action,
     paper_recovery_successor_consumes_terminal_stop_loss as _safe_paper_recovery_successor_consumes_terminal_stop_loss,
     repair_progress_proves_safe_successor_delta as _repair_progress_proves_safe_successor_delta,
 )
@@ -151,12 +151,13 @@ def build_current_work_unit(
     runtime_health_payload = _mapping(runtime_health)
     resolved_source_refs = _source_refs(status_payload, progress_payload, source_refs)
     stage_owner_answer_action = _stage_owner_answer_missing_action(progress_payload)
+    paper_recovery_successor = _paper_recovery_successor_action(progress_payload)
     progress_first_current_action = _mapping(
         _mapping(progress_payload.get("progress_first_monitoring_summary")).get(
             "current_executable_owner_action"
         )
     )
-    action = _selected_current_action(
+    action = paper_recovery_successor or _selected_current_action(
         actions=actions,
         current_executable_owner_action=current_executable_owner_action
         or progress_first_current_action,
@@ -197,8 +198,6 @@ def build_current_work_unit(
         and _action_consumed_by_dispatch_receipt(action=action, progress=progress_payload)
     ):
         action = None
-    if action is None:
-        action = _action_from_envelope(current_execution_envelope)
     if action is not None:
         action = _action_with_derived_currentness_identity(
             action=action,

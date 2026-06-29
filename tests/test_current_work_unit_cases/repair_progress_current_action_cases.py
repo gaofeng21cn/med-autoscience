@@ -905,7 +905,7 @@ from tests.test_current_work_unit_cases.repair_progress_current_action_cases_cas
 )
 
 from tests.test_current_work_unit_cases.repair_progress_current_action_cases_cases.consumed_identity_cases import (  # noqa: E402,F401
+    test_current_work_unit_does_not_promote_unsourced_repair_progress_followup_queue,
     test_current_work_unit_suppresses_consumed_action_using_progress_current_action_identity,
     test_current_work_unit_suppresses_consumed_current_owner_action_receipt,
-    test_current_work_unit_treats_accepted_repair_progress_followup_reason_as_current_action,
 )

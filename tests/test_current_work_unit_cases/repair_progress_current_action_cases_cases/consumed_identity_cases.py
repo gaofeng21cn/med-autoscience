@@ -88,7 +88,7 @@ def test_current_work_unit_suppresses_consumed_action_using_progress_current_act
     assert work_unit["work_unit_id"] is None
 
 
-def test_current_work_unit_treats_accepted_repair_progress_followup_reason_as_current_action() -> None:
+def test_current_work_unit_does_not_promote_unsourced_repair_progress_followup_queue() -> None:
     module = _module()
 
     work_unit = module.build_current_work_unit(
@@ -114,9 +114,10 @@ def test_current_work_unit_treats_accepted_repair_progress_followup_reason_as_cu
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["status"] == "typed_blocker"
     assert work_unit["owner"] == "ai_reviewer"
-    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
-    assert work_unit["work_unit_fingerprint"] == "repair-source-current"
-    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["action_type"] is None
+    assert work_unit["work_unit_fingerprint"] is None
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == (
+        "repair_progress_ai_reviewer_recheck_required"
+    )

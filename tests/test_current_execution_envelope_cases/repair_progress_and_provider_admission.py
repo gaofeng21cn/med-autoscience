@@ -759,7 +759,7 @@ def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection(
     assert envelope["parked_state"] is None
 
 
-def test_envelope_ignores_stale_running_attempt_when_owner_action_supersedes_user_park() -> None:
+def test_envelope_does_not_promote_bare_stage_action_when_running_attempt_is_stale() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
     envelope = module.build_current_execution_envelope(
@@ -800,10 +800,10 @@ def test_envelope_ignores_stale_running_attempt_when_owner_action_supersedes_use
         },
     )
 
-    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["state_kind"] == "typed_blocker"
     assert envelope["owner"] == "08-publication_package_handoff"
-    assert envelope["next_work_unit"] == "materialize_stage_artifact_delta"
-    assert envelope["typed_blocker"] is None
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"
 
 
 def test_envelope_does_not_report_closed_stage_attempt_as_running_provider() -> None:
@@ -850,7 +850,7 @@ def test_envelope_does_not_report_closed_stage_attempt_as_running_provider() -> 
     assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
 
 
-def test_envelope_does_not_report_record_only_archive_closeout_as_running_provider() -> None:
+def test_envelope_does_not_promote_domain_transition_queue_after_record_only_archive_closeout() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
     envelope = module.build_current_execution_envelope(
@@ -892,9 +892,10 @@ def test_envelope_does_not_report_record_only_archive_closeout_as_running_provid
         },
     )
 
-    assert envelope["state_kind"] == "executable_owner_action"
-    assert envelope["owner"] == "finalize"
-    assert envelope["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "MedAutoScience"
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"
 
 
 def test_envelope_prefers_repair_progress_followup_over_runtime_recovery_blocker() -> None:

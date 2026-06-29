@@ -112,12 +112,13 @@ def test_current_work_unit_rejects_running_attempt_for_superseded_work_unit() ->
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["status"] == "blocked_current_work_unit"
     assert work_unit["owner"] == "gate_clearing_batch"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-    assert work_unit["state"]["state_kind"] == "executable_owner_action"
-    assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
+    assert work_unit["action_type"] is None
+    assert work_unit["work_unit_id"] is None
+    assert work_unit["state"]["state_kind"] == "blocked_current_work_unit"
+    assert work_unit["state"]["source"] == "blocked_current_work_unit"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"
 
 
 def test_current_work_unit_rejects_unbound_running_attempt_for_current_owner_action() -> None:
