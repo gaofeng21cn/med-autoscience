@@ -556,6 +556,80 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert "platform_diagnostics" not in payload
 
 
+def test_stage_closure_projection_uses_real_followthrough_budget_for_degraded_handoff() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    payload = module.attach_artifact_first_mission_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0, "sources": []},
+            "delivery_inspection": {
+                "current_package": {
+                    "status": "stale",
+                    "package_kind": "current_package",
+                    "can_submit": False,
+                    "quality_gate_status": "blocked",
+                    "known_blockers": ["claim_evidence_consistency_failed"],
+                    "source_signature": "sha256:stale",
+                    "generated_from_current_source": False,
+                }
+            },
+            "stage_closure_decision": {
+                "projection_status": "terminalizer_outcome_observed",
+                "decision_ref": "stage-closure::dm002",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "degraded_handoff",
+                    "next_action": "review_degraded_handoff_package",
+                    "package_kind": "degraded_handoff_package",
+                    "can_submit": False,
+                    "known_blockers": ["claim_evidence_consistency_failed"],
+                },
+                "known_blockers": ["claim_evidence_consistency_failed"],
+            },
+            "quality_repair_batch_followthrough": {
+                "surface_kind": "quality_repair_batch_followthrough",
+                "repair_budget": {
+                    "quality_repair_batch": {
+                        "repair_budget_max": 2,
+                        "repair_attempt_count": 2,
+                        "repair_budget_status": "exhausted",
+                        "on_exhausted": "degraded_handoff",
+                    }
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "repair_budget": {
+                    "gate_clearing_batch": {
+                        "repair_budget_max": 3,
+                        "repair_attempt_count": 1,
+                        "repair_budget_status": "remaining",
+                    }
+                },
+            },
+        }
+    )
+
+    assert payload["current_package"]["status"] == "stale"
+    assert payload["current_package"]["package_kind"] == "current_package"
+    assert payload["current_package"]["can_submit"] is False
+    assert payload["repair_budget"] == {
+        "repair_budget_max": 2,
+        "repair_attempt_count": 2,
+        "repair_budget_status": "exhausted",
+        "on_exhausted": "degraded_handoff",
+    }
+    assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
+    assert payload["stage_closure"]["next_transition"] == "degraded_handoff"
+    assert payload["stage_closure"]["package_kind"] == "degraded_handoff_package"
+    assert payload["stage_closure"]["known_blockers"] == [
+        "claim_evidence_consistency_failed"
+    ]
+
+
 def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_runtime_readback() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"

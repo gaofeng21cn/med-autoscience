@@ -194,6 +194,11 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         "consume_candidate_status": effective_consume_candidate_status,
         "stage_closure_decision": stage_closure_decision_projection(
             readback={
+                **(
+                    {"stage_closure_decision": progress["stage_closure_decision"]}
+                    if _mapping(progress.get("stage_closure_decision"))
+                    else {}
+                ),
                 "paper_mission_transaction": effective_transaction,
                 "stage_terminal_decision": _mapping(
                     effective_transaction.get("stage_terminal_decision")
@@ -640,8 +645,10 @@ def _top_level_stage_closure_projection(payload: Mapping[str, Any]) -> dict[str,
                 "next_transition": _non_empty_text(
                     _mapping(outcome.get("next_transition")).get("transition_kind")
                 )
+                or _non_empty_text(outcome.get("transition_kind"))
                 or _non_empty_text(outcome.get("next_action")),
-                "package_kind": _non_empty_text(decision.get("package_kind")),
+                "package_kind": _non_empty_text(decision.get("package_kind"))
+                or _non_empty_text(outcome.get("package_kind")),
                 "known_blockers": _text_list(decision.get("known_blockers")),
                 "repair_budget": repair_budget or None,
             }
@@ -666,7 +673,7 @@ def _stage_closure_repair_budget(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _normalize_repair_budget(value: Mapping[str, Any]) -> dict[str, Any]:
-    budget = _mapping(value)
+    budget = _select_repair_budget_mapping(_mapping(value))
     max_count = _int_value(
         budget.get("repair_budget_max")
         or budget.get("max_attempts")
@@ -691,6 +698,39 @@ def _normalize_repair_budget(value: Mapping[str, Any]) -> dict[str, Any]:
             "on_exhausted": _non_empty_text(budget.get("on_exhausted"))
             or ("degraded_handoff" if status == "exhausted" else None),
         }
+    )
+
+
+def _select_repair_budget_mapping(value: Mapping[str, Any]) -> dict[str, Any]:
+    direct = _mapping(value)
+    if _budget_has_attempt_fields(direct):
+        return direct
+    nested_candidates = [
+        _mapping(direct.get("quality_repair_batch")),
+        _mapping(direct.get("gate_clearing_batch")),
+    ]
+    for candidate in nested_candidates:
+        if _non_empty_text(candidate.get("repair_budget_status")) == "exhausted":
+            return candidate
+    for candidate in nested_candidates:
+        if _budget_has_attempt_fields(candidate):
+            return candidate
+    return direct
+
+
+def _budget_has_attempt_fields(value: Mapping[str, Any]) -> bool:
+    return any(
+        key in value
+        for key in (
+            "repair_budget_max",
+            "max_attempts",
+            "max_opl_redrives",
+            "repair_attempt_count",
+            "attempt_count",
+            "next_observed_count",
+            "repair_budget_status",
+            "budget_exhausted",
+        )
     )
 
 

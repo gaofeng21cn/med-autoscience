@@ -690,7 +690,7 @@ def _blockers_from_closeout(closeout: Mapping[str, Any]) -> list[str]:
 
 
 def _repair_budget(value: Mapping[str, Any] | None) -> dict[str, Any]:
-    budget = _mapping(value)
+    budget = _select_repair_budget_mapping(_mapping(value))
     max_count = _int(budget.get("repair_budget_max") or budget.get("max_attempts"))
     attempt_count = _int(budget.get("repair_attempt_count") or budget.get("attempt_count"))
     status = _text(budget.get("repair_budget_status"))
@@ -705,6 +705,36 @@ def _repair_budget(value: Mapping[str, Any] | None) -> dict[str, Any]:
                 "degraded_handoff" if status == "exhausted" else None
             ),
         }
+    )
+
+
+def _select_repair_budget_mapping(value: Mapping[str, Any]) -> dict[str, Any]:
+    direct = _mapping(value)
+    if _budget_has_attempt_fields(direct):
+        return direct
+    nested_candidates = [
+        _mapping(direct.get("quality_repair_batch")),
+        _mapping(direct.get("gate_clearing_batch")),
+    ]
+    for candidate in nested_candidates:
+        if _text(candidate.get("repair_budget_status")) == "exhausted":
+            return candidate
+    for candidate in nested_candidates:
+        if _budget_has_attempt_fields(candidate):
+            return candidate
+    return direct
+
+
+def _budget_has_attempt_fields(value: Mapping[str, Any]) -> bool:
+    return any(
+        key in value
+        for key in (
+            "repair_budget_max",
+            "max_attempts",
+            "repair_attempt_count",
+            "attempt_count",
+            "repair_budget_status",
+        )
     )
 
 

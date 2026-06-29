@@ -111,6 +111,42 @@ def test_quality_blockers_budget_exhausted_degrade_to_handoff_package() -> None:
     }
 
 
+def test_quality_repair_batch_nested_budget_exhaustion_degrades_to_handoff() -> None:
+    decision = terminalize_stage_closure(
+        study_id="002-dm-china-us-mortality-attribution",
+        stage_id="publication_supervision",
+        work_unit_id="run_quality_repair_batch",
+        work_unit_fingerprint="dm002-quality-repair-budget",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["claim_evidence_consistency_failed"],
+        },
+        repair_budget={
+            "quality_repair_batch": {
+                "repair_budget_max": 2,
+                "repair_attempt_count": 2,
+                "repair_budget_status": "exhausted",
+                "on_exhausted": "degraded_handoff",
+            },
+            "gate_clearing_batch": {
+                "repair_budget_max": 3,
+                "repair_attempt_count": 1,
+                "repair_budget_status": "remaining",
+            },
+        },
+    )
+
+    assert decision["repair_budget"] == {
+        "repair_budget_max": 2,
+        "repair_attempt_count": 2,
+        "repair_budget_status": "exhausted",
+        "on_exhausted": "degraded_handoff",
+    }
+    assert decision["outcome"]["kind"] == "next_stage_transition"
+    assert decision["outcome"]["transition_kind"] == "degraded_handoff"
+    assert decision["outcome"]["next_action"] == "review_degraded_handoff_package"
+
+
 def test_same_signature_without_semantic_delta_terminalizes_to_typed_blocker() -> None:
     first = terminalize_stage_closure(
         study_id="002-dm-china-us-mortality-attribution",
