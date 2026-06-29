@@ -144,11 +144,48 @@ def _payload_record(value: PublicationEvalRecord | dict[str, Any]) -> dict[str, 
         if not record_payload:
             raise ValueError("AI reviewer record payload authoring target missing record_payload")
         return record_payload
+    record_payload = _mapping(payload.get("record_payload"))
+    if record_payload and (
+        "required_input_refs" in payload
+        or "required_currentness_refs" in payload
+        or "schema_version" in record_payload
+    ):
+        return record_payload
     return payload
 
 
 def _is_record_payload_authoring_target(value: Mapping[str, Any] | None) -> bool:
     return _optional_text(_mapping(value).get("surface")) == "ai_reviewer_record_payload_authoring_target"
+
+
+def _record_materialization_requires_precheck(
+    *,
+    record: PublicationEvalRecord | dict[str, Any],
+    entry_mode: str | None,
+    expected_owner: str | None = None,
+    expected_action_type: str | None = None,
+    expected_work_unit_id: str | None = None,
+    expected_work_unit_fingerprint: str | None = None,
+    authoring_target_output: Path | None = None,
+) -> bool:
+    if entry_mode == "owner_consumption_payload_guard":
+        return True
+    if authoring_target_output is not None:
+        return True
+    if any(
+        _optional_text(value)
+        for value in (
+            expected_owner,
+            expected_action_type,
+            expected_work_unit_id,
+            expected_work_unit_fingerprint,
+        )
+    ):
+        return True
+    payload = record.to_dict() if isinstance(record, PublicationEvalRecord) else dict(record)
+    if "required_input_refs" in payload or "required_currentness_refs" in payload or "stale_record_ref" in payload:
+        return True
+    return _is_record_payload_authoring_target(payload) and bool(_mapping(payload.get("record_payload")))
 
 
 def _payload_target_current_metadata(
@@ -980,17 +1017,22 @@ def materialize_ai_reviewer_publication_eval_record(
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
 
-    guard = plan_ai_reviewer_publication_eval_record_materialization(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-        entry_mode=entry_mode,
-        source=source,
+    requires_precheck = _record_materialization_requires_precheck(
         record=record,
-        build_production_trace=build_production_trace,
+        entry_mode=entry_mode,
     )
-    if _optional_text(guard.get("status")) == "blocked":
-        return guard
+    if requires_precheck:
+        guard = plan_ai_reviewer_publication_eval_record_materialization(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            entry_mode=entry_mode,
+            source=source,
+            record=record,
+            build_production_trace=build_production_trace,
+        )
+        if _optional_text(guard.get("status")) == "blocked":
+            return guard
 
     status_payload = _record_only_status_payload(
         profile=profile,

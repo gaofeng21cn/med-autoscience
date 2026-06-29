@@ -1028,7 +1028,6 @@ def test_ai_reviewer_build_production_trace_covers_extra_required_currentness_re
         for dimension in contract["rubric_dimensions"]
     }
     record_payload = {
-        "surface": "ai_reviewer_record_payload_authoring_target",
         "stale_record_ref": current_record_ref,
         "required_currentness_refs": [
             str(evidence_path.resolve()),
