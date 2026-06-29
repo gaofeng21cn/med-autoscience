@@ -418,13 +418,15 @@ def assert_legacy_completion_surfaces_absent(payload: dict[str, object]) -> None
     assert payload["legacy_next_action_authority_retired"] == {
         "status": "retired",
         "authority": "NextActionEnvelope",
-        "reason": "canonical_next_action_envelope_present",
+        "reason": "legacy_next_action_authority_retired_use_next_action_envelope",
         "retired_surfaces": [
             "current_work_unit",
             "current_executable_owner_action",
             "provider_admission",
             "current_execution_envelope",
         ],
+        "default_selector_policy": "fail_closed",
+        "diagnostic_only": True,
     }
 
 

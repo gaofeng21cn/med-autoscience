@@ -83,3 +83,28 @@ def test_canonical_next_action_blocks_provider_admission_current_control_candida
     )
 
     assert provider_actions._study_current_action_for_provider_admission(payload) is None
+
+
+def test_missing_canonical_next_action_does_not_resurrect_legacy_default_owner_action() -> None:
+    payload = _canonical_payload()
+    payload.pop("next_action")
+    payload.pop("canonical_next_action_source")
+
+    current_action = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    assert current_action.build_current_executable_owner_action(payload) is None
+
+
+def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() -> None:
+    payload = _canonical_payload()
+    payload.pop("next_action")
+    payload.pop("canonical_next_action_source")
+
+    current_action = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    assert current_action.build_current_executable_owner_action(payload) is None
+    assert not hasattr(current_action, "legacy_current_executable_owner_action_diagnostic")
