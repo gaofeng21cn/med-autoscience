@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.test_cli_cases.paper_mission_command_helpers import _write_profile_with_study
 
 
@@ -194,13 +196,17 @@ def test_typed_blocker_resolution_route_redesign_writes_non_authority_packet(
     assert exit_code == 0
     assert payload["status"] == "owner_route_redesign_applied"
     assert payload["apply_mode"] == "route_redesign"
-    assert payload["authority_materialized"] is True
+    assert payload["resolution_packet_materialized"] is True
+    assert payload["authority_materialized"] is False
+    assert payload["writes_authority"] is False
     assert payload["submission_ready_claim_authorized"] is False
+    assert manifest["writes_authority"] is False
     assert manifest["writes_yang_authority"] is False
     assert owner_decision["authority_boundary"]["writes_owner_receipt"] is False
     assert owner_decision["authority_boundary"]["writes_human_gate"] is False
     assert successor["work_unit_id"] == "submission_authority_owner_verdict"
     assert packet["status"] == "owner_route_redesign_applied"
+    assert packet["authority_materialized"] is False
 
 
 def test_typed_blocker_resolution_owner_decision_mode_fails_closed(
@@ -324,3 +330,49 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
             "ref": typed_readback["source_ref"],
         }
     ]
+
+
+def test_typed_blocker_resolution_rejects_forbidden_output_root(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="current_package",
+                can_submit=False,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="forbidden paper mission output root"):
+        cli.main(
+            [
+                "paper-mission",
+                "typed-blocker-resolution",
+                "--profile",
+                str(profile_path),
+                "--study-id",
+                study_id,
+                "--paper-mission-readback-file",
+                str(readback_file),
+                "--apply-route-redesign",
+                "--output-root",
+                str(
+                    tmp_path
+                    / "workspace"
+                    / "studies"
+                    / study_id
+                    / "artifacts"
+                    / "publication_eval"
+                ),
+                "--format",
+                "json",
+            ]
+        )

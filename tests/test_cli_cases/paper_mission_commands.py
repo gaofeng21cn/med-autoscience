@@ -16,6 +16,7 @@ from tests.test_cli_cases.paper_mission_command_cases.drive_and_route_handoff im
 from tests.test_cli_cases.paper_mission_command_cases.domain_handler_dispatch import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.materialized_readback import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.receipt_owner_consumption import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_cases.typed_blocker_resolution import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.submission_milestone_candidate_package import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.typed_blocker_resolution import *  # noqa: F401,F403
 
@@ -49,6 +50,7 @@ def test_paper_mission_help_exposes_default_commands(capsys) -> None:
         "consume-candidate",
         "package-candidate",
         "receipt-owner-consumption",
+        "typed-blocker-resolution",
         "drive",
         "terminalize-stage",
         "typed-blocker-resolution",
@@ -128,6 +130,44 @@ def test_paper_mission_cli_returns_no_write_json_plan(
     )
     assert "publication_eval/latest.json" in payload["forbidden_authority_writes"]
     _assert_forbidden_authority_untouched(tmp_path)
+
+
+def test_paper_mission_typed_blocker_resolution_action_intent(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    readback_file.write_text(
+        json.dumps(
+            {
+                "study_id": study_id,
+                "stage_closure_decision": {"outcome": {"kind": "typed_blocker"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_typed_blocker_resolution"
 
 
 def test_paper_mission_terminalize_stage_materializes_non_authority_decision(

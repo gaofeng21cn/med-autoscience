@@ -247,7 +247,9 @@ def _apply_typed_blocker_resolution(
         "source": source,
         "apply_mode": apply_mode,
         "write_permitted": True,
-        "authority_materialized": True,
+        "resolution_packet_materialized": True,
+        "authority_materialized": False,
+        "writes_authority": False,
         "paper_ready_claim_authorized": False,
         "publication_ready_claim_authorized": False,
         "submission_ready_claim_authorized": False,
@@ -393,8 +395,10 @@ def _next_owner_action(
 def _authority_boundary() -> dict[str, bool | str]:
     return {
         "surface_role": "paper_mission_typed_blocker_resolution",
-        "authority_materialized": True,
+        "resolution_packet_materialized": True,
+        "authority_materialized": False,
         "writes_typed_blocker_resolution": True,
+        "writes_authority": False,
         "writes_owner_receipt": False,
         "writes_typed_blocker": False,
         "writes_human_gate": False,
@@ -450,7 +454,7 @@ def _write_output_packet(
         "output_root": str(output_root),
         "packet_ref": str(packet_path),
         "packet_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-        "writes_authority": bool(writes_authority),
+        "writes_authority": False,
         "writes_yang_authority": False,
         "writes_owner_decision_packet": bool(
             _mapping(payload.get("owner_decision_packet"))
@@ -484,7 +488,9 @@ def _valid_resolution_readback(
         return None
     if payload.get("status") != "owner_route_redesign_applied":
         return None
-    if payload.get("authority_materialized") is not True:
+    if payload.get("resolution_packet_materialized") is not True:
+        return None
+    if payload.get("authority_materialized") is True or payload.get("writes_authority") is True:
         return None
     boundary = _mapping(payload.get("authority_boundary"))
     forbidden_flags = (

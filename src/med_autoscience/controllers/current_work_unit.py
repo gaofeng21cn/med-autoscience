@@ -112,6 +112,7 @@ from med_autoscience.controllers.current_work_unit_parts.stage_packet_identity i
 )
 from med_autoscience.controllers.current_work_unit_parts.projection import (
     action_work_unit as _action_work_unit,
+    current_work_unit as _current_work_unit_projection,
     owner_receipt_work_unit as _owner_receipt_work_unit,
     running_provider_attempt_work_unit as _running_provider_attempt_work_unit,
     typed_blocker_work_unit as _typed_blocker_work_unit,
@@ -450,6 +451,15 @@ def build_current_work_unit(
             progress=progress_payload,
         )
     ):
+        if _unsupported_dispatch_terminal_without_owner_successor(
+            action=action,
+            blocker=terminal_action_blocker,
+            progress=progress_payload,
+        ):
+            return _blocked_current_work_unit(
+                status_payload=status_payload,
+                progress_payload=progress_payload,
+            )
         return _typed_blocker_work_unit(
             blocker=terminal_action_blocker,
             action=action,
@@ -781,6 +791,11 @@ def _paper_recovery_successor_supersedes_terminal_closeout_blocker(
     blocker: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> bool:
+    if _text(blocker.get("terminal_closeout_outcome")) == "blocked:unsupported_dispatch_surface":
+        return _paper_recovery_successor_has_consumed_owner_receipt(
+            action=action,
+            progress=progress,
+        )
     if _text(blocker.get("terminal_closeout_consumption_source")) == "provider_admission_terminal_closeout_consumed":
         return False
     if not _paper_recovery_owner_action_ready_successor_consumes_receipt(action, progress=progress):
@@ -794,6 +809,79 @@ def _paper_recovery_successor_supersedes_terminal_closeout_blocker(
         or _text(blocker.get("blocked_reason"))
         or _text(blocker.get("blocker_id"))
     ) is not None
+
+
+def _paper_recovery_successor_has_consumed_owner_receipt(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if not _paper_recovery_owner_action_ready_successor_consumes_receipt(action, progress=progress):
+        return False
+    recovery = _mapping(progress.get("paper_recovery_state"))
+    recovery_conditions = {
+        _text(_mapping(item).get("condition"))
+        for item in recovery.get("conditions") or []
+        if isinstance(item, Mapping)
+    }
+    return bool(
+        recovery_conditions
+        & {
+            "consumed_owner_receipt_domain_transition_successor",
+            "consumed_owner_receipt_routeback_successor",
+        }
+    )
+
+
+def _unsupported_dispatch_terminal_without_owner_successor(
+    *,
+    action: Mapping[str, Any] | None,
+    blocker: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if _text(blocker.get("terminal_closeout_outcome")) != "blocked:unsupported_dispatch_surface":
+        return False
+    if action is None:
+        return True
+    return not _paper_recovery_successor_has_consumed_owner_receipt(
+        action=action,
+        progress=progress,
+    )
+
+
+def _blocked_current_work_unit(
+    *,
+    status_payload: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    blocker = _minimal_blocker("current_work_unit_unresolved", owner="med-autoscience")
+    return _current_work_unit_projection(
+        status="blocked_current_work_unit",
+        owner="med-autoscience",
+        action_type=None,
+        work_unit_id=None,
+        work_unit_fingerprint=None,
+        action_fingerprint=None,
+        input_refs=[],
+        required_output_contract={
+            "accepted_terminal_results": ["owner_receipt", "typed_blocker"],
+            "owner_receipt_required": True,
+            "typed_blocker_accepted": True,
+        },
+        acceptance_refs=[],
+        currentness_basis={},
+        state={
+            "state_kind": "blocked_current_work_unit",
+            "source": "blocked_current_work_unit",
+            "typed_blocker": blocker,
+            "blocker_type": "current_work_unit_unresolved",
+            "mas_owner_authority_preserved": True,
+            "stale_queue_or_handoff_can_override": False,
+        },
+        status_payload=status_payload,
+        progress_payload=progress_payload,
+        action=None,
+    )
 
 
 def _domain_transition_successor_consumes_owner_receipt(
@@ -902,6 +990,14 @@ def _action_supersedes_typed_blocker(
     payload = _mapping(blocker)
     if not payload:
         return True
+    if (
+        _text(payload.get("terminal_closeout_outcome")) == "blocked:unsupported_dispatch_surface"
+        and not _paper_recovery_successor_has_consumed_owner_receipt(
+            action=action,
+            progress=_mapping(progress),
+        )
+    ):
+        return False
     blocker_type = (
         _text(payload.get("blocker_type"))
         or _text(payload.get("blocker_id"))
