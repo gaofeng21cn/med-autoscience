@@ -58,7 +58,6 @@ Canonical durable surfaces 包括：
 
 - `runtime_binding.yaml`
 - `progress_projection`
-- `domain_diagnostic_report`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
 - `studies/<study_id>/artifacts/controller/gate_clearing_batch/latest.json`
@@ -72,7 +71,8 @@ Canonical durable surfaces 包括：
 这些 surfaces 的读法：
 
 - `publication_eval/latest.json` 和 `controller_decisions/latest.json` 继续是 study-owned truth surface。
-- runtime health、domain diagnostic、escalation record 和 progress projection 是 diagnostic / projection surface，不替代 current owner ticket。
+- runtime health、escalation record 和 progress projection 是 diagnostic / projection surface，不替代 current owner ticket。
+- 旧 `domain_diagnostic_report` 只作为 legacy provenance / migration diagnostic 读取，不再列入 canonical durable surfaces，也不参与 stage completion 判断。
 - Git history、Git diff/log、workspace root Git、quest `.git`、worktree list、retired lifecycle SQLite 或 recovery-intent snapshots 不作为默认 runtime status surface。
 - Agent 查状态和做 lifecycle 操作时优先读 OPL current-control、MAS file authority、macro state / owner route、domain authority refs index、migration ledger、quest manifest 和 restore index。
 
@@ -98,7 +98,7 @@ Workspace-local Progress-first 监控薄入口：
 
 `progress-projection` workspace wrapper 与 CLI command 已退役；文档、脚本和自动化必须使用 `study-progress --format json`。
 
-`runtime domain-diagnostic-report` 只保留为 explicit diagnostic / migration provenance；默认监督、automation 或论文推进不得把它作为推进入口。
+`runtime domain-diagnostic-report`、`domain-health-diagnostic`、`paper-mission-owner-surface` 和 `owner-route-reconcile` 只保留为 explicit legacy provenance / tombstone 语境；默认监督、automation、论文推进或 stage completion 判断不得把它们作为入口。
 
 OPL `current_control_state` / provider attempt ledger 持有 scheduler lifecycle、provider liveness、attempt、retry/dead-letter 和 operator runtime projection。MAS 不再提供 `runtime-supervision-*` compatibility CLI，不再把 workspace-local LaunchAgent / systemd / cron / docker service 写成 active runtime option。
 

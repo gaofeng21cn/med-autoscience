@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-29：domain-health / diagnostic 退役为历史残留，stage completion 只认 Stage Closure Terminalizer
+
+- 决策：`domain-health-diagnostic` 已退役为历史残留；`domain-diagnostic-report`、`paper-mission-owner-surface`、`owner-route-reconcile` 和旧 owner-callable / workbench 读面不再作为 active diagnostic surface、默认推进入口或 stage completion 判断面。
+- 决策：当前 stage 是否顺利完成只通过 `mas.stage_closure_terminalizer.v1` / Stage Closure Terminalizer 四态判断：`owner_receipt`、`typed_blocker`、`human_gate`、`next_stage_transition`。`paper-mission inspect`、`paper-mission drive`、`paper-mission terminalize-stage` 与 `study_progress` 只投影这组 judgment/result/ref；旧 diagnostic 词只允许出现在 history、provenance、migration diagnostic、legacy fixture 或 tombstone/no-resurrection guard 语境。
+- 决策：active runtime docs、runbook、product/operator 入口不得继续推荐旧 diagnostic command、apply/readback skeleton 或 focused diagnostic acceleration lane 来判断 stage closeout。需要保留旧路径时，必须明确其不是 canonical durable surface、不是 owner receipt/typed blocker/human gate authority、不是 runtime-ready / paper-progress 证据。
+- 理由：MAS 当前设计已经收敛到唯一 stage completion 判断面；继续在 active docs 中保留 diagnostic apply skeleton 或 canonical durable surface 表述，会把历史迁移工具重新读成第二判断面。
+
 ## 2026-06-28：旧 domain diagnostic / owner-route / owner-callable / workbench 面统一降为 retired diagnostic
 
 - 决策：当前默认论文入口只允许写成 `paper-mission` / `PaperMissionRun` / `PaperMissionTransaction` / `StageTerminalDecision` / Stage Closure Terminalizer，以及 OPL hosted substrate 承担的 StageRun、queue、attempt、retry/dead-letter、resume、current-control 和 workbench shell。旧 `domain-diagnostic-report`、`stage-outcome-authority`、`paper-mission-owner-surface`、`stage_outcome/opl-handoff`、`owner_callable_adapter_receipt`、Progress Portal / MAS workbench / control-plane 只能作为 history、provenance、migration diagnostic、readback diagnostic 或 OPL-hosted projection detail 读取。
