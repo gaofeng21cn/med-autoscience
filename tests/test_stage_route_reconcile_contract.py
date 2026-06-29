@@ -510,14 +510,22 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "suppress_stale_transition_queue_or_dispatch_and_emit_diagnostic"
     )
     assert dispatch_policy["readiness_dispatch_requires_any"] == [
-        "explicit_current_executable_owner_action",
-        "stage_native_workspace_next_action_with_authority_binding",
+        "canonical_next_action_envelope_with_owner_route",
+        "explicit_current_executable_owner_action_with_next_action_envelope_identity_match",
+        "stage_native_workspace_next_action_with_next_action_envelope_or_owner_surface_authority_binding",
         "terminal_closeout_owner_answer_dispatch",
     ]
+    assert dispatch_policy["readiness_dispatch_legacy_projection_policy"] == (
+        "current_executable_owner_action and stage_native_workspace_next_action are diagnostic "
+        "carriers only; they cannot authorize default dispatch without canonical NextActionEnvelope, "
+        "StageOutcome, or consumed MAS owner-surface authority."
+    )
     assert {
         "current_work_unit.typed_blocker",
         "current_execution_envelope.typed_blocker",
         "stale_owner_callable_dispatch_owner_route",
+        "legacy_current_executable_owner_action_without_next_action_envelope_identity",
+        "stage_native_workspace_next_action_without_next_action_envelope_or_owner_surface_authority",
         "source_ref_or_fingerprint_match_without_executable_owner_action",
     } <= set(dispatch_policy["readiness_blocker_only_forbidden_basis"])
     assert dispatch_policy["forbidden_readiness_dispatch_effect"] == (

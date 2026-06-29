@@ -6,6 +6,10 @@ State: `active_target_design`
 Machine boundary: 本文是人读目标设计和落地路线。机器真相继续归 `contracts/`、源码、CLI/MCP/API payload、OPL current-control / StageRun ledger、MAS runtime/controller durable surfaces、owner receipt、typed blocker、human gate、route-back evidence、fresh `study_progress` / domain diagnostic readback 和真实 workspace artifact。
 Date: `2026-06-16`
 
+## 2026-06-29 supersession note
+
+`NextActionEnvelope` / StageOutcome 已接管 MAS 默认 next-action authority。本文继续作为 transition-runtime、replay harness、projection demotion 和 legacy carrier retirement 的目标设计 / provenance 读取；其中 `current_work_unit`、`current_executable_owner_action`、provider admission、stage-native next action、ready dispatch、OPL queue 和 attempt ledger 只能作为 legacy diagnostic projection 或 transport/liveness evidence。canonical `NextActionEnvelope` 存在时，不得用本文中的旧 projection 字段恢复 owner、合成 action、启动 provider admission、重开 queue/attempt 或作为默认 operator / executor read model。
+
 ## 2026-06-16 落地状态
 
 当前已完成 first slice 的方向纠偏：OPL `one-person-lab` 已落地 `DomainProgressTransitionRuntime` 最小切片，覆盖 command normalization、transition event、transactional outbox item、projection metadata、StageRun identity、idempotency、`NonAdvancingApply` 和 replay/readback 测试。该能力落在 OPL 既有 Runway / Pack / Stagecraft / Console / Vault 分工内，没有新增第 11 品牌模块，也没有为旧监督 apply 入口保留兼容字段。
@@ -168,8 +172,8 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 | --- | --- | --- |
 | `paper_autonomy_supervisor` | 短期作为 MAS-side policy / obligation adapter；长期通用 obligation runtime 上收到 OPL。 | 作为 MAS 私有平行控制面。 |
 | `paper_recovery_state` | OPL transition event + MAS policy result 派生的 recovery projection。 | 从旧 dispatch / queue residue 重新选 next action。 |
-| `current_work_unit` | 当前 aggregate 的 projection。 | 覆盖 kernel transition 或发明 provider admission。 |
-| `current_executable_owner_action` | operator/executor read model。 | 把 stage index / domain diagnostic preview 当 authority。 |
+| `current_work_unit` | legacy diagnostic projection；仅在与 canonical `NextActionEnvelope` / StageOutcome identity 匹配时作 currentness drilldown。 | 作为默认 next-action selector、覆盖 `NextActionEnvelope`，或发明 provider admission。 |
+| `current_executable_owner_action` | legacy diagnostic projection / owner-action provenance；仅可补充同 identity dispatch drilldown。 | 作为默认 operator / executor read model，或把 stage index / domain diagnostic preview 当 authority。 |
 | domain diagnostic dry-run | diagnostic query。 | 声明恢复或 paper progress。 |
 | domain diagnostic apply | OPL fixed-point controller 的 consumer/readback 入口；MAS 只提供 policy adapter 和 owner-answer/fail-closed projection。 | 在 MAS 内自建 fixed-point loop，或单次 materialize 后没有 postcondition 仍 ok=true。 |
 | OPL current-control | generic execution state。 | 签 MAS owner receipt 或解释 publication readiness。 |
@@ -200,7 +204,7 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 
 - 先覆盖 `owner_receipt_recorded`、`typed_blocker`、`provider_admission`、`terminal_closeout`、`paper_recovery_successor` 这五类 DM002 / DM003 高频路径。
 - domain diagnostic apply 改为调用 OPL fixed-point controller，并通过 MAS policy adapter 裁决 domain result。
-- `paper_recovery_state`、`current_work_unit`、`current_executable_owner_action` 改为从 OPL transition event + MAS policy result 派生。
+- `paper_recovery_state`、`current_work_unit`、`current_executable_owner_action` 改为从 OPL transition event + MAS policy result 派生的 legacy diagnostic projections；默认 operator / executor 入口改由 canonical `NextActionEnvelope` / StageOutcome 和 MAS owner-surface outcome 决定。
 
 完成门：focused tests + domain diagnostic apply readback 证明同一 aggregate 每轮 exactly-one outcome；无 outcome 时写 `NonAdvancingApply`。
 

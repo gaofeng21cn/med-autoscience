@@ -6,8 +6,14 @@ from typing import Any
 def assert_single_planning_root(contract: dict[str, Any]) -> None:
     assert contract["surface_kind"] == "mas_opl_stage_route_reconcile_contract"
     assert contract["version"] == "stage-route-reconcile.v1"
-    assert contract["state"] == "active_contract"
-    assert contract["machine_boundary"].startswith("This contract defines route/currentness")
+    assert contract["state"] == "active_legacy_reconcile_diagnostic_contract"
+    assert contract["machine_boundary"].startswith("This contract defines legacy route/currentness")
+    supersession = contract["next_action_supersession"]
+    assert supersession["superseded_by"] == "NextActionEnvelope"
+    assert supersession["legacy_projection_semantics"] == "diagnostic_provenance_only"
+    assert "reopen_opl_queue_or_attempt_from_legacy_projection" in supersession[
+        "forbidden_interpretations"
+    ]
     assert contract["related_contract_refs"][0] == (
         "contracts/paper_recovery_kernel_contract.json"
     )
@@ -33,7 +39,17 @@ def assert_single_planning_root(contract: dict[str, Any]) -> None:
         "zero_open_worklist",
         "old_route_back_packet",
         "advisory_score_or_ranking",
+        "current_work_unit",
+        "current_executable_owner_action",
+        "provider_admission_current_control",
+        "stage_native_workspace_next_action",
+        "OPL queue history",
+        "attempt ledger",
     } <= set(root["forbidden_default_roots"])
+    assert (
+        root["derived_operator_surfaces_semantics"]
+        == "legacy_diagnostic_projection_only_when_next_action_envelope_exists"
+    )
     assert root["no_second_truth"] is True
 
     paper_recovery = contract["paper_recovery_kernel_consumption"]
