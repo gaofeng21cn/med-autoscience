@@ -912,11 +912,22 @@ def _attach_stage_closure_ledger_to_drive_readback(
     consume_readback: Mapping[str, Any],
 ) -> dict[str, Any]:
     transaction = _mapping(consume_readback.get("paper_mission_transaction"))
+    transaction_ref = _optional_text(transaction.get("transaction_id"))
     stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=str(consume_readback.get("study_id") or transaction.get("study_id") or ""),
-        transaction_ref=_optional_text(transaction.get("transaction_id")),
+        transaction_ref=transaction_ref,
     )
+    if stage_closure_ledger_readback is None and transaction_ref is not None:
+        stage_closure_ledger_readback = (
+            latest_paper_mission_stage_closure_decision_readback(
+                workspace_root=Path(profile.workspace_root),
+                study_id=str(
+                    consume_readback.get("study_id") or transaction.get("study_id") or ""
+                ),
+                transaction_ref=None,
+            )
+        )
     if stage_closure_ledger_readback is None:
         return dict(consume_readback)
     return {
@@ -1473,13 +1484,29 @@ def _stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, A
 
 def _stage_closure_opl_closeout(readback: Mapping[str, Any]) -> dict[str, Any]:
     carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
+    terminal_closeout = _mapping(carrier.get("terminal_closeout"))
     return _compact_mapping(
         {
             "status": _first_text(
                 readback.get("opl_runtime_readback_status"),
                 carrier.get("carrier_status"),
+                terminal_closeout.get("status"),
             ),
-            "terminal_closeout": carrier.get("terminal_closeout"),
+            "stage_attempt_id": terminal_closeout.get("stage_attempt_id"),
+            "work_unit_id": terminal_closeout.get("work_unit_id"),
+            "duration": _first_mapping(
+                _mapping(terminal_closeout.get("duration")),
+                _mapping(readback.get("duration")),
+            ),
+            "token_usage": _first_mapping(
+                _mapping(terminal_closeout.get("token_usage")),
+                _mapping(readback.get("token_usage")),
+            ),
+            "cost": _first_mapping(
+                _mapping(terminal_closeout.get("cost")),
+                _mapping(readback.get("cost")),
+            ),
+            "terminal_closeout": terminal_closeout,
         }
     )
 

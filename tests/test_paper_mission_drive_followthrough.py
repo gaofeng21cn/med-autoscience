@@ -366,6 +366,55 @@ def test_stage_closure_projection_exposes_terminalizer_outcome() -> None:
     assert decision["known_blockers"] == ["claim_evidence_consistency_failed"]
 
 
+def test_drive_stage_closure_uses_latest_study_ledger_when_transaction_ref_rotates(
+    tmp_path,
+) -> None:
+    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    ledger = importlib.import_module("med_autoscience.paper_mission_stage_closure_ledger")
+    profile = type("Profile", (), {"workspace_root": str(tmp_path)})()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    output_root = (
+        tmp_path
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_closure"
+        / "run"
+    )
+    ledger.write_paper_mission_stage_closure_decision(
+        output_root=output_root,
+        study_id=study_id,
+        decision={
+            "outcome": {
+                "kind": "typed_blocker",
+                "next_owner": "MedAutoScience",
+            },
+            "known_blockers": ["paper_mission_stage_route_domain_gate_pending"],
+        },
+        source_readback=_route_back_consume_readback(
+            transaction_ref="paper-mission-transaction::old"
+        ),
+        source="pytest",
+        forbidden_authority_writes=("publication_eval/latest.json",),
+        forbidden_authority_claims=("submission_ready",),
+    )
+    current_readback = _route_back_consume_readback(
+        transaction_ref="paper-mission-transaction::new"
+    )
+
+    result = commands._attach_stage_closure_ledger_to_drive_readback(
+        profile=profile,
+        consume_readback=current_readback,
+    )
+    decision = result["stage_closure_decision"]
+
+    assert decision["projection_status"] == "terminalizer_outcome_observed"
+    assert decision["source_surface_kind"] == "paper_mission_stage_closure_ledger"
+    assert decision["paper_mission_transaction_ref"] == "paper-mission-transaction::old"
+    assert decision["decision_ref"].endswith(
+        f"/{study_id}/stage_closure_decision.json"
+    )
+
+
 def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path) -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     ledger_ref = tmp_path / "ledger" / "study" / "route_back_budget_ledger.json"

@@ -411,6 +411,47 @@ def test_paper_mission_terminalize_stage_defaults_to_workspace_ops_ledger(
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_stage_closure_terminalizer_reads_nested_closeout_telemetry() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    decision = commands._terminalize_stage_closure_from_readback(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "mission_id": "mission-003",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": {
+                "transaction_id": "txn-003",
+                "stage_id": "submission_milestone_candidate",
+            },
+            "stage_terminal_decision": {
+                "status": "accepted_submission_milestone_candidate",
+                "reason": "paper_mission_stage_route_domain_gate_pending",
+            },
+            "opl_runtime_carrier_readback": {
+                "carrier_status": "opl_runtime_terminal_readback_observed",
+                "terminal_closeout": {
+                    "status": "completed",
+                    "stage_attempt_id": "sat-003",
+                    "duration": {
+                        "started_at": "2026-06-28T23:30:00Z",
+                        "completed_at": "2026-06-28T23:40:00Z",
+                    },
+                    "token_usage": {"total_tokens": 1200},
+                    "cost": {
+                        "status": "missing",
+                        "reason": "provider attempt cost telemetry is not exposed",
+                    },
+                },
+            },
+        }
+    )
+
+    assert "observability_gaps" not in decision
+    assert decision["opl_closeout"]["stage_attempt_id"] == "sat-003"
+
+
 def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: Path) -> None:
     commands = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_commands"

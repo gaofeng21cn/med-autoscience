@@ -170,6 +170,82 @@ def test_route_back_checkpoint_blockers_do_not_become_unclassified() -> None:
     )
 
 
+def test_repeated_route_back_checkpoint_stops_same_stage_redrive() -> None:
+    first = terminalize_stage_closure(
+        study_id="003-dm-china-us-mortality-attribution",
+        stage_id="submission_milestone_candidate",
+        work_unit_id="route-back-checkpoint",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [
+                "accepted_submission_milestone_candidate",
+                "paper_mission_stage_route_domain_gate_pending",
+            ],
+        },
+    )
+    second = terminalize_stage_closure(
+        study_id="003-dm-china-us-mortality-attribution",
+        stage_id="submission_milestone_candidate",
+        work_unit_id="route-back-checkpoint",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [
+                "accepted_submission_milestone_candidate",
+                "paper_mission_stage_route_domain_gate_pending",
+            ],
+        },
+        previous_signature=first["decision_signature"],
+    )
+
+    assert second["repeated_without_semantic_delta"] is True
+    outcome = second["outcome"]
+    assert outcome["kind"] == "typed_blocker"
+    assert outcome["blocker_type"] == "route_back_checkpoint_without_semantic_delta"
+    assert outcome["next_action"] == "materialize_typed_blocker_or_route_redesign"
+
+
+def test_route_back_checkpoint_budget_exhaustion_degrades_to_handoff() -> None:
+    decision = terminalize_stage_closure(
+        study_id="003-dm-china-us-mortality-attribution",
+        stage_id="submission_milestone_candidate",
+        work_unit_id="route-back-checkpoint",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["accepted_submission_milestone_candidate"],
+        },
+        repair_budget={"repair_budget_max": 2, "repair_attempt_count": 2},
+    )
+
+    outcome = decision["outcome"]
+    assert outcome["kind"] == "next_stage_transition"
+    assert outcome["transition_kind"] == "degraded_handoff"
+    assert outcome["package_kind"] == "degraded_handoff_package"
+    assert decision["repair_budget"]["repair_budget_status"] == "exhausted"
+
+
+def test_closeout_observability_accepts_actual_stage_log_field_names() -> None:
+    decision = terminalize_stage_closure(
+        study_id="003-dm-china-us-mortality-attribution",
+        stage_id="publication_supervision",
+        work_unit_id="return_to_ai_reviewer_workflow",
+        gate_replay={"gate_replay_status": "blocked"},
+        opl_closeout={
+            "status": "completed",
+            "duration": {
+                "started_at": "2026-06-28T23:30:00Z",
+                "completed_at": "2026-06-28T23:40:00Z",
+            },
+            "token_usage": {"total_tokens": 1200},
+            "cost": {
+                "status": "missing",
+                "reason": "provider attempt cost telemetry is not exposed",
+            },
+        },
+    )
+
+    assert "observability_gaps" not in decision
+
+
 def test_legacy_unclassified_checkpoint_decision_projects_as_route_back_checkpoint() -> None:
     projection = stage_closure_decision_projection(
         readback={

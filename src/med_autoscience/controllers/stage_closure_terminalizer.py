@@ -453,6 +453,32 @@ def _select_outcome(
             next_owner="MedAutoScience",
             resume_condition="resolve hard authority boundary before stage closure can proceed",
         )
+    if route_back_checkpoint_blockers and budget_status == "exhausted":
+        return {
+            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
+            "transition_kind": "degraded_handoff",
+            "next_owner": "human_review",
+            "next_action": "review_degraded_handoff_package",
+            "package_kind": "degraded_handoff_package",
+            "can_submit": False,
+            "requires_bundle_build_allowed": False,
+            "known_blockers": blockers,
+            "resume_condition": (
+                "route-back checkpoint consumed the repair budget; ship a "
+                "bounded low-quality handoff package or record a human/MAS decision"
+            ),
+            "authority_materialized": False,
+        }
+    if route_back_checkpoint_blockers and repeated_without_delta:
+        return _typed_blocker_outcome(
+            blocker_type="route_back_checkpoint_without_semantic_delta",
+            blockers=route_back_checkpoint_blockers,
+            next_owner="MedAutoScience",
+            resume_condition=(
+                "stop redriving the same PaperMission stage; materialize a degraded "
+                "handoff, owner decision, human gate, or typed blocker"
+            ),
+        )
     if route_back_checkpoint_blockers and not hard_authority_blockers:
         return {
             "kind": OUTCOME_NEXT_STAGE_TRANSITION,
@@ -707,10 +733,22 @@ def _has_semantic_delta(semantic_delta: Mapping[str, Any]) -> bool:
 
 def _observability_gaps(closeout: Mapping[str, Any]) -> list[str]:
     gaps: list[str] = []
-    for key in ("duration_ms", "token_usage", "cost_usd"):
-        if key not in closeout or closeout.get(key) in (None, "", {}, []):
-            gaps.append(f"{key}_missing")
+    for field, keys in {
+        "duration": ("duration", "duration_ms"),
+        "token_usage": ("token_usage",),
+        "cost": ("cost", "cost_usd"),
+    }.items():
+        if not any(_has_observability_value(closeout.get(key)) for key in keys):
+            gaps.append(f"{field}_missing")
     return gaps
+
+
+def _has_observability_value(value: object) -> bool:
+    if value in (None, "", [], {}):
+        return False
+    if isinstance(value, Mapping):
+        return any(item not in (None, "", [], {}) for item in value.values())
+    return True
 
 
 def _input_summary(payload: Mapping[str, Any], *, status_key: str) -> dict[str, Any]:
