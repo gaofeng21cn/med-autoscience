@@ -591,6 +591,31 @@ def test_journal_delivery_blocked_by_submission_authority_still_refreshes_curren
         encoding="utf-8"
     ) == "frontiers manuscript"
     assert (study_root / "manuscript" / "current_package.zip").exists()
+    current_package_manifest = json.loads(
+        (
+            study_root
+            / "manuscript"
+            / "current_package"
+            / "audit"
+            / "submission_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    source_manifest = json.loads(
+        (
+            paper_root
+            / "journal_submissions"
+            / "frontiers_family_harvard"
+            / "submission_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert current_package_manifest["package_kind"] == "current_package"
+    assert current_package_manifest["can_submit"] is False
+    assert current_package_manifest["quality_gate_status"] == "blocked"
+    assert current_package_manifest["known_blockers"] == ["bundle_build_allowed_false"]
+    assert current_package_manifest["generated_from_current_source"] is True
+    assert current_package_manifest["source_signature"] == result["source_signature"]
+    assert "package_kind" not in source_manifest
+    assert "can_submit" not in source_manifest
     assert not (
         study_root / "manuscript" / "journal_packages" / "frontiers_family_harvard"
     ).exists()

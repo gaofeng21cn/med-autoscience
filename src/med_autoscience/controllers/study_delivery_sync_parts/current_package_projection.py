@@ -137,13 +137,13 @@ def _source_signature_payload_from_manifest(source_manifest_path: Path) -> dict[
     }
 
 
-def _source_signature_payload_with_override(
+def _source_signature_payload_with_fallback(
     *,
     source_signature_payload: dict[str, Any],
     source_signature: str | None,
 ) -> dict[str, Any]:
     normalized_signature = str(source_signature or "").strip()
-    if not normalized_signature:
+    if source_signature_payload.get("source_signature") or not normalized_signature:
         return source_signature_payload
     payload = dict(source_signature_payload)
     source_contract = dict(payload.get("source_contract") or {})
@@ -350,14 +350,14 @@ def sync_current_package_projection(
             category="current_package_submission_todo",
             path=todo_path,
         )
-    source_signature_payload = _source_signature_payload_with_override(
+    source_signature_payload = _source_signature_payload_with_fallback(
         source_signature_payload=_source_signature_payload_from_manifest(source_manifest_path),
         source_signature=source_signature,
     )
     _overlay_current_package_manifest_metadata(
         current_package_root=current_package_root,
         source_signature_payload=source_signature_payload,
-        source_signature=None,
+        source_signature=source_signature,
         quality_gate_status=quality_gate_status,
         known_blockers=known_blockers,
     )
