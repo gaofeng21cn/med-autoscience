@@ -278,6 +278,9 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
         "accepted_ref_family_without_current_transition_identity",
         "concrete_evidence_ref_without_current_transition_identity",
         "cross_identity_live_readback_as_same_transition_evidence",
+        "receipt_consumption_projection_as_live_acceptance",
+        "legacy_next_action_tail_absorbed_as_live_acceptance",
+        "repo_control_tail_refs_as_owner_receipt_or_human_gate",
     } <= set(live_runtime["false_live_completion_claims"])
     assert live_runtime["live_runtime_gap_evidence_transition_identity_required"] is True
     assert live_runtime["live_tail_readback_evidence_transition_identity_required"] is True
@@ -358,6 +361,9 @@ def test_transition_runtime_completion_audit_rejects_known_false_completion_clai
         "event_id_present_without_full_readback",
         "outbox_item_id_present_without_full_readback",
         "StageRun_identity_present_without_currentness_match",
+        "receipt_consumption_projection_as_live_acceptance",
+        "legacy_next_action_tail_absorbed_as_live_acceptance",
+        "repo_control_tail_refs_as_owner_receipt_or_human_gate",
     } <= set(audit["rejected_completion_claims"])
 
     non_claims = audit["non_claims"]
@@ -741,6 +747,11 @@ def test_transition_runtime_completion_audit_records_provider_admission_repo_con
             "test_provider_admission_current_control_treats_mas_request_without_opl_readback_as_non_advancing"
             "#bare_event_outbox_stage_run_fragment_rejected"
         ),
+        (
+            "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78#"
+            "study_progress_receipt_consumption_projection"
+        ),
+        "repo_control_readback_tail_not_live_acceptance_evidence",
     } <= set(lane["observed_refs"])
     assert (
         "provider admission arbiter fully consuming OPL transition events"
@@ -766,6 +777,8 @@ def test_transition_runtime_completion_audit_records_provider_admission_repo_con
         "provider_admission_same_identity_replay_as_fresh_opl_readback",
         "provider_admission_same_identity_replay_as_live_paper_progress",
         "same_identity_readback_consumes_transition_request_as_paper_line_outcome",
+        "receipt_consumption_projection_as_opl_stagerun_live_readback",
+        "receipt_consumption_projection_as_owner_receipt_or_human_gate",
     } <= set(lane["false_completion_boundary"])
     provider_gate = required["provider_admission_event_consumption"]
     assert provider_gate["status"] == "open"
@@ -813,10 +826,28 @@ def test_blueprint_l0_l7_functional_acceptance_matrix_splits_repo_and_live_scope
     assert matrix["live_acceptance_executed"] is False
     assert matrix["live_only_completion_status"] == "deferred_not_run"
     assert matrix["fresh_repo_evidence"]["mas_repo_ref"] == (
-        "repo:med-autoscience@20838681e158931eab2ef7d88c708855a56770bd"
+        "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea"
+    )
+    assert audit["source_of_truth"]["fresh_mas_repo_ref"] == (
+        "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea"
+    )
+    assert audit["source_of_truth"]["receipt_consumption_main_ref"] == (
+        "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78"
+    )
+    assert audit["source_of_truth"]["legacy_next_action_tail_absorption_ref"] == (
+        "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea"
+    )
+    assert matrix["fresh_repo_evidence"]["receipt_consumption_main_ref"] == (
+        "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78"
+    )
+    assert matrix["fresh_repo_evidence"]["legacy_next_action_tail_absorption_ref"] == (
+        "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea"
     )
     assert matrix["fresh_repo_evidence"]["opl_repo_ref"] == (
         "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0"
+    )
+    assert "current_action_selection/current_work_unit_action producer-retirement worktree" in (
+        matrix["fresh_repo_evidence"]["related_worktree_closeout_scope"]
     )
 
     assert set(rows) == {"L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"}
@@ -840,6 +871,8 @@ def test_blueprint_l0_l7_functional_acceptance_matrix_splits_repo_and_live_scope
         "paper_line_ready_can_be_claimed": False,
         "live_only_deferred_blocks_repo_source_control_plane": False,
         "tests_or_contracts_can_claim_live_acceptance": False,
+        "repo_tail_refs_can_claim_live_acceptance": False,
+        "receipt_consumption_or_legacy_tail_can_claim_owner_receipt_or_human_gate": False,
     }
     assert {
         "domain diagnostic apply",

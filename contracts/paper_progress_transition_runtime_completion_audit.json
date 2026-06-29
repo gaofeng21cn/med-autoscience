@@ -11,7 +11,9 @@
     "transition_runtime_contract": "contracts/opl_domain_progress_transition_runtime_contract.json",
     "replay_status": "contracts/paper_progress_replay_live_evidence_status.json",
     "runtime_inventory": "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
-    "fresh_mas_repo_ref": "repo:med-autoscience@20838681e158931eab2ef7d88c708855a56770bd",
+    "fresh_mas_repo_ref": "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea",
+    "receipt_consumption_main_ref": "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78",
+    "legacy_next_action_tail_absorption_ref": "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea",
     "fresh_opl_repo_ref": "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0"
   },
   "overall": {
@@ -55,7 +57,9 @@
         "commit:82f5f8b96 Guard obligation actuator OPL tail interpretation",
         "commit:8de3658ea Tighten owner dispatch OPL tail guards",
         "runtime_surface_retirement_audit:repo_source_physical_retirement_complete@8de3658e",
-        "runtime_surface_retirement_audit:violation_count=0@8de3658e"
+        "runtime_surface_retirement_audit:violation_count=0@8de3658e",
+        "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78#Project receipt consumption in study progress",
+        "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea#Extract legacy next-action authority retirement"
       ],
       "open_repo_source_gaps": [],
       "non_blocking_live_runtime_tails": [
@@ -131,7 +135,10 @@
         "transition_request_pending_count=0",
         "accepted_ref_family_without_current_transition_identity",
         "concrete_evidence_ref_without_current_transition_identity",
-        "cross_identity_live_readback_as_same_transition_evidence"
+        "cross_identity_live_readback_as_same_transition_evidence",
+        "receipt_consumption_projection_as_live_acceptance",
+        "legacy_next_action_tail_absorbed_as_live_acceptance",
+        "repo_control_tail_refs_as_owner_receipt_or_human_gate"
       ],
       "live_tail_work_order_refs": [
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
@@ -200,14 +207,18 @@
       "runtime_ready_can_be_claimed": false,
       "paper_line_ready_can_be_claimed": false,
       "live_only_deferred_blocks_repo_source_control_plane": false,
-      "tests_or_contracts_can_claim_live_acceptance": false
+      "tests_or_contracts_can_claim_live_acceptance": false,
+      "repo_tail_refs_can_claim_live_acceptance": false,
+      "receipt_consumption_or_legacy_tail_can_claim_owner_receipt_or_human_gate": false
     },
     "fresh_repo_evidence": {
-      "mas_repo_ref": "repo:med-autoscience@20838681e158931eab2ef7d88c708855a56770bd",
+      "mas_repo_ref": "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea",
+      "receipt_consumption_main_ref": "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78",
+      "legacy_next_action_tail_absorption_ref": "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea",
       "opl_repo_ref": "external_repo:one-person-lab@33d2fef294ac9e5d7749cf0918f2e4e56b8accb0",
       "mas_root_status": "main==origin/main clean at preflight",
       "opl_root_status": "main==origin/main clean at preflight",
-      "related_worktree_closeout_scope": "evidence-gap-core, evidence-gap-integration, projection/readback/adapter/outbox/runtime primitive lanes are absorbed or absent; display-pack-canonical-shrink is unrelated and not part of this goal slice"
+      "related_worktree_closeout_scope": "receipt consumption is present on main at 10d17340d4d374d7eae56b302c09a8ad2ee12b78; legacy next-action authority retirement tail is absorbed on main at 37be1f4a88b271fddb78dcd3e43c65535fdaa1ea; current_action_selection/current_work_unit_action producer-retirement worktree remains a separate non-absorbed lane and is not part of this completion/readback audit"
     },
     "verification_scope": {
       "forbidden_live_commands_not_run": [
@@ -1319,7 +1330,9 @@
         "tests/test_paper_recovery_provider_admission_state.py::test_current_work_unit_requires_same_identity_live_readback_for_admission",
         "contracts/paper_progress_replay_live_evidence_status.json#/replay_to_live_separation_gate",
         "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families",
-        "tests/test_adapter_retirement_boundary_cases/test_live_runtime_gap_work_order_contract.py::test_live_runtime_gap_evidence_requires_current_transition_identity"
+        "tests/test_adapter_retirement_boundary_cases/test_live_runtime_gap_work_order_contract.py::test_live_runtime_gap_evidence_requires_current_transition_identity",
+        "repo:med-autoscience@10d17340d4d374d7eae56b302c09a8ad2ee12b78#study_progress_receipt_consumption_projection",
+        "repo_control_readback_tail_not_live_acceptance_evidence"
       ],
       "missing_evidence_tails": [
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
@@ -1347,7 +1360,9 @@
         "valid_opl_readback_shape_without_claimable_evidence_source",
         "accepted_ref_family_without_current_transition_identity",
         "concrete_evidence_ref_without_current_transition_identity",
-        "cross_identity_live_readback_as_same_transition_evidence"
+        "cross_identity_live_readback_as_same_transition_evidence",
+        "receipt_consumption_projection_as_opl_stagerun_live_readback",
+        "receipt_consumption_projection_as_owner_receipt_or_human_gate"
       ],
       "blocks_repo_source_retirement": false,
       "blocks_final_runtime_paper_acceptance": true,
@@ -1491,7 +1506,9 @@
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#stage_outcome_authority_required_active_caller_readbacks",
         "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families",
         "tests/test_adapter_retirement_boundary_cases/test_live_tail_work_order_contract.py::test_live_tail_evidence_requires_current_transition_identity_for_readback_families",
-        "tests/test_adapter_retirement_boundary_cases/test_live_tail_work_order_contract.py::test_live_tail_no_active_caller_evidence_does_not_require_transition_identity"
+        "tests/test_adapter_retirement_boundary_cases/test_live_tail_work_order_contract.py::test_live_tail_no_active_caller_evidence_does_not_require_transition_identity",
+        "repo:med-autoscience@37be1f4a88b271fddb78dcd3e43c65535fdaa1ea#legacy_next_action_authority_retirement_absorbed",
+        "repo_control_readback_tail_not_live_acceptance_evidence"
       ],
       "missing_evidence_tails": [
         "OPL outbox and StageRun identity live readback for the same transition request",
@@ -1576,7 +1593,9 @@
         "typed_blocker_authority_result_as_opl_supervisor_decision_engine_readback",
         "wildcard_guard_as_live_owner_consumption_soak",
         "live_tail_readback_without_current_transition_identity",
-        "no_active_scan_as_cross_identity_live_readback"
+        "no_active_scan_as_cross_identity_live_readback",
+        "legacy_next_action_tail_absorbed_as_live_acceptance",
+        "legacy_next_action_tail_absorbed_as_owner_receipt_or_human_gate"
       ],
       "repo_source_retirement_status": "done",
       "repo_source_retirement_completion_percent": 100,
@@ -1705,7 +1724,10 @@
     "valid_opl_readback_shape_without_claimable_evidence_source",
     "repo_source_retirement_complete_as_live_runtime_ready",
     "repo_source_retirement_complete_as_paper_progress",
-    "live_runtime_evidence_missing_as_repo_source_retirement_blocker"
+    "live_runtime_evidence_missing_as_repo_source_retirement_blocker",
+    "receipt_consumption_projection_as_live_acceptance",
+    "legacy_next_action_tail_absorbed_as_live_acceptance",
+    "repo_control_tail_refs_as_owner_receipt_or_human_gate"
   ],
   "open_evidence_tails": [
     "OPL outbox and StageRun identity live readback for the same transition request",
