@@ -351,6 +351,7 @@ def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot
     "work_unit_id",
     [
         "owner_authorized_publication_gate_replay",
+        "dm003_publication_gate_replay_after_current_ai_reviewer_record",
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
     ],
 )
