@@ -314,7 +314,7 @@ def _workspace_ai_first_dashboard_lines(dashboard: Mapping[str, Any]) -> list[st
         ("ai_reviewer_workflow_status", "AI reviewer workflow"),
         ("artifact_proof_status", "artifact proof"),
         ("route_back_status", "route-back"),
-        ("next_step", "下一步"),
+        ("next_step", "诊断建议"),
         ("human_judgment", "人工判断"),
         ("feedback_summary", "运行反馈"),
         ("feedback_primary_reason", "反馈原因"),
@@ -354,7 +354,7 @@ def _workspace_medical_paper_ops_health_lines(state: Mapping[str, Any]) -> list[
         lines.append(
             f"- `{study.get('study_id') or 'unknown-study'}` ops health: "
             f"{study.get('overall_status') or 'unknown'}；"
-            f"下一步 `{next_action.get('summary') or 'none'}`"
+            f"ops drilldown `{next_action.get('summary') or 'none'}`"
         )
     return lines
 

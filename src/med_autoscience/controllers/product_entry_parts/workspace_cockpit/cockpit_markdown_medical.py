@@ -40,7 +40,7 @@ def _append_readiness_study(lines: list[str], study: Mapping[str, Any]) -> None:
         f"({study.get('ready_count', 0)}/{study.get('required_count', 0)})"
     )
     if next_action.get("summary"):
-        lines.append(f"  下一步: {next_action.get('summary')}")
+        lines.append(f"  readiness 提示: {next_action.get('summary')}")
     readiness_actions = [
         item
         for item in study.get("workflow_steps") or study.get("action_cards") or []
@@ -83,7 +83,7 @@ def _append_v4_operation_studies(lines: list[str], state: Mapping[str, Any]) -> 
         lines.append(
             f"- `{study.get('study_id') or 'unknown-study'}` v4 operations: "
             f"`{study.get('overall_status') or 'unknown'}`；"
-            f"下一步 `{next_action.get('summary') or 'none'}`"
+            f"ops drilldown `{next_action.get('summary') or 'none'}`"
         )
 
 
@@ -114,7 +114,7 @@ def _append_ops_health_studies(lines: list[str], state: Mapping[str, Any]) -> No
         lines.append(
             f"- `{study.get('study_id') or 'unknown-study'}` ops health: "
             f"`{study.get('overall_status') or 'unknown'}`；"
-            f"下一步 `{next_action.get('summary') or 'none'}`"
+            f"ops drilldown `{next_action.get('summary') or 'none'}`"
         )
 
 
@@ -184,7 +184,7 @@ def active_item_research_loop_lines(state: object) -> list[str]:
     return [
         "- Medical Paper Research Loop: "
         f"overall_status `{research_loop.get('overall_status') or 'unknown'}`；"
-        f"下一步: {dict(research_loop.get('next_action') or {}).get('summary') or 'none'}；"
+        f"研究循环提示: {dict(research_loop.get('next_action') or {}).get('summary') or 'none'}；"
         "authority contract: projection-only"
     ]
 

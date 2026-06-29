@@ -134,7 +134,7 @@ def _append_study_readiness(lines: list[str], readiness: Mapping[str, Any]) -> N
     lines.append(
         "- Medical Paper Readiness: "
         f"overall_status `{readiness.get('overall_status') or 'unknown'}`；"
-        f"下一步: {next_action.get('summary') or 'none'}；"
+        f"readiness 提示: {next_action.get('summary') or 'none'}；"
         "quality authorization: projection-only"
     )
     action_cards = [card for card in readiness.get("action_cards") or [] if isinstance(card, Mapping)]

@@ -39,7 +39,7 @@ def _append_ai_first_dashboard(lines: list[str], dashboard: Mapping[str, Any]) -
         ("ai_reviewer_workflow_status", "AI reviewer workflow"),
         ("artifact_proof_status", "artifact proof"),
         ("route_back_status", "route-back"),
-        ("next_step", "下一步"),
+        ("next_step", "诊断建议"),
         ("human_judgment", "人工判断"),
         ("feedback_summary", "运行反馈"),
         ("feedback_primary_reason", "反馈原因"),
@@ -97,7 +97,7 @@ def append_ai_first_cross_study_completion(lines: list[str], payload: Mapping[st
             f"观测不足 {maintainer_view.get('insufficient_observability_count', 0)}"
         )
         if user_view.get("primary_next_action"):
-            lines.append(f"- 主下一步: {user_view.get('primary_next_action')}")
+            lines.append(f"- Completion 提示: {user_view.get('primary_next_action')}")
         for study in completion_projection.get("studies") or []:
             if isinstance(study, Mapping):
                 _append_completion_study(lines, study)
@@ -113,7 +113,7 @@ def _append_completion_study(lines: list[str], study: Mapping[str, Any]) -> None
     _append_completion_feedback_line(lines, maintainer)
     _append_completion_artifact_line(lines, maintainer)
     if study_user.get("next_action"):
-        lines.append(f"  下一步: {study_user.get('next_action')}")
+        lines.append(f"  completion 提示: {study_user.get('next_action')}")
 
 
 def _append_completion_feedback_line(lines: list[str], maintainer: Mapping[str, Any]) -> None:
