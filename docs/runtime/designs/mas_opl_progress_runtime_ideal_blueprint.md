@@ -139,7 +139,8 @@ OPL 基座必须把以下能力做成一等 primitive：
 | `study_progress` | 用户默认状态投影。 | 生成下一步或签 owner answer。 |
 | domain diagnostic dry-run | 诊断当前 transition possibility。 | 声明恢复、progress 或 ready。 |
 | domain diagnostic apply | OPL fixed-point runtime consumer / readback wrapper。 | MAS 内部自建 fixed-point apply。 |
-| `current_work_unit` | 当前 aggregate projection。 | 覆盖 event log 或 outbox truth。 |
+| `NextActionEnvelope` | StageOutcome 后唯一 default next action envelope。 | 由 queue、attempt、delivery mirror 或旧 work-unit residue 反推。 |
+| `current_work_unit` | legacy aggregate diagnostic / provenance projection。 | 选择默认下一步、覆盖 NextActionEnvelope / event log / outbox truth。 |
 | `paper_recovery_state` | MAS paper policy result projection。 | 从旧 queue/dispatch residue 选下一步。 |
 | `domain-handler export` | OPL runtime intake projection。 | 直接 transport 成 domain completion。 |
 | Portal / Workbench | cockpit + drilldown。 | 以 UI visible / queue empty 声明 progress。 |
