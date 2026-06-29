@@ -71,20 +71,20 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
     assert payload["progress_projection"]["progress_surface"] == {
         "surface_kind": "study_progress",
         "summary": (
-            "默认读取 study_progress.current_owner_delta、next_action_envelope 和 owner receipt / typed blocker refs。"
+            "默认读取 canonical next_action_envelope，并把 owner receipt / typed blocker refs 作为接管结果；current_owner_delta 仅作诊断下钻。"
         ),
         "command": (
             "uv run python -m med_autoscience.cli study progress --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id> --format json"
         ),
-        "step_id": "inspect_current_owner_delta",
+        "step_id": "inspect_next_action_envelope",
         "locator_fields": ["profile_ref", "study_id"],
     }
     assert payload["progress_projection"]["domain_projection"]["default_read_surface"] == {
         "surface_kind": "study_progress",
-        "field_path": "current_owner_delta",
-        "fallback_field_path": "next_action_envelope",
+        "field_path": "next_action_envelope",
+        "diagnostic_drilldown_field_path": "current_owner_delta",
         "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
         "ordinary_read_priority": 0,
     }
@@ -95,7 +95,7 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
         "queue_counts",
         "legacy_dispatch",
     ]
-    assert diagnostic_audit_plane["must_not_override_current_owner_delta"] is True
+    assert diagnostic_audit_plane["must_not_override_next_action_envelope"] is True
     assert "workbench" in diagnostic_audit_plane["workspace_cockpit_command"]
     assert "study progress" in diagnostic_audit_plane["runtime_status_command"]
     assert "studies/<study_id>/artifacts" in payload["progress_projection"]["inspect_paths"]

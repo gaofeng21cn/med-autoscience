@@ -80,7 +80,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert_manifest_phase_and_readiness_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
 
 
-def test_product_entry_progress_projection_defaults_to_current_owner_delta(monkeypatch, tmp_path: Path) -> None:
+def test_product_entry_progress_projection_defaults_to_next_action_envelope(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -109,12 +109,12 @@ def test_product_entry_progress_projection_defaults_to_current_owner_delta(monke
     progress = payload["progress_projection"]
 
     assert progress["progress_surface"]["surface_kind"] == "study_progress"
-    assert progress["progress_surface"]["step_id"] == "inspect_current_owner_delta"
+    assert progress["progress_surface"]["step_id"] == "inspect_next_action_envelope"
     assert progress["progress_surface"]["locator_fields"] == ["profile_ref", "study_id"]
     assert progress["domain_projection"]["default_read_surface"] == {
         "surface_kind": "study_progress",
-        "field_path": "current_owner_delta",
-        "fallback_field_path": "next_action_envelope",
+        "field_path": "next_action_envelope",
+        "diagnostic_drilldown_field_path": "current_owner_delta",
         "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
         "ordinary_read_priority": 0,
     }
@@ -125,4 +125,4 @@ def test_product_entry_progress_projection_defaults_to_current_owner_delta(monke
         "queue_counts",
         "legacy_dispatch",
     ]
-    assert diagnostic_audit_plane["must_not_override_current_owner_delta"] is True
+    assert diagnostic_audit_plane["must_not_override_next_action_envelope"] is True

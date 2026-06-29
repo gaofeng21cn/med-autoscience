@@ -710,7 +710,8 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "authority": False,
         "can_generate_action": False,
         "can_execute": False,
-        "source_truth_required": "current_owner_delta_or_opl_readback",
+        "source_truth_required": "canonical_next_action_or_paper_mission_readback",
+        "diagnostic_source_refs": ["current_owner_delta", "opl_readback"],
     }
     return compact
 
@@ -785,7 +786,8 @@ def compact_study_runtime_result_for_mcp(payload: dict[str, Any]) -> dict[str, A
             "authority": False,
             "can_generate_action": False,
             "can_execute": False,
-            "source_truth_required": "current_owner_delta_or_opl_readback",
+            "source_truth_required": "canonical_next_action_or_paper_mission_readback",
+            "diagnostic_source_refs": ["current_owner_delta", "opl_readback"],
         }
     return compact
 

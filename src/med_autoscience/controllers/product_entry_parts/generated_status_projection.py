@@ -219,9 +219,9 @@ def _build_progress_projection_surface(
         runtime_status="ready" if bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids else "blocked",
         progress_surface={
             "surface_kind": "study_progress",
-            "summary": "默认读取 study_progress.current_owner_delta、next_action_envelope 和 owner receipt / typed blocker refs。",
+            "summary": "默认读取 canonical next_action_envelope，并把 owner receipt / typed blocker refs 作为接管结果；current_owner_delta 仅作诊断下钻。",
             "command": next_step,
-            "step_id": "inspect_current_owner_delta",
+            "step_id": "inspect_next_action_envelope",
             "locator_fields": ["profile_ref", "study_id"],
         },
         artifact_surface={
@@ -239,8 +239,8 @@ def _build_progress_projection_surface(
             "recommended_progress_command": progress_command,
             "default_read_surface": {
                 "surface_kind": "study_progress",
-                "field_path": "current_owner_delta",
-                "fallback_field_path": "next_action_envelope",
+                "field_path": "next_action_envelope",
+                "diagnostic_drilldown_field_path": "current_owner_delta",
                 "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
                 "ordinary_read_priority": 0,
             },
@@ -248,7 +248,7 @@ def _build_progress_projection_surface(
                 "workspace_cockpit_command": str(operator_loop_surface.get("command") or ""),
                 "runtime_status_command": progress_projection_command,
                 "audit_only_fields": ["raw_worklist", "provider_trace", "queue_counts", "legacy_dispatch"],
-                "must_not_override_current_owner_delta": True,
+                "must_not_override_next_action_envelope": True,
             },
             "research_runtime_control_projection": _build_research_runtime_control_projection(
                 resume_command=str((product_entry_shell.get("launch_study") or {}).get("command") or ""),

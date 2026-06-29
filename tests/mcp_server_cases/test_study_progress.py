@@ -288,7 +288,8 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert payload["mcp_projection"]["authority"] is False
     assert payload["mcp_projection"]["can_generate_action"] is False
     assert payload["mcp_projection"]["can_execute"] is False
-    assert payload["mcp_projection"]["source_truth_required"] == "current_owner_delta_or_opl_readback"
+    assert payload["mcp_projection"]["source_truth_required"] == "canonical_next_action_or_paper_mission_readback"
+    assert payload["mcp_projection"]["diagnostic_source_refs"] == ["current_owner_delta", "opl_readback"]
     assert payload["current_blockers"][-1] == "blocker-11"
     assert len(payload["task_intake"]["constraints"]) == 8
     assert "submission_revision_operating_contract" not in payload["task_intake"]
