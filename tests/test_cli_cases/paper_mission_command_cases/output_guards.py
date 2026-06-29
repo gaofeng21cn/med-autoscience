@@ -31,6 +31,12 @@ def test_paper_mission_output_guards_allow_matching_yang_ops_roots(workspace: st
             "ops/medautoscience/paper_mission_consumption_ledger/20260623"
         )
     )
+    commands._assert_safe_receipt_owner_consumption_output_root(
+        Path(
+            f"/Users/gaofeng/workspace/Yang/{workspace}/"
+            "ops/medautoscience/paper_mission_receipt_owner_consumption"
+        )
+    )
 
 
 def test_paper_mission_output_guards_reject_wrong_non_authority_bucket() -> None:

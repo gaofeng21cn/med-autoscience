@@ -137,7 +137,7 @@ def _is_yang_ops_root(path: str | Path | None, relpath: Path) -> bool:
     except ValueError:
         return False
     parts = relative.parts
-    if len(parts) < len(relpath.parts) + 2:
+    if len(parts) < len(relpath.parts) + 1:
         return False
     return Path(*parts[1 : 1 + len(relpath.parts)]) == relpath
 
