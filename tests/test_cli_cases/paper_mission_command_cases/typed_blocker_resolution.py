@@ -141,3 +141,106 @@ def test_typed_blocker_resolution_fails_closed_without_consumed_receipt(
         "receipt_owner_consumption_readback"
     ]
 
+
+def test_typed_blocker_resolution_route_redesign_writes_non_authority_packet(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    output_root = (
+        tmp_path / "ops" / "medautoscience" / "paper_mission_typed_blocker_resolution"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="submission_ready_package",
+                can_submit=True,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    manifest = payload["output_manifest"]
+    packet = json.loads(Path(manifest["packet_ref"]).read_text(encoding="utf-8"))
+    owner_decision = json.loads(
+        Path(manifest["owner_decision_packet_ref"]).read_text(encoding="utf-8")
+    )
+    successor = json.loads(
+        Path(manifest["successor_work_unit_ref"]).read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_route_redesign_applied"
+    assert payload["apply_mode"] == "route_redesign"
+    assert payload["authority_materialized"] is True
+    assert payload["submission_ready_claim_authorized"] is False
+    assert manifest["writes_yang_authority"] is False
+    assert owner_decision["authority_boundary"]["writes_owner_receipt"] is False
+    assert owner_decision["authority_boundary"]["writes_human_gate"] is False
+    assert successor["work_unit_id"] == "submission_authority_owner_verdict"
+    assert packet["status"] == "owner_route_redesign_applied"
+
+
+def test_typed_blocker_resolution_owner_decision_mode_fails_closed(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="submission_ready_package",
+                can_submit=True,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-owner-decision",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "blocked_apply_mode_not_implemented"
+    assert payload["requested_apply_mode"] == "owner_decision"
+    assert payload["implemented_apply_modes"] == ["route_redesign"]
+    assert payload["authority_materialized"] is False

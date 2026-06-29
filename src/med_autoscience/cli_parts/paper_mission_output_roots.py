@@ -18,6 +18,9 @@ PAPER_MISSION_STAGE_CLOSURE_RELPATH = (
 PAPER_MISSION_RECEIPT_OWNER_CONSUMPTION_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_receipt_owner_consumption"
 )
+PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH = (
+    Path("ops") / "medautoscience" / "paper_mission_typed_blocker_resolution"
+)
 
 
 def _assert_safe_candidate_output_root(path: Path) -> None:
@@ -62,6 +65,13 @@ def _assert_safe_receipt_owner_consumption_output_root(path: Path) -> None:
     )
 
 
+def _assert_safe_typed_blocker_resolution_output_root(path: Path) -> None:
+    _assert_safe_non_authority_output_root(
+        path,
+        allowed_yang_relpath=PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH,
+    )
+
+
 def _assert_safe_non_authority_output_root(
     path: Path,
     *,
@@ -94,6 +104,11 @@ def _assert_safe_non_authority_output_root(
     ):
         raise ValueError(f"forbidden paper mission output root: {path}")
     for forbidden in forbidden_parts:
+        if (
+            forbidden == "typed_blocker"
+            and allowed_yang_relpath == PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH
+        ):
+            continue
         if forbidden in normalized:
             raise ValueError(f"forbidden paper mission output root: {path}")
 
@@ -113,6 +128,7 @@ def _is_yang_ops_non_authority_candidate_root(path: str | Path | None) -> bool:
         or _is_yang_ops_consumption_ledger_root(path)
         or _is_yang_ops_stage_closure_root(path)
         or _is_yang_ops_receipt_owner_consumption_root(path)
+        or _is_yang_ops_typed_blocker_resolution_root(path)
     )
 
 
@@ -126,6 +142,10 @@ def _is_yang_ops_stage_closure_root(path: str | Path | None) -> bool:
 
 def _is_yang_ops_receipt_owner_consumption_root(path: str | Path | None) -> bool:
     return _is_yang_ops_root(path, PAPER_MISSION_RECEIPT_OWNER_CONSUMPTION_RELPATH)
+
+
+def _is_yang_ops_typed_blocker_resolution_root(path: str | Path | None) -> bool:
+    return _is_yang_ops_root(path, PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH)
 
 
 def _is_yang_ops_root(path: str | Path | None, relpath: Path) -> bool:

@@ -56,6 +56,7 @@ from med_autoscience.cli_parts.paper_mission_output_roots import (
     PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH,
     PAPER_MISSION_RECEIPT_OWNER_CONSUMPTION_RELPATH,
     PAPER_MISSION_STAGE_CLOSURE_RELPATH,
+    PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH,
     YANG_WORKSPACE_ROOT,
     _assert_safe_candidate_output_root,
     _assert_safe_candidate_package_output_root,
@@ -63,6 +64,7 @@ from med_autoscience.cli_parts.paper_mission_output_roots import (
     _assert_safe_one_shot_output_root,
     _assert_safe_receipt_owner_consumption_output_root,
     _assert_safe_stage_closure_output_root,
+    _assert_safe_typed_blocker_resolution_output_root,
     _is_yang_ops_candidate_package_root,
     _is_yang_ops_candidate_root,
     _is_yang_ops_consumption_ledger_root,
@@ -99,6 +101,7 @@ from med_autoscience.controllers.paper_mission_receipt_owner_consumption import 
 )
 from med_autoscience.controllers.paper_mission_typed_blocker_resolution import (
     diagnose_typed_blocker_resolution_gap,
+    materialize_typed_blocker_resolution,
 )
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
@@ -272,6 +275,11 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     typed_resolution_parser = mission_subparsers.add_parser("typed-blocker-resolution")
     _add_common_args(typed_resolution_parser)
     typed_resolution_parser.add_argument("--paper-mission-readback-file", required=True)
+    typed_resolution_parser.add_argument("--output-root")
+    typed_resolution_apply = typed_resolution_parser.add_mutually_exclusive_group()
+    typed_resolution_apply.add_argument("--apply-owner-decision", action="store_true")
+    typed_resolution_apply.add_argument("--apply-human-gate", action="store_true")
+    typed_resolution_apply.add_argument("--apply-route-redesign", action="store_true")
 
 
 def handle_paper_mission_command(
@@ -314,6 +322,15 @@ def handle_paper_mission_command(
         receipt_apply_route_checkpoint=bool(
             getattr(args, "apply_route_checkpoint", False)
         ),
+        typed_resolution_apply_owner_decision=bool(
+            getattr(args, "apply_owner_decision", False)
+        ),
+        typed_resolution_apply_human_gate=bool(
+            getattr(args, "apply_human_gate", False)
+        ),
+        typed_resolution_apply_route_redesign=bool(
+            getattr(args, "apply_route_redesign", False)
+        ),
         dry_run=bool(getattr(args, "dry_run", False)),
         source="cli",
         enable_opl_live_probe=bool(
@@ -344,6 +361,9 @@ def build_paper_mission_readback(
     paper_mission_readback_file: str | Path | None = None,
     receipt_apply_typed_blocker: bool = False,
     receipt_apply_route_checkpoint: bool = False,
+    typed_resolution_apply_owner_decision: bool = False,
+    typed_resolution_apply_human_gate: bool = False,
+    typed_resolution_apply_route_redesign: bool = False,
     dry_run: bool = False,
     source: str = "unknown",
     enable_opl_live_probe: bool = False,
@@ -402,9 +422,16 @@ def build_paper_mission_readback(
         )
     if paper_mission_command == "typed-blocker-resolution":
         return _build_typed_blocker_resolution_readback(
+            profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
             paper_mission_readback_file=paper_mission_readback_file,
+            output_root=output_root,
+            apply_mode=_typed_blocker_resolution_apply_mode(
+                apply_owner_decision=typed_resolution_apply_owner_decision,
+                apply_human_gate=typed_resolution_apply_human_gate,
+                apply_route_redesign=typed_resolution_apply_route_redesign,
+            ),
             source=source,
         )
     if paper_mission_command in {"inspect", "start", "resume"}:
@@ -1488,9 +1515,12 @@ def _build_receipt_owner_consumption_readback(
 
 def _build_typed_blocker_resolution_readback(
     *,
+    profile: Any,
     profile_ref: str | Path,
     study_id: str,
     paper_mission_readback_file: str | Path | None,
+    output_root: str | Path | None,
+    apply_mode: str | None,
     source: str,
 ) -> dict[str, Any]:
     if paper_mission_readback_file is None:
@@ -1504,10 +1534,29 @@ def _build_typed_blocker_resolution_readback(
             "authority_materialized": False,
         }
     readback = _load_json_object(Path(paper_mission_readback_file))
-    return diagnose_typed_blocker_resolution_gap(
+    resolved_output_root = None
+    if output_root is not None:
+        resolved_output_root = Path(output_root).expanduser().resolve()
+        _assert_safe_typed_blocker_resolution_output_root(resolved_output_root)
+    elif apply_mode is not None:
+        resolved_output_root = _typed_blocker_resolution_output_root(
+            profile=profile,
+            output_root=None,
+        )
+        _assert_safe_typed_blocker_resolution_output_root(resolved_output_root)
+    if output_root is None and apply_mode is None:
+        return diagnose_typed_blocker_resolution_gap(
+            paper_mission_readback=readback,
+            study_id=study_id,
+            profile_ref=str(profile_ref),
+            source=source,
+        )
+    return materialize_typed_blocker_resolution(
         paper_mission_readback=readback,
         study_id=study_id,
         profile_ref=str(profile_ref),
+        output_root=resolved_output_root,
+        apply_mode=apply_mode,
         source=source,
     )
 
@@ -1524,6 +1573,21 @@ def _receipt_owner_consumption_apply_mode(
     return None
 
 
+def _typed_blocker_resolution_apply_mode(
+    *,
+    apply_owner_decision: bool,
+    apply_human_gate: bool,
+    apply_route_redesign: bool,
+) -> str | None:
+    if apply_owner_decision:
+        return "owner_decision"
+    if apply_human_gate:
+        return "human_gate"
+    if apply_route_redesign:
+        return "route_redesign"
+    return None
+
+
 def _receipt_owner_consumption_output_root(
     *,
     profile: Any,
@@ -1533,6 +1597,17 @@ def _receipt_owner_consumption_output_root(
         return Path(output_root).expanduser().resolve()
     workspace_root = Path(profile.workspace_root).expanduser().resolve()
     return workspace_root / PAPER_MISSION_RECEIPT_OWNER_CONSUMPTION_RELPATH
+
+
+def _typed_blocker_resolution_output_root(
+    *,
+    profile: Any,
+    output_root: str | Path | None,
+) -> Path:
+    if output_root is not None:
+        return Path(output_root).expanduser().resolve()
+    workspace_root = Path(profile.workspace_root).expanduser().resolve()
+    return workspace_root / PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH
 
 
 def _stage_closure_terminalizer_output_root(
