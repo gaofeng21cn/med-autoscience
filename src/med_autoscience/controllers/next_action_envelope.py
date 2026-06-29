@@ -268,11 +268,19 @@ def resolve_action_family(
 
 def _owner_receipt_is_submission_ready_terminal(outcome: Mapping[str, Any]) -> bool:
     quality_gate_status = _text(outcome.get("quality_gate_status"))
+    package_status = _first_text(
+        (outcome,),
+        ("freshness", "status", "freshness_status", "delivery_status"),
+    )
     blockers = _text_items(outcome.get("known_blockers"))
     return (
         _text(outcome.get("package_kind")) == "submission_ready_package"
+        and package_status in {"current", "fresh", "synced"}
         and outcome.get("can_submit") is True
         and quality_gate_status in {"clear", "passed", "cleared"}
+        and outcome.get("generated_from_current_source") is True
+        and _text(outcome.get("root")) is not None
+        and outcome.get("zip_exists") is True
         and not blockers
     )
 

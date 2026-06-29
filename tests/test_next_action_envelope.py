@@ -271,8 +271,12 @@ def test_submission_ready_owner_receipt_compiles_to_mission_complete() -> None:
         stage_outcome={
             "kind": "owner_receipt",
             "package_kind": "submission_ready_package",
+            "freshness": "current",
             "can_submit": True,
             "quality_gate_status": "clear",
+            "generated_from_current_source": True,
+            "root": "/tmp/study/manuscript/current_package",
+            "zip_exists": True,
             "known_blockers": [],
             "work_unit_id": "submission_ready_package",
             "decision_signature": "sig-submission-ready",
@@ -294,6 +298,23 @@ def test_bare_owner_receipt_does_not_compile_to_mission_complete() -> None:
         stage_outcome={
             "kind": "owner_receipt",
             "work_unit_id": "owner_receipt_materialization",
+        },
+    )
+
+    assert envelope["action_family"] != FAMILY_MISSION_COMPLETE
+
+
+def test_owner_receipt_without_current_package_proof_does_not_compile_to_mission_complete() -> None:
+    envelope = compile_next_action_envelope(
+        study_id="003",
+        stage_id="submission_milestone_candidate",
+        stage_outcome={
+            "kind": "owner_receipt",
+            "package_kind": "submission_ready_package",
+            "can_submit": True,
+            "quality_gate_status": "clear",
+            "known_blockers": [],
+            "work_unit_id": "submission_ready_package",
         },
     )
 

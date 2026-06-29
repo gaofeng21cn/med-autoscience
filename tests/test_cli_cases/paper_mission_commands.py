@@ -208,7 +208,11 @@ def test_paper_mission_terminalize_stage_materializes_non_authority_decision(
     )
     initial = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    assert initial["stage_closure_outcome"] == "stage_closure_decision_missing"
+    assert initial["stage_closure_outcome"] == "next_stage_transition"
+    assert initial["stage_closure_decision_ref"] is None
+    assert initial["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
     assert initial["durable_mission_stop_guard"][
         "accepted_submission_milestone_candidate_is_durable_stop"
     ] is False
@@ -649,6 +653,40 @@ def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() ->
     assert decision["opl_closeout"]["cost"]["missing_cost_reason"] == (
         "stage_closeout_status_missing::cost_not_recorded"
     )
+
+
+def test_durable_stop_guard_rejects_non_terminal_next_stage_transitions() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    for transition_kind in (
+        "current_package_mirror_sync",
+        "route_back_candidate_checkpoint",
+        "bounded_quality_repair_iteration",
+    ):
+        guard = commands._durable_mission_stop_guard(
+            consume_candidate_status="stage_closure_observed",
+            stage_closure_decision={
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": transition_kind,
+                }
+            },
+        )
+
+        assert guard["durable_stop_allowed"] is False
+
+    degraded_guard = commands._durable_mission_stop_guard(
+        consume_candidate_status="stage_closure_observed",
+        stage_closure_decision={
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "degraded_handoff",
+            }
+        },
+    )
+    assert degraded_guard["durable_stop_allowed"] is True
 
 
 def test_stage_closure_terminalizer_reterminalizes_waiting_opl_closeout_when_terminal_readback_arrives() -> None:

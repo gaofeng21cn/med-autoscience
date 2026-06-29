@@ -273,7 +273,7 @@ OPL runtime receipt 的角色是 transport receipt，只能说明同一 route co
 
 - `current_package` mirror manifest 必须携带 `package_kind=current_package`、`can_submit=false`、`quality_gate_status`、`known_blockers`、`generated_from_current_source=true` 与 `source_signature`；这些字段是 mirror-only overlay，不改变 controller-authorized source manifest，也不参与 stale 判定。
 - `study progress` 顶层必须投影 `current_package`、`repair_budget` 和 `stage_closure`，并保留 nested `paper_mission_run.stage_closure_readback`；调用者不需要把 `accepted_submission_milestone_candidate`、`current_package` 或 `stage_closure_decision` 自行解释成完成态。
-- `paper-mission inspect` 必须输出 `durable_mission_stop_guard`，显式声明 `accepted_submission_milestone_candidate_is_durable_stop=false`，并要求 terminalizer outcome、可交付 package / pre-package artifact、owner receipt / typed blocker / human gate / next-stage transition 才能关闭 durable mission。
+- `paper-mission inspect` 必须输出 `durable_mission_stop_guard`，显式声明 `accepted_submission_milestone_candidate_is_durable_stop=false`，并要求 terminalizer outcome、可交付 package / pre-package artifact、owner receipt / typed blocker / human gate / terminal next-stage transition 才能关闭 durable mission。`current_package_mirror_sync`、`route_back_candidate_checkpoint` 和 `bounded_quality_repair_iteration` 是继续推进动作，不是 durable stop。
 - `quality_repair_batch` / `gate_clearing_batch` followthrough 若已有预算字段，必须投影为 `repair_budget_max`、`repair_attempt_count`、`repair_budget_status`、`on_exhausted=degraded_handoff`；缺字段只显示缺失，不猜测预算。
 - 本段只定义 repo 功能面与 fixture/local readback 验收；DM002 / DM003 live `delivery-inspect`、`study progress`、`paper-mission inspect` acceptance 属于 Phase B，不能由 focused tests、docs 或 contracts 代替。
 

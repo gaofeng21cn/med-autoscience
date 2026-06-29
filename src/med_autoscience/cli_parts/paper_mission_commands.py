@@ -1415,6 +1415,8 @@ def _stage_closure_decision_requires_reterminalize(
     observability_gaps = _text_list(decision.get("observability_gaps"))
     if _current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
+    if decision.get("source_surface_kind") == "paper_mission_stage_closure_ledger":
+        return False
     if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_live_readback":
         return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
@@ -1636,6 +1638,7 @@ def _stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, A
             "bundle_build_allowed": output.get("bundle_build_allowed"),
             "root": current_package.get("root"),
             "zip_path": current_package.get("zip_path"),
+            "zip_exists": current_package.get("zip_exists"),
         }
     )
 
@@ -6019,26 +6022,41 @@ def _durable_mission_stop_guard(
     decision = _mapping(stage_closure_decision)
     outcome = _mapping(decision.get("outcome"))
     status = str(consume_candidate_status or "").strip()
+    outcome_kind = str(outcome.get("kind") or "").strip()
+    transition_kind = str(outcome.get("transition_kind") or "").strip()
     checkpoint_only = {
         "accepted_submission_milestone_candidate",
         "accepted_candidate",
         "candidate_ready_for_consumption",
         "route_back",
     }
+    non_terminal_next_stage_transitions = {
+        "bounded_quality_repair_iteration",
+        "current_package_mirror_sync",
+        "route_back_candidate_checkpoint",
+    }
+    terminal_next_stage_transitions = {"degraded_handoff"}
+    terminal_outcome_allowed = outcome_kind in {
+        "typed_blocker",
+        "human_gate",
+        "owner_receipt",
+    } or (
+        outcome_kind == "next_stage_transition"
+        and transition_kind in terminal_next_stage_transitions
+    )
     return {
         "surface_kind": "paper_mission_durable_stop_guard",
         "accepted_submission_milestone_candidate_is_durable_stop": False,
         "checkpoint_only_statuses": sorted(checkpoint_only),
         "observed_consume_candidate_status": status or None,
-        "observed_stage_closure_outcome": outcome.get("kind"),
+        "observed_stage_closure_outcome": outcome_kind or None,
+        "observed_next_stage_transition": transition_kind or None,
+        "non_terminal_next_stage_transitions": sorted(non_terminal_next_stage_transitions),
+        "terminal_next_stage_transitions": sorted(terminal_next_stage_transitions),
         "requires_terminalizer_outcome": True,
         "requires_submission_or_presubmission_deliverable": True,
         "requires_owner_receipt_or_human_gate_or_typed_blocker": True,
-        "durable_stop_allowed": (
-            status not in checkpoint_only
-            and str(outcome.get("kind") or "").strip()
-            in {"owner_receipt", "typed_blocker", "human_gate", "next_stage_transition"}
-        ),
+        "durable_stop_allowed": status not in checkpoint_only and terminal_outcome_allowed,
     }
 
 
