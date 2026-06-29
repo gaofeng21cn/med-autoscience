@@ -832,6 +832,7 @@ def _study_projection(
             if key != "current_executable_owner_action"
         },
         "runtime_health": runtime_health,
+        "legacy_execution_projection_boundary": current_owner_action_identity.legacy_execution_projection_boundary(),
         "current_work_unit": current_work_unit_payload,
         "current_executable_owner_action": current_executable_owner_action or None,
         "current_execution_envelope": execution_envelope,

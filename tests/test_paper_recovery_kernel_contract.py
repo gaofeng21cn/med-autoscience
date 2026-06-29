@@ -45,12 +45,17 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
     assert contract["owner"] == "MedAutoScience"
     assert contract["state"] == "active_contract"
     assert contract["machine_boundary"].startswith("This contract defines PaperRecovery")
+    assert "not default next-action authority" in contract["machine_boundary"]
+    assert "cannot generate or replace a NextActionEnvelope" in contract["machine_boundary"]
 
     metadata = contract["metadata"]
     assert metadata["schema_name"] == "PaperRecovery"
     assert metadata["state_surface"] == "paper_recovery_state"
     assert metadata["canonical_id_field"] == "recovery_obligation_id"
     assert metadata["canonical_state_owner"] == "MedAutoScience"
+    assert metadata["default_next_action_authority"] is False
+    assert metadata["next_action_authority"] == "NextActionEnvelope"
+    assert metadata["diagnostic_role"] == "recovery_obligation_provenance_only"
     assert metadata["execution_substrate_owner"] == "OPL Framework"
     assert {
         "study_progress",
@@ -68,7 +73,7 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
 
     authority = contract["authority_boundaries"]
     assert {
-        "PaperRecovery schema and paper_recovery_state truth",
+        "PaperRecovery recovery obligation and paper_recovery_state diagnostic truth",
         "recovery_obligation_id selection",
         "current owner delta",
         "owner receipt",
@@ -107,12 +112,16 @@ def test_paper_recovery_kernel_declares_schema_and_authority_boundary() -> None:
         "opl_can_emit_mas_owner_receipt": False,
         "opl_can_authorize_publication_ready": False,
         "opl_can_adopt_manual_foreground_output": False,
+        "paper_recovery_can_generate_next_action": False,
+        "paper_recovery_can_replace_next_action_envelope": False,
         "provider_completion_is_paper_recovery_acceptance": False,
         "transport_status_can_create_current_obligation": False,
         "operator_card_can_be_source_of_truth": False,
     }
     assert {
         "OPL execution substrate owns PaperRecovery",
+        "PaperRecovery is default next-action authority",
+        "paper_recovery_state can generate or replace NextActionEnvelope",
         "study_progress derives paper recovery independently from PaperRecovery",
         "domain diagnostic observe_only alone creates pending recovery execution",
         "operator card status is recovery truth",

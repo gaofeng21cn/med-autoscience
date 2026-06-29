@@ -6,6 +6,22 @@ from typing import Any
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
+def legacy_execution_projection_boundary() -> dict[str, Any]:
+    return {
+        "surface_kind": "legacy_execution_projection_boundary",
+        "status": "diagnostic_only",
+        "authority": "NextActionEnvelope",
+        "next_action_authority": False,
+        "reason": "legacy_current_work_unit_and_current_executable_owner_action_retired_use_next_action_envelope",
+        "legacy_surfaces": [
+            "current_work_unit",
+            "current_executable_owner_action",
+            "current_execution_envelope",
+            "current_execution_evidence",
+        ],
+    }
+
+
 def current_executable_owner_action_identity_from_study(
     *,
     study: Mapping[str, Any],
@@ -60,7 +76,9 @@ def current_work_unit_owner_action_identity(current_work_unit: Mapping[str, Any]
         if item is not None
     ]
     return {
-        "source": "canonical_current_work_unit",
+        "source": "legacy_current_work_unit_diagnostic",
+        "diagnostic_only": True,
+        "next_action_authority": False,
         "next_owner": _text(current_work_unit.get("owner")),
         "action_ids": [item for item in (action_type, work_unit_id) if item is not None],
         "action_type": action_type,
@@ -80,7 +98,9 @@ def current_execution_envelope_owner_action_identity(
         return {}
     work_unit_id = _text(envelope.get("next_work_unit"))
     identity = {
-        "source": "current_execution_envelope",
+        "source": "legacy_current_execution_envelope_diagnostic",
+        "diagnostic_only": True,
+        "next_action_authority": False,
         "next_owner": _text(envelope.get("owner")),
         "action_ids": [],
         "work_unit_id": work_unit_id,
@@ -101,6 +121,8 @@ def current_execution_envelope_owner_action_identity(
     ]
     return {
         **identity,
+        "diagnostic_only": True,
+        "next_action_authority": False,
         "action_type": _text(fallback_identity.get("action_type")),
         "action_ids": _text_items(fallback_identity.get("action_ids")),
         "work_unit_fingerprint": _text(fallback_identity.get("work_unit_fingerprint")),
@@ -172,8 +194,12 @@ def current_executable_owner_action_from_current_work_unit(
     return {
         "surface_kind": "current_executable_owner_action",
         "schema_version": 1,
-        "status": "ready",
-        "source": "canonical_current_work_unit",
+        "status": "diagnostic_only",
+        "source": "legacy_current_work_unit_diagnostic",
+        "diagnostic_only": True,
+        "next_action_authority": False,
+        "authority": "NextActionEnvelope",
+        "retired_reason": "legacy_current_work_unit_retired_use_next_action_envelope",
         "next_owner": owner,
         "work_unit_id": work_unit_id,
         "action_type": action_type,
@@ -185,6 +211,9 @@ def current_executable_owner_action_from_current_work_unit(
         "source_ref": current_work_unit_source_ref(payload),
         "authority_boundary": {
             "refs_only": True,
+            "diagnostic_only": True,
+            "next_action_authority": False,
+            "authority": "NextActionEnvelope",
             "source_current_work_unit": True,
             "can_write_runtime_owned_surfaces": False,
             "can_write_paper_or_package": False,
@@ -262,6 +291,7 @@ __all__ = [
     "current_executable_owner_action_from_current_work_unit",
     "current_executable_owner_action_identity",
     "current_executable_owner_action_identity_from_study",
+    "legacy_execution_projection_boundary",
     "current_execution_envelope_owner_action_identity",
     "current_work_unit_owner_action_identity",
     "current_work_unit_source_ref",

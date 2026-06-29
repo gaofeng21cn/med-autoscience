@@ -13,7 +13,7 @@ The YAML route contract selects stages and route families. It does not authorize
 
 ## Currentness Conformance Invariants
 
-The single governed execution chain is:
+Legacy diagnostic execution chain, superseded for default next-action authority by `StageOutcome -> NextActionEnvelope`:
 
 ```mermaid
 flowchart LR
@@ -26,7 +26,8 @@ flowchart LR
   G --> H["next_current_owner_delta"]
 ```
 
-- only_chain: current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> OPLStageRun -> terminal_closeout -> MAS_closeout_consume_or_reject -> next_current_owner_delta
+- diagnostic_chain_only: current_owner_delta -> current_work_unit -> current_execution_envelope -> provider_admission_current_control -> OPLStageRun -> terminal_closeout -> MAS_closeout_consume_or_reject -> next_current_owner_delta
+- default_next_action_authority: StageOutcome -> NextActionEnvelope
 - forbidden_domain_authority_sources: queue_entry | queue_empty | active_run_id | transport_status | trace_span_ref | lineage_ref | read_model_projection | stale_persisted_dispatch | old_route_back_packet | provider_completion
 - false_authority_violation_effect: diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission
 - stage_packet_blocker: stage_packet_not_current_selected_dispatch; owner: one-person-lab; same_work_unit_redrive_allowed: false
@@ -264,7 +265,7 @@ flowchart LR
 
 ## Stage-route Reconcile And Currentness Boundary
 - reconcile_contract: `contracts/stage_route_reconcile_contract.json`; source_design_ref: `docs/runtime/designs/stage_route_reconcile_target.md`.
-- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; it must match the canonical current work-unit identity, dispatch ref, route identity, attempt idempotency key, and strong owner-route currentness basis.
+- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; legacy current-work-unit refs are diagnostic only and cannot replace the canonical `StageOutcome -> NextActionEnvelope` identity.
 - current_control_action_can_self_authorize: false
 - typed_blocker_can_self_authorize_owner_action: false
 - provider_admission_projection_shape: provider_admission_pending_count=0, provider_admission_candidates=[]; empty_semantics=explicit_no_current_provider_admission_candidate_not_missing_projection; candidate_presence_is_not_running_proof=true.

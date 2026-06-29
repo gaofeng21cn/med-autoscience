@@ -3,8 +3,8 @@
   "version": "paper-recovery-kernel.v1",
   "owner": "MedAutoScience",
   "state": "active_contract",
-  "purpose": "Machine-readable contract for the MAS PaperRecovery authority kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary.",
-  "machine_boundary": "This contract defines PaperRecovery authority, obligation state, projection invariants, and replay acceptance. It does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
+  "purpose": "Machine-readable contract for the MAS PaperRecovery diagnostic recovery kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary.",
+  "machine_boundary": "This contract defines PaperRecovery recovery-obligation truth, diagnostic projection invariants, and replay acceptance only. It is not default next-action authority, cannot generate or replace a NextActionEnvelope, and does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
   "source_design_ref": "docs/runtime/control/paper_recovery_replay.md",
   "related_contract_refs": [
     "contracts/stage_route_reconcile_contract.json",
@@ -18,6 +18,9 @@
     "state_surface": "paper_recovery_state",
     "canonical_id_field": "recovery_obligation_id",
     "canonical_state_owner": "MedAutoScience",
+    "default_next_action_authority": false,
+    "next_action_authority": "NextActionEnvelope",
+    "diagnostic_role": "recovery_obligation_provenance_only",
     "execution_substrate_owner": "OPL Framework",
     "projection_consumers": [
       "study_progress",
@@ -136,7 +139,7 @@
             "successor_action_identity_complete"
           ],
           "effect": "owner_action_ready",
-          "reason": "verified successor owner action is the current PaperRecovery authority and must not be swallowed by stale provider-admission residue"
+          "reason": "verified successor owner action is the current PaperRecovery recovery diagnostic and must not be swallowed by stale provider-admission residue"
         },
         {
           "name": "terminal_without_consume_or_reject",
@@ -432,7 +435,7 @@
   },
   "authority_boundaries": {
     "mas_authority": [
-      "PaperRecovery schema and paper_recovery_state truth",
+      "PaperRecovery recovery obligation and paper_recovery_state diagnostic truth",
       "recovery_obligation_id selection",
       "current owner delta",
       "owner receipt",
@@ -469,12 +472,16 @@
       "opl_can_emit_mas_owner_receipt": false,
       "opl_can_authorize_publication_ready": false,
       "opl_can_adopt_manual_foreground_output": false,
+      "paper_recovery_can_generate_next_action": false,
+      "paper_recovery_can_replace_next_action_envelope": false,
       "provider_completion_is_paper_recovery_acceptance": false,
       "transport_status_can_create_current_obligation": false,
       "operator_card_can_be_source_of_truth": false
     },
     "forbidden_authority_claims": [
       "OPL execution substrate owns PaperRecovery",
+      "PaperRecovery is default next-action authority",
+      "paper_recovery_state can generate or replace NextActionEnvelope",
       "study_progress derives paper recovery independently from PaperRecovery",
       "domain diagnostic observe_only alone creates pending recovery execution",
       "operator card status is recovery truth",

@@ -745,7 +745,7 @@ def _paper_recovery_lane_title(phase: str) -> str:
         "owner_receipt_recorded": "PaperRecovery owner receipt recorded",
         "domain_blocked": "PaperRecovery owner blocker",
         "human_gate": "PaperRecovery human gate",
-    }.get(phase, "PaperRecovery authority")
+    }.get(phase, "PaperRecovery recovery diagnostic")
 
 
 def _paper_recovery_lane_severity(phase: str) -> str:
@@ -777,11 +777,14 @@ def paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -
     kind = _non_empty_text(next_safe_action.get("kind"))
     if kind == "run_mas_owner_callable":
         owner = _non_empty_text(next_safe_action.get("owner")) or "MAS"
-        return f"Run the current MAS owner callable for {owner}; OPL transport retry exhaustion does not own this action."
+        return (
+            f"Route the PaperRecovery diagnostic to the MAS owner callable for {owner}; "
+            "OPL transport retry exhaustion does not create next-action authority."
+        )
     if kind == "authorize_opl_transport_recovery_or_stable_typed_blocker":
         return "Authorize OPL transport recovery for the identity-bound provider attempt or record a stable typed blocker."
     if phase == "admission_blocked":
-        return "Provider admission is blocked by the current PaperRecovery authority action."
+        return "Provider admission is blocked by the current PaperRecovery recovery diagnostic action."
     if phase == "projection_inconsistent":
         return "Paper recovery projection is inconsistent; repair the MAS recovery state before admission."
     if phase == "manual_foreground_unadopted":

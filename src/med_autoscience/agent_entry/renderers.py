@@ -160,7 +160,7 @@ def render_stage_route_contract_guide() -> str:
             "",
             "## Stage-route Reconcile And Currentness Boundary",
             f"- reconcile_contract: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`; source_design_ref: `{reconcile_contract.get('source_design_ref')}`.",
-            "- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; it must match the canonical current work-unit identity, dispatch ref, route identity, attempt idempotency key, and strong owner-route currentness basis.",
+            "- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; legacy current-work-unit refs are diagnostic only and cannot replace the canonical `StageOutcome -> NextActionEnvelope` identity.",
             f"- current_control_action_can_self_authorize: {_render_json_scalar(carrier_identity_policy.get('current_control_action_can_self_authorize'))}",
             f"- typed_blocker_can_self_authorize_owner_action: {_render_json_scalar(dispatch_authority_policy.get('typed_blocker_can_self_authorize_owner_action'))}",
             "- provider_admission_projection_shape: "
@@ -287,7 +287,7 @@ def _render_stage_route_conformance_invariants(conformance: dict[str, object]) -
         "",
         "## Currentness Conformance Invariants",
         "",
-        "The single governed execution chain is:",
+        "Legacy diagnostic execution chain, superseded for default next-action authority by `StageOutcome -> NextActionEnvelope`:",
         "",
         "```mermaid",
         "flowchart LR",
@@ -300,7 +300,8 @@ def _render_stage_route_conformance_invariants(conformance: dict[str, object]) -
         '  G --> H["next_current_owner_delta"]',
         "```",
         "",
-        "- only_chain: " + " -> ".join(chain),
+        "- diagnostic_chain_only: " + " -> ".join(chain),
+        "- default_next_action_authority: StageOutcome -> NextActionEnvelope",
         "- forbidden_domain_authority_sources: " + " | ".join(forbidden_sources),
         f"- false_authority_violation_effect: {false_authority.get('violation_effect')}",
         f"- stage_packet_blocker: {selected_dispatch.get('blocker')}; owner: {selected_dispatch.get('owner')}; "
