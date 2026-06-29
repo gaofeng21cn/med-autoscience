@@ -17,6 +17,7 @@ from tests.test_cli_cases.paper_mission_command_cases.domain_handler_dispatch im
 from tests.test_cli_cases.paper_mission_command_cases.materialized_readback import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.receipt_owner_consumption import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.submission_milestone_candidate_package import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_cases.typed_blocker_resolution import *  # noqa: F401,F403
 
 
 FORBIDDEN_AUTHORITY_RELATIVE_PATHS = (
@@ -50,6 +51,7 @@ def test_paper_mission_help_exposes_default_commands(capsys) -> None:
         "receipt-owner-consumption",
         "drive",
         "terminalize-stage",
+        "typed-blocker-resolution",
     ):
         assert command in captured.out
 

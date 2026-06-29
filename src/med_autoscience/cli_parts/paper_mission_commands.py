@@ -5686,6 +5686,8 @@ def _action_intent(paper_mission_command: str) -> str:
         return "paper_mission/drive"
     if paper_mission_command == "terminalize-stage":
         return "paper_mission/terminalize_stage"
+    if paper_mission_command == "typed-blocker-resolution":
+        return "paper_mission/typed_blocker_resolution"
     return "paper_mission/inspect"
 
 
