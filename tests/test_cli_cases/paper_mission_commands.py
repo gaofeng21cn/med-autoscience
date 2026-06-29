@@ -244,7 +244,10 @@ def test_paper_mission_terminalize_stage_materializes_non_authority_decision(
     assert terminalized["surface_kind"] == (
         "paper_mission_stage_closure_terminalizer_readback"
     )
-    assert terminalized["status"] == "terminalizer_outcome_materialized"
+    assert terminalized["status"] in {
+        "terminalizer_outcome_materialized",
+        "legacy_terminalizer_outcome_superseded",
+    }
     assert terminalized["stage_closure_outcome"] in {
         "next_stage_transition",
         "typed_blocker",
@@ -457,6 +460,49 @@ def test_stage_closure_terminalizer_reads_nested_closeout_telemetry() -> None:
 
     assert "observability_gaps" not in decision
     assert decision["opl_closeout"]["stage_attempt_id"] == "sat-003"
+
+
+def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    decision = commands._terminalize_stage_closure_from_readback(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "mission_id": "mission-002",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": {
+                "transaction_id": "txn-002",
+                "stage_id": "submission_milestone_candidate",
+            },
+            "stage_terminal_decision": {
+                "status": "accepted_submission_milestone_candidate",
+                "reason": "paper_mission_stage_route_domain_gate_pending",
+            },
+            "stage_closure_decision": {
+                "decision_signature": "legacy-signature-before-blocker-normalization",
+                "outcome": {"transition_kind": "route_back_candidate_checkpoint"},
+                "observability_gaps": [
+                    "duration_ms_missing",
+                    "token_usage_missing",
+                    "cost_usd_missing",
+                ],
+            },
+        }
+    )
+
+    assert decision["repeated_without_semantic_delta"] is True
+    assert decision["outcome"]["kind"] == "typed_blocker"
+    assert (
+        decision["outcome"]["blocker_type"]
+        == "route_back_checkpoint_without_semantic_delta"
+    )
+    assert decision["observability_gaps"] == [
+        "duration_missing",
+        "token_usage_missing",
+        "cost_missing",
+    ]
 
 
 def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: Path) -> None:
