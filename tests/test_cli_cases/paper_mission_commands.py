@@ -737,6 +737,42 @@ def test_stage_closure_terminalizer_reterminalizes_waiting_opl_closeout_when_ter
     assert decision["opl_closeout"]["stage_attempt_id"] == "sat-002-terminal"
 
 
+def test_stage_closure_terminalizer_keeps_receipt_owner_consumed_typed_blocker() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    receipt_owner_decision = {
+        "surface_kind": "mas_stage_closure_decision",
+        "authority_materialized": True,
+        "counts_as_typed_blocker": True,
+        "authority_boundary": {
+            "surface_role": "paper_mission_receipt_owner_consumption",
+        },
+        "outcome": {
+            "kind": "typed_blocker",
+            "blocker_type": "paper_mission_stage_route_domain_gate_pending",
+        },
+    }
+
+    assert (
+        commands._stage_closure_decision_requires_reterminalize(
+            receipt_owner_decision,
+            current_package={
+                "package_kind": "submission_ready_package",
+                "can_submit": True,
+                "quality_gate_status": "clear",
+                "known_blockers": [],
+                "generated_from_current_source": True,
+                "root": "/tmp/current_package",
+                "zip_exists": True,
+                "freshness_status": "current",
+            },
+        )
+        is False
+    )
+
+
 def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: Path) -> None:
     commands = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_commands"

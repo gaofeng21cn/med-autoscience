@@ -1518,6 +1518,14 @@ def _stage_closure_decision_requires_reterminalize(
     outcome = _mapping(decision.get("outcome"))
     opl_closeout = _mapping(decision.get("opl_closeout"))
     observability_gaps = _text_list(decision.get("observability_gaps"))
+    boundary = _mapping(decision.get("authority_boundary"))
+    if (
+        decision.get("authority_materialized") is True
+        and decision.get("counts_as_typed_blocker") is True
+        and boundary.get("surface_role") == "paper_mission_receipt_owner_consumption"
+        and outcome.get("kind") == "typed_blocker"
+    ):
+        return False
     if _current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
     if decision.get("source_surface_kind") == "paper_mission_stage_closure_ledger":
