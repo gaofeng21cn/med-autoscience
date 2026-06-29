@@ -20,6 +20,9 @@ from med_autoscience.paper_mission_run import (
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
+from med_autoscience.paper_mission_opl_readback import (
+    paper_mission_next_action_envelope,
+)
 from med_autoscience.paper_mission_transaction import (
     PaperMissionTransaction,
     build_paper_mission_transaction,
@@ -158,6 +161,26 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         ),
         "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
+        "next_action": paper_mission_next_action_envelope(
+            transaction=effective_transaction,
+            stage_terminal_decision=_mapping(
+                effective_transaction.get("stage_terminal_decision")
+            ),
+            opl_route_command=_mapping(effective_transaction.get("opl_route_command")),
+            opl_runtime_carrier=carrier,
+            opl_route_handoff=_mapping(consumption_ledger_readback.get("opl_route_handoff"))
+            if consumption_ledger_readback
+            else {},
+            diagnostic_refs=[
+                ref
+                for ref in (
+                    _non_empty_text(consumption_ledger_readback.get("source_ref"))
+                    if consumption_ledger_readback
+                    else None,
+                )
+                if ref is not None
+            ],
+        ),
         "opl_transition_receipt": _opl_transition_receipt(),
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
@@ -256,6 +279,8 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
     updated["opl_route_command"] = summary["opl_route_command"]
     updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
+    if summary.get("next_action"):
+        updated["next_action"] = summary["next_action"]
     updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
     updated["transaction_state"] = summary["transaction_state"]
     updated.update(_top_level_stage_closure_projection(updated))

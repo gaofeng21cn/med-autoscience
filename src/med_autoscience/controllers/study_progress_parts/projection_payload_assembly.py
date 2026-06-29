@@ -6,6 +6,9 @@ from typing import Any, Mapping
 import med_autoscience.controllers.autonomy_ai_doctor as autonomy_ai_doctor
 import med_autoscience.controllers.open_auto_research_projection as open_auto_research_projection
 import med_autoscience.controllers.pi_action_projection as pi_action_projection
+from med_autoscience.paper_mission_opl_readback import (
+    paper_mission_next_action_envelope,
+)
 from med_autoscience.controllers.production_blocker_impact_projection import (
     build_production_blocker_impact_projection,
 )
@@ -419,7 +422,49 @@ def assemble_study_progress_payload(
         generated_at=generated_at,
     )
     payload = _sync_supervision_from_user_visible_projection(payload)
-    return attach_artifact_first_mission_summary(payload)
+    payload = attach_artifact_first_mission_summary(payload)
+    return _attach_single_next_action_projection(payload)
+
+
+def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    if _mapping_copy(updated.get("next_action")):
+        return updated
+    handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
+    transaction = _mapping_copy(updated.get("paper_mission_transaction"))
+    summary = _mapping_copy(updated.get("artifact_first_mission_summary"))
+    if not transaction:
+        transaction = _mapping_copy(
+            _mapping_copy(summary.get("paper_mission_run")).get(
+                "paper_mission_transaction"
+            )
+        )
+    envelope = paper_mission_next_action_envelope(
+        transaction=transaction,
+        stage_terminal_decision=_mapping_copy(updated.get("stage_terminal_decision")),
+        opl_route_command=_mapping_copy(updated.get("opl_route_command")),
+        opl_runtime_carrier=_mapping_copy(updated.get("opl_runtime_carrier")),
+        opl_route_handoff=handoff,
+        diagnostic_refs=[
+            ref
+            for ref in (
+                _non_empty_text(
+                    _mapping_copy(updated.get("stage_closure_decision")).get(
+                        "decision_ref"
+                    )
+                ),
+                _non_empty_text(
+                    _mapping_copy(updated.get("stage_native_current_owner_action")).get(
+                        "source_ref"
+                    )
+                ),
+            )
+            if ref is not None
+        ],
+    )
+    if envelope is not None:
+        updated["next_action"] = envelope
+    return updated
 
 
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:

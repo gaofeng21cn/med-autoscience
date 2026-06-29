@@ -47,6 +47,7 @@ from med_autoscience.paper_mission_opl_carrier import (
 )
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
+    attach_paper_mission_next_action,
 )
 from med_autoscience.cli_parts.paper_mission_output_roots import (
     PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
@@ -5434,6 +5435,7 @@ def _paper_mission_transaction_readback(
         enable_opl_live_probe=enable_opl_live_probe,
         opl_bin=opl_bin,
     )
+    readback = attach_paper_mission_next_action(readback)
     terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
     readback["terminal_owner_gate"] = terminal_owner_gate or None
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
@@ -5467,6 +5469,7 @@ def _paper_mission_transaction_readback(
             )
             readback["transaction_state"] = _transaction_state(owner_answer_transaction)
             readback["consume_candidate_status_override"] = "route_back"
+            readback = attach_paper_mission_next_action(readback)
     readback["terminal_owner_gate_authority_readback"] = (
         terminal_gate_authority_readback or None
     )
@@ -5704,6 +5707,11 @@ def _transaction_readback_output_fields(
         ),
         "carry_forward_risk_receipt_ref": transaction_readback.get(
             "carry_forward_risk_receipt_ref"
+        ),
+        **(
+            {"next_action": transaction_readback["next_action"]}
+            if transaction_readback.get("next_action")
+            else {}
         ),
         "next_owner_or_human_decision": transaction_readback[
             "next_owner_or_human_decision"

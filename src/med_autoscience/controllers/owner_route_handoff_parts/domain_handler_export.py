@@ -20,6 +20,7 @@ from med_autoscience.cli_parts.paper_mission_commands import (
     PAPER_MISSION_START_OR_RESUME_TASK_KIND,
     build_paper_mission_readback,
 )
+from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_stage_attempt_carrier_packets
@@ -505,10 +506,18 @@ def _paper_mission_start_or_resume_task(
             workspace_root=profile.workspace_root,
             profile_ref=profile_ref,
         )
+        next_action = paper_mission_next_action_envelope(
+            transaction=mapping(readback.get("paper_mission_transaction")),
+            stage_terminal_decision=mapping(enriched_route_handoff.get("stage_terminal_decision")),
+            opl_route_command=mapping(enriched_route_handoff.get("opl_route_command")),
+            opl_runtime_carrier=mapping(enriched_route_handoff.get("opl_runtime_carrier")),
+            opl_route_handoff=enriched_route_handoff,
+        )
         payload.update(
             {
                 "opl_route_handoff": enriched_route_handoff,
                 "opl_route_handoff_record": enriched_route_handoff,
+                **({"next_action": next_action} if next_action else {}),
                 "paper_mission_default_handoff_source": (
                     "paper_mission_consumption_ledger"
                 ),
@@ -563,6 +572,7 @@ def _paper_mission_start_or_resume_task(
             {
                 "opl_route_handoff": enriched_route_handoff,
                 "opl_route_handoff_record": enriched_route_handoff,
+                **({"next_action": next_action} if next_action else {}),
                 "paper_mission_default_handoff_source": (
                     "paper_mission_consumption_ledger"
                 ),
@@ -666,6 +676,14 @@ def _paper_mission_consumption_route_handoff_task(
         "paper_mission_default_handoff_source": "paper_mission_consumption_ledger",
         "paper_mission_default_handoff_ref": source_ref,
     }
+    next_action = paper_mission_next_action_envelope(
+        stage_terminal_decision=mapping(enriched_route_handoff.get("stage_terminal_decision")),
+        opl_route_command=command,
+        opl_runtime_carrier=carrier,
+        opl_route_handoff=enriched_route_handoff,
+    )
+    if next_action:
+        payload["next_action"] = next_action
     return {
         "domain_id": "medautoscience",
         "task_kind": "paper_mission/stage-outcome",
@@ -693,6 +711,7 @@ def _paper_mission_consumption_route_handoff_task(
         "provider_admission_pending": False,
         "provider_admission_requires_opl_runtime_result": True,
         "opl_domain_progress_transition_request": carrier,
+        **({"next_action": next_action} if next_action else {}),
         "opl_route_handoff": dict(enriched_route_handoff),
         "opl_route_handoff_record": dict(enriched_route_handoff),
         "domain_dispatch_evidence_record_payload": evidence_record_payload,

@@ -115,6 +115,7 @@ def test_domain_handler_export_default_route_handoff_carries_top_level_identity(
     record = task["opl_route_handoff_record"]
     payload_handoff = task["payload"]["opl_route_handoff"]
     carrier = handoff["opl_runtime_carrier"]
+    next_action = task["next_action"]
 
     for exported_handoff in (handoff, record, payload_handoff):
         assert exported_handoff["route_identity_key"] == carrier["route_identity_key"]
@@ -134,6 +135,21 @@ def test_domain_handler_export_default_route_handoff_carries_top_level_identity(
     assert task["payload"]["request_idempotency_key"] == carrier[
         "request_idempotency_key"
     ]
+    assert task["payload"]["next_action"] == next_action
+    assert next_action["surface_kind"] == "mas_next_action_envelope"
+    assert next_action["action_family"] == "runtime.opl_route"
+    assert next_action["action_kind"] == "submit_to_opl_runtime"
+    assert next_action["owner"] == "one-person-lab"
+    assert next_action["idempotency_key"] == carrier["request_idempotency_key"]
+    assert {"role": "paper_mission_transaction", "ref": handoff["paper_mission_transaction_ref"]} in next_action[
+        "diagnostic_refs"
+    ]
+    assert {"role": "stage_terminal_decision", "ref": handoff["stage_terminal_decision_ref"]} in next_action[
+        "diagnostic_refs"
+    ]
+    assert {"role": "opl_route_command", "ref": handoff["opl_route_command_ref"]} in next_action["diagnostic_refs"]
+    assert next_action["authority_boundary"]["can_write_runtime_queue"] is False
+    assert next_action["authority_boundary"]["can_write_provider_attempt"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -239,6 +255,9 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
     assert payload["action_intent"] == "paper_mission/drive"
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["consume_readback"]["next_action"][
+        "action_family"
+    ] == "runtime.opl_route"
     assert payload["consume_candidate_status"] == (
         "accepted_submission_milestone_candidate"
     )
