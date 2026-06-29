@@ -12,6 +12,8 @@ def latest_paper_mission_consumption_route_handoff(
     *,
     workspace_root: Path,
     study_id: str,
+    paper_mission_transaction_ref: str | None = None,
+    route_identity_key: str | None = None,
 ) -> dict[str, Any] | None:
     ledger_root = (
         workspace_root
@@ -35,6 +37,12 @@ def latest_paper_mission_consumption_route_handoff(
             source_ref=handoff_ref,
         )
         if handoff is None:
+            continue
+        if not _matches_requested_identity(
+            handoff,
+            paper_mission_transaction_ref=paper_mission_transaction_ref,
+            route_identity_key=route_identity_key,
+        ):
             continue
         try:
             mtime = handoff_ref.stat().st_mtime
@@ -71,6 +79,22 @@ def paper_mission_handoff_stage_packet_refs(
         *fallback_refs,
     ]
     return list(dict.fromkeys(ref for ref in refs if ref))
+
+
+def _matches_requested_identity(
+    handoff: Mapping[str, Any],
+    *,
+    paper_mission_transaction_ref: str | None,
+    route_identity_key: str | None,
+) -> bool:
+    transaction_ref = text(paper_mission_transaction_ref)
+    route_key = text(route_identity_key)
+    carrier = mapping(handoff.get("opl_runtime_carrier"))
+    if transaction_ref is not None and text(handoff.get("paper_mission_transaction_ref")) != transaction_ref:
+        return False
+    if route_key is not None and text(carrier.get("route_identity_key")) != route_key:
+        return False
+    return True
 
 
 def _paper_mission_handoff_timestamp_key(handoff_ref: Path) -> str:

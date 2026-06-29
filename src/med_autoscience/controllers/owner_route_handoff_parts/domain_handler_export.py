@@ -317,13 +317,24 @@ def _pending_family_tasks(
             study_id=study_id,
             progress_by_study_id=progress_by_study_id,
         )
-        paper_mission_default_tasks.append(
-            _paper_mission_start_or_resume_task(
-                profile=profile,
-                profile_ref=profile_ref,
-                study_id=study_id,
-            )
+        paper_mission_default_task = _paper_mission_start_or_resume_task(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
         )
+        paper_mission_default_tasks.append(paper_mission_default_task)
+        default_route_handoff = mapping(
+            paper_mission_default_task.get("opl_route_handoff")
+        )
+        if default_route_handoff:
+            tasks.append(
+                _paper_mission_consumption_route_handoff_task(
+                    enriched_route_handoff=default_route_handoff,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                )
+            )
         current_owner_action = _export_current_owner_action(
             study=study,
             current_progress=current_progress,
@@ -399,11 +410,20 @@ def _paper_mission_start_or_resume_task(
         dry_run=True,
         source="domain-handler-export",
     )
+    carrier = mapping(readback.get("opl_runtime_carrier"))
+    current_transaction_ref = (
+        text(carrier.get("paper_mission_transaction_ref"))
+        or text(mapping(readback.get("paper_mission_transaction")).get("transaction_id"))
+    )
     route_handoff = latest_paper_mission_consumption_route_handoff(
         workspace_root=profile.workspace_root,
         study_id=study_id,
+        paper_mission_transaction_ref=current_transaction_ref,
+        route_identity_key=text(carrier.get("route_identity_key")),
+    ) or latest_paper_mission_consumption_route_handoff(
+        workspace_root=profile.workspace_root,
+        study_id=study_id,
     )
-    carrier = mapping(readback.get("opl_runtime_carrier"))
     default_route_handoff = _paper_mission_default_route_handoff(
         route_handoff=route_handoff,
         readback=readback,
@@ -578,6 +598,107 @@ def _paper_mission_start_or_resume_task(
     return task
 
 
+def _paper_mission_consumption_route_handoff_task(
+    *,
+    enriched_route_handoff: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    study_id: str,
+) -> dict[str, Any]:
+    carrier = mapping(enriched_route_handoff.get("opl_runtime_carrier"))
+    command = mapping(enriched_route_handoff.get("opl_route_command"))
+    action_type = text(command.get("command_kind")) or text(
+        enriched_route_handoff.get("route_command_kind")
+    )
+    work_unit_id = text(carrier.get("work_unit_id")) or text(command.get("target"))
+    work_unit_fingerprint = text(carrier.get("work_unit_fingerprint")) or text(
+        mapping(carrier.get("aggregate_identity")).get("work_unit_fingerprint")
+    )
+    source_fingerprint = text(carrier.get("idempotency_key")) or _fingerprint(
+        enriched_route_handoff
+    )
+    source_ref = text(enriched_route_handoff.get("source_ref"))
+    source_refs = [
+        {
+            "role": "paper_mission_consumption_opl_route_handoff",
+            "ref": source_ref,
+            "exists": bool(source_ref),
+        },
+        {
+            "role": "paper_mission_transaction",
+            "ref": text(enriched_route_handoff.get("paper_mission_transaction_ref")),
+            "exists": True,
+        },
+        {
+            "role": "opl_route_command",
+            "ref": text(enriched_route_handoff.get("opl_route_command_ref")),
+            "exists": True,
+        },
+    ]
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="paper_mission/stage-outcome",
+        study_id=study_id,
+        reason="paper_mission_consumption_opl_route_handoff_pending",
+        evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
+    )
+    payload = {
+        "profile": str(profile_ref),
+        "profile_ref": str(profile_ref),
+        "workspace_root": str(profile.workspace_root),
+        "domain_workspace_root": str(profile.workspace_root),
+        "repo_root": str(profile.workspace_root),
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_fingerprint": source_fingerprint,
+        "next_executable_owner": "one-person-lab",
+        "authority_boundary": "mas_domain_progress_transition_request_only",
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_route_handoff": dict(enriched_route_handoff),
+        "opl_route_handoff_record": dict(enriched_route_handoff),
+        "opl_route_command": command,
+        "opl_domain_progress_transition_request": carrier,
+        "paper_mission_default_handoff_source": "paper_mission_consumption_ledger",
+        "paper_mission_default_handoff_ref": source_ref,
+    }
+    return {
+        "domain_id": "medautoscience",
+        "task_kind": "paper_mission/stage-outcome",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "domain_owner": "one-person-lab",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "priority": 80,
+        "source": "mas-domain-handler-export",
+        "requires_approval": False,
+        "dedupe_key": (
+            f"mas:{profile.name}:{study_id}:paper-mission-consumption-route:"
+            f"{source_fingerprint}"
+        ),
+        "source_fingerprint": source_fingerprint,
+        "reason": "paper_mission_consumption_opl_route_handoff_pending",
+        "payload": {key: value for key, value in payload.items() if value not in (None, "", [], {})},
+        "source_refs": [ref for ref in source_refs if ref.get("ref") not in (None, "")],
+        "dispatch_owner": "one-person-lab",
+        "domain_truth_owner": "med-autoscience",
+        "queue_owner": "one-person-lab",
+        "profile_name": profile.name,
+        "provider_admission_pending": False,
+        "provider_admission_requires_opl_runtime_result": True,
+        "opl_domain_progress_transition_request": carrier,
+        "opl_route_handoff": dict(enriched_route_handoff),
+        "opl_route_handoff_record": dict(enriched_route_handoff),
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
+    }
+
+
 def _paper_mission_default_dispatch_run_id(study_id: str) -> str:
     return f"domain-handler-default-drive-{_slug(study_id)}"
 
@@ -615,8 +736,6 @@ def _paper_mission_default_route_handoff(
         "paper_mission_transaction_ref",
         "opl_route_command_ref",
         "route_identity_key",
-        "attempt_idempotency_key",
-        "request_idempotency_key",
     ):
         current_value = text(current_carrier.get(field))
         if current_value and text(handoff_carrier.get(field)) != current_value:

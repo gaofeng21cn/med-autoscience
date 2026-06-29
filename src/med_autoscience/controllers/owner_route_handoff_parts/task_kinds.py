@@ -19,6 +19,7 @@ ALLOWED_TASK_KINDS = {
     "publication_aftercare/reviewer-refresh": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/gate-replay": "stage_outcome_opl_handoff",
     "paper_autonomy/route-decision": "stage_outcome_opl_handoff",
+    "paper_mission/stage-outcome": "stage_outcome_opl_handoff",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
     "study_progress/read": "study_progress_read",
     "status/read": "status_read",
