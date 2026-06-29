@@ -688,8 +688,9 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
 
     assert exit_code == 0
     assert capture_path.exists()
-    assert payload["followthrough"]["attempted"] is True
-    assert payload["followthrough"]["round_count"] >= 1
+    assert payload["followthrough"]["attempted"] is False
+    assert payload["followthrough"]["round_count"] == 0
+    assert payload["followthrough"]["stop_reason"] == "mas_owned_executor_delta_ready"
     assert payload["drive_result"]["status"] != "stage_closure_decision_missing"
     assert payload["consume_candidate_status"] == (
         "accepted_submission_milestone_candidate"
@@ -707,7 +708,7 @@ def test_paper_mission_drive_followthroughs_terminal_route_back_into_fresh_stage
         != payload["mission_id"]
     )
     assert payload["consume_readback"]["contract_validation"]["status"] == "validated"
-    assert payload["output_manifest"]["followthrough_round_count"] >= 1
+    assert payload["output_manifest"]["followthrough_round_count"] == 0
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
@@ -887,7 +888,9 @@ def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
 
     assert exit_code == 0
     assert capture_path.exists()
-    assert payload["followthrough"]["rounds"]
+    assert payload["followthrough"]["attempted"] is False
+    assert payload["followthrough"]["rounds"] == []
+    assert payload["followthrough"]["stop_reason"] == "mas_owned_executor_delta_ready"
     assert payload["drive_result"]["status"] != "stage_closure_decision_missing"
     assert payload["stage_terminal_decision"]["decision_kind"] == (
         "continue_same_stage"
@@ -905,7 +908,7 @@ def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
     assert payload["carry_forward_risk_receipt_ref"] == payload["consume_readback"][
         "carry_forward_risk_receipt_ref"
     ]
-    assert payload["opl_runtime_readback_status"] != (
+    assert payload["opl_runtime_readback_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
