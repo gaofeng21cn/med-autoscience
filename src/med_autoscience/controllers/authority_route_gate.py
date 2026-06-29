@@ -4,13 +4,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.claim_evidence_alignment_work_units import (
-    CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID,
-)
-from med_autoscience.controllers.gate_clearing_batch_work_units import (
-    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
-    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
-)
 from med_autoscience.controllers.next_action_envelope import (
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
     FAMILY_PAPER_WRITE_PROSE_REPAIR,
@@ -71,65 +64,6 @@ _PAPER_WRITE_DISPATCH_BYPASS_REASONS = frozenset(
     }
 )
 
-_PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS = frozenset(
-    {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
-)
-_AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
-    {
-        "ai_reviewer_recheck",
-        "ai_reviewer_medical_prose_quality_review",
-        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
-        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-    }
-)
-_UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
-    {
-        *UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
-        *_AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS,
-    }
-)
-
-_CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
-    "analysis_claim_evidence_repair": frozenset({"paper_write"}),
-    "claim_evidence_alignment_repair": frozenset({"paper_write"}),
-    CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID: frozenset({"paper_write"}),
-    "controller_owned_publication_repair": frozenset(
-        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
-    ),
-    "dm002_same_line_methods_display_package_repair": frozenset({"paper_write"}),
-    "dm002_same_line_display_table_package_repair": frozenset({"paper_write"}),
-    "dm002_same_line_publication_paper_repair": frozenset({"paper_write"}),
-    "dm002_current_publication_hardening_after_ai_reviewer_eval": frozenset({"paper_write"}),
-    "dm002_current_publication_hardening_after_current_ai_reviewer_eval": frozenset({"paper_write"}),
-    "dm002_after_story_repair_medical_prose_hardening": frozenset({"paper_write"}),
-    "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass": frozenset({"paper_write"}),
-    "dm002_current_manuscript_reporting_consistency_write_repair": frozenset({"paper_write"}),
-    "display_reporting_contract_repair": frozenset({"bundle_build"}),
-    "figure_results_trace_repair": frozenset({"paper_write"}),
-    "local_architecture_overview_repair": frozenset({"bundle_build"}),
-    "manuscript_story_repair": frozenset({"paper_write"}),
-    "medical_prose_quality_analysis_source_documentation_repair": frozenset({"paper_write"}),
-    "medical_prose_write_repair": frozenset({"paper_write"}),
-    "dm002_medical_prose_write_repair_after_quality_batch": frozenset({"paper_write"}),
-    **{
-        work_unit_id: frozenset({"paper_write"})
-        for work_unit_id in _AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS
-    },
-    **{
-        work_unit_id: _PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS
-        for work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
-    },
-    "submission_delivery_sync_closure": frozenset(
-        {"bundle_build", "delivery_sync", "submission_notice_materialize"}
-    ),
-    "submission_authority_sync_closure": frozenset(
-        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
-    ),
-    "submission_minimal_refresh": frozenset(
-        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
-    ),
-    "treatment_gap_reporting_repair": frozenset({"paper_write"}),
-}
 _CONTROLLER_ROUTE_ACTION_TYPES = {
     "return_to_ai_reviewer_workflow",
     "run_gate_clearing_batch",
@@ -333,6 +267,9 @@ def _controller_route_gate(action: str, route_context: Mapping[str, Any]) -> dic
         "action": action,
         "action_family": action_family,
         "work_unit_id": work_unit_id,
+        "action_family_is_authority": action_family is not None,
+        "work_unit_id_authority": False,
+        "work_unit_id_role": "provenance_currentness_only",
         "controller_action_type": controller_action_type,
         "control_surface": control_surface,
         "blocking_reasons": blocking_reasons,
@@ -366,7 +303,7 @@ def _controller_route_allowed_actions(
         return frozenset({"paper_write"})
     if action_family == FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL:
         return frozenset({"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"})
-    return _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT.get(work_unit_id or "")
+    return None
 
 
 def _controller_route_can_bypass_dispatch_reasons(
@@ -414,7 +351,6 @@ def _controller_route_is_upstream_publishability_repair(
         action == "paper_write"
         and (
             _text(controller_route_gate.get("action_family")) == FAMILY_PAPER_WRITE_PROSE_REPAIR
-            or _text(controller_route_gate.get("work_unit_id")) in _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS
         )
     )
 
@@ -437,8 +373,6 @@ def _controller_route_is_managed_publication_work_unit(
         return True
     if action_family == FAMILY_PAPER_WRITE_PROSE_REPAIR:
         return False
-    if work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
-        return False
     allowed_actions = _controller_route_allowed_actions(work_unit_id=work_unit_id, action_family=action_family)
     return allowed_actions is not None and action in allowed_actions
 
@@ -451,6 +385,9 @@ def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any
         "action": _text(controller_route_gate.get("action")),
         "action_family": _text(controller_route_gate.get("action_family")),
         "work_unit_id": _text(controller_route_gate.get("work_unit_id")),
+        "action_family_is_authority": _text(controller_route_gate.get("action_family")) is not None,
+        "work_unit_id_authority": False,
+        "work_unit_id_role": "provenance_currentness_only",
         "controller_action_type": _text(controller_route_gate.get("controller_action_type")),
         "control_surface": _text(controller_route_gate.get("control_surface")),
         "gate_fingerprint": _text(authority_ref.get("gate_fingerprint")),

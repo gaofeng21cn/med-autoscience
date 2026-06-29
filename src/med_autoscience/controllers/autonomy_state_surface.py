@@ -5,7 +5,6 @@ from typing import Any, Mapping
 from med_autoscience.controllers import (
     auto_runtime_parking,
     opl_runtime_refs,
-    domain_next_action_projection,
     runtime_failure_taxonomy,
     domain_authority_snapshot,
 )
@@ -287,13 +286,6 @@ def build_autonomy_state_surface(profile_payload: Mapping[str, Any]) -> dict[str
         or "queued"
     )
     state_spec = autonomy_state_surface_spec(state)
-    reconciler = domain_next_action_projection.reconcile_next_action(
-        current_state=state,
-        state_spec=state_spec,
-        profile_payload=status_payload,
-        auto_runtime_parked=auto_runtime_parked,
-        runtime_failure_classification=runtime_failure,
-    )
     canonical_next_action = _text(authority_snapshot.get("canonical_next_action"))
     return {
         "surface": "autonomy_state_surface",
@@ -310,7 +302,6 @@ def build_autonomy_state_surface(profile_payload: Mapping[str, Any]) -> dict[str
         "current_state": state,
         "current_state_spec": state_spec,
         "opl_runtime_refs": facts.to_runtime_refs_dict(),
-        "domain_next_action_projection": reconciler,
         "canonical_next_action": canonical_next_action,
         "auto_runtime_parked": auto_runtime_parked,
         "runtime_failure_classification": dict(runtime_failure) or None,
