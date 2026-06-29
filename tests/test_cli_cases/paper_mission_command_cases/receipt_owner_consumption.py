@@ -357,6 +357,8 @@ def test_receipt_owner_consumption_apply_route_checkpoint_records_typed_blocker_
     assert payload["submission_ready_claim_authorized"] is False
     assert payload["owner_consumption_verdict"]["can_claim_submission_ready"] is False
     assert payload["stage_closure_decision"]["outcome"]["kind"] == "typed_blocker"
+    assert payload["stage_closure"]["outcome_kind"] == "typed_blocker"
+    assert payload["stage_closure"]["transition_kind"] is None
     assert payload["stage_closure_decision"]["outcome"]["can_submit"] is True
     assert payload["stage_closure_decision"]["authority_boundary"][
         "writes_current_package"

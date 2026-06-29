@@ -307,6 +307,22 @@ def _apply_result(
         generated_at=generated_at,
         source=source,
     )
+    applied_outcome = _mapping(stage_closure_decision.get("outcome"))
+    applied_stage = {
+        "outcome_kind": _text(applied_outcome.get("kind")) or stage.get("outcome_kind"),
+        "transition_kind": _text(applied_outcome.get("transition_kind")) or None,
+        "next_legal_action": _first_text(
+            applied_outcome.get("next_legal_action"),
+            stage_closure_decision.get("next_legal_action"),
+        ),
+        "decision_ref": _first_text(
+            stage_closure_decision.get("decision_ref"),
+            stage.get("decision_ref"),
+        ),
+        "durable_stop_allowed": True,
+        "authority_materialized": True,
+        "typed_blocker_evidence_ref": receipt_ref,
+    }
     applied_consumption = {
         **dict(consumption),
         "surface_kind": "mas_receipt_consumption_projection",
@@ -340,12 +356,7 @@ def _apply_result(
         },
         "opl_transition_receipt": _receipt_summary(receipt),
         "mas_receipt_consumption": applied_consumption,
-        "stage_closure": {
-            **stage,
-            "authority_materialized": True,
-            "typed_blocker_evidence_ref": receipt_ref,
-            "durable_stop_allowed": True,
-        },
+        "stage_closure": applied_stage,
         "stage_closure_decision": stage_closure_decision,
         "current_package": package,
         "owner_consumption_verdict": {
