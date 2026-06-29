@@ -66,9 +66,6 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     )
     deliverable_delta = _mapping(progress.get("deliverable_progress_delta") or paper_delta)
     next_forced_delta = _mapping(progress.get("next_forced_delta"))
-    current_owner_delta = _mapping(progress.get("current_owner_delta"))
-    current_work_unit = _mapping(progress.get("current_work_unit"))
-    current_action = _mapping(progress.get("current_executable_owner_action"))
     user_visible = _mapping(progress.get("user_visible_projection"))
     source_refs = _source_refs(progress)
     latest_artifact_delta = _latest_artifact_delta(
@@ -89,16 +86,10 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     )
     current_objective = _current_objective(
         next_forced_delta=next_forced_delta,
-        current_owner_delta=current_owner_delta,
-        current_work_unit=current_work_unit,
-        current_action=current_action,
         user_visible=user_visible,
     )
     next_owner_or_human_decision = _next_owner_or_human_decision(
         next_forced_delta=next_forced_delta,
-        current_owner_delta=current_owner_delta,
-        current_work_unit=current_work_unit,
-        current_action=current_action,
         user_visible=user_visible,
     )
     paper_mission_run = _paper_mission_run_payload(
@@ -337,46 +328,27 @@ def _owner_receipt_ref(default_readback: Mapping[str, Any]) -> str | None:
 def _current_objective(
     *,
     next_forced_delta: Mapping[str, Any],
-    current_owner_delta: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    current_action: Mapping[str, Any],
     user_visible: Mapping[str, Any],
 ) -> dict[str, Any]:
-    target_surface = (
-        _mapping(next_forced_delta.get("target_surface"))
-        or _mapping(current_owner_delta.get("target_surface"))
-        or _mapping(current_action.get("target_surface"))
-    )
+    target_surface = _mapping(next_forced_delta.get("target_surface"))
     owner_action = _mapping(next_forced_delta.get("owner_action"))
     return _compact(
         {
             "objective": _first_text(
                 next_forced_delta.get("required_delta_kind"),
-                current_owner_delta.get("required_delta_kind"),
-                current_work_unit.get("required_output_contract"),
                 user_visible.get("paper_stage_summary"),
                 user_visible.get("current_stage_summary"),
+                "paper_mission_readback_missing",
             ),
             "work_unit_id": _first_text(
                 next_forced_delta.get("work_unit_id"),
-                current_owner_delta.get("work_unit_id"),
-                current_work_unit.get("work_unit_id"),
-                current_action.get("work_unit_id"),
             ),
             "action_type": _first_text(
-                current_owner_delta.get("action_type"),
-                current_action.get("action_type"),
-                current_work_unit.get("action_type"),
+                owner_action.get("action_type"),
             ),
             "target_surface": target_surface or None,
             "acceptance_refs": _text_list(next_forced_delta.get("acceptance_refs")),
-            "next_owner": _first_text(
-                owner_action.get("next_owner"),
-                current_owner_delta.get("owner"),
-                current_action.get("next_owner"),
-                current_action.get("owner"),
-                current_work_unit.get("owner"),
-            ),
+            "next_owner": _first_text(owner_action.get("next_owner")),
         }
     )
 
@@ -442,41 +414,19 @@ def _artifact_delta_ledger(
 def _next_owner_or_human_decision(
     *,
     next_forced_delta: Mapping[str, Any],
-    current_owner_delta: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    current_action: Mapping[str, Any],
     user_visible: Mapping[str, Any],
 ) -> dict[str, Any]:
     owner_action = _mapping(next_forced_delta.get("owner_action"))
     needs_human = bool(user_visible.get("needs_user_decision"))
     decision = {
         "kind": "human_decision" if needs_human else "owner_or_route",
-        "next_owner": _first_text(
-            owner_action.get("next_owner"),
-            current_owner_delta.get("owner"),
-            current_action.get("next_owner"),
-            current_action.get("owner"),
-            current_work_unit.get("owner"),
-        ),
+        "next_owner": _first_text(owner_action.get("next_owner")),
         "human_decision_required": needs_human,
         "summary": _first_text(
             user_visible.get("physician_decision_summary"),
             user_visible.get("user_decision_summary"),
-            current_owner_delta.get("latest_owner_answer_kind"),
             next_forced_delta.get("reason"),
             user_visible.get("user_next"),
-        ),
-        "owner_receipt_ref": _first_text(
-            current_owner_delta.get("owner_receipt_ref"),
-            current_owner_delta.get("latest_owner_answer_ref")
-            if current_owner_delta.get("latest_owner_answer_kind") == "owner_receipt"
-            else None,
-        ),
-        "typed_blocker_ref": _first_text(
-            current_owner_delta.get("typed_blocker_ref"),
-            current_owner_delta.get("latest_owner_answer_ref")
-            if current_owner_delta.get("latest_owner_answer_kind") == "typed_blocker"
-            else None,
         ),
         "can_execute": False,
         "can_authorize_provider_admission": False,
@@ -1063,7 +1013,16 @@ def _consume_result(
         return result
     if mission_state == "waiting_human_decision":
         return {"status": "human_gate"}
-    return {"status": "not_consumed"}
+    return {
+        "status": "human_gate",
+        "outcome": "paper_mission_readback_missing",
+        "reason": "authoritative_stage_terminal_outcome_missing",
+        "question": (
+            "Authoritative MAS stage terminal outcome is missing; do not infer "
+            "the next runtime action from legacy progress projections."
+        ),
+        "required_receipt": "paper_mission_readback_missing",
+    }
 
 
 def _owner_answer_kind(progress: Mapping[str, Any]) -> str | None:
