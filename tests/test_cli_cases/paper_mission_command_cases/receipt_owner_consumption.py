@@ -307,6 +307,62 @@ def test_receipt_owner_consumption_apply_typed_blocker_writes_safe_consumption_l
     assert latest["source_ref"] == str(packet_ref)
 
 
+def test_receipt_owner_consumption_apply_route_checkpoint_records_typed_blocker_not_submission_ready(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm003-readback.json"
+    output_root = (
+        tmp_path / "ops" / "medautoscience" / "paper_mission_receipt_owner_consumption"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                stage_outcome="next_stage_transition",
+                transition_kind="route_back_candidate_checkpoint",
+                package_kind="submission_ready_package",
+                can_submit=True,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["current_package"]["package_kind"] == "submission_ready_package"
+    assert payload["current_package"]["can_submit"] is True
+    assert payload["submission_ready_claim_authorized"] is False
+    assert payload["owner_consumption_verdict"]["can_claim_submission_ready"] is False
+    assert payload["stage_closure_decision"]["outcome"]["kind"] == "typed_blocker"
+    assert payload["stage_closure_decision"]["outcome"]["can_submit"] is True
+    assert payload["stage_closure_decision"]["authority_boundary"][
+        "writes_current_package"
+    ] is False
+
+
 def test_receipt_owner_consumption_apply_mode_mismatch_fails_closed(
     tmp_path: Path,
     capsys,
