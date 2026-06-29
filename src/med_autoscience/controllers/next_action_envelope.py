@@ -221,7 +221,11 @@ def resolve_action_family(
     outcome = _mapping(stage_outcome)
     route = _mapping(route_command)
     owner = _mapping(owner_route)
-    outcome_kind = _text(_mapping(outcome.get("outcome")).get("kind")) or _text(outcome.get("decision_kind"))
+    outcome_kind = (
+        _text(_mapping(outcome.get("outcome")).get("kind"))
+        or _text(outcome.get("kind"))
+        or _text(outcome.get("decision_kind"))
+    )
     command_kind = _text(route.get("command_kind"))
     explicit_family = _first_text((outcome, route, owner), ("action_family", "next_action_family"))
     if explicit_family in ACTION_FAMILIES:
@@ -230,6 +234,8 @@ def resolve_action_family(
         return FAMILY_HUMAN_APPROVAL
     if outcome_kind == "typed_blocker" or command_kind == "stop_with_typed_blocker":
         return FAMILY_BLOCKED_TYPED
+    if outcome_kind == "owner_receipt" and _owner_receipt_is_submission_ready_terminal(outcome):
+        return FAMILY_MISSION_COMPLETE
     if outcome_kind == "mission_complete" or command_kind == "complete_mission":
         return FAMILY_MISSION_COMPLETE
     if command_kind in {"resume_stage", "start_next_stage", "route_back"} and _has_hint(
@@ -258,6 +264,17 @@ def resolve_action_family(
     if _contains_any(tokens, RUNTIME_HINTS):
         return FAMILY_RUNTIME_WAIT_RECEIPT
     return FAMILY_PAPER_WRITE_PROSE_REPAIR
+
+
+def _owner_receipt_is_submission_ready_terminal(outcome: Mapping[str, Any]) -> bool:
+    quality_gate_status = _text(outcome.get("quality_gate_status"))
+    blockers = _text_items(outcome.get("known_blockers"))
+    return (
+        _text(outcome.get("package_kind")) == "submission_ready_package"
+        and outcome.get("can_submit") is True
+        and quality_gate_status in {"clear", "passed", "cleared"}
+        and not blockers
+    )
 
 
 def expected_output_contract_for_family(action_family: str) -> dict[str, Any]:

@@ -9,6 +9,7 @@ from med_autoscience.controllers.next_action_envelope import (
     ACTION_FAMILIES,
     FAMILY_BLOCKED_TYPED,
     FAMILY_HUMAN_APPROVAL,
+    FAMILY_MISSION_COMPLETE,
     FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
     FAMILY_PAPER_REVIEW_AI_REVIEWER,
@@ -261,3 +262,56 @@ def test_terminal_owner_outcomes_compile_to_stop_or_human_families() -> None:
     assert typed["retry_or_stop_policy"]["retry_allowed"] is False
     assert human["action_family"] == FAMILY_HUMAN_APPROVAL
     assert human["expected_output_contract"]["accepted_refs"] == ["human_gate_ref"]
+
+
+def test_submission_ready_owner_receipt_compiles_to_mission_complete() -> None:
+    envelope = compile_next_action_envelope(
+        study_id="003",
+        stage_id="submission_milestone_candidate",
+        stage_outcome={
+            "kind": "owner_receipt",
+            "package_kind": "submission_ready_package",
+            "can_submit": True,
+            "quality_gate_status": "clear",
+            "known_blockers": [],
+            "work_unit_id": "submission_ready_package",
+            "decision_signature": "sig-submission-ready",
+        },
+    )
+
+    assert envelope["action_family"] == FAMILY_MISSION_COMPLETE
+    assert envelope["action_kind"] == "complete_mission"
+    assert envelope["owner"] == "MedAutoScience"
+    assert envelope["executor_target"] == "mas_terminal"
+    assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
+    assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
+
+
+def test_bare_owner_receipt_does_not_compile_to_mission_complete() -> None:
+    envelope = compile_next_action_envelope(
+        study_id="003",
+        stage_id="submission_milestone_candidate",
+        stage_outcome={
+            "kind": "owner_receipt",
+            "work_unit_id": "owner_receipt_materialization",
+        },
+    )
+
+    assert envelope["action_family"] != FAMILY_MISSION_COMPLETE
+
+
+def test_blocked_submission_ready_owner_receipt_does_not_compile_to_mission_complete() -> None:
+    envelope = compile_next_action_envelope(
+        study_id="003",
+        stage_id="submission_milestone_candidate",
+        stage_outcome={
+            "kind": "owner_receipt",
+            "package_kind": "submission_ready_package",
+            "can_submit": True,
+            "quality_gate_status": "blocked",
+            "known_blockers": ["claim_evidence_consistency_failed"],
+            "work_unit_id": "submission_ready_package",
+        },
+    )
+
+    assert envelope["action_family"] != FAMILY_MISSION_COMPLETE

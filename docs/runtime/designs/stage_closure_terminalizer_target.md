@@ -150,6 +150,15 @@ StageWorkResult
 5. If no semantic delta is present after a configured budget, terminalizer must fail closed to a typed blocker or human gate. It may not output another runnable `continue_same_stage`.
 6. If gate replay remains blocked by quality-repairable blockers after budget exhaustion, terminalizer emits `degraded_handoff_package` plus `next_stage_transition` to human review / pre-package handoff, not another repair loop.
 7. If delivery inspection reports `current_package` stale or missing, terminalizer must request or perform mirror sync independently of `bundle_build_allowed`. A stale/missing mirror is not a submission authority blocker.
+8. If the latest current package evidence is `submission_ready_package`,
+   `can_submit=true`, `quality_gate_status` clear / passed / cleared,
+   `generated_from_current_source=true`, and `known_blockers=[]`, the
+   terminalizer readback may supersede an older route-back / missing-decision
+   checkpoint and project an `owner_receipt` next-action family of
+   `mission.complete`. This remains projection-only: it does not write owner
+   receipt authority, typed blocker, human gate, package authority, runtime
+   queue, provider attempt, `publication_eval/latest.json`, or
+   `controller_decisions/latest.json`.
 
 ## Blocker Taxonomy
 
@@ -300,6 +309,12 @@ OPL runtime receipt 的角色是 transport receipt，只能说明同一 route co
 | `current_package_handoff` | current source package 存在，source signature 可追踪，`manuscript/current_package` 与 zip manifest 显示 `package_kind=current_package`、`can_submit=false unless gate passed`、known blockers / quality gate state 明确，并有 fresh delivery readback。 | submission-ready、publication-ready、owner receipt、typed blocker authority、human gate、paper body mutation。 |
 | `degraded_or_pre_submission_handoff` | repair budget exhausted 或 terminalizer 选择 degraded handoff；package / handoff ref 携带 known blockers、next owner、resume condition 和 `can_submit=false`；stage 不再继续同义 repair loop。 | durable final、journal submission package、quality gate passed、human approval complete。 |
 | `submission_ready` | publication gate passed 或 MAS authority 明确授权 final build；`bundle_build_allowed=true` / 等价 authority snapshot fresh；final package manifest 可追踪到 owner / gate evidence。 | 任何缺 authority snapshot、只靠 checkpoint、current mirror、candidate package、queue state 或 focused tests 的 ready claim。 |
+
+`submission_ready` 的 readback terminalization 还必须让 canonical
+NextActionEnvelope 停止同义 gate replay / route-back redrive：精确成功态
+`owner_receipt + submission_ready_package + can_submit=true + gate clear + no blockers`
+映射为 `mission.complete`；裸 `owner_receipt`、`current_package` mirror、blocked gate
+或带 known blockers 的包不得映射为 `mission.complete`。
 
 `checkpoint`、candidate package、inspection package、read-model freshness、queue empty 和 focused tests 只能证明中间证据或代码路径；它们不能作为 durable final，也不能替代三层账中对应的 fresh artifact / owner / gate evidence。
 

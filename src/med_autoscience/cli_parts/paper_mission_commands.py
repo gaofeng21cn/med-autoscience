@@ -49,6 +49,7 @@ from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
     attach_paper_mission_next_action,
 )
+from med_autoscience.controllers.next_action_envelope import compile_next_action_envelope
 from med_autoscience.cli_parts.paper_mission_output_roots import (
     PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
     PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
@@ -1433,23 +1434,34 @@ def _terminalize_stage_closure_from_readback(
     transaction = _mapping(readback.get("paper_mission_transaction"))
     stage_decision = _mapping(readback.get("stage_terminal_decision"))
     outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
+    current_package = _mapping(readback.get("current_package"))
+    current_package_clear = _current_package_is_submission_ready_clear(current_package)
     repair_budget = _mapping(readback.get("route_back_budget")) or _mapping(
         _mapping(readback.get("stage_closure_decision")).get("repair_budget")
     )
     gate_replay = {
         "status": _first_text(
+            _current_package_quality_gate_status(current_package)
+            if current_package_clear
+            else None,
             stage_decision.get("status"),
             readback.get("consume_candidate_status"),
             outcome.get("kind"),
         ),
         "gate_replay_status": (
+            _current_package_quality_gate_status(current_package)
+            if current_package_clear
+            else (
             "blocked"
             if stage_closure_decision_missing(
                 _mapping(readback.get("stage_closure_decision"))
             )
             else _first_text(outcome.get("kind"), "observed")
+            )
         ),
-        "gate_replay_blockers": _stage_closure_readback_blockers(readback),
+        "gate_replay_blockers": (
+            [] if current_package_clear else _stage_closure_readback_blockers(readback)
+        ),
     }
     study_id = str(readback.get("study_id") or transaction.get("study_id") or "")
     stage_id = str(
@@ -1582,14 +1594,28 @@ def _stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
 def _stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, Any]:
     candidate = _mapping(readback.get("candidate_manifest"))
     output = _mapping(readback.get("output_manifest"))
+    current_package = _mapping(readback.get("current_package"))
     return _compact_mapping(
         {
             "package_kind": _first_text(
+                current_package.get("package_kind"),
                 readback.get("package_kind"),
                 candidate.get("package_kind"),
                 output.get("milestone_kind"),
             ),
+            "can_submit": _current_package_can_submit(current_package),
+            "quality_gate_status": _current_package_quality_gate_status(current_package),
+            "known_blockers": _text_list(current_package.get("known_blockers")),
+            "generated_from_current_source": current_package.get(
+                "generated_from_current_source"
+            ),
+            "source_signature": current_package.get("source_signature"),
             "freshness": _first_text(
+                "current"
+                if _current_package_is_submission_ready_clear(current_package)
+                else None,
+                current_package.get("freshness"),
+                current_package.get("status"),
                 readback.get("freshness"),
                 output.get("freshness"),
             ),
@@ -1597,8 +1623,12 @@ def _stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, A
                 readback.get("blocked_reason"),
                 _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
             ),
-            "current_package_exists": output.get("current_package_exists"),
+            "current_package_exists": (
+                bool(current_package) or output.get("current_package_exists")
+            ),
             "bundle_build_allowed": output.get("bundle_build_allowed"),
+            "root": current_package.get("root"),
+            "zip_path": current_package.get("zip_path"),
         }
     )
 
@@ -1638,6 +1668,13 @@ def _stage_closure_semantic_delta(readback: Mapping[str, Any]) -> dict[str, Any]
         text = _optional_text(readback.get(key))
         if text is not None:
             refs.append(text)
+    delivery_refs = []
+    current_package = _mapping(readback.get("current_package"))
+    for key in ("source_signature", "root", "zip_path"):
+        text = _optional_text(current_package.get(key))
+        if text is not None:
+            refs.append(text)
+            delivery_refs.append(text)
     for item in _mapping_list(
         _mapping(readback.get("paper_mission_run")).get("artifact_delta_ledger")
     ):
@@ -1648,7 +1685,34 @@ def _stage_closure_semantic_delta(readback: Mapping[str, Any]) -> dict[str, Any]
         {
             "semantic_delta_observed": bool(refs),
             "semantic_delta_refs": sorted(set(refs)),
+            "delivery_delta_refs": sorted(set(delivery_refs)),
         }
+    )
+
+
+def _current_package_quality_gate_status(current_package: Mapping[str, Any]) -> str | None:
+    return _first_text(
+        current_package.get("quality_gate_status"),
+        current_package.get("gate_status"),
+    )
+
+
+def _current_package_can_submit(current_package: Mapping[str, Any]) -> bool | None:
+    if not current_package:
+        return None
+    return current_package.get("can_submit") is True
+
+
+def _current_package_is_submission_ready_clear(
+    current_package: Mapping[str, Any],
+) -> bool:
+    gate_status = _current_package_quality_gate_status(current_package)
+    return (
+        current_package.get("package_kind") == "submission_ready_package"
+        and current_package.get("can_submit") is True
+        and gate_status in {"clear", "passed", "cleared"}
+        and current_package.get("generated_from_current_source") is True
+        and not _text_list(current_package.get("known_blockers"))
     )
 
 
@@ -3555,12 +3619,40 @@ def _build_materialized_mission_readback_if_available(
             ),
             "consume_candidate_status": consume_candidate_status,
             "route_back_budget": projection_fields.get("route_back_budget"),
+            "current_package": projection_fields.get("current_package"),
         },
         handoff=_mapping(
             (consumption_ledger_readback or {}).get("opl_route_handoff")
         ),
         consumption_ledger_readback=consumption_ledger_readback,
     )
+    if stage_closure_decision_missing(
+        stage_closure_decision
+    ) or _stage_closure_decision_requires_reterminalize(stage_closure_decision):
+        stage_closure_decision = _terminalize_stage_closure_from_readback(
+            {
+                **transaction_readback,
+                "consume_candidate_status": consume_candidate_status,
+                "route_back_budget": projection_fields.get("route_back_budget"),
+                "current_package": projection_fields.get("current_package"),
+                **(
+                    {"stage_closure_decision": stage_closure_ledger_readback}
+                    if stage_closure_ledger_readback is not None
+                    else {}
+                ),
+            }
+        )
+    next_action_override = _next_action_for_stage_closure_decision(
+        stage_closure_decision=stage_closure_decision,
+        transaction_readback=transaction_readback,
+    )
+    transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
+    if next_action_override is not None:
+        transaction_output_fields["next_action"] = next_action_override
+        transaction_output_fields["paper_mission_transaction_readback"] = {
+            **transaction_readback,
+            "next_action": next_action_override,
+        }
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -3582,7 +3674,7 @@ def _build_materialized_mission_readback_if_available(
         "objective": mission["objective"],
         "mission_state": mission["mission_state"],
         "materialized_mission_ref": str(mission_path),
-        **_transaction_readback_output_fields(transaction_readback),
+        **transaction_output_fields,
         **projection_fields,
         **(
             {"candidate_manifest_ref": str(candidate_manifest_path)}
@@ -3715,6 +3807,81 @@ def _paper_mission_inspect_projection_fields(
             "current_package": _paper_mission_current_package_projection(projection_fields),
         }
     )
+
+
+def _next_action_for_stage_closure_decision(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    transaction_readback: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    decision = _mapping(stage_closure_decision)
+    outcome = _mapping(decision.get("outcome"))
+    if outcome.get("kind") != "owner_receipt":
+        return None
+    if outcome.get("package_kind") != "submission_ready_package":
+        return None
+    if outcome.get("can_submit") is not True:
+        return None
+    if _text_list(outcome.get("known_blockers")) or _text_list(
+        decision.get("known_blockers")
+    ):
+        return None
+    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+    return compile_next_action_envelope(
+        stage_outcome={
+            **outcome,
+            "study_id": decision.get("study_id"),
+            "stage_id": decision.get("stage_id"),
+            "work_unit_id": decision.get("work_unit_id"),
+            "work_unit_fingerprint": decision.get("work_unit_fingerprint"),
+            "stage_closure_decision_ref": decision.get("decision_ref"),
+            "decision_signature": decision.get("decision_signature"),
+            "required_input_refs": [
+                ref
+                for ref in _text_list(
+                    _mapping(decision.get("semantic_delta")).get("delivery_delta_refs")
+                )
+            ],
+        },
+        study_id=_first_text(decision.get("study_id"), transaction.get("study_id")),
+        stage_id=_first_text(decision.get("stage_id"), transaction.get("stage_id")),
+        outcome_ref=decision.get("decision_ref"),
+        authority_boundary={
+            "projection_only": True,
+            "can_claim_stage_complete": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+        },
+        diagnostic_refs=_stage_closure_next_action_diagnostic_refs(
+            stage_closure_decision=decision,
+            transaction_readback=transaction_readback,
+        ),
+    )
+
+
+def _stage_closure_next_action_diagnostic_refs(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    transaction_readback: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for role, ref in (
+        ("stage_closure_decision", stage_closure_decision.get("decision_ref")),
+        (
+            "paper_mission_transaction",
+            _mapping(transaction_readback.get("paper_mission_transaction")).get(
+                "transaction_id"
+            ),
+        ),
+    ):
+        text = _optional_text(ref)
+        if text is not None:
+            refs.append({"role": role, "ref": text})
+    for ref in _text_list(
+        _mapping(stage_closure_decision.get("semantic_delta")).get("delivery_delta_refs")
+    ):
+        refs.append({"role": "delivery_delta_ref", "ref": ref})
+    return refs
 
 
 def _paper_mission_current_package_projection(

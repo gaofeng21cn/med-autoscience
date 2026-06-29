@@ -567,6 +567,7 @@ def _select_outcome(
             "next_action": "materialize_stage_owner_receipt_or_next_stage_transition",
             "package_kind": _text(delivery.get("package_kind")),
             "can_submit": delivery.get("can_submit") is True,
+            "quality_gate_status": gate_status,
             "known_blockers": blockers,
             "resume_condition": "owner receipt materialization remains MAS authority action",
             "authority_materialized": False,
