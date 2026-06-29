@@ -119,6 +119,14 @@ def paper_mission_opl_runtime_carrier_readback(
         closeout=closeout,
         closeout_ref=closeout_ref,
     )
+    receipt_evidence = _receipt_evidence_readback(
+        closeout=closeout,
+        closeout_ref=closeout_ref,
+        opl_transition_receipt=opl_transition_receipt,
+    )
+    mas_receipt_consumption = _mas_receipt_consumption_readback(
+        receipt_evidence=receipt_evidence,
+    )
     return {
         "surface_kind": "paper_mission_opl_runtime_carrier_readback",
         "schema_version": 1,
@@ -137,6 +145,12 @@ def paper_mission_opl_runtime_carrier_readback(
         **(
             {"opl_transition_receipt": opl_transition_receipt}
             if opl_transition_receipt
+            else {}
+        ),
+        **({"receipt_evidence": receipt_evidence} if receipt_evidence else {}),
+        **(
+            {"mas_receipt_consumption": mas_receipt_consumption}
+            if mas_receipt_consumption
             else {}
         ),
     }
@@ -674,6 +688,12 @@ def _opl_task_terminal_closeout(
     ) or _event_opl_transition_receipt(events=events, carrier=carrier)
     if opl_transition_receipt is None:
         return None
+    mas_impact_receipt = _first_mas_impact_receipt(
+        carrier,
+        current_control,
+        stage_attempt,
+        task,
+    ) or _event_mas_impact_receipt(events=events, carrier=carrier)
     typed_blocker_ref = (
         typed_blocker_refs[0]
         if typed_blocker_refs
@@ -710,6 +730,7 @@ def _opl_task_terminal_closeout(
             if opl_transition_receipt
             else {}
         ),
+        **({"mas_impact_receipt": mas_impact_receipt} if mas_impact_receipt else {}),
         "task_id": _text(task.get("task_id")),
         "task_status": status,
         "closeout_receipt_status": closeout_status or stage_closeout_status,
@@ -902,6 +923,21 @@ def _event_opl_transition_receipt(
     return None
 
 
+def _event_mas_impact_receipt(
+    *,
+    events: object,
+    carrier: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not isinstance(events, list | tuple):
+        return None
+    for event in reversed(events):
+        payload = _mapping(_mapping(event).get("payload"))
+        receipt = _mapping(payload.get("mas_impact_receipt"))
+        if _matches_mas_impact_receipt(receipt=receipt, carrier=carrier):
+            return dict(receipt)
+    return None
+
+
 def _first_opl_transition_receipt(
     carrier: Mapping[str, Any],
     *sources: Mapping[str, Any],
@@ -909,6 +945,17 @@ def _first_opl_transition_receipt(
     for source in sources:
         receipt = _mapping(source.get("opl_transition_receipt"))
         if _matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
+            return dict(receipt)
+    return None
+
+
+def _first_mas_impact_receipt(
+    carrier: Mapping[str, Any],
+    *sources: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    for source in sources:
+        receipt = _mapping(source.get("mas_impact_receipt"))
+        if _matches_mas_impact_receipt(receipt=receipt, carrier=carrier):
             return dict(receipt)
     return None
 
@@ -946,6 +993,27 @@ def _matches_opl_transition_receipt(
         and boundary.get("writes_human_gate") is False
         and boundary.get("writes_current_package") is False
         and boundary.get("can_claim_paper_progress") is False
+    )
+
+
+def _matches_mas_impact_receipt(
+    *,
+    receipt: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+) -> bool:
+    if _text(receipt.get("surface_kind")) != "mas_impact_receipt":
+        return False
+    for field in (
+        "study_id",
+        "paper_mission_transaction_ref",
+        "opl_route_command_ref",
+    ):
+        carrier_value = _text(carrier.get(field))
+        if carrier_value is not None and _text(receipt.get(field)) != carrier_value:
+            return False
+    return (
+        receipt.get("can_claim_paper_progress") is False
+        and receipt.get("can_claim_publication_ready") is False
     )
 
 
@@ -1072,6 +1140,14 @@ def _terminal_closeout_readback(
         closeout=closeout,
         closeout_ref=closeout_ref,
     )
+    receipt_evidence = _receipt_evidence_readback(
+        closeout=closeout,
+        closeout_ref=closeout_ref,
+        opl_transition_receipt=opl_transition_receipt,
+    )
+    mas_receipt_consumption = _mas_receipt_consumption_readback(
+        receipt_evidence=receipt_evidence,
+    )
     paper_stage_log = _mapping(closeout.get("paper_stage_log"))
     duration = _accounting_mapping(
         closeout=closeout,
@@ -1119,6 +1195,12 @@ def _terminal_closeout_readback(
             if opl_transition_receipt
             else {}
         ),
+        **({"receipt_evidence": receipt_evidence} if receipt_evidence else {}),
+        **(
+            {"mas_receipt_consumption": mas_receipt_consumption}
+            if mas_receipt_consumption
+            else {}
+        ),
         "duration": duration,
         "token_usage": token_usage,
         "cost": cost,
@@ -1152,6 +1234,75 @@ def _opl_transition_receipt_readback(
         "can_change_stage_terminal_decision": False,
         "can_select_next_owner": False,
         "can_claim_paper_progress": False,
+    }
+
+
+def _receipt_evidence_readback(
+    *,
+    closeout: Mapping[str, Any],
+    closeout_ref: str,
+    opl_transition_receipt: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    receipt = _mapping(opl_transition_receipt)
+    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
+        return None
+    impact = _mapping(closeout.get("mas_impact_receipt"))
+    return {
+        "surface_kind": "mas_receipt_evidence",
+        "schema_version": 1,
+        "receipt_kind": "opl_transition_receipt",
+        "receipt_ref": _first_text(
+            receipt.get("opl_transition_receipt_ref"),
+            receipt.get("stage_attempt_ref"),
+            receipt.get("runtime_closeout_ref"),
+            closeout_ref,
+        ),
+        "runtime_closeout_ref": _first_text(
+            receipt.get("runtime_closeout_ref"),
+            closeout_ref,
+        ),
+        "stage_attempt_ref": _text(receipt.get("stage_attempt_ref")),
+        "typed_runtime_blocker_ref": _text(receipt.get("typed_runtime_blocker_ref")),
+        "impact_receipt_kind": _text(impact.get("surface_kind")),
+        "impact_receipt_ref": _text(impact.get("receipt_ref")),
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "durable_stop_allowed": False,
+        "authority_boundary": {
+            "receipt_is_input_ref_only": True,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_write_current_package": False,
+            "can_claim_paper_progress": False,
+            "can_claim_publication_ready": False,
+        },
+    }
+
+
+def _mas_receipt_consumption_readback(
+    *,
+    receipt_evidence: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    evidence = _mapping(receipt_evidence)
+    if _text(evidence.get("surface_kind")) != "mas_receipt_evidence":
+        return None
+    return {
+        "surface_kind": "mas_receipt_consumption_projection",
+        "schema_version": 1,
+        "status": "requires_mas_owner_consumption",
+        "next_legal_action": (
+            "record_typed_blocker"
+            if _text(evidence.get("typed_runtime_blocker_ref"))
+            else "consume_opl_transition_receipt"
+        ),
+        "receipt_evidence_ref": _text(evidence.get("receipt_ref")),
+        "typed_runtime_blocker_ref": _text(evidence.get("typed_runtime_blocker_ref")),
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "durable_stop_allowed": False,
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "can_claim_runtime_ready": False,
     }
 
 

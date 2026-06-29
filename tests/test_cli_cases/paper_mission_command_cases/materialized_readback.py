@@ -225,6 +225,26 @@ def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
                         {
                             "event_type": "paper_mission_stage_route_terminal_task_reconciled",
                             "payload": {
+                                "mas_impact_receipt": {
+                                    "surface_kind": "mas_impact_receipt",
+                                    "schema_version": 1,
+                                    "receipt_status": "requires_mas_owner_consumption",
+                                    "study_id": study_id,
+                                    "paper_mission_transaction_ref": transaction[
+                                        "transaction_id"
+                                    ],
+                                    "opl_route_command_ref": route_command_ref,
+                                    "receipt_ref": (
+                                        f"opl://stage-attempts/{stage_attempt_id}"
+                                        "/mas-impact"
+                                    ),
+                                    "next_legal_action": "consume_opl_transition_receipt",
+                                    "forbidden_next_action": (
+                                        "synonymous_route_back_redrive"
+                                    ),
+                                    "can_claim_paper_progress": False,
+                                    "can_claim_publication_ready": False,
+                                },
                                 "opl_transition_receipt": {
                                     "surface_kind": "opl_transition_receipt",
                                     "schema_version": 1,
@@ -260,7 +280,7 @@ def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
                                         "writes_current_package": False,
                                         "can_claim_paper_progress": False,
                                     },
-                                }
+                                },
                             },
                         }
                     ],
@@ -296,6 +316,28 @@ def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
     assert receipt["stage_attempt_id"] == stage_attempt_id
     assert receipt["can_claim_paper_progress"] is False
     assert payload["next_action"]["action_family"] != "runtime.opl_route"
+    receipt_evidence = carrier_readback["receipt_evidence"]
+    assert receipt_evidence["receipt_kind"] == "opl_transition_receipt"
+    assert receipt_evidence["receipt_ref"] == (
+        f"opl://stage-attempts/{stage_attempt_id}"
+    )
+    assert receipt_evidence["impact_receipt_kind"] == "mas_impact_receipt"
+    assert receipt_evidence["impact_receipt_ref"] == (
+        f"opl://stage-attempts/{stage_attempt_id}/mas-impact"
+    )
+    assert receipt_evidence["runtime_closeout_ref"] == (
+        f"opl://family-runtime/tasks/{task_id}/terminal-closeout-readback"
+    )
+    assert receipt_evidence["can_claim_paper_progress"] is False
+    consumption = carrier_readback["mas_receipt_consumption"]
+    assert consumption["status"] == "requires_mas_owner_consumption"
+    assert consumption["next_legal_action"] == "consume_opl_transition_receipt"
+    assert consumption["forbidden_next_action"] == (
+        "synonymous_route_back_redrive"
+    )
+    assert consumption["durable_stop_allowed"] is False
+    assert consumption["can_claim_publication_ready"] is False
+    assert consumption["can_claim_paper_progress"] is False
 
 
 def test_paper_mission_materialized_readback_keeps_governed_consumption_current_when_terminal_residue_exists(
