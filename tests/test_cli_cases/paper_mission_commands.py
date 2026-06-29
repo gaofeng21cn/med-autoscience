@@ -18,7 +18,6 @@ from tests.test_cli_cases.paper_mission_command_cases.materialized_readback impo
 from tests.test_cli_cases.paper_mission_command_cases.receipt_owner_consumption import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.typed_blocker_resolution import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.submission_milestone_candidate_package import *  # noqa: F401,F403
-from tests.test_cli_cases.paper_mission_command_cases.typed_blocker_resolution import *  # noqa: F401,F403
 
 
 FORBIDDEN_AUTHORITY_RELATIVE_PATHS = (
