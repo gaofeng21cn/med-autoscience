@@ -20,7 +20,7 @@ READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES = frozenset(
     {"run_quality_repair_batch", "run_gate_clearing_batch"}
 )
 STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON = (
-    "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
+    "stage_native_workspace_next_action_retired_use_next_action_envelope"
 )
 
 
