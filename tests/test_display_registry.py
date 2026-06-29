@@ -63,11 +63,11 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
 
     current_schema_ids = {
         item.input_schema_id
-        for item in display_registry.list_evidence_figure_specs()
+        for item in display_registry.list_materializable_evidence_figure_specs()
     }
     current_qc_profiles = {
         item.layout_qc_profile
-        for item in display_registry.list_evidence_figure_specs()
+        for item in display_registry.list_materializable_evidence_figure_specs()
     }
     current_qc_profiles.update(
         item.shell_qc_profile
@@ -127,6 +127,38 @@ def test_binary_calibration_decision_curve_panel_alias_resolves_to_canonical_cal
     assert spec.template_id == _full_id("calibration_curve_binary")
     assert spec.input_schema_id == "binary_prediction_curve_inputs_v1"
     assert display_registry.is_evidence_figure_template("binary_calibration_decision_curve_panel")
+
+
+@pytest.mark.parametrize(
+    ("template_id", "expected_input_schema_id", "expected_qc_profile"),
+    [
+        (
+            "time_to_event_discrimination_calibration_panel",
+            "time_to_event_discrimination_calibration_inputs_v1",
+            "publication_evidence_curve",
+        ),
+        (
+            "time_to_event_risk_group_summary",
+            "time_to_event_grouped_inputs_v1",
+            "publication_survival_curve",
+        ),
+    ],
+)
+def test_time_to_event_paper_alias_evidence_specs_are_lookup_only(
+    template_id: str,
+    expected_input_schema_id: str,
+    expected_qc_profile: str,
+) -> None:
+    spec = display_registry.get_evidence_figure_spec(template_id)
+
+    assert spec.template_id == _full_id(template_id)
+    assert spec.renderer_family == "r_ggplot2"
+    assert spec.input_schema_id == expected_input_schema_id
+    assert spec.layout_qc_profile == expected_qc_profile
+    assert display_registry.is_evidence_figure_template(template_id)
+    assert spec.template_id not in {
+        item.template_id for item in display_registry.list_evidence_figure_specs()
+    }
 
 
 @pytest.mark.parametrize(

@@ -196,3 +196,38 @@ stopifnot(identical(table_layout$panel_boxes[[1]]$box_type, "table_region"))
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_core_r_helper_writes_empty_render_context_as_json_object() -> None:
+    assert shutil.which("Rscript") is not None
+    repo_root = Path(__file__).resolve().parents[1]
+    r_script = r"""
+Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+payload <- list(
+  title = "Probe",
+  x_label = "x",
+  y_label = "y",
+  series = list(list(label = "Model", x = list(0, 1), y = list(0, 1)))
+)
+plot <- build_evidence_plot("roc_curve_binary", payload)
+layout <- build_layout_sidecar(plot, "roc_curve_binary", payload)
+output_path <- tempfile(fileext = ".json")
+jsonlite::write_json(layout, output_path, auto_unbox = TRUE, pretty = TRUE, null = "null")
+raw_text <- paste(readLines(output_path, warn = FALSE), collapse = "\n")
+stopifnot(grepl('"render_context": {}', raw_text, fixed = TRUE))
+parsed <- jsonlite::fromJSON(output_path, simplifyVector = FALSE)
+stopifnot(is.list(parsed$render_context))
+stopifnot(length(parsed$render_context) == 0)
+"""
+
+    result = subprocess.run(
+        ["Rscript", "-e", r_script],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stderr

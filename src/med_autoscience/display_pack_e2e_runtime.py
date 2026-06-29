@@ -249,8 +249,12 @@ def _run_subprocess_renderer(
     output_pdf_path: Path,
     layout_sidecar_path: Path,
     dependency_environment: Mapping[str, Any] | None = None,
+    request_short_template_id: str | None = None,
 ) -> dict[str, Any]:
     dependency_environment_payload = dict(dependency_environment or {})
+    short_template_id = str(request_short_template_id or template_manifest.template_id).strip()
+    if not short_template_id:
+        raise ValueError("request_short_template_id must not be empty")
     request_dir = paper_root / "build" / "display_pack_render_requests"
     log_dir = paper_root / "build" / "display_pack_renderer_logs"
     request_path = request_dir / f"{_safe_artifact_stem(figure_id)}.render_request.json"
@@ -262,7 +266,7 @@ def _run_subprocess_renderer(
         "renderer_family": template_manifest.renderer_family,
         "figure_id": figure_id,
         "template_id": full_template_id,
-        "short_template_id": template_manifest.template_id,
+        "short_template_id": short_template_id,
         "display_payload": dict(display_payload),
         "output_png_path": str(output_png_path),
         "output_pdf_path": str(output_pdf_path),

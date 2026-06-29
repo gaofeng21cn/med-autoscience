@@ -150,6 +150,32 @@ _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID = {
     _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC.shell_id: _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC,
     _TABLE3_CLINICAL_INTERPRETATION_SPEC.shell_id: _TABLE3_CLINICAL_INTERPRETATION_SPEC,
 }
+_TIME_TO_EVENT_DISCRIMINATION_CALIBRATION_PANEL_SPEC = EvidenceFigureSpec(
+    template_id=_full_id("time_to_event_discrimination_calibration_panel"),
+    display_name="Time-to-Event Discrimination and Calibration Panel",
+    evidence_class="time_to_event",
+    paper_family_ids=("A", "B"),
+    renderer_family="r_ggplot2",
+    input_schema_id="time_to_event_discrimination_calibration_inputs_v1",
+    layout_qc_profile="publication_evidence_curve",
+    required_exports=("png", "pdf"),
+    paper_proven=True,
+)
+_TIME_TO_EVENT_RISK_GROUP_SUMMARY_SPEC = EvidenceFigureSpec(
+    template_id=_full_id("time_to_event_risk_group_summary"),
+    display_name="Time-to-Event Risk Group Summary",
+    evidence_class="time_to_event",
+    paper_family_ids=("B",),
+    renderer_family="r_ggplot2",
+    input_schema_id="time_to_event_grouped_inputs_v1",
+    layout_qc_profile="publication_survival_curve",
+    required_exports=("png", "pdf"),
+    paper_proven=True,
+)
+_LIVE_PUBLICATION_EVIDENCE_FIGURES_BY_ID = {
+    _TIME_TO_EVENT_DISCRIMINATION_CALIBRATION_PANEL_SPEC.template_id: _TIME_TO_EVENT_DISCRIMINATION_CALIBRATION_PANEL_SPEC,
+    _TIME_TO_EVENT_RISK_GROUP_SUMMARY_SPEC.template_id: _TIME_TO_EVENT_RISK_GROUP_SUMMARY_SPEC,
+}
 
 
 _PAPER_FAMILY_LABELS: dict[str, str] = {
@@ -285,6 +311,13 @@ def list_evidence_figure_specs() -> tuple[EvidenceFigureSpec, ...]:
     return evidence_specs
 
 
+def list_materializable_evidence_figure_specs() -> tuple[EvidenceFigureSpec, ...]:
+    return (
+        *list_evidence_figure_specs(),
+        *_LIVE_PUBLICATION_EVIDENCE_FIGURES_BY_ID.values(),
+    )
+
+
 def list_illustration_shell_specs() -> tuple[IllustrationShellSpec, ...]:
     _, illustration_specs, _, _, _, _ = _active_registry_state()
     return illustration_specs
@@ -309,7 +342,10 @@ def get_evidence_figure_spec(template_id: str) -> EvidenceFigureSpec:
     try:
         return evidence_by_template[normalized]
     except KeyError as exc:
-        raise ValueError(f"unknown evidence figure template `{template_id}`") from exc
+        try:
+            return _LIVE_PUBLICATION_EVIDENCE_FIGURES_BY_ID[normalized]
+        except KeyError:
+            raise ValueError(f"unknown evidence figure template `{template_id}`") from exc
 
 
 def get_illustration_shell_spec(shell_id: str) -> IllustrationShellSpec:
@@ -336,7 +372,7 @@ def get_table_shell_spec(shell_id: str) -> TableShellSpec:
 def is_evidence_figure_template(template_id: str) -> bool:
     normalized = _canonicalize_registry_id(template_id)
     _, _, _, evidence_by_template, _, _ = _active_registry_state()
-    return normalized in evidence_by_template
+    return normalized in evidence_by_template or normalized in _LIVE_PUBLICATION_EVIDENCE_FIGURES_BY_ID
 
 
 def is_illustration_shell(shell_id: str) -> bool:

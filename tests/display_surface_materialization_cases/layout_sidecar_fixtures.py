@@ -393,7 +393,6 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "calibration_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.62, "y0": 0.90, "x1": 0.78, "y1": 0.95},
                 {"box_id": "calibration_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.52, "y0": 0.24, "x1": 0.56, "y1": 0.74},
                 {"box_id": "panel_right_title", "box_type": "panel_title", "x0": 0.58, "y0": 0.10, "x1": 0.88, "y1": 0.15},
-                {"box_id": "annotation_callout", "box_type": "annotation_block", "x0": 0.66, "y0": 0.02, "x1": 0.94, "y1": 0.08},
                 {"box_id": "discrimination_marker_1", "box_type": "metric_marker", "x0": 0.24, "y0": 0.34, "x1": 0.26, "y1": 0.38},
                 {"box_id": "discrimination_marker_2", "box_type": "metric_marker", "x0": 0.28, "y0": 0.56, "x1": 0.30, "y1": 0.60},
                 {"box_id": "predicted_marker_1", "box_type": "metric_marker", "x0": 0.62, "y0": 0.46, "x1": 0.64, "y1": 0.50},
@@ -409,6 +408,14 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "legend", "box_type": "legend", "x0": 0.34, "y0": 0.02, "x1": 0.62, "y1": 0.08},
             ],
             "metrics": {
+                "series": [
+                    {
+                        "label": "C-index",
+                        "x": [0.0, 1.0],
+                        "y": [0.79, 0.83],
+                    }
+                ],
+                "reference_line": {"x": [0.0, 1.0], "y": [0.5, 0.5]},
                 "discrimination_points": [
                     {"label": "Ridge Cox", "c_index": 0.83},
                     {"label": "Lasso Cox", "c_index": 0.79},

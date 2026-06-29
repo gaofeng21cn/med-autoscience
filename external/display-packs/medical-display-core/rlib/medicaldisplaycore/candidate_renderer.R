@@ -169,6 +169,102 @@ candidate_plot_bars <- function(payload) {
     theme(axis.text.x = element_text(angle = 25, hjust = 1))
 }
 
+candidate_plot_time_to_event_discrimination_calibration <- function(payload) {
+  discrimination <- candidate_items(payload, c("discrimination_points"))
+  if (length(discrimination) < 1) {
+    discrimination <- list(list(label = "Model", c_index = 0.78))
+  }
+  discrim_df <- do.call(rbind, lapply(seq_along(discrimination), function(index) {
+    item <- discrimination[[index]]
+    data.frame(
+      panel = candidate_non_empty(payload$panel_a_title, "Discrimination"),
+      label = candidate_non_empty(item$label, sprintf("Model %d", index)),
+      value = candidate_numeric(item$c_index, 0.75),
+      stringsAsFactors = FALSE
+    )
+  }))
+  calibration <- candidate_items(payload, c("calibration_summary"))
+  if (length(calibration) < 1) {
+    calibration <- list(list(group_label = "Low", predicted_risk_5y = 0.08, observed_risk_5y = 0.07))
+  }
+  calib_df <- do.call(rbind, lapply(seq_along(calibration), function(index) {
+    item <- calibration[[index]]
+    data.frame(
+      panel = candidate_non_empty(payload$panel_b_title, "Calibration"),
+      label = candidate_non_empty(item$group_label, sprintf("Group %d", index)),
+      predicted = candidate_numeric(item$predicted_risk_5y, 0.05 * index),
+      observed = candidate_numeric(item$observed_risk_5y, 0.05 * index),
+      stringsAsFactors = FALSE
+    )
+  }))
+  palette <- candidate_palette(payload)
+  discrim_plot <- ggplot(discrim_df, aes(x = label, y = value)) +
+    geom_col(fill = palette$primary, width = 0.62) +
+    coord_cartesian(ylim = c(0, 1)) +
+    labs(
+      title = candidate_non_empty(payload$panel_a_title, "Discrimination"),
+      x = candidate_non_empty(payload$discrimination_x_label, ""),
+      y = "C-index"
+    ) +
+    candidate_theme(payload) +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+  calib_plot <- ggplot(calib_df, aes(x = predicted, y = observed, label = label)) +
+    geom_abline(slope = 1, intercept = 0, colour = palette$reference, linetype = "dashed", linewidth = 0.45) +
+    geom_point(colour = palette$secondary, size = 2.4) +
+    geom_text(vjust = -0.6, size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.26, colour = palette$text) +
+    coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    labs(
+      title = candidate_non_empty(payload$panel_b_title, "Calibration"),
+      x = candidate_non_empty(payload$calibration_x_label, "Predicted risk"),
+      y = candidate_non_empty(payload$calibration_y_label, "Observed risk")
+    ) +
+    candidate_theme(payload)
+  patchwork::wrap_plots(list(discrim_plot, calib_plot), ncol = 2)
+}
+
+candidate_plot_time_to_event_risk_group_summary <- function(payload) {
+  summaries <- candidate_items(payload, c("risk_group_summaries"))
+  if (length(summaries) < 1) {
+    summaries <- list(
+      list(label = "Low risk", sample_size = 100, events_5y = 5, mean_predicted_risk_5y = 0.06, observed_km_risk_5y = 0.05),
+      list(label = "High risk", sample_size = 80, events_5y = 22, mean_predicted_risk_5y = 0.28, observed_km_risk_5y = 0.31)
+    )
+  }
+  risk_df <- do.call(rbind, lapply(seq_along(summaries), function(index) {
+    item <- summaries[[index]]
+    data.frame(
+      label = candidate_non_empty(item$label, sprintf("Risk %d", index)),
+      predicted = candidate_numeric(item$mean_predicted_risk_5y, 0.05 * index),
+      observed = candidate_numeric(item$observed_km_risk_5y, 0.05 * index),
+      events = candidate_numeric(item$events_5y, index),
+      stringsAsFactors = FALSE
+    )
+  }))
+  risk_df$label <- factor(risk_df$label, levels = risk_df$label)
+  palette <- candidate_palette(payload)
+  risk_plot <- ggplot(risk_df, aes(x = label)) +
+    geom_col(aes(y = predicted), fill = palette$primary, width = 0.60, alpha = 0.84) +
+    geom_point(aes(y = observed), colour = palette$secondary, size = 2.4) +
+    coord_cartesian(ylim = c(0, max(1, max(c(risk_df$predicted, risk_df$observed), na.rm = TRUE) * 1.15))) +
+    labs(
+      title = candidate_non_empty(payload$panel_a_title, "Predicted and observed risk"),
+      x = candidate_non_empty(payload$x_label, ""),
+      y = candidate_non_empty(payload$y_label, "5-year risk")
+    ) +
+    candidate_theme(payload) +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+  event_plot <- ggplot(risk_df, aes(x = label, y = events)) +
+    geom_col(fill = palette$secondary, width = 0.60, alpha = 0.88) +
+    labs(
+      title = candidate_non_empty(payload$panel_b_title, "Events by risk group"),
+      x = candidate_non_empty(payload$x_label, ""),
+      y = candidate_non_empty(payload$event_count_y_label, "Events")
+    ) +
+    candidate_theme(payload) +
+    theme(axis.text.x = element_text(angle = 20, hjust = 1))
+  patchwork::wrap_plots(list(risk_plot, event_plot), ncol = 2)
+}
+
 candidate_effect_df <- function(payload) {
   rows <- candidate_items(
     payload,
@@ -401,8 +497,10 @@ rm(.candidate_renderer_source_file, .candidate_publication_renderer_path, .frame
 build_candidate_evidence_plot <- function(template_id, payload) {
   switch(
     template_id,
+    time_to_event_discrimination_calibration_panel = candidate_plot_time_to_event_discrimination_calibration(payload),
     time_to_event_decision_curve = candidate_plot_time_to_event_decision_curve(payload),
     time_to_event_multihorizon_calibration_panel = candidate_plot_multihorizon_calibration(payload),
+    time_to_event_risk_group_summary = candidate_plot_time_to_event_risk_group_summary(payload),
     risk_layering_monotonic_bars = candidate_plot_risk_layering(payload),
     generalizability_subgroup_composite_panel = candidate_plot_generalizability(payload),
     coefficient_path_panel = candidate_plot_coefficient_path(payload),
@@ -479,6 +577,24 @@ candidate_risk_bar_values <- function(values) {
       risk = candidate_numeric(item$risk %||% item$observed_km_risk_5y %||% item$mean_predicted_risk_5y, 0)
     )
   })
+}
+
+candidate_metric_marker_boxes <- function(values, panel_box, prefix, markers_per_value = 1) {
+  count <- max(1, length(values %|||% list()))
+  unlist(lapply(seq_len(count), function(index) {
+    y <- panel_box$y0 + index * ((panel_box$y1 - panel_box$y0) / (count + 1))
+    lapply(seq_len(markers_per_value), function(marker_index) {
+      x <- panel_box$x0 + 0.10 + marker_index * 0.08
+      candidate_box(
+        sprintf("%s_marker_%d_%d", prefix, index, marker_index),
+        "metric_marker",
+        x,
+        y - 0.012,
+        min(panel_box$x1 - 0.02, x + 0.024),
+        y + 0.012
+      )
+    })
+  }), recursive = FALSE)
 }
 
 candidate_multihorizon_metrics <- function(payload) {
@@ -609,6 +725,39 @@ candidate_metrics_with_renderer <- function(template_id, display_payload, base_p
 }
 
 build_candidate_layout_override <- function(template_id, display_payload, base_panel_box = NULL, base_guide_box = NULL) {
+  if (identical(template_id, "time_to_event_discrimination_calibration_panel")) {
+    panels <- candidate_two_panel_boxes("panel", "panel")
+    return(list(
+      layout_boxes = c(
+        candidate_panel_labels(
+          candidate_non_empty(display_payload$panel_a_title, "Discrimination"),
+          candidate_non_empty(display_payload$panel_b_title, "Calibration")
+        ),
+        list(
+          candidate_box("panel_left_x_axis_title", "subplot_x_axis_title", 0.18, 0.09, 0.40, 0.13),
+          candidate_box("panel_left_y_axis_title", "subplot_y_axis_title", 0.01, 0.40, 0.05, 0.62),
+          candidate_box("calibration_x_axis_title", "subplot_x_axis_title", 0.62, 0.09, 0.86, 0.13),
+          candidate_box("calibration_y_axis_title", "subplot_y_axis_title", 0.50, 0.40, 0.54, 0.62)
+        ),
+        candidate_metric_marker_boxes(display_payload$discrimination_points, panels[[1]], "discrimination", 1),
+        candidate_metric_marker_boxes(display_payload$calibration_summary, panels[[2]], "calibration", 2)
+      ),
+      panel_boxes = panels,
+      guide_boxes = list(candidate_box("legend", "legend", 0.24, 0.06, 0.76, 0.13)),
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        list(
+          discrimination_points = display_payload$discrimination_points %|||% list(),
+          calibration_summary = display_payload$calibration_summary %|||% list(),
+          calibration_callout = display_payload$calibration_callout %||% NULL,
+          series = list(list(label = "C-index", x = c(0, 1), y = c(0.5, 0.5))),
+          reference_line = list(x = c(0, 1), y = c(0.5, 0.5))
+        )
+      )
+    ))
+  }
   if (identical(template_id, "time_to_event_decision_curve")) {
     return(list(
       layout_boxes = c(candidate_panel_labels(), candidate_axis_boxes()),
@@ -644,6 +793,35 @@ build_candidate_layout_override <- function(template_id, display_payload, base_p
         list(
           left_bars = candidate_risk_bar_values(display_payload$left_bars),
           right_bars = candidate_risk_bar_values(display_payload$right_bars)
+        )
+      )
+    ))
+  }
+  if (identical(template_id, "time_to_event_risk_group_summary")) {
+    panels <- candidate_two_panel_boxes("panel", "panel")
+    return(list(
+      layout_boxes = c(
+        candidate_panel_labels(
+          candidate_non_empty(display_payload$panel_a_title, "Risk gradient"),
+          candidate_non_empty(display_payload$panel_b_title, "Event counts")
+        ),
+        list(
+          candidate_box("x_axis_title", "x_axis_title", 0.18, 0.09, 0.40, 0.13),
+          candidate_box("y_axis_title", "y_axis_title", 0.01, 0.40, 0.05, 0.62),
+          candidate_box("panel_right_x_axis_title", "subplot_x_axis_title", 0.62, 0.09, 0.86, 0.13),
+          candidate_box("panel_right_y_axis_title", "subplot_y_axis_title", 0.50, 0.40, 0.54, 0.62)
+        ),
+        candidate_risk_bar_boxes(display_payload$risk_group_summaries, panels[[1]], "predicted"),
+        candidate_risk_bar_boxes(display_payload$risk_group_summaries, panels[[2]], "observed")
+      ),
+      panel_boxes = panels,
+      guide_boxes = list(),
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        list(
+          risk_group_summaries = display_payload$risk_group_summaries %|||% list()
         )
       )
     ))

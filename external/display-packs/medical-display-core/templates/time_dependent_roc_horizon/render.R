@@ -7,5 +7,13 @@ if (length(args) == 2 && identical(args[[1]], "--request")) {
 if (!nzchar(request_path)) {
   stop("expected --request <request_json> or MAS_DISPLAY_RENDER_REQUEST")
 }
+old_source_only <- Sys.getenv("MAS_DISPLAY_RENDERER_SOURCE_ONLY", unset = "")
+Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
 source(file.path("..", "..", "rlib", "medicaldisplaycore", "evidence_renderer.R"))
+source(file.path("..", "..", "rlib", "medicaldisplaycore", "candidate_renderer.R"))
+if (nzchar(old_source_only)) {
+  Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = old_source_only)
+} else {
+  Sys.unsetenv("MAS_DISPLAY_RENDERER_SOURCE_ONLY")
+}
 render_evidence_request(request_path, expected_template_id = "time_dependent_roc_horizon")

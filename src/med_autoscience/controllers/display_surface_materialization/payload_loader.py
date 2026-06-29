@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 from .shared import Any, Path, _evidence_payload_path, display_registry, load_json
 from .validation_atlas_primary import _validate_dimensionality_reduction_display_payload
-from .validation_curves_extended import _validate_model_complexity_audit_display_payload, _validate_time_to_event_display_payload, _validate_time_to_event_multihorizon_calibration_display_payload
+from .validation_curves_extended import _validate_model_complexity_audit_display_payload, _validate_time_to_event_display_payload, _validate_time_to_event_discrimination_calibration_display_payload, _validate_time_to_event_multihorizon_calibration_display_payload
 from .validation_curves_primary import _validate_binary_curve_display_payload, _validate_risk_layering_display_payload, _validate_time_to_event_decision_curve_display_payload
 from .validation_effects import _validate_coefficient_path_panel_display_payload, _validate_forest_display_payload
 from .validation_generalizability import _validate_generalizability_subgroup_composite_display_payload
@@ -28,6 +28,7 @@ _VALIDATOR_BY_SCHEMA_ID: dict[str, _EvidenceDisplayValidator] = {
     "risk_layering_monotonic_inputs_v1": _validate_risk_layering_display_payload,
     "model_complexity_audit_panel_inputs_v1": _validate_model_complexity_audit_display_payload,
     "time_to_event_multihorizon_calibration_inputs_v1": _validate_time_to_event_multihorizon_calibration_display_payload,
+    "time_to_event_discrimination_calibration_inputs_v1": _validate_time_to_event_discrimination_calibration_display_payload,
     "time_to_event_grouped_inputs_v1": _validate_time_to_event_display_payload,
     "time_to_event_decision_curve_inputs_v1": _validate_time_to_event_decision_curve_display_payload,
     "dimensionality_reduction_inputs_v1": _validate_dimensionality_reduction_display_payload,
@@ -54,11 +55,15 @@ _VALIDATOR_BY_SCHEMA_ID: dict[str, _EvidenceDisplayValidator] = {
 }
 
 
+def _current_evidence_specs() -> tuple[display_registry.EvidenceFigureSpec, ...]:
+    return display_registry.list_materializable_evidence_figure_specs()
+
+
 def _build_validator_registry() -> dict[tuple[str, str], _EvidenceDisplayValidator]:
     registry: dict[tuple[str, str], _EvidenceDisplayValidator] = {}
     current_schema_ids = {
         spec.input_schema_id
-        for spec in display_registry.list_evidence_figure_specs()
+        for spec in _current_evidence_specs()
     }
     extra_schema_ids = sorted(set(_VALIDATOR_BY_SCHEMA_ID) - current_schema_ids)
     if extra_schema_ids:
@@ -66,7 +71,7 @@ def _build_validator_registry() -> dict[tuple[str, str], _EvidenceDisplayValidat
             "retired evidence input schemas must not be registered in current materialization: "
             + ", ".join(extra_schema_ids)
         )
-    for spec in display_registry.list_evidence_figure_specs():
+    for spec in _current_evidence_specs():
         validator = _VALIDATOR_BY_SCHEMA_ID.get(spec.input_schema_id)
         if validator is None:
             continue

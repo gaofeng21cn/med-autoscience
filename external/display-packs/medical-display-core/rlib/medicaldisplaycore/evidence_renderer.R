@@ -57,6 +57,23 @@ normalize_template_id <- function(value) {
   parts[[length(parts)]]
 }
 
+canonical_template_aliases <- function(expected_template_id) {
+  switch(
+    expected_template_id,
+    time_dependent_roc_horizon = c(
+      "time_dependent_roc_horizon",
+      "time_dependent_roc_comparison_panel",
+      "time_to_event_discrimination_calibration_panel",
+      "time_to_event_landmark_performance_panel"
+    ),
+    risk_layering_monotonic_bars = c(
+      "risk_layering_monotonic_bars",
+      "time_to_event_risk_group_summary"
+    ),
+    expected_template_id
+  )
+}
+
 read_render_request <- function(request_path) {
   request_json <- if (file.exists(request_path)) {
     paste(readLines(request_path, warn = FALSE), collapse = "\n")
@@ -98,6 +115,14 @@ as_numeric_vector <- function(values, field_name) {
 
 render_context_from_payload <- function(display_payload) {
   display_payload$render_context %||% list()
+}
+
+render_context_sidecar <- function(display_payload) {
+  render_context <- render_context_from_payload(display_payload)
+  if (!is.list(render_context) || length(render_context) > 0) {
+    return(render_context)
+  }
+  structure(list(), names = character())
 }
 
 style_palette <- function(display_payload) {
@@ -1223,7 +1248,7 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
       panel_boxes = list(panel_box),
       guide_boxes = list(),
       metrics = metrics,
-      render_context = render_context_from_payload(display_payload),
+      render_context = render_context_sidecar(display_payload),
       style_profile = style_profile_sidecar(display_payload)
     ))
   }
@@ -1244,7 +1269,7 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
       panel_boxes = list(panel_box),
       guide_boxes = guide_boxes,
       metrics = metrics,
-      render_context = render_context_from_payload(display_payload),
+      render_context = render_context_sidecar(display_payload),
       style_profile = style_profile_sidecar(display_payload)
     ))
   }
@@ -1307,7 +1332,7 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
         panel_boxes = panel_boxes,
         guide_boxes = guide_boxes,
         metrics = metrics,
-        render_context = render_context_from_payload(display_payload),
+        render_context = render_context_sidecar(display_payload),
         style_profile = style_profile_sidecar(display_payload)
       ))
     }
@@ -1320,7 +1345,7 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     panel_boxes = Filter(Negate(is.null), list(panel_box)),
     guide_boxes = guide_boxes,
     metrics = metrics,
-    render_context = render_context_from_payload(display_payload),
+    render_context = render_context_sidecar(display_payload),
     style_profile = style_profile_sidecar(display_payload)
   )
 }
@@ -1362,7 +1387,8 @@ render_evidence_request <- function(request_path, expected_template_id = NULL) {
   template_id <- normalize_template_id(request$short_template_id %||% request$template_id)
   if (!is.null(expected_template_id)) {
     expected <- normalize_template_id(expected_template_id)
-    if (!identical(template_id, expected)) {
+    allowed_template_ids <- canonical_template_aliases(expected)
+    if (!(template_id %in% allowed_template_ids)) {
       stop(sprintf("render request template `%s` does not match expected template `%s`", template_id, expected))
     }
   }

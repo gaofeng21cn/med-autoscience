@@ -173,6 +173,10 @@ def _render_evidence_figure_by_template_runtime(
     layout_sidecar_path: Path,
     output_svg_path: Path | None = None,
 ) -> dict[str, Any]:
+    _, requested_template_short_id = _require_namespaced_registry_id(
+        template_id,
+        label=f"{template_id} template_id",
+    )
     runtime = display_pack_runtime.resolve_display_template_runtime(
         repo_root=_REPO_ROOT,
         template_id=template_id,
@@ -202,6 +206,7 @@ def _render_evidence_figure_by_template_runtime(
         output_png_path=output_png_path,
         output_pdf_path=output_pdf_path,
         layout_sidecar_path=layout_sidecar_path,
+        request_short_template_id=requested_template_short_id,
     )
 
 
