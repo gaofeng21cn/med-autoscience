@@ -204,7 +204,7 @@ Plan Completion Audit 输出时，每一行都必须给出 `status`、`repo/sour
 | MAS `Medical Authority Kernel` | MAS 只保留 source readiness、quality verdict materialization、artifact mutation authorization、memory accept/reject、owner receipt signer、typed blocker materializer 和医学 helper。 | `authority_kernel_inventory`、allowed/forbidden writes、cannot-lift-to-OPL、output refs、retirement/upcollect target 和 no generic runtime owner guard 落地。 | retained function 在真实 owner chain 中签出或消费 owner receipt、typed blocker、quality gate、human answer、route-back、artifact/source/memory authority。 | inventory presence、focused tests、validator pass、helper output without owner consumption。 |
 | Live paper-line acceptance | MAS 是 paper authority owner；OPL 是 runtime transport owner。 | harness、work orders、rollup、identity gate、false live-claim boundary 落地。 | DM002/DM003 或下一条真实 paper line 出现 same-identity `drive -> OPL intake -> StageRun/provider -> typed closeout -> MAS consume -> next owner answer` 证据。 | docs/tests、candidate package、refs-only ledger、queue empty、projection clean、provider completion。 |
 
-当前矩阵状态：`repo/source/control-plane` 的规划、边界和验收口径已落盘为 active plan；各功能行是否已经 100% 仍以对应 contract/source/readback 的 fresh evidence 为准。`live acceptance` 总账默认仍 open，除非后续 audit 对具体行给出 fresh runtime / owner evidence。
+当前矩阵状态：`repo/source/control-plane` 已从“规划与边界落盘”推进到本轮尾项 closeout：OPL transition receipt bridge、legacy next-action authority retirement、legacy owner-action source thinning、delivery `current_package` readback projection、MAS-owned executor delta followthrough stop contract、legacy receipt command-kind readback relax 均已有源码 / readback / focused-test 证据。该状态可支撑 repo/control-plane 侧完成度审计，但不改变 `live acceptance` 总账：除非后续 audit 对具体行给出 fresh runtime / owner evidence，live acceptance 仍默认 open。
 
 ### 私有控制面退役门
 
