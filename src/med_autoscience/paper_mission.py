@@ -574,13 +574,6 @@ def _build_mission(
             ),
         },
         "artifact_refs": artifact_refs,
-        "touchpoints": _touchpoints(
-            progress=progress,
-            current_work_unit=current_work_unit,
-            current_owner_action=current_owner_action,
-            execution_envelope=execution_envelope,
-            route_back_checklist=route_back_checklist,
-        ),
         "current_blocker": current_blocker,
         "owner_decision_packet_requirement": _owner_decision_packet_requirement(
             mission_objective=mission_objective,
@@ -589,7 +582,6 @@ def _build_mission(
             typed_blocker=typed_blocker,
             route_back_checklist=route_back_checklist,
         ),
-        "platform_diagnostics": platform_diagnostics,
         "authority_boundary": _authority_boundary(),
     }
     payload = _paper_mission_run_payload(
@@ -739,10 +731,8 @@ def _formal_one_shot_mission_payload(
             "legacy_import_counts_as_paper_progress": False,
             "old_blocker_counts_as_default_execution_state": False,
             "new_mission_is_default_execution_state": True,
-            "platform_diagnostics_count_as_paper_progress": False,
         },
         "authority_boundary": _authority_boundary(),
-        "platform_diagnostics": platform_diagnostics,
     }
     payload = {
         "schema_version": CONTRACT_VERSION,
@@ -1212,67 +1202,6 @@ def _ref_kind(ref: str) -> str:
     if ref.startswith("provider_admission_pending_count="):
         return "provider_admission_readback"
     return "artifact_ref"
-
-
-def _touchpoints(
-    *,
-    progress: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    current_owner_action: Mapping[str, Any],
-    execution_envelope: Mapping[str, Any],
-    route_back_checklist: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "study_progress": {
-            "generated_at": _text(progress.get("generated_at")),
-            "truth_epoch": _text(progress.get("truth_epoch")),
-            "runtime_health_epoch": _text(progress.get("runtime_health_epoch")),
-            "study_root": _text(progress.get("study_root")),
-            "quest_root": _text(progress.get("quest_root")),
-            "why_not_progressing": _text(progress.get("why_not_progressing")),
-        },
-        "current_work_unit": _compact_mapping(
-            current_work_unit,
-            (
-                "status",
-                "owner",
-                "action_type",
-                "work_unit_id",
-                "work_unit_fingerprint",
-                "action_fingerprint",
-            ),
-        ),
-        "current_executable_owner_action": _compact_mapping(
-            current_owner_action,
-            (
-                "status",
-                "next_owner",
-                "action_type",
-                "work_unit_id",
-                "work_unit_fingerprint",
-                "action_fingerprint",
-                "required_delta_kind",
-            ),
-        ),
-        "current_execution_envelope": _compact_mapping(
-            execution_envelope,
-            (
-                "state_kind",
-                "owner",
-                "next_work_unit",
-            ),
-        ),
-        "route_back_checklist": _compact_mapping(
-            route_back_checklist,
-            (
-                "route_back_required",
-                "decision_type",
-                "route_target",
-                "owner",
-                "handoff_source",
-            ),
-        ),
-    }
 
 
 def _current_blocker(

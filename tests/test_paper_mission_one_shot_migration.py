@@ -25,7 +25,7 @@ def _migration_pack() -> dict:
     return build_dm_paper_mission_one_shot_migration_pack(
         dm002_progress=_load_json("dm002_progress.json"),
         dm003_progress=_load_json("dm003_progress.json"),
-        runtime_readback_payload=_load_json("domain_diagnostic_dry_run.json"),
+        runtime_readback_payload=_load_json("runtime_readback.json"),
         profile_ref=(
             "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/"
             "ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml"
@@ -123,6 +123,11 @@ def test_one_shot_migration_readback_remains_refs_only_and_no_authority_material
         assert consume["authority_boundary"]["can_write_current_package"] is False
         assert legacy["current_artifact_refs"]
         assert legacy["all_source_refs"]
+        assert "platform_diagnostics" not in readback
+        assert "current_work_unit" not in readback
+        assert "current_executable_owner_action" not in readback
+        assert "provider_admission_current_control" not in readback
+        assert "paper_recovery_state" not in readback
 
 
 def test_one_shot_migration_generates_candidate_delta_and_owner_decision_packet() -> None:
