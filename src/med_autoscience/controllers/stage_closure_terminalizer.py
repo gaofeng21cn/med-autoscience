@@ -225,6 +225,7 @@ def stage_closure_decision_projection(
         readback=readback,
         handoff=handoff,
         opl_runtime_submission=opl_runtime_submission,
+        consumption_ledger_readback=consumption_ledger_readback,
     ):
         return {}
     return _missing_stage_closure_decision(
@@ -303,7 +304,11 @@ def _readback_needs_stage_closure_decision(
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
     opl_runtime_submission: Mapping[str, Any] | None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> bool:
+    consume_result = _mapping(_mapping(consumption_ledger_readback).get("consume_result"))
+    if _text(consume_result.get("paper_facing_delta_ref")) is not None:
+        return False
     decision = _mapping(readback.get("stage_terminal_decision")) or _mapping(
         _mapping(readback.get("paper_mission_transaction")).get("stage_terminal_decision")
     )
