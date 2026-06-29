@@ -556,6 +556,61 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert "platform_diagnostics" not in payload
 
 
+def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_runtime_readback() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    payload = module.attach_artifact_first_mission_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0, "sources": []},
+            "opl_runtime_carrier_readback": {
+                "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+                "carrier_status": "opl_runtime_terminal_readback_observed",
+                "opl_transition_receipt": {
+                    "surface_kind": "opl_transition_receipt",
+                    "schema_version": 1,
+                    "receipt_status": "terminal_closeout_observed",
+                    "role": "transport_receipt_only",
+                    "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+                    "opl_route_command_ref": (
+                        "paper-mission-transaction::dm002#opl_route_command"
+                    ),
+                    "stage_attempt_ref": "opl://stage-attempts/sat-terminal",
+                    "runtime_closeout_ref": (
+                        "opl://family-runtime/tasks/frt-stage-route/"
+                        "terminal-closeout-readback"
+                    ),
+                    "can_change_stage_terminal_decision": True,
+                    "can_select_next_owner": True,
+                    "can_claim_paper_progress": True,
+                    "authority_boundary": {
+                        "writes_owner_receipt": False,
+                        "writes_typed_blocker": False,
+                        "writes_human_gate": False,
+                        "writes_current_package": False,
+                        "can_claim_paper_progress": False,
+                    },
+                },
+            },
+        }
+    )
+
+    receipt = payload["opl_transition_receipt"]
+    assert receipt["surface_kind"] == "opl_transition_receipt"
+    assert receipt["receipt_status"] == "terminal_closeout_observed"
+    assert receipt["role"] == "transport_receipt_only"
+    assert receipt["paper_mission_transaction_ref"] == (
+        "paper-mission-transaction::dm002"
+    )
+    assert receipt["stage_attempt_ref"] == "opl://stage-attempts/sat-terminal"
+    assert receipt["can_change_stage_terminal_decision"] is False
+    assert receipt["can_select_next_owner"] is False
+    assert receipt["can_claim_paper_progress"] is False
+    assert payload["artifact_first_mission_summary"]["opl_transition_receipt"] == receipt
+
+
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"

@@ -185,7 +185,10 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
                 if ref is not None
             ],
         ),
-        "opl_transition_receipt": _opl_transition_receipt(),
+        "opl_transition_receipt": _opl_transition_receipt(
+            progress=progress,
+            consumption_ledger_readback=consumption_ledger_readback,
+        ),
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "consume_candidate_status": effective_consume_candidate_status,
@@ -326,7 +329,36 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
     return updated
 
 
-def _opl_transition_receipt() -> dict[str, Any]:
+def _opl_transition_receipt(
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    for source in (
+        _mapping(progress),
+        _mapping(consumption_ledger_readback),
+        _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
+        _mapping(_mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")),
+        _mapping(
+            _mapping(_mapping(progress).get("opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ),
+        _mapping(
+            _mapping(
+                _mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")
+            ).get("terminal_closeout")
+        ),
+    ):
+        receipt = _mapping(source.get("opl_transition_receipt"))
+        if _non_empty_text(receipt.get("surface_kind")) == "opl_transition_receipt":
+            return {
+                **dict(receipt),
+                "role": "transport_receipt_only",
+                "can_change_stage_terminal_decision": False,
+                "can_select_next_owner": False,
+                "can_claim_paper_progress": False,
+            }
     return {
         "surface_kind": "opl_transition_receipt",
         "status": "not_requested_from_study_progress",

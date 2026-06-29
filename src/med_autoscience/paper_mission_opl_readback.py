@@ -253,6 +253,14 @@ def paper_mission_opl_runtime_carrier_readback(
         }
 
     closeout, closeout_ref = matched
+    terminal_closeout = _terminal_closeout_readback(
+        closeout=closeout,
+        closeout_ref=closeout_ref,
+    )
+    opl_transition_receipt = _opl_transition_receipt_readback(
+        closeout=closeout,
+        closeout_ref=closeout_ref,
+    )
     return {
         "surface_kind": "paper_mission_opl_runtime_carrier_readback",
         "schema_version": 1,
@@ -267,9 +275,11 @@ def paper_mission_opl_runtime_carrier_readback(
         "can_claim_runtime_ready": False,
         "authority_materialized": False,
         "request_carrier_preserved": True,
-        "terminal_closeout": _terminal_closeout_readback(
-            closeout=closeout,
-            closeout_ref=closeout_ref,
+        "terminal_closeout": terminal_closeout,
+        **(
+            {"opl_transition_receipt": opl_transition_receipt}
+            if opl_transition_receipt
+            else {}
         ),
     }
 
@@ -811,6 +821,10 @@ def _opl_task_terminal_closeout(
     if _non_current_closeout_reason(blocked_reason):
         return None
     closeout_refs = closeout_refs or stage_closeout_refs or _event_closeout_refs(events)
+    opl_transition_receipt = _event_opl_transition_receipt(
+        events=events,
+        carrier=carrier,
+    )
     typed_blocker_ref = (
         typed_blocker_refs[0]
         if typed_blocker_refs
@@ -842,6 +856,11 @@ def _opl_task_terminal_closeout(
         "typed_blocker_ref": typed_blocker_ref,
         "blocked_reason": blocked_reason,
         "closeout_refs": closeout_refs,
+        **(
+            {"opl_transition_receipt": opl_transition_receipt}
+            if opl_transition_receipt
+            else {}
+        ),
         "task_id": _text(task.get("task_id")),
         "task_status": status,
         "closeout_receipt_status": closeout_status or stage_closeout_status,
@@ -1019,6 +1038,54 @@ def _event_closeout_refs(events: object) -> list[str]:
     return refs
 
 
+def _event_opl_transition_receipt(
+    *,
+    events: object,
+    carrier: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not isinstance(events, list | tuple):
+        return None
+    for event in reversed(events):
+        payload = _mapping(_mapping(event).get("payload"))
+        receipt = _mapping(payload.get("opl_transition_receipt"))
+        if _matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
+            return dict(receipt)
+    return None
+
+
+def _matches_opl_transition_receipt(
+    *,
+    receipt: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+) -> bool:
+    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
+        return False
+    for field in (
+        "study_id",
+        "paper_mission_transaction_ref",
+        "opl_route_command_ref",
+    ):
+        carrier_value = _text(carrier.get(field))
+        if carrier_value is not None and _text(receipt.get(field)) != carrier_value:
+            return False
+    command_kind = _carrier_command_kind(carrier)
+    if command_kind is not None and _text(receipt.get("command_kind")) != command_kind:
+        return False
+    route_target = _carrier_route_target(carrier)
+    if route_target is not None and _text(receipt.get("route_target")) != route_target:
+        return False
+    boundary = _mapping(receipt.get("authority_boundary"))
+    return (
+        receipt.get("can_change_stage_terminal_decision") is False
+        and receipt.get("can_select_next_owner") is False
+        and boundary.get("writes_owner_receipt") is False
+        and boundary.get("writes_typed_blocker") is False
+        and boundary.get("writes_human_gate") is False
+        and boundary.get("writes_current_package") is False
+        and boundary.get("can_claim_paper_progress") is False
+    )
+
+
 def _matches_carrier(
     *,
     closeout: Mapping[str, Any],
@@ -1126,6 +1193,10 @@ def _terminal_closeout_readback(
     closeout: Mapping[str, Any],
     closeout_ref: str,
 ) -> dict[str, Any]:
+    opl_transition_receipt = _opl_transition_receipt_readback(
+        closeout=closeout,
+        closeout_ref=closeout_ref,
+    )
     paper_stage_log = _mapping(closeout.get("paper_stage_log"))
     duration = _accounting_mapping(
         closeout=closeout,
@@ -1168,6 +1239,11 @@ def _terminal_closeout_readback(
         "typed_blocker_ref": _text(closeout.get("typed_blocker_ref")),
         "blocked_reason": _text(closeout.get("blocked_reason")),
         "closeout_refs": _text_list(closeout.get("closeout_refs")),
+        **(
+            {"opl_transition_receipt": opl_transition_receipt}
+            if opl_transition_receipt
+            else {}
+        ),
         "duration": duration,
         "token_usage": token_usage,
         "cost": cost,
@@ -1183,6 +1259,24 @@ def _terminal_closeout_readback(
             "publication_eval_latest_write_authorized": False,
             "controller_decision_write_authorized": False,
         },
+    }
+
+
+def _opl_transition_receipt_readback(
+    *,
+    closeout: Mapping[str, Any],
+    closeout_ref: str,
+) -> dict[str, Any] | None:
+    receipt = _mapping(closeout.get("opl_transition_receipt"))
+    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
+        return None
+    return {
+        **dict(receipt),
+        "role": "transport_receipt_only",
+        "runtime_closeout_readback_ref": closeout_ref,
+        "can_change_stage_terminal_decision": False,
+        "can_select_next_owner": False,
+        "can_claim_paper_progress": False,
     }
 
 

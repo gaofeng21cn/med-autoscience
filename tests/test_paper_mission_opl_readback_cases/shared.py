@@ -87,7 +87,51 @@ def _opl_runtime_task_payload() -> dict[str, object]:
                         "closeout_refs": [
                             "paper-mission-transaction::dm002#stage_terminal_decision",
                             "typed-blocker:opl_runtime_live_readback_required",
-                        ]
+                        ],
+                        "opl_transition_receipt": {
+                            "surface_kind": "opl_transition_receipt",
+                            "schema_version": 1,
+                            "receipt_status": "terminal_closeout_observed",
+                            "role": "transport_receipt_only",
+                            "study_id": "002-dm-china-us-mortality-attribution",
+                            "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+                            "opl_route_command_ref": (
+                                "paper-mission-transaction::dm002#opl_route_command"
+                            ),
+                            "command_kind": "start_next_stage",
+                            "route_target": "publication_gate_replay",
+                            "route_identity_key": "paper-mission-transaction::dm002::route",
+                            "attempt_idempotency_key": "dm002::attempt",
+                            "request_idempotency_key": "dm002::request",
+                            "task_id": "frt-stage-route",
+                            "task_status": "blocked",
+                            "stage_attempt_id": "sat-terminal",
+                            "stage_attempt_ref": "opl://stage-attempts/sat-terminal",
+                            "runtime_closeout_ref": (
+                                "opl://family-runtime/tasks/frt-stage-route/"
+                                "terminal-closeout-readback"
+                            ),
+                            "typed_runtime_blocker_ref": (
+                                "typed-blocker:opl_runtime_live_readback_required"
+                            ),
+                            "closeout_refs": [
+                                "paper-mission-transaction::dm002#stage_terminal_decision",
+                                "typed-blocker:opl_runtime_live_readback_required",
+                            ],
+                            "closeout_receipt_status": "accepted_typed_closeout",
+                            "blocked_reason": (
+                                "paper_mission_stage_route_domain_gate_pending"
+                            ),
+                            "can_change_stage_terminal_decision": False,
+                            "can_select_next_owner": False,
+                            "authority_boundary": {
+                                "writes_owner_receipt": False,
+                                "writes_typed_blocker": False,
+                                "writes_human_gate": False,
+                                "writes_current_package": False,
+                                "can_claim_paper_progress": False,
+                            },
+                        },
                     },
                 }
             ],

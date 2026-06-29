@@ -283,6 +283,24 @@ def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
     assert terminal["stage_attempt_id"] == "sat-terminal"
     assert terminal["typed_blocker_ref"] == "typed-blocker:opl_runtime_live_readback_required"
     assert terminal["provider_completion_is_domain_ready"] is False
+    receipt = readback["opl_transition_receipt"]
+    assert receipt["surface_kind"] == "opl_transition_receipt"
+    assert receipt["receipt_status"] == "terminal_closeout_observed"
+    assert receipt["role"] == "transport_receipt_only"
+    assert receipt["paper_mission_transaction_ref"] == (
+        "paper-mission-transaction::dm002"
+    )
+    assert receipt["opl_route_command_ref"] == (
+        "paper-mission-transaction::dm002#opl_route_command"
+    )
+    assert receipt["stage_attempt_ref"] == "opl://stage-attempts/sat-terminal"
+    assert receipt["typed_runtime_blocker_ref"] == (
+        "typed-blocker:opl_runtime_live_readback_required"
+    )
+    assert receipt["can_change_stage_terminal_decision"] is False
+    assert receipt["can_select_next_owner"] is False
+    assert receipt["can_claim_paper_progress"] is False
+    assert terminal["opl_transition_receipt"] == receipt
 
 
 def test_opl_terminal_closeout_readback_rejects_cross_transaction_opl_runtime_task(
