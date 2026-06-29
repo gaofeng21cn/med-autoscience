@@ -268,6 +268,447 @@
     },
     "legacy_work_unit_identity_role": "provenance_currentness_only"
   },
+  "transition_spine_abi_contract": {
+    "surface_kind": "mas_opl_transition_spine_abi_contract",
+    "schema_version": 1,
+    "state": "active_machine_contract_slice",
+    "contract_ref": "contracts/opl_domain_progress_transition_runtime_contract.json",
+    "source_design_refs": [
+      "docs/runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md",
+      "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md"
+    ],
+    "spine": [
+      "DomainIntent",
+      "OPL Command",
+      "OPL Event",
+      "TransactionalOutbox",
+      "StageRun",
+      "MAS OwnerAnswer",
+      "DerivedProjection"
+    ],
+    "required_field_families": [
+      "identity",
+      "causality",
+      "authority_boundary",
+      "exactly_one_outcome",
+      "projection_metadata"
+    ],
+    "boundary_abi": {
+      "DomainIntent": {
+        "boundary": "DomainIntent",
+        "owner": "med-autoscience",
+        "role": "MAS declares current medical research intent and forbidden authority.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "study_id",
+            "quest_id",
+            "stage_id",
+            "current_owner_action_id",
+            "intent_idempotency_key"
+          ],
+          "causality": [
+            "source_generation",
+            "policy_result_ref",
+            "required_refs"
+          ],
+          "authority_boundary": [
+            "intent_owner",
+            "target_runtime_owner",
+            "forbidden_authority"
+          ],
+          "exactly_one_outcome": [
+            "accepted_owner_answer_shape",
+            "expected_runtime_receipt_kind"
+          ],
+          "projection_metadata": [
+            "projection_role",
+            "authority",
+            "contract_ref"
+          ]
+        },
+        "authority_boundary": {
+          "domain_intent_owner": "med-autoscience",
+          "runtime_execution_owner": "one-person-lab",
+          "mas_can_create_opl_command": false,
+          "mas_can_create_opl_event": false,
+          "mas_can_create_opl_outbox_item": false,
+          "mas_can_create_stage_run": false
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      },
+      "OPL Command": {
+        "boundary": "OPL Command",
+        "owner": "one-person-lab",
+        "role": "OPL normalizes MAS intent into an idempotent command.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "aggregate_id",
+            "command_id",
+            "expected_version",
+            "idempotency_key"
+          ],
+          "causality": [
+            "domain_intent_ref",
+            "source_generation",
+            "precondition_refs"
+          ],
+          "authority_boundary": [
+            "command_owner",
+            "domain_authority_owner",
+            "allowed_side_effect_target"
+          ],
+          "exactly_one_outcome": [
+            "transition_kind",
+            "expected_event_type",
+            "expected_outbox_effect"
+          ],
+          "projection_metadata": [
+            "not_a_projection",
+            "read_model_authority",
+            "contract_ref"
+          ]
+        },
+        "authority_boundary": {
+          "command_owner": "one-person-lab",
+          "can_sign_mas_owner_answer": false,
+          "can_claim_paper_progress": false
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      },
+      "OPL Event": {
+        "boundary": "OPL Event",
+        "owner": "one-person-lab",
+        "role": "OPL records the committed transition fact in append-only history.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "aggregate_id",
+            "event_id",
+            "aggregate_version",
+            "transition_kind"
+          ],
+          "causality": [
+            "command_id",
+            "causal_event_id",
+            "transaction_id"
+          ],
+          "authority_boundary": [
+            "event_owner",
+            "event_is_runtime_fact_only",
+            "domain_completion_owner"
+          ],
+          "exactly_one_outcome": [
+            "outcome_kind",
+            "outcome_ref",
+            "non_advancing_apply_allowed"
+          ],
+          "projection_metadata": [
+            "append_only",
+            "replayable",
+            "projection_source"
+          ]
+        },
+        "authority_boundary": {
+          "event_owner": "one-person-lab",
+          "event_is_paper_progress": false,
+          "mas_owner_answer_required_for_domain_completion": true
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      },
+      "TransactionalOutbox": {
+        "boundary": "TransactionalOutbox",
+        "owner": "one-person-lab",
+        "role": "OPL stores transition side effects in the same transaction as the event.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "outbox_item_id",
+            "aggregate_id",
+            "transaction_id",
+            "idempotency_key"
+          ],
+          "causality": [
+            "event_id",
+            "command_id",
+            "side_effect_target"
+          ],
+          "authority_boundary": [
+            "outbox_owner",
+            "side_effect_transport_owner",
+            "domain_authority_owner"
+          ],
+          "exactly_one_outcome": [
+            "side_effect_kind",
+            "dispatch_status",
+            "terminal_or_pending_ref"
+          ],
+          "projection_metadata": [
+            "derived_from_event_id",
+            "outbox_generation",
+            "authority"
+          ]
+        },
+        "authority_boundary": {
+          "outbox_owner": "one-person-lab",
+          "outbox_emitted_is_paper_progress": false,
+          "mas_can_create_outbox_item": false
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      },
+      "StageRun": {
+        "boundary": "StageRun",
+        "owner": "one-person-lab",
+        "role": "OPL owns provider attempt, tool invocation, lease, retry, and closeout transport.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "stage_run_id",
+            "route_identity_key",
+            "attempt_idempotency_key",
+            "selected_packet_ref"
+          ],
+          "causality": [
+            "outbox_item_id",
+            "event_id",
+            "provider_attempt_ref"
+          ],
+          "authority_boundary": [
+            "stage_run_owner",
+            "provider_transport_owner",
+            "domain_answer_owner"
+          ],
+          "exactly_one_outcome": [
+            "running_proof_ref",
+            "terminal_closeout_ref",
+            "human_gate_transport_ref"
+          ],
+          "projection_metadata": [
+            "currentness_identity",
+            "observed_generation",
+            "authority"
+          ]
+        },
+        "authority_boundary": {
+          "stage_run_owner": "one-person-lab",
+          "provider_completion_is_mas_owner_answer": false,
+          "stage_run_terminal_is_paper_progress": false
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      },
+      "MAS OwnerAnswer": {
+        "boundary": "MAS OwnerAnswer",
+        "owner": "med-autoscience",
+        "role": "MAS consumes closeout, tool output, or human answer into domain authority.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "study_id",
+            "quest_id",
+            "owner_answer_id",
+            "current_owner_action_id"
+          ],
+          "causality": [
+            "stage_run_closeout_ref",
+            "tool_output_ref",
+            "human_answer_ref"
+          ],
+          "authority_boundary": [
+            "owner_answer_owner",
+            "domain_authority_ref",
+            "forbidden_runtime_write_boundary"
+          ],
+          "exactly_one_outcome": [
+            "owner_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_evidence_ref",
+            "paper_or_artifact_delta_ref"
+          ],
+          "projection_metadata": [
+            "accepted_event_id",
+            "accepted_stage_run_id",
+            "authority"
+          ]
+        },
+        "authority_boundary": {
+          "owner_answer_owner": "med-autoscience",
+          "can_claim_paper_progress_when_receipt_or_delta_accepted": true,
+          "can_create_opl_event": false,
+          "can_create_opl_outbox_item": false,
+          "can_mark_provider_running": false
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      },
+      "DerivedProjection": {
+        "boundary": "DerivedProjection",
+        "owner": "derived-projection-plane",
+        "role": "Status, diagnostic, workbench, trace, and lineage are rebuildable projections.",
+        "required_field_families": [
+          "identity",
+          "causality",
+          "authority_boundary",
+          "exactly_one_outcome",
+          "projection_metadata"
+        ],
+        "required_minimal_fields": {
+          "identity": [
+            "projection_id",
+            "study_id",
+            "quest_id",
+            "current_owner_action_id"
+          ],
+          "causality": [
+            "derived_from_event_id",
+            "derived_from_owner_answer_id",
+            "source_generation"
+          ],
+          "authority_boundary": [
+            "projection_owner",
+            "authority",
+            "cannot_select_next_action"
+          ],
+          "exactly_one_outcome": [
+            "projected_outcome_kind",
+            "projected_outcome_ref",
+            "non_authoritative_status"
+          ],
+          "projection_metadata": [
+            "derived_from_event_id",
+            "observed_generation",
+            "lag_status",
+            "authority"
+          ]
+        },
+        "authority_boundary": {
+          "projection_owner": "derived-projection-plane",
+          "authority": false,
+          "can_select_next_action": false,
+          "can_claim_paper_progress": false,
+          "rebuildable_from_event_and_owner_answer": true
+        },
+        "forbidden_authority_flags": {
+          "event_present_is_paper_progress": false,
+          "outbox_emitted_is_paper_progress": false,
+          "provider_completion_is_paper_progress": false,
+          "provider_completion_is_mas_owner_answer": false,
+          "projection_fresh_is_paper_progress": false,
+          "queue_empty_is_paper_progress": false,
+          "trace_visible_is_paper_progress": false,
+          "stage_run_terminal_is_mas_owner_answer": false
+        }
+      }
+    },
+    "false_authority_flags": {
+      "event_present_is_paper_progress": false,
+      "outbox_emitted_is_paper_progress": false,
+      "provider_completion_is_paper_progress": false,
+      "provider_completion_is_mas_owner_answer": false,
+      "projection_fresh_is_paper_progress": false,
+      "queue_empty_is_paper_progress": false,
+      "trace_visible_is_paper_progress": false,
+      "stage_run_terminal_is_mas_owner_answer": false
+    },
+    "acceptance_contract": {
+      "all_boundaries_require_all_field_families": true,
+      "exactly_one_outcome_required": true,
+      "derived_projection_authority": false,
+      "mas_owner_answer_required_for_paper_progress": true,
+      "opl_runtime_receipt_is_input_ref_only": true,
+      "tests_or_docs_do_not_authorize_runtime_or_paper_progress": true
+    }
+  },
   "forbidden_completion_interpretations": [
     "contract_landed",
     "docs_updated",
@@ -278,8 +719,12 @@
     "provider_admission_pending_count=0",
     "transition_request_pending_count=0",
     "projection_clean",
+    "projection_fresh",
+    "trace_visible",
     "event_id_present_without_full_readback",
+    "event_present_without_mas_owner_answer",
     "outbox_item_id_present_without_full_readback",
+    "outbox_emitted_without_mas_owner_answer",
     "StageRun_identity_present_without_currentness_match",
     "opl_transition_receipt_without_mas_receipt_consumer",
     "queue_terminal_status",

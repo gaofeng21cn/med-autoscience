@@ -131,6 +131,89 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
     assert contract["projection_postcondition_contract"]["mas_projection_cannot_replace"] == list(
         helper.MAS_PROJECTION_CANNOT_REPLACE
     )
+    assert contract["transition_spine_abi_contract"] == helper.transition_spine_abi_contract()
+
+
+def test_transition_spine_abi_names_minimal_fields_for_each_boundary() -> None:
+    helper = importlib.import_module(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract"
+    )
+    contract = _contract()["transition_spine_abi_contract"]
+
+    assert contract["spine"] == list(helper.TRANSITION_SPINE_BOUNDARIES)
+    assert set(contract["boundary_abi"]) == set(helper.TRANSITION_SPINE_BOUNDARIES)
+
+    for boundary_name, boundary in contract["boundary_abi"].items():
+        assert boundary["boundary"] == boundary_name
+        assert set(boundary) == {
+            "boundary",
+            "owner",
+            "role",
+            "required_field_families",
+            "required_minimal_fields",
+            "authority_boundary",
+            "forbidden_authority_flags",
+        }
+        assert boundary["required_field_families"] == list(helper.TRANSITION_SPINE_FIELD_FAMILIES)
+        for field_family in helper.TRANSITION_SPINE_FIELD_FAMILIES:
+            assert boundary["required_minimal_fields"][field_family]
+
+    assert contract["boundary_abi"]["DomainIntent"]["owner"] == "med-autoscience"
+    assert contract["boundary_abi"]["MAS OwnerAnswer"]["owner"] == "med-autoscience"
+    assert contract["boundary_abi"]["OPL Command"]["owner"] == "one-person-lab"
+    assert contract["boundary_abi"]["OPL Event"]["owner"] == "one-person-lab"
+    assert contract["boundary_abi"]["TransactionalOutbox"]["owner"] == "one-person-lab"
+    assert contract["boundary_abi"]["StageRun"]["owner"] == "one-person-lab"
+    assert contract["boundary_abi"]["DerivedProjection"]["owner"] == "derived-projection-plane"
+
+    assert contract["boundary_abi"]["DomainIntent"]["authority_boundary"] == {
+        "domain_intent_owner": "med-autoscience",
+        "runtime_execution_owner": "one-person-lab",
+        "mas_can_create_opl_command": False,
+        "mas_can_create_opl_event": False,
+        "mas_can_create_opl_outbox_item": False,
+        "mas_can_create_stage_run": False,
+    }
+    assert contract["boundary_abi"]["DerivedProjection"]["authority_boundary"] == {
+        "projection_owner": "derived-projection-plane",
+        "authority": False,
+        "can_select_next_action": False,
+        "can_claim_paper_progress": False,
+        "rebuildable_from_event_and_owner_answer": True,
+    }
+
+
+def test_transition_spine_forbidden_interpretations_are_explicit_false_authority_flags() -> None:
+    helper = importlib.import_module(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract"
+    )
+    contract = _contract()
+    spine = contract["transition_spine_abi_contract"]
+
+    expected = {
+        "event_present_is_paper_progress",
+        "outbox_emitted_is_paper_progress",
+        "provider_completion_is_paper_progress",
+        "provider_completion_is_mas_owner_answer",
+        "projection_fresh_is_paper_progress",
+        "queue_empty_is_paper_progress",
+        "trace_visible_is_paper_progress",
+        "stage_run_terminal_is_mas_owner_answer",
+    }
+
+    assert expected.issubset(spine["false_authority_flags"])
+    assert spine["false_authority_flags"] == helper.transition_spine_false_authority_flags()
+    assert all(value is False for value in spine["false_authority_flags"].values())
+
+    forbidden_interpretations = set(contract["forbidden_completion_interpretations"])
+    assert {
+        "event_present_without_mas_owner_answer",
+        "outbox_emitted_without_mas_owner_answer",
+        "projection_fresh",
+        "trace_visible",
+        "queue_empty",
+        "provider_completion_succeeded",
+    }.issubset(forbidden_interpretations)
 
 
 def test_helper_shapes_are_single_source_for_existing_runtime_consumers() -> None:

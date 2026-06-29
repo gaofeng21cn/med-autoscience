@@ -138,6 +138,328 @@ MAS_PROJECTION_CANNOT_REPLACE = (
     "opl_fixed_point_reconcile",
 )
 
+TRANSITION_SPINE_BOUNDARIES = (
+    "DomainIntent",
+    "OPL Command",
+    "OPL Event",
+    "TransactionalOutbox",
+    "StageRun",
+    "MAS OwnerAnswer",
+    "DerivedProjection",
+)
+
+TRANSITION_SPINE_FIELD_FAMILIES = (
+    "identity",
+    "causality",
+    "authority_boundary",
+    "exactly_one_outcome",
+    "projection_metadata",
+)
+
+TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS = {
+    "event_present_is_paper_progress": False,
+    "outbox_emitted_is_paper_progress": False,
+    "provider_completion_is_paper_progress": False,
+    "provider_completion_is_mas_owner_answer": False,
+    "projection_fresh_is_paper_progress": False,
+    "queue_empty_is_paper_progress": False,
+    "trace_visible_is_paper_progress": False,
+    "stage_run_terminal_is_mas_owner_answer": False,
+}
+
+TRANSITION_SPINE_BOUNDARY_ABI: dict[str, dict[str, Any]] = {
+    "DomainIntent": {
+        "boundary": "DomainIntent",
+        "owner": "med-autoscience",
+        "role": "MAS declares current medical research intent and forbidden authority.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "study_id",
+                "quest_id",
+                "stage_id",
+                "current_owner_action_id",
+                "intent_idempotency_key",
+            ],
+            "causality": [
+                "source_generation",
+                "policy_result_ref",
+                "required_refs",
+            ],
+            "authority_boundary": [
+                "intent_owner",
+                "target_runtime_owner",
+                "forbidden_authority",
+            ],
+            "exactly_one_outcome": [
+                "accepted_owner_answer_shape",
+                "expected_runtime_receipt_kind",
+            ],
+            "projection_metadata": [
+                "projection_role",
+                "authority",
+                "contract_ref",
+            ],
+        },
+        "authority_boundary": {
+            "domain_intent_owner": "med-autoscience",
+            "runtime_execution_owner": RUNTIME_OWNER,
+            "mas_can_create_opl_command": False,
+            "mas_can_create_opl_event": False,
+            "mas_can_create_opl_outbox_item": False,
+            "mas_can_create_stage_run": False,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+    "OPL Command": {
+        "boundary": "OPL Command",
+        "owner": RUNTIME_OWNER,
+        "role": "OPL normalizes MAS intent into an idempotent command.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "aggregate_id",
+                "command_id",
+                "expected_version",
+                "idempotency_key",
+            ],
+            "causality": [
+                "domain_intent_ref",
+                "source_generation",
+                "precondition_refs",
+            ],
+            "authority_boundary": [
+                "command_owner",
+                "domain_authority_owner",
+                "allowed_side_effect_target",
+            ],
+            "exactly_one_outcome": [
+                "transition_kind",
+                "expected_event_type",
+                "expected_outbox_effect",
+            ],
+            "projection_metadata": [
+                "not_a_projection",
+                "read_model_authority",
+                "contract_ref",
+            ],
+        },
+        "authority_boundary": {
+            "command_owner": RUNTIME_OWNER,
+            "can_sign_mas_owner_answer": False,
+            "can_claim_paper_progress": False,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+    "OPL Event": {
+        "boundary": "OPL Event",
+        "owner": RUNTIME_OWNER,
+        "role": "OPL records the committed transition fact in append-only history.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "aggregate_id",
+                "event_id",
+                "aggregate_version",
+                "transition_kind",
+            ],
+            "causality": [
+                "command_id",
+                "causal_event_id",
+                "transaction_id",
+            ],
+            "authority_boundary": [
+                "event_owner",
+                "event_is_runtime_fact_only",
+                "domain_completion_owner",
+            ],
+            "exactly_one_outcome": [
+                "outcome_kind",
+                "outcome_ref",
+                "non_advancing_apply_allowed",
+            ],
+            "projection_metadata": [
+                "append_only",
+                "replayable",
+                "projection_source",
+            ],
+        },
+        "authority_boundary": {
+            "event_owner": RUNTIME_OWNER,
+            "event_is_paper_progress": False,
+            "mas_owner_answer_required_for_domain_completion": True,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+    "TransactionalOutbox": {
+        "boundary": "TransactionalOutbox",
+        "owner": RUNTIME_OWNER,
+        "role": "OPL stores transition side effects in the same transaction as the event.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "outbox_item_id",
+                "aggregate_id",
+                "transaction_id",
+                "idempotency_key",
+            ],
+            "causality": [
+                "event_id",
+                "command_id",
+                "side_effect_target",
+            ],
+            "authority_boundary": [
+                "outbox_owner",
+                "side_effect_transport_owner",
+                "domain_authority_owner",
+            ],
+            "exactly_one_outcome": [
+                "side_effect_kind",
+                "dispatch_status",
+                "terminal_or_pending_ref",
+            ],
+            "projection_metadata": [
+                "derived_from_event_id",
+                "outbox_generation",
+                "authority",
+            ],
+        },
+        "authority_boundary": {
+            "outbox_owner": RUNTIME_OWNER,
+            "outbox_emitted_is_paper_progress": False,
+            "mas_can_create_outbox_item": False,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+    "StageRun": {
+        "boundary": "StageRun",
+        "owner": RUNTIME_OWNER,
+        "role": "OPL owns provider attempt, tool invocation, lease, retry, and closeout transport.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "stage_run_id",
+                "route_identity_key",
+                "attempt_idempotency_key",
+                "selected_packet_ref",
+            ],
+            "causality": [
+                "outbox_item_id",
+                "event_id",
+                "provider_attempt_ref",
+            ],
+            "authority_boundary": [
+                "stage_run_owner",
+                "provider_transport_owner",
+                "domain_answer_owner",
+            ],
+            "exactly_one_outcome": [
+                "running_proof_ref",
+                "terminal_closeout_ref",
+                "human_gate_transport_ref",
+            ],
+            "projection_metadata": [
+                "currentness_identity",
+                "observed_generation",
+                "authority",
+            ],
+        },
+        "authority_boundary": {
+            "stage_run_owner": RUNTIME_OWNER,
+            "provider_completion_is_mas_owner_answer": False,
+            "stage_run_terminal_is_paper_progress": False,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+    "MAS OwnerAnswer": {
+        "boundary": "MAS OwnerAnswer",
+        "owner": "med-autoscience",
+        "role": "MAS consumes closeout, tool output, or human answer into domain authority.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "study_id",
+                "quest_id",
+                "owner_answer_id",
+                "current_owner_action_id",
+            ],
+            "causality": [
+                "stage_run_closeout_ref",
+                "tool_output_ref",
+                "human_answer_ref",
+            ],
+            "authority_boundary": [
+                "owner_answer_owner",
+                "domain_authority_ref",
+                "forbidden_runtime_write_boundary",
+            ],
+            "exactly_one_outcome": [
+                "owner_receipt_ref",
+                "typed_blocker_ref",
+                "human_gate_ref",
+                "route_back_evidence_ref",
+                "paper_or_artifact_delta_ref",
+            ],
+            "projection_metadata": [
+                "accepted_event_id",
+                "accepted_stage_run_id",
+                "authority",
+            ],
+        },
+        "authority_boundary": {
+            "owner_answer_owner": "med-autoscience",
+            "can_claim_paper_progress_when_receipt_or_delta_accepted": True,
+            "can_create_opl_event": False,
+            "can_create_opl_outbox_item": False,
+            "can_mark_provider_running": False,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+    "DerivedProjection": {
+        "boundary": "DerivedProjection",
+        "owner": "derived-projection-plane",
+        "role": "Status, diagnostic, workbench, trace, and lineage are rebuildable projections.",
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "required_minimal_fields": {
+            "identity": [
+                "projection_id",
+                "study_id",
+                "quest_id",
+                "current_owner_action_id",
+            ],
+            "causality": [
+                "derived_from_event_id",
+                "derived_from_owner_answer_id",
+                "source_generation",
+            ],
+            "authority_boundary": [
+                "projection_owner",
+                "authority",
+                "cannot_select_next_action",
+            ],
+            "exactly_one_outcome": [
+                "projected_outcome_kind",
+                "projected_outcome_ref",
+                "non_authoritative_status",
+            ],
+            "projection_metadata": [
+                "derived_from_event_id",
+                "observed_generation",
+                "lag_status",
+                "authority",
+            ],
+        },
+        "authority_boundary": {
+            "projection_owner": "derived-projection-plane",
+            "authority": False,
+            "can_select_next_action": False,
+            "can_claim_paper_progress": False,
+            "rebuildable_from_event_and_owner_answer": True,
+        },
+        "forbidden_authority_flags": dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS),
+    },
+}
+
 
 def opl_transition_receipt_expected_output_contract() -> dict[str, Any]:
     return {
@@ -374,6 +696,47 @@ def live_readback_evidence_source_contract() -> dict[str, Any]:
     }
 
 
+def transition_spine_false_authority_flags() -> dict[str, bool]:
+    return dict(TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS)
+
+
+def transition_spine_abi_contract() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_opl_transition_spine_abi_contract",
+        "schema_version": 1,
+        "state": "active_machine_contract_slice",
+        "contract_ref": CONTRACT_REF,
+        "source_design_refs": [
+            "docs/runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md",
+            "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
+        ],
+        "spine": list(TRANSITION_SPINE_BOUNDARIES),
+        "required_field_families": list(TRANSITION_SPINE_FIELD_FAMILIES),
+        "boundary_abi": {
+            name: {
+                **abi,
+                "required_field_families": list(abi["required_field_families"]),
+                "required_minimal_fields": {
+                    family: list(fields)
+                    for family, fields in abi["required_minimal_fields"].items()
+                },
+                "authority_boundary": dict(abi["authority_boundary"]),
+                "forbidden_authority_flags": dict(abi["forbidden_authority_flags"]),
+            }
+            for name, abi in TRANSITION_SPINE_BOUNDARY_ABI.items()
+        },
+        "false_authority_flags": transition_spine_false_authority_flags(),
+        "acceptance_contract": {
+            "all_boundaries_require_all_field_families": True,
+            "exactly_one_outcome_required": True,
+            "derived_projection_authority": False,
+            "mas_owner_answer_required_for_paper_progress": True,
+            "opl_runtime_receipt_is_input_ref_only": True,
+            "tests_or_docs_do_not_authorize_runtime_or_paper_progress": True,
+        },
+    }
+
+
 def live_readback_identity(readback: Mapping[str, Any]) -> dict[str, str | None]:
     identity = _mapping(readback.get("identity"))
     aggregate_identity = _mapping(identity.get("aggregate_identity"))
@@ -447,6 +810,10 @@ __all__ = [
     "RUNTIME_KIND",
     "RUNTIME_OWNER",
     "TRANSITION_KINDS",
+    "TRANSITION_SPINE_BOUNDARIES",
+    "TRANSITION_SPINE_BOUNDARY_ABI",
+    "TRANSITION_SPINE_FALSE_AUTHORITY_FLAGS",
+    "TRANSITION_SPINE_FIELD_FAMILIES",
     "live_readback_transaction_consistency",
     "mas_projection_authority_boundary",
     "mas_request_authority_boundary",
@@ -462,4 +829,6 @@ __all__ = [
     "provider_admission_identity_complete",
     "readback_matches_provider_admission_identity",
     "runtime_postcondition",
+    "transition_spine_abi_contract",
+    "transition_spine_false_authority_flags",
 ]

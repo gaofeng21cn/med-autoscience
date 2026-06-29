@@ -464,6 +464,12 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 
 缺任一字段族的 OPL runtime 输出只能进入 drilldown / diagnostic，不得进入 MAS ordinary owner route。
 
+### Machine ABI landing
+
+本设计的最小机器 ABI 切片已落到 `contracts/opl_domain_progress_transition_runtime_contract.json#/transition_spine_abi_contract`。该节点固定 `DomainIntent -> OPL Command -> OPL Event -> TransactionalOutbox -> StageRun -> MAS OwnerAnswer -> DerivedProjection` 七段 spine 的 `identity`、`causality`、`authority_boundary`、`exactly_one_outcome` 和 `projection_metadata` 字段族，并用 false-authority flags 明确 event、outbox、provider completion、projection fresh、queue empty 和 trace visible 都不能解释为 paper progress 或 MAS owner answer。
+
+该 contract 只证明 repo/source 层的 ABI shape 可被后续 OPL 基座消费；不声明 OPL runtime 已接入、live provider 已推进、MAS owner answer 已产生或 paper progress 已发生。
+
 ## MAS 需要优化的接口
 
 | MAS surface | 目标接口 | OPL 消费方式 |
