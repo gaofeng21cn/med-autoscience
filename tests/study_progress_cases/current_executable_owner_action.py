@@ -28,3 +28,4 @@ from .current_executable_owner_action_cases.dm003_owner_receipt_progress_first i
 from .current_executable_owner_action_cases.non_advancing_terminal_closeout import *  # noqa: F403,F401,E402
 from .current_executable_owner_action_cases.terminal_closeout_readback_consumption import *  # noqa: F403,F401,E402
 from .current_executable_owner_action_cases.dm002_owner_callable_transition_residue import *  # noqa: F403,F401,E402
+from .current_executable_owner_action_cases.typed_blocker_resolution_projection import *  # noqa: F403,F401,E402

@@ -262,6 +262,12 @@ def _apply_typed_blocker_resolution(
         "current_package": dict(package),
         "owner_decision_packet": owner_decision_packet,
         "successor_work_unit": successor_work_unit,
+        "next_owner_action": _next_owner_action(
+            study_id=study_id,
+            typed_ref=typed_ref,
+            blocker=blocker,
+            successor=successor,
+        ),
         "can_claim_submission_ready": False,
         "durable_stop_allowed": False,
         "next_legal_command": successor["resume_command"],
@@ -272,6 +278,34 @@ def _apply_typed_blocker_resolution(
         ],
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
     }
+
+
+def latest_typed_blocker_resolution_readback(
+    *,
+    workspace_root: Path,
+    study_id: str,
+) -> dict[str, Any] | None:
+    ledger_root = (
+        workspace_root.expanduser().resolve()
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_typed_blocker_resolution"
+    )
+    if not ledger_root.exists():
+        return None
+    candidates: list[tuple[float, str, dict[str, Any]]] = []
+    for packet_ref in ledger_root.glob(f"**/{study_id}/typed_blocker_resolution.json"):
+        payload = _valid_resolution_readback(packet_ref=packet_ref, study_id=study_id)
+        if payload is None:
+            continue
+        try:
+            mtime = packet_ref.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        candidates.append((mtime, str(packet_ref), payload))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
 def _successor_work_unit(
@@ -300,6 +334,59 @@ def _successor_work_unit(
             "paper-mission typed-blocker-resolution --apply-human-gate "
             f"--study-id {study_id}"
         ),
+    }
+
+
+def _next_owner_action(
+    *,
+    study_id: str,
+    typed_ref: str | None,
+    blocker: str | None,
+    successor: Mapping[str, Any],
+) -> dict[str, Any]:
+    work_unit_id = _text(successor.get("work_unit_id")) or "paper_mission_typed_blocker_resolution"
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            [study_id, typed_ref, blocker, work_unit_id, successor.get("next_action")],
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()[:24]
+    action_type = _text(successor.get("next_action")) or "resolve_typed_blocker"
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_mission_typed_blocker_resolution",
+        "study_id": study_id,
+        "next_owner": _text(successor.get("owner")) or "mas_authority_kernel",
+        "owner": _text(successor.get("owner")) or "mas_authority_kernel",
+        "action_type": action_type,
+        "allowed_actions": [action_type],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "required_delta_kind": "typed_blocker_resolution_owner_action",
+        "target_surface": {
+            "ref_kind": "mas_ops_resolution_packet",
+            "surface_ref": "ops/medautoscience/paper_mission_typed_blocker_resolution",
+            **({"typed_blocker_evidence_ref": typed_ref} if typed_ref else {}),
+        },
+        "target_surface_specificity": "typed_blocker_resolution",
+        "acceptance_refs": [
+            ref
+            for ref in (typed_ref, "typed_blocker_resolution_packet_ref")
+            if ref
+        ],
+        "owner_receipt_required": True,
+        "authority": "study_progress.current_executable_owner_action",
+        "authority_boundary": {
+            "projection_only": True,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
+            "can_write_human_gate": False,
+            "can_write_current_package": False,
+            "can_start_provider_attempt": False,
+        },
     }
 
 
@@ -378,6 +465,49 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> str:
     text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     path.write_text(text, encoding="utf-8")
     return text
+
+
+def _valid_resolution_readback(
+    *,
+    packet_ref: Path,
+    study_id: str,
+) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(packet_ref.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("surface_kind") != "paper_mission_typed_blocker_resolution":
+        return None
+    if _text(payload.get("study_id")) != study_id:
+        return None
+    if payload.get("status") != "owner_route_redesign_applied":
+        return None
+    if payload.get("authority_materialized") is not True:
+        return None
+    boundary = _mapping(payload.get("authority_boundary"))
+    forbidden_flags = (
+        "writes_owner_receipt",
+        "writes_typed_blocker",
+        "writes_human_gate",
+        "writes_current_package",
+        "writes_publication_eval",
+        "writes_controller_decision",
+        "writes_runtime_queue_or_provider_attempt",
+    )
+    if any(boundary.get(flag) is True for flag in forbidden_flags):
+        return None
+    if payload.get("submission_ready_claim_authorized") is True:
+        return None
+    if not _mapping(payload.get("next_owner_action")):
+        return None
+    return {
+        **payload,
+        "source_ref": str(packet_ref),
+        "decision_ref": str(packet_ref),
+        "source_surface_kind": "paper_mission_typed_blocker_resolution_ledger",
+    }
 
 
 def _utc_now() -> str:

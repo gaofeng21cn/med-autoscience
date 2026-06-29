@@ -244,3 +244,83 @@ def test_typed_blocker_resolution_owner_decision_mode_fails_closed(
     assert payload["requested_apply_mode"] == "owner_decision"
     assert payload["implemented_apply_modes"] == ["route_redesign"]
     assert payload["authority_materialized"] is False
+
+
+def test_typed_blocker_resolution_packet_projects_canonical_next_action(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    output_root = (
+        tmp_path
+        / "workspace"
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_typed_blocker_resolution"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="submission_ready_package",
+                can_submit=True,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    next_action = payload["next_action"]
+    typed_readback = payload["typed_blocker_resolution_readback"]
+
+    assert exit_code == 0
+    assert typed_readback["status"] == "owner_route_redesign_applied"
+    assert typed_readback["source_surface_kind"] == (
+        "paper_mission_typed_blocker_resolution_ledger"
+    )
+    assert next_action["surface_kind"] == "mas_next_action_envelope"
+    assert next_action["action_family"] == "blocked.typed"
+    assert next_action["owner"] == "mas_authority_kernel"
+    assert next_action["work_unit_id"] == "submission_authority_owner_verdict"
+    assert next_action["authority_boundary"]["can_claim_submission_ready"] is False
+    assert next_action["diagnostic_refs"] == [
+        {
+            "role": "typed_blocker_resolution",
+            "ref": typed_readback["source_ref"],
+        }
+    ]

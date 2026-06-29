@@ -101,6 +101,7 @@ from med_autoscience.controllers.paper_mission_receipt_owner_consumption import 
 )
 from med_autoscience.controllers.paper_mission_typed_blocker_resolution import (
     diagnose_typed_blocker_resolution_gap,
+    latest_typed_blocker_resolution_readback,
     materialize_typed_blocker_resolution,
 )
 
@@ -571,6 +572,22 @@ def build_paper_mission_readback(
         handoff=_mapping(transaction_readback.get("opl_route_handoff")),
         consumption_ledger_readback=consumption_ledger_readback,
     )
+    typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+    )
+    next_action_override = _next_action_for_stage_closure_decision(
+        stage_closure_decision=stage_closure_decision,
+        transaction_readback=transaction_readback,
+        typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+    )
+    transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
+    if next_action_override is not None:
+        transaction_output_fields["next_action"] = next_action_override
+        transaction_output_fields["paper_mission_transaction_readback"] = {
+            **transaction_readback,
+            "next_action": next_action_override,
+        }
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -590,7 +607,7 @@ def build_paper_mission_readback(
         "mission_id": candidate_mission_id,
         "objective": selected_objective,
         **({"candidate_ref": candidate_ref} if candidate_ref is not None else {}),
-        **_transaction_readback_output_fields(transaction_readback),
+        **transaction_output_fields,
         **(
             {"candidate_source_transaction": candidate_source_transaction}
             if candidate_source_transaction
@@ -624,6 +641,11 @@ def build_paper_mission_readback(
         **(
             {"consume_output_manifest": consume_output_manifest}
             if consume_output_manifest is not None
+            else {}
+        ),
+        **(
+            {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
+            if typed_blocker_resolution_readback is not None
             else {}
         ),
         **_paper_mission_consume_non_advancing_fields(
@@ -3859,6 +3881,10 @@ def _build_materialized_mission_readback_if_available(
         workspace_root=Path(profile.workspace_root),
         study_id=resolved_study_id,
     )
+    typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=resolved_study_id,
+    )
     effective_consume_candidate_status = (
         "typed_blocker"
         if receipt_owner_consumption_readback is not None
@@ -3915,6 +3941,7 @@ def _build_materialized_mission_readback_if_available(
     next_action_override = _next_action_for_stage_closure_decision(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
+        typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
     if next_action_override is not None:
@@ -3959,6 +3986,11 @@ def _build_materialized_mission_readback_if_available(
                 ),
             }
             if receipt_owner_consumption_readback is not None
+            else {}
+        ),
+        **(
+            {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
+            if typed_blocker_resolution_readback is not None
             else {}
         ),
         **(
@@ -4098,9 +4130,87 @@ def _next_action_for_stage_closure_decision(
     *,
     stage_closure_decision: Mapping[str, Any],
     transaction_readback: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     decision = _mapping(stage_closure_decision)
     outcome = _mapping(decision.get("outcome"))
+    resolution = _mapping(typed_blocker_resolution_readback)
+    if resolution:
+        action = _mapping(resolution.get("next_owner_action"))
+        if action:
+            source_ref = _first_text(resolution.get("source_ref"), resolution.get("decision_ref"))
+            return compile_next_action_envelope(
+                stage_outcome={
+                    "kind": "typed_blocker",
+                    "study_id": _first_text(decision.get("study_id"), action.get("study_id")),
+                    "stage_id": _first_text(
+                        decision.get("stage_id"),
+                        "submission_milestone_candidate",
+                    ),
+                    "work_unit_id": action.get("work_unit_id"),
+                    "work_unit_fingerprint": action.get("work_unit_fingerprint"),
+                    "action_family": "blocked.typed",
+                    "decision_signature": action.get("work_unit_fingerprint"),
+                    "required_input_refs": action.get("acceptance_refs"),
+                },
+                study_id=_first_text(decision.get("study_id"), action.get("study_id")),
+                stage_id=_first_text(
+                    decision.get("stage_id"),
+                    "submission_milestone_candidate",
+                ),
+                outcome_ref=source_ref,
+                owner_route={
+                    "next_owner": action.get("next_owner") or "mas_authority_kernel",
+                    "allowed_actions": action.get("allowed_actions"),
+                    "idempotency_key": action.get("work_unit_fingerprint"),
+                    "action_family": "blocked.typed",
+                },
+                authority_boundary={
+                    "projection_only": True,
+                    "can_claim_stage_complete": False,
+                    "can_claim_submission_ready": False,
+                    "can_claim_publication_ready": False,
+                },
+                diagnostic_refs=[
+                    {"role": "typed_blocker_resolution", "ref": source_ref}
+                ]
+                if source_ref is not None
+                else [],
+            )
+    if outcome.get("kind") == "typed_blocker":
+        transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+        return compile_next_action_envelope(
+            stage_outcome={
+                **outcome,
+                "study_id": _first_text(decision.get("study_id"), transaction.get("study_id")),
+                "stage_id": _first_text(decision.get("stage_id"), transaction.get("stage_id")),
+                "work_unit_id": "paper_mission_typed_blocker_resolution",
+                "work_unit_fingerprint": _first_text(
+                    outcome.get("typed_blocker_evidence_ref"),
+                    decision.get("decision_signature"),
+                ),
+                "stage_closure_decision_ref": decision.get("decision_ref"),
+                "action_family": "blocked.typed",
+            },
+            study_id=_first_text(decision.get("study_id"), transaction.get("study_id")),
+            stage_id=_first_text(decision.get("stage_id"), transaction.get("stage_id")),
+            outcome_ref=decision.get("decision_ref"),
+            owner_route={
+                "next_owner": "mas_authority_kernel",
+                "allowed_actions": ["materialize_typed_blocker_or_route_redesign"],
+                "action_family": "blocked.typed",
+            },
+            authority_boundary={
+                "projection_only": True,
+                "can_claim_stage_complete": False,
+                "can_claim_submission_ready": False,
+                "can_claim_publication_ready": False,
+            },
+            diagnostic_refs=_stage_closure_next_action_diagnostic_refs(
+                stage_closure_decision=decision,
+                transaction_readback=transaction_readback,
+            ),
+        )
     if outcome.get("kind") != "owner_receipt":
         return None
     if outcome.get("package_kind") != "submission_ready_package":
