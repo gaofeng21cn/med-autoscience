@@ -1314,7 +1314,10 @@ def _build_stage_closure_terminalizer_readback(
     if (
         existing_decision
         and not stage_closure_decision_missing(existing_decision)
-        and not _stage_closure_decision_requires_reterminalize(existing_decision)
+        and not _stage_closure_decision_requires_reterminalize(
+            existing_decision,
+            current_package=_mapping(source_readback.get("current_package")),
+        )
     ):
         decision = existing_decision
         terminalizer_status = "terminalizer_outcome_already_observed"
@@ -1404,10 +1407,14 @@ def _stage_closure_terminalizer_output_root(
 
 def _stage_closure_decision_requires_reterminalize(
     decision: Mapping[str, Any],
+    *,
+    current_package: Mapping[str, Any] | None = None,
 ) -> bool:
     outcome = _mapping(decision.get("outcome"))
     opl_closeout = _mapping(decision.get("opl_closeout"))
     observability_gaps = _text_list(decision.get("observability_gaps"))
+    if _current_package_is_submission_ready_clear(_mapping(current_package)):
+        return True
     if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_live_readback":
         return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
@@ -1707,11 +1714,19 @@ def _current_package_is_submission_ready_clear(
     current_package: Mapping[str, Any],
 ) -> bool:
     gate_status = _current_package_quality_gate_status(current_package)
+    package_status = _first_text(
+        current_package.get("status"),
+        current_package.get("freshness_status"),
+        current_package.get("delivery_status"),
+    )
     return (
-        current_package.get("package_kind") == "submission_ready_package"
+        package_status in {"current", "fresh", "synced"}
+        and current_package.get("package_kind") == "submission_ready_package"
         and current_package.get("can_submit") is True
         and gate_status in {"clear", "passed", "cleared"}
         and current_package.get("generated_from_current_source") is True
+        and bool(_optional_text(current_package.get("root")))
+        and current_package.get("zip_exists") is True
         and not _text_list(current_package.get("known_blockers"))
     )
 
@@ -3628,7 +3643,10 @@ def _build_materialized_mission_readback_if_available(
     )
     if stage_closure_decision_missing(
         stage_closure_decision
-    ) or _stage_closure_decision_requires_reterminalize(stage_closure_decision):
+    ) or _stage_closure_decision_requires_reterminalize(
+        stage_closure_decision,
+        current_package=projection_fields.get("current_package"),
+    ):
         stage_closure_decision = _terminalize_stage_closure_from_readback(
             {
                 **transaction_readback,

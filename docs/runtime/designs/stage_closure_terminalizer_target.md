@@ -150,15 +150,16 @@ StageWorkResult
 5. If no semantic delta is present after a configured budget, terminalizer must fail closed to a typed blocker or human gate. It may not output another runnable `continue_same_stage`.
 6. If gate replay remains blocked by quality-repairable blockers after budget exhaustion, terminalizer emits `degraded_handoff_package` plus `next_stage_transition` to human review / pre-package handoff, not another repair loop.
 7. If delivery inspection reports `current_package` stale or missing, terminalizer must request or perform mirror sync independently of `bundle_build_allowed`. A stale/missing mirror is not a submission authority blocker.
-8. If the latest current package evidence is `submission_ready_package`,
-   `can_submit=true`, `quality_gate_status` clear / passed / cleared,
-   `generated_from_current_source=true`, and `known_blockers=[]`, the
-   terminalizer readback may supersede an older route-back / missing-decision
-   checkpoint and project an `owner_receipt` next-action family of
-   `mission.complete`. This remains projection-only: it does not write owner
-   receipt authority, typed blocker, human gate, package authority, runtime
-   queue, provider attempt, `publication_eval/latest.json`, or
-   `controller_decisions/latest.json`.
+8. If the latest delivery projection is current / fresh / synced and carries
+   `submission_ready_package`, `can_submit=true`, `quality_gate_status` clear /
+   passed / cleared, `generated_from_current_source=true`, existing package root
+   and zip, and `known_blockers=[]`, the terminalizer readback may supersede an
+   older route-back / missing-decision checkpoint and project an `owner_receipt`
+   next-action family of `mission.complete`. Missing, stale, mirror-only or
+   blocked package evidence must stay fail-closed. This remains projection-only:
+   it does not write owner receipt authority, typed blocker, human gate, package
+   authority, runtime queue, provider attempt, `publication_eval/latest.json`,
+   or `controller_decisions/latest.json`.
 
 ## Blocker Taxonomy
 
@@ -312,9 +313,9 @@ OPL runtime receipt 的角色是 transport receipt，只能说明同一 route co
 
 `submission_ready` 的 readback terminalization 还必须让 canonical
 NextActionEnvelope 停止同义 gate replay / route-back redrive：精确成功态
-`owner_receipt + submission_ready_package + can_submit=true + gate clear + no blockers`
-映射为 `mission.complete`；裸 `owner_receipt`、`current_package` mirror、blocked gate
-或带 known blockers 的包不得映射为 `mission.complete`。
+`owner_receipt + submission_ready_package + can_submit=true + gate clear + current/fresh/synced delivery projection + existing package root/zip + no blockers`
+映射为 `mission.complete`；裸 `owner_receipt`、missing/stale `current_package`
+mirror、blocked gate 或带 known blockers 的包不得映射为 `mission.complete`。
 
 `checkpoint`、candidate package、inspection package、read-model freshness、queue empty 和 focused tests 只能证明中间证据或代码路径；它们不能作为 durable final，也不能替代三层账中对应的 fresh artifact / owner / gate evidence。
 
