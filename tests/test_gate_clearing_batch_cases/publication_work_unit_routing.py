@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from . import shared as _shared
 
 globals().update({
@@ -204,6 +206,60 @@ def test_publication_work_units_compose_controller_owned_quality_repair_unit_for
         "materialize_display_surface",
         "create_submission_minimal_package",
         "sync_submission_minimal_delivery",
+    ]
+
+
+@pytest.mark.parametrize(
+    "work_unit_id",
+    [
+        "dm002_ai_reviewer_record_owner_consumption",
+        "dm003_publication_surface_repair",
+    ],
+)
+def test_current_owner_work_units_do_not_pull_submission_materialization_into_gate_clearing(
+    work_unit_id: str,
+) -> None:
+    work_units = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+
+    repair_units = [
+        module.GateClearingRepairUnit(
+            unit_id="repair_paper_live_paths",
+            label="repair paper live paths",
+            parallel_safe=True,
+            run=lambda: {"status": "updated"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="materialize_display_surface",
+            label="materialize display surface",
+            parallel_safe=True,
+            depends_on=("repair_paper_live_paths",),
+            run=lambda: {"status": "materialized"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="create_submission_minimal_package",
+            label="create submission minimal package",
+            parallel_safe=False,
+            depends_on=("materialize_display_surface",),
+            run=lambda: {"status": "ready"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="sync_submission_minimal_delivery",
+            label="sync submission minimal delivery",
+            parallel_safe=False,
+            depends_on=("create_submission_minimal_package",),
+            run=lambda: {"status": "synced"},
+        ),
+    ]
+
+    filtered_units = work_units.filter_repair_units_for_publication_work_unit(
+        repair_units,
+        next_work_unit={"unit_id": work_unit_id},
+    )
+
+    assert [unit.unit_id for unit in filtered_units] == [
+        "repair_paper_live_paths",
+        "materialize_display_surface",
     ]
 
 

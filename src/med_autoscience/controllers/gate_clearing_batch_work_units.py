@@ -161,6 +161,22 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
             "materialize_display_surface",
         }
     ),
+    "dm002_ai_reviewer_record_owner_consumption": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "sync_publication_shell_surface",
+            "materialize_display_surface",
+        }
+    ),
+    "dm003_publication_surface_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "sync_publication_shell_surface",
+            "materialize_display_surface",
+        }
+    ),
     "submission_minimal_refresh": frozenset(
         {
             "create_submission_minimal_package",
