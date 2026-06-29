@@ -19,7 +19,7 @@ REQUIRED_CATEGORIES = {
     "memory_accept_reject",
     "no_forbidden_write_proof",
     "refs_only_helper",
-    "diagnostic_probe",
+    "retired_diagnostic_provenance",
 }
 
 
@@ -32,10 +32,15 @@ def inventory_gaps(items: tuple[AuthorityKernelItem, ...]) -> list[dict[str, Any
         }
     ] if REQUIRED_CATEGORIES - categories else []
     for item in items:
+        optional_retired_fields = (
+            {"active_caller_refs", "allowed_writes"}
+            if item.category == "retired_diagnostic_provenance"
+            else set()
+        )
         missing_fields = [
             field
             for field in REQUIRED_ITEM_FIELDS
-            if getattr(item, field) in (None, "", (), [])
+            if field not in optional_retired_fields and getattr(item, field) in (None, "", (), [])
         ]
         if missing_fields:
             gaps.append(

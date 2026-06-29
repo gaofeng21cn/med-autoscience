@@ -21,6 +21,40 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+LEGACY_NEXT_ACTION_AUTHORITY_SURFACES = (
+    "current_work_unit",
+    "current_executable_owner_action",
+    "paper_recovery_state",
+    "progress_first_monitoring_summary",
+    "provider_admission_candidates",
+    "provider_admission_pending_count",
+    "provider_admission_terminal_closeout_consumed",
+    "transition_request_candidates",
+    "transition_request_pending_count",
+    "owner_action_admission",
+    "current_execution_envelope",
+    "current_execution_evidence",
+)
+
+
+def assert_default_next_action_legacy_surfaces_retired(payload: dict[str, object]) -> None:
+    for key in LEGACY_NEXT_ACTION_AUTHORITY_SURFACES:
+        assert key not in payload
+    assert payload["legacy_next_action_authority_retired"] == {
+        "status": "retired",
+        "authority": "NextActionEnvelope",
+        "reason": "legacy_next_action_authority_retired_use_next_action_envelope",
+        "retired_surfaces": [
+            "current_work_unit",
+            "current_executable_owner_action",
+            "provider_admission",
+            "current_execution_envelope",
+        ],
+        "default_selector_policy": "fail_closed",
+        "diagnostic_only": True,
+    }
+
+
 def test_study_progress_import_does_not_require_submission_pdf_dependency(monkeypatch) -> None:
     for module_name in list(sys.modules):
         if module_name in {

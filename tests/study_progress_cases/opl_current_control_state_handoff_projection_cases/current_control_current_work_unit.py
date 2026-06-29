@@ -128,14 +128,10 @@ def test_study_handoff_preserves_current_control_current_work_unit(
     assert handoff["current_execution_envelope"]["state_kind"] == "typed_blocker"
     assert handoff["provider_admission_pending_count"] == 0
     assert handoff["provider_admission_candidates"] == []
-    assert result["current_work_unit"]["status"] == "typed_blocker"
-    assert result["current_work_unit"]["state"]["typed_blocker"]["blocker_type"] == (
+    assert handoff["current_work_unit"]["state"]["typed_blocker"]["blocker_type"] == (
         "provider_completion_is_not_domain_ready"
     )
-    assert result["current_execution_envelope"]["state_kind"] == "typed_blocker"
-    assert result["provider_admission_pending_count"] == 0
-    assert result["provider_admission_candidates"] == []
-    assert result["current_executable_owner_action"] is None
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_same_identity_provider_readback_supersedes_request_only_current_surface(
@@ -351,19 +347,7 @@ def test_same_identity_provider_readback_supersedes_request_only_current_surface
     assert handoff["provider_admission_pending_count"] == 1
     assert handoff["transition_request_pending_count"] == 0
     assert handoff["provider_admission_candidates"][0]["route_identity_key"] == route_key
-    assert result["provider_admission_pending_count"] == 1
-    assert result["transition_request_pending_count"] == 0
-    assert result["current_executable_owner_action"]["source"] == (
-        "opl_current_control_state.provider_admission_candidates"
-    )
-    assert result["current_executable_owner_action"]["provider_admission_pending"] is True
-    assert result["current_executable_owner_action"]["transition_request_pending"] is not True
-    assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_work_unit"]["state"]["source"] == (
-        "opl_current_control_state.provider_admission_candidates"
-    )
-    assert result["current_work_unit"]["state"]["provider_admission_pending"] is True
-    assert result["current_work_unit"]["state"]["transition_request_pending"] is False
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_provider_readback_not_consumed_by_prior_request_wrapper_domain_closeout(

@@ -121,11 +121,7 @@ def test_running_handoff_without_opl_readback_does_not_consume_current_execution
     handoff = result["opl_current_control_state_handoff"]
     assert handoff["running_provider_attempt"] is True
     assert "opl_domain_progress_transition_runtime_live_readback" not in handoff
-    assert result["current_work_unit"]["status"] != "running_provider_attempt"
-    assert result["current_execution_envelope"]["state_kind"] != "running_provider_attempt"
-    admission = result.get("owner_action_admission") or {}
-    assert admission.get("provider_attempt_running_proven") is not True
-    assert admission.get("provider_attempt_proof") in (None, {})
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
@@ -208,17 +204,13 @@ def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     handoff = result["opl_current_control_state_handoff"]
-    current_work_unit = result["current_work_unit"]
     assert handoff["running_provider_attempt"] is True
     assert handoff["action_type"] == "run_quality_repair_batch"
     assert handoff["work_unit_id"] == "medical_prose_write_repair"
     assert handoff["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
     assert handoff["runtime_health"]["action_type"] == "run_quality_repair_batch"
     assert handoff["runtime_health"]["work_unit_id"] == "medical_prose_write_repair"
-    assert current_work_unit["status"] == "running_provider_attempt"
-    assert current_work_unit["action_type"] == "run_quality_repair_batch"
-    assert current_work_unit["work_unit_id"] == "medical_prose_write_repair"
-    assert result["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
@@ -465,8 +457,4 @@ def test_study_progress_keeps_unbound_live_attempt_as_observability_only(
     dashboard = result["opl_current_control_state_handoff"]
     assert dashboard["running_provider_attempt"] is True
     assert dashboard["active_stage_attempt_id"] == "sat-unbound"
-    monitoring = result["progress_first_monitoring_summary"]
-    assert monitoring["running_provider_attempt"] is False
-    assert monitoring["active_stage_attempt_id"] is None
-    assert monitoring["worker_liveness"]["stale_active_run_id"] == "opl-stage-attempt://sat-unbound"
-    assert monitoring["execution_state_kind"] != "running_provider_attempt"
+    assert_default_next_action_legacy_surfaces_retired(result)

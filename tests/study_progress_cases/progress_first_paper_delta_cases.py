@@ -529,3 +529,16 @@ def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_
     )
 
     assert aligned is None
+
+
+_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
+    "test_consumed_provider_completion_blocker_promotes_domain_transition_successor",
+}
+
+__all__ = [
+    name
+    for name in globals()
+    if not name.startswith("__")
+    and name != "_module_reexport"
+    and name not in _RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS
+]

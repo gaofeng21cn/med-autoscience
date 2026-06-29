@@ -603,122 +603,6 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
     assert not legacy_dispatch_path.exists()
 
 
-def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "002-dm-china-us-mortality-attribution"
-    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapters"
-        / "return_to_ai_reviewer_workflow.json"
-    )
-    owner_route = {
-        "route_epoch": "truth-epoch-old",
-        "source_fingerprint": "truth-source-old",
-        "current_owner": "managed_runtime",
-        "next_owner": "ai_reviewer",
-        "owner_reason": "ai_reviewer_assessment_required",
-        "allowed_actions": ["return_to_ai_reviewer_workflow"],
-        "blocked_actions": ["publication_gate_specificity_required"],
-        "idempotency_key": "owner-route::dm002::truth-epoch-old::ai_reviewer::ai_reviewer_assessment_required::old",
-    }
-    dispatch = {
-        "surface": "owner_callable_dispatch_request",
-        "schema_version": 1,
-        "executor_kind": "codex_cli_default",
-        "executor_name": "Codex CLI",
-        "executor_mode": "autonomous_agent_loop",
-        "chat_completion_only_executor_forbidden": True,
-        "dispatch_status": "ready",
-        "study_id": study_id,
-        "quest_id": "quest-dm002",
-        "action_type": "return_to_ai_reviewer_workflow",
-        "action_id": "dispatch::dm002::ai-reviewer",
-        "next_executable_owner": "ai_reviewer",
-        "required_output_surface": "artifacts/publication_eval/latest.json",
-        "owner_route": owner_route,
-        "prompt_contract": {
-            "study_id": study_id,
-            "quest_id": "quest-dm002",
-            "action_type": "return_to_ai_reviewer_workflow",
-            "next_executable_owner": "ai_reviewer",
-            "required_output_surface": "artifacts/publication_eval/latest.json",
-            "owner_route": owner_route,
-            "idempotency_key": owner_route["idempotency_key"],
-            "prompt_budget": {"max_prompt_tokens": 6000},
-            "compact_evidence_packet_ref": "artifacts/supervision/compact_evidence_packets/return_to_ai_reviewer_workflow.json",
-            "do_not_repeat": True,
-            "repeat_suppression_key": "truth-source-old",
-            "forbidden_surfaces": [
-                "paper/**",
-                "manuscript/**",
-                "current_package/**",
-                "paper/current_package/**",
-                "manuscript/current_package/**",
-                "src/med_autoscience/platform/**",
-                "src/med_autoscience/runtime_transport/**",
-            ],
-            "allowed_write_surfaces": ["artifacts/supervision/**"],
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "manual_study_patch_allowed": False,
-            "medical_claim_authoring_allowed": False,
-        },
-    }
-    dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
-    _write_json(dispatch_path, dispatch)
-    _write_json(
-        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "owner_callable_adapter_count": 1,
-            "owner_callable_adapters": [dispatch],
-        },
-    )
-    _write_json(
-        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
-        {
-            "surface": "opl_current_control_state_handoff",
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "owner_route": {
-                        **owner_route,
-                        "route_epoch": "truth-epoch-new",
-                        "source_fingerprint": "truth-source-new",
-                        "next_owner": "publication_gate",
-                        "owner_reason": "publication_gate_specificity_required",
-                        "allowed_actions": ["publication_gate_specificity_required"],
-                        "idempotency_key": "owner-route::dm002::truth-epoch-new::publication_gate::publication_gate_specificity_required::new",
-                    },
-                }
-            ],
-        },
-    )
-
-    def fail_if_called(**_: object) -> dict[str, object]:
-        raise AssertionError("stale owner route dispatch must not execute owner workflow")
-
-    monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fail_if_called)
-
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    assert result["execution_count"] == 0
-    assert result["blocked_count"] == 0
-    assert result["executions"] == []
-    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-
-
 def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets() -> None:
     module = importlib.import_module("med_autoscience.runtime_control.owner_route")
     base = {
@@ -824,13 +708,18 @@ def test_owner_route_scan_consumer_and_executor_share_contract_import() -> None:
     modules = [
         importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface"),
         importlib.import_module("med_autoscience.controllers.domain_action_request_materializer"),
-        importlib.import_module("med_autoscience.controllers.stage_outcome_authority"),
     ]
 
     for module in modules:
         assert module.owner_route_part.build_owner_route is shared.build_owner_route
         assert module.owner_route_part.owner_route_matches is shared.owner_route_matches
         assert module.owner_route_part.route_allows_action is shared.route_allows_action
+
+    stage_outcome_authority = importlib.import_module(
+        "med_autoscience.controllers.stage_outcome_authority"
+    )
+    assert not hasattr(stage_outcome_authority, "owner_route_part")
+    assert not hasattr(stage_outcome_authority, "_execute_ai_reviewer_workflow")
 
 
 def test_scan_domain_routes_routes_incomplete_completion_contract_to_completion_evidence_owner(

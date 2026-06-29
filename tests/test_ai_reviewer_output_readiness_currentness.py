@@ -8,9 +8,7 @@ from pathlib import Path
 from med_autoscience.controllers.stage_outcome_authority_parts import output_readiness
 
 from tests.stage_outcome_authority_helpers import (
-    dispatch as _dispatch,
     owner_route as _owner_route,
-    write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -69,79 +67,6 @@ def test_ai_reviewer_output_pending_when_current_manuscript_is_newer_than_latest
     ) is True
 
 
-def test_execute_dispatch_does_not_repeat_suppress_current_manuscript_pending_eval(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "002-dm-china-us-mortality-attribution"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    _write_current_manuscript_after_publication_eval(study_root)
-    route = _owner_route(
-        study_id=study_id,
-        action_type="return_to_ai_reviewer_workflow",
-        owner="ai_reviewer",
-    )
-    route["work_unit_fingerprint"] = "publication-blockers::current-manuscript-pending-eval"
-    dispatch_payload = _dispatch(
-        study_id=study_id,
-        action_type="return_to_ai_reviewer_workflow",
-        owner="ai_reviewer",
-        required_output_surface="artifacts/publication_eval/latest.json",
-        owner_route=route,
-    )
-    dispatch_payload["prompt_contract"]["repeat_suppression_key"] = route["work_unit_fingerprint"]
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapters"
-        / "return_to_ai_reviewer_workflow.json"
-    )
-    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
-    _write_json(
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapter_receipt"
-        / "latest.json",
-        {
-            "surface": "owner_callable_dispatch_execution_study_latest",
-            "executions": [
-                {
-                    "surface": "owner_callable_dispatch_execution",
-                    "study_id": study_id,
-                    "quest_id": f"quest-{study_id}",
-                    "action_type": "return_to_ai_reviewer_workflow",
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_request_missing",
-                    "owner_route": route,
-                    "prompt_contract": dispatch_payload["prompt_contract"],
-                    "repeat_suppression_key": route["work_unit_fingerprint"],
-                }
-            ],
-        },
-    )
-
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    execution = result["executions"][0]
-    assert result["repeat_suppressed_count"] == 0
-    assert execution["repeat_suppression"]["repeat_suppressed"] is False
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_request_missing"
-
-
 def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
     monkeypatch,
     tmp_path: Path,
@@ -189,29 +114,32 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
             "action_queue": [action],
         },
     )
-    dispatch_path = (
+    _write_json(
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "owner_callable_adapters"
-        / "return_to_ai_reviewer_workflow.json"
-    )
-    _write_json(
-        dispatch_path,
+        / "owner_callable_adapter_receipt"
+        / "latest.json",
         {
-            "surface": "owner_callable_dispatch_request",
-            "study_id": study_id,
-            "quest_id": f"quest-{study_id}",
-            "action_type": "return_to_ai_reviewer_workflow",
-            "dispatch_status": "repeat_suppressed",
-            "owner_route": route,
-            "idempotency_key": route["idempotency_key"],
-            "prompt_contract": {
-                "do_not_repeat": True,
-                "repeat_suppression_key": route["work_unit_fingerprint"],
-                "owner_route": route,
-            },
+            "surface": "owner_callable_dispatch_execution_study_latest",
+            "executions": [
+                {
+                    "surface": "owner_callable_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": f"quest-{study_id}",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_request_missing",
+                    "owner_route": route,
+                    "prompt_contract": {
+                        "do_not_repeat": True,
+                        "repeat_suppression_key": route["work_unit_fingerprint"],
+                        "owner_route": route,
+                    },
+                    "repeat_suppression_key": route["work_unit_fingerprint"],
+                }
+            ],
         },
     )
 
@@ -222,8 +150,11 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
         apply=True,
     )
 
-    dispatch = result["owner_callable_adapters"][0]
     assert result["repeat_suppressed_count"] == 0
+    dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["repeat_suppressed"] is False
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
+    assert dispatch["source_action_body_omitted"] is True
+    assert dispatch["owner_route_body_omitted"] is True
+    assert "owner_callable_adapters" not in result

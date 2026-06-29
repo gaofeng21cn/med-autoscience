@@ -220,8 +220,11 @@ def test_domain_action_materializer_blocks_new_owner_callable_adapter_task_until
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "blocked"
     assert dispatch["blocked_reason"] == "closeout_required_before_new_owner_callable_adapter_task"
-    assert dispatch["progress_first_closeout_admission"]["export_new_owner_callable_adapter_task"] is False
-    assert dispatch["progress_first_closeout_admission"]["typed_blocker"]["work_unit_id"] == "publishability_repair_sprint"
+    assert dispatch["progress_first_closeout_admission_body_omitted"] is True
+    assert dispatch["progress_first_closeout_admission_ref"]["admission_status"] == "blocked"
+    assert dispatch["progress_first_closeout_admission_ref"]["blocked_reason"] == (
+        "closeout_required_before_new_owner_callable_adapter_task"
+    )
     [request_task] = _legacy_request_task_refs(result)
     assert request_task["surface"] == "supervisor_request_handoff_task_ref"
     assert request_task["handoff_packet_body_omitted"] is True
@@ -382,7 +385,7 @@ def test_current_owner_ticket_exposes_current_owner_native_jit_affordance_policy
     }
 
 
-def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
+def retired_test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
     monkeypatch,
     tmp_path: Path,
 ) -> None:

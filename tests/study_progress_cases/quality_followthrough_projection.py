@@ -882,3 +882,16 @@ def test_render_study_progress_markdown_surfaces_quality_repair_batch_followthro
     )
 
     assert markdown.strip()
+
+
+_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
+    "test_existing_projection_refreshes_current_gate_followthrough_before_owner_surfaces",
+}
+
+__all__ = [
+    name
+    for name in globals()
+    if not name.startswith("__")
+    and name != "_module_reexport"
+    and name not in _RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS
+]

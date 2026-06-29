@@ -146,8 +146,10 @@ def apply_paper_recovery_state_user_visible_status(payload: dict[str, Any]) -> d
         )
     ):
         _suppress_active_provider_admission_projection(updated, blocked_by=_blocked_by(supervisor_decision))
-    defer_visible_projection = phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES and _specific_intervention_lane_has_priority(
-        updated
+    defer_visible_projection = (
+        phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES
+        and phase != "owner_receipt_recorded"
+        and _specific_intervention_lane_has_priority(updated)
     )
     if phase in PAPER_RECOVERY_AUTHORITY_VISIBLE_PHASES and not defer_visible_projection:
         updated = _apply_paper_recovery_authority_projection(
@@ -321,7 +323,7 @@ def _apply_paper_recovery_authority_projection(
     next_safe_action: Mapping[str, Any],
     recovery: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if _specific_intervention_lane_has_priority(payload):
+    if phase != "owner_receipt_recorded" and _specific_intervention_lane_has_priority(payload):
         return dict(payload)
     updated = dict(payload)
     action_kind = _non_empty_text(next_safe_action.get("kind")) or "inspect_paper_recovery_state"
@@ -345,6 +347,7 @@ def _apply_paper_recovery_authority_projection(
     if _phase_updates_current_blockers(phase=phase, next_safe_action=next_safe_action):
         updated["next_step"] = summary
     if phase == "owner_receipt_recorded":
+        updated["next_step"] = summary
         updated["next_system_action"] = summary
     requires_user_decision = _paper_recovery_requires_user_decision(
         phase=phase,

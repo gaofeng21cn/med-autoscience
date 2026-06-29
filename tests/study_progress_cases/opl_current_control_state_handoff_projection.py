@@ -237,15 +237,8 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
     assert handoff["current_execution_envelope"]["state_kind"] == "typed_blocker"
     assert handoff["provider_admission_pending_count"] == 0
     assert handoff["transition_request_pending_count"] == 0
-    assert result["current_executable_owner_action"] is None
-    assert result["current_work_unit"]["status"] == "typed_blocker"
-    assert result["current_work_unit"]["state"]["typed_blocker"]["non_advancing_apply"] is True
-    assert result["provider_admission_pending_count"] == 0
-    assert result["provider_admission_candidates"] == []
-    assert result["transition_request_pending_count"] == 0
-    assert result["transition_request_candidates"] == []
-    assert result.get("owner_action_admission") in (None, {})
-    assert result["paper_recovery_state"]["phase"] == "domain_blocked"
+    assert handoff["current_work_unit"]["state"]["typed_blocker"]["non_advancing_apply"] is True
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_projection(
@@ -406,15 +399,12 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
 
     handoff = result["opl_current_control_state_handoff"]
     assert handoff["provider_admission_pending_count"] == 1
-    assert result["provider_admission_pending_count"] == 1
-    assert result["transition_request_pending_count"] == 0
-    assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit
-    assert result["provider_admission_candidates"][0]["opl_transition_readback_source"] == (
-        "opl_domain_progress_transition_runtime_live_readback"
-    )
-    assert result["provider_admission_candidates"][0][
+    assert handoff["transition_request_pending_count"] == 0
+    assert handoff["provider_admission_candidates"][0]["work_unit_id"] == work_unit
+    assert handoff["provider_admission_candidates"][0][
         "opl_domain_progress_transition_runtime_live_readback"
     ]["runtime_readback_status"] == "complete_transaction"
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_provider_admission_readback_supersedes_matching_stale_selector_closeout(
@@ -1005,8 +995,6 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     handoff = result["opl_current_control_state_handoff"]
-    current_work_unit = result["current_work_unit"]
-    envelope = result["current_execution_envelope"]
     assert handoff["blocked_reason"] == "publication_gate_replay_blocked"
     assert handoff["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
     assert handoff["typed_blocker"]["work_unit_id"] == work_unit
@@ -1016,18 +1004,7 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
     )
     assert handoff["consumed_action_queue"][0]["work_unit_id"] == work_unit
     assert handoff["action_queue"] == []
-    assert current_work_unit["status"] == "typed_blocker"
-    assert current_work_unit["owner"] == "publication_gate"
-    assert current_work_unit["work_unit_id"] == work_unit
-    assert current_work_unit["work_unit_fingerprint"] == fingerprint
-    assert current_work_unit["state"]["typed_blocker"]["blocker_type"] == (
-        "publication_gate_replay_blocked"
-    )
-    assert envelope["state_kind"] == "typed_blocker"
-    assert envelope["owner"] == "publication_gate"
-    assert envelope["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
-    assert result["current_executable_owner_action"] is None
-    assert result["current_execution_evidence"]["action_queue"] == []
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projection(
@@ -1248,7 +1225,6 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     handoff = result["opl_current_control_state_handoff"]
-    current_work_unit = result["current_work_unit"]
     assert handoff["latest_terminal_stage_log"]["source_path"] == str(anti_loop_closeout_path)
     assert handoff["latest_typed_owner_callable_closeout"]["source_path"] == str(
         anti_loop_closeout_path
@@ -1262,24 +1238,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     assert handoff["typed_blocker"]["stage_attempt_id"] == "sat_82"
     assert handoff["consumed_action_queue"][0]["work_unit_id"] == stale_work_unit
     assert handoff["action_queue"] == []
-    assert current_work_unit["status"] == "typed_blocker"
-    assert current_work_unit["owner"] == "one-person-lab"
-    assert current_work_unit["work_unit_id"] == next_work_unit
-    assert current_work_unit["state"]["typed_blocker"]["currentness_basis"]["source_fingerprint"] == (
-        source_fingerprint
-    )
-    assert current_work_unit["state"]["typed_blocker"]["currentness_basis"]["idempotency_key"] == (
-        idempotency_key
-    )
-    assert current_work_unit["state"]["typed_blocker"]["currentness_basis"]["stage_attempt_id"] == "sat_82"
-    assert current_work_unit["state"]["owner_answer_binding"]["source_fingerprint"] == source_fingerprint
-    assert current_work_unit["state"]["owner_answer_binding"]["idempotency_key"] == idempotency_key
-    assert current_work_unit["state"]["owner_answer_binding"]["stage_attempt_id"] == "sat_82"
-    assert current_work_unit["state"]["blocker_type"] == "anti_loop_budget_exhausted"
-    assert result["current_execution_envelope"]["typed_blocker"]["source_fingerprint"] == source_fingerprint
-    assert result["current_execution_envelope"]["typed_blocker"]["idempotency_key"] == idempotency_key
-    assert result["current_executable_owner_action"] is None
-    assert result["current_execution_evidence"]["action_queue"] == []
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handoff(
@@ -1402,8 +1361,6 @@ def test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handof
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     handoff = result["opl_current_control_state_handoff"]
-    current_work_unit = result["current_work_unit"]
-    envelope = result["current_execution_envelope"]
     assert handoff["running_provider_attempt"] is False
     assert handoff["active_run_id"] is None
     assert handoff["runtime_health"]["health_status"] == "terminal"
@@ -1417,15 +1374,7 @@ def test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handof
         "consumed_by_terminal_stage_closeout"
     )
     assert handoff["action_queue"] == []
-    assert current_work_unit["status"] == "typed_blocker"
-    assert current_work_unit["owner"] == "MedAutoScience"
-    assert current_work_unit["state"]["typed_blocker"]["source"] == (
-        "terminal_stage_closeout_missing_owner_answer"
-    )
-    assert envelope["state_kind"] == "typed_blocker"
-    assert envelope["owner"] == "MedAutoScience"
-    assert result["current_executable_owner_action"] is None
-    assert result["current_execution_evidence"]["action_queue"] == []
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 from .opl_current_control_state_handoff_projection_cases.supervisor_tick_audit import *  # noqa: F403,F401,E402

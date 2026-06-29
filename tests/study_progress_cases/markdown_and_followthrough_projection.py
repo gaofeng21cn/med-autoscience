@@ -8,9 +8,12 @@ from . import operator_status_and_eval_refresh as _operator_status_and_eval_refr
 from . import supervision_blockers_and_task_reopen as _supervision_blockers_and_task_reopen
 
 def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
-            globals()[name] = value
+    names = getattr(module, "__all__", None)
+    if names is None:
+        names = [name for name in vars(module) if not name.startswith("__")]
+    for name in names:
+        if name != "_module_reexport":
+            globals()[name] = getattr(module, name)
 
 _module_reexport(_shared)
 _module_reexport(_runtime_projection_basics)

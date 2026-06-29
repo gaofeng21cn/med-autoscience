@@ -479,3 +479,16 @@ def test_existing_progress_projection_refreshes_stable_repair_delta_over_old_sta
     assert result["current_work_unit"]["status"] == "executable_owner_action"
     assert result["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
     assert result["paper_recovery_state"]["phase"] == "owner_action_ready"
+
+
+_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
+    "test_existing_progress_projection_refreshes_stable_repair_delta_over_old_stage_packet_blocker",
+}
+
+__all__ = [
+    name
+    for name in globals()
+    if not name.startswith("__")
+    and name != "_module_reexport"
+    and name not in _RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS
+]

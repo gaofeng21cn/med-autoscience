@@ -7,7 +7,6 @@ from pathlib import Path
 from tests.stage_outcome_authority_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
-    write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
@@ -249,7 +248,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    dispatcher = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
+    executor = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
     owner_module = importlib.import_module("med_autoscience.controllers.analysis_harmonization_owner")
     monkeypatch.setattr(owner_module, "_materialize_unit_harmonized_rerun_evidence", _fake_rerun_evidence, raising=False)
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -284,37 +283,15 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
         "clean_reproducible_model_rebuild_authorized": True,
         "selected_route_option": "rebuild_reproducible_model_route",
     }
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapters"
-        / "unit_harmonized_external_validation_rerun.json"
-    )
-    _write_current_dispatch(dispatch_path, profile, dispatch)
-    _write_json(
-        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "hourly" / "latest.json",
-        {
-            "surface": "portable_paper_mission_owner_surface",
-            "schema_version": 1,
-            "studies": [{"study_id": study_id, "owner_route": route}],
-        },
-    )
-
-    result = dispatcher.dispatch_domain_owner_actions(
+    result = executor.execute_unit_harmonized_external_validation_rerun(
         profile=profile,
-        study_ids=(study_id,),
-        action_types=("unit_harmonized_external_validation_rerun",),
-        mode="developer_apply_safe",
+        study_id=study_id,
         apply=True,
+        dispatch=dispatch,
     )
 
-    execution = result["executions"][0]
-    owner_result = execution["owner_result"]
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
-    assert execution["execution_status"] == "executed"
+    owner_result = result["owner_result"]
+    assert result["execution_status"] == "executed"
     assert owner_result["status"] == "completed"
     assert owner_result["unit_harmonized_rerun_completed"] is True
     assert owner_result["rerun_evidence"]["calibration"]["calibration_intercept"]["ci_95"]["upper"] == 0.04

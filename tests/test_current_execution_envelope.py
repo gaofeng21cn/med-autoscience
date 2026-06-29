@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 
 from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.study_progress_cases.shared_base import (
+    assert_default_next_action_legacy_surfaces_retired,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -238,14 +241,9 @@ def test_study_progress_envelope_projects_current_action_past_non_human_explicit
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    envelope = result["current_execution_envelope"]
-    assert envelope["state_kind"] == "executable_owner_action"
-    assert envelope["owner"] == "ai_reviewer"
-    assert envelope["parked_state"] is None
-    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-    assert envelope["typed_blocker"] is None
-    assert "runtime_health:await_explicit_resume" in envelope["conflict_suppression_refs"]
-    assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert_default_next_action_legacy_surfaces_retired(result)
+    handoff_action = result["opl_current_control_state_handoff"]["action_queue"][0]
+    assert handoff_action["action_type"] == "return_to_ai_reviewer_workflow"
 
 
 def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_queue(
@@ -331,14 +329,9 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    envelope = result["current_execution_envelope"]
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
-    assert envelope["state_kind"] == "running_provider_attempt"
-    assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
-    assert envelope["typed_blocker"] is None
-    assert result["current_execution_evidence"]["action_queue"] == []
-    assert result["current_execution_evidence"]["opl_current_control_state_handoff"]["action_type"] == (
+    assert_default_next_action_legacy_surfaces_retired(result)
+    assert result["opl_current_control_state_handoff"]["action_type"] == (
         "complete_medical_paper_readiness_surface"
     )
 
@@ -426,14 +419,7 @@ def test_study_progress_does_not_project_closed_handoff_attempt_as_live(
     assert result["active_run_id"] is None
     assert result["opl_runtime_refs"]["active_run_id"] is None
     assert result["opl_runtime_refs"]["strict_live"] is not True
-    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert result["progress_first_monitoring_summary"]["running_provider_attempt"] is False
-    assert (
-        result["progress_first_monitoring_summary"]["owner_action_admission"][
-            "provider_attempt_running_proven"
-        ]
-        is False
-    )
+    assert_default_next_action_legacy_surfaces_retired(result)
     assert result["user_visible_projection"]["actual_write_active"] is False
 
 
@@ -519,12 +505,8 @@ def test_study_progress_envelope_prefers_live_attempt_over_readiness_blocker(
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    envelope = result["current_execution_envelope"]
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
-    assert envelope["state_kind"] == "running_provider_attempt"
-    assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
-    assert envelope["typed_blocker"] is None
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_study_progress_projects_provider_admission_identity_queue_fields(
@@ -607,9 +589,7 @@ def test_study_progress_projects_provider_admission_identity_queue_fields(
     assert action["action_id"] == "provider-admission::002-dm::run_quality_repair_batch"
     assert action["action_fingerprint"] == "sha256:dm002-current-provider-admission"
     assert action["work_unit_fingerprint"] == "sha256:dm002-current-provider-admission"
-    assert result["current_execution_evidence"]["action_queue"][0]["authority"] == (
-        "mas_provider_admission_identity"
-    )
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_study_progress_envelope_preserves_latest_owner_callable_adapter_typed_closeout_over_stale_action_queue(
@@ -738,20 +718,11 @@ def test_study_progress_envelope_preserves_latest_owner_callable_adapter_typed_c
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     handoff = result["opl_current_control_state_handoff"]
-    envelope = result["current_execution_envelope"]
     assert handoff["blocked_reason"] == "medical_prose_review_request_rehydrate_required"
     assert handoff["latest_typed_owner_callable_closeout"]["receipt_ref"].endswith(
         "sat-rehydrate.closeout.json"
     )
-    assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert (
-        result["current_execution_evidence"]["action_queue"][0]["source_surface"]
-        == "study_progress.next_forced_delta.owner_action"
-    )
-    assert envelope["state_kind"] == "typed_blocker"
-    assert envelope["owner"] == "one-person-lab"
-    assert envelope["next_work_unit"] is None
-    assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
@@ -836,12 +807,8 @@ def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    envelope = result["current_execution_envelope"]
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
-    assert envelope["state_kind"] == "running_provider_attempt"
-    assert envelope["owner"] == "gate_clearing_batch"
-    assert envelope["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-    assert envelope["typed_blocker"] is None
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:

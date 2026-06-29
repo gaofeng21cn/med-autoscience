@@ -6,9 +6,12 @@ from . import autonomy_quality_and_route_projection as _autonomy_quality_and_rou
 from . import publication_eval_currentness_projection as _publication_eval_currentness_projection
 
 def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
-            globals()[name] = value
+    names = getattr(module, "__all__", None)
+    if names is None:
+        names = [name for name in vars(module) if not name.startswith("__")]
+    for name in names:
+        if name != "_module_reexport":
+            globals()[name] = getattr(module, name)
 
 _module_reexport(_shared)
 _module_reexport(_runtime_projection_basics)

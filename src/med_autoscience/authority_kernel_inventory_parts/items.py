@@ -6,6 +6,7 @@ from med_autoscience.authority_kernel_inventory_parts.schema import (
     OWNER,
     AuthorityKernelItem,
 )
+from med_autoscience.agent_tool_arsenal import FORBIDDEN_DOMAIN_AUTHORITY
 from med_autoscience.runtime_control.owner_callable_registry import (
     owner_callable_for_action,
     paper_work_unit_lifecycle_for_action,
@@ -138,6 +139,7 @@ def inventory_items() -> tuple[AuthorityKernelItem, ...]:
             upcollect_target="OPL Capability Registry invokes advisory workers fail-open",
         ),
         _capability_item(),
+        _diagnostic_probe_tombstone_item(),
     )
 
 
@@ -236,6 +238,34 @@ def _capability_item() -> AuthorityKernelItem:
             "publication, artifact, memory, or study truth authority."
         ),
         upcollect_target="OPL Capability Registry / Tool Arsenal runtime consumption",
+    )
+
+
+def _diagnostic_probe_tombstone_item() -> AuthorityKernelItem:
+    return AuthorityKernelItem(
+        item_id="diagnostic_probe.domain_diagnostic_report",
+        category="retired_diagnostic_provenance",
+        owner=OWNER,
+        surface_ref="contracts/runtime/legacy-active-path-tombstones.json#/domain-diagnostic-report",
+        active_caller_refs=(),
+        allowed_writes=(),
+        forbidden_authority=tuple(FORBIDDEN_DOMAIN_AUTHORITY),
+        output_refs=("retired diagnostic provenance refs",),
+        retired_caller_refs=(
+            "historical medautosci runtime domain-diagnostic-report diagnostic runs",
+            "historical MCP/report projection refs",
+            "docs/history and explicit tombstone provenance",
+        ),
+        cannot_lift_to_opl_reason=(
+            "Retired from active MAS paper/stage progression; retained only as "
+            "historical diagnostic provenance so it cannot own runtime, queue, stage "
+            "handoff, paper progress, owner receipt, or typed blocker authority."
+        ),
+        retirement_gate=(
+            "retired_from_active_MAS_private_diagnostic_probe; retain "
+            "tombstone/provenance only"
+        ),
+        upcollect_target="OPL Route Reconciler and Observability Plane",
     )
 
 

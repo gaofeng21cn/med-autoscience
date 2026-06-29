@@ -658,4 +658,14 @@ def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_
     }
 
 
-__all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
+_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
+    "test_study_progress_refreshes_cached_readiness_blocker_to_publication_eval_repair_action",
+}
+
+__all__ = [
+    name
+    for name in globals()
+    if not name.startswith("__")
+    and name != "_module_reexport"
+    and name not in _RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS
+]

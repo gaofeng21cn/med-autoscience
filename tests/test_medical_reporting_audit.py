@@ -256,7 +256,7 @@ def test_medical_reporting_audit_blocks_structured_publication_reporting_gaps(tm
     )
     (paper_root / "reporting_guideline_checklist.json").write_text("{}", encoding="utf-8")
 
-    report = module.run_controller(quest_root=quest_root, apply=False)
+    report = module.run_controller(quest_root=quest_root, apply=True)
 
     assert report["status"] == "blocked"
     assert "methods_completeness_incomplete" in report["blockers"]
@@ -448,7 +448,7 @@ def test_medical_reporting_audit_reads_projected_paper_root(tmp_path: Path) -> N
         encoding="utf-8",
     )
 
-    report = module.run_controller(quest_root=quest_root, apply=False)
+    report = module.run_controller(quest_root=quest_root, apply=True)
 
     assert report["status"] == "blocked"
     assert "missing_medical_reporting_contract" not in report["blockers"]
@@ -478,7 +478,7 @@ def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path:
         encoding="utf-8",
     )
 
-    report = module.run_controller(quest_root=quest_root, apply=False)
+    report = module.run_controller(quest_root=quest_root, apply=True)
 
     assert report["status"] == "blocked"
     assert "missing_medical_story_contract" in report["blockers"]
@@ -690,7 +690,7 @@ def test_medical_reporting_audit_keeps_guideline_checklist_blocking_when_quality
     )
     monkeypatch.setattr(module, "_medical_story_contract_blockers", lambda _: [])
 
-    report = module.run_controller(quest_root=quest_root, apply=False)
+    report = module.run_controller(quest_root=quest_root, apply=True)
 
     report_payload = json.loads(Path(report["report_json"]).read_text(encoding="utf-8"))
     assert report["status"] == "blocked"

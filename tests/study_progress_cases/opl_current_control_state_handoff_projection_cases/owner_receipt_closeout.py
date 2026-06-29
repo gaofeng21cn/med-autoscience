@@ -248,11 +248,9 @@ def test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate(
     assert consumed["work_unit_id"] == work_unit
     assert consumed["work_unit_fingerprint"] == fingerprint
     assert consumed["owner_receipt_ref"] == receipt_ref
-    assert result["provider_admission_pending_count"] == 0
-    assert result["provider_admission_candidates"] == []
-    assert result["transition_request_pending_count"] == 0
     assert result["active_run_id"] is None
-    assert result["current_work_unit"]["state"]["provider_admission_pending"] is False
+    assert handoff["current_work_unit"]["state"]["provider_admission_pending"] is False
+    assert_default_next_action_legacy_surfaces_retired(result)
 
 
 def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
@@ -442,7 +440,4 @@ def test_owner_receipt_closeout_consumes_stale_transition_request_candidate(
     assert consumed["work_unit_id"] == work_unit
     assert consumed["work_unit_fingerprint"] == fingerprint
     assert consumed["owner_receipt_ref"] == receipt_ref
-    assert result["provider_admission_pending_count"] == 0
-    assert result["provider_admission_candidates"] == []
-    assert result["transition_request_pending_count"] == 0
-    assert result["transition_request_candidates"] == []
+    assert_default_next_action_legacy_surfaces_retired(result)

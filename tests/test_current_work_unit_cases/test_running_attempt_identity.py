@@ -23,6 +23,7 @@ REQUIRED_KEYS = {
     "state",
     "currentness_basis",
     "authority_boundary",
+    "projection_metadata",
 }
 
 

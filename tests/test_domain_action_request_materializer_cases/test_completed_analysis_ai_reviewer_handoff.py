@@ -171,8 +171,10 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     assert not dispatch_path.exists()
     assert task["handoff_packet_body_omitted"] is True
     assert "handoff_packet" not in task
-    assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
-    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert dispatch["owner_route_body_omitted"] is True
+    assert dispatch["owner_route_ref"]["currentness_contract"]["missing_required_fields"] == []
+    assert dispatch["owner_route_attempt_envelope_body_omitted"] is True
+    assert dispatch["owner_route_attempt_envelope_ref"]["dispatchable"] is True
     expected_output_surface = (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
@@ -181,7 +183,7 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
         "artifacts/supervision/requests/ai_reviewer/latest.json"
     )
     assert dispatch["prompt_contract_ref"]["required_output_surface"] == expected_output_surface
-    assert dispatch["prompt_contract_ref"]["dispatch_status"] == "transition_request_pending"
+    assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["prompt_contract_ref"]["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
@@ -275,13 +277,14 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
     assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert not dispatch_path.exists()
-    assert dispatch["owner_route"]["owner_reason_contract"]["registered"] is True
-    assert dispatch["owner_route"]["owner_reason_contract"]["reason"] == (
+    assert dispatch["owner_route_body_omitted"] is True
+    assert dispatch["prompt_contract_ref"]["owner_route_ref"]["owner_reason"] == (
         "domain_transition_ai_reviewer_re_eval"
     )
-    assert "return_to_ai_reviewer_workflow" in dispatch["owner_route"]["allowed_actions"]
-    assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
-    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert "return_to_ai_reviewer_workflow" in dispatch["owner_route_ref"]["allowed_actions"]
+    assert dispatch["owner_route_ref"]["currentness_contract"]["missing_required_fields"] == []
+    assert dispatch["owner_route_attempt_envelope_body_omitted"] is True
+    assert dispatch["owner_route_attempt_envelope_ref"]["dispatchable"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == (
@@ -379,8 +382,9 @@ def test_current_write_domain_transition_supersedes_stale_ai_reviewer_queue(
     assert dispatch["action_type"] == "run_quality_repair_batch"
     assert dispatch["next_executable_owner"] == "write"
     assert dispatch["dispatch_status"] == "transition_request_pending"
-    assert dispatch["owner_route"]["next_owner"] == "write"
-    assert dispatch["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert dispatch["owner_route_body_omitted"] is True
+    assert dispatch["owner_route_ref"]["next_owner"] == "write"
+    assert dispatch["owner_route_ref"]["allowed_actions"] == ["run_quality_repair_batch"]
     assert any(
         ignored["action_type"] == "return_to_ai_reviewer_workflow"
         and ignored["reason"] == "superseded_by_current_domain_transition"
@@ -574,9 +578,11 @@ def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_disp
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
-    assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
-    assert dispatch["owner_route"]["source_refs"]["runtime_health_epoch"] == "runtime-health-current"
-    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert dispatch["owner_route_body_omitted"] is True
+    assert dispatch["owner_route_ref"]["currentness_contract"]["missing_required_fields"] == []
+    assert dispatch["owner_route_ref"]["source_refs"]["runtime_health_epoch"] == "runtime-health-current"
+    assert dispatch["owner_route_attempt_envelope_body_omitted"] is True
+    assert dispatch["owner_route_attempt_envelope_ref"]["dispatchable"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"
@@ -682,10 +688,11 @@ def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     for key, value in expected_basis.items():
-        assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][key] == value
+        assert dispatch["owner_route_ref"]["source_refs"]["owner_route_currentness_basis"][key] == value
         assert dispatch["prompt_contract_ref"]["owner_route_currentness_basis"][key] == value
-        assert dispatch["owner_route_attempt_envelope"]["owner_route_currentness_basis"][key] == value
-    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
+        assert dispatch["currentness_basis"][key] == value
+    assert dispatch["owner_route_attempt_envelope_body_omitted"] is True
+    assert dispatch["owner_route_attempt_envelope_ref"]["dispatchable"] is True
     assert dispatch["provider_admission_pending"] is False
     assert dispatch["provider_admission_requires_opl_runtime_result"] is True
     assert dispatch["opl_domain_progress_transition_request"]["target_runtime_kind"] == "DomainProgressTransitionRuntime"

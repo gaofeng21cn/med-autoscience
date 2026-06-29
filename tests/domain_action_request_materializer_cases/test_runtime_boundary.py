@@ -115,7 +115,7 @@ def test_owner_callable_dispatch_materializes_runtime_completion_as_transport_on
     dispatch = result["domain_progress_transition_requests"][0]
     envelope = dispatch["owner_route_attempt_envelope_ref"]
     assert dispatch["surface"] == "mas_domain_progress_transition_request_projection"
-    assert dispatch["legacy_surface"] == "owner_callable_dispatch_request"
+    assert dispatch["legacy_surface"] == "mas_domain_progress_transition_request_projection"
     assert dispatch["dispatch_status"] == "transition_request_pending"
     assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
     assert dispatch["owner_callable_carrier_projection_only"] is True

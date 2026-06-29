@@ -93,11 +93,11 @@
   "live_tail_surface_ids": [
     "agent_tool_arsenal_scientific_capability_registry",
     "domain_diagnostic_obligation_actuator",
-    "stage_outcome_authority",
     "progress_portal_study_workbench_overview_action_projection",
     "runtime_health_kernel",
     "runtime_lifecycle_payload_retention",
-    "runtime_storage_maintenance"
+    "runtime_storage_maintenance",
+    "stage_outcome_authority"
   ],
   "live_runtime_gap_ids": [
     "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",

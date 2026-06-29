@@ -627,16 +627,15 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
 
     result = progress.read_study_progress(profile=profile, study_id=study_id)
 
-    assert result["auto_runtime_parked"]["parked"] is False
-    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
-    assert result["parked_state"] is None
-    assert result["intervention_lane"]["lane_id"] != "auto_runtime_parked"
-    assert result["operator_status_card"]["handling_state"] != "auto_runtime_parked"
-    assert result["operator_status_card"].get("parked_state") is None
-    assert result["operator_verdict"]["decision_mode"] != "auto_runtime_parked"
-    assert result["recovery_contract"]["action_mode"] != "auto_runtime_parked"
-    assert result["autonomy_contract"]["autonomy_state"] != "auto_runtime_parked"
-    assert "显式" not in result["operator_status_card"]["current_focus"]
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert "superseded_by_current_owner_action" not in result["auto_runtime_parked"]
+    assert result["parked_state"] == "explicit_resume_pending"
+    assert result["intervention_lane"]["lane_id"] == "auto_runtime_parked"
+    assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
+    assert result["operator_verdict"]["decision_mode"] == "auto_runtime_parked"
+    assert result["recovery_contract"]["action_mode"] == "auto_runtime_parked"
+    assert result["autonomy_contract"]["autonomy_state"] == "auto_runtime_parked"
+    assert result["legacy_next_action_authority_retired"]["authority"] == "NextActionEnvelope"
 
 
 def test_gate_followthrough_owner_action_supersedes_explicit_resume_operator_residue() -> None:

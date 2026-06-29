@@ -15,7 +15,7 @@ REQUIRED_CATEGORIES = {
     "memory_accept_reject",
     "no_forbidden_write_proof",
     "refs_only_helper",
-    "diagnostic_probe",
+    "retired_diagnostic_provenance",
 }
 CONTRACT_ONLY_ITEM_OVERLAY_FIELDS = {
     "disposition",
@@ -88,6 +88,12 @@ def test_authority_kernel_inventory_covers_required_categories_and_fields() -> N
     for item in items:
         assert required_fields <= set(item), item["item_id"]
         for field in required_fields:
+            if item["category"] == "retired_diagnostic_provenance" and field in {
+                "active_caller_refs",
+                "allowed_writes",
+            }:
+                assert item[field] == [], (item["item_id"], field)
+                continue
             assert item[field], (item["item_id"], field)
         assert item["cannot_lift_to_opl_reason"]
         assert item.get("retirement_gate") or item.get("upcollect_target")
@@ -146,4 +152,7 @@ def test_authority_kernel_inventory_references_existing_representative_surfaces(
         "forbidden_writes"
     ]
     assert "refs-only advisory candidates" in items["refs_only_helper"]["output_refs"]
-    assert "route_back_evidence_ref" in items["diagnostic_probe"]["output_refs"]
+    retired = items["retired_diagnostic_provenance"]
+    assert retired["active_caller_refs"] == []
+    assert retired["allowed_writes"] == []
+    assert "retired diagnostic provenance refs" in retired["output_refs"]

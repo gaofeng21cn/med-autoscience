@@ -47,6 +47,7 @@ class AuthorityKernelItem:
     output_refs: tuple[str, ...]
     cannot_lift_to_opl_reason: str
     forbidden_writes: tuple[str, ...] = ()
+    retired_caller_refs: tuple[str, ...] = ()
     retirement_gate: str | None = None
     upcollect_target: str | None = None
     notes: tuple[str, ...] = ()
@@ -56,5 +57,5 @@ class AuthorityKernelItem:
         return {
             key: list(value) if isinstance(value, tuple) else value
             for key, value in payload.items()
-            if value not in (None, (), [])
+            if value not in (None, (), []) or key in REQUIRED_ITEM_FIELDS
         }

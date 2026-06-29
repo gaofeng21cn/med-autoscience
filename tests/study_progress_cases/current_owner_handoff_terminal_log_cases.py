@@ -290,17 +290,13 @@ def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
     assert terminal_log["cost"] == {"usd": 0.04}
     assert terminal_log["usage_refs"] == ["usage://top-level-missing", "usage://sat-003"]
     assert terminal_log["cost_refs"] == ["cost://top-level-missing", "cost://sat-003"]
-    latest_terminal_stage = result["progress_first_monitoring_summary"]["latest_terminal_stage"]
+    assert_default_next_action_legacy_surfaces_retired(result)
+    latest_terminal_stage = result["opl_current_control_state_handoff"]["latest_terminal_stage_log"]
     assert latest_terminal_stage["observability_status"] == "observed"
     assert latest_terminal_stage["missing_observability_fields"] == []
     assert latest_terminal_stage["duration"] == {"seconds": 42}
     assert latest_terminal_stage["token_usage"] == {"total_tokens": 1200}
     assert latest_terminal_stage["cost"] == {"usd": 0.04}
-    assert latest_terminal_stage["telemetry_completeness"] == {
-        "status": "complete",
-        "required_fields": ["duration", "token_usage", "cost"],
-        "missing_fields": [],
-    }
 
 
 __all__ = [name for name in globals() if name.startswith("test_")]

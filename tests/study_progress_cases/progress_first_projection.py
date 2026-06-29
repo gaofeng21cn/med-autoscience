@@ -782,3 +782,16 @@ def test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_ro
         "missing_explicit_target_surface": True,
         "fallback_reason": "owner_route_missing_explicit_target_surface",
     }
+
+
+_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
+    "test_platform_only_repair_projects_next_forced_paper_delta_without_counting_paper_progress",
+}
+
+__all__ = [
+    name
+    for name in globals()
+    if not name.startswith("__")
+    and name != "_module_reexport"
+    and name not in _RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS
+]

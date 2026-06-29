@@ -310,7 +310,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     ]
     research_summary = payload["record_payload"]["research_evidence_pack_summary"]
     assert payload["record_payload"]["research_evidence_pack_ref"] == (
-        "mas-research-evidence-pack:medautoscience:domain_route_retired_reconcile-apply:DM002"
+        "mas-research-evidence-pack:medautoscience:stage_outcome_opl-handoff:DM002"
     )
     assert research_summary["pack_ref"] == payload["record_payload"]["research_evidence_pack_ref"]
     assert research_summary["input_refs"] == payload["record_payload"]["evidence_refs"]

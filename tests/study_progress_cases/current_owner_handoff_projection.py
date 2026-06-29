@@ -604,17 +604,12 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
         materialize_read_model_artifacts=False,
     )
 
-    action = result["current_executable_owner_action"]
-    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
-    assert action["publication_eval_id"] == latest_eval_id
-    assert action["stage_typed_blocker_ref"] == typed_blocker_ref
-    assert action["gap_ids"] == ["gap-medical-prose"]
-    assert result["progress_first_monitoring_summary"]["execution_state_kind"] == "executable_owner_action"
-    assert result["progress_first_monitoring_summary"]["next_owner"] == "write"
-    assert result["progress_first_monitoring_summary"]["next_work_unit"] == "medical_prose_write_repair"
-    assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
-    assert result["user_visible_projection"]["next_owner"] == "write"
+    assert_default_next_action_legacy_surfaces_retired(result)
+    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert result["next_action"]["action_family"] == "human.approval"
+    assert result["next_action"]["work_unit_id"] == "paper_mission_readback_missing"
+    assert result["publication_eval"]["eval_id"] == latest_eval_id
+    assert result["user_visible_projection"]["next_owner"] == "MedAutoScience"
 
 
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
@@ -716,10 +711,12 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
 
     assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
     assert "request_opl_handoff_hydration" not in result["next_system_action"]
+    assert_default_next_action_legacy_surfaces_retired(result)
     assert result["opl_current_control_state_handoff"] is None
     assert result["ai_repair_lifecycle"] is None
-    assert result["user_visible_projection"]["next_owner"] == "ai_reviewer"
-    assert result["user_visible_projection"]["paper_progress_state"]["next_owner"] == "ai_reviewer"
+    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert result["user_visible_projection"]["next_owner"] == "review"
+    assert result["user_visible_projection"]["paper_progress_state"]["next_owner"] == "review"
     assert result["intervention_lane"]["route_target"] == "review"
     assert result["intervention_lane"].get("handoff_source") is None
     assert result["refs"]["ai_repair_lifecycle_path"] is None
@@ -728,8 +725,8 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
     mcp_structured = mcp_result["structuredContent"]
     mcp_markdown = mcp_result["content"][0]["text"]
     assert mcp_structured.get("ai_repair_lifecycle") is None
-    assert mcp_structured["next_owner"] == "ai_reviewer"
-    assert mcp_structured["user_visible_projection"]["next_owner"] == "ai_reviewer"
+    assert mcp_structured["next_owner"] == "review"
+    assert mcp_structured["user_visible_projection"]["next_owner"] == "review"
     assert "request_opl_handoff_hydration" not in mcp_markdown
     assert "external_supervisor" not in mcp_markdown
 
@@ -810,9 +807,11 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
     )
 
     assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
+    assert_default_next_action_legacy_surfaces_retired(result)
+    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
     assert result["intervention_lane"]["route_target"] == "review"
     assert result["intervention_lane"].get("handoff_source") is None
-    assert result["user_visible_projection"]["next_owner"] == "ai_reviewer"
+    assert result["user_visible_projection"]["next_owner"] == "review"
 
 
 def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_path: Path) -> None:
@@ -898,9 +897,11 @@ def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_
     )
 
     assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
+    assert_default_next_action_legacy_surfaces_retired(result)
+    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
     assert result["opl_current_control_state_handoff"] is None
     assert result["intervention_lane"]["route_target"] == "review"
-    assert result["user_visible_projection"]["next_owner"] == "ai_reviewer"
+    assert result["user_visible_projection"]["next_owner"] == "review"
 
 
 def test_owner_receipt_recovery_visibility_supersedes_stale_anti_loop_lane() -> None:
