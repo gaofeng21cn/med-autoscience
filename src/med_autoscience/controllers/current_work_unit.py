@@ -30,6 +30,11 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
 from med_autoscience.controllers.current_work_unit_parts.current_action_selection import (
     selected_current_action as _selected_current_action,
 )
+from med_autoscience.controllers.current_work_unit_parts.currentness_basis import (
+    currentness_basis as _currentness_basis,
+    minimal_blocker as _minimal_blocker,
+    typed_blocker as _typed_blocker,
+)
 from med_autoscience.controllers.current_work_unit_parts.currentness_identity import (
     action_has_strong_currentness_identity as _action_has_strong_currentness_identity,
     action_matches_next_forced_delta as _action_matches_next_forced_delta,
@@ -65,7 +70,6 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
     PUBLICATION_EVAL_READINESS_REPAIR_SOURCE,
     PROVIDER_ADMISSION_AUTHORITIES,
     PROVIDER_ADMISSION_REPAIR_ACTIONS,
-    REASON_ONLY_TYPED_BLOCKERS,
 )
 from med_autoscience.controllers.current_work_unit_parts.primitives import (
     mapping as _mapping,
@@ -110,13 +114,7 @@ from med_autoscience.controllers.current_work_unit_parts.typed_blocker_owner_ans
 from med_autoscience.controllers.current_work_unit_parts.work_unit_fields import (
     action_owner as _action_owner,
     delta_count as _delta_count,
-    route_work_unit_id as _route_work_unit_id,
     source_refs as _source_refs,
-)
-from med_autoscience.runtime_control.owner_route_attempt_protocol import (
-    currentness_basis as owner_route_currentness_basis,
-    normalize_currentness_sources,
-    owner_reason_contract,
 )
 from med_autoscience.controllers.study_progress_parts.canonical_next_action_gate import (
     has_canonical_next_action,
@@ -1366,82 +1364,6 @@ def _gate_consumption_action_supersedes_readiness_blocker(action: Mapping[str, A
         return False
     target = _mapping(action.get("target_surface"))
     return _text(target.get("surface_ref")) == "artifacts/controller/gate_clearing_batch/latest.json"
-
-
-def _typed_blocker(
-    typed_blocker: Mapping[str, Any] | None,
-    *,
-    blocked_reason: str | None,
-    owner: str | None,
-) -> dict[str, Any] | None:
-    if isinstance(typed_blocker, Mapping) and typed_blocker:
-        return dict(typed_blocker)
-    text = _text(blocked_reason)
-    if text is None:
-        return None
-    if not _reason_only_blocked_reason_is_typed_blocker(reason=text, owner=owner):
-        return None
-    return _minimal_blocker(text, owner=owner)
-
-
-def _minimal_blocker(blocker_type: str, *, owner: str | None) -> dict[str, Any]:
-    return {
-        "blocker_type": blocker_type,
-        "owner": _text(owner) or "med-autoscience",
-    }
-
-
-def _reason_only_blocked_reason_is_typed_blocker(*, reason: str, owner: str | None) -> bool:
-    if reason in REASON_ONLY_TYPED_BLOCKERS:
-        return True
-    contract = owner_reason_contract(reason=reason, owner=owner)
-    if contract.get("registered") is not True:
-        return True
-    return not any(_text(action) is not None for action in contract.get("allowed_actions") or [])
-
-
-def _currentness_basis(
-    *,
-    owner_route: Mapping[str, Any],
-    action: Mapping[str, Any] | None,
-    progress: Mapping[str, Any],
-    runtime_health: Mapping[str, Any],
-    running_attempt: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    basis = _mapping(owner_route_currentness_basis(owner_route)) if owner_route else {}
-    action_payload = _mapping(action)
-    action_source_refs = _mapping(action_payload.get("source_refs"))
-    embedded = (
-        _mapping(action_payload.get("owner_route_currentness_basis"))
-        or _mapping(action_payload.get("currentness_basis"))
-        or _mapping(action_source_refs.get("owner_route_currentness_basis"))
-    )
-    publication_eval = _mapping(progress.get("publication_eval"))
-    running = _mapping(running_attempt)
-    fingerprint_basis = normalize_currentness_sources(basis, embedded)
-    return normalize_currentness_sources(
-        basis,
-        embedded,
-        {
-            "source_eval_id": (
-                _text(action_payload.get("source_eval_id"))
-                or _text(action_source_refs.get("source_eval_id"))
-                or _text(publication_eval.get("eval_id"))
-            ),
-            "work_unit_id": _work_unit_id(action_payload.get("work_unit_id"))
-            or _work_unit_id(action_payload.get("next_work_unit"))
-            or _route_work_unit_id(owner_route)
-            or running_work_unit_id(running),
-            "work_unit_fingerprint": _work_unit_fingerprint(
-                action_payload,
-                currentness_basis=fingerprint_basis,
-            )
-            or _text(running.get("work_unit_fingerprint")),
-            "truth_epoch": _text(action_payload.get("truth_epoch")) or _text(progress.get("truth_epoch")),
-            "runtime_health_epoch": _text(runtime_health.get("runtime_health_epoch"))
-            or _text(action_payload.get("runtime_health_epoch")),
-        },
-    )
 
 
 __all__ = [
