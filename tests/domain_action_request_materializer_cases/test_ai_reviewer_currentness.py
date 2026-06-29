@@ -454,7 +454,7 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
     }
 
 
-def test_materialize_domain_action_requests_prefers_canonical_current_work_unit_over_stale_stage_native_write(
+def test_materialize_domain_action_requests_retires_current_work_unit_over_stale_stage_native_write(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -572,19 +572,14 @@ def test_materialize_domain_action_requests_prefers_canonical_current_work_unit_
         apply=False,
     )
 
-    assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
-    assert dispatch["next_executable_owner"] == "ai_reviewer"
-    assert dispatch["action_fingerprint"] == current_fingerprint
-    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_fingerprint"] == current_fingerprint
-    assert dispatch["source_action_ref"]["authority"] == "canonical_current_work_unit"
+    assert result["domain_progress_transition_request_count"] == 0
+    assert result["domain_progress_transition_requests"] == []
     assert {
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
     } == {
-        "run_quality_repair_batch": "superseded_by_canonical_current_work_unit",
+        "run_quality_repair_batch": "stage_native_workspace_next_action_retired_use_next_action_envelope",
     }
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 
 
 def _canonical_payload() -> dict[str, object]:
@@ -57,16 +58,18 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
     )
     current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
-    materializer_current = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_work_unit_action"
-    )
     domain_transition = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action_parts.domain_transition"
     )
 
     assert current_action.build_current_executable_owner_action(payload) is None
     assert current_work_unit.build_current_work_unit(progress=payload) == {}
-    assert materializer_current.canonical_current_work_unit_action(payload) is None
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.domain_action_request_materializer_parts.current_work_unit_action"
+        )
+        is None
+    )
     assert (
         domain_transition.owner_action_from_domain_transition(
             payload,

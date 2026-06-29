@@ -10,7 +10,6 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     current_action_queue,
     currentness_identity,
     domain_transition_current_actions,
-    current_work_unit_action,
     current_typed_blocker_transition_barrier,
     fresh_progress_current_action,
     fresh_progress_arbitration,
@@ -129,7 +128,6 @@ def current_actions_for_studies(
             fresh_paper_recovery_action or scan_paper_recovery_action,
             study=study_payload,
         )
-        canonical_current_action = current_work_unit_action.canonical_current_work_unit_action(study_payload)
         writer_handoff_owner_action = _current_writer_handoff_owner_action(
             study=study_payload,
             top_level_actions=top_level_actions,
@@ -150,13 +148,10 @@ def current_actions_for_studies(
             *per_study_queue_actions,
             *current_route_queue_actions,
         ]
-        if canonical_current_action is not None:
-            stale_candidate_actions.append(canonical_current_action)
         stale_candidate_actions = _unique_actions(stale_candidate_actions)
         transition_barrier = None
         if (
-            canonical_current_action is None
-            and readiness_followup is None
+            readiness_followup is None
             and stage_native_action is None
             and not stage_native_derives_from_readiness_answer
             and not _fresh_progress_is_repair_progress_followup(fresh_progress_action)
@@ -177,7 +172,6 @@ def current_actions_for_studies(
             ignored.extend(
                 _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
                 for action in [
-                    *([canonical_current_action] if canonical_current_action is not None else []),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
@@ -209,13 +203,6 @@ def current_actions_for_studies(
         if (
             paper_recovery_owner_callable_action is not None
             and readiness_followup is None
-            and (
-                canonical_current_action is None
-                or _action_matches_current_identity(
-                    paper_recovery_owner_callable_action,
-                    canonical_current_action,
-                )
-            )
         ):
             per_study_actions.append(paper_recovery_owner_callable_action)
             ignored.extend(
@@ -239,7 +226,6 @@ def current_actions_for_studies(
             ignored.extend(
                 _ignored_action(action, "superseded_by_current_work_unit_typed_blocker")
                 for action in [
-                    *([canonical_current_action] if canonical_current_action is not None else []),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
@@ -256,7 +242,6 @@ def current_actions_for_studies(
             ignored.extend(
                 _ignored_action(action, "superseded_by_current_work_unit_owner_receipt")
                 for action in [
-                    *([canonical_current_action] if canonical_current_action is not None else []),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
@@ -268,8 +253,6 @@ def current_actions_for_studies(
                 if action != fresh_progress_action
             )
             continue
-        if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
-            canonical_current_action = None
         stage_native_derives_from_readiness_answer = (
             original_stage_native_action is not None
             and (
@@ -295,38 +278,6 @@ def current_actions_for_studies(
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
                 ]
                 if action != transition_barrier
-            )
-            continue
-        if canonical_current_action is not None:
-            per_study_actions.append(canonical_current_action)
-            ignored.extend(
-                _ignored_action(
-                    action,
-                    _ignored_reason_for_superseded_action(
-                        action,
-                        selected_actions=[canonical_current_action],
-                        default="superseded_by_canonical_current_work_unit",
-                    ),
-                )
-                for action in [
-                    *([fresh_progress_action] if fresh_progress_action is not None else []),
-                    *(
-                        [paper_recovery_owner_callable_action]
-                        if paper_recovery_owner_callable_action is not None
-                        else []
-                    ),
-                    *([readiness_followup] if readiness_followup is not None else []),
-                    *([stage_native_action] if stage_native_action is not None else []),
-                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
-                    *top_level_study_actions,
-                    *transition_actions,
-                    *[
-                        dict(item)
-                        for item in study_payload.get("action_queue") or []
-                        if isinstance(item, Mapping)
-                    ],
-                ]
-                if action != canonical_current_action
             )
             continue
         if (
@@ -833,29 +784,6 @@ def _fresh_progress_is_current_owner_action(action: Mapping[str, Any] | None) ->
         _text(action.get("work_unit_fingerprint")) is not None
         or _text(action.get("action_fingerprint")) is not None
     )
-
-
-def _action_matches_current_identity(
-    action: Mapping[str, Any],
-    current_action: Mapping[str, Any],
-) -> bool:
-    if _text(action.get("action_type")) != _text(current_action.get("action_type")):
-        return False
-    current_work_unit_id = _text(current_action.get("work_unit_id")) or _text(
-        current_action.get("next_work_unit")
-    )
-    action_work_unit_id = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
-    if current_work_unit_id is not None and action_work_unit_id != current_work_unit_id:
-        return False
-    current_fingerprint = _text(current_action.get("work_unit_fingerprint")) or _text(
-        current_action.get("action_fingerprint")
-    )
-    action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(
-        action.get("action_fingerprint")
-    )
-    if current_fingerprint is not None and action_fingerprint != current_fingerprint:
-        return False
-    return True
 
 
 def _fresh_progress_is_current_execution_envelope_barrier(action: Mapping[str, Any] | None) -> bool:
