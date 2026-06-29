@@ -1401,7 +1401,10 @@ def _stage_closure_decision_requires_reterminalize(
     decision: Mapping[str, Any],
 ) -> bool:
     outcome = _mapping(decision.get("outcome"))
+    opl_closeout = _mapping(decision.get("opl_closeout"))
     observability_gaps = _text_list(decision.get("observability_gaps"))
+    if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_live_readback":
+        return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
         return True
     if any(gap in observability_gaps for gap in ("duration_ms_missing", "cost_usd_missing")):
