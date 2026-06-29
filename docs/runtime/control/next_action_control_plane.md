@@ -122,6 +122,8 @@ StageOutcome
 
 Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前必须先证明没有 active caller，或已有 StageOutcome / NextActionEnvelope / OPL TransitionReceipt replacement parity。未达到物理删除门时，旧面必须显式标注 `diagnostic_only`、`history_provenance_only`、`retired_tombstone`、`no_default_caller` 或 `work_unit_id_authority=false`。
 
+History cleanup rule：`docs/history/**`、旧 dated closeout、fixture 说明和迁移审计中保留旧词本身不是问题；这些词保留的是 provenance。cleanup 的目标是 current docs / README / status / decisions / active runtime control docs 不再把旧词写成默认入口、current owner、provider admission authority、ready evidence 或 paper progress proof。若旧词仍需出现在当前入口，必须同段标出 replacement route、retired / superseded / diagnostic-only 语境和 forbidden claim boundary。
+
 ## 2026-06-29 源码侧退役切片
 
 - `autonomy_state_surface` 已物理切断 `domain_next_action_projection` 默认返回字段；该 surface 只保留 `authority_snapshot.canonical_next_action`，不再携带旧 projection 作为可读 next-action 候选。

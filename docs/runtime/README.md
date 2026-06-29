@@ -16,6 +16,8 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 
 当前 progress / workbench 默认读面是 `artifact_first_mission_summary.paper_mission_run`，对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1`。domain diagnostic、currentness、storage、owner-route、dispatch 和 PaperRecovery 只进入 platform diagnostics / migration / provenance；它们不能作为 runtime docs 中的 product/default domain-handler mainline、paper progress、runtime-ready、publication-ready 或 DM002/DM003 completion claim。
 
+当前 next action 默认控制面是 [Next Action Control Plane](./control/next_action_control_plane.md) 定义的 `StageOutcome -> NextActionEnvelope`。旧 `current_work_unit`、`current_executable_owner_action`、provider admission、queue、attempt、PaperRecovery 或 domain-transition 字段在 runtime docs 中只能作为 superseded diagnostic、history provenance、transport observation 或 no-resurrection guard；不能作为 current owner/action 默认入口、default dispatch selector、provider admission authority、paper progress 或 readiness evidence。
+
 | 目录 | 角色 |
 | --- | --- |
 | [contracts](./contracts/) | MAS runtime-facing contracts、owner boundary、durable surface、artifact authority 和 backend/interface 规则。 |
