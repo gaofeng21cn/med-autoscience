@@ -38,6 +38,7 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
         _mapping(dispatch.get("prompt_contract")).get("opl_domain_progress_transition_request")
     )
     paper_mission_carrier = _mapping(dispatch.get("opl_runtime_carrier"))
+    next_action = _next_action(dispatch)
     source_action = _mapping(dispatch.get("source_action"))
     owner_route = _mapping(dispatch.get("owner_route"))
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
@@ -64,6 +65,19 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
         or None,
         "paper_mission_opl_runtime_carrier_ref": _paper_mission_opl_carrier_ref(
             paper_mission_carrier
+        ),
+        "next_action": transition_contract.next_action_identity(next_action) or None,
+        "opl_transition_handoff_contract": (
+            transition_contract.opl_transition_handoff_contract(
+                next_action,
+                provenance=_transition_request_legacy_identity_ref(
+                    request=request,
+                    carrier=paper_mission_carrier,
+                    payload=dispatch,
+                ),
+            )
+            if next_action
+            else None
         ),
         "domain_intent_ref": _domain_intent_ref(dispatch),
         "authority_boundary": _mapping(dispatch.get("authority_boundary")) or None,
@@ -285,6 +299,56 @@ def _transition_request_identity_fields(payload: Mapping[str, Any]) -> dict[str,
             "request_idempotency_key": _text(carrier.get("request_idempotency_key"))
             or _text(request.get("request_idempotency_key"))
             or _text(payload.get("request_idempotency_key")),
+        }.items()
+        if value is not None
+    }
+
+
+def _next_action(payload: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(payload.get("prompt_contract"))
+    source_action = _mapping(payload.get("source_action"))
+    handoff = _mapping(payload.get("handoff_packet"))
+    return (
+        _mapping(payload.get("next_action"))
+        or _mapping(prompt_contract.get("next_action"))
+        or _mapping(source_action.get("next_action"))
+        or _mapping(handoff.get("next_action"))
+    )
+
+
+def _transition_request_legacy_identity_ref(
+    *,
+    request: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    aggregate_identity = _mapping(carrier.get("aggregate_identity"))
+    return {
+        key: value
+        for key, value in {
+            "legacy_work_unit_identity_role": "provenance_currentness_only",
+            "work_unit_id": (
+                _text(request.get("work_unit_id"))
+                or _text(carrier.get("work_unit_id"))
+                or _text(aggregate_identity.get("work_unit_id"))
+                or _text(payload.get("work_unit_id"))
+            ),
+            "work_unit_fingerprint": (
+                _text(request.get("work_unit_fingerprint"))
+                or _text(carrier.get("work_unit_fingerprint"))
+                or _text(aggregate_identity.get("work_unit_fingerprint"))
+                or _text(payload.get("work_unit_fingerprint"))
+            ),
+            "attempt_idempotency_key": (
+                _text(request.get("attempt_idempotency_key"))
+                or _text(carrier.get("attempt_idempotency_key"))
+                or _text(payload.get("attempt_idempotency_key"))
+            ),
+            "request_idempotency_key": (
+                _text(request.get("request_idempotency_key"))
+                or _text(carrier.get("request_idempotency_key"))
+                or _text(payload.get("request_idempotency_key"))
+            ),
         }.items()
         if value is not None
     }

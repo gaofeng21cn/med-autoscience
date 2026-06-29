@@ -84,6 +84,47 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
         "missing_source_kind_is_not_fresh_live_claim": True,
         "valid_shape_can_test_projection_rules_without_live_claim": True,
     }
+    assert contract["mas_request_contract"]["required_identity_fields"] == [
+        "study_id",
+        "next_action.action_id",
+        "next_action.idempotency_key",
+        "next_action.action_family",
+        "next_action.expected_output_contract.output_kind",
+        "source_generation",
+        "expected_version",
+    ]
+    assert contract["mas_request_contract"]["next_action_identity_policy"] == {
+        "identity_source": "NextActionEnvelope",
+        "required_next_action_identity_fields": list(helper.NEXT_ACTION_IDENTITY_FIELDS),
+        "expected_output_kind": helper.OPL_TRANSITION_RECEIPT_OUTPUT_KIND,
+        "legacy_work_unit_id_role": "provenance_currentness_only",
+        "legacy_attempt_id_role": "provenance_currentness_only",
+        "exact_work_unit_id_authority": False,
+    }
+    assert contract["mas_request_contract"]["expected_output_contract"] == (
+        helper.opl_transition_receipt_expected_output_contract()
+    )
+    assert contract["mas_request_contract"]["runtime_receipt_authority"] == (
+        helper.opl_transition_receipt_authority_boundary()
+    )
+    assert contract["live_readback_contract"]["expected_output_contract"] == (
+        helper.opl_transition_receipt_expected_output_contract()
+    )
+    assert contract["live_readback_contract"]["runtime_receipt_authority"] == (
+        helper.opl_transition_receipt_authority_boundary()
+    )
+    assert contract["projection_postcondition_contract"]["expected_output_contract"] == (
+        helper.opl_transition_receipt_expected_output_contract()
+    )
+    assert contract["projection_postcondition_contract"]["runtime_receipt_authority"] == (
+        helper.opl_transition_receipt_authority_boundary()
+    )
+    assert (
+        contract["projection_postcondition_contract"]["legacy_work_unit_identity_role"]
+        == "provenance_currentness_only"
+    )
+    assert "queue_terminal_status" in contract["forbidden_completion_interpretations"]
+    assert "provider_attempt_terminal_status" in contract["forbidden_completion_interpretations"]
     assert contract["mas_request_contract"]["forbidden_runtime_fields"] == (
         helper.request_forbidden_runtime_fields()
     )
@@ -145,3 +186,57 @@ def test_policy_adapter_request_uses_runtime_contract_and_remains_mas_request_on
     assert request["mas_can_create_opl_outbox_record"] is False
     assert request["mas_can_create_opl_event"] is False
     assert request["mas_can_create_opl_stage_run"] is False
+
+
+def test_next_action_identity_requires_receipt_output_kind_not_legacy_attempt_or_work_unit() -> None:
+    helper = importlib.import_module(
+        "med_autoscience.controllers.opl_domain_progress_transition_contract"
+    )
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_id": "next-action-001",
+        "idempotency_key": "request::study::stage",
+        "action_family": "runtime.opl_route",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "work_unit_id": "dm003_exact_stage_work_unit",
+        "work_unit_fingerprint": "fingerprint::dm003",
+        "attempt_idempotency_key": "attempt::legacy",
+    }
+
+    assert helper.next_action_identity(next_action) == {
+        "surface_kind": "opl_next_action_identity",
+        "identity_source": "NextActionEnvelope",
+        "next_action_surface_kind": "mas_next_action_envelope",
+        "action_id": "next-action-001",
+        "idempotency_key": "request::study::stage",
+        "action_family": "runtime.opl_route",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+    }
+    assert helper.next_action_identity_complete(next_action) is True
+
+    handoff = helper.opl_transition_handoff_contract(
+        next_action,
+        provenance={
+            "work_unit_id": "dm003_exact_stage_work_unit",
+            "attempt_idempotency_key": "attempt::legacy",
+        },
+    )
+
+    assert handoff["next_action"] == helper.next_action_identity(next_action)
+    assert handoff["next_action_identity_complete"] is True
+    assert handoff["expected_output_contract"]["output_kind"] == "opl_transition_receipt"
+    assert handoff["runtime_receipt_authority"]["receipt_is_input_ref_only"] is True
+    assert handoff["runtime_receipt_authority"]["can_claim_stage_complete"] is False
+    assert handoff["runtime_receipt_authority"]["can_claim_paper_progress"] is False
+    assert handoff["runtime_receipt_authority"]["attempt_terminal_is_paper_progress"] is False
+    assert handoff["runtime_receipt_authority"]["provider_completion_is_domain_completion"] is False
+    assert handoff["legacy_work_unit_identity_role"] == "provenance_currentness_only"
+    assert handoff["exact_work_unit_id_authority"] is False
+    assert handoff["provenance"]["work_unit_id"] == "dm003_exact_stage_work_unit"
+    assert "attempt_idempotency_key" not in handoff["next_action"]
+
+    wrong_output = {**next_action, "expected_output_contract": {"output_kind": "stage_complete"}}
+    missing_action_id = {key: value for key, value in next_action.items() if key != "action_id"}
+
+    assert helper.next_action_identity_complete(wrong_output) is False
+    assert helper.next_action_identity_complete(missing_action_id) is False

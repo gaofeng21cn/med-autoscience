@@ -31,12 +31,26 @@
     "target_runtime_kind": "DomainProgressTransitionRuntime",
     "required_identity_fields": [
       "study_id",
-      "work_unit_id",
-      "work_unit_fingerprint",
-      "idempotency_key",
+      "next_action.action_id",
+      "next_action.idempotency_key",
+      "next_action.action_family",
+      "next_action.expected_output_contract.output_kind",
       "source_generation",
       "expected_version"
     ],
+    "next_action_identity_policy": {
+      "identity_source": "NextActionEnvelope",
+      "required_next_action_identity_fields": [
+        "action_id",
+        "idempotency_key",
+        "action_family",
+        "expected_output_contract.output_kind"
+      ],
+      "expected_output_kind": "opl_transition_receipt",
+      "legacy_work_unit_id_role": "provenance_currentness_only",
+      "legacy_attempt_id_role": "provenance_currentness_only",
+      "exact_work_unit_id_authority": false
+    },
     "forbidden_runtime_fields": [
       "current_control_command",
       "current_control_command_outbox_record",
@@ -59,6 +73,30 @@
       "mas_can_authorize_provider_admission": false,
       "mas_can_mark_provider_attempt_running": false,
       "provider_completion_is_domain_completion": false
+    },
+    "expected_output_contract": {
+      "output_kind": "opl_transition_receipt",
+      "accepted_refs": [
+        "opl_transition_receipt_ref",
+        "stage_attempt_ref",
+        "runtime_closeout_ref",
+        "typed_runtime_blocker_ref"
+      ],
+      "receipt_owner": "one-person-lab",
+      "domain_completion_owner": "MedAutoScience"
+    },
+    "runtime_receipt_authority": {
+      "runtime_receipt_owner": "one-person-lab",
+      "receipt_is_input_ref_only": true,
+      "can_claim_stage_complete": false,
+      "can_claim_paper_progress": false,
+      "can_claim_submission_ready": false,
+      "can_claim_publication_ready": false,
+      "queue_terminal_is_paper_progress": false,
+      "attempt_terminal_is_paper_progress": false,
+      "provider_completion_is_domain_completion": false,
+      "provider_completion_is_stage_complete": false,
+      "mas_receipt_consumer_required_for_paper_progress": true
     }
   },
   "live_readback_contract": {
@@ -160,6 +198,30 @@
       "fresh_live_claim_requires_source_kind": true,
       "missing_source_kind_is_not_fresh_live_claim": true,
       "valid_shape_can_test_projection_rules_without_live_claim": true
+    },
+    "expected_output_contract": {
+      "output_kind": "opl_transition_receipt",
+      "accepted_refs": [
+        "opl_transition_receipt_ref",
+        "stage_attempt_ref",
+        "runtime_closeout_ref",
+        "typed_runtime_blocker_ref"
+      ],
+      "receipt_owner": "one-person-lab",
+      "domain_completion_owner": "MedAutoScience"
+    },
+    "runtime_receipt_authority": {
+      "runtime_receipt_owner": "one-person-lab",
+      "receipt_is_input_ref_only": true,
+      "can_claim_stage_complete": false,
+      "can_claim_paper_progress": false,
+      "can_claim_submission_ready": false,
+      "can_claim_publication_ready": false,
+      "queue_terminal_is_paper_progress": false,
+      "attempt_terminal_is_paper_progress": false,
+      "provider_completion_is_domain_completion": false,
+      "provider_completion_is_stage_complete": false,
+      "mas_receipt_consumer_required_for_paper_progress": true
     }
   },
   "projection_postcondition_contract": {
@@ -179,7 +241,32 @@
       "derived_from_event_id",
       "observed_generation",
       "authority=false"
-    ]
+    ],
+    "expected_output_contract": {
+      "output_kind": "opl_transition_receipt",
+      "accepted_refs": [
+        "opl_transition_receipt_ref",
+        "stage_attempt_ref",
+        "runtime_closeout_ref",
+        "typed_runtime_blocker_ref"
+      ],
+      "receipt_owner": "one-person-lab",
+      "domain_completion_owner": "MedAutoScience"
+    },
+    "runtime_receipt_authority": {
+      "runtime_receipt_owner": "one-person-lab",
+      "receipt_is_input_ref_only": true,
+      "can_claim_stage_complete": false,
+      "can_claim_paper_progress": false,
+      "can_claim_submission_ready": false,
+      "can_claim_publication_ready": false,
+      "queue_terminal_is_paper_progress": false,
+      "attempt_terminal_is_paper_progress": false,
+      "provider_completion_is_domain_completion": false,
+      "provider_completion_is_stage_complete": false,
+      "mas_receipt_consumer_required_for_paper_progress": true
+    },
+    "legacy_work_unit_identity_role": "provenance_currentness_only"
   },
   "forbidden_completion_interpretations": [
     "contract_landed",
@@ -193,6 +280,10 @@
     "projection_clean",
     "event_id_present_without_full_readback",
     "outbox_item_id_present_without_full_readback",
-    "StageRun_identity_present_without_currentness_match"
+    "StageRun_identity_present_without_currentness_match",
+    "opl_transition_receipt_without_mas_receipt_consumer",
+    "queue_terminal_status",
+    "provider_attempt_terminal_status",
+    "provider_completion_succeeded"
   ]
 }

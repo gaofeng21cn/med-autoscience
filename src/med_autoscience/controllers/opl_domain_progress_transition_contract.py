@@ -11,6 +11,13 @@ LIVE_READBACK_COMPLETE_STATUS = "complete_transaction"
 PROVIDER_ADMISSION_OUTCOME = "provider_admission_enqueued_or_blocked"
 NON_ADVANCING_APPLY_OUTCOME = "non_advancing_apply_typed_blocker_ref"
 CONTRACT_REF = "contracts/opl_domain_progress_transition_runtime_contract.json"
+OPL_TRANSITION_RECEIPT_OUTPUT_KIND = "opl_transition_receipt"
+NEXT_ACTION_IDENTITY_FIELDS = (
+    "action_id",
+    "idempotency_key",
+    "action_family",
+    "expected_output_contract.output_kind",
+)
 
 TRANSITION_KINDS = (
     "ConsumeOwnerReceipt",
@@ -132,6 +139,97 @@ MAS_PROJECTION_CANNOT_REPLACE = (
 )
 
 
+def opl_transition_receipt_expected_output_contract() -> dict[str, Any]:
+    return {
+        "output_kind": OPL_TRANSITION_RECEIPT_OUTPUT_KIND,
+        "accepted_refs": [
+            "opl_transition_receipt_ref",
+            "stage_attempt_ref",
+            "runtime_closeout_ref",
+            "typed_runtime_blocker_ref",
+        ],
+        "receipt_owner": RUNTIME_OWNER,
+        "domain_completion_owner": "MedAutoScience",
+    }
+
+
+def opl_transition_receipt_authority_boundary() -> dict[str, Any]:
+    return {
+        "runtime_receipt_owner": RUNTIME_OWNER,
+        "receipt_is_input_ref_only": True,
+        "can_claim_stage_complete": False,
+        "can_claim_paper_progress": False,
+        "can_claim_submission_ready": False,
+        "can_claim_publication_ready": False,
+        "queue_terminal_is_paper_progress": False,
+        "attempt_terminal_is_paper_progress": False,
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_stage_complete": False,
+        "mas_receipt_consumer_required_for_paper_progress": True,
+    }
+
+
+def next_action_identity(next_action: Mapping[str, Any]) -> dict[str, Any]:
+    expected_output_contract = _mapping(next_action.get("expected_output_contract"))
+    output_kind = _text(expected_output_contract.get("output_kind"))
+    identity = {
+        "surface_kind": "opl_next_action_identity",
+        "identity_source": "NextActionEnvelope",
+        "next_action_surface_kind": _text(next_action.get("surface_kind")),
+        "action_id": _text(next_action.get("action_id")),
+        "idempotency_key": _text(next_action.get("idempotency_key")),
+        "action_family": _text(next_action.get("action_family")),
+        "expected_output_contract": {
+            "output_kind": output_kind,
+        }
+        if output_kind
+        else None,
+    }
+    return {key: value for key, value in identity.items() if value not in (None, "", {}, [])}
+
+
+def next_action_identity_complete(next_action: Mapping[str, Any]) -> bool:
+    identity = next_action_identity(next_action)
+    expected = _mapping(identity.get("expected_output_contract"))
+    return (
+        _text(identity.get("next_action_surface_kind")) == "mas_next_action_envelope"
+        and _text(identity.get("action_id")) is not None
+        and _text(identity.get("idempotency_key")) is not None
+        and _text(identity.get("action_family")) is not None
+        and _text(expected.get("output_kind")) == OPL_TRANSITION_RECEIPT_OUTPUT_KIND
+    )
+
+
+def opl_transition_handoff_contract(
+    next_action: Mapping[str, Any],
+    *,
+    provenance: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    identity = next_action_identity(next_action)
+    authority_boundary = opl_transition_receipt_authority_boundary()
+    result = {
+        "surface_kind": "opl_transition_handoff_contract",
+        "schema_version": 1,
+        "runtime_contract_ref": CONTRACT_REF,
+        "target_runtime_owner": RUNTIME_OWNER,
+        "target_runtime_kind": RUNTIME_KIND,
+        "identity_source": "NextActionEnvelope",
+        "required_next_action_identity_fields": list(NEXT_ACTION_IDENTITY_FIELDS),
+        "next_action": identity or None,
+        "next_action_identity_complete": next_action_identity_complete(next_action),
+        "expected_output_contract": opl_transition_receipt_expected_output_contract(),
+        "runtime_receipt_authority": authority_boundary,
+        "authority_boundary": authority_boundary,
+        "legacy_work_unit_identity_role": "provenance_currentness_only",
+        "exact_work_unit_id_authority": False,
+        "queue_attempt_terminal_is_paper_progress": False,
+        "provider_completion_is_domain_completion": False,
+        "mas_receipt_consumer_required_for_paper_progress": True,
+        "provenance": _mapping(provenance),
+    }
+    return {key: value for key, value in result.items() if value not in (None, "", {}, [])}
+
+
 def required_readback_shape() -> dict[str, Any]:
     return {
         "surface_kind": LIVE_READBACK_SURFACE,
@@ -183,6 +281,8 @@ def required_readback_shape() -> dict[str, Any]:
             "event_id_without_causality",
             "outbox_item_id_without_authority_boundary",
         ],
+        "expected_output_contract": opl_transition_receipt_expected_output_contract(),
+        "runtime_receipt_authority": opl_transition_receipt_authority_boundary(),
     }
 
 
@@ -225,6 +325,9 @@ def mas_projection_authority_boundary(value: object = None) -> dict[str, Any]:
         "durable_carrier_owner": RUNTIME_OWNER,
         "projection_only": True,
         "runtime_contract_ref": CONTRACT_REF,
+        "expected_output_contract": opl_transition_receipt_expected_output_contract(),
+        "runtime_receipt_authority": opl_transition_receipt_authority_boundary(),
+        "legacy_work_unit_identity_role": "provenance_currentness_only",
     }
 
 
@@ -243,6 +346,9 @@ def mas_request_authority_boundary(value: object = None) -> dict[str, Any]:
         "mas_can_authorize_provider_admission": False,
         "mas_can_mark_provider_attempt_running": False,
         "provider_completion_is_domain_completion": False,
+        "expected_output_contract": opl_transition_receipt_expected_output_contract(),
+        "runtime_receipt_authority": opl_transition_receipt_authority_boundary(),
+        "legacy_work_unit_identity_role": "provenance_currentness_only",
     }
 
 
@@ -329,7 +435,9 @@ __all__ = [
     "LIVE_READBACK_SURFACE",
     "LIVE_READBACK_TRANSACTION_CONSISTENCY",
     "MAS_PROJECTION_CANNOT_REPLACE",
+    "NEXT_ACTION_IDENTITY_FIELDS",
     "NON_ADVANCING_APPLY_OUTCOME",
+    "OPL_TRANSITION_RECEIPT_OUTPUT_KIND",
     "PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS",
     "PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD",
     "PROVIDER_ADMISSION_OUTCOME",
@@ -342,6 +450,11 @@ __all__ = [
     "live_readback_transaction_consistency",
     "mas_projection_authority_boundary",
     "mas_request_authority_boundary",
+    "next_action_identity",
+    "next_action_identity_complete",
+    "opl_transition_handoff_contract",
+    "opl_transition_receipt_authority_boundary",
+    "opl_transition_receipt_expected_output_contract",
     "request_forbidden_runtime_fields",
     "live_readback_evidence_source_contract",
     "live_readback_identity",

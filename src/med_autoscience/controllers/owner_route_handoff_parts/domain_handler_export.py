@@ -39,6 +39,7 @@ from .authority_boundary import authority_boundary_payload
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers import opl_domain_progress_transition_contract
 from .domain_handler_functional_closure import build_domain_handler_functional_closure_projection
 from .export_study_projection import (
     build_study_projection,
@@ -513,11 +514,37 @@ def _paper_mission_start_or_resume_task(
             opl_runtime_carrier=mapping(enriched_route_handoff.get("opl_runtime_carrier")),
             opl_route_handoff=enriched_route_handoff,
         )
+        opl_transition_handoff_contract = (
+            opl_domain_progress_transition_contract.opl_transition_handoff_contract(
+                next_action,
+                provenance={
+                    "legacy_work_unit_identity_role": "provenance_currentness_only",
+                    "work_unit_id": text(mapping(next_action or {}).get("work_unit_id")),
+                    "work_unit_fingerprint": text(
+                        mapping(next_action or {}).get("work_unit_fingerprint")
+                    ),
+                    "route_identity_key": text(enriched_route_handoff.get("route_identity_key")),
+                    "attempt_idempotency_key": text(
+                        enriched_route_handoff.get("attempt_idempotency_key")
+                    ),
+                    "request_idempotency_key": text(
+                        enriched_route_handoff.get("request_idempotency_key")
+                    ),
+                },
+            )
+            if next_action
+            else None
+        )
         payload.update(
             {
                 "opl_route_handoff": enriched_route_handoff,
                 "opl_route_handoff_record": enriched_route_handoff,
                 **({"next_action": next_action} if next_action else {}),
+                **(
+                    {"opl_transition_handoff_contract": opl_transition_handoff_contract}
+                    if opl_transition_handoff_contract
+                    else {}
+                ),
                 "paper_mission_default_handoff_source": (
                     "paper_mission_consumption_ledger"
                 ),
@@ -573,6 +600,11 @@ def _paper_mission_start_or_resume_task(
                 "opl_route_handoff": enriched_route_handoff,
                 "opl_route_handoff_record": enriched_route_handoff,
                 **({"next_action": next_action} if next_action else {}),
+                **(
+                    {"opl_transition_handoff_contract": opl_transition_handoff_contract}
+                    if opl_transition_handoff_contract
+                    else {}
+                ),
                 "paper_mission_default_handoff_source": (
                     "paper_mission_consumption_ledger"
                 ),
@@ -682,8 +714,29 @@ def _paper_mission_consumption_route_handoff_task(
         opl_runtime_carrier=carrier,
         opl_route_handoff=enriched_route_handoff,
     )
+    opl_transition_handoff_contract = (
+        opl_domain_progress_transition_contract.opl_transition_handoff_contract(
+            next_action,
+            provenance={
+                "legacy_work_unit_identity_role": "provenance_currentness_only",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "route_identity_key": text(enriched_route_handoff.get("route_identity_key")),
+                "attempt_idempotency_key": text(
+                    enriched_route_handoff.get("attempt_idempotency_key")
+                ),
+                "request_idempotency_key": text(
+                    enriched_route_handoff.get("request_idempotency_key")
+                ),
+            },
+        )
+        if next_action
+        else None
+    )
     if next_action:
         payload["next_action"] = next_action
+    if opl_transition_handoff_contract:
+        payload["opl_transition_handoff_contract"] = opl_transition_handoff_contract
     return {
         "domain_id": "medautoscience",
         "task_kind": "paper_mission/stage-outcome",
@@ -712,6 +765,11 @@ def _paper_mission_consumption_route_handoff_task(
         "provider_admission_requires_opl_runtime_result": True,
         "opl_domain_progress_transition_request": carrier,
         **({"next_action": next_action} if next_action else {}),
+        **(
+            {"opl_transition_handoff_contract": opl_transition_handoff_contract}
+            if opl_transition_handoff_contract
+            else {}
+        ),
         "opl_route_handoff": dict(enriched_route_handoff),
         "opl_route_handoff_record": dict(enriched_route_handoff),
         "domain_dispatch_evidence_record_payload": evidence_record_payload,
