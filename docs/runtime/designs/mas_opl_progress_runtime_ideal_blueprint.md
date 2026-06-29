@@ -208,6 +208,8 @@ OPL 基座必须把以下能力做成一等 primitive：
 
 本轮 goal 只关闭 repo/source/control-plane 功能面；live evidence / runtime-paper acceptance 不作为完成门，且未运行 `domain diagnostic apply`、provider start、hydrate、tick、redrive、owner-route reconcile，未写 Yang runtime/study/paper artifacts。机器读根是 `contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance`。
 
+后续“一步到位”完成度审计的人工读根是 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 的“一步到位落地矩阵与完成度审计”。本文只定义 progress spine 和 L0-L7 blueprint；实际验收必须把 `repo/source/control-plane` 与 `live acceptance` 分账，逐项报告 OPL `TransitionRuntime`、`Outbox`、`StageRunKernel`、`StateIndex`、`Tool Arsenal`、`Workbench`，以及 MAS `Declarative Pack`、`Medical Authority Kernel` 是否各自拥有 fresh evidence。
+
 | Level | 功能面 | repo/source/control-plane required | already done | live-only deferred |
 | --- | --- | --- | --- | --- |
 | L0 | 理想蓝图与入口收敛 | `done`：蓝图、owner split、forbidden interpretations、completion audit 分栏已落盘。 | 目标设计和 false completion boundaries 已存在，本轮补 machine acceptance matrix。 | 不涉及 live acceptance。 |
@@ -223,6 +225,12 @@ OPL 基座必须把以下能力做成一等 primitive：
 
 OPL 侧应把这次 MAS 经验提升为 Foundry Agent 的通用基座能力：
 
+- `TransitionRuntime` 必须成为唯一 ordinary progress transition owner：command normalization、event append、fixed-point reconcile、NonAdvancingApply 和 replay/readback 都在 OPL，MAS 只提交 DomainIntent / policy result。
+- `Outbox` 必须与 transition event 同事务提交：provider start、MAS owner callable、tool invocation 和 human gate side effect 都从 outbox 发出，outbox emitted 不等于 MAS owner answer。
+- `StageRunKernel` 必须持有 attempt identity、lease、retry/dead-letter、resume、heartbeat 和 terminal closeout；provider completion 只能作为 MAS owner-consumption input。
+- `StateIndex` 必须只做 refs-only rebuild/read/checkpoint，显式区分 observed generation、accepted transition ref、projection lag 和 authority=false。
+- `Tool Arsenal` 必须从 `current_owner_delta` 生成 tool card、invocation plan 和 `ToolResultEnvelope`；capability 输出默认是 refs-only candidate，只有 MAS owner/reviewer/route-back 消费后才进入 progress。
+- `Workbench` 必须默认显示 current owner、stable outcome 和 next gate；raw queue、trace、lineage、provider detail 只进入 drilldown。
 - 标准 Agent 默认 ordinary route 必须从 `current_owner_delta` 进入 transition runtime，而不是从 raw worklist、queue history、sidecar refs 或 UI action 反推。
 - `StageRun currentness identity` 必须包含 route identity、attempt idempotency、selected stage packet / dispatch refs、source generation 和 terminal closeout ordering。
 - `domain-handler export` intake 必须优先识别 domain progress transition request；普通 owner-callable pending task 不得旁路 transition runtime。

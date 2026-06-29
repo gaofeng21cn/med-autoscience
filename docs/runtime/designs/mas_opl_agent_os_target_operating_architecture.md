@@ -30,8 +30,8 @@ Date: `2026-06-16`
 
 这表示：
 
-- OPL 持有 durable execution、stage attempt、queue、retry/dead-letter、resume、human gate transport、state index、locator、generic memory/artifact lifecycle、observability、generated CLI/MCP/Skill/product-entry/workbench。
-- MAS 持有医学研究 truth、stage semantics、source readiness、data/study binding、AI reviewer / auditor quality verdict、publication gate、artifact mutation authorization、publication-route memory accept/reject/blocker、owner receipt、typed blocker。
+- OPL 持有 `TransitionRuntime`、`Outbox`、`StageRunKernel`、`StateIndex`、`Tool Arsenal`、`Workbench` 及其下的 durable execution、stage attempt、queue、retry/dead-letter、resume、human gate transport、locator、generic memory/artifact lifecycle、observability、generated CLI/MCP/Skill/product-entry/workbench。
+- MAS 只长期保留 `Declarative Medical Research Pack` 和 `Medical Authority Kernel`：前者声明医学 stage semantics、source/data/artifact/publication/memory policy、quality gates、action refs、accepted answer shape；后者持有 source readiness、data/study binding、AI reviewer / auditor quality verdict materialization、publication gate、artifact mutation authorization、publication-route memory accept/reject/blocker、owner receipt、typed blocker 和必要医学 helper。
 - Agent Tool Arsenal 把 action catalog、owner callable、MCP tool、stage skill、external capability 和 OPL hosted action 统一成 model-discoverable tool cards、invocation plans、risk annotations、structured result envelopes 和 receipt/blocker closeout。
 - Scientific capability 只帮助当前 owner delta 更快产生 evidence、repair hint、reviewer briefing、candidate refs 或 no-loop signal；它不能新增默认前置流程，不能关闭 quality / publication / artifact / memory authority。
 
@@ -435,6 +435,8 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 6. **Workbench 与 production soak 最后验收**：Lane 8、9 证明用户体验和真实长跑证据。
 
 这不是阶段式停顿，而是并行 lane 的优先级。每条 lane 都必须有 disjoint write set、source of truth、验证命令、stop condition 和 forbidden scope。
+
+完成度验收不在本文重复维护。后续 Plan Completion Audit 必须使用 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 的“一步到位落地矩阵与完成度审计”：每个目标面同时报告 `repo/source/control-plane` 与 `live acceptance`，并明确 docs、contract、tests、descriptor、read-model 或 refs-only candidate 只能证明结构账，不能替代 live runtime / owner evidence。
 
 ## OPL 基座需要优化的接口
 
