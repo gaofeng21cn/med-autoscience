@@ -929,7 +929,10 @@ def _matches_opl_transition_receipt(
         if carrier_value is not None and _text(receipt.get(field)) != carrier_value:
             return False
     command_kind = _carrier_command_kind(carrier)
-    if command_kind is not None and _text(receipt.get("command_kind")) != command_kind:
+    if not _matches_receipt_command_kind(
+        carrier_command_kind=command_kind,
+        observed_command_kind=_text(receipt.get("command_kind")),
+    ):
         return False
     route_target = _carrier_route_target(carrier)
     if route_target is not None and _text(receipt.get("route_target")) != route_target:
@@ -984,6 +987,18 @@ def _matches_carrier(
         return False
     boundary = _mapping(closeout.get("authority_boundary"))
     return boundary.get("record_only_surface") is True
+
+
+def _matches_receipt_command_kind(
+    *,
+    carrier_command_kind: str | None,
+    observed_command_kind: str | None,
+) -> bool:
+    if carrier_command_kind is None:
+        return True
+    if observed_command_kind == carrier_command_kind:
+        return True
+    return carrier_command_kind == "resume_stage" and observed_command_kind == "route_back"
 
 
 def _closeout_binds_route_identity(

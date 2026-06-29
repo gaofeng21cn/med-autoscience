@@ -21,6 +21,7 @@ from tests.test_paper_mission_opl_readback_cases.shared import (
     _opl_queue_with_stale_and_current_tasks_without_summary_payload,
     _opl_queue_with_terminal_and_running_successor_payload,
     _opl_route_carrier,
+    _opl_running_task_completed_attempt_payload,
     _opl_runtime_task_payload,
     _opl_running_task_running_attempt_payload,
     _write_closeout,
@@ -138,6 +139,88 @@ def test_opl_runtime_readback_accepts_same_route_identity_with_changed_route_tar
         "paper-mission-transaction::dm002#stage_terminal_decision",
         "typed-blocker:opl_runtime_live_readback_required",
     ]
+
+
+def test_opl_runtime_readback_accepts_same_route_identity_legacy_receipt_command_kind(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    carrier["command_kind"] = "resume_stage"
+    carrier["opl_route_command"]["command_kind"] = "resume_stage"
+    payload = _opl_runtime_task_payload()
+    runtime_task = payload["family_runtime_task"]
+    task = runtime_task["task"]
+    task["payload"]["command_kind"] = "resume_stage"
+    receipt = runtime_task["events"][0]["payload"]["opl_transition_receipt"]
+    receipt["command_kind"] = "route_back"
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    terminal_closeout = readback["terminal_closeout"]
+    assert terminal_closeout["stage_attempt_id"] == "sat-terminal"
+    assert terminal_closeout["opl_transition_receipt"]["command_kind"] == "route_back"
+    assert terminal_closeout["opl_transition_receipt"]["can_claim_paper_progress"] is False
+    assert readback["can_claim_paper_progress"] is False
+
+
+def test_opl_runtime_readback_rejects_legacy_command_kind_on_task_identity(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    carrier["command_kind"] = "resume_stage"
+    carrier["opl_route_command"]["command_kind"] = "resume_stage"
+    payload = _opl_runtime_task_payload()
+    runtime_task = payload["family_runtime_task"]
+    task = runtime_task["task"]
+    task["payload"]["command_kind"] = "route_back"
+    receipt = runtime_task["events"][0]["payload"]["opl_transition_receipt"]
+    receipt["command_kind"] = "route_back"
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["can_claim_paper_progress"] is False
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_runtime_readback_rejects_legacy_command_kind_on_stage_attempt_identity(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    carrier["command_kind"] = "resume_stage"
+    carrier["opl_route_command"]["command_kind"] = "resume_stage"
+    payload = _opl_running_task_completed_attempt_payload()
+    runtime_task = payload["family_runtime_task"]
+    task = runtime_task["task"]
+    task["payload"]["command_kind"] = "resume_stage"
+    terminal_attempt = runtime_task["stage_attempts"][1]
+    terminal_attempt["workspace_locator"]["command_kind"] = "route_back"
+    terminal_attempt["opl_transition_receipt"]["command_kind"] = "route_back"
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["can_claim_paper_progress"] is False
+    assert "terminal_closeout" not in readback
 
 
 def test_opl_runtime_readback_prefers_running_terminal_successor_over_old_closeout(
