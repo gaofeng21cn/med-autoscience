@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.study_runtime_test_helpers import write_synced_submission_delivery
+
 from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 from med_autoscience.cli_parts import paper_mission_commands as commands
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
@@ -515,6 +517,34 @@ def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transa
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
     workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    write_synced_submission_delivery(
+        study_root=study_root,
+        quest_root=workspace_root / "managed-runtime" / "quests" / "quest-003",
+        include_submission_checklist=False,
+    )
+    current_package_manifest = (
+        study_root
+        / "manuscript"
+        / "current_package"
+        / "audit"
+        / "submission_manifest.json"
+    )
+    current_package_manifest.parent.mkdir(parents=True, exist_ok=True)
+    current_package_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_signature": "source::dm003-current",
+                "package_kind": "submission_ready_package",
+                "can_submit": True,
+                "quality_gate_status": "clear",
+                "known_blockers": [],
+                "generated_from_current_source": True,
+            }
+        ),
+        encoding="utf-8",
+    )
     mission_root = (
         workspace_root
         / "ops"
@@ -649,8 +679,16 @@ def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transa
         "known_blockers"
     ]
     assert payload["current_package"]["status"] == "missing"
-    assert payload["current_package"]["package_kind"] == "current_package"
-    assert payload["current_package"]["can_submit"] is False
+    assert payload["current_package"]["package_kind"] == "submission_ready_package"
+    assert payload["current_package"]["can_submit"] is True
+    assert payload["current_package"]["known_blockers"] == []
+    assert payload["current_package"]["generated_from_current_source"] is True
+    assert payload["current_package"]["root"] == str(
+        study_root / "manuscript" / "current_package"
+    )
+    assert payload["current_package"]["zip_path"] == str(
+        study_root / "manuscript" / "current_package.zip"
+    )
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
     assert payload["next_owner_or_human_decision"]["next_owner"] == (
         "mission_executor"

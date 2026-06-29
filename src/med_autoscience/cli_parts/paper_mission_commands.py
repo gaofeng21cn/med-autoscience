@@ -90,6 +90,9 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_signature,
     terminalize_stage_closure,
 )
+from med_autoscience.controllers.study_progress_parts.delivery_inspection import (
+    read_delivery_inspection_projection,
+)
 
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
@@ -3526,6 +3529,14 @@ def _build_materialized_mission_readback_if_available(
     projection_fields = _paper_mission_materialized_projection_fields(
         transaction_readback=transaction_readback
     )
+    projection_fields = {
+        **projection_fields,
+        **_paper_mission_delivery_projection_fields(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=resolved_study_root,
+        ),
+    }
     consume_candidate_status = (
         transaction_readback.get("consume_candidate_status_override")
         or _optional_text((consumption_ledger_readback or {}).get("consume_candidate_status"))
@@ -3722,6 +3733,21 @@ def _paper_mission_current_package_projection(
         "can_submit": False,
         "known_blockers": ["current_package_missing"],
     }
+
+
+def _paper_mission_delivery_projection_fields(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_root: Path,
+) -> dict[str, Any]:
+    delivery = read_delivery_inspection_projection(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_root=study_root,
+    )
+    current_package = _mapping(_mapping(delivery).get("current_package"))
+    return {"current_package": current_package} if current_package else {}
 
 
 def _paper_mission_materialized_projection_fields(
