@@ -27,6 +27,11 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     work_unit_fingerprint as _work_unit_fingerprint,
     work_unit_id as _work_unit_id,
 )
+from med_autoscience.controllers.current_work_unit_parts.action_identity import (
+    provider_handoff_matches_action as _provider_handoff_matches_action,
+    provider_handoff_matches_transition_request_action as _provider_handoff_matches_transition_request_action,
+    same_action_identity as _same_action_identity,
+)
 from med_autoscience.controllers.current_work_unit_parts.current_action_selection import (
     selected_current_action as _selected_current_action,
 )
@@ -620,27 +625,6 @@ def _current_control_transition_request_supersedes_budget_blocker(
     return _text(typed_blocker.get("blocked_reason")) == "anti_loop_budget_exhausted"
 
 
-def _provider_handoff_matches_transition_request_action(
-    *,
-    provider_admission: Mapping[str, Any] | None,
-    action: Mapping[str, Any],
-) -> bool:
-    handoff = _mapping(provider_admission)
-    if not handoff:
-        return False
-    if handoff.get("transition_request_pending_count") in (None, 0):
-        return False
-    for candidate in (
-        handoff.get("current_executable_owner_action"),
-        *(_mappings(handoff.get("transition_request_candidates"))),
-        *(_mappings(handoff.get("action_queue"))),
-    ):
-        item = _mapping(candidate)
-        if item and _same_action_identity(item, action):
-            return True
-    return False
-
-
 def _repair_progress_owner_receipt_recovery(
     *,
     progress: Mapping[str, Any],
@@ -743,56 +727,6 @@ def _repair_progress_matches_action(
     if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
         return False
     return True
-
-
-def _provider_handoff_matches_action(
-    *,
-    provider_admission: Mapping[str, Any] | None,
-    action: Mapping[str, Any] | None,
-) -> bool:
-    payload = _mapping(action)
-    handoff = _mapping(provider_admission)
-    if not payload or not handoff:
-        return False
-    candidate_count = handoff.get("provider_admission_pending_count")
-    candidates = _mappings(handoff.get("provider_admission_candidates"))
-    queued = _mappings(handoff.get("action_queue"))
-    if candidate_count in (None, 0) and not candidates and not queued and not _mapping(handoff.get("current_executable_owner_action")):
-        return False
-    for candidate in (
-        handoff.get("current_executable_owner_action"),
-        handoff.get("owner_action"),
-        *candidates,
-        *queued,
-    ):
-        item = _mapping(candidate)
-        if item and _same_action_identity(item, payload):
-            return True
-    return False
-
-
-def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
-    if _action_type(left) != _action_type(right):
-        return False
-    left_work_unit = _work_unit_id(left.get("work_unit_id")) or _work_unit_id(left.get("next_work_unit"))
-    right_work_unit = _work_unit_id(right.get("work_unit_id")) or _work_unit_id(right.get("next_work_unit"))
-    if left_work_unit is None or right_work_unit is None or left_work_unit != right_work_unit:
-        return False
-    left_fingerprint = _work_unit_fingerprint(
-        left,
-        currentness_basis=_mapping(left.get("owner_route_currentness_basis")) or _mapping(left.get("currentness_basis")),
-    )
-    right_fingerprint = _work_unit_fingerprint(
-        right,
-        currentness_basis=_mapping(right.get("owner_route_currentness_basis")) or _mapping(right.get("currentness_basis")),
-    )
-    return left_fingerprint is not None and left_fingerprint == right_fingerprint
-
-
-def _mappings(value: object) -> list[dict[str, Any]]:
-    if not isinstance(value, list | tuple):
-        return []
-    return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
 def _repair_progress_gate_replay_receipt_ref(repair: Mapping[str, Any]) -> str | None:
