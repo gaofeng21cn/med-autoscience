@@ -3593,6 +3593,10 @@ def _build_materialized_mission_readback_if_available(
         "stage_closure_outcome": _mapping(
             stage_closure_decision.get("outcome")
         ).get("kind"),
+        **_paper_mission_inspect_projection_fields(
+            stage_closure_decision=stage_closure_decision,
+            projection_fields=projection_fields,
+        ),
         "durable_mission_stop_guard": _durable_mission_stop_guard(
             consume_candidate_status=consume_candidate_status,
             stage_closure_decision=stage_closure_decision,
@@ -3655,6 +3659,68 @@ def _build_materialized_mission_readback_if_available(
             "legacy_blocker_controls_default_execution": False,
             "authority_materialized": False,
         },
+    }
+
+
+def _paper_mission_inspect_projection_fields(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    projection_fields: Mapping[str, Any],
+) -> dict[str, Any]:
+    decision = _mapping(stage_closure_decision)
+    outcome = _mapping(decision.get("outcome"))
+    return _compact_mapping(
+        {
+            "repair_budget": _first_mapping(
+                _mapping(decision.get("repair_budget")),
+                _mapping(projection_fields.get("repair_budget")),
+                _mapping(projection_fields.get("route_back_budget")),
+            )
+            or None,
+            "stage_closure": _compact_mapping(
+                {
+                    "projection_status": decision.get("projection_status"),
+                    "decision_ref": decision.get("decision_ref"),
+                    "outcome": outcome or None,
+                    "outcome_kind": _first_text(
+                        decision.get("outcome_kind"),
+                        outcome.get("kind"),
+                    ),
+                    "next_transition": _first_text(
+                        _mapping(outcome.get("next_transition")).get("transition_kind"),
+                        outcome.get("transition_kind"),
+                        outcome.get("next_action"),
+                    ),
+                    "package_kind": _first_text(
+                        decision.get("package_kind"),
+                        outcome.get("package_kind"),
+                    ),
+                    "known_blockers": _text_list(decision.get("known_blockers")),
+                    "repair_budget": _first_mapping(
+                        _mapping(decision.get("repair_budget")),
+                        _mapping(projection_fields.get("repair_budget")),
+                        _mapping(projection_fields.get("route_back_budget")),
+                    )
+                    or None,
+                }
+            )
+            or None,
+            "current_package": _paper_mission_current_package_projection(projection_fields),
+        }
+    )
+
+
+def _paper_mission_current_package_projection(
+    projection_fields: Mapping[str, Any],
+) -> dict[str, Any]:
+    current = _mapping(projection_fields.get("current_package"))
+    if current:
+        return current
+    return {
+        "status": "missing",
+        "package_kind": "current_package",
+        "can_submit": False,
+        "known_blockers": ["current_package_missing"],
     }
 
 

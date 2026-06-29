@@ -639,6 +639,18 @@ def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transa
     )
     assert payload["transaction_state"] == "accepted_submission_milestone_candidate"
     assert payload["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert payload["durable_mission_stop_guard"][
+        "accepted_submission_milestone_candidate_is_durable_stop"
+    ] is False
+    assert payload["durable_mission_stop_guard"]["durable_stop_allowed"] is False
+    assert payload["stage_closure"]["outcome_kind"] == "stage_closure_decision_missing"
+    assert payload["stage_closure"]["next_transition"] == "run_stage_closure_terminalizer"
+    assert "accepted_submission_milestone_candidate" in payload["stage_closure"][
+        "known_blockers"
+    ]
+    assert payload["current_package"]["status"] == "missing"
+    assert payload["current_package"]["package_kind"] == "current_package"
+    assert payload["current_package"]["can_submit"] is False
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
     assert payload["next_owner_or_human_decision"]["next_owner"] == (
         "mission_executor"
