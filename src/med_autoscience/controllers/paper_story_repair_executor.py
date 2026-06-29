@@ -27,7 +27,11 @@ BLOCKER = "manuscript_story_surface_delta_missing"
 DM002_STORY_WORK_UNIT = "dm002_same_line_publication_paper_repair"
 DEFAULT_DPCC_STORY_WORK_UNIT = medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
 DM002_GATE_REPLAY_STORY_WORK_UNIT = "consume_current_ai_reviewer_record_then_replay_publication_gate"
+DM002_QUALITY_BATCH_STORY_WORK_UNIT = "dm002_medical_prose_write_repair_after_quality_batch"
 DPCC_GATE_REPLAY_STORY_WORK_UNIT = "medical_prose_and_publishability_gate_repair"
+DM003_CURRENT_AI_REVIEWER_GATE_REPLAY_WORK_UNIT = (
+    "dm003_publication_gate_replay_after_current_ai_reviewer_record"
+)
 
 
 def run_story_repair(
@@ -219,9 +223,13 @@ def _normalize_story_work_unit_id(*, study_id: str, work_unit_id: str) -> str:
         "manuscript_story_repair",
         DEFAULT_DPCC_STORY_WORK_UNIT,
         DM002_GATE_REPLAY_STORY_WORK_UNIT,
+        DM002_QUALITY_BATCH_STORY_WORK_UNIT,
     }:
         return DM002_STORY_WORK_UNIT
-    if work_unit_id == DPCC_GATE_REPLAY_STORY_WORK_UNIT:
+    if work_unit_id in {
+        DPCC_GATE_REPLAY_STORY_WORK_UNIT,
+        DM003_CURRENT_AI_REVIEWER_GATE_REPLAY_WORK_UNIT,
+    }:
         return DEFAULT_DPCC_STORY_WORK_UNIT
     return work_unit_id
 
@@ -255,6 +263,8 @@ def _candidate_work_unit_ids(payload: object) -> list[str]:
         "explicit_publication_work_unit",
         "selected_publication_work_unit",
         "current_publication_work_unit",
+        "repair_execution_evidence",
+        "repair_work_unit",
     ):
         value = mapping.get(key)
         if isinstance(value, Mapping):

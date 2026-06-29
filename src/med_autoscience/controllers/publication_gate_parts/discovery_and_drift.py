@@ -23,6 +23,7 @@ from med_autoscience.runtime_protocol import (
     quest_state,
     resolve_paper_root_context,
 )
+from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 
@@ -264,6 +265,11 @@ def find_latest_medical_publication_surface_report(
     paper_root: Path | None = None,
     study_root: Path | None = None,
 ) -> Path | None:
+    paper_root_surface_path = (
+        paper_root / "medical_publication_surface.json" if paper_root is not None else None
+    )
+    if paper_root_surface_path is not None and paper_root_surface_path.exists():
+        return paper_root_surface_path.resolve()
     report_paths = sorted(
         (quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json"),
         key=lambda item: item.stat().st_mtime,
@@ -587,6 +593,8 @@ def resolve_paper_root(
     paper_bundle_manifest_path: Path | None,
     paper_bundle_manifest: dict[str, Any] | None,
 ) -> Path | None:
+    if bound_study_paper_root := _resolve_bound_study_current_paper_root(quest_root=quest_root):
+        return bound_study_paper_root
     if bundle_authority_paper_root := resolve_bundle_authority_paper_root(
         quest_root=quest_root,
         paper_bundle_manifest_path=paper_bundle_manifest_path,
@@ -599,6 +607,35 @@ def resolve_paper_root(
         candidate = Path(worktree_root_value).expanduser().resolve() / "paper"
         if candidate.exists():
             return candidate
+    return None
+
+
+def _resolve_bound_study_current_paper_root(*, quest_root: Path) -> Path | None:
+    resolved_quest_root = quest_root.expanduser().resolve()
+    candidate_study_roots: list[Path] = []
+    if (resolved_quest_root / "study.yaml").exists():
+        candidate_study_roots.append(resolved_quest_root)
+    try:
+        _, study_root = resolve_study_root_from_quest_root(quest_root)
+    except (FileNotFoundError, ValueError, TypeError):
+        study_root = None
+    if study_root is not None:
+        bound_study_root = study_root.expanduser().resolve()
+        if bound_study_root not in candidate_study_roots:
+            candidate_study_roots.append(bound_study_root)
+    for resolved_study_root in candidate_study_roots:
+        for candidate in (
+            resolved_study_root
+            / "artifacts"
+            / "stage_outputs"
+            / "_body_authority"
+            / "paper_authority_cutover"
+            / "current_body"
+            / "paper",
+            resolved_study_root / "paper",
+        ):
+            if (candidate / "paper_bundle_manifest.json").exists() or (candidate / "submission_minimal").exists():
+                return candidate.resolve()
     return None
 
 

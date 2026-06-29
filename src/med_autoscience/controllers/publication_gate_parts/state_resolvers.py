@@ -371,6 +371,16 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
     )
+    authoritative_bundle_manifest_path = (
+        paper_root / "paper_bundle_manifest.json" if paper_root is not None else None
+    )
+    if (
+        authoritative_bundle_manifest_path is not None
+        and authoritative_bundle_manifest_path.exists()
+        and authoritative_bundle_manifest_path.resolve() != paper_bundle_manifest_path
+    ):
+        paper_bundle_manifest_path = authoritative_bundle_manifest_path.resolve()
+        paper_bundle_manifest = load_json(paper_bundle_manifest_path)
     study_root = _resolve_gate_study_root(paper_root=paper_root)
     charter_contract_linkage = study_delivery_sync.build_charter_contract_linkage(
         study_root=study_root,

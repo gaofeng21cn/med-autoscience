@@ -112,22 +112,12 @@ def test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_dele
 
     report = readiness["reports"][0]
     assert report["deletion_gate"]["physical_delete_authorized"] is False
-    by_surface = {gate["surface_id"]: gate for gate in report["surface_gates"]}
-    assert by_surface["product_status"]["active_caller_module_id"] == "workbench_portal_generic_shell"
-    assert by_surface["domain_handler"]["active_caller_module_id"] == (
-        "paper_mission_owner_surface_materialize_dispatch_shell"
+    assert report["deletion_evidence_worklists"] == []
+    assert "surface_gates" not in report
+    assert "surface_retirement_gates" not in report
+    assert report["closed_surface_detail_policy"] == (
+        "closed_retirement_gate_details_omitted_from_default_payload"
     )
-    assert by_surface["domain_handler"]["canonical_target_surface_ids"] == [
-        "domain_action_adapter_export_dispatch",
-        "domain_action_adapter",
-        "domain_handler",
-    ]
-    for gate in report["surface_gates"]:
-        worklist = gate["deletion_evidence_worklist"]
-        assert worklist["domain_owner_receipt_or_typed_blocker"]["status"] == "observed"
-        assert worklist["no_forbidden_write_proof"]["status"] == "observed"
-        assert worklist["tombstone_or_provenance_ref"]["status"] == "observed"
-        assert worklist["physical_delete_authorized"] is False
 
 
 def test_opl_standard_scaffold_validates_mas_pack() -> None:

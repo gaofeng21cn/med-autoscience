@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-29：publication gate 必须绑定 stage-native current body package refs
+
+- 决策：`publication-gate` 在 study root 或绑定 study 的 quest root 上运行时，必须优先读取 `artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper` 下的 current paper root，并将 `paper_bundle_manifest_path`、compile report、`submission_minimal` manifest、docx/pdf、medical publication surface 和 submission surface QC 解析到同一个 stage-native root。legacy `study_root/paper` 与 `artifacts/reports/medical_publication_surface/latest.json` 只作为未 cutover 或 explicit report fallback，不得覆盖已存在的 stage-native current body。
+- 决策：stage-native `paper/medical_publication_surface.json` 是当前 paper root 内的 owner artifact，可作为 publication gate 的 surface report input；外部 runtime report 仍必须按 paper root / study root / currentness 匹配，不能用较新的 legacy-root report 抢占 current body surface。`current_package` mirror、delivery sync、AI reviewer eval、submission authority 与 `can_submit=true` 仍由各自 MAS owner surface 判断。
+- 理由：DM003 已有 stage-native `submission_minimal`、`build/compile_report.json`、`medical_publication_surface.json` 与 `submission_surface_qc.json`，但 direct `publication-gate --quest-root <study_root>` 仍从 legacy manifest 推导路径，误报 `missing_paper_compile_report`、`missing_current_medical_publication_surface_report` 与 `submission_surface_qc_failure_present`。根因是 resolver 只把 `paper_root` 切到 current body，没有同步 manifest / surface discovery 到同一 root。
+- 影响：这是 publication gate readback/currentness 修复，不写 Yang authority、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker authority file、human gate、current package、runtime queue/provider attempt 或 paper body。它只能消除 false missing blockers；DM002/DM003 是否 submission-ready 仍必须由 fresh AI reviewer-backed eval、publication gate verdict、delivery inspect、PaperMission readback 和 package authority flags 证明。
+
 ## 2026-06-29：PaperMission consumption route handoff 必须导出为 OPL stage-outcome pending task
 
 - 决策：当 `paper-mission consume-candidate` 已写出 same-transaction `opl_route_handoff.json`，且该 handoff 明确 `handoff_status=ready_for_opl_route_command`、`can_submit_to_opl_runtime=true`、`transaction_materialized=true`、`can_claim_paper_progress=false`、`can_claim_runtime_ready=false` 时，`domain-handler export` 必须在 `paper_mission_default_tasks` enrich 同一 handoff，并额外在 `pending_family_tasks` 暴露 `task_kind=paper_mission/stage-outcome` 的 OPL-owned transition task。
