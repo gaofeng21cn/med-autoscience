@@ -902,7 +902,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-06-09：Stage Native `control/next_action.json` 不能再作为第二默认下一步控制面
 
-2026-06-29 superseded note：下列“带齐 OPL boundary 与 current-work-unit binding 可进入默认 dispatch”的过渡口径已经被 `StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt` closeout 收紧。当前规则是：Stage Native workspace next-action 固定为 diagnostic / migration input；即使携带 binding，也不能进入默认 dispatch 或 `current_executable_owner_action`。当前 ignored reason 为 `stage_native_workspace_next_action_retired_use_next_action_envelope`。
+2026-06-29 superseded note：下列“带齐 OPL boundary 与 current-work-unit binding 可进入默认 dispatch”的过渡口径已经被 `StageOutcome -> NextActionEnvelope` closeout 收紧。`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。当前规则是：Stage Native workspace next-action 固定为 diagnostic / migration input；即使携带 binding，也不能进入默认 dispatch 或 `current_executable_owner_action`。当前 ignored reason 为 `stage_native_workspace_next_action_retired_use_next_action_envelope`。
 
 - 决策：`studies/<study_id>/control/next_action.json` 只保留为 workspace migration / diagnostic input。它不能单独进入 `domain-action-request-materialize` 的默认 executor dispatch，也不能在缺 canonical current work-unit binding 时压过 `current_work_unit`、current owner route、owner receipt、typed blocker、human gate 或 OPL Stage Transition Authority 的 current-owner delta。
 - 决策：Stage Native next-action 即使同时带齐 `stage_transition_authority_boundary` 与 `current_work_unit_binding`，也只能作为 `stage_native_workspace_next_action_diagnostic_only`。该 binding 可以用于 provenance、debug 和 migration audit，但不能授权默认 dispatch、provider admission、owner route selection 或 current executable owner action。
@@ -957,7 +957,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-06-08：MAS/OPL 边界采用 canonical current work unit 协议
 
-- Superseded by 2026-06-29 NextActionEnvelope：本节中的 `current_work_unit` / `current_execution_envelope` / `current_executable_owner_action` / provider admission / queue / Stage Native `next_action` 语言只保留为历史 currentness/provenance 语境；当前默认 next action 不再由这些读面选择，只由 `StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt` 投影。
+- Superseded by 2026-06-29 NextActionEnvelope：本节中的 `current_work_unit` / `current_execution_envelope` / `current_executable_owner_action` / provider admission / queue / Stage Native `next_action` 语言只保留为历史 currentness/provenance 语境；当前默认 next action 不再由这些读面选择，只由 `StageOutcome -> NextActionEnvelope` 投影。`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。
 
 - 决策：`src/med_autoscience/controllers/current_work_unit.py` 是 MAS/OPL 边界唯一当前可执行 work unit reducer。它只输出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit` 四类 `status`，并固定携带 owner、action type、work-unit id、fingerprint、required output contract、acceptance refs、currentness basis 和 authority boundary。
 - 决策：`current_work_unit` 与 `managed_study_opl_provider_admission_candidates` 的机器输出必须显式声明 Stage Authority 边界：它们只是 OPL Stage Transition Authority 的非权威 observation / intent producer，不得写 Stage current pointer、`current_owner_delta` 或 Stage terminal state，也不得把 provider admission candidate 标记成 provider running proof。provider admission candidate 必须同时输出 OPL intake 可消费的 `stage_transition_authority_boundary`，并声明 `producer_kind=runtime_provider`、`intent_kind=provider_observation`、`stage_transition_authority=one-person-lab` 和所有 forbidden authority flag 为 `false`；`provider_completion_is_domain_completion` 必须固定为 `false`，不得透传上游 execution / handoff 的 completion authority claim。
