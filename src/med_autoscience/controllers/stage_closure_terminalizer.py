@@ -84,6 +84,7 @@ FORBIDDEN_INTERPRETATIONS = [
     "blocked_gate_is_final_without_typed_blocker_or_human_gate",
     "bundle_build_allowed_false_blocks_current_package_mirror",
     "continue_same_stage_without_semantic_delta",
+    "opl_completed_is_paper_progress",
     "focused_tests_passed_is_paper_progress",
     "queue_empty_is_stage_closed",
 ]

@@ -87,6 +87,7 @@ StageWorkResult
 - `candidate_ready` as terminal
 - `inspection_package_generated` as terminal
 - `OPL completed` as domain-ready
+- `OPL completed` / provider closeout as paper progress
 - `gate blocked` without typed blocker or human gate
 - `bundle_build_allowed=false` as final stop
 - `focused tests passed` / `queue empty` / `read-model fresh` as progress
@@ -172,6 +173,15 @@ Repair budget fields must be machine-readable:
 }
 ```
 
+预算来源必须是真实 `quality_repair_batch` / `gate_clearing_batch`
+followthrough 或等价 owner-surface readback。若这些 batch 把预算嵌套在各自 key
+下，terminalizer / progress projection 只做字段归一化，不猜测预算、不从 queue
+状态、focused tests、OPL completed 或 `accepted_submission_milestone_candidate`
+推导尝试次数。归一化输出固定为 `repair_budget_max`、
+`repair_attempt_count`、`repair_budget_status` 与
+`on_exhausted=degraded_handoff`；多个来源同时存在时，`exhausted` 的 batch 优先，
+因为它决定是否进入 degraded / pre-submission handoff。
+
 ## OPL 基座优化
 
 OPL 不需要知道医学 publication 是否 ready，但必须给 terminalizer 可靠输入：
@@ -256,6 +266,18 @@ OPL runtime receipt 的角色是 transport receipt，只能说明同一 route co
 - `paper-mission inspect` 必须输出 `durable_mission_stop_guard`，显式声明 `accepted_submission_milestone_candidate_is_durable_stop=false`，并要求 terminalizer outcome、可交付 package / pre-package artifact、owner receipt / typed blocker / human gate / next-stage transition 才能关闭 durable mission。
 - `quality_repair_batch` / `gate_clearing_batch` followthrough 若已有预算字段，必须投影为 `repair_budget_max`、`repair_attempt_count`、`repair_budget_status`、`on_exhausted=degraded_handoff`；缺字段只显示缺失，不猜测预算。
 - 本段只定义 repo 功能面与 fixture/local readback 验收；DM002 / DM003 live `delivery-inspect`、`study progress`、`paper-mission inspect` acceptance 属于 Phase B，不能由 focused tests、docs 或 contracts 代替。
+
+旧完成态残留治理：
+
+- `accepted_submission_milestone_candidate` 只能是 candidate / owner-consumption input；
+  不能成为 durable stop、final package、paper progress 或 submission-ready。
+- `bundle_build_allowed=false` 只能阻断 `submission_ready_package` / `can_submit=true`；
+  不能阻断 `current_package` mirror，也不能作为 current stage 的最终 stop。
+- `current_package` 是 human-facing mirror；`current_package` 存在或 fresh 不等于
+  `submission_ready_package`。
+- `continue_same_stage` 只有在有新 semantic delta 或预算仍可合法 repair 时才允许；
+  预算耗尽或同签名无 delta 时必须转成 degraded handoff、typed blocker、human gate、
+  owner decision 或下一 stage transition。
 
 ## DM002 / DM003 目标验收
 

@@ -31,6 +31,11 @@ def test_contract_declares_four_terminal_outcomes_and_forbids_same_stage_loop() 
         "continue_same_stage_without_semantic_delta"
         in contract["forbidden_terminal_interpretations"]
     )
+    assert "opl_completed_is_paper_progress" in contract["forbidden_terminal_interpretations"]
+    assert contract["decision_requirements"]["repair_budget_sources"] == [
+        "quality_repair_batch",
+        "gate_clearing_batch",
+    ]
     assert (
         contract["package_authority_split"]["current_package"]["requires_bundle_build_allowed"]
         is False
