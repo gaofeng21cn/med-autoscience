@@ -17,6 +17,7 @@ from med_autoscience.controllers.next_action_envelope import (
     compile_next_action_envelope,
     resolve_action_family,
 )
+from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
 
 
 pytestmark = [pytest.mark.contract]
@@ -97,6 +98,42 @@ def test_compile_envelope_from_stage_outcome_uses_family_as_authority() -> None:
     assert envelope["semantic_progress_signature"] == "sig-dm002"
 
 
+def test_new_study_exact_work_unit_id_is_diagnostic_when_family_is_canonical() -> None:
+    work_unit_id = "dm004_unregistered_owner_surface_refresh_after_source_sync"
+    envelope = compile_next_action_envelope(
+        stage_outcome={
+            "study_id": "004-new-study-family-route",
+            "stage_id": "publication_supervision",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": "dm004::source-sync::001",
+            "decision_signature": "sig-dm004-family-route",
+            "action_family": FAMILY_PAPER_REVIEW_AI_REVIEWER,
+            "outcome": {"kind": "next_stage_transition"},
+        },
+        outcome_ref="/tmp/dm004/stage_closure_decision.json",
+        owner_route={
+            "next_owner": "ai_reviewer",
+            "idempotency_key": "owner-route::dm004::ai-reviewer",
+        },
+    )
+
+    assert envelope["action_family"] == FAMILY_PAPER_REVIEW_AI_REVIEWER
+    assert envelope["action_kind"] == "owner_review"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["executor_target"] == "mas_owner_callable"
+    assert envelope["work_unit_id"] == work_unit_id
+    assert envelope["authority_boundary"]["action_family_authority"] is True
+    assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
+    assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == (
+        "diagnostic_currentness_id"
+    )
+    assert envelope["expected_output_contract"] == {
+        "output_kind": "ai_reviewer_publication_eval",
+        "accepted_refs": ["publication_eval_record_ref", "publication_eval_latest_ref"],
+    }
+    assert envelope["semantic_progress_signature"] == "sig-dm004-family-route"
+
+
 def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority() -> None:
     envelope = compile_next_action_envelope(
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
@@ -126,6 +163,53 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["authority_boundary"]["can_write_runtime_queue"] is False
     assert envelope["authority_boundary"]["can_write_provider_attempt"] is False
     assert envelope["retry_or_stop_policy"]["semantic_budget_resets_from_transport"] is False
+
+
+def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> None:
+    transaction_id = "paper-mission-transaction::dm004::synthetic-family-route"
+    route_target = "dm004_never_allowlisted_runtime_resume_target"
+    envelope = paper_mission_next_action_envelope(
+        transaction={
+            "transaction_id": transaction_id,
+            "study_id": "004-new-study-family-route",
+            "stage_id": "publication_supervision",
+            "stage_terminal_decision": {
+                "decision_kind": "continue_same_stage",
+                "status": "accepted_dm004_candidate",
+                "reason": "DM004 candidate needs the same OPL resume handoff.",
+                "next_owner": "mission_executor",
+                "next_work_unit": route_target,
+            },
+            "opl_route_command": {
+                "command_kind": "resume_stage",
+                "target": route_target,
+                "reason": "DM004 candidate accepted for runtime handoff.",
+                "source_terminal_decision_ref": (
+                    f"{transaction_id}#stage_terminal_decision"
+                ),
+                "stage_run_ref": "opl-stage-run://dm004/synthetic-family-route",
+                "runtime_owner": "one-person-lab",
+            },
+        },
+        diagnostic_refs=["synthetic://dm004/family-route"],
+    )
+
+    assert envelope is not None
+    assert envelope["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
+    assert envelope["action_kind"] == "submit_to_opl_runtime"
+    assert envelope["owner"] == "one-person-lab"
+    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+    assert envelope["work_unit_id"] == route_target
+    assert envelope["idempotency_key"] != route_target
+    assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is True
+    assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
+    assert envelope["legacy_fields_are_diagnostic"] is True
+    assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == (
+        "diagnostic_currentness_id"
+    )
+    assert {"role": "diagnostic", "ref": "synthetic://dm004/family-route"} in envelope[
+        "diagnostic_refs"
+    ]
 
 
 def test_terminal_owner_outcomes_compile_to_stop_or_human_families() -> None:
