@@ -380,6 +380,7 @@ def test_dm002_publication_hardening_work_unit_is_registered_as_upstream_repair(
     assert {
         "dm002_current_publication_hardening_after_ai_reviewer_eval",
         "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+        "dm002_after_story_repair_medical_prose_hardening",
         "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
         "dm002_current_manuscript_reporting_consistency_write_repair",
         "dm002_same_line_publication_paper_repair",
@@ -390,6 +391,9 @@ def test_dm002_publication_hardening_work_unit_is_registered_as_upstream_repair(
     assert story_work_units.is_story_surface_delta_write_work_unit("dm002_same_line_publication_paper_repair")
     assert story_work_units.is_story_surface_delta_write_work_unit(
         "dm002_current_manuscript_reporting_consistency_write_repair"
+    )
+    assert story_work_units.is_story_surface_delta_write_work_unit(
+        "dm002_after_story_repair_medical_prose_hardening"
     )
     assert story_work_units.is_story_surface_delta_write_work_unit("treatment_gap_reporting_repair")
 
