@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-29：StageOutcome 之后的 next action 必须收敛为单一 NextActionEnvelope
+
+- 决策：Stage outcome 已收敛为单一完成面；下一步控制面也必须收敛为 `StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt`。`NextActionEnvelope` 是 MAS 对当前唯一 next action 的 domain envelope，必须绑定 study / stage / work-unit identity、source refs、idempotency key、owner boundary、target surface、allowed / forbidden writes、evidence refs 和 claim boundary。
+- 决策：`action_family` 只用于 owner / module / route family 选择；exact work-unit id / fingerprint 才是 dispatch、idempotency、currentness、receipt consumption、provider admission 和 terminal closeout matching 的执行授权边界。只有 action family、缺 exact work-unit binding 时，不得进入 default dispatch，只能 diagnostic ignored、typed blocker、human gate 或 owner-route binding required。
+- 决策：OPL 只持有 StageRun / attempt / queue / provider lifecycle 和 generic transition receipt。`OPL TransitionReceipt` 只能作为 MAS owner consumer 的 input ref，不能改写 MAS study truth、签 owner receipt、创建 typed blocker、写 publication eval / controller decision / current package，也不能把 provider completion、queue empty、attempt terminal 或 transition clean 升级成 paper progress、runtime-ready、publication-ready 或 submission-ready。
+- 决策：旧 work-unit allowlist、progress projection scattered next action、OPL queue / attempt 推断、materializer exact-id registry、domain diagnostic / owner-route / owner-callable legacy chain 默认退役为 history、provenance、migration diagnostic 或 no-resurrection guard。缺 StageOutcome / NextActionEnvelope binding 时，它们不得自造默认 next action、provider admission 或 compatibility route。
+- 决策：canonical 人读设计入口是 [Next Action Control Plane](./runtime/control/next_action_control_plane.md)。本文档落地只声明 docs/control-plane design landed；源码、schema、runtime projection、OPL transition runtime、DM002/DM003 live evidence 和 paper-line readiness 仍需后续 fresh evidence 单独证明。
+- 理由：旧 read-model、queue、attempt、materializer registry 和 allowlist 曾分别尝试回答“下一步是什么”，导致平台状态、diagnostic residue 和 exact-id 历史匹配容易被误读为执行授权或论文推进。StageOutcome 已经解决 stage completion 的单一性，next action 必须同样有一个 envelope，把 domain meaning 与 OPL transport receipt 分账。
+- 影响：这是 docs / control-plane design landing，不修改 `src/**`、`tests/**`、Yang authority/runtime artifacts、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipts、typed blockers、human gates、runtime queue/provider attempt 或 paper body；不声明代码已全部落地、runtime ready、paper progress、submission-ready 或 publication-ready。
+
 ## 2026-06-29：publication gate 必须绑定 stage-native current body package refs
 
 - 决策：`publication-gate` 在 study root 或绑定 study 的 quest root 上运行时，必须优先读取 `artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper` 下的 current paper root，并将 `paper_bundle_manifest_path`、compile report、`submission_minimal` manifest、docx/pdf、medical publication surface 和 submission surface QC 解析到同一个 stage-native root。legacy `study_root/paper` 与 `artifacts/reports/medical_publication_surface/latest.json` 只作为未 cutover 或 explicit report fallback，不得覆盖已存在的 stage-native current body。
