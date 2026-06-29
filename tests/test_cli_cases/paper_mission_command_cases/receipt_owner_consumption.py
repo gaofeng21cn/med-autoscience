@@ -4,6 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    latest_receipt_owner_consumption_readback,
+)
+
 from tests.test_cli_cases.paper_mission_command_helpers import _write_profile_with_study
 
 
@@ -234,3 +238,116 @@ def test_receipt_owner_consumption_fails_closed_without_opl_receipt(
     assert payload["implementation_gap"]["gap_kind"] == (
         "mas_owner_consumption_authority_apply_surface_missing"
     )
+
+
+def test_receipt_owner_consumption_apply_typed_blocker_writes_safe_consumption_ledger(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm002-readback.json"
+    output_root = (
+        tmp_path / "ops" / "medautoscience" / "paper_mission_receipt_owner_consumption"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                stage_outcome="typed_blocker",
+                transition_kind=None,
+                package_kind="current_package",
+                can_submit=False,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-typed-blocker",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    packet_ref = Path(payload["output_manifest"]["packet_ref"])
+    packet = json.loads(packet_ref.read_text(encoding="utf-8"))
+    latest = latest_receipt_owner_consumption_readback(
+        workspace_root=tmp_path,
+        study_id=study_id,
+    )
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["apply_mode"] == "typed_blocker"
+    assert payload["authority_materialized"] is True
+    assert payload["submission_ready_claim_authorized"] is False
+    assert payload["output_manifest"]["writes_authority"] is True
+    assert payload["output_manifest"]["writes_yang_authority"] is False
+    assert payload["stage_closure_decision"]["outcome"]["kind"] == "typed_blocker"
+    assert payload["stage_closure_decision"]["counts_as_typed_blocker"] is True
+    assert payload["stage_closure_decision"]["authority_boundary"]["writes_owner_receipt"] is False
+    assert payload["stage_closure_decision"]["authority_boundary"]["writes_typed_blocker"] is False
+    assert payload["stage_closure_decision"]["authority_boundary"]["writes_human_gate"] is False
+    assert payload["stage_closure_decision"]["authority_boundary"]["writes_current_package"] is False
+    assert packet["status"] == "owner_consumption_applied"
+    assert latest is not None
+    assert latest["source_ref"] == str(packet_ref)
+
+
+def test_receipt_owner_consumption_apply_mode_mismatch_fails_closed(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm002-readback.json"
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                stage_outcome="typed_blocker",
+                transition_kind=None,
+                package_kind="current_package",
+                can_submit=False,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "blocked_apply_mode_mismatch"
+    assert payload["write_permitted"] is False
+    assert payload["authority_materialized"] is False
+    assert payload["requested_apply_mode"] == "route_checkpoint"
+    assert payload["expected_apply_mode"] == "typed_blocker"

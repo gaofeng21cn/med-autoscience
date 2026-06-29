@@ -94,6 +94,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     terminalize_stage_closure,
 )
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    latest_receipt_owner_consumption_readback,
     materialize_receipt_owner_consumption,
 )
 
@@ -261,6 +262,9 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     _add_common_args(receipt_parser)
     receipt_parser.add_argument("--paper-mission-readback-file", required=True)
     receipt_parser.add_argument("--output-root")
+    receipt_apply = receipt_parser.add_mutually_exclusive_group()
+    receipt_apply.add_argument("--apply-typed-blocker", action="store_true")
+    receipt_apply.add_argument("--apply-route-checkpoint", action="store_true")
 
 
 def handle_paper_mission_command(
@@ -297,6 +301,12 @@ def handle_paper_mission_command(
             "paper_mission_readback_file",
             None,
         ),
+        receipt_apply_typed_blocker=bool(
+            getattr(args, "apply_typed_blocker", False)
+        ),
+        receipt_apply_route_checkpoint=bool(
+            getattr(args, "apply_route_checkpoint", False)
+        ),
         dry_run=bool(getattr(args, "dry_run", False)),
         source="cli",
         enable_opl_live_probe=bool(
@@ -325,6 +335,8 @@ def build_paper_mission_readback(
     output_root: str | Path | None = None,
     paper_facing_delta_ref: str | Path | None = None,
     paper_mission_readback_file: str | Path | None = None,
+    receipt_apply_typed_blocker: bool = False,
+    receipt_apply_route_checkpoint: bool = False,
     dry_run: bool = False,
     source: str = "unknown",
     enable_opl_live_probe: bool = False,
@@ -375,6 +387,10 @@ def build_paper_mission_readback(
             study_id=study_id,
             paper_mission_readback_file=paper_mission_readback_file,
             output_root=output_root,
+            apply_mode=_receipt_owner_consumption_apply_mode(
+                apply_typed_blocker=receipt_apply_typed_blocker,
+                apply_route_checkpoint=receipt_apply_route_checkpoint,
+            ),
             source=source,
         )
     if paper_mission_command in {"inspect", "start", "resume"}:
@@ -1422,6 +1438,7 @@ def _build_receipt_owner_consumption_readback(
     study_id: str,
     paper_mission_readback_file: str | Path | None,
     output_root: str | Path | None,
+    apply_mode: str | None,
     source: str,
 ) -> dict[str, Any]:
     if paper_mission_readback_file is None:
@@ -1439,13 +1456,43 @@ def _build_receipt_owner_consumption_readback(
     if output_root is not None:
         resolved_output_root = Path(output_root)
         _assert_safe_receipt_owner_consumption_output_root(resolved_output_root)
+    elif apply_mode is not None:
+        resolved_output_root = _receipt_owner_consumption_output_root(
+            profile=profile,
+            output_root=None,
+        )
+        _assert_safe_receipt_owner_consumption_output_root(resolved_output_root)
     return materialize_receipt_owner_consumption(
         paper_mission_readback=readback,
         study_id=study_id,
         profile_ref=str(profile_ref),
         output_root=resolved_output_root,
+        apply_mode=apply_mode,
         source=source,
     )
+
+
+def _receipt_owner_consumption_apply_mode(
+    *,
+    apply_typed_blocker: bool,
+    apply_route_checkpoint: bool,
+) -> str | None:
+    if apply_typed_blocker:
+        return "typed_blocker"
+    if apply_route_checkpoint:
+        return "route_checkpoint"
+    return None
+
+
+def _receipt_owner_consumption_output_root(
+    *,
+    profile: Any,
+    output_root: str | Path | None,
+) -> Path:
+    if output_root is not None:
+        return Path(output_root).expanduser().resolve()
+    workspace_root = Path(profile.workspace_root).expanduser().resolve()
+    return workspace_root / PAPER_MISSION_RECEIPT_OWNER_CONSUMPTION_RELPATH
 
 
 def _stage_closure_terminalizer_output_root(
@@ -3685,15 +3732,30 @@ def _build_materialized_mission_readback_if_available(
             transaction_readback["paper_mission_transaction"].get("transaction_id")
         ),
     )
+    receipt_owner_consumption_readback = latest_receipt_owner_consumption_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=resolved_study_id,
+    )
+    effective_consume_candidate_status = (
+        "typed_blocker"
+        if receipt_owner_consumption_readback is not None
+        else consume_candidate_status
+    )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             **transaction_readback,
             **(
-                {"stage_closure_decision": stage_closure_ledger_readback}
+                {
+                    "stage_closure_decision": receipt_owner_consumption_readback[
+                        "stage_closure_decision"
+                    ]
+                }
+                if receipt_owner_consumption_readback is not None
+                else {"stage_closure_decision": stage_closure_ledger_readback}
                 if stage_closure_ledger_readback is not None
                 else {}
             ),
-            "consume_candidate_status": consume_candidate_status,
+            "consume_candidate_status": effective_consume_candidate_status,
             "route_back_budget": projection_fields.get("route_back_budget"),
             "current_package": projection_fields.get("current_package"),
         },
@@ -3715,7 +3777,13 @@ def _build_materialized_mission_readback_if_available(
                 "route_back_budget": projection_fields.get("route_back_budget"),
                 "current_package": projection_fields.get("current_package"),
                 **(
-                    {"stage_closure_decision": stage_closure_ledger_readback}
+                    {
+                        "stage_closure_decision": receipt_owner_consumption_readback[
+                            "stage_closure_decision"
+                        ]
+                    }
+                    if receipt_owner_consumption_readback is not None
+                    else {"stage_closure_decision": stage_closure_ledger_readback}
                     if stage_closure_ledger_readback is not None
                     else {}
                 ),
@@ -3756,6 +3824,21 @@ def _build_materialized_mission_readback_if_available(
         **transaction_output_fields,
         **projection_fields,
         **(
+            {
+                "receipt_owner_consumption_readback": (
+                    receipt_owner_consumption_readback
+                ),
+                "receipt_evidence": receipt_owner_consumption_readback.get(
+                    "receipt_evidence"
+                ),
+                "mas_receipt_consumption": receipt_owner_consumption_readback.get(
+                    "mas_receipt_consumption"
+                ),
+            }
+            if receipt_owner_consumption_readback is not None
+            else {}
+        ),
+        **(
             {"candidate_manifest_ref": str(candidate_manifest_path)}
             if candidate_manifest_path.exists()
             else {}
@@ -3776,7 +3859,7 @@ def _build_materialized_mission_readback_if_available(
             projection_fields=projection_fields,
         ),
         "durable_mission_stop_guard": _durable_mission_stop_guard(
-            consume_candidate_status=consume_candidate_status,
+            consume_candidate_status=effective_consume_candidate_status,
             stage_closure_decision=stage_closure_decision,
         ),
         "default_readback": default_readback,
