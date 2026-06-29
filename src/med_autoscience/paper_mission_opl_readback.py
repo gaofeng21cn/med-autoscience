@@ -29,7 +29,7 @@ PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
 DEFAULT_OPL_READBACK_TIMEOUT_SECONDS = 8.0
-DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS = 8.0
+DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS = 30.0
 DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT = 2
 OPL_STAGE_ROUTE_TASK_KIND = "paper_mission/stage-route"
 OPL_DOMAIN_ID = "medautoscience"
@@ -41,6 +41,7 @@ def paper_mission_next_action_envelope(
     stage_terminal_decision: Mapping[str, Any] | None = None,
     opl_route_command: Mapping[str, Any] | None = None,
     opl_runtime_carrier: Mapping[str, Any] | None = None,
+    opl_runtime_carrier_readback: Mapping[str, Any] | None = None,
     opl_route_handoff: Mapping[str, Any] | None = None,
     diagnostic_refs: list[str] | None = None,
 ) -> dict[str, Any] | None:
@@ -62,6 +63,9 @@ def paper_mission_next_action_envelope(
         _mapping(opl_runtime_carrier),
         _mapping(handoff.get("opl_runtime_carrier")),
     )
+    carrier_readback = _mapping(opl_runtime_carrier_readback)
+    transition_receipt = _mapping(carrier_readback.get("opl_transition_receipt"))
+    terminal_closeout = _mapping(carrier_readback.get("terminal_closeout"))
     if not decision and not route:
         return None
     transaction_ref = _first_text(
@@ -137,7 +141,29 @@ def paper_mission_next_action_envelope(
         },
         owner_route={
             **handoff,
+            **(
+                {
+                    "action_family": "blocked.typed"
+                    if _text(transition_receipt.get("receipt_status"))
+                    == "typed_runtime_blocker_observed"
+                    else "paper.gate.publishability_replay",
+                    "opl_transition_receipt": transition_receipt,
+                    "terminal_closeout": terminal_closeout,
+                    "allowed_actions": [
+                        "consume_opl_transition_receipt",
+                        "route_terminal_closeout_to_mas_owner_gate",
+                    ],
+                    "next_owner": "mas_authority_kernel",
+                }
+                if _text(transition_receipt.get("surface_kind"))
+                == "opl_transition_receipt"
+                else {}
+            ),
             "next_owner": _first_text(
+                "mas_authority_kernel"
+                if _text(transition_receipt.get("surface_kind"))
+                == "opl_transition_receipt"
+                else None,
                 handoff.get("next_owner"),
                 decision.get("next_owner"),
             ),
@@ -171,6 +197,9 @@ def attach_paper_mission_next_action(
         stage_terminal_decision=_mapping(result.get("stage_terminal_decision")),
         opl_route_command=_mapping(result.get("opl_route_command")),
         opl_runtime_carrier=_mapping(result.get("opl_runtime_carrier")),
+        opl_runtime_carrier_readback=_mapping(
+            result.get("opl_runtime_carrier_readback")
+        ),
         opl_route_handoff=handoff,
         diagnostic_refs=diagnostic_refs,
     )
@@ -517,10 +546,8 @@ def _matching_opl_runtime_live_probe(
             payload=list_payload,
         )
         for task in _ranked_opl_probe_tasks(
-            _matching_opl_tasks_from_list(
-                carrier=carrier,
-                payload=list_payload,
-            )
+            _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload),
+            carrier=carrier,
         )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
             task_id = _text(task.get("task_id"))
             if task_id is None:
@@ -707,13 +734,34 @@ def _matching_opl_tasks_from_list(
     ]
 
 
-def _ranked_opl_probe_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return sorted(tasks, key=_opl_probe_task_rank)
+def _ranked_opl_probe_tasks(
+    tasks: list[dict[str, Any]],
+    *,
+    carrier: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    return sorted(tasks, key=lambda task: _opl_probe_task_rank(task, carrier=carrier))
 
 
-def _opl_probe_task_rank(task: Mapping[str, Any]) -> tuple[int, int, int, str]:
+def _opl_probe_task_rank(
+    task: Mapping[str, Any],
+    *,
+    carrier: Mapping[str, Any] | None = None,
+) -> tuple[int, int, int, int, int, str]:
     reason = _first_text(task.get("last_error"), task.get("dead_letter_reason"))
     stale_rank = 1 if _non_current_closeout_reason(reason) else 0
+    payload = _mapping(task.get("payload"))
+    route_target = _carrier_route_target(_mapping(carrier))
+    target_rank = (
+        0
+        if route_target is not None and _text(payload.get("route_target")) == route_target
+        else 1
+    )
+    command_kind = _carrier_command_kind(_mapping(carrier))
+    command_rank = (
+        0
+        if command_kind is not None and _text(payload.get("command_kind")) == command_kind
+        else 1
+    )
     status = _text(task.get("status"))
     status_rank = {
         "running": 0,
@@ -724,7 +772,14 @@ def _opl_probe_task_rank(task: Mapping[str, Any]) -> tuple[int, int, int, str]:
         "dead_letter": 4,
     }.get(status or "", 5)
     gate_rank = 0 if (reason or "").endswith("_domain_gate_pending") else 1
-    return stale_rank, status_rank, gate_rank, _text(task.get("task_id")) or ""
+    return (
+        stale_rank,
+        target_rank,
+        command_rank,
+        status_rank,
+        gate_rank,
+        _text(task.get("task_id")) or "",
+    )
 
 
 def _matches_opl_task(

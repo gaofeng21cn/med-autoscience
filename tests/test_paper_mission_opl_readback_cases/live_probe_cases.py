@@ -291,6 +291,49 @@ def test_opl_runtime_live_probe_inspects_matching_task_when_list_lacks_summary(
     ]
 
 
+def test_opl_runtime_live_probe_budget_covers_large_terminal_receipt_inspect(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_matching_tasks_without_closeout_summary_payload()
+        if args[:3] == ("family-runtime", "queue", "inspect"):
+            assert timeout_seconds >= 20.0
+            return _opl_runtime_task_payload()
+        raise AssertionError(f"unexpected OPL command: {args}")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["opl_transition_receipt"]["receipt_status"] == (
+        "terminal_closeout_observed"
+    )
+    assert readback["terminal_closeout"]["runtime_readback_source"] == (
+        "opl_family_runtime_queue_inspect"
+    )
+
+
 def test_opl_runtime_list_payload_terminal_closeout_does_not_require_heavy_inspect(
     tmp_path: Path,
     monkeypatch,

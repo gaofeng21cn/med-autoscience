@@ -165,6 +165,39 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["retry_or_stop_policy"]["semantic_budget_resets_from_transport"] is False
 
 
+def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() -> None:
+    envelope = compile_next_action_envelope(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        stage_id="submission_milestone_candidate",
+        stage_outcome={
+            "outcome": {"kind": "next_stage_transition"},
+            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-02",
+        },
+        route_command={
+            "command_kind": "resume_stage",
+            "runtime_owner": "one-person-lab",
+            "request_idempotency_key": "request::003::followthrough",
+            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-02",
+            "route_target": "opl_runtime_live_readback",
+        },
+        owner_route={
+            "action_family": FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
+            "next_owner": "mas_authority_kernel",
+            "opl_transition_receipt": {
+                "surface_kind": "opl_transition_receipt",
+                "receipt_status": "terminal_closeout_observed",
+                "can_claim_paper_progress": False,
+            },
+        },
+    )
+
+    assert envelope["action_family"] == FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY
+    assert envelope["action_kind"] == "quality_gate_replay"
+    assert envelope["owner"] == "mas_authority_kernel"
+    assert envelope["executor_target"] == "mas_owner_callable"
+    assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
+
+
 def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> None:
     transaction_id = "paper-mission-transaction::dm004::synthetic-family-route"
     route_target = "dm004_never_allowlisted_runtime_resume_target"

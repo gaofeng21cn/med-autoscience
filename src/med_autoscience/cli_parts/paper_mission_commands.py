@@ -206,6 +206,7 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     inspect_parser.add_argument("--study-progress-payload")
     inspect_parser.add_argument("--runtime-readback-payload", dest="runtime_readback_payload")
     inspect_parser.add_argument("--output-root")
+    inspect_parser.add_argument("--request-opl-runtime-readback", action="store_true")
 
     package_parser = mission_subparsers.add_parser("package-candidate")
     _add_common_args(package_parser)
@@ -283,6 +284,9 @@ def handle_paper_mission_command(
         paper_facing_delta_ref=getattr(args, "paper_facing_delta_ref", None),
         dry_run=bool(getattr(args, "dry_run", False)),
         source="cli",
+        enable_opl_live_probe=bool(
+            getattr(args, "request_opl_runtime_readback", False)
+        ),
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

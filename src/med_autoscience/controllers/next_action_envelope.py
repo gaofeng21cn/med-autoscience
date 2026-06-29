@@ -223,6 +223,9 @@ def resolve_action_family(
     owner = _mapping(owner_route)
     outcome_kind = _text(_mapping(outcome.get("outcome")).get("kind")) or _text(outcome.get("decision_kind"))
     command_kind = _text(route.get("command_kind"))
+    explicit_family = _first_text((outcome, route, owner), ("action_family", "next_action_family"))
+    if explicit_family in ACTION_FAMILIES:
+        return explicit_family
     if outcome_kind == "human_gate" or command_kind == "wait_for_human":
         return FAMILY_HUMAN_APPROVAL
     if outcome_kind == "typed_blocker" or command_kind == "stop_with_typed_blocker":
@@ -234,10 +237,6 @@ def resolve_action_family(
         RUNTIME_HINTS,
     ):
         return FAMILY_RUNTIME_OPL_ROUTE
-
-    explicit_family = _first_text((outcome, route, owner), ("action_family", "next_action_family"))
-    if explicit_family in ACTION_FAMILIES:
-        return explicit_family
 
     tokens = _tokens(
         work_unit_id,

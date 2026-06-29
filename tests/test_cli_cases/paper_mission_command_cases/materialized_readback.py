@@ -96,6 +96,206 @@ def test_paper_mission_inspect_materialized_readback_defaults_to_no_live_opl_pro
     assert live_probe_flags == [False]
 
 
+def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    readback_module = importlib.import_module("med_autoscience.paper_mission_opl_readback")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::medical-prose-repair::one-shot"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    route = transaction["opl_route_command"]
+    route_command_ref = f"{transaction['transaction_id']}#opl_route_command"
+    task_id = "frt-opl-receipt"
+    stage_attempt_id = "sat-opl-receipt"
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Read OPL transition receipt on request.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {
+                    "status": "accepted",
+                    "outcome": "accepted_submission_milestone_candidate",
+                },
+                "claim_permissions": {
+                    "can_claim_artifact_delta": False,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": transaction,
+            }
+        ),
+        encoding="utf-8",
+    )
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+
+    def fake_opl_json(_opl_bin, args, *, timeout_seconds=8.0):
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return {
+                "version": "g2",
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": task_id,
+                            "domain_id": "medautoscience",
+                            "task_kind": "paper_mission/stage-route",
+                            "payload": {
+                                "study_id": study_id,
+                                "paper_mission_transaction_ref": transaction[
+                                    "transaction_id"
+                                ],
+                                "opl_route_command_ref": route_command_ref,
+                                "command_kind": route["command_kind"],
+                                "route_target": route["target"],
+                            },
+                            "status": "blocked",
+                            "last_error": "paper_mission_stage_route_domain_gate_pending",
+                        }
+                    ]
+                },
+            }
+        if args[:3] == ("family-runtime", "queue", "inspect"):
+            return {
+                "version": "g2",
+                "family_runtime_task": {
+                    "surface_id": "opl_family_runtime_task",
+                    "task": {
+                        "task_id": task_id,
+                        "domain_id": "medautoscience",
+                        "task_kind": "paper_mission/stage-route",
+                        "payload": {
+                            "study_id": study_id,
+                            "paper_mission_transaction_ref": transaction[
+                                "transaction_id"
+                            ],
+                            "opl_route_command_ref": route_command_ref,
+                            "command_kind": route["command_kind"],
+                            "route_target": route["target"],
+                        },
+                        "status": "blocked",
+                        "last_error": "paper_mission_stage_route_domain_gate_pending",
+                        "current_control_state": {
+                            "current_stage_attempt_id": stage_attempt_id,
+                            "running_provider_attempt": False,
+                            "closeout_refs": [route["source_terminal_decision_ref"]],
+                            "closeout_receipt_status": "accepted_typed_closeout",
+                            "stage_run_currentness_identity": {
+                                "stage_id": route["target"],
+                            },
+                        },
+                    },
+                    "stage_attempts": [
+                        {
+                            "stage_attempt_id": stage_attempt_id,
+                            "status": "completed",
+                            "stage_id": route["target"],
+                        }
+                    ],
+                    "events": [
+                        {
+                            "event_type": "paper_mission_stage_route_terminal_task_reconciled",
+                            "payload": {
+                                "opl_transition_receipt": {
+                                    "surface_kind": "opl_transition_receipt",
+                                    "schema_version": 1,
+                                    "receipt_status": "terminal_closeout_observed",
+                                    "role": "transport_receipt_only",
+                                    "study_id": study_id,
+                                    "paper_mission_transaction_ref": transaction[
+                                        "transaction_id"
+                                    ],
+                                    "opl_route_command_ref": route_command_ref,
+                                    "command_kind": route["command_kind"],
+                                    "route_target": route["target"],
+                                    "task_id": task_id,
+                                    "task_status": "blocked",
+                                    "stage_attempt_id": stage_attempt_id,
+                                    "stage_attempt_ref": (
+                                        f"opl://stage-attempts/{stage_attempt_id}"
+                                    ),
+                                    "closeout_refs": [
+                                        route["source_terminal_decision_ref"]
+                                    ],
+                                    "closeout_receipt_status": "accepted_typed_closeout",
+                                    "blocked_reason": (
+                                        "paper_mission_stage_route_domain_gate_pending"
+                                    ),
+                                    "can_change_stage_terminal_decision": False,
+                                    "can_select_next_owner": False,
+                                    "can_claim_paper_progress": False,
+                                    "authority_boundary": {
+                                        "writes_owner_receipt": False,
+                                        "writes_typed_blocker": False,
+                                        "writes_human_gate": False,
+                                        "writes_current_package": False,
+                                        "can_claim_paper_progress": False,
+                                    },
+                                }
+                            },
+                        }
+                    ],
+                },
+            }
+        raise AssertionError(f"unexpected OPL command: {args}")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--request-opl-runtime-readback",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    carrier_readback = payload["opl_runtime_carrier_readback"]
+    assert carrier_readback["runtime_readback_status"] == "terminal_closeout_observed"
+    receipt = carrier_readback["opl_transition_receipt"]
+    assert receipt["surface_kind"] == "opl_transition_receipt"
+    assert receipt["receipt_status"] == "terminal_closeout_observed"
+    assert receipt["task_id"] == task_id
+    assert receipt["stage_attempt_id"] == stage_attempt_id
+    assert receipt["can_claim_paper_progress"] is False
+    assert payload["next_action"]["action_family"] != "runtime.opl_route"
+
+
 def test_paper_mission_materialized_readback_keeps_governed_consumption_current_when_terminal_residue_exists(
     tmp_path: Path,
     capsys,
