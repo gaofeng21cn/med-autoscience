@@ -46,7 +46,7 @@ CURRENT_PROGRAM_PHASE_BASE = {
 }
 CURRENT_REMAINING_GAPS = [
     "mature standalone medical product entry is still not landed; the truthful surface is still the repo-tracked shell plus agent-operated CLI/MCP",
-    "OPL stage-runtime handoff is documented and contract-shaped, but not yet a live hosted front door",
+    "OPL stage-runtime handoff is documented and contract-shaped, but not yet a live hosted entry surface",
     "optional hosted-runtime clearance still needs broader host/workspace proof; current MAS default runtime does not depend on it",
     "active study blockers still need continued closeout at publication / completion / human-gate truth surfaces",
 ]
