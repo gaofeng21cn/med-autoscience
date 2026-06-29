@@ -20,20 +20,6 @@ from med_autoscience.paper_mission_run import (
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
-from med_autoscience.paper_mission_opl_readback import (
-    paper_mission_opl_runtime_carrier_readback,
-)
-from med_autoscience.paper_mission_owner_answer import (
-    terminal_owner_gate_authority_consume_readback,
-    terminal_owner_gate_owner_answer_next_decision,
-    terminal_owner_gate_owner_answer_readback,
-)
-from med_autoscience.paper_mission_terminal_owner_gate import (
-    terminal_owner_gate_authority_readback,
-    terminal_owner_gate_from_carrier_readback,
-    terminal_owner_gate_from_stage_terminal_decision,
-    terminal_owner_gate_next_decision,
-)
 from med_autoscience.paper_mission_transaction import (
     PaperMissionTransaction,
     build_paper_mission_transaction,
@@ -61,21 +47,6 @@ MISSION_STATES = (
     "waiting_human_decision",
     "terminal_handoff",
 )
-PLATFORM_DIAGNOSTIC_TERMS = (
-    "domain diagnostic",
-    "runtime-readback",
-    "currentness",
-    "storage",
-    "dispatch",
-    "owner-route",
-    "owner_route",
-    "provider-admission",
-    "provider_admission",
-    "PaperRecovery",
-    "paper_recovery",
-    "read-model",
-    "read_model",
-)
 PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
 )
@@ -94,7 +65,6 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         or progress.get("deliverable_progress_delta")
     )
     deliverable_delta = _mapping(progress.get("deliverable_progress_delta") or paper_delta)
-    platform_delta = _mapping(progress.get("platform_repair_delta"))
     next_forced_delta = _mapping(progress.get("next_forced_delta"))
     current_owner_delta = _mapping(progress.get("current_owner_delta"))
     current_work_unit = _mapping(progress.get("current_work_unit"))
@@ -111,13 +81,9 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         latest_artifact_delta=latest_artifact_delta,
         study_id=_study_id(progress),
     )
-    platform_diagnostics = _platform_diagnostics(
-        platform_delta=platform_delta,
-        progress=progress,
-    )
+    platform_diagnostics: dict[str, Any] = {}
     mission_state = _mission_state(
         latest_artifact_delta=latest_artifact_delta,
-        platform_diagnostics=platform_diagnostics,
         user_visible=user_visible,
         progress=progress,
     )
@@ -186,52 +152,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     carrier = paper_mission_opl_runtime_carrier(
         paper_mission_run["paper_mission_transaction"]
     )
-    carrier_readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=carrier,
-        study_root=_materialized_study_root(progress=progress),
-        enable_opl_live_probe=True,
-    )
-    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
-    if not terminal_owner_gate and consumption_ledger_readback:
-        terminal_owner_gate = terminal_owner_gate_from_stage_terminal_decision(
-            stage_terminal_decision=_mapping(
-                paper_mission_run["paper_mission_transaction"].get(
-                    "stage_terminal_decision"
-                )
-            ),
-            paper_mission_transaction=paper_mission_run["paper_mission_transaction"],
-        )
-    terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
-        terminal_owner_gate
-    )
-    owner_answer_readback = terminal_owner_gate_owner_answer_readback(
-        terminal_owner_gate=terminal_owner_gate,
-        paper_mission_transaction=paper_mission_run["paper_mission_transaction"],
-        artifact_delta_refs=_mapping_list(
-            paper_mission_run["paper_mission_transaction"].get("artifact_delta_refs")
-        ),
-        paper_audit_pack_refs=_mapping(
-            paper_mission_run["paper_mission_transaction"].get("paper_audit_pack_refs")
-        ),
-    )
-    terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
-        terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
-        owner_answer_readback=owner_answer_readback,
-    )
     effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
-    if owner_answer_readback and not consumption_ledger_readback:
-        owner_answer_transaction = _mapping(
-            owner_answer_readback.get("paper_mission_transaction")
-        )
-        if owner_answer_transaction:
-            effective_transaction = owner_answer_transaction
-            transaction_state = _transaction_state(effective_transaction)
-            mission_state = "route_back"
-    if terminal_owner_gate:
-        next_owner_or_human_decision = (
-            terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
-            or terminal_owner_gate_next_decision(terminal_owner_gate)
-        )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -246,8 +167,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         ),
         "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
-        "opl_runtime_carrier_readback": carrier_readback,
-        "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        "opl_transition_receipt": _opl_transition_receipt(),
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "consume_candidate_status": effective_consume_candidate_status,
@@ -258,9 +178,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
                     effective_transaction.get("stage_terminal_decision")
                 ),
                 "consume_candidate_status": effective_consume_candidate_status,
-                "route_back_budget": owner_answer_readback.get("route_back_budget"),
-                "terminal_owner_gate": terminal_owner_gate,
-                "opl_runtime_readback_status": carrier_readback["carrier_status"],
+                "opl_runtime_readback_status": "not_requested_from_study_progress",
             },
             consumption_ledger_readback=consumption_ledger_readback,
         ),
@@ -270,14 +188,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             "artifact_delta_ledger": artifact_delta_ledger,
         },
         "next_owner_or_human_decision": next_owner_or_human_decision,
-        "terminal_owner_gate": terminal_owner_gate or None,
-        "terminal_owner_gate_authority_readback": (
-            terminal_gate_authority_readback or None
-        ),
-        "terminal_owner_gate_owner_answer_readback": owner_answer_readback or None,
-        "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_artifact_delta",
-        "legacy_path_role": "diagnostics_migration_provenance_only",
         "paper_progress_counting_policy": {
             "counts_as_paper_progress": [
                 "canonical_manuscript_delta",
@@ -290,7 +201,6 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
                 "human_gate",
                 "stable_typed_blocker_with_recoverable_path",
             ],
-            "diagnostics_only": list(PLATFORM_DIAGNOSTIC_TERMS),
             "platform_repair_counts_as_paper_progress": False,
             "legacy_current_work_unit_counts_as_next_action_authority": False,
         },
@@ -322,18 +232,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
                 if consumption_ledger_readback
                 else {}
             ),
-            "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
-            "legacy_fields_folded": [
-                "next_forced_delta",
-                "current_owner_delta",
-                "current_work_unit",
-                "current_executable_owner_action",
-            ],
-            "current_objective_source": "diagnostic_fallback",
-            "next_owner_source": "diagnostic_fallback",
-            "can_select_next_runtime_action": False,
-            "fallback_transaction_is_runnable": False,
-            "can_authorize_provider_admission": False,
+            "legacy_projection_accepted": False,
         },
     }
     summary["paper_mission_run"] = _paper_mission_run_with_stage_closure_readback(
@@ -362,30 +261,30 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["current_objective"] = summary["current_objective"]
     updated["latest_artifact_delta"] = summary["latest_artifact_delta"]
     updated["next_owner_or_human_decision"] = summary["next_owner_or_human_decision"]
-    updated["terminal_owner_gate"] = summary.get("terminal_owner_gate")
-    updated["terminal_owner_gate_authority_readback"] = summary.get(
-        "terminal_owner_gate_authority_readback"
-    )
-    updated["terminal_owner_gate_owner_answer_readback"] = summary.get(
-        "terminal_owner_gate_owner_answer_readback"
-    )
-    updated["platform_diagnostics"] = summary["platform_diagnostics"]
     updated["paper_mission_transaction"] = summary["paper_mission_transaction"]
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
     updated["opl_route_command"] = summary["opl_route_command"]
     updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
-    updated["opl_runtime_carrier_readback"] = summary["opl_runtime_carrier_readback"]
-    updated["opl_runtime_readback_status"] = summary["opl_runtime_readback_status"]
+    updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
     updated["transaction_state"] = summary["transaction_state"]
     updated.update(_top_level_stage_closure_projection(updated))
     updated.update(_top_level_current_package_projection(updated))
     return updated
 
 
+def _opl_transition_receipt() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_transition_receipt",
+        "status": "not_requested_from_study_progress",
+        "role": "transport_receipt_only",
+        "can_change_stage_terminal_decision": False,
+        "can_select_next_owner": False,
+    }
+
+
 def _mission_state(
     *,
     latest_artifact_delta: Mapping[str, Any],
-    platform_diagnostics: Mapping[str, Any],
     user_visible: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> str:
@@ -402,8 +301,6 @@ def _mission_state(
         return "candidate_ready_for_consumption"
     if _non_empty_text(user_visible.get("writer_state")) == "live":
         return "running"
-    if _diagnostic_count(platform_diagnostics) > 0:
-        return "planned"
     return "planned"
 
 
@@ -882,42 +779,30 @@ def _paper_mission_transaction_payload(
     )
     mission_id = _non_empty_text(mission.get("mission_id")) or "paper-mission::unknown"
     study_id = _non_empty_text(mission.get("study_id")) or _study_id(progress)
-    terminal_decision = (
-        _diagnostic_fallback_terminal_decision(
-            mission_id=mission_id,
-            study_id=study_id,
-            stage_id=stage_id,
+    terminal_decision = stage_terminal_decision_for_consume_result(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        consume_result=consume_result,
+        default_next_owner=_first_text(
+            next_owner_or_human_decision.get("next_owner"),
+            current_objective.get("next_owner"),
+            "mas_authority_kernel",
         )
-        if _diagnostic_fallback_requires_materialized_mission(
-            mission_state=mission_state,
-            artifact_delta_ledger=artifact_delta_ledger,
-            platform_diagnostics=platform_diagnostics,
+        or "mas_authority_kernel",
+        default_next_stage_id=_next_stage_id(stage_id=stage_id),
+        default_next_work_unit=_first_text(
+            current_objective.get("work_unit_id"),
+            current_objective.get("objective"),
+            stage_id,
         )
-        else stage_terminal_decision_for_consume_result(
-            mission_id=mission_id,
-            study_id=study_id,
-            stage_id=stage_id,
-            consume_result=consume_result,
-            default_next_owner=_first_text(
-                next_owner_or_human_decision.get("next_owner"),
-                current_objective.get("next_owner"),
-                "mas_authority_kernel",
-            )
-            or "mas_authority_kernel",
-            default_next_stage_id=_next_stage_id(stage_id=stage_id),
-            default_next_work_unit=_first_text(
-                current_objective.get("work_unit_id"),
-                current_objective.get("objective"),
-                stage_id,
-            )
-            or stage_id,
-            default_reason=_first_text(
-                consume_result.get("reason"),
-                next_owner_or_human_decision.get("summary"),
-                "stage terminalized from artifact-first paper mission summary",
-            )
-            or "stage terminalized from artifact-first paper mission summary",
+        or stage_id,
+        default_reason=_first_text(
+            consume_result.get("reason"),
+            next_owner_or_human_decision.get("summary"),
+            "stage terminalized from artifact-first paper mission summary",
         )
+        or "stage terminalized from artifact-first paper mission summary",
     )
     return build_paper_mission_transaction(
         mission_id=mission_id,
@@ -937,44 +822,6 @@ def _paper_mission_transaction_payload(
         )
         or "projection",
     )
-
-
-def _diagnostic_fallback_requires_materialized_mission(
-    *,
-    mission_state: str,
-    artifact_delta_ledger: list[dict[str, Any]],
-    platform_diagnostics: Mapping[str, Any],
-) -> bool:
-    return (
-        mission_state == "planned"
-        and not artifact_delta_ledger
-        and _diagnostic_count(platform_diagnostics) > 0
-    )
-
-
-def _diagnostic_fallback_terminal_decision(
-    *,
-    mission_id: str,
-    study_id: str,
-    stage_id: str,
-) -> dict[str, Any]:
-    return {
-        "decision_kind": "human_gate",
-        "status": "paper_mission_readback_missing",
-        "reason": (
-            "legacy progress/currentness diagnostics cannot select the next "
-            "PaperMission stage; materialize a PaperMissionRun before routing "
-            "work to OPL."
-        ),
-        "next_owner": "MedAutoScience",
-        "question": (
-            "Materialize a PaperMissionRun with MAS stage terminal decision "
-            "before OPL runtime routing?"
-        ),
-        "required_receipt": (
-            f"paper-mission-readback-missing::{study_id}::{stage_id}::{_slug(mission_id)}"
-        ),
-    }
 
 
 def _paper_audit_pack(
@@ -1176,7 +1023,7 @@ def _authority_touchpoints(*, platform_diagnostics: Mapping[str, Any]) -> list[d
             "touchpoint_id": "touchpoint::opl-runtime-readback",
             "owner": "one-person-lab",
             "surface": "OPL runtime/readback",
-            "status": "read_only" if _diagnostic_count(platform_diagnostics) > 0 else "not_touched",
+            "status": "not_touched",
         },
     ]
     return result
@@ -1217,64 +1064,6 @@ def _consume_result(
     if mission_state == "waiting_human_decision":
         return {"status": "human_gate"}
     return {"status": "not_consumed"}
-
-
-def _platform_diagnostics(
-    *,
-    platform_delta: Mapping[str, Any],
-    progress: Mapping[str, Any],
-) -> dict[str, Any]:
-    diagnostic_refs = _diagnostic_refs(progress)
-    return {
-        "count": _delta_count(platform_delta),
-        "sources": _dedupe_texts(
-            [
-                *_text_list(platform_delta.get("sources")),
-                *_diagnostic_sources(progress),
-            ]
-        ),
-        "refs": diagnostic_refs,
-        "classification": "diagnostics_only" if _delta_count(platform_delta) or diagnostic_refs else "none",
-        "folded_surfaces": list(PLATFORM_DIAGNOSTIC_TERMS),
-        "counts_as_paper_progress": False,
-        "repair_lane_required_for_platform_claims": (_delta_count(platform_delta) or len(diagnostic_refs)) > 0,
-    }
-
-
-def _diagnostic_sources(progress: Mapping[str, Any]) -> list[str]:
-    refs = _mapping(progress.get("refs"))
-    sources: list[str] = []
-    if _non_empty_text(refs.get("runtime_readback")):
-        sources.append("refs.runtime_readback")
-    for key in (
-        "runtime_health_snapshot",
-        "opl_current_control_state_handoff",
-        "provider_admission_candidates",
-        "transition_request_candidates",
-        "paper_recovery_state",
-        "repair_progress_projection",
-    ):
-        value = progress.get(key)
-        if value not in (None, "", [], {}):
-            sources.append(key)
-    return sources
-
-
-def _diagnostic_refs(progress: Mapping[str, Any]) -> list[str]:
-    refs = _mapping(progress.get("refs"))
-    result = [
-        _non_empty_text(refs.get("runtime_readback")),
-        _non_empty_text(refs.get("progress_projection")),
-    ]
-    for key in (
-        "diagnostic_ref",
-        "runtime_readback_report_ref",
-        "owner_route_ref",
-        "dispatch_ref",
-        "paper_recovery_ref",
-    ):
-        result.append(_non_empty_text(progress.get(key)))
-    return _dedupe_texts(result)
 
 
 def _owner_answer_kind(progress: Mapping[str, Any]) -> str | None:
@@ -1347,10 +1136,6 @@ def _has_owner_answer(progress: Mapping[str, Any]) -> bool:
 def _delta_count(value: Mapping[str, Any]) -> int:
     number = _number(value.get("count"))
     return number or 0
-
-
-def _diagnostic_count(value: Mapping[str, Any]) -> int:
-    return _delta_count(value) + len(_text_list(value.get("refs")))
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -1468,7 +1253,6 @@ def _compact(value: Mapping[str, Any]) -> dict[str, Any]:
 
 
 __all__ = [
-    "PLATFORM_DIAGNOSTIC_TERMS",
     "attach_artifact_first_mission_summary",
     "build_artifact_first_mission_summary",
 ]

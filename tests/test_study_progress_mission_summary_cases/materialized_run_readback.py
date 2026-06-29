@@ -188,11 +188,11 @@ def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
     assert payload["artifact_first_mission_summary"]["read_model_source"] == {
         "source_kind": "materialized_paper_mission_run",
         "materialized_mission_ref": str(mission_root / "paper_mission_run.json"),
-        "legacy_progress_projection_role": "diagnostic_drilldown",
+        "legacy_projection_accepted": False,
     }
 
 
-def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
+def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_outcome(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
@@ -346,103 +346,27 @@ def test_materialized_mission_summary_reports_opl_terminal_closeout_readback(
     assert summary["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
-    assert summary["opl_runtime_readback_status"] == (
-        "opl_runtime_terminal_readback_observed"
+    assert summary["opl_transition_receipt"]["status"] == (
+        "not_requested_from_study_progress"
     )
-    assert summary["opl_runtime_carrier_readback"]["domain_ready_verdict"] == (
-        "domain_gate_pending"
-    )
-    assert summary["opl_runtime_carrier_readback"]["can_claim_paper_progress"] is False
-    assert summary["opl_runtime_carrier_readback"][
-        "provider_completion_is_domain_completion"
-    ] is False
-    assert summary["terminal_owner_gate"] == {
-        "surface_kind": "paper_mission_terminal_owner_gate",
-        "owner": "mas_authority_kernel",
-        "gate_kind": "domain_gate",
-        "blocked_reason": "domain_gate_pending",
-        "typed_blocker_ref": "closeout.json#domain_blocker",
-        "closeout_ref": (
-            "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
-            "sat-terminal.closeout.json"
-        ),
-        "stage_attempt_id": "sat-terminal",
-        "work_unit_id": "gate_clearing_claim_evidence_repair",
-        "can_claim_paper_progress": False,
-        "can_claim_runtime_ready": False,
-        "authority_materialized": False,
-        "legal_next_action": "route_to_owner_or_human_gate",
-    }
+    assert summary["opl_transition_receipt"]["can_change_stage_terminal_decision"] is False
+    assert "opl_runtime_readback_status" not in summary
+    assert "opl_runtime_carrier_readback" not in summary
+    assert "terminal_owner_gate" not in summary
     assert summary["next_owner_or_human_decision"] == {
         "kind": "owner_or_route",
-        "next_owner": "mission_executor",
+        "next_owner": "analysis-campaign",
         "human_decision_required": False,
-        "summary": "route_back",
-        "route_back_evidence_ref": summary[
-            "terminal_owner_gate_owner_answer_readback"
-        ]["route_back_evidence_ref"],
-        "opl_route_command_ref": summary[
-            "terminal_owner_gate_owner_answer_readback"
-        ]["opl_route_command"]["source_terminal_decision_ref"],
+        "summary": "accepted",
         "can_execute": False,
         "can_authorize_provider_admission": False,
     }
-    assert payload["terminal_owner_gate"] == summary["terminal_owner_gate"]
+    assert "terminal_owner_gate" not in payload
     assert payload["next_owner_or_human_decision"] == (
         summary["next_owner_or_human_decision"]
     )
-    authority_readback = summary["terminal_owner_gate_authority_readback"]
-    assert authority_readback["surface_kind"] == (
-        "mas_terminal_owner_gate_authority_readback"
-    )
-    assert authority_readback["status"] == "route_back"
-    assert authority_readback["next_owner"] == "mas_authority_kernel"
-    assert authority_readback["owner_answer_materialized"] is True
-    assert authority_readback["consume_result"]["status"] == "route_back"
-    assert authority_readback["consume_result"]["outcome"] == "route_back_evidence_ref"
-    assert authority_readback["consume_result"]["authority_materialized"] is False
-    assert authority_readback["consume_result"][
-        "authority_answer_readback_materialized"
-    ] is True
-    assert authority_readback["consume_result"]["authority_file_materialized"] is False
-    owner_answer = summary["terminal_owner_gate_owner_answer_readback"]
-    assert owner_answer["surface_kind"] == (
-        "mas_terminal_owner_gate_owner_answer_readback"
-    )
-    assert owner_answer["status"] == "route_back"
-    assert owner_answer["owner_answer_shape"] == "route_back_evidence_ref"
-    assert owner_answer["authority_materialized"] is False
-    assert owner_answer["authority_answer_readback_materialized"] is True
-    assert owner_answer["authority_file_materialized"] is False
-    assert owner_answer["can_claim_paper_progress"] is False
-    assert owner_answer["can_claim_runtime_ready"] is False
-    assert owner_answer["write_plan"]["written_files"] == []
-    assert owner_answer["write_plan"]["can_write_owner_receipts"] is False
-    assert owner_answer["write_plan"]["can_write_typed_blockers"] is False
-    assert owner_answer["write_plan"]["can_write_human_gate_authority_records"] is False
-    assert owner_answer["stage_terminal_decision"]["decision_kind"] == "route_back"
-    assert owner_answer["opl_route_command"]["command_kind"] == "route_back"
-    assert summary["stage_terminal_decision"] == owner_answer["stage_terminal_decision"]
-    assert summary["opl_route_command"] == owner_answer["opl_route_command"]
-    assert summary["paper_mission_transaction"] == owner_answer["paper_mission_transaction"]
-    assert summary["mission_state"] == "route_back"
-    assert summary["transaction_state"]["decision_kind"] == "route_back"
-    assert summary["transaction_state"]["route_command_kind"] == "route_back"
-    assert authority_readback["owner_answer_contract"]["typed_blocker_ref"] == (
-        "closeout.json#domain_blocker"
-    )
-    assert authority_readback["authority_boundary"]["can_claim_paper_progress"] is False
-    assert authority_readback["authority_boundary"][
-        "can_authorize_provider_admission"
-    ] is False
-    assert authority_readback["authority_boundary"]["writes_authority_files"] is False
-    assert authority_readback["authority_boundary"]["authority_file_materialized"] is False
-    assert authority_readback["authority_boundary"]["can_write_owner_receipt"] is False
-    assert authority_readback["authority_boundary"]["can_write_typed_blocker"] is False
-    assert authority_readback["authority_boundary"]["can_write_human_gate"] is False
-    assert authority_readback["write_plan"]["written_files"] == []
-    assert payload["terminal_owner_gate_authority_readback"] == authority_readback
-    assert payload["terminal_owner_gate_owner_answer_readback"] == owner_answer
-    assert payload["opl_runtime_readback_status"] == (
-        "opl_runtime_terminal_readback_observed"
-    )
+    assert summary["stage_terminal_decision"]["decision_kind"] == "advance"
+    assert summary["opl_route_command"]["command_kind"] == "start_next_stage"
+    assert summary["mission_state"] == "consumed"
+    assert summary["transaction_state"]["decision_kind"] == "advance"
+    assert summary["transaction_state"]["route_command_kind"] == "start_next_stage"

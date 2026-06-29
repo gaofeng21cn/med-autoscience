@@ -115,18 +115,7 @@ def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_
             / "consume_record.json"
         ),
         "consumption_ledger_role": "current_paper_mission_transaction",
-        "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
-        "legacy_fields_folded": [
-            "next_forced_delta",
-            "current_owner_delta",
-            "current_work_unit",
-            "current_executable_owner_action",
-        ],
-        "current_objective_source": "diagnostic_fallback",
-        "next_owner_source": "diagnostic_fallback",
-        "can_select_next_runtime_action": False,
-        "fallback_transaction_is_runnable": False,
-        "can_authorize_provider_admission": False,
+        "legacy_projection_accepted": False,
     }
 
 
@@ -259,7 +248,7 @@ def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
     assert payload["next_owner_or_human_decision"]["next_owner"] == "analysis-campaign"
 
 
-def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics() -> None:
+def test_artifact_first_mission_summary_ignores_platform_repair_for_terminal_outcome() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"
     )
@@ -297,7 +286,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert summary["surface_kind"] == "artifact_first_paper_mission_summary"
     assert summary["contract_ref"] == "contracts/paper_mission_run_contract.json"
     assert summary["validator"] == "med_autoscience.paper_mission_run.PaperMissionRun"
-    assert summary["legacy_path_role"] == "diagnostics_migration_provenance_only"
+    assert "legacy_path_role" not in summary
     assert summary["default_progress_metric"] == "paper_artifact_delta"
     assert summary["mission_state"] == "planned"
     assert summary["current_objective"] == {
@@ -339,15 +328,15 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert PaperMissionTransaction.from_payload(
         summary["paper_mission_transaction"]
     ).mission_id == paper_mission_run["mission_id"]
-    assert summary["stage_terminal_decision"]["decision_kind"] == "human_gate"
-    assert summary["stage_terminal_decision"]["status"] == "paper_mission_readback_missing"
-    assert summary["opl_route_command"]["command_kind"] == "wait_for_human"
+    assert summary["stage_terminal_decision"]["decision_kind"] == "continue_same_stage"
+    assert summary["stage_terminal_decision"]["status"] == "not_consumed"
+    assert summary["opl_route_command"]["command_kind"] == "resume_stage"
     assert summary["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
-        "wait_for_human"
+        "resume_stage"
     )
-    assert summary["transaction_state"]["route_command_kind"] == "wait_for_human"
-    assert summary["read_model_source"]["can_select_next_runtime_action"] is False
-    assert summary["read_model_source"]["fallback_transaction_is_runnable"] is False
+    assert summary["transaction_state"]["route_command_kind"] == "resume_stage"
+    assert "can_select_next_runtime_action" not in summary["read_model_source"]
+    assert "fallback_transaction_is_runnable" not in summary["read_model_source"]
     assert paper_mission_run["consume_result"] == {"status": "not_consumed"}
     assert paper_mission_run["forbidden_write_guard"]["candidate_writes_authority"] is False
     assert {
@@ -361,10 +350,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert paper_mission_run["claim_permissions"]["can_claim_current_package"] is False
     assert paper_mission_run["claim_permissions"]["can_claim_owner_receipt_written"] is False
     assert paper_mission_run["claim_permissions"]["can_claim_artifact_delta"] is False
-    assert summary["platform_diagnostics"]["count"] == 1
-    assert summary["platform_diagnostics"]["counts_as_paper_progress"] is False
-    assert "domain diagnostic" in summary["platform_diagnostics"]["folded_surfaces"]
-    assert "dispatch" in summary["platform_diagnostics"]["folded_surfaces"]
+    assert "platform_diagnostics" not in summary
     assert summary["paper_progress_counting_policy"]["platform_repair_counts_as_paper_progress"] is False
     assert (
         summary["paper_progress_counting_policy"][
@@ -376,18 +362,7 @@ def test_artifact_first_mission_summary_demotes_platform_repair_to_diagnostics()
     assert summary["authority"]["can_mark_dm002_dm003_complete"] is False
     assert summary["read_model_source"] == {
         "source_kind": "legacy_progress_projection_fallback",
-        "legacy_projection_role": "diagnostic_fallback_not_execution_authority",
-        "legacy_fields_folded": [
-            "next_forced_delta",
-            "current_owner_delta",
-            "current_work_unit",
-            "current_executable_owner_action",
-        ],
-        "current_objective_source": "diagnostic_fallback",
-        "next_owner_source": "diagnostic_fallback",
-        "can_select_next_runtime_action": False,
-        "fallback_transaction_is_runnable": False,
-        "can_authorize_provider_admission": False,
+        "legacy_projection_accepted": False,
     }
 
 
@@ -483,8 +458,15 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert payload["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
+    assert payload["opl_transition_receipt"] == {
+        "surface_kind": "opl_transition_receipt",
+        "status": "not_requested_from_study_progress",
+        "role": "transport_receipt_only",
+        "can_change_stage_terminal_decision": False,
+        "can_select_next_owner": False,
+    }
     assert payload["next_owner_or_human_decision"]["next_owner"] == "ai_reviewer"
-    assert payload["platform_diagnostics"]["counts_as_paper_progress"] is False
+    assert "platform_diagnostics" not in payload
 
 
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:

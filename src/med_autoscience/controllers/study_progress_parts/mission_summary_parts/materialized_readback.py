@@ -14,18 +14,6 @@ from med_autoscience.paper_mission_stage_closure_ledger import (
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
-from med_autoscience.paper_mission_opl_readback import (
-    paper_mission_opl_runtime_carrier_readback,
-)
-from med_autoscience.paper_mission_owner_answer import (
-    terminal_owner_gate_authority_consume_readback,
-    terminal_owner_gate_owner_answer_readback,
-)
-from med_autoscience.paper_mission_terminal_owner_gate import (
-    terminal_owner_gate_authority_readback,
-    terminal_owner_gate_from_carrier_readback,
-    terminal_owner_gate_from_stage_terminal_decision,
-)
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
@@ -52,14 +40,6 @@ def _dedupe_texts(values: Iterable[object]) -> list[str]:
 
 def _delta_count(value: Mapping[str, Any]) -> int:
     return _summary_helpers()._delta_count(value)
-
-
-def _diagnostic_refs(progress: Mapping[str, Any]) -> list[str]:
-    return _summary_helpers()._diagnostic_refs(progress)
-
-
-def _diagnostic_sources(progress: Mapping[str, Any]) -> list[str]:
-    return _summary_helpers()._diagnostic_sources(progress)
 
 
 def _first_text(*values: object) -> str | None:
@@ -125,31 +105,6 @@ def _owner_receipt_ref(default_readback: Mapping[str, Any]) -> str | None:
     return _summary_helpers()._owner_receipt_ref(default_readback)
 
 
-def _terminal_owner_gate_next_decision(
-    *,
-    owner_answer_readback: Mapping[str, Any],
-    terminal_owner_gate: Mapping[str, Any],
-) -> dict[str, Any]:
-    owner_answer = _mapping(owner_answer_readback)
-    if owner_answer:
-        route = _mapping(owner_answer.get("opl_route_command"))
-        return _compact(
-            {
-                "kind": "owner_or_route",
-                "next_owner": _non_empty_text(owner_answer.get("next_owner"))
-                or "mission_executor",
-                "human_decision_required": False,
-                "summary": _non_empty_text(owner_answer.get("status")) or "route_back",
-                "route_back_evidence_ref": owner_answer.get("route_back_evidence_ref"),
-                "opl_route_command_ref": route.get("source_terminal_decision_ref"),
-                "paper_facing_delta_ref": owner_answer.get("paper_facing_delta_ref"),
-                "can_execute": False,
-                "can_authorize_provider_admission": False,
-            }
-        )
-    return _summary_helpers().terminal_owner_gate_next_decision(terminal_owner_gate)
-
-
 def _materialized_mission_summary(
     *,
     progress: Mapping[str, Any],
@@ -160,7 +115,6 @@ def _materialized_mission_summary(
     PAPER_MISSION_RUN_VALIDATOR = helpers.PAPER_MISSION_RUN_VALIDATOR
     PAPER_MISSION_TRANSACTION_CONTRACT_REF = helpers.PAPER_MISSION_TRANSACTION_CONTRACT_REF
     PAPER_MISSION_TRANSACTION_VALIDATOR = helpers.PAPER_MISSION_TRANSACTION_VALIDATOR
-    PLATFORM_DIAGNOSTIC_TERMS = helpers.PLATFORM_DIAGNOSTIC_TERMS
     _consume_candidate_status = helpers._consume_candidate_status
 
     mission = dict(materialized_mission)
@@ -187,10 +141,7 @@ def _materialized_mission_summary(
     mission_state = _non_empty_text(mission.get("mission_state")) or "planned"
     current_mission = _mapping(default_readback.get("current_mission"))
     required_output = _mapping(default_readback.get("required_output"))
-    platform_diagnostics = _materialized_platform_diagnostics(
-        progress=progress,
-        default_readback=default_readback,
-    )
+    platform_diagnostics: dict[str, Any] = {}
     latest_artifact_delta = _materialized_latest_artifact_delta(mission=mission)
     next_owner = _first_text(
         default_readback.get("next_owner"),
@@ -257,30 +208,6 @@ def _materialized_mission_summary(
     transaction = _mapping(paper_mission_run.get("paper_mission_transaction"))
     transaction_state = _transaction_state(transaction)
     carrier = paper_mission_opl_runtime_carrier(transaction)
-    carrier_readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=carrier,
-        study_root=_materialized_study_root(progress=progress),
-        enable_opl_live_probe=True,
-    )
-    terminal_owner_gate = terminal_owner_gate_from_carrier_readback(carrier_readback)
-    if not terminal_owner_gate and consumption_ledger_readback:
-        terminal_owner_gate = terminal_owner_gate_from_stage_terminal_decision(
-            stage_terminal_decision=_mapping(transaction.get("stage_terminal_decision")),
-            paper_mission_transaction=transaction,
-        )
-    terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
-        terminal_owner_gate
-    )
-    owner_answer_readback = terminal_owner_gate_owner_answer_readback(
-        terminal_owner_gate=terminal_owner_gate,
-        paper_mission_transaction=transaction,
-        artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
-        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
-    )
-    terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
-        terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
-        owner_answer_readback=owner_answer_readback,
-    )
     effective_transaction = transaction
     effective_consume_candidate_status = _consume_candidate_status(
         mission,
@@ -308,20 +235,6 @@ def _materialized_mission_summary(
                 "current_objective": current_objective,
                 "next_owner_or_human_decision": next_owner_or_human_decision,
             }
-    if owner_answer_readback and not consumption_ledger_readback:
-        owner_answer_transaction = _mapping(
-            owner_answer_readback.get("paper_mission_transaction")
-        )
-        if owner_answer_transaction:
-            effective_transaction = owner_answer_transaction
-            transaction_state = _transaction_state(effective_transaction)
-            mission_state = "route_back"
-            effective_consume_candidate_status = "route_back"
-    if terminal_owner_gate and not consumption_ledger_readback:
-        next_owner_or_human_decision = _terminal_owner_gate_next_decision(
-            owner_answer_readback=owner_answer_readback,
-            terminal_owner_gate=terminal_owner_gate,
-        )
     stage_closure_ledger_readback = _latest_stage_closure_ledger_readback(
         progress=progress,
         study_id=study_id,
@@ -339,9 +252,7 @@ def _materialized_mission_summary(
                 else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
-            "route_back_budget": owner_answer_readback.get("route_back_budget"),
-            "terminal_owner_gate": terminal_owner_gate,
-            "opl_runtime_readback_status": carrier_readback["carrier_status"],
+            "opl_runtime_readback_status": "not_requested_from_study_progress",
         },
         consumption_ledger_readback=consumption_ledger_readback,
     )
@@ -363,8 +274,7 @@ def _materialized_mission_summary(
         ),
         "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
-        "opl_runtime_carrier_readback": carrier_readback,
-        "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        "opl_transition_receipt": helpers._opl_transition_receipt(),
         "transaction_state": transaction_state,
         "mission_state": mission_state,
         "current_objective": current_objective,
@@ -374,14 +284,7 @@ def _materialized_mission_summary(
         "stage_closure_ledger_readback": stage_closure_ledger_readback or None,
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
-        "terminal_owner_gate": terminal_owner_gate or None,
-        "terminal_owner_gate_authority_readback": (
-            terminal_gate_authority_readback or None
-        ),
-        "terminal_owner_gate_owner_answer_readback": owner_answer_readback or None,
-        "platform_diagnostics": platform_diagnostics,
         "default_progress_metric": "paper_mission_run",
-        "legacy_path_role": "diagnostics_migration_provenance_only",
         "paper_progress_counting_policy": {
             "counts_as_paper_progress": [
                 "mission_artifact_delta",
@@ -391,7 +294,6 @@ def _materialized_mission_summary(
                 "human_gate",
                 "stable_typed_blocker_with_recoverable_path",
             ],
-            "diagnostics_only": list(PLATFORM_DIAGNOSTIC_TERMS),
             "platform_repair_counts_as_paper_progress": False,
         },
         "authority": {
@@ -425,7 +327,7 @@ def _materialized_mission_summary(
                 if consumption_ledger_readback
                 else {}
             ),
-            "legacy_progress_projection_role": "diagnostic_drilldown",
+            "legacy_projection_accepted": False,
         },
     }
     summary["status"] = mission_state
@@ -622,40 +524,6 @@ def _materialized_latest_artifact_delta(
         "counts_as_paper_progress": bool(ledger),
         "platform_repair_excluded": True,
         "artifact_delta_ledger": ledger,
-    }
-
-
-def _materialized_platform_diagnostics(
-    *,
-    progress: Mapping[str, Any],
-    default_readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    PLATFORM_DIAGNOSTIC_TERMS = _summary_helpers().PLATFORM_DIAGNOSTIC_TERMS
-    imported = _mapping(default_readback.get("platform_diagnostics"))
-    diagnostic_refs = _diagnostic_refs(progress)
-    return {
-        "count": _delta_count(_mapping(progress.get("platform_repair_delta"))),
-        "sources": _dedupe_texts(
-            [
-                "materialized_paper_mission_run",
-                *_text_list(imported.get("sources")),
-                *_diagnostic_sources(progress),
-            ]
-        ),
-        "refs": _dedupe_texts(
-            [
-                *_text_list(imported.get("refs")),
-                *diagnostic_refs,
-            ]
-        ),
-        "classification": "diagnostics_only",
-        "folded_surfaces": list(PLATFORM_DIAGNOSTIC_TERMS),
-        "counts_as_paper_progress": False,
-        "repair_lane_required_for_platform_claims": bool(
-            _delta_count(_mapping(progress.get("platform_repair_delta")))
-            or diagnostic_refs
-        ),
-        "materialized_readback": imported or None,
     }
 
 
