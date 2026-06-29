@@ -1,0 +1,143 @@
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+
+from tests.test_cli_cases.paper_mission_command_helpers import _write_profile_with_study
+
+
+def _readback(*, study_id: str, package_kind: str, can_submit: bool) -> dict[str, object]:
+    return {
+        "study_id": study_id,
+        "next_action": {
+            "action_family": "blocked.typed",
+            "action_kind": "stop_with_typed_blocker",
+            "owner": "mas_authority_kernel",
+        },
+        "stage_closure_decision": {
+            "outcome": {
+                "kind": "typed_blocker",
+                "blocker_type": "paper_mission_stage_route_domain_gate_pending",
+                "next_owner": "MedAutoScience",
+                "next_action": "resolve_typed_blocker_or_route_redesign",
+                "typed_blocker_evidence_ref": f"/tmp/{study_id}/typed-blocker.json",
+            }
+        },
+        "receipt_owner_consumption_readback": {
+            "status": "owner_consumption_applied",
+            "apply_mode": "route_checkpoint" if can_submit else "typed_blocker",
+            "mas_receipt_consumption": {
+                "status": "owner_consumed_typed_blocker",
+                "typed_blocker_evidence_ref": f"/tmp/{study_id}/typed-blocker.json",
+            },
+        },
+        "current_package": {
+            "status": "current",
+            "package_kind": package_kind,
+            "can_submit": can_submit,
+            "quality_gate_status": "clear" if can_submit else "blocked",
+            "known_blockers": [] if can_submit else ["bundle_build_allowed_false"],
+            "root": f"/tmp/{study_id}/manuscript/current_package",
+            "zip_path": f"/tmp/{study_id}/manuscript/current_package.zip",
+            "zip_exists": True,
+            "generated_from_current_source": True,
+        },
+    }
+
+
+def test_typed_blocker_resolution_reports_missing_owner_apply_surface(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="submission_ready_package",
+                can_submit=True,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "blocked_missing_typed_blocker_resolution_surface"
+    assert payload["write_permitted"] is False
+    assert payload["authority_materialized"] is False
+    assert payload["submission_ready_claim_authorized"] is False
+    assert payload["current_package"]["can_submit"] is True
+    assert payload["owner_route_defect"]["defect_kind"] == (
+        "mas_typed_blocker_resolution_owner_surface_missing"
+    )
+    assert "paper-mission typed-blocker-resolution --apply-owner-decision" in payload[
+        "owner_route_defect"
+    ]["missing_command_or_api"]
+    assert "current_package" in payload["forbidden_authority_writes"]
+
+
+def test_typed_blocker_resolution_fails_closed_without_consumed_receipt(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "readback.json"
+    readback_file.write_text(
+        json.dumps(
+            {
+                "study_id": study_id,
+                "next_action": {
+                    "action_family": "blocked.typed",
+                    "action_kind": "stop_with_typed_blocker",
+                    "owner": "mas_authority_kernel",
+                },
+                "stage_closure_decision": {"outcome": {"kind": "typed_blocker"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "blocked_missing_consumed_typed_blocker_readback"
+    assert payload["readback_validation"]["missing_required_fields"] == [
+        "receipt_owner_consumption_readback"
+    ]
+

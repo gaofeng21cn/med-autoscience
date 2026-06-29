@@ -97,6 +97,9 @@ from med_autoscience.controllers.paper_mission_receipt_owner_consumption import 
     latest_receipt_owner_consumption_readback,
     materialize_receipt_owner_consumption,
 )
+from med_autoscience.controllers.paper_mission_typed_blocker_resolution import (
+    diagnose_typed_blocker_resolution_gap,
+)
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
@@ -266,6 +269,10 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     receipt_apply.add_argument("--apply-typed-blocker", action="store_true")
     receipt_apply.add_argument("--apply-route-checkpoint", action="store_true")
 
+    typed_resolution_parser = mission_subparsers.add_parser("typed-blocker-resolution")
+    _add_common_args(typed_resolution_parser)
+    typed_resolution_parser.add_argument("--paper-mission-readback-file", required=True)
+
 
 def handle_paper_mission_command(
     args: argparse.Namespace,
@@ -391,6 +398,13 @@ def build_paper_mission_readback(
                 apply_typed_blocker=receipt_apply_typed_blocker,
                 apply_route_checkpoint=receipt_apply_route_checkpoint,
             ),
+            source=source,
+        )
+    if paper_mission_command == "typed-blocker-resolution":
+        return _build_typed_blocker_resolution_readback(
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_readback_file=paper_mission_readback_file,
             source=source,
         )
     if paper_mission_command in {"inspect", "start", "resume"}:
@@ -1468,6 +1482,32 @@ def _build_receipt_owner_consumption_readback(
         profile_ref=str(profile_ref),
         output_root=resolved_output_root,
         apply_mode=apply_mode,
+        source=source,
+    )
+
+
+def _build_typed_blocker_resolution_readback(
+    *,
+    profile_ref: str | Path,
+    study_id: str,
+    paper_mission_readback_file: str | Path | None,
+    source: str,
+) -> dict[str, Any]:
+    if paper_mission_readback_file is None:
+        return {
+            "surface_kind": "paper_mission_typed_blocker_resolution",
+            "schema_version": 1,
+            "status": "blocked_missing_paper_mission_readback_file",
+            "study_id": study_id,
+            "profile_ref": str(profile_ref),
+            "write_permitted": False,
+            "authority_materialized": False,
+        }
+    readback = _load_json_object(Path(paper_mission_readback_file))
+    return diagnose_typed_blocker_resolution_gap(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref=str(profile_ref),
         source=source,
     )
 
