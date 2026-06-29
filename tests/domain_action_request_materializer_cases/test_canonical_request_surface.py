@@ -152,6 +152,18 @@ def test_canonical_transition_request_projection_carries_dispatcher_boundary_fie
                 "owner_callable_adapters/run_quality_repair_batch.json"
             )
         },
+        "work_unit_id": "dm003_exact_stage_work_unit",
+        "work_unit_fingerprint": "fingerprint::dm003",
+        "attempt_idempotency_key": "attempt::legacy",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_id": "next-action-001",
+            "idempotency_key": "request::study-a::stage",
+            "action_family": "runtime.opl_route",
+            "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+            "work_unit_id": "dm003_exact_stage_work_unit",
+            "work_unit_fingerprint": "fingerprint::dm003",
+        },
         "prompt_contract": {
             "study_id": "study-a",
             "action_type": "run_quality_repair_batch",
@@ -195,6 +207,29 @@ def test_canonical_transition_request_projection_carries_dispatcher_boundary_fie
     assert request["prompt_contract_body_omitted"] is True
     assert request["transition_request_projection_body_omitted"] is True
     assert request["transition_request_projection_body_authority"] is False
+    assert request["next_action"] == {
+        "surface_kind": "opl_next_action_identity",
+        "identity_source": "NextActionEnvelope",
+        "next_action_surface_kind": "mas_next_action_envelope",
+        "action_id": "next-action-001",
+        "idempotency_key": "request::study-a::stage",
+        "action_family": "runtime.opl_route",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+    }
+    handoff_contract = request["opl_transition_handoff_contract"]
+    assert handoff_contract["surface_kind"] == "opl_transition_handoff_contract"
+    assert handoff_contract["next_action"] == request["next_action"]
+    assert handoff_contract["next_action_identity_complete"] is True
+    assert handoff_contract["expected_output_contract"]["output_kind"] == "opl_transition_receipt"
+    assert handoff_contract["legacy_work_unit_identity_role"] == "provenance_currentness_only"
+    assert handoff_contract["exact_work_unit_id_authority"] is False
+    assert handoff_contract["runtime_receipt_authority"]["can_claim_paper_progress"] is False
+    assert handoff_contract["runtime_receipt_authority"]["attempt_terminal_is_paper_progress"] is False
+    assert handoff_contract["runtime_receipt_authority"]["provider_completion_is_domain_completion"] is False
+    assert handoff_contract["provenance"]["work_unit_id"] == "dm003_exact_stage_work_unit"
+    assert handoff_contract["provenance"]["attempt_idempotency_key"] == "attempt::legacy"
+    assert "attempt_idempotency_key" not in request["next_action"]
+    assert "work_unit_id" not in request["next_action"]
     assert request["prompt_contract_ref"]["payload_body_omitted"] is True
     assert request["prompt_contract_ref"]["compact_evidence_packet_ref"] == "packet://evidence"
     assert request["prompt_contract_ref"]["forbidden_surfaces"] == ["paper/**"]
