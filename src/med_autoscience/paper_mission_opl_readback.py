@@ -15,6 +15,9 @@ CLOSEOUT_RELATIVE_ROOTS = (
     Path("artifacts/supervision/consumer/owner_callable_adapter_receipt"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
 )
+WORKSPACE_CLOSEOUT_RELATIVE_ROOTS = (
+    Path("ops/medautoscience/paper_mission_consumption_ledger"),
+)
 TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"
 RUNNING_READBACK_STATUS = "opl_runtime_attempt_running_observed"
 WAITING_READBACK_STATUS = "waiting_for_opl_runtime_live_readback"
@@ -172,6 +175,29 @@ def _matching_terminal_closeout(
                     ),
                 )
             )
+    workspace_root = _workspace_root_for_study_root(resolved_study_root)
+    if workspace_root is not None:
+        for root_ref in WORKSPACE_CLOSEOUT_RELATIVE_ROOTS:
+            closeout_root = workspace_root / root_ref
+            if not closeout_root.is_dir():
+                continue
+            pattern = f"**/{_text(carrier.get('study_id'))}/stage_attempt_closeout_packet.json"
+            for closeout_path in closeout_root.glob(pattern):
+                closeout = _read_json_object(closeout_path)
+                if closeout is None:
+                    continue
+                if not _matches_carrier(closeout=closeout, carrier=carrier):
+                    continue
+                matches.append(
+                    (
+                        closeout_path.stat().st_mtime,
+                        closeout,
+                        _workspace_relative_ref(
+                            workspace_root=workspace_root,
+                            path=closeout_path,
+                        ),
+                    )
+                )
     if not matches:
         return None
     _mtime, closeout, closeout_ref = sorted(
@@ -815,16 +841,21 @@ def _matches_carrier(
         return False
     if _text(closeout.get("study_id")) != _text(carrier.get("study_id")):
         return False
-    if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
-        return False
-    if _text(closeout.get("work_unit_fingerprint")) != _text(
-        carrier.get("work_unit_fingerprint")
+    has_route_identity = _carrier_has_opl_route_identity(carrier)
+    if not has_route_identity or not _closeout_binds_route_identity(
+        closeout=closeout,
+        carrier=carrier,
     ):
-        return False
+        if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
+            return False
+        if _text(closeout.get("work_unit_fingerprint")) != _text(
+            carrier.get("work_unit_fingerprint")
+        ):
+            return False
     route_target = _carrier_route_target(carrier)
     if route_target is not None and _text(closeout.get("stage_id")) != route_target:
         return False
-    if _carrier_has_opl_route_identity(carrier) and (
+    if has_route_identity and (
         _non_current_closeout_reason(closeout.get("blocked_reason"))
         or not _closeout_binds_route_identity(closeout=closeout, carrier=carrier)
     ):
@@ -908,6 +939,30 @@ def _terminal_closeout_readback(
     closeout: Mapping[str, Any],
     closeout_ref: str,
 ) -> dict[str, Any]:
+    paper_stage_log = _mapping(closeout.get("paper_stage_log"))
+    duration = _accounting_mapping(
+        closeout=closeout,
+        paper_stage_log=paper_stage_log,
+        field="duration",
+        missing_reason_field="missing_duration_reason",
+        missing_reason="stage_attempt_closeout_packet_duration_missing",
+    )
+    token_usage = _accounting_mapping(
+        closeout=closeout,
+        paper_stage_log=paper_stage_log,
+        field="token_usage",
+        missing_reason_field="missing_token_usage_reason",
+        missing_reason="stage_attempt_closeout_packet_token_usage_missing",
+        null_fields={"total_tokens": None},
+    )
+    cost = _accounting_mapping(
+        closeout=closeout,
+        paper_stage_log=paper_stage_log,
+        field="cost",
+        missing_reason_field="missing_cost_reason",
+        missing_reason="stage_attempt_closeout_packet_cost_missing",
+        null_fields={"usd": None},
+    )
     return {
         "surface_kind": _text(closeout.get("surface_kind")),
         "closeout_ref": closeout_ref,
@@ -926,6 +981,10 @@ def _terminal_closeout_readback(
         "typed_blocker_ref": _text(closeout.get("typed_blocker_ref")),
         "blocked_reason": _text(closeout.get("blocked_reason")),
         "closeout_refs": _text_list(closeout.get("closeout_refs")),
+        "duration": duration,
+        "token_usage": token_usage,
+        "cost": cost,
+        "paper_stage_log": paper_stage_log,
         "task_id": _text(closeout.get("task_id")),
         "task_status": _text(closeout.get("task_status")),
         "closeout_receipt_status": _text(closeout.get("closeout_receipt_status")),
@@ -937,6 +996,30 @@ def _terminal_closeout_readback(
             "publication_eval_latest_write_authorized": False,
             "controller_decision_write_authorized": False,
         },
+    }
+
+
+def _accounting_mapping(
+    *,
+    closeout: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+    field: str,
+    missing_reason_field: str,
+    missing_reason: str,
+    null_fields: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    observed = _first_mapping(
+        _mapping(closeout.get(field)),
+        _mapping(paper_stage_log.get(field)),
+    )
+    if observed:
+        return observed
+    if field not in closeout and field not in paper_stage_log:
+        return {}
+    return {
+        "status": "missing",
+        **dict(null_fields or {}),
+        missing_reason_field: missing_reason,
     }
 
 
@@ -1094,8 +1177,29 @@ def _study_relative_ref(*, study_root: Path, path: Path) -> str:
         return str(path.resolve())
 
 
+def _workspace_root_for_study_root(study_root: Path) -> Path | None:
+    parent = study_root.parent
+    if parent.name != "studies":
+        return None
+    return parent.parent
+
+
+def _workspace_relative_ref(*, workspace_root: Path, path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(workspace_root.resolve()))
+    except ValueError:
+        return str(path.resolve())
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _first_mapping(*values: Mapping[str, Any]) -> dict[str, Any]:
+    for value in values:
+        if value:
+            return dict(value)
+    return {}
 
 
 def _text_list(value: object) -> list[str]:

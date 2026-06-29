@@ -460,6 +460,147 @@ def test_stage_closure_terminalizer_reads_nested_closeout_telemetry() -> None:
 
     assert "observability_gaps" not in decision
     assert decision["opl_closeout"]["stage_attempt_id"] == "sat-003"
+    assert decision["opl_closeout"]["token_usage"]["total_tokens"] == 1200
+
+
+def test_stage_closure_terminalizer_reads_workspace_consumption_closeout_accounting(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "full_cutover_20260623"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    transaction = _paper_mission_transaction_payload(
+        mission_id=f"paper-mission::{study_id}::medical-prose::one-shot-migration",
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "sat-dm003"
+        / study_id
+    )
+    closeout_root.mkdir(parents=True)
+    closeout_ref = closeout_root / "stage_attempt_closeout_packet.json"
+    closeout_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "blocked",
+                "study_id": study_id,
+                "stage_id": transaction["opl_route_command"]["target"],
+                "stage_attempt_id": "sat-dm003",
+                "stage_packet_ref": transaction["transaction_id"]
+                + "#stage_terminal_decision",
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "closeout_refs": [
+                    transaction["transaction_id"] + "#opl_route_command",
+                ],
+                "paper_stage_log": {
+                    "duration": {
+                        "status": "missing",
+                        "seconds": None,
+                        "missing_duration_reason": "not_measured_for_full_stage",
+                    },
+                    "token_usage": {
+                        "status": "missing",
+                        "total_tokens": None,
+                        "missing_token_usage_reason": (
+                            "no_completed_runner_telemetry_token_usage_observed"
+                        ),
+                    },
+                    "cost": {
+                        "status": "missing",
+                        "usd": None,
+                        "missing_cost_reason": "provider_attempt_cost_not_exposed",
+                    },
+                },
+                "authority_boundary": {"record_only_surface": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": transaction["mission_id"],
+                "study_id": study_id,
+                "objective": "Accepted paper mission waiting for OPL closeout readback.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": {
+                    "candidate_writes_authority": False,
+                    "blocked_paths": [
+                        "publication_eval/latest.json",
+                        "controller_decisions/latest.json",
+                    ],
+                    "forbidden_claims": ["publication_ready"],
+                },
+                "consume_result": {"status": "accepted"},
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": transaction,
+                "one_shot_migration_readback": {
+                    "current_mission": {
+                        "objective_kind": "medical_prose_write_repair",
+                        "legacy_blocker_is_default_execution_state": False,
+                    },
+                    "required_output": {"next_owner": "mission_executor"},
+                    "consume_candidate_status": "accepted",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    closeout = payload["stage_closure_decision"]["opl_closeout"]
+    assert closeout["status"] == "opl_runtime_terminal_readback_observed"
+    assert closeout["stage_attempt_id"] == "sat-dm003"
+    assert closeout["duration"]["missing_duration_reason"] == "not_measured_for_full_stage"
+    assert closeout["token_usage"]["missing_token_usage_reason"] == (
+        "no_completed_runner_telemetry_token_usage_observed"
+    )
+    assert closeout["cost"]["missing_cost_reason"] == "provider_attempt_cost_not_exposed"
+    assert "observability_gaps" not in payload["stage_closure_decision"]
 
 
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:
@@ -498,11 +639,16 @@ def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() ->
         decision["outcome"]["blocker_type"]
         == "route_back_checkpoint_without_semantic_delta"
     )
-    assert decision["observability_gaps"] == [
-        "duration_missing",
-        "token_usage_missing",
-        "cost_missing",
-    ]
+    assert "observability_gaps" not in decision
+    assert decision["opl_closeout"]["duration"]["missing_duration_reason"] == (
+        "stage_closeout_status_missing::duration_not_recorded"
+    )
+    assert decision["opl_closeout"]["token_usage"]["missing_token_usage_reason"] == (
+        "stage_closeout_status_missing::token_usage_not_recorded"
+    )
+    assert decision["opl_closeout"]["cost"]["missing_cost_reason"] == (
+        "stage_closeout_status_missing::cost_not_recorded"
+    )
 
 
 def test_stage_closure_terminalizer_reterminalizes_waiting_opl_closeout_when_terminal_readback_arrives() -> None:

@@ -112,7 +112,7 @@ def terminalize_stage_closure(
 
     gate = _mapping(gate_replay)
     delivery = _mapping(delivery_readback)
-    closeout = _mapping(opl_closeout)
+    closeout = _closeout_with_explicit_accounting(_mapping(opl_closeout))
     delta = _semantic_delta(semantic_delta)
     budget = _repair_budget(repair_budget)
     blockers = _unique_texts(
@@ -748,6 +748,56 @@ def _observability_gaps(closeout: Mapping[str, Any]) -> list[str]:
     return gaps
 
 
+def _closeout_with_explicit_accounting(closeout: Mapping[str, Any]) -> dict[str, Any]:
+    if not closeout:
+        return {}
+    status = _text(closeout.get("status")) or "stage_closeout_status_missing"
+    return {
+        **dict(closeout),
+        "duration": _first_mapping(
+            _mapping(closeout.get("duration")),
+            _explicit_missing_accounting(
+                status=status,
+                field="duration",
+                reason_field="missing_duration_reason",
+                null_fields={"seconds": None},
+            ),
+        ),
+        "token_usage": _first_mapping(
+            _mapping(closeout.get("token_usage")),
+            _explicit_missing_accounting(
+                status=status,
+                field="token_usage",
+                reason_field="missing_token_usage_reason",
+                null_fields={"total_tokens": None},
+            ),
+        ),
+        "cost": _first_mapping(
+            _mapping(closeout.get("cost")),
+            _explicit_missing_accounting(
+                status=status,
+                field="cost",
+                reason_field="missing_cost_reason",
+                null_fields={"usd": None},
+            ),
+        ),
+    }
+
+
+def _explicit_missing_accounting(
+    *,
+    status: str,
+    field: str,
+    reason_field: str,
+    null_fields: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "status": "missing",
+        **dict(null_fields),
+        reason_field: f"{status}::{field}_not_recorded",
+    }
+
+
 def _has_observability_value(value: object) -> bool:
     if value in (None, "", [], {}):
         return False
@@ -764,6 +814,9 @@ def _input_summary(payload: Mapping[str, Any], *, status_key: str) -> dict[str, 
             "source_eval_id": _text(payload.get("source_eval_id")),
             "stage_attempt_id": _text(payload.get("stage_attempt_id")),
             "work_unit_id": _text(payload.get("work_unit_id")),
+            "duration": _mapping(payload.get("duration")) or None,
+            "token_usage": _mapping(payload.get("token_usage")) or None,
+            "cost": _mapping(payload.get("cost")) or None,
         }
     )
 

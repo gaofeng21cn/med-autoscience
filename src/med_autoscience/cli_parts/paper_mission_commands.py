@@ -1407,7 +1407,16 @@ def _stage_closure_decision_requires_reterminalize(
         return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
         return True
-    if any(gap in observability_gaps for gap in ("duration_ms_missing", "cost_usd_missing")):
+    if any(
+        gap in observability_gaps
+        for gap in (
+            "duration_missing",
+            "duration_ms_missing",
+            "token_usage_missing",
+            "cost_missing",
+            "cost_usd_missing",
+        )
+    ):
         return True
     if outcome.get("next_action") == "continue_same_stage":
         return True

@@ -246,6 +246,31 @@ def test_closeout_observability_accepts_actual_stage_log_field_names() -> None:
     assert "observability_gaps" not in decision
 
 
+def test_closeout_observability_records_missing_reasons_without_unknown_gaps() -> None:
+    decision = terminalize_stage_closure(
+        study_id="002-dm-china-us-mortality-attribution",
+        stage_id="submission_milestone_candidate",
+        work_unit_id="followthrough-02",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["accepted_submission_milestone_candidate"],
+        },
+        opl_closeout={"status": "waiting_for_opl_runtime_live_readback"},
+    )
+
+    assert "observability_gaps" not in decision
+    closeout = decision["opl_closeout"]
+    assert closeout["duration"]["missing_duration_reason"] == (
+        "waiting_for_opl_runtime_live_readback::duration_not_recorded"
+    )
+    assert closeout["token_usage"]["missing_token_usage_reason"] == (
+        "waiting_for_opl_runtime_live_readback::token_usage_not_recorded"
+    )
+    assert closeout["cost"]["missing_cost_reason"] == (
+        "waiting_for_opl_runtime_live_readback::cost_not_recorded"
+    )
+
+
 def test_legacy_unclassified_checkpoint_decision_projects_as_route_back_checkpoint() -> None:
     projection = stage_closure_decision_projection(
         readback={
