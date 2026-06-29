@@ -194,13 +194,13 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | `AgentExecutionIndex` | OPL generated, MAS declares domain intent | Agent 热路径的短索引，只暴露 tool id、适用语义、required refs、risk 和 next step hint；不要求 Agent 读取原始合同。 |
 | `ToolUseCard` / `OperationalToolCard` | OPL generated, MAS authority bounded | 单个工具的完整 card 与可执行操作子集：when to use、when not to use、default invocation、required/optional refs、preflight checks、success signals、failure classes、next safe actions、allowed writes、forbidden authority 和 output schema。 |
 | `CapabilityResolverReceipt` | OPL resolves, MAS bounds | soft discovery 保候选、scored fit 给解释、hard invocation gate 给 missing refs / blocker candidate；resolver 不执行工具、不签 authority。 |
-| `CapabilityInvocationPlan` | OPL resolves, MAS bounds | 从 `current_owner_delta` 生成一个 primary operational card、少量 fallback、调用顺序、hard gate 条件、human approval requirement 和 no-new-default-next-action 约束。 |
+| `CapabilityInvocationPlan` | OPL resolves, MAS bounds | 从 `NextActionEnvelope` 生成一个 primary operational card、少量 diagnostic alternatives、调用顺序、hard gate 条件、human approval requirement 和 no-new-default-next-action 约束。 |
 | `ToolResultEnvelope` | Tool returns, OPL stores refs, MAS consumes authority refs | 所有工具结果统一返回 status、output refs、diagnostic refs、receipt refs、typed blocker candidate、error class、`recovery`、retryability、idempotency key 和 no-forbidden-authority proof。 |
 | `ToolAuditTrail` | OPL observability / lineage | 记录 agent 为什么选择该工具、输入 refs、输出 refs、model/tool/handoff id、duration、failure class 和 follow-up owner delta；不能签 MAS authority。 |
 
 设计原则：
 
-1. `current_owner_delta` 是唯一 ordinary planning root。Agent 先读当前 owner / action / desired delta / hard gate，再解析工具；不能从全局工具清单或历史 worklist 反推下一步。
+1. `NextActionEnvelope` 是唯一 ordinary planning root。Agent 先读当前 owner / action family / identity / hard gate，再解析工具；`current_owner_delta` 只能作为 receipt/owner-consumption 后的 projection 或 audit drilldown，不能从全局工具清单、历史 worklist 或 current-owner 投影反推下一步。
 2. 工具发现和调用分三层。找工具阶段 soft match / high recall，不因缺 `required_refs` 丢候选；选工具阶段 scored / explainable，返回 fit reasons、missing refs 和 next safe actions；真正调用阶段 hard contract / fail closed，required refs、allowed writes、forbidden authority、human gate 和 owner receipt / typed blocker requirement 必须满足。
 3. 工具描述必须面向模型。每个 card 写清任务语义、适用条件、反例、输入 ref contract、输出 ref family、常见失败、最小 examples 和验证方式；短命令名、CLI 习惯或人类 runbook 不算 agent affordance。
 4. 风险注解必须机器可读。至少包括 `read_only`、`mutating`、`destructive_candidate`、`idempotent`、`open_world`、`requires_human_gate`、`requires_opl_stage_attempt_or_lease`、`can_write_domain_truth=false/true`、`can_sign_owner_receipt=false/true`。
@@ -211,7 +211,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 理想调用链：
 
-1. Agent 读取 `current_owner_delta`。
+1. Agent 读取 `NextActionEnvelope`。
 2. OPL `AgentExecutionIndex` 根据 stage、owner action、required refs、failure class 和 available context 返回短候选；需要细节时延迟加载对应 `OperationalToolCard`。
 3. Agent 或 OPL resolver 选择最小工具集，形成带 `primary_operational_card` 的 `CapabilityInvocationPlan`。
 4. Tool 执行并返回 `ToolResultEnvelope`。
@@ -304,7 +304,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 实施步骤：
 
-1. 把 study progress、domain-handler export、product-entry、workbench 默认字段统一到 `current_owner_delta`。
+1. 把 study progress、domain-handler export、product-entry、workbench 默认字段统一到 `NextActionEnvelope`，`current_owner_delta` 只保留为 owner projection / audit drilldown。
 2. worklist、receipt replay、raw provider trace、sidecar output、private residue 进入 audit plane。
 3. currentness reducer 只承认 matching work-unit id、fingerprint、allowed action 和 idempotency key。
 4. stale read-model / duplicate receipt / old route-back 只能作为 lineage 或 ignored diagnostic。
@@ -454,7 +454,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | Capability Registry | `resolve_capability_for_current_delta` / `invoke_capability_for_current_delta` | OPL 选择 current-delta-bound capability；MAS 只消费 refs-only advisory / candidate / briefing |
 | Lifecycle Plane | `locate/retain/restore/gc refs` | MAS 授权 artifact mutation，OPL 执行 generic lifecycle |
 | Observability Plane | `trace/metric/log/failure_class` | MAS 只读诊断，不把 observability 当 authority |
-| Workbench Shell | `render_current_owner_delta + audit drilldown` | 默认显示 next action，drilldown 显示 audit refs |
+| Workbench Shell | `render_next_action_envelope + audit drilldown` | 默认显示 canonical next action，drilldown 显示 owner projection / audit refs |
 
 OPL primitive 的目标 ABI 必须统一满足以下字段族：
 

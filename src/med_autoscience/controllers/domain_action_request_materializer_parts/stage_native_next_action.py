@@ -62,7 +62,6 @@ def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> di
     owner = _text(next_action.get("owner")) or request_owner_for_action_type(action_type)
     quest_id = _read_quest_id(study_root=study_root, fallback=study_id)
     admission = stage_native_next_action_admission.next_action_admission(next_action)
-    current_work_unit_binding = stage_native_next_action_admission.current_work_unit_binding(next_action)
     owner_route = _stage_native_owner_route(
         study_id=study_id,
         quest_id=quest_id,
@@ -94,7 +93,6 @@ def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> di
         "stage_index_ref": _text(next_action.get("stage_index_ref")),
         "current_stage_id": _text(next_action.get("current_stage_id")),
         "current_package_status": _text(next_action.get("current_package_status")),
-        "current_work_unit_binding": current_work_unit_binding or None,
         "owner_route": owner_route,
         "handoff_packet": {
             "owner": owner,
@@ -103,7 +101,6 @@ def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> di
             "next_executable_owner": owner,
             "owner_route": owner_route,
             "source_surface": _text(next_action.get("source_surface")),
-            "current_work_unit_binding": current_work_unit_binding or None,
             "stage_native_next_action_admission": admission,
         },
     }
@@ -125,7 +122,6 @@ def _stage_native_owner_route(
         next_action,
         fallback=fallback_fingerprint,
     )
-    current_work_unit_binding = stage_native_next_action_admission.current_work_unit_binding(next_action)
     epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
     return {
         "surface": "domain_route_owner_route",
@@ -151,7 +147,6 @@ def _stage_native_owner_route(
             "source_surface": source_surface,
             "stage_index_ref": _text(next_action.get("stage_index_ref")),
             "current_stage_id": current_stage_id,
-            "current_work_unit_binding": current_work_unit_binding or None,
             "owner_route_currentness_basis": {
                 "truth_epoch": epoch,
                 "runtime_health_epoch": epoch,

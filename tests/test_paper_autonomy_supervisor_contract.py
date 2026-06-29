@@ -353,11 +353,19 @@ def test_domain_diagnostic_apply_consume_only_readback_binds_supervisor_transact
     assert readback["allowed_success_outcome_kinds"] == [
         "owner_receipt_ref",
         "typed_blocker_ref",
-        "provider_admission_pending",
-        "running_provider_attempt",
         "human_gate_ref",
         "route_back_evidence_ref",
     ]
+    assert readback["allowed_transport_readback_outcome_kinds"] == [
+        "provider_admission_pending",
+        "running_provider_attempt",
+    ]
+    assert readback["transport_readback_authority"] == {
+        "success": False,
+        "authority": False,
+        "next_action_authority": False,
+        "paper_progress_authority": False,
+    }
     assert readback["request_projection_outcome_kinds"] == ["transition_request_pending"]
     assert readback["diagnostic_only_outcome_kinds"] == []
     assert readback["non_advancing_apply_effect"] == "typed_blocker_ref"

@@ -12,8 +12,10 @@ LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
     canonical_next_action_gate.legacy_next_action_authority_retirement()["reason"]
 )
 LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
+    "current_executable_owner_action",
     "legacy_next_action_authority",
     "stage_native_workspace_next_action",
+    "study_progress.current_executable_owner_action",
 }
 
 

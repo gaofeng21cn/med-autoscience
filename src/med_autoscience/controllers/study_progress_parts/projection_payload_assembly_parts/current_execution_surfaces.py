@@ -314,9 +314,7 @@ def refresh_current_execution_surfaces(
         handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
         if handoff_envelope:
             updated["current_execution_envelope"] = handoff_envelope
-        successor_action = _mapping_copy(payload.get("current_executable_owner_action"))
-        if not successor_action:
-            successor_action = build_current_executable_owner_action(updated)
+        successor_action = build_current_executable_owner_action(updated)
         if current_control_typed_blocker_successor_action(
             successor_action,
             typed_blocker=_canonical_current_control_typed_blocker(handoff),

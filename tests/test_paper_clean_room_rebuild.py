@@ -24,13 +24,6 @@ def _stage_native_admission_fields(
         "stage_transition_authority_boundary": (
             stage_native_next_action_admission.stage_transition_authority_boundary()
         ),
-        "current_work_unit_binding": (
-            stage_native_next_action_admission.build_current_work_unit_binding(
-                action_type=action_type,
-                current_stage_id=current_stage_id,
-                source_surface=source_surface,
-            )
-        ),
     }
 
 
@@ -63,25 +56,6 @@ def _write_stage_native_next_action(
             **fields,
         },
     )
-
-
-def _stage_native_current_owner_identity(
-    *,
-    action_type: str,
-    source_surface: str,
-    current_stage_id: str = "08-publication_package_handoff",
-) -> dict[str, str]:
-    fields = _stage_native_admission_fields(
-        action_type=action_type,
-        current_stage_id=current_stage_id,
-        source_surface=source_surface,
-    )
-    binding = fields["current_work_unit_binding"]
-    return {
-        "action_type": action_type,
-        "work_unit_id": str(binding["work_unit_id"]),
-        "work_unit_fingerprint": str(binding["work_unit_fingerprint"]),
-    }
 
 
 def _write_profile(path: Path, profile) -> None:
@@ -205,7 +179,7 @@ def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tm
     assert next_action["action_type"] == "run_medical_publication_surface_from_clean_room"
     assert next_action["action_id"] == "stage-native-next-action::run_medical_publication_surface_from_clean_room"
     assert next_action["source_surface"] == "artifacts/supervision/paper_clean_room_rebuild/latest.json"
-    assert next_action["current_work_unit_binding"]["source"] == "canonical_current_work_unit"
+    assert "current_work_unit_binding" not in next_action
 
 
 def test_paper_clean_room_rebuild_prefers_stage_authority_current_body(tmp_path: Path) -> None:
@@ -636,10 +610,6 @@ def test_stage_native_publication_surface_report_owner_route_is_diagnostic_only(
         **dict(route.get("source_refs") or {}),
             "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
             "current_stage_id": "08-publication_package_handoff",
-            "current_work_unit_binding": _stage_native_admission_fields(
-                action_type="run_quality_repair_batch",
-                source_surface="artifacts/reports/medical_publication_surface/latest.json",
-        )["current_work_unit_binding"],
         "owner_route_currentness_basis": {
             "work_unit_id": "run_quality_repair_batch",
             "work_unit_fingerprint": (

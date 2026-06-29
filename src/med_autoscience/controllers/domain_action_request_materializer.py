@@ -587,26 +587,15 @@ def _ai_reviewer_record_production_action(action: Mapping[str, Any]) -> bool:
 
 def _owner_callable_surface(action: Mapping[str, Any]) -> str | None:
     target_surface = _mapping(action.get("target_surface"))
-    registered_callable = (
-        owner_callable_for_action(_text(action.get("action_type")) or "")
-        if _registry_owner_callable_fallback_allowed(action)
-        else None
-    )
     return (
         _text(action.get("owner_callable_surface"))
         or _text(target_surface.get("owner_callable_surface"))
         or _paper_recovery_owner_callable_surface(action)
-        or _text(_mapping(registered_callable).get("callable_surface"))
     )
 
 
 def _registry_owner_callable_fallback_allowed(action: Mapping[str, Any]) -> bool:
-    target_surface = _mapping(action.get("target_surface"))
-    return _text(target_surface.get("ref_kind")) == "paper_recovery_successor_owner_action" and (
-        _text(action.get("authority")) == "study_progress.current_executable_owner_action"
-        or _text(action.get("source_surface")) == "current_executable_owner_action"
-        or _text(action.get("source")) == "current_executable_owner_action"
-    )
+    return False
 
 
 def _paper_recovery_owner_callable_surface(action: Mapping[str, Any]) -> str | None:

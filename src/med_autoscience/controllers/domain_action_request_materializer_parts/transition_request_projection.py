@@ -389,7 +389,6 @@ def _source_action_ref(source_action: Mapping[str, Any]) -> dict[str, Any] | Non
         "required_output_surface",
         "stage_index_ref",
         "current_stage_id",
-        "current_work_unit_binding",
         "stage_native_next_action_admission",
         "next_work_unit",
         "controller_work_unit_id",

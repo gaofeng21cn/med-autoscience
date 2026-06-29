@@ -6,7 +6,6 @@ from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
 
-from med_autoscience.controllers import stage_native_next_action_admission
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -22,16 +21,12 @@ def _stage_native_admission_fields(
     source_surface: str = "artifacts/reports/medical_publication_surface/latest.json",
 ) -> dict[str, object]:
     return {
-        "stage_transition_authority_boundary": (
-            stage_native_next_action_admission.stage_transition_authority_boundary()
-        ),
-        "current_work_unit_binding": (
-            stage_native_next_action_admission.build_current_work_unit_binding(
-                action_type=action_type,
-                current_stage_id=current_stage_id,
-                source_surface=source_surface,
-            )
-        ),
+        "stage_transition_authority_boundary": {
+            "stage_transition_authority": "one-person-lab",
+            "intent_can_write_stage_current_pointer": False,
+            "intent_can_write_stage_run_terminal_state": False,
+            "intent_can_publish_current_owner_delta": False,
+        },
     }
 
 
@@ -514,6 +509,83 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
     )
 
 
+def test_materialize_does_not_synthesize_readiness_followup_from_legacy_current_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm003")
+    _write_ready_literature_intelligence(study_root)
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": "quest-dm003",
+        "truth_epoch": "truth-epoch-dm003-readiness-followup",
+        "runtime_health_epoch": "runtime-health-epoch-dm003-readiness-followup",
+        "work_unit_fingerprint": "legacy-readiness-fingerprint",
+        "failure_signature": "medical_paper_readiness_not_ready",
+        "trace_id": "owner-route-trace::dm003::medical-paper-readiness",
+        "route_epoch": "truth-epoch-dm003-readiness-followup",
+        "source_fingerprint": "truth-source-dm003-readiness-followup",
+        "current_owner": "mas_controller",
+        "next_owner": "MedAutoScience",
+        "owner_reason": "medical_paper_readiness_not_ready",
+        "active_run_id": None,
+        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+        "blocked_actions": [],
+        "source_refs": {
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": "legacy-readiness-fingerprint",
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-epoch-dm003-readiness-followup",
+                "runtime_health_epoch": "runtime-health-epoch-dm003-readiness-followup",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "work_unit_fingerprint": "legacy-readiness-fingerprint",
+            },
+        },
+        "idempotency_key": "owner-route::dm003::medical-paper-readiness-followup",
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm003",
+                    "owner_route": owner_route,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "schema_version": 1,
+                        "status": "ready",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "next_owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                        "surface_key": "literature_provider_runtime",
+                    },
+                    "action_queue": [],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["domain_progress_transition_requests"] == []
+    assert result["domain_progress_transition_request_count"] == 0
+
+
 def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_without_repair_current_action(
     monkeypatch,
     tmp_path: Path,
@@ -523,10 +595,6 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm003")
-    repair_work_unit_fingerprint = (
-        "canonical-current-work-unit::08-publication_package_handoff::"
-        "medical_publication_surface_blocked_write_repair"
-    )
     _write_json(
         study_root / "control" / "next_action.json",
         {
@@ -543,11 +611,6 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
                 "intent_can_write_stage_current_pointer": False,
                 "intent_can_write_stage_run_terminal_state": False,
                 "intent_can_publish_current_owner_delta": False,
-            },
-            "current_work_unit_binding": {
-                "source": "canonical_current_work_unit",
-                "work_unit_id": "medical_publication_surface_blocked_write_repair",
-                "work_unit_fingerprint": repair_work_unit_fingerprint,
             },
         },
     )

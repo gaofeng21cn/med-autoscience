@@ -47,13 +47,6 @@ def stage_native_admission_fields(
         "stage_transition_authority_boundary": (
             stage_native_next_action_admission.stage_transition_authority_boundary()
         ),
-        "current_work_unit_binding": (
-            stage_native_next_action_admission.build_current_work_unit_binding(
-                action_type=action_type,
-                current_stage_id=current_stage_id,
-                source_surface=source_surface,
-            )
-        ),
     }
 
 

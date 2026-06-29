@@ -376,11 +376,19 @@
     "allowed_success_outcome_kinds": [
       "owner_receipt_ref",
       "typed_blocker_ref",
-      "provider_admission_pending",
-      "running_provider_attempt",
       "human_gate_ref",
       "route_back_evidence_ref"
     ],
+    "allowed_transport_readback_outcome_kinds": [
+      "provider_admission_pending",
+      "running_provider_attempt"
+    ],
+    "transport_readback_authority": {
+      "success": false,
+      "authority": false,
+      "next_action_authority": false,
+      "paper_progress_authority": false
+    },
     "request_projection_outcome_kinds": [
       "transition_request_pending"
     ],

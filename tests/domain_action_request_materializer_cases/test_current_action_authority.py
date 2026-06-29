@@ -12,18 +12,10 @@ def _module():
 def _stage_native_repair_action() -> dict[str, object]:
     return {
         "action_type": "run_quality_repair_batch",
-        "authority": "stage_native_workspace_next_action",
-        "default_dispatch_allowed": True,
+        "authority": "stage_native_workspace_next_action_diagnostic_only",
+        "default_dispatch_allowed": False,
         "stage_native_next_action_admission": {
-            "default_dispatch_allowed": True,
-        },
-        "current_work_unit_binding": {
-            "source": "canonical_current_work_unit",
-            "work_unit_id": "medical_publication_surface_blocked_write_repair",
-            "work_unit_fingerprint": (
-                "stage-native-next-action::08-publication_package_handoff::"
-                "run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json"
-            ),
+            "default_dispatch_allowed": False,
         },
     }
 
@@ -42,13 +34,13 @@ def _readiness_barrier(**overrides: object) -> dict[str, object]:
     return payload
 
 
-def test_stage_native_action_derives_only_from_current_readiness_barrier() -> None:
+def test_stage_native_action_does_not_derive_from_current_readiness_barrier() -> None:
     assert (
         _module().stage_native_action_derives_from_readiness_barrier(
             fresh_action=_readiness_barrier(),
             action=_stage_native_repair_action(),
         )
-        is True
+        is False
     )
 
 

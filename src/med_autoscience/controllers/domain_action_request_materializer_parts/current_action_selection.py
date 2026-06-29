@@ -721,40 +721,7 @@ def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, An
         if quest_id is not None:
             payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
         return _attach_owner_route_if_missing(payload, owner_route)
-    action = _mapping(study.get("current_executable_owner_action"))
-    if not current_action_authority.current_readiness_owner_action_matches(study, action):
-        return None
-    owner = _text(action.get("next_owner")) or _text(owner_route.get("next_owner")) or "MedAutoScience"
-    payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "action_type": READINESS_ACTION_TYPE,
-        "action_id": f"current-stage-readiness-followup::{study_id}",
-        "reason": "medical_paper_readiness_not_ready",
-        "owner": owner,
-        "request_owner": owner,
-        "recommended_owner": owner,
-        "authority": "mas_owner_surface",
-        "required_output_surface": READINESS_ACTION_TYPE,
-        "surface_key": _text(action.get("surface_key")) or _text(_mapping(action.get("target_surface")).get("surface_key")),
-        "source_surface": _text(action.get("source")) or "current_executable_owner_action",
-        "source_ref": _text(action.get("source_ref")),
-        "work_unit_id": READINESS_ACTION_TYPE,
-        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint"))
-        or _text(_mapping(owner_route.get("source_refs")).get("work_unit_fingerprint")),
-        "owner_route": owner_route,
-        "handoff_packet": {
-            "action_type": READINESS_ACTION_TYPE,
-            "request_owner": owner,
-            "recommended_owner": owner,
-            "surface_key": _text(action.get("surface_key"))
-            or _text(_mapping(action.get("target_surface")).get("surface_key")),
-            "source": _text(action.get("source")) or "current_executable_owner_action",
-            "owner_route": owner_route,
-            "idempotency_key": _text(owner_route.get("idempotency_key")),
-        },
-    }
-    return {key: value for key, value in payload.items() if value is not None}
+    return None
 
 
 def _fresh_progress_is_repair_progress_followup(action: Mapping[str, Any] | None) -> bool:

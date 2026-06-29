@@ -17,24 +17,17 @@ STAGE_TRANSITION_AUTHORITIES = frozenset({"one-person-lab", "OPL Stage Transitio
 
 def next_action_admission(next_action: Mapping[str, Any]) -> dict[str, Any]:
     authority_boundary = _mapping(next_action.get("stage_transition_authority_boundary"))
-    current_work_unit_binding = _mapping(next_action.get("current_work_unit_binding"))
     has_stage_authority_binding = (
         _text(authority_boundary.get("stage_transition_authority")) in STAGE_TRANSITION_AUTHORITIES
         and authority_boundary.get("intent_can_write_stage_current_pointer") is False
         and authority_boundary.get("intent_can_write_stage_run_terminal_state") is False
         and authority_boundary.get("intent_can_publish_current_owner_delta") is False
     )
-    has_current_work_unit_binding = (
-        _text(current_work_unit_binding.get("source")) == "canonical_current_work_unit"
-        and _text(current_work_unit_binding.get("work_unit_id")) is not None
-        and _text(current_work_unit_binding.get("work_unit_fingerprint")) is not None
-    )
     return {
         "policy": STAGE_NATIVE_NEXT_ACTION_ADMISSION_POLICY,
         "default_dispatch_allowed": False,
         "blocked_reason": STAGE_NATIVE_NEXT_ACTION_BLOCKED_REASON,
         "has_stage_transition_authority_boundary": has_stage_authority_binding,
-        "has_current_work_unit_binding": has_current_work_unit_binding,
         "replacement_authority": "NextActionEnvelope.action_family",
         "legacy_surface_role": "diagnostic_only",
         "stage_run_current_authority": _text(next_action.get("stage_run_current_authority")),
@@ -61,32 +54,6 @@ def stage_transition_authority_boundary() -> dict[str, Any]:
     }
 
 
-def build_current_work_unit_binding(
-    *,
-    action_type: str,
-    current_stage_id: str,
-    source_surface: str,
-) -> dict[str, str]:
-    return {
-        "source": "canonical_current_work_unit",
-        "work_unit_id": action_type,
-        "work_unit_fingerprint": stage_native_fingerprint(
-            action_type=action_type,
-            current_stage_id=current_stage_id,
-            source_surface=source_surface,
-        ),
-    }
-
-
-def stage_native_fingerprint(
-    *,
-    action_type: str,
-    current_stage_id: str,
-    source_surface: str,
-) -> str:
-    return f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
-
-
 def default_dispatch_allowed(next_action: Mapping[str, Any]) -> bool:
     return next_action_admission(next_action)["default_dispatch_allowed"] is True
 
@@ -98,17 +65,12 @@ def action_default_dispatch_allowed(action: Mapping[str, Any]) -> bool:
     )
 
 
-def current_work_unit_binding(next_action: Mapping[str, Any]) -> dict[str, Any]:
-    binding = _mapping(next_action.get("current_work_unit_binding"))
-    return binding if _text(binding.get("source")) == "canonical_current_work_unit" else {}
-
-
 def work_unit_id(next_action: Mapping[str, Any], *, fallback: str) -> str:
-    return _text(current_work_unit_binding(next_action).get("work_unit_id")) or fallback
+    return fallback
 
 
 def work_unit_fingerprint(next_action: Mapping[str, Any], *, fallback: str) -> str:
-    return _text(current_work_unit_binding(next_action).get("work_unit_fingerprint")) or fallback
+    return fallback
 
 
 def dispatch_uses_stage_native_next_action(dispatch: Mapping[str, Any]) -> bool:
@@ -135,13 +97,10 @@ __all__ = [
     "STAGE_NATIVE_WORKSPACE_NEXT_ACTION_AUTHORITY",
     "STAGE_NATIVE_WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY",
     "action_default_dispatch_allowed",
-    "build_current_work_unit_binding",
-    "current_work_unit_binding",
     "default_dispatch_allowed",
     "dispatch_uses_stage_native_next_action",
     "ignored_reason",
     "next_action_admission",
-    "stage_native_fingerprint",
     "stage_transition_authority_boundary",
     "work_unit_fingerprint",
     "work_unit_id",

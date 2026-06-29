@@ -8,7 +8,7 @@ from tests.domain_action_request_materializer_cases.shared import write_json as 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_owner_callable_surface_falls_back_to_registry_for_ai_reviewer_action() -> None:
+def test_owner_callable_surface_does_not_fall_back_to_registry_for_legacy_current_action() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
 
     surface = module._owner_callable_surface(
@@ -22,7 +22,7 @@ def test_owner_callable_surface_falls_back_to_registry_for_ai_reviewer_action() 
         }
     )
 
-    assert surface == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    assert surface is None
     assert module._mas_foreground_owner_callable_action(
         {
             "action_type": "return_to_ai_reviewer_workflow",
@@ -32,10 +32,10 @@ def test_owner_callable_surface_falls_back_to_registry_for_ai_reviewer_action() 
                 "surface_ref": "artifacts/publication_eval/latest.json",
             },
         }
-    ) is True
+    ) is False
 
 
-def test_materializer_keeps_registry_known_successor_action_as_mas_foreground(
+def test_materializer_does_not_keep_registry_known_legacy_successor_action_as_mas_foreground(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -93,16 +93,9 @@ def test_materializer_keeps_registry_known_successor_action_as_mas_foreground(
         dispatch_ready_for_execution=True,
     )
 
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
-    assert dispatch["adapter_kind"] == "mas_foreground_owner_callable_adapter"
-    assert dispatch["dispatch_status"] == "ready"
-    assert dispatch["owner_callable_surface"] == (
-        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    assert result["domain_progress_transition_requests"] == []
+    assert result["domain_progress_transition_request_count"] == 0
+    assert any(
+        item["action_type"] == "return_to_ai_reviewer_workflow"
+        for item in result["ignored_actions"]
     )
-    assert dispatch["target_runtime_owner"] == "med-autoscience"
-    assert dispatch["durable_carrier_owner"] == "med-autoscience"
-    assert dispatch["mas_dispatch_authority"] is True
-    assert dispatch["provider_admission_requires_opl_runtime_result"] is False
-    assert dispatch["projection_only"] is False
-    assert dispatch["owner_callable_adapter_diagnostic_only"] is False

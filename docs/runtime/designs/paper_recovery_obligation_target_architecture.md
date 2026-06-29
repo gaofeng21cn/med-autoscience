@@ -2,16 +2,18 @@
 
 Owner: `MedAutoScience / OPL Framework`
 Purpose: `paper_recovery_obligation_target_architecture`
-State: `active_target_design`
+State: `superseded_diagnostic_design`
 Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、源码、测试、fresh `study_progress`、domain diagnostic dry-run / apply、OPL current-control / attempt ledger、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
+
+2026-06-30 supersession note：本文描述的是 `StageOutcome -> NextActionEnvelope` 收敛前的 PaperRecovery obligation 目标架构。当前默认 next action 不再由 `paper_recovery_state`、`current_work_unit`、provider admission 或 domain-handler export 选择；这些面只能作为 diagnostic / provenance / readback support，不能生成默认 next action、provider admission、paper progress、publication-ready 或 submission-ready 结论。
 
 ## 结论
 
-DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多个 projection / selector / export 面各自重新解释 currentness。目标态必须把恢复链收成一个深模块接口：
+DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多个 projection / selector / export 面各自重新解释 currentness。当前目标态已经收敛为：
 
-`RecoveryObligationKernel input evidence -> paper_recovery_state -> derived projections`
+`StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt -> MAS owner consumption`
 
-`current_work_unit`、`current_execution_envelope`、`study_progress`、domain diagnostic provider admission、domain-handler export、operator card 和 OPL admission 都只能消费 `paper_recovery_state` 的 `phase`、`conditions`、`next_safe_action`、identity 和 closeout refs；它们不能从 queue、旧 dispatch、transport status、operator card、trace/span 或 read-model refresh 反向生成恢复真相。
+PaperRecovery 只保留为诊断/恢复解释层：可以解释 owner receipt、typed blocker、human gate、route-back evidence、transport receipt 和历史 projection 为什么不能推进，但不能替代 `NextActionEnvelope` 生成默认下一步。
 
 ## 目标调用图
 
@@ -21,18 +23,15 @@ flowchart TD
   B["OPL execution observation<br/>StageRun / attempt ledger / liveness"] --> K
   C["terminal closeout refs<br/>consume or reject required"] --> K
   D["read-model projection status<br/>lag and consistency only"] --> K
-  K --> S["paper_recovery_state<br/>one current recovery_obligation_id"]
-  S --> W["current_work_unit"]
-  S --> E["current_execution_envelope"]
-  S --> P["study_progress"]
-  S --> H["domain diagnostic provider admission current-control"]
-  S --> X["domain-handler pending_family_tasks"]
-  S --> O["operator / workbench projections"]
-  H --> R["OPL StageRun admission"]
-  R --> C
+  K --> S["paper_recovery_state<br/>diagnostic recovery explanation"]
+  S --> P["study_progress diagnostic drilldown"]
+  S --> O["operator / workbench diagnostic projections"]
+  SO["StageOutcome"] --> NA["NextActionEnvelope"]
+  NA --> TR["OPL TransitionReceipt"]
+  TR --> MC["MAS owner consumption"]
 ```
 
-`paper_recovery_state` 是唯一 decision root。OPL 的 StageRun / queue / attempt ledger / worker lifecycle 是 current execution substrate；MAS 的 PaperRecovery / owner receipt / typed blocker / quality gate / human gate 是 domain authority。
+`paper_recovery_state` 不再是默认 next-action decision root。OPL 的 StageRun / queue / attempt ledger / worker lifecycle 是 execution transport evidence；MAS 的 StageOutcome / owner receipt / typed blocker / quality gate / human gate / route-back evidence 是 domain authority。
 
 ## 接口
 

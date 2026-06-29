@@ -65,7 +65,6 @@ def _owner_route(
 def _write_stage_native_next_action(
     *,
     study_root: Path,
-    current_work_unit_binding: dict[str, object] | None = None,
 ) -> None:
     payload: dict[str, object] = {
         "schema_version": 1,
@@ -81,15 +80,13 @@ def _write_stage_native_next_action(
             "canonical manuscript story-surface delta or "
             "typed blocker:manuscript_story_surface_delta_missing"
         ),
-    }
-    if current_work_unit_binding is not None:
-        payload["stage_transition_authority_boundary"] = {
+        "stage_transition_authority_boundary": {
             "stage_transition_authority": "one-person-lab",
             "intent_can_write_stage_current_pointer": False,
             "intent_can_write_stage_run_terminal_state": False,
             "intent_can_publish_current_owner_delta": False,
-        }
-        payload["current_work_unit_binding"] = current_work_unit_binding
+        },
+    }
     _write_json(study_root / "control" / "next_action.json", payload)
 
 
@@ -216,7 +213,7 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_an
     )
 
 
-def test_materialize_domain_action_requests_keeps_bound_stage_native_write_diagnostic_after_readiness_blocker(
+def test_materialize_domain_action_requests_keeps_stage_native_write_diagnostic_after_readiness_blocker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -225,18 +222,7 @@ def test_materialize_domain_action_requests_keeps_bound_stage_native_write_diagn
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
-    repair_work_unit_fingerprint = (
-        "canonical-current-work-unit::08-publication_package_handoff::"
-        "medical_publication_surface_blocked_write_repair"
-    )
-    _write_stage_native_next_action(
-        study_root=study_root,
-        current_work_unit_binding={
-            "source": "canonical_current_work_unit",
-            "work_unit_id": "medical_publication_surface_blocked_write_repair",
-            "work_unit_fingerprint": repair_work_unit_fingerprint,
-        },
-    )
+    _write_stage_native_next_action(study_root=study_root)
     readiness_route = _owner_route(
         study_id=study_id,
         quest_id=study_id,
@@ -275,7 +261,7 @@ def test_materialize_domain_action_requests_keeps_bound_stage_native_write_diagn
     )
 
 
-def test_materialize_domain_action_requests_does_not_route_stage_native_write_when_current_work_unit_matches_binding(
+def test_materialize_domain_action_requests_does_not_route_stage_native_write_with_legacy_binding(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -293,15 +279,7 @@ def test_materialize_domain_action_requests_does_not_route_stage_native_write_wh
         "canonical-current-work-unit::08-publication_package_handoff::"
         "medical_publication_surface_blocked_write_repair"
     )
-    current_work_unit_binding = {
-        "source": "canonical_current_work_unit",
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": repair_work_unit_fingerprint,
-    }
-    _write_stage_native_next_action(
-        study_root=study_root,
-        current_work_unit_binding=current_work_unit_binding,
-    )
+    _write_stage_native_next_action(study_root=study_root)
     epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
     stage_native_route = {
         "surface": "domain_route_owner_route",
@@ -321,14 +299,13 @@ def test_materialize_domain_action_requests_does_not_route_stage_native_write_wh
         "active_run_id": None,
         "allowed_actions": ["run_quality_repair_batch"],
         "blocked_actions": [],
-        "source_refs": {
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": repair_work_unit_fingerprint,
-            "source_surface": source_surface,
-            "stage_index_ref": "control/stage_index.json",
-            "current_stage_id": current_stage_id,
-            "current_work_unit_binding": current_work_unit_binding,
-            "owner_route_currentness_basis": {
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": repair_work_unit_fingerprint,
+                "source_surface": source_surface,
+                "stage_index_ref": "control/stage_index.json",
+                "current_stage_id": current_stage_id,
+                "owner_route_currentness_basis": {
                 "truth_epoch": epoch,
                 "runtime_health_epoch": epoch,
                 "work_unit_id": work_unit_id,

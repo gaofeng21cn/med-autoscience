@@ -89,22 +89,7 @@ def stage_native_action_matches_current_study(
     study: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
-    if not _stage_native_action_has_authority_binding(action):
-        return False
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-    if (
-        owner_route
-        and owner_route_part.owner_route_matches(
-            dispatch=action,
-            current_route=owner_route,
-        )
-        and action_allowed_by_owner_route(action, owner_route)
-    ):
-        return True
-    return any(
-        currentness_identities_match(action, current, require_fingerprint=True)
-        for current in _current_identity_payloads(study)
-    )
+    return False
 
 
 def stage_native_action_derives_from_stable_readiness_answer(
@@ -112,11 +97,7 @@ def stage_native_action_derives_from_stable_readiness_answer(
     study: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
-    if not _stage_native_action_has_authority_binding(action):
-        return False
-    if _text(action.get("action_type")) not in READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES:
-        return False
-    return _study_has_stable_readiness_typed_blocker(study)
+    return False
 
 
 def stage_native_action_derives_from_readiness_barrier(
@@ -124,25 +105,7 @@ def stage_native_action_derives_from_readiness_barrier(
     fresh_action: Mapping[str, Any] | None,
     action: Mapping[str, Any],
 ) -> bool:
-    if not _stage_native_action_has_authority_binding(action):
-        return False
-    if _text(action.get("action_type")) not in READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES:
-        return False
-    barrier = _mapping(fresh_action)
-    if not (_text(barrier.get("action_type")) or "").startswith("current_execution_envelope_"):
-        return False
-    if _text(barrier.get("reason")) != "medical_paper_readiness_missing":
-        return False
-    stale_override = barrier.get("current_work_unit_stale_queue_or_handoff_can_override")
-    if stale_override is True or _text(stale_override) == "true":
-        return False
-    if _text(barrier.get("current_work_unit_status")) != "typed_blocker" and _text(
-        barrier.get("current_work_unit_state_kind")
-    ) != "typed_blocker":
-        return False
-    if _text(barrier.get("current_work_unit_id")) not in {READINESS_ACTION_TYPE, None}:
-        return False
-    return _text(barrier.get("work_unit_id")) in {READINESS_ACTION_TYPE, None}
+    return False
 
 
 def stage_native_currentness_diagnostic(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -160,14 +123,7 @@ def stage_native_action_supersedes_stable_readiness_answer(
     readiness_followup: Mapping[str, Any],
     stage_native_action: Mapping[str, Any] | None,
 ) -> bool:
-    if not stage_native_action:
-        return False
-    if _text(stage_native_action.get("action_type")) == READINESS_ACTION_TYPE:
-        return False
-    return (
-        _readiness_followup_is_stable_owner_answer(study=study, action=readiness_followup)
-        or _study_has_stable_readiness_typed_blocker(study)
-    )
+    return False
 
 
 def stage_native_superseded_reason(
@@ -176,16 +132,7 @@ def stage_native_superseded_reason(
     action: Mapping[str, Any],
     stage_native_action: Mapping[str, Any],
 ) -> str:
-    if (
-        _text(action.get("action_type")) == READINESS_ACTION_TYPE
-        and stage_native_action_supersedes_stable_readiness_answer(
-            study=study,
-            readiness_followup=action,
-            stage_native_action=stage_native_action,
-        )
-    ):
-        return "superseded_by_stage_native_next_action_after_readiness_answer"
-    return "superseded_by_stage_native_next_action"
+    return STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON
 
 
 def action_allowed_by_owner_route(
@@ -332,19 +279,6 @@ def _readiness_typed_blocker(blocker: Mapping[str, Any]) -> bool:
         return False
     work_unit_id = _text(blocker.get("work_unit_id"))
     return work_unit_id in {READINESS_ACTION_TYPE, None}
-
-
-def _stage_native_action_has_authority_binding(action: Mapping[str, Any]) -> bool:
-    admission = _mapping(action.get("stage_native_next_action_admission"))
-    binding = _mapping(action.get("current_work_unit_binding"))
-    return (
-        _text(action.get("authority")) == stage_native_next_action.WORKSPACE_NEXT_ACTION_AUTHORITY
-        and action.get("default_dispatch_allowed") is True
-        and admission.get("default_dispatch_allowed") is True
-        and _text(binding.get("source")) == "canonical_current_work_unit"
-        and _text(binding.get("work_unit_id")) is not None
-        and _text(binding.get("work_unit_fingerprint")) is not None
-    )
 
 
 def _current_identity_payloads(study: Mapping[str, Any]) -> list[dict[str, Any]]:

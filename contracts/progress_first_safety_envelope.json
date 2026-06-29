@@ -397,16 +397,21 @@
     {
       "risk_id": "stale_read_model",
       "failure_shape": "Old projections, stage artifact residue, stale action queues, stale current-control, or legacy next_action reenter the default path.",
-      "primary_guard": "canonical_current_work_unit",
-      "canonical_current_source": "current_work_unit",
+      "primary_guard": "stage_outcome_next_action_envelope",
+      "canonical_current_source": "StageOutcome -> NextActionEnvelope",
       "valid_current_statuses": [
-        "executable_owner_action",
-        "running_provider_attempt",
-        "owner_receipt_recorded",
-        "typed_blocker",
-        "blocked_current_work_unit"
+        "next_action_envelope_present",
+        "owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "transport_receipt_ref"
       ],
       "stale_sources_must_be_diagnostic_only": [
+        "current_work_unit",
+        "current_executable_owner_action",
+        "provider_admission_projection",
+        "running_provider_attempt_projection",
         "legacy_control_next_action_without_binding",
         "old_owner_route_handoff",
         "stale_action_queue",
