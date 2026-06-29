@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 from med_autoscience.paper_mission_run import PaperMissionRun
 from med_autoscience.paper_mission_transaction import PaperMissionTransaction
 from tests.test_cli_cases.paper_mission_commands import (
@@ -100,6 +101,24 @@ def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_
     assert payload["current_objective"]["next_owner"] == "mission_executor"
     assert payload["paper_mission_run"]["mission_state"] == "consumed"
     assert payload["paper_mission_run"]["consume_result"]["status"] == "accepted"
+    assert _count_surface_kind(payload, SURFACE_KIND) == 1
+    assert payload["canonical_next_action_source"] == (
+        "artifact_first_mission_summary.next_action"
+    )
+    assert payload["next_action"]["surface_kind"] == SURFACE_KIND
+    assert payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert payload["next_action"]["authority_source"] == "mas_next_action_compiler"
+    assert payload["next_action"]["legacy_fields_are_diagnostic"] is True
+    assert payload["next_action"]["legacy_field_diagnostic_roles"][
+        "work_unit_id"
+    ] == "diagnostic_currentness_id"
+    assert payload["next_action"]["authority_boundary"][
+        "exact_work_unit_id_authority"
+    ] is False
+    assert "next_action" not in payload["artifact_first_mission_summary"]
+    assert payload["artifact_first_mission_summary"]["next_action_ref"] == (
+        payload["next_action"]["action_id"]
+    )
     assert "accepted_submission_milestone_candidate" in payload["paper_mission_run"][
         "stage_closure_readback"
     ]["known_blockers"]
@@ -395,6 +414,15 @@ def assert_legacy_completion_surfaces_absent(payload: dict[str, object]) -> None
         assert key not in payload
 
 
+def _count_surface_kind(value: object, surface_kind: str) -> int:
+    if isinstance(value, dict):
+        count = 1 if value.get("surface_kind") == surface_kind else 0
+        return count + sum(_count_surface_kind(item, surface_kind) for item in value.values())
+    if isinstance(value, list):
+        return sum(_count_surface_kind(item, surface_kind) for item in value)
+    return 0
+
+
 def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fields() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"
@@ -457,6 +485,18 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert payload["next_action"]["authority_boundary"][
         "can_write_provider_attempt"
     ] is False
+    assert payload["canonical_next_action_source"] == (
+        "artifact_first_mission_summary.next_action"
+    )
+    assert _count_surface_kind(payload, SURFACE_KIND) == 1
+    assert payload["next_action"]["authority_source"] == "mas_next_action_compiler"
+    assert payload["next_action"]["legacy_field_diagnostic_roles"][
+        "current_work_unit"
+    ] == "diagnostic_readback_only"
+    assert "next_action" not in payload["artifact_first_mission_summary"]
+    assert payload["artifact_first_mission_summary"]["next_action_ref"] == (
+        payload["next_action"]["action_id"]
+    )
     assert not any(
         ref["role"] == "current_work_unit"
         for ref in payload["next_action"]["diagnostic_refs"]

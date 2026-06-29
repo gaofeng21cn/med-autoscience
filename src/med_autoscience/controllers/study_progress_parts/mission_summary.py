@@ -260,6 +260,13 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
 def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
     summary = build_artifact_first_mission_summary(updated)
+    next_action = _mapping(summary.get("next_action"))
+    if next_action:
+        summary = {
+            key: value for key, value in summary.items() if key != "next_action"
+        }
+        summary["next_action_ref"] = next_action["action_id"]
+        summary["next_action_projection"] = "top_level_canonical_next_action"
     updated["artifact_first_mission_summary"] = summary
     updated["mission_state"] = summary["mission_state"]
     if "consume_candidate_status" in summary:
@@ -279,8 +286,11 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
     updated["opl_route_command"] = summary["opl_route_command"]
     updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
-    if summary.get("next_action"):
-        updated["next_action"] = summary["next_action"]
+    if next_action:
+        updated["next_action"] = next_action
+        updated["canonical_next_action_source"] = (
+            "artifact_first_mission_summary.next_action"
+        )
     updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
     updated["transaction_state"] = summary["transaction_state"]
     updated.update(_top_level_stage_closure_projection(updated))

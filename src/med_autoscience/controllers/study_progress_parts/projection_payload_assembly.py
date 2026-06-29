@@ -428,7 +428,13 @@ def assemble_study_progress_payload(
 
 def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
-    if _mapping_copy(updated.get("next_action")):
+    existing = _mapping_copy(updated.get("next_action"))
+    if existing:
+        updated["next_action"] = existing
+        updated["canonical_next_action_source"] = (
+            _non_empty_text(updated.get("canonical_next_action_source"))
+            or "precomputed_canonical_next_action"
+        )
         return updated
     handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
     transaction = _mapping_copy(updated.get("paper_mission_transaction"))
@@ -464,6 +470,7 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
     )
     if envelope is not None:
         updated["next_action"] = envelope
+        updated["canonical_next_action_source"] = "paper_mission_next_action_envelope"
     return updated
 
 

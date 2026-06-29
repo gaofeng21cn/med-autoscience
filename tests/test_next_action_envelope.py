@@ -85,6 +85,14 @@ def test_compile_envelope_from_stage_outcome_uses_family_as_authority() -> None:
     assert envelope["authority_boundary"]["action_family_authority"] is True
     assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
     assert envelope["authority_boundary"]["can_claim_stage_complete"] is False
+    assert envelope["authority_source"] == "mas_next_action_compiler"
+    assert envelope["legacy_fields_are_diagnostic"] is True
+    assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == (
+        "diagnostic_currentness_id"
+    )
+    assert envelope["legacy_field_diagnostic_roles"][
+        "current_executable_owner_action"
+    ] == "diagnostic_readback_only"
     assert envelope["idempotency_key"] == "owner-route::dm002::repair"
     assert envelope["semantic_progress_signature"] == "sig-dm002"
 

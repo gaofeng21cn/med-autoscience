@@ -197,7 +197,14 @@ def compile_next_action_envelope(
         "retry_or_stop_policy": retry_or_stop_policy_for_family(family),
         "supersedes_refs": _text_items(outcome.get("supersedes_refs")),
         "diagnostic_refs": _diagnostic_refs(diagnostic_refs, outcome, route, owner),
+        "authority_source": "mas_next_action_compiler",
         "legacy_fields_are_diagnostic": True,
+        "legacy_field_diagnostic_roles": {
+            "work_unit_id": "diagnostic_currentness_id",
+            "work_unit_fingerprint": "diagnostic_currentness_signature",
+            "current_work_unit": "diagnostic_readback_only",
+            "current_executable_owner_action": "diagnostic_readback_only",
+        },
         "completion_authority": "stage_outcome_only",
         "runtime_receipt_authority": "opl_transition_receipt_only",
     }

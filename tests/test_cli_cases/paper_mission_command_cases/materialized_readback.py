@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 from med_autoscience.cli_parts import paper_mission_commands as commands
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
@@ -249,6 +250,24 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     assert inspect_payload["paper_mission_transaction"]["stage_id"] == (
         "submission_milestone_candidate"
     )
+    assert _unique_surface_action_ids(inspect_payload, SURFACE_KIND) == {
+        inspect_payload["next_action"]["action_id"]
+    }
+    assert inspect_payload["next_action"] == inspect_payload[
+        "paper_mission_transaction_readback"
+    ]["next_action"]
+    assert inspect_payload["next_action"]["surface_kind"] == SURFACE_KIND
+    assert inspect_payload["next_action"]["authority_source"] == (
+        "mas_next_action_compiler"
+    )
+    assert inspect_payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert inspect_payload["next_action"]["legacy_fields_are_diagnostic"] is True
+    assert inspect_payload["next_action"]["legacy_field_diagnostic_roles"][
+        "work_unit_id"
+    ] == "diagnostic_currentness_id"
+    assert inspect_payload["next_action"]["authority_boundary"][
+        "exact_work_unit_id_authority"
+    ] is False
     assert inspect_payload["paper_mission_transaction_readback"]["source"] == (
         "paper_mission_consumption_ledger"
     )
@@ -443,3 +462,21 @@ def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transa
     assert payload["mutation_policy"]["writes_authority"] is False
     assert payload["mutation_policy"]["writes_runtime"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def _unique_surface_action_ids(value: object, surface_kind: str) -> set[str]:
+    if isinstance(value, dict):
+        ids = (
+            {str(value["action_id"])}
+            if value.get("surface_kind") == surface_kind and value.get("action_id")
+            else set()
+        )
+        for item in value.values():
+            ids.update(_unique_surface_action_ids(item, surface_kind))
+        return ids
+    if isinstance(value, list):
+        ids: set[str] = set()
+        for item in value:
+            ids.update(_unique_surface_action_ids(item, surface_kind))
+        return ids
+    return set()
