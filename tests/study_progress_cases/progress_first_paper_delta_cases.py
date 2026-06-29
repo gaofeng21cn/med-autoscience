@@ -304,8 +304,8 @@ def test_repair_execution_evidence_counts_as_current_paper_delta_and_drops_stale
 
 
 def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker() -> None:
-    assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
     )
     action = {
         "surface_kind": "current_executable_owner_action",
@@ -316,7 +316,7 @@ def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker(
         "allowed_actions": ["return_to_ai_reviewer_workflow"],
     }
 
-    aligned = assembly._current_action_aligned_with_execution_envelope(
+    aligned = surfaces.current_action_aligned_with_execution_envelope(
         action=action,
         envelope={
             "state_kind": "typed_blocker",
@@ -411,7 +411,7 @@ def test_repair_progress_gate_replay_survives_identity_different_terminal_handof
     assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
 
 
-def test_consumed_provider_completion_blocker_promotes_domain_transition_successor() -> None:
+def test_consumed_provider_completion_blocker_does_not_promote_domain_transition_successor() -> None:
     surfaces = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
     )
@@ -478,18 +478,14 @@ def test_consumed_provider_completion_blocker_promotes_domain_transition_success
         runtime_health_snapshot={},
     )
 
-    action = result["current_executable_owner_action"]
-    assert action["source"] == "domain_transition"
-    assert action["next_owner"] == "ai_reviewer"
-    assert action["action_type"] == "return_to_ai_reviewer_workflow"
-    assert action["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
-    assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"]["status"] == "typed_blocker"
+    assert result["current_execution_envelope"]["state_kind"] == "typed_blocker"
 
 
 def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_blocker() -> None:
-    assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    surfaces = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
     )
     action = {
         "surface_kind": "current_executable_owner_action",
@@ -503,7 +499,7 @@ def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_
         "allowed_actions": ["run_quality_repair_batch"],
     }
 
-    aligned = assembly._current_action_aligned_with_execution_envelope(
+    aligned = surfaces.current_action_aligned_with_execution_envelope(
         action=action,
         envelope={
             "state_kind": "typed_blocker",
@@ -531,9 +527,7 @@ def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_
     assert aligned is None
 
 
-_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
-    "test_consumed_provider_completion_blocker_promotes_domain_transition_successor",
-}
+_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = set()
 
 __all__ = [
     name

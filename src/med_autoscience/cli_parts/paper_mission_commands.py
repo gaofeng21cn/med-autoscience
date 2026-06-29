@@ -90,10 +90,6 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_signature,
     terminalize_stage_closure,
 )
-from med_autoscience.controllers.study_progress_parts.delivery_inspection import (
-    read_delivery_inspection_projection,
-)
-
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
@@ -3741,6 +3737,10 @@ def _paper_mission_delivery_projection_fields(
     profile_ref: str | Path,
     study_root: Path,
 ) -> dict[str, Any]:
+    from med_autoscience.controllers.study_progress_parts.delivery_inspection import (
+        read_delivery_inspection_projection,
+    )
+
     delivery = read_delivery_inspection_projection(
         profile=profile,
         profile_ref=profile_ref,

@@ -331,7 +331,7 @@ def test_current_work_unit_consumes_opl_terminal_closeout_over_same_identity_suc
     assert work_unit["state"]["owner_answer_binding"]["typed_blocker_ref"] == closeout_ref
 
 
-def test_current_executable_owner_action_materializes_successor_over_selector_residue() -> None:
+def test_current_executable_owner_action_does_not_materialize_successor_from_selector_residue() -> None:
     from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
         build_current_executable_owner_action,
     )
@@ -396,15 +396,10 @@ def test_current_executable_owner_action_materializes_successor_over_selector_re
         }
     )
 
-    assert action is not None
-    assert action["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
-    assert action["next_owner"] == "write"
-    assert action["action_type"] == "run_quality_repair_batch"
-    assert action["work_unit_id"] == work_unit_id
-    assert action["work_unit_fingerprint"] == fingerprint
+    assert action is None
 
 
-def test_current_executable_owner_action_prefers_gate_followthrough_over_selector_residue_and_replay_followup() -> None:
+def test_current_executable_owner_action_does_not_rebuild_gate_followthrough_from_selector_residue() -> None:
     from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
         build_current_executable_owner_action,
     )
@@ -483,13 +478,7 @@ def test_current_executable_owner_action_prefers_gate_followthrough_over_selecto
         }
     )
 
-    assert action is not None
-    assert action["source"] == "gate_clearing_batch_followthrough.actionable_current_work_unit"
-    assert action["next_owner"] == "write"
-    assert action["action_type"] == "run_quality_repair_batch"
-    assert action["work_unit_id"] == work_unit_id
-    assert action["work_unit_fingerprint"] == fingerprint
-    assert action["required_delta_kind"] == "publication_gate_actionable_repair_delta_or_typed_blocker"
+    assert action is None
 
 
 def test_current_executable_owner_action_suppressed_by_stable_terminal_typed_blocker() -> None:

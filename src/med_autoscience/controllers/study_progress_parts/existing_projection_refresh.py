@@ -295,7 +295,6 @@ def refresh_existing_projection_current_owner_surfaces(
     if (
         _payload_typed_blocker_without_current_action(updated)
         and not _mapping_copy(updated.get("current_executable_owner_action"))
-        and build_current_executable_owner_action(updated) is None
         and not current_control_executable_owner_action(handoff)
         and not _handoff_is_active_provider_control(handoff)
         and not _current_control_handoff_is_typed_blocker(handoff)
@@ -308,13 +307,6 @@ def refresh_existing_projection_current_owner_surfaces(
             study_root=study_root,
         )
     current_control_executable_action = current_control_executable_owner_action(handoff)
-    if current_control_executable_action and not _handoff_is_active_provider_control(handoff):
-        recomputed_action = build_current_executable_owner_action(updated)
-        if _same_current_action_identity(
-            recomputed_action,
-            current_control_executable_action,
-        ):
-            current_control_executable_action = recomputed_action
     if _handoff_is_active_provider_control(handoff):
         provider_admission_action = _current_control_provider_admission_action(handoff)
         if provider_admission_action is not None and _provider_admission_action_supersedes_request_action(
@@ -364,10 +356,7 @@ def refresh_existing_projection_current_owner_surfaces(
             profile_ref=profile_ref,
             study_root=study_root,
         )
-    typed_blocker_successor_action = (
-        current_control_executable_action
-        or build_current_executable_owner_action(updated)
-    )
+    typed_blocker_successor_action = current_control_executable_action
     if _current_control_handoff_is_typed_blocker(handoff) and not current_control_typed_blocker_successor_action(
         typed_blocker_successor_action,
         typed_blocker=_current_control_typed_blocker_for_successor_check(handoff),
@@ -415,9 +404,6 @@ def refresh_existing_projection_current_owner_surfaces(
             )
         )
         updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-        repair_progress_action = build_current_executable_owner_action(updated)
-        if _repair_progress_owner_followup_action(repair_progress_action):
-            updated["current_executable_owner_action"] = repair_progress_action
         updated = _refresh_current_owner_surfaces_from_existing_action(
             payload=updated,
             status=status,
@@ -454,9 +440,6 @@ def refresh_existing_projection_current_owner_surfaces(
         current_control_blocked_reason = None
         current_control_next_owner = None
     progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
-    recovered_current_action = build_current_executable_owner_action(updated)
-    if recovered_current_action is not None:
-        updated["current_executable_owner_action"] = recovered_current_action
     envelope_actions = current_execution_envelope_actions(
         handoff=currentness_handoff,
         current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),

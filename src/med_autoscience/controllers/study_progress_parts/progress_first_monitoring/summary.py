@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..current_action_identity import action_matches_canonical_executable_work_unit
-from ..current_executable_owner_action import build_current_executable_owner_action
 from ..owner_action_admission import (
     build_owner_action_admission_projection,
     provider_attempt_proof_for_current_action,
@@ -145,44 +144,25 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         current_work_unit=canonical_current_work_unit,
         require_ready_status=True,
     )
-    non_artifact_current_action = _mapping(
-        build_current_executable_owner_action({**payload, "stage_artifact_index": {}})
-    )
     stage_kernel_current_action = (
         payload_current_action
         if _stage_kernel_owner_action(payload_current_action)
-        else (
-            non_artifact_current_action
-            if _stage_kernel_owner_action(non_artifact_current_action)
-            else {}
-        )
+        else {}
     )
     repair_progress_current_action = (
         payload_current_action
         if _repair_progress_owner_action(payload_current_action)
-        else (
-            non_artifact_current_action
-            if _repair_progress_owner_action(non_artifact_current_action)
-            else {}
-        )
+        else {}
     )
     gate_followthrough_current_action = (
         payload_current_action
         if _gate_followthrough_owner_action(payload_current_action)
-        else (
-            non_artifact_current_action
-            if _gate_followthrough_owner_action(non_artifact_current_action)
-            else {}
-        )
+        else {}
     )
     publication_eval_current_action = (
         payload_current_action
         if _publication_eval_readiness_blocker_repair_action(payload_current_action)
-        else (
-            non_artifact_current_action
-            if _publication_eval_readiness_blocker_repair_action(non_artifact_current_action)
-            else {}
-        )
+        else {}
     )
     terminal_blocks_owner_actions = bool(terminal_domain_blocker) or _canonical_current_work_unit_terminal_blocker(
         canonical_current_work_unit
@@ -231,7 +211,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or publication_eval_current_action
         or effective_stage_artifact_action
         or payload_current_action
-        or non_artifact_current_action
     )
     current_work_unit_status = _text(canonical_current_work_unit.get("status"))
     canonical_typed_blocker_blocks_liveness = _canonical_typed_blocker_blocks_liveness(
