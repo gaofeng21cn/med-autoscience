@@ -21,16 +21,11 @@ from med_autoscience.paper_mission import (
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
 from med_autoscience.paper_mission_candidate_materializer import (
     CONCRETE_NON_AUTHORITY_PAPER_DELTA_KIND,
-    adopted_external_paper_delta_authority_boundary,
-    materialized_paper_facing_candidate_artifact_payload,
     materialized_paper_facing_candidate_delta,
 )
 from med_autoscience.paper_mission_candidate_package import (
-    AI_OWNER_DECISION_SIDECAR_REFS,
-    SUBMISSION_MILESTONE_KIND,
     paper_mission_owner_blocker_packet,
     paper_mission_owner_consumption_request,
-    paper_mission_submission_milestone_checklist,
 )
 from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
@@ -73,6 +68,13 @@ from med_autoscience.cli_parts.paper_mission_command_parts.receipt_owner_consump
     build_receipt_owner_consumption_readback as _build_receipt_owner_consumption_readback,
     latest_receipt_owner_consumption_readback,
     receipt_owner_consumption_apply_mode as _receipt_owner_consumption_apply_mode,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_context import (
+    foreground_owner_decision_summary as _candidate_foreground_owner_decision_summary,
+    mission_executor_handoff as _candidate_mission_executor_handoff,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_outputs import (
+    write_materialized_candidate_package_outputs as _candidate_write_materialized_candidate_package_outputs,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer import (
     current_package_is_submission_ready_clear as _current_package_is_submission_ready_clear,
@@ -4796,338 +4798,22 @@ def _write_materialized_candidate_package_outputs(
     owner_blocker_packet: dict[str, Any],
     adopted_external_paper_delta_ref: str | None = None,
 ) -> dict[str, Any]:
-    root = output_root.expanduser().resolve()
-    _assert_safe_candidate_package_output_root(root)
-    study_root = root / study_id
-    study_root.mkdir(parents=True, exist_ok=True)
-    outputs = {
-        "package_manifest": study_root / "package_manifest.json",
-        "paper_mission_readback": study_root / "paper_mission_readback.json",
-        "candidate_manifest": study_root / "candidate_manifest.json",
-        "mission_candidate_artifact_delta": study_root
-        / "mission_candidate_artifact_delta.json",
-        "owner_decision_packet": study_root / "owner_decision_packet.json",
-        "foreground_owner_decision_summary": study_root
-        / "foreground_owner_decision_summary.json",
-        "mission_executor_handoff": study_root / "mission_executor_handoff.json",
-        "paper_facing_candidate_delta": study_root
-        / "paper_facing_candidate_delta.json",
-        "owner_consumption_request": study_root / "owner_consumption_request.json",
-        "owner_blocker_packet": study_root / "owner_blocker_packet.json",
-        "submission_milestone_checklist": study_root
-        / "submission_milestone_checklist.json",
-    }
-    paper_facing_artifact_outputs = {
-        kind: study_root / "paper_facing_candidate_artifacts" / f"{kind}.json"
-        for kind in _paper_facing_output_kinds(paper_facing_candidate_delta)
-    }
-    ai_owner_decision_sidecar_outputs = {
-        kind: study_root / relpath
-        for kind, relpath in AI_OWNER_DECISION_SIDECAR_REFS.items()
-    }
-    for path in paper_facing_artifact_outputs.values():
-        path.parent.mkdir(parents=True, exist_ok=True)
-    for path in ai_owner_decision_sidecar_outputs.values():
-        path.parent.mkdir(parents=True, exist_ok=True)
-    sidecar_refs = {
-        "paper_mission_readback": str(outputs["paper_mission_readback"]),
-        "mission_candidate_artifact_delta": str(
-            outputs["mission_candidate_artifact_delta"]
-        ),
-        "owner_decision_packet": str(outputs["owner_decision_packet"]),
-        "foreground_owner_decision_summary": str(
-            outputs["foreground_owner_decision_summary"]
-        ),
-        "mission_executor_handoff": str(outputs["mission_executor_handoff"]),
-        "paper_facing_candidate_delta": str(outputs["paper_facing_candidate_delta"]),
-        "owner_consumption_request": str(outputs["owner_consumption_request"]),
-        "owner_blocker_packet": str(outputs["owner_blocker_packet"]),
-        "submission_milestone_checklist": str(
-            outputs["submission_milestone_checklist"]
-        ),
-    }
-    paper_facing_artifact_refs = {
-        kind: str(path) for kind, path in paper_facing_artifact_outputs.items()
-    }
-    ai_owner_decision_sidecar_refs = {
-        kind: str(path) for kind, path in ai_owner_decision_sidecar_outputs.items()
-    }
-    paper_facing_candidate_delta_payload = {
-        **paper_facing_candidate_delta,
-        "paper_facing_artifact_refs": paper_facing_artifact_refs,
-        "paper_facing_outputs": [
-            {
-                **_mapping(item),
-                **(
-                    {"artifact_ref": paper_facing_artifact_refs[_mapping(item)["kind"]]}
-                    if _mapping(item).get("kind") in paper_facing_artifact_refs
-                    else {}
-                ),
-            }
-            for item in paper_facing_candidate_delta.get("paper_facing_outputs", [])
-            if isinstance(item, Mapping)
-        ],
-    }
-    if adopted_external_paper_delta_ref is not None:
-        paper_facing_candidate_delta_payload.update(
-            {
-                "adopted_external_paper_delta_ref": adopted_external_paper_delta_ref,
-                "source_paper_facing_delta_ref": adopted_external_paper_delta_ref,
-                "adopted_external_paper_delta_authority_boundary": (
-                    adopted_external_paper_delta_authority_boundary()
-                ),
-            }
-        )
-    paper_facing_candidate_delta.clear()
-    paper_facing_candidate_delta.update(paper_facing_candidate_delta_payload)
-    owner_consumption_candidate_refs = {
-        **sidecar_refs,
-        "candidate_manifest": str(outputs["candidate_manifest"]),
-        "package_manifest": str(outputs["package_manifest"]),
-    }
-    if adopted_external_paper_delta_ref is not None:
-        owner_consumption_candidate_refs["adopted_external_paper_delta"] = (
-            adopted_external_paper_delta_ref
-        )
-    owner_blocker_packet_payload = {
-        **owner_blocker_packet,
-        "candidate_refs": owner_consumption_candidate_refs,
-        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
-    }
-    _attach_candidate_manifest_to_next_command(
-        owner_blocker_packet_payload,
-        candidate_manifest_ref=str(outputs["package_manifest"]),
+    return _candidate_write_materialized_candidate_package_outputs(
+        output_root=output_root,
+        study_id=study_id,
+        paper_mission_readback=paper_mission_readback,
+        candidate_manifest=candidate_manifest,
+        candidate_artifact_delta=candidate_artifact_delta,
+        owner_decision_packet=owner_decision_packet,
+        foreground_owner_decision_summary=foreground_owner_decision_summary,
+        mission_executor_handoff=mission_executor_handoff,
+        paper_facing_candidate_delta=paper_facing_candidate_delta,
+        owner_consumption_request=owner_consumption_request,
+        owner_blocker_packet=owner_blocker_packet,
+        candidate_package_forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
+        adopted_external_paper_delta_ref=adopted_external_paper_delta_ref,
     )
-    owner_blocker_packet.clear()
-    owner_blocker_packet.update(owner_blocker_packet_payload)
-    owner_consumption_request_payload = {
-        **owner_consumption_request,
-        "candidate_refs": owner_consumption_candidate_refs,
-        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
-        "consume_path": {
-            **_mapping(owner_consumption_request.get("consume_path")),
-            "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
-        },
-    }
-    _attach_candidate_manifest_to_next_command(
-        owner_consumption_request_payload,
-        candidate_manifest_ref=str(outputs["package_manifest"]),
-    )
-    owner_consumption_request.clear()
-    owner_consumption_request.update(owner_consumption_request_payload)
-    candidate_manifest_payload = {
-        **candidate_manifest,
-        "candidate_artifact_refs": _candidate_artifact_refs_with_paper_delta(
-            candidate_manifest,
-            paper_facing_candidate_delta_ref=str(
-                outputs["paper_facing_candidate_delta"]
-            ),
-        ),
-        "mission_candidate_sidecar_refs": sidecar_refs,
-        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
-    }
-    ai_owner_decision_sidecars = _mapping(
-        owner_consumption_request_payload.get("ai_owner_decision_sidecars")
-    ) or _mapping(owner_blocker_packet_payload.get("ai_owner_decision_sidecars"))
-    payloads = {
-        "paper_mission_readback": paper_mission_readback,
-        "candidate_manifest": candidate_manifest_payload,
-        "mission_candidate_artifact_delta": candidate_artifact_delta,
-        "owner_decision_packet": owner_decision_packet,
-        "foreground_owner_decision_summary": foreground_owner_decision_summary,
-        "mission_executor_handoff": mission_executor_handoff,
-        "paper_facing_candidate_delta": paper_facing_candidate_delta_payload,
-        "owner_consumption_request": owner_consumption_request_payload,
-        "owner_blocker_packet": owner_blocker_packet_payload,
-        "submission_milestone_checklist": paper_mission_submission_milestone_checklist(
-            output_kinds=list(paper_facing_artifact_outputs),
-            owner_blocker_context=_optional_text(
-                owner_blocker_packet_payload.get("status")
-            )
-            == "owner_blocker_candidate_ready",
-        ),
-    }
-    if adopted_external_paper_delta_ref is not None:
-        payloads["submission_milestone_checklist"][
-            "adopted_external_paper_delta_ref"
-        ] = adopted_external_paper_delta_ref
-        payloads["submission_milestone_checklist"][
-            "adopted_external_paper_delta_authority_boundary"
-        ] = adopted_external_paper_delta_authority_boundary()
-    payloads.update(
-        {
-            f"ai_owner_decision_sidecar::{kind}": {
-                **_mapping(ai_owner_decision_sidecars.get(kind)),
-                "sidecar_ref": ai_owner_decision_sidecar_refs[kind],
-            }
-            for kind in ai_owner_decision_sidecar_outputs
-        }
-    )
-    payloads.update(
-        {
-            f"paper_facing_artifact::{kind}": materialized_paper_facing_candidate_artifact_payload(
-                kind=kind,
-                path=path,
-                paper_facing_candidate_delta=paper_facing_candidate_delta_payload,
-                mission_executor_handoff=mission_executor_handoff,
-                forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
-                forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
-            )
-            for kind, path in paper_facing_artifact_outputs.items()
-        }
-    )
-    package_manifest = {
-        "surface_kind": "paper_mission_foreground_candidate_package_manifest",
-        "schema_version": 1,
-        "mode": "non_authority_candidate_package",
-        "milestone_kind": SUBMISSION_MILESTONE_KIND,
-        "study_id": study_id,
-        "mission_id": paper_mission_readback.get("mission_id"),
-        "counts_as_paper_progress": True,
-        "mission_executor_materialized": True,
-        "candidate_content_kind": CONCRETE_NON_AUTHORITY_PAPER_DELTA_KIND,
-        "candidate_is_authority": False,
-        "writes_authority": False,
-        "writes_runtime": False,
-        "writes_yang_authority": False,
-        "writes_paper_body": False,
-        "can_claim_submission_ready": False,
-        "can_claim_publication_ready": False,
-        "can_claim_current_package": False,
-        "can_claim_owner_receipt_written": False,
-        "authority_materialized_by_this_package": False,
-        "source_refs": foreground_owner_decision_summary["input_refs"],
-        "source_document_refs": paper_facing_candidate_delta_payload.get(
-            "source_document_refs", []
-        ),
-        "current_terminal_decision": foreground_owner_decision_summary[
-            "current_terminal_decision"
-        ],
-        "next_owner": foreground_owner_decision_summary["next_owner"],
-        "blocked_reason": foreground_owner_decision_summary["blocked_reason"],
-        "required_owner_action": foreground_owner_decision_summary[
-            "required_owner_action"
-        ],
-        "artifact_refs": sidecar_refs,
-        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
-        **(
-            {"adopted_external_paper_delta_ref": adopted_external_paper_delta_ref}
-            if adopted_external_paper_delta_ref is not None
-            else {}
-        ),
-        "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
-        "paper_facing_candidate_delta_ref": str(
-            outputs["paper_facing_candidate_delta"]
-        ),
-        "owner_consumption_request_ref": str(outputs["owner_consumption_request"]),
-        "owner_blocker_packet_ref": str(outputs["owner_blocker_packet"]),
-        "submission_milestone_checklist_ref": str(
-            outputs["submission_milestone_checklist"]
-        ),
-        "paper_facing_artifact_refs": paper_facing_artifact_refs,
-        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
-        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-    }
-    payloads["package_manifest"] = package_manifest
-    written_files: list[str] = []
-    file_sha256: dict[str, str] = {}
-    all_outputs = {
-        **outputs,
-        **{
-            f"paper_facing_artifact::{kind}": path
-            for kind, path in paper_facing_artifact_outputs.items()
-        },
-        **{
-            f"ai_owner_decision_sidecar::{kind}": path
-            for kind, path in ai_owner_decision_sidecar_outputs.items()
-        },
-    }
-    for key, path in all_outputs.items():
-        text = json.dumps(payloads[key], ensure_ascii=False, indent=2) + "\n"
-        path.write_text(text, encoding="utf-8")
-        written_files.append(str(path))
-        file_sha256[str(path)] = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    return {
-        "mode": "non_authority_candidate_package",
-        "output_root": str(study_root),
-        "written_files": written_files,
-        "file_sha256": file_sha256,
-        "writes_authority": False,
-        "writes_runtime": False,
-        "writes_yang_authority": False,
-        "writes_paper_body": False,
-        "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(root),
-        "package_manifest_ref": str(outputs["package_manifest"]),
-        "paper_mission_readback_ref": str(outputs["paper_mission_readback"]),
-        "candidate_manifest_ref": str(outputs["candidate_manifest"]),
-        "mission_candidate_artifact_delta_ref": str(
-            outputs["mission_candidate_artifact_delta"]
-        ),
-        "owner_decision_packet_ref": str(outputs["owner_decision_packet"]),
-        "foreground_owner_decision_summary_ref": str(
-            outputs["foreground_owner_decision_summary"]
-        ),
-        "mission_executor_handoff_ref": str(outputs["mission_executor_handoff"]),
-        "paper_facing_candidate_delta_ref": str(
-            outputs["paper_facing_candidate_delta"]
-        ),
-        "owner_consumption_request_ref": str(outputs["owner_consumption_request"]),
-        "owner_blocker_packet_ref": str(outputs["owner_blocker_packet"]),
-        "submission_milestone_checklist_ref": str(
-            outputs["submission_milestone_checklist"]
-        ),
-        "paper_facing_artifact_refs": paper_facing_artifact_refs,
-        "ai_owner_decision_sidecar_refs": ai_owner_decision_sidecar_refs,
-        **(
-            {"adopted_external_paper_delta_ref": adopted_external_paper_delta_ref}
-            if adopted_external_paper_delta_ref is not None
-            else {}
-        ),
-    }
-
-
-def _attach_candidate_manifest_to_next_command(
-    payload: dict[str, Any],
-    *,
-    candidate_manifest_ref: str,
-) -> None:
-    command = payload.get("next_legal_command")
-    if not isinstance(command, dict):
-        return
-    argv = command.get("argv_template")
-    if not isinstance(argv, list):
-        return
-    command["argv_template"] = [
-        candidate_manifest_ref if item == "<package_manifest_ref>" else item
-        for item in argv
-    ]
-
-
-def _paper_facing_output_kinds(
-    paper_facing_candidate_delta: Mapping[str, Any],
-) -> list[str]:
-    kinds: list[str] = []
-    for item in paper_facing_candidate_delta.get("paper_facing_outputs", []):
-        if not isinstance(item, Mapping):
-            continue
-        kind = _optional_text(item.get("kind"))
-        if kind is not None and kind not in kinds:
-            kinds.append(kind)
-    return kinds
-
-
-def _candidate_artifact_refs_with_paper_delta(
-    candidate_manifest: Mapping[str, Any],
-    *,
-    paper_facing_candidate_delta_ref: str,
-) -> list[str]:
-    refs = [
-        ref
-        for ref in _text_list(candidate_manifest.get("candidate_artifact_refs"))
-        if ref != paper_facing_candidate_delta_ref
-    ]
-    refs.append(paper_facing_candidate_delta_ref)
-    return refs
 
 
 def _mission_executor_handoff(
@@ -5135,95 +4821,12 @@ def _mission_executor_handoff(
     readback: Mapping[str, Any],
     foreground_owner_decision_summary: Mapping[str, Any],
 ) -> dict[str, Any]:
-    terminal_decision = _mapping(readback.get("stage_terminal_decision"))
-    route_command = _mapping(readback.get("opl_route_command"))
-    next_decision = _mapping(readback.get("next_owner_or_human_decision"))
-    next_owner = _first_text(
-        next_decision.get("next_owner"),
-        foreground_owner_decision_summary.get("next_owner"),
-        terminal_decision.get("next_owner"),
+    return _candidate_mission_executor_handoff(
+        readback=readback,
+        foreground_owner_decision_summary=foreground_owner_decision_summary,
+        candidate_package_forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
     )
-    decision_kind = _optional_text(terminal_decision.get("decision_kind"))
-    is_route_back = decision_kind == "route_back" or next_owner == "mission_executor"
-    handoff_status = (
-        "ready_for_mission_executor"
-        if is_route_back
-        else "not_routed_to_mission_executor"
-    )
-    return {
-        "surface_kind": "paper_mission_executor_handoff",
-        "schema_version": 1,
-        "status": handoff_status,
-        "study_id": readback.get("study_id"),
-        "mission_id": readback.get("mission_id"),
-        "next_owner": next_owner,
-        "handoff_reason": _first_text(
-            terminal_decision.get("reason"),
-            foreground_owner_decision_summary.get("blocked_reason"),
-            readback.get("consume_candidate_status"),
-        ),
-        "route_back_evidence_ref": terminal_decision.get("route_back_evidence_ref"),
-        "repair_scope": terminal_decision.get("repair_scope"),
-        "target_stage_id": terminal_decision.get("target_stage_id")
-        or terminal_decision.get("next_stage_id"),
-        "current_terminal_decision": {
-            "decision_kind": decision_kind,
-            "status": terminal_decision.get("status"),
-            "route_command": route_command.get("command_kind"),
-            "source_terminal_decision_ref": route_command.get(
-                "source_terminal_decision_ref"
-            ),
-        },
-        "input_refs": foreground_owner_decision_summary.get("input_refs", {}),
-        "runtime_touchpoint": foreground_owner_decision_summary.get(
-            "runtime_touchpoint", {}
-        ),
-        "expected_paper_facing_outputs": [
-            {
-                "kind": "manuscript_patch_plan",
-                "required": True,
-                "authority_note": "candidate plan only until MAS consumes it",
-            },
-            {
-                "kind": "claim_evidence_ledger_delta",
-                "required": True,
-                "authority_note": "candidate delta only until MAS consumes it",
-            },
-            {
-                "kind": "figure_table_caption_delta",
-                "required": True,
-                "authority_note": "candidate delta only until MAS consumes it",
-            },
-            {
-                "kind": "reviewer_gate_response_draft",
-                "required": True,
-                "authority_note": "candidate response only until MAS consumes it",
-            },
-            {
-                "kind": "owner_decision_packet",
-                "required": True,
-                "authority_note": "submit through MAS authority consume path",
-            },
-        ],
-        "resume_path": (
-            "Mission executor should use this handoff to produce a paper-facing "
-            "candidate artifact delta and owner decision packet; MAS remains the "
-            "authority that accepts, rejects, routes back, blocks, or asks a human."
-        ),
-        "authority_boundary": {
-            "candidate_is_authority": False,
-            "authority_materialized_by_this_handoff": False,
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_paper_body": False,
-            "can_authorize_provider_admission": False,
-            "can_claim_paper_progress": False,
-            "can_claim_runtime_ready": False,
-        },
-        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
-        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-    }
 
 
 def _write_paper_mission_consumption_ledger_outputs(
@@ -5259,107 +4862,13 @@ def _foreground_owner_decision_summary(
     candidate_artifact_delta: Mapping[str, Any],
     owner_decision_packet: Mapping[str, Any],
 ) -> dict[str, Any]:
-    terminal_decision = _mapping(readback.get("stage_terminal_decision"))
-    next_decision = _mapping(readback.get("next_owner_or_human_decision"))
-    terminal_owner_gate = _mapping(readback.get("terminal_owner_gate"))
-    owner_packet_next_owner = _optional_text(owner_decision_packet.get("next_owner"))
-    candidate_next_owner = _optional_text(candidate_manifest.get("next_owner"))
-    decision_next_owner = _optional_text(terminal_decision.get("next_owner"))
-    selected_next_owner = _first_text(
-        next_decision.get("next_owner"),
-        terminal_owner_gate.get("owner"),
-        decision_next_owner,
-        owner_packet_next_owner,
-        candidate_next_owner,
-        "mas_authority_kernel",
-    )
-    blocked_reason = _first_text(
-        terminal_owner_gate.get("blocked_reason"),
-        terminal_decision.get("blocker_id"),
-        terminal_decision.get("reason"),
-        readback.get("consume_candidate_status"),
-        "owner_decision_required",
-    )
-    required_owner_action = _required_owner_action(
+    return _candidate_foreground_owner_decision_summary(
         readback=readback,
-        next_owner=selected_next_owner or "mas_authority_kernel",
-        blocked_reason=blocked_reason or "owner_decision_required",
-    )
-    return {
-        "surface_kind": "paper_mission_foreground_owner_decision_summary",
-        "schema_version": 1,
-        "candidate_is_authority": False,
-        "governed_runtime_truth": False,
-        "authority_materialized_by_this_packet": False,
-        "study_id": readback.get("study_id"),
-        "mission_id": readback.get("mission_id"),
-        "objective": readback.get("objective"),
-        "input_refs": {
-            "profile_ref": _mapping(readback.get("profile")).get("profile_ref"),
-            "materialized_mission_ref": readback.get("materialized_mission_ref"),
-            "candidate_manifest_ref": readback.get("candidate_manifest_ref"),
-            "candidate_id": candidate_manifest.get("candidate_id"),
-            "artifact_delta_ref": candidate_artifact_delta.get("artifact_ref"),
-            "owner_decision_packet_id": owner_decision_packet.get("packet_id"),
-            "source_readiness_refs": candidate_manifest.get("source_readiness_refs", []),
-        },
-        "current_terminal_decision": {
-            "decision_kind": terminal_decision.get("decision_kind"),
-            "status": terminal_decision.get("status"),
-            "reason": terminal_decision.get("reason"),
-            "next_owner": decision_next_owner,
-            "next_stage_id": terminal_decision.get("next_stage_id"),
-            "target_stage_id": terminal_decision.get("target_stage_id"),
-            "next_work_unit": terminal_decision.get("next_work_unit"),
-            "work_unit_id": terminal_decision.get("work_unit_id"),
-            "repair_scope": terminal_decision.get("repair_scope"),
-            "blocker_id": terminal_decision.get("blocker_id"),
-            "unblock_condition": terminal_decision.get("unblock_condition"),
-        },
-        "runtime_touchpoint": {
-            "opl_runtime_readback_status": readback.get("opl_runtime_readback_status"),
-            "terminal_owner_gate": terminal_owner_gate or None,
-            "next_owner_or_human_decision": next_decision,
-        },
-        "next_owner": selected_next_owner,
-        "blocked_reason": blocked_reason,
-        "required_owner_action": required_owner_action,
-        "remaining_owner_gap": (
-            "MAS/OPL owner surface must consume, route back, materialize a governed "
-            "typed blocker or human gate, or accept an owner receipt before this "
-            "candidate can be treated as runtime truth."
-        ),
-        "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-        "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
-    }
-
-
-def _required_owner_action(
-    *,
-    readback: Mapping[str, Any],
-    next_owner: str,
-    blocked_reason: str,
-) -> str:
-    consume_status = _optional_text(readback.get("consume_candidate_status"))
-    if consume_status == "accepted":
-        return (
-            f"{next_owner} must consume the accepted candidate through governed "
-            "MAS authority or route it back with a governed receipt; foreground "
-            "package alone does not authorize paper progress."
-        )
-    if consume_status == "typed_blocker":
-        return (
-            f"{next_owner} must materialize or reject the governed typed blocker "
-            f"request for `{blocked_reason}`."
-        )
-    if consume_status == "human_gate":
-        return (
-            f"{next_owner} must record the governed human-gate decision for "
-            f"`{blocked_reason}`."
-        )
-    return (
-        f"{next_owner} must decide whether to consume, route back, block, or ask a "
-        f"human question for `{blocked_reason}`."
+        candidate_manifest=candidate_manifest,
+        candidate_artifact_delta=candidate_artifact_delta,
+        owner_decision_packet=owner_decision_packet,
+        candidate_package_forbidden_authority_writes=CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
     )
 
 
