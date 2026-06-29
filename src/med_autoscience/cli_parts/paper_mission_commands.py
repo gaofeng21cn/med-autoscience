@@ -827,6 +827,16 @@ def _build_paper_mission_drive_readback(
         "terminal_owner_gate_owner_answer_readback": consume_readback.get(
             "terminal_owner_gate_owner_answer_readback"
         ),
+        "semantic_progress_signature": consume_readback.get(
+            "semantic_progress_signature"
+        ),
+        "route_back_budget": consume_readback.get("route_back_budget"),
+        "mission_executor_fallback_action": consume_readback.get(
+            "mission_executor_fallback_action"
+        ),
+        "carry_forward_risk_receipt_ref": consume_readback.get(
+            "carry_forward_risk_receipt_ref"
+        ),
         "opl_route_handoff": handoff or None,
         "opl_runtime_submission": opl_runtime_submission,
         "followthrough": followthrough,

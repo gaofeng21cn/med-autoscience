@@ -874,6 +874,18 @@ def test_paper_mission_drive_followthroughs_terminal_owner_answer_route_back(
         "continue_same_stage"
     )
     assert payload["opl_route_command"]["command_kind"] == "resume_stage"
+    assert payload["semantic_progress_signature"] == payload["consume_readback"][
+        "semantic_progress_signature"
+    ]
+    assert payload["route_back_budget"] == payload["consume_readback"][
+        "route_back_budget"
+    ]
+    assert payload["mission_executor_fallback_action"] == payload["consume_readback"][
+        "mission_executor_fallback_action"
+    ]
+    assert payload["carry_forward_risk_receipt_ref"] == payload["consume_readback"][
+        "carry_forward_risk_receipt_ref"
+    ]
     assert payload["opl_runtime_readback_status"] != (
         "waiting_for_opl_runtime_live_readback"
     )
