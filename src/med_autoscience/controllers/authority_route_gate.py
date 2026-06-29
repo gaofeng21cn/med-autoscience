@@ -57,6 +57,12 @@ _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
         "same_fingerprint_loop",
     }
 )
+_GATE_CLEAR_PACKAGE_BYPASS_REASONS = frozenset(
+    {
+        *_MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS,
+        "publication_supervisor_state.bundle_tasks_downstream_only",
+    }
+)
 _PAPER_WRITE_DISPATCH_BYPASS_REASONS = frozenset(
     {
         "publication_supervisor_state.bundle_tasks_downstream_only",
@@ -272,6 +278,7 @@ def _controller_route_gate(action: str, route_context: Mapping[str, Any]) -> dic
         "work_unit_id_role": "provenance_currentness_only",
         "controller_action_type": controller_action_type,
         "control_surface": control_surface,
+        "authority_basis": _text(controller_route.get("authority_basis")),
         "blocking_reasons": blocking_reasons,
         "authority_ref": {
             key: _text(controller_route.get(key))
@@ -320,6 +327,8 @@ def _controller_route_can_bypass_dispatch_reasons(
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _UPSTREAM_QUALITY_AUTHORITY_DISPATCH_BYPASS_REASONS
     if _controller_route_is_managed_publication_work_unit(controller_route_gate, action=action):
+        if _controller_route_basis_is_gate_clear(controller_route_gate):
+            return set(dispatch_gate_reasons) <= _GATE_CLEAR_PACKAGE_BYPASS_REASONS
         if action == "submission_materialize":
             return set(dispatch_gate_reasons) <= (
                 _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS | _PAPER_WRITE_DISPATCH_BYPASS_REASONS
@@ -338,6 +347,8 @@ def _controller_route_can_bypass_action_authorization(
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
     if _controller_route_is_managed_publication_work_unit(controller_route_gate, action=action):
+        if _controller_route_basis_is_gate_clear(controller_route_gate):
+            return set(dispatch_gate_reasons) <= _GATE_CLEAR_PACKAGE_BYPASS_REASONS
         return set(dispatch_gate_reasons) <= _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS
     return False
 
@@ -375,6 +386,10 @@ def _controller_route_is_managed_publication_work_unit(
         return False
     allowed_actions = _controller_route_allowed_actions(work_unit_id=work_unit_id, action_family=action_family)
     return allowed_actions is not None and action in allowed_actions
+
+
+def _controller_route_basis_is_gate_clear(controller_route_gate: Mapping[str, Any]) -> bool:
+    return _text(controller_route_gate.get("authority_basis")) == "current_publishability_gate_clear"
 
 
 def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any]) -> dict[str, Any]:

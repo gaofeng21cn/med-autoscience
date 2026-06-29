@@ -62,6 +62,47 @@ def test_delivery_inspector_reports_v2_source_mirror_and_read_only_policy(tmp_pa
     assert "submission_manifest.json" not in names
 
 
+def test_delivery_inspector_projects_submission_ready_from_authorized_delivery_manifest(tmp_path: Path) -> None:
+    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=tmp_path / "repo")
+
+    sync_result = sync_module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+        promote_to_final=True,
+    )
+    delivery_status = sync_module.describe_submission_delivery(paper_root=paper_root)
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert sync_result["package_kind"] == "submission_ready_package"
+    assert sync_result["can_submit"] is True
+    assert delivery_status["status"] == "current"
+    assert result["freshness"]["verdict"] == "current"
+    assert result["human_package"]["package_kind"] == "submission_ready_package"
+    assert result["human_package"]["can_submit"] is True
+    assert result["human_package"]["source_signature"] == sync_result["source_signature"]
+    reproducibility_signature = json.loads(
+        (
+            study_root
+            / "manuscript"
+            / "current_package"
+            / "reproducibility"
+            / "source_signature.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert reproducibility_signature["source_signature"] == sync_result["source_signature"]
+
+
 def test_delivery_inspector_uses_study_owned_source_when_recorded_manifest_source_was_migrated(
     tmp_path: Path,
 ) -> None:

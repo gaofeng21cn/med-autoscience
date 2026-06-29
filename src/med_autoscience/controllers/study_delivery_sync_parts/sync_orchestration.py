@@ -43,6 +43,10 @@ def _explicit_submission_authority_blocked(gate: Mapping[str, Any]) -> bool:
     )
 
 
+def _submission_authority_allowed(gate: Mapping[str, Any]) -> bool:
+    return bool(gate.get("allowed")) and bool(gate.get("authorized")) and not _known_submission_authority_blockers(gate)
+
+
 def _mirror_authority_gate(*, submission_authority_gate: Mapping[str, Any]) -> dict[str, Any]:
     return {
         **dict(submission_authority_gate),
@@ -100,6 +104,7 @@ def sync_study_delivery(
         )
     mirror_authority_gate = _mirror_authority_gate(submission_authority_gate=authority_route_gate)
     known_submission_authority_blockers = _known_submission_authority_blockers(authority_route_gate)
+    submission_authority_allowed = _submission_authority_allowed(authority_route_gate)
     clean_migration_blocker = paper_authority_delivery_guard.pending_clean_migration_blocker(
         study_root=study_root,
     )
@@ -126,7 +131,7 @@ def sync_study_delivery(
         result["submission_authority_gate"] = authority_route_gate
         return attach_authority_route_gate(result, mirror_authority_gate)
 
-    if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+    if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE and not submission_authority_allowed:
         result = sync_general_delivery(
             paper_root=paper_root,
             worktree_root=worktree_root,
@@ -156,7 +161,11 @@ def sync_study_delivery(
         result["submission_authority_gate"] = authority_route_gate
         return attach_authority_route_gate(result, mirror_authority_gate)
 
-    sync_journal_delivery = sync_promoted_journal_delivery if promote_to_final else sync_journal_specific_delivery
+    sync_journal_delivery = (
+        sync_promoted_journal_delivery
+        if promote_to_final or submission_authority_allowed
+        else sync_journal_specific_delivery
+    )
     result = sync_journal_delivery(
         paper_root=paper_root,
         worktree_root=worktree_root,
@@ -166,6 +175,7 @@ def sync_study_delivery(
         normalized_stage=normalized_stage,
         publication_profile=normalized_publication_profile,
     )
+    result["submission_authority_gate"] = authority_route_gate
     return attach_authority_route_gate(result, authority_route_gate)
 
 

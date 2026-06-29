@@ -97,6 +97,13 @@ CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
     },
 }
 
+CURRENT_PACKAGE_GENERATED_REPRODUCIBILITY_RELATIVE_PATHS = frozenset(
+    {
+        Path("reproducibility") / "artifact_lineage_graph.json",
+        Path("reproducibility") / "source_signature.json",
+    }
+)
+
 
 def _submission_projection_target_relative_path(relative_path: Path) -> Path:
     if relative_path == Path("submission_manifest.json"):
@@ -185,6 +192,8 @@ def _submission_projection_file_matches_source(
     if not target.exists():
         return False
     if relative_path in CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS:
+        return True
+    if relative_path in CURRENT_PACKAGE_GENERATED_REPRODUCIBILITY_RELATIVE_PATHS:
         return True
     if _hash_file_bytes(source) == _hash_file_bytes(target):
         return True

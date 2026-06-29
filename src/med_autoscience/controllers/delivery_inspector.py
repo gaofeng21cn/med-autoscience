@@ -133,6 +133,49 @@ def _inspect_package(*, package_root: Path, role: str) -> dict[str, Any]:
     }
 
 
+def _delivery_manifest_package_overlay(
+    *,
+    delivery_manifest: Mapping[str, Any],
+    human_root: Path,
+    human_package: Mapping[str, Any],
+) -> dict[str, Any]:
+    targets = delivery_manifest.get("targets") if isinstance(delivery_manifest.get("targets"), dict) else {}
+    surface_roles = (
+        delivery_manifest.get("surface_roles")
+        if isinstance(delivery_manifest.get("surface_roles"), dict)
+        else {}
+    )
+    manifest_human_root = str(
+        targets.get("current_package_root")
+        or surface_roles.get("human_facing_current_package_root")
+        or ""
+    ).strip()
+    if not manifest_human_root:
+        return {}
+    try:
+        if Path(manifest_human_root).expanduser().resolve() != human_root:
+            return {}
+    except OSError:
+        return {}
+    manifest_signature = str(delivery_manifest.get("source_signature") or "").strip()
+    if not manifest_signature:
+        return {}
+    human_signature = str(human_package.get("source_signature") or "").strip()
+    if human_signature and human_signature != manifest_signature:
+        return {}
+    return {
+        key: delivery_manifest.get(key)
+        for key in (
+            "package_kind",
+            "can_submit",
+            "quality_gate_status",
+            "known_blockers",
+            "generated_from_current_source",
+        )
+        if key in delivery_manifest
+    }
+
+
 def _inspect_zip(zip_path: Path) -> dict[str, Any]:
     resolved_zip = Path(zip_path).expanduser().resolve()
     result: dict[str, Any] = {
@@ -345,6 +388,13 @@ def inspect_study_delivery(
     ).expanduser().resolve()
     source_package = _inspect_package(package_root=source_root, role="controller_authorized_source")
     human_package = _inspect_package(package_root=human_root, role="human_facing_mirror")
+    human_package.update(
+        _delivery_manifest_package_overlay(
+            delivery_manifest=delivery_manifest,
+            human_root=human_root,
+            human_package=human_package,
+        )
+    )
     inspection_package = submission_inspection_export.inspect_inspection_package(study_root=resolved_study_root)
 
     try:

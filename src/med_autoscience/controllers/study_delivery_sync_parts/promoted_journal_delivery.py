@@ -190,6 +190,7 @@ def sync_promoted_journal_delivery(
         generated_files=generated_files,
         review_ledger_source=paper_root / "review" / "review_ledger.json",
         charter_contract_linkage=charter_contract_linkage,
+        source_signature=source_signature,
     )
     copy_review_ledger_to_delivery_root(
         paper_root=paper_root,
@@ -288,6 +289,11 @@ def sync_promoted_journal_delivery(
         "schema_version": 1,
         "generated_at": utc_now(),
         "stage": f"{publication_profile}_submission",
+        "package_kind": "submission_ready_package",
+        "can_submit": True,
+        "quality_gate_status": "clear",
+        "known_blockers": [],
+        "generated_from_current_source": True,
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,

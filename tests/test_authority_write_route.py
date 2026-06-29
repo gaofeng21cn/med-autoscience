@@ -11,6 +11,10 @@ import pytest
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.submission_minimal_cases.package_core_and_authority import make_paper_workspace
 from tests.test_study_delivery_sync_cases.shared import make_delivery_workspace
+from med_autoscience.controllers.study_delivery_sync_parts.delivery_descriptions import (
+    _submission_source_relative_paths,
+    _submission_source_signature,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -336,6 +340,109 @@ def test_delivery_sync_derives_snapshot_but_does_not_require_bundle_gate_for_cur
     assert result["submission_authority_gate"]["allowed"] is False
     assert "bundle_build_allowed_false" in result["submission_authority_gate"]["blocking_reasons"]
     assert (study_root / "manuscript" / "current_package").exists()
+
+
+def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    _write_runtime_authority_snapshots(
+        study_root,
+        blocking_reasons=[
+            "publication_supervisor_state.bundle_tasks_downstream_only",
+            "runtime_recovery_retry_budget_exhausted",
+        ],
+    )
+    source_root = paper_root / "submission_minimal"
+    source_signature = _submission_source_signature(
+        paper_root=paper_root,
+        source_root=source_root,
+        relative_paths=_submission_source_relative_paths(paper_root=paper_root, source_root=source_root),
+    )
+    quest_root = study_root.parent.parent / "runtime" / "quests" / study_root.name
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: {study_root.name}\nruntime_reentry_gate:\n  study_id: {study_root.name}\n",
+        encoding="utf-8",
+    )
+    gate_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    gate_path.parent.mkdir(parents=True, exist_ok=True)
+    gate_path.write_text(
+        json.dumps(
+            {
+                "status": "clear",
+                "blockers": [],
+                "bundle_tasks_downstream_only": False,
+                "authority_source_signature": source_signature,
+                "paper_root": str(paper_root),
+                "latest_gate_path": str(gate_path),
+                "gate_fingerprint": "gate::clear",
+                "work_unit_fingerprint": "work-unit::submission-minimal",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert result["package_kind"] == "submission_ready_package"
+    assert result["can_submit"] is True
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["submission_authority_gate"]["allowed"] is True
+    assert result["submission_authority_gate"]["controller_route_gate"]["action_family"] == (
+        "paper.package.submission_minimal"
+    )
+    assert result["submission_authority_gate"]["controller_route_gate"]["work_unit_id"] == (
+        "submission_minimal_refresh"
+    )
+    assert "bundle_build_allowed_false" not in result["submission_authority_gate"]["blocking_reasons"]
+
+
+def test_delivery_sync_does_not_adopt_gate_clear_with_stale_source_signature(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    _write_runtime_authority_snapshots(
+        study_root,
+        blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+    )
+    quest_root = study_root.parent.parent / "runtime" / "quests" / study_root.name
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: {study_root.name}\nruntime_reentry_gate:\n  study_id: {study_root.name}\n",
+        encoding="utf-8",
+    )
+    gate_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    gate_path.parent.mkdir(parents=True, exist_ok=True)
+    gate_path.write_text(
+        json.dumps(
+            {
+                "status": "clear",
+                "blockers": [],
+                "bundle_tasks_downstream_only": False,
+                "authority_source_signature": "source::stale",
+                "latest_gate_path": str(gate_path),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert result["package_kind"] == "current_package"
+    assert result["can_submit"] is False
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert "bundle_build_allowed_false" in result["submission_authority_gate"]["blocking_reasons"]
 
 
 def test_flat_progress_first_publication_gate_replay_route_context_is_explicit_without_snapshot() -> None:
