@@ -181,6 +181,13 @@ def _opl_running_task_completed_attempt_payload() -> dict[str, object]:
                     "no_typed_domain_handler_closeout_observed"
                 ),
             ],
+            "opl_transition_receipt": _opl_transition_receipt(
+                stage_attempt_id="sat-completed",
+                typed_runtime_blocker_ref=(
+                    "opl://stage-attempts/sat-completed/runtime-blockers/"
+                    "no_typed_domain_handler_closeout_observed"
+                ),
+            ),
             "closeout_receipt_status": "accepted_typed_closeout",
             "provider_run": {
                 "provider_status": "completed",
@@ -227,8 +234,55 @@ def _opl_running_task_running_attempt_payload() -> dict[str, object]:
     return payload
 
 
+def _opl_transition_receipt(
+    *,
+    stage_attempt_id: str = "sat-terminal",
+    task_id: str = "frt-stage-route",
+    typed_runtime_blocker_ref: str = "typed-blocker:opl_runtime_live_readback_required",
+) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_transition_receipt",
+        "schema_version": 1,
+        "receipt_status": "terminal_closeout_observed",
+        "role": "transport_receipt_only",
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
+        "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+        "command_kind": "start_next_stage",
+        "route_target": "publication_gate_replay",
+        "route_identity_key": "paper-mission-transaction::dm002::route",
+        "attempt_idempotency_key": "dm002::attempt",
+        "request_idempotency_key": "dm002::request",
+        "task_id": task_id,
+        "task_status": "blocked",
+        "stage_attempt_id": stage_attempt_id,
+        "stage_attempt_ref": f"opl://stage-attempts/{stage_attempt_id}",
+        "runtime_closeout_ref": (
+            f"opl://family-runtime/tasks/{task_id}/terminal-closeout-readback"
+        ),
+        "typed_runtime_blocker_ref": typed_runtime_blocker_ref,
+        "closeout_refs": [
+            "paper-mission-transaction::dm002#stage_terminal_decision",
+            typed_runtime_blocker_ref,
+        ],
+        "closeout_receipt_status": "accepted_typed_closeout",
+        "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        "can_change_stage_terminal_decision": False,
+        "can_select_next_owner": False,
+        "can_claim_paper_progress": False,
+        "authority_boundary": {
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "can_claim_paper_progress": False,
+        },
+    }
+
+
 def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object]:
     terminal = _opl_runtime_task_payload()["family_runtime_task"]["task"]
+    terminal["current_control_state"]["opl_transition_receipt"] = _opl_transition_receipt()
     successor = {
         "task_id": "frt-successor",
         "domain_id": "medautoscience",
@@ -363,6 +417,12 @@ def _opl_queue_with_list_closeout_summary_payload() -> dict[str, object]:
         "typed_blocker_refs": [
             "opl://stage-attempts/sat-list-terminal/runtime-blockers/domain_gate_pending"
         ],
+        "opl_transition_receipt": _opl_transition_receipt(
+            stage_attempt_id="sat-list-terminal",
+            typed_runtime_blocker_ref=(
+                "opl://stage-attempts/sat-list-terminal/runtime-blockers/domain_gate_pending"
+            ),
+        ),
         "stage_run_currentness_identity": {
             "stage_id": "publication_gate_replay",
         },

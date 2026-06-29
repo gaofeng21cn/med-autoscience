@@ -666,10 +666,14 @@ def _opl_task_terminal_closeout(
     if _non_current_closeout_reason(blocked_reason):
         return None
     closeout_refs = closeout_refs or stage_closeout_refs or _event_closeout_refs(events)
-    opl_transition_receipt = _event_opl_transition_receipt(
-        events=events,
-        carrier=carrier,
-    )
+    opl_transition_receipt = _first_opl_transition_receipt(
+        carrier,
+        current_control,
+        stage_attempt,
+        task,
+    ) or _event_opl_transition_receipt(events=events, carrier=carrier)
+    if opl_transition_receipt is None:
+        return None
     typed_blocker_ref = (
         typed_blocker_refs[0]
         if typed_blocker_refs
@@ -893,6 +897,17 @@ def _event_opl_transition_receipt(
     for event in reversed(events):
         payload = _mapping(_mapping(event).get("payload"))
         receipt = _mapping(payload.get("opl_transition_receipt"))
+        if _matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
+            return dict(receipt)
+    return None
+
+
+def _first_opl_transition_receipt(
+    carrier: Mapping[str, Any],
+    *sources: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    for source in sources:
+        receipt = _mapping(source.get("opl_transition_receipt"))
         if _matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
             return dict(receipt)
     return None

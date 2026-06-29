@@ -4,6 +4,7 @@ from tests.test_paper_mission_opl_readback_cases.shared import (
     _carrier,
     _opl_route_carrier,
     _opl_runtime_task_payload,
+    _opl_transition_receipt,
     _opl_running_task_completed_attempt_payload,
     _opl_running_task_running_attempt_payload,
     _write_closeout,
@@ -303,6 +304,51 @@ def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
     assert terminal["opl_transition_receipt"] == receipt
 
 
+def test_opl_terminal_closeout_readback_requires_transition_receipt(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    payload = _opl_runtime_task_payload()
+    payload["family_runtime_task"]["events"] = []
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+    assert "opl_transition_receipt" not in readback
+
+
+def test_opl_terminal_closeout_readback_rejects_unsafe_transition_receipt(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    payload = _opl_runtime_task_payload()
+    receipt = payload["family_runtime_task"]["events"][0]["payload"][
+        "opl_transition_receipt"
+    ]
+    receipt["authority_boundary"]["writes_owner_receipt"] = True
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+    assert "opl_transition_receipt" not in readback
+
+
 def test_opl_terminal_closeout_readback_rejects_cross_transaction_opl_runtime_task(
     tmp_path: Path,
 ) -> None:
@@ -381,6 +427,9 @@ def test_opl_terminal_closeout_readback_accepts_stage_terminal_ref_binding(
                 "paper-mission-transaction::dm002",
                 "paper-mission-transaction::dm002#stage_terminal_decision",
             ],
+            "opl_transition_receipt": _opl_transition_receipt(
+                stage_attempt_id="sat-stage-ref",
+            ),
             "closeout_receipt_status": "accepted_typed_closeout",
             "provider_run": {
                 "provider_status": "completed",
