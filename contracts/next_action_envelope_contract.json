@@ -1,0 +1,69 @@
+{
+  "surface_kind": "mas_next_action_envelope_contract",
+  "version": "next-action-envelope.v1",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Single MAS-owned next-action envelope compiled from a stage terminal outcome before OPL transport or owner callable dispatch. It prevents exact work-unit ids, read models, queues, attempts, delivery mirrors, or materializer registries from becoming competing next-action authorities.",
+  "machine_boundary": "Only MAS compiles NextActionEnvelope from StageOutcome/StageTerminalDecision. OPL consumes the envelope as runtime transport intent and returns TransitionReceipt. OPL must not infer medical quality or stage completion from queues, attempts, provider completion, or read-model status.",
+  "required_fields": [
+    "surface_kind",
+    "schema_version",
+    "action_id",
+    "study_id",
+    "stage_id",
+    "outcome_ref",
+    "action_family",
+    "action_kind",
+    "owner",
+    "executor_target",
+    "expected_output_contract",
+    "authority_boundary",
+    "idempotency_key",
+    "semantic_progress_signature"
+  ],
+  "allowed_action_families": [
+    "paper.write.prose_repair",
+    "paper.review.ai_reviewer",
+    "paper.gate.publishability_replay",
+    "paper.package.submission_minimal",
+    "paper.delivery.sync",
+    "human.approval",
+    "blocked.typed",
+    "runtime.wait_receipt",
+    "runtime.opl_route",
+    "mission.complete"
+  ],
+  "identity_policy": {
+    "action_id_role": "stable envelope identity",
+    "idempotency_key_role": "runtime and owner callable replay identity",
+    "semantic_progress_signature_role": "semantic loop budget identity",
+    "exact_work_unit_id_role": "provenance and currentness only, never authority"
+  },
+  "authority_boundary_required": {
+    "next_action_authority": true,
+    "authority_owner": "MedAutoScience",
+    "runtime_owner": "one-person-lab",
+    "action_family_authority": true,
+    "exact_work_unit_id_authority": false,
+    "can_claim_stage_complete": false,
+    "can_claim_submission_ready": false,
+    "can_claim_publication_ready": false,
+    "can_write_owner_receipt": false,
+    "can_write_typed_blocker": false,
+    "can_write_human_gate": false,
+    "can_write_runtime_queue_or_provider_attempt": false
+  },
+  "default_projection_policy": {
+    "paper_mission_inspect": "Project the current NextActionEnvelope as the only default next action.",
+    "study_progress": "Project the current NextActionEnvelope as current owner/action. Legacy current_work_unit, queue, attempt, delivery, and recovery surfaces are diagnostic refs only.",
+    "opl_handoff": "Consume action_id and idempotency_key. Return TransitionReceipt; do not decide stage completion."
+  },
+  "forbidden_authorities": [
+    "current_work_unit_selects_next_action",
+    "queue_or_attempt_selects_next_action",
+    "delivery_mirror_selects_next_action",
+    "exact_work_unit_id_selects_authority_route",
+    "materializer_registry_selects_next_owner",
+    "focused_tests_or_docs_claim_stage_completion"
+  ]
+}
