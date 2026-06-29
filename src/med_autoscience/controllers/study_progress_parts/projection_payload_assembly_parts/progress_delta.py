@@ -271,6 +271,9 @@ def _progress_delta_classification(
 
 
 def _token_usage_total(token_usage: dict[str, Any]) -> int | None:
+    status = _non_empty_text(token_usage.get("status")) if token_usage else None
+    if status in {"missing", "not_available"}:
+        return None
     total = _number(
         token_usage.get("total_tokens")
         if token_usage
