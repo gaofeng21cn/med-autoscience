@@ -125,10 +125,11 @@ Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前
 ## 2026-06-29 源码侧退役切片
 
 - `autonomy_state_surface` 已物理切断 `domain_next_action_projection` 默认返回字段；该 surface 只保留 `authority_snapshot.canonical_next_action`，不再携带旧 projection 作为可读 next-action 候选。
+- `domain_next_action_projection.py` 已在无 active caller 后物理删除；旧字符串只允许出现在 history/docs/tests 的 no-resurrection 断言中。
 - `authority_route_gate` 已删除 per-work-unit / per-study exact-id route allowlist。controller route 授权只看 canonical `action_family`；旧 work-unit id 可作为 provenance/currentness input 帮助解析 family，但 gate/readback 字段固定 `work_unit_id_authority=false`。
 - `story_surface_work_units` 仍保留 legacy exact id registry 作为 provenance-to-family resolver 和 no-resurrection guard；它不是 route authority、dispatch authority 或 paper progress proof。
 
-该切片不声明 `domain_next_action_projection.py` 本体物理删除、不声明所有 read model 已投影 `NextActionEnvelope`、不声明 OPL runtime / DM002 / DM003 live readiness。
+该切片不声明所有 read model 已投影 `NextActionEnvelope`、不声明 OPL runtime / DM002 / DM003 live readiness。
 
 ## 验收标准
 
@@ -145,4 +146,4 @@ Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前
 
 ## 当前状态
 
-当前状态是 `planned_landing_with_source_retirement_slice`：本文把 StageOutcome 后的 next-action 单一控制面固定为目标设计和退役口径，并记录 `autonomy_state_surface` legacy projection 默认出口与 `authority_route_gate` exact-id route allowlist 的源码退役切片。它不声称现有 contract schema、全部 runtime projection、OPL transition runtime 或 DM002/DM003 live evidence 已全部切换完成。
+当前状态是 `source_retirement_slice_landed`：本文把 StageOutcome 后的 next-action 单一控制面固定为目标设计和退役口径，并记录 `autonomy_state_surface` legacy projection 默认出口、`domain_next_action_projection.py` 源码入口与 `authority_route_gate` exact-id route allowlist 的退役切片。它不声称现有全部 runtime projection、OPL transition runtime 或 DM002/DM003 live evidence 已全部切换完成。
