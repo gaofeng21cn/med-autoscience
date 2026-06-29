@@ -70,10 +70,11 @@ def execution_owner_route(
     if (
         stage_native_route is not None
         and owner_route_block_reason(dispatch=dispatch, current_route=stage_native_route) is None
+        and stage_native_dispatch_selection.dispatch_has_canonical_next_action_envelope(dispatch)
     ):
         if stage_native_dispatch_selection.dispatch_has_opl_execution_proof(dispatch):
-            return stage_native_route, "stage_native_workspace_next_action"
-        return stage_native_route, "stage_native_workspace_next_action_blocker_projection"
+            return stage_native_route, "canonical_next_action_envelope"
+        return stage_native_route, "canonical_next_action_envelope_blocker_projection"
     provider_hosted_route = _provider_hosted_stage_attempt_dispatch_route(dispatch)
     if provider_hosted_route is not None:
         return provider_hosted_route, "provider_hosted_stage_attempt_dispatch"

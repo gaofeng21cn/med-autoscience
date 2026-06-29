@@ -134,21 +134,6 @@ def explicit_action_dispatches(
             and stage_native_matches_next_action
             and not stage_native_next_action_current
         )
-        if (
-            not provider_hosted_stage_run_current
-            and stage_native_dispatch_selection.dispatch_uses_stage_native_next_action(payload)
-            and stage_native_dispatch_selection.next_action(
-                profile=profile, study_id=study_id
-            )
-            is not None
-            and not stage_native_next_action_current
-            and not stage_native_missing_authority_blocker_projection
-            and not fresh_progress_owner_actions.dispatch_matches_paper_recovery_successor(
-                progress=_mapping(fresh_progress),
-                dispatch=payload,
-            )
-        ):
-            continue
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
             profile=profile,
             study_id=study_id,
@@ -307,10 +292,7 @@ def selected_dispatches(
     terminal_closeout_owner_answer = _terminal_closeout_owner_answer_required(fresh_progress)
     current_study = scan_route_currentness.scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
-    stage_native_next_action = None if action_types else stage_native_dispatch_selection.next_action(
-        profile=profile,
-        study_id=study_id,
-    )
+    stage_native_next_action = None
     consumer_dispatches = current_consumer_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
@@ -341,34 +323,7 @@ def selected_dispatches(
     )
     if paper_recovery_successor_dispatches:
         stage_native_next_action = None
-    if stage_native_next_action is not None and stage_native_dispatch_selection.next_action_superseded_by_current_control(
-        profile=profile,
-        study_id=study_id,
-        next_action=stage_native_next_action,
-        current_study=current_study,
-        consumer_dispatches=consumer_dispatches,
-        runtime_current_dispatches_only=_runtime_current_dispatches_only,
-    ):
-        stage_native_next_action = None
-    if stage_native_next_action is not None:
-        proof_backed_stage_native_dispatches = (
-            stage_native_dispatch_selection.next_action_dispatches_with_opl_proof_only(
-                next_action=stage_native_next_action,
-                dispatches=consumer_dispatches,
-            )
-        )
-        if not proof_backed_stage_native_dispatches:
-            stage_native_next_action = None
     effective_action_types = action_types
-    if stage_native_next_action is not None and (
-        stage_native_action_type := _text(stage_native_next_action.get("action_type"))
-    ) is not None:
-        effective_action_types = (stage_native_action_type,)
-    if stage_native_next_action is not None:
-        consumer_dispatches = stage_native_dispatch_selection.next_action_dispatches_only(
-            next_action=stage_native_next_action,
-            dispatches=consumer_dispatches,
-        )
     current_dispatches = runtime_current_dispatch_selection.current_dispatches_only(
         dispatches=consumer_dispatches,
         current_study=current_study,
@@ -517,13 +472,6 @@ def selected_dispatches(
             return runtime_current_selected
         if current_selected:
             return current_selected
-        if stage_native_next_action is not None:
-            stage_native_selected = stage_native_dispatch_selection.next_action_dispatches_with_opl_proof_only(
-                next_action=stage_native_next_action,
-                dispatches=selected,
-            )
-            if stage_native_selected:
-                return stage_native_selected
         if scan_route_currentness.consumed_transition_owner_route(current_study):
             return []
         if progress_envelope_blocks_dispatch_selection:
@@ -621,13 +569,6 @@ def selected_dispatches(
     )
     if scan_route_currentness.consumed_transition_owner_route(current_study) and not selected:
         return []
-    if stage_native_next_action is not None:
-        stage_native_selected = stage_native_dispatch_selection.next_action_dispatches_with_opl_proof_only(
-            next_action=stage_native_next_action,
-            dispatches=selected,
-        )
-        if stage_native_selected:
-            return stage_native_selected
     runtime_current_selected = _runtime_current_dispatches_only(
         study_id=study_id,
         dispatches=selected,
@@ -753,13 +694,6 @@ def _selected_dispatches_only(
             continue
         if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
             dispatch
-        ):
-            selected.append(dispatch)
-            continue
-        if stage_native_dispatch_selection.next_action_has_opl_execution_proof(
-            profile=profile,
-            study_id=study_id,
-            dispatch=dispatch,
         ):
             selected.append(dispatch)
             continue
@@ -934,12 +868,6 @@ def _dispatch_selectable_despite_blocking_progress(
     if _fresh_progress_owner_action_selectable(
         current_study=current_study,
         progress=fresh_progress,
-        dispatch=dispatch,
-    ):
-        return True
-    if stage_native_dispatch_selection.next_action_has_opl_execution_proof(
-        profile=profile,
-        study_id=study_id,
         dispatch=dispatch,
     ):
         return True
