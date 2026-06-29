@@ -670,7 +670,6 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.opl_runtime_owner_handoff_path",
-                "refs.runtime_readback_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
