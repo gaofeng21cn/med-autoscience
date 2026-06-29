@@ -59,7 +59,22 @@ def test_tombstoned_runtime_actions_are_not_mas_owner_callables_or_dispatch_acti
     assert retired_action_contract["registered"] is False
     assert retired_action_contract["allowed_actions"] == []
     assert registry.owner_callable_for_action(retired_action) is None
-    assert retired_action not in dispatcher.SUPPORTED_ACTION_TYPES
+    assert not hasattr(dispatcher, "SUPPORTED_ACTION_TYPES")
+    unsupported_execution = router.execute_owner_dispatch_action(
+        profile=None,
+        study_id="DM-RETIRE",
+        action_type=retired_action,
+        dispatch={},
+        apply=False,
+        execute_publication_gate_specificity=lambda **_: {},
+        execute_ai_reviewer_workflow=lambda **_: {},
+        quest_root_resolver=lambda *_: None,
+    )
+    assert unsupported_execution == {
+        "execution_status": "blocked",
+        "blocked_reason": "unsupported_action_type",
+        "owner_callable_surface": None,
+    }
     assert retired_action not in inspect.getsource(router.execute_owner_dispatch_action)
 
 
