@@ -326,11 +326,11 @@ def _delta_tokens(*, total_tokens: int | None, triggered: bool) -> int | None:
     if triggered:
         return total_tokens
     if total_tokens is None:
-        return 0
+        return None
     return 0
 
 
 def _inactive_platform_tokens(*, total_tokens: int | None, paper_triggered: bool) -> int | None:
     if total_tokens is None:
-        return 0
+        return None
     return 0

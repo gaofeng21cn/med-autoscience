@@ -757,7 +757,7 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     assert "developer_supervisor_attention_required: `True`" in markdown
     assert "runtime_recovery_retry_budget_exhausted" in markdown
     assert result["paper_progress_delta"]["count"] == 0
-    assert result["paper_progress_delta"]["token_usage_total"] == 0
+    assert result["paper_progress_delta"]["token_usage_total"] is None
     assert result["platform_repair_delta"]["count"] == 1
 def test_stage_progress_log_alone_does_not_trigger_platform_repair_delta(
     monkeypatch,
@@ -810,9 +810,9 @@ def test_stage_progress_log_alone_does_not_trigger_platform_repair_delta(
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
     assert result["paper_progress_delta"]["count"] == 0
-    assert result["paper_progress_delta"]["token_usage_total"] == 0
+    assert result["paper_progress_delta"]["token_usage_total"] is None
     assert result["platform_repair_delta"]["count"] == 0
-    assert result["platform_repair_delta"]["token_usage_total"] == 0
+    assert result["platform_repair_delta"]["token_usage_total"] is None
 
 
 def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
