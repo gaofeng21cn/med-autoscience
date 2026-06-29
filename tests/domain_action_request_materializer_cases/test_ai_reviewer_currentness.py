@@ -450,7 +450,7 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
     } == {
-        "run_quality_repair_batch": "stage_native_workspace_next_action_requires_authority_binding",
+        "run_quality_repair_batch": "stage_native_workspace_next_action_retired_use_next_action_envelope",
     }
 
 

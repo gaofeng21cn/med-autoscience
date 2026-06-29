@@ -8,11 +8,9 @@ STAGE_NATIVE_WORKSPACE_NEXT_ACTION_AUTHORITY = "stage_native_workspace_next_acti
 STAGE_NATIVE_WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY = (
     "stage_native_workspace_next_action_diagnostic_only"
 )
-STAGE_NATIVE_NEXT_ACTION_ADMISSION_POLICY = (
-    "requires_canonical_current_work_unit_or_opl_stage_transition_authority_binding"
-)
+STAGE_NATIVE_NEXT_ACTION_ADMISSION_POLICY = "stage_native_workspace_next_action_diagnostic_only"
 STAGE_NATIVE_NEXT_ACTION_BLOCKED_REASON = (
-    "stage_native_workspace_next_action_requires_authority_binding"
+    "stage_native_workspace_next_action_retired_use_next_action_envelope"
 )
 STAGE_TRANSITION_AUTHORITIES = frozenset({"one-person-lab", "OPL Stage Transition Authority"})
 
@@ -31,13 +29,14 @@ def next_action_admission(next_action: Mapping[str, Any]) -> dict[str, Any]:
         and _text(current_work_unit_binding.get("work_unit_id")) is not None
         and _text(current_work_unit_binding.get("work_unit_fingerprint")) is not None
     )
-    allowed = has_stage_authority_binding and has_current_work_unit_binding
     return {
         "policy": STAGE_NATIVE_NEXT_ACTION_ADMISSION_POLICY,
-        "default_dispatch_allowed": allowed,
-        "blocked_reason": None if allowed else STAGE_NATIVE_NEXT_ACTION_BLOCKED_REASON,
+        "default_dispatch_allowed": False,
+        "blocked_reason": STAGE_NATIVE_NEXT_ACTION_BLOCKED_REASON,
         "has_stage_transition_authority_boundary": has_stage_authority_binding,
         "has_current_work_unit_binding": has_current_work_unit_binding,
+        "replacement_authority": "NextActionEnvelope.action_family",
+        "legacy_surface_role": "diagnostic_only",
         "stage_run_current_authority": _text(next_action.get("stage_run_current_authority")),
         "source_surface": _text(next_action.get("source_surface")) or "control/next_action.json",
     }

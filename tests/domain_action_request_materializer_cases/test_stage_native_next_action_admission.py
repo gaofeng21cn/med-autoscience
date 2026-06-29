@@ -211,12 +211,12 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_an
     )
     assert any(
         item["action_type"] == "run_quality_repair_batch"
-        and item["reason"] == "stage_native_workspace_next_action_requires_authority_binding"
+        and item["reason"] == "stage_native_workspace_next_action_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
 
 
-def test_materialize_domain_action_requests_routes_bound_stage_native_write_after_readiness_blocker(
+def test_materialize_domain_action_requests_keeps_bound_stage_native_write_diagnostic_after_readiness_blocker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -254,25 +254,28 @@ def test_materialize_domain_action_requests_routes_bound_stage_native_write_afte
         apply=False,
     )
 
-    assert result["request_task_count"] == 1
-    assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["action_type"] == "run_quality_repair_batch"
-    assert dispatch["next_executable_owner"] == "write"
-    source_action = dispatch["source_action_ref"]
-    assert source_action["authority"] == "stage_native_workspace_next_action"
-    assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
-    assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == "medical_publication_surface_blocked_write_repair"
-    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert result["request_task_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
-        and item["reason"] == "superseded_by_readiness_blocker_derived_repair"
+        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
         for item in result["ignored_actions"]
+    )
+    stage_native_ignored = [
+        item
+        for item in result["ignored_actions"]
+        if item["action_type"] == "run_quality_repair_batch"
+    ]
+    assert len(stage_native_ignored) == 1
+    assert stage_native_ignored[0]["reason"] == (
+        "stage_native_workspace_next_action_retired_use_next_action_envelope"
+    )
+    assert stage_native_ignored[0]["action_id"] == (
+        f"stage-native-next-action::{study_id}::run_quality_repair_batch"
     )
 
 
-def test_materialize_domain_action_requests_routes_stage_native_write_when_current_work_unit_matches_binding(
+def test_materialize_domain_action_requests_does_not_route_stage_native_write_when_current_work_unit_matches_binding(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -362,17 +365,21 @@ def test_materialize_domain_action_requests_routes_stage_native_write_when_curre
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["domain_progress_transition_requests"]] == [
-        "run_quality_repair_batch"
+    assert result["request_task_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
+    assert result["domain_progress_transition_requests"] == []
+    stage_native_ignored = [
+        item
+        for item in result["ignored_actions"]
+        if item["action_type"] == "run_quality_repair_batch"
     ]
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["next_executable_owner"] == "write"
-    source_action = dispatch["source_action_ref"]
-    assert source_action["authority"] == "stage_native_workspace_next_action"
-    assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
-    assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == work_unit_id
-    assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert len(stage_native_ignored) == 1
+    assert stage_native_ignored[0]["reason"] == (
+        "stage_native_workspace_next_action_retired_use_next_action_envelope"
+    )
+    assert stage_native_ignored[0]["action_id"] == (
+        f"stage-native-next-action::{study_id}::run_quality_repair_batch"
+    )
 
 
 def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_authority_boundary(

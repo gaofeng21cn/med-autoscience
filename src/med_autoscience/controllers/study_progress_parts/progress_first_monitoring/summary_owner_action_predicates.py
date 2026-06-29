@@ -14,10 +14,7 @@ def stage_kernel_owner_action(action: Mapping[str, Any]) -> bool:
 
 
 def stage_native_owner_action(action: Mapping[str, Any]) -> bool:
-    return (
-        _text(action.get("source")) == "stage_native_workspace_next_action"
-        and bool(_sequence(action.get("allowed_actions")))
-    )
+    return False
 
 
 def repair_progress_owner_action(action: Mapping[str, Any]) -> bool:

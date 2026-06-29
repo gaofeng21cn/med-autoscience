@@ -414,7 +414,7 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
             "complete_medical_paper_readiness_surface": (
                 "superseded_by_fresh_study_progress_current_owner_ticket"
             ),
-            "run_quality_repair_batch": "stage_native_workspace_next_action_requires_authority_binding",
+            "run_quality_repair_batch": "stage_native_workspace_next_action_retired_use_next_action_envelope",
         }
 
 
@@ -501,7 +501,7 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
     )
     assert any(
         item["action_type"] == "run_quality_repair_batch"
-        and item["reason"] == "stage_native_workspace_next_action_requires_authority_binding"
+        and item["reason"] == "stage_native_workspace_next_action_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
 
@@ -737,7 +737,7 @@ def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_wh
     assert any(
         item["action_type"] == "run_quality_repair_batch"
         and item["reason"]
-        == "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
+        == "stage_native_workspace_next_action_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
 
