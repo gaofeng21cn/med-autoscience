@@ -8,7 +8,7 @@ Date: `2026-06-11`
 
 ## Supersession notice
 
-2026-06-29 之后，默认 next action authority 已收敛到 [Next Action Control Plane](../control/next_action_control_plane.md)：`StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt`。本文保留为 identity/currentness、OPL StageRun transport 和历史 reconcile 设计 provenance；`current_work_unit`、provider admission、domain diagnostic、OPL queue / attempt 和 `current_execution_envelope` 不得再作为 default next-action selector 或 paper progress / publication-ready / submission-ready evidence。
+2026-06-29 之后，默认 next action authority 已收敛到 [Next Action Control Plane](../control/next_action_control_plane.md)：`StageOutcome -> NextActionEnvelope`。`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。本文保留为 identity/currentness、OPL StageRun transport 和历史 reconcile 设计 provenance；`current_work_unit`、provider admission、domain diagnostic、OPL queue / attempt 和 `current_execution_envelope` 不得再作为 default next-action selector 或 paper progress / publication-ready / submission-ready evidence。
 
 ## 目标结论
 

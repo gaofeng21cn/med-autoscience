@@ -8,7 +8,7 @@ Date: `2026-06-14`
 
 ## Supersession notice
 
-2026-06-29 之后，Paper Autonomy Supervisor / `DomainProgressTransitionRuntime` 只按历史 transition-runtime 输入、transport supervisor 和 recovery design provenance 读取。当前默认 next action authority 是 [Next Action Control Plane](../control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt`；supervisor、queue、attempt、current-control 或 `current_owner_delta` 读面不能替代 MAS owner receipt、typed blocker、human gate、route-back evidence 或下一 StageOutcome。
+2026-06-29 之后，Paper Autonomy Supervisor / `DomainProgressTransitionRuntime` 只按历史 transition-runtime 输入、transport supervisor 和 recovery design provenance 读取。当前默认 next action authority 是 [Next Action Control Plane](../control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope`；`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。supervisor、queue、attempt、current-control 或 `current_owner_delta` 读面不能替代 MAS owner receipt、typed blocker、human gate、route-back evidence 或下一 StageOutcome。
 
 ## 目标判断
 

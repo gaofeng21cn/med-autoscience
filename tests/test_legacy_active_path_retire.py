@@ -126,7 +126,8 @@ def test_legacy_next_action_projection_and_selector_surfaces_are_tombstoned() ->
     assert tombstone["replacement_projection_ref"] == "study_progress.next_action_envelope"
     assert tombstone["replacement_contract"] == {
         "contract_ref": "docs/runtime/control/next_action_control_plane.md",
-        "machine_contract": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+        "machine_contract": "StageOutcome -> NextActionEnvelope",
+        "transport_receipt_contract": "OPL TransitionReceipt is receipt-only evidence and MAS owner-consumption input",
         "canonical_projection_ref": "study_progress.next_action_envelope",
         "canonical_owner": "mas_next_action_compiler",
     }
