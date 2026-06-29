@@ -117,6 +117,7 @@ def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_
         "consumption_ledger_role": "current_paper_mission_transaction",
         "legacy_projection_accepted": False,
     }
+    assert_legacy_completion_surfaces_absent(payload)
 
 
 def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
@@ -246,6 +247,7 @@ def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
         "start_next_stage"
     )
     assert payload["next_owner_or_human_decision"]["next_owner"] == "analysis-campaign"
+    assert_legacy_completion_surfaces_absent(payload)
 
 
 def test_artifact_first_mission_summary_ignores_platform_repair_for_terminal_outcome() -> None:
@@ -376,6 +378,21 @@ def test_artifact_first_mission_summary_ignores_platform_repair_for_terminal_out
         "source_kind": "legacy_progress_projection_fallback",
         "legacy_projection_accepted": False,
     }
+
+
+def assert_legacy_completion_surfaces_absent(payload: dict[str, object]) -> None:
+    for key in (
+        "current_work_unit",
+        "current_executable_owner_action",
+        "paper_recovery_state",
+        "progress_first_monitoring_summary",
+        "provider_admission_candidates",
+        "provider_admission_pending_count",
+        "provider_admission_terminal_closeout_consumed",
+        "transition_request_candidates",
+        "transition_request_pending_count",
+    ):
+        assert key not in payload
 
 
 def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fields() -> None:
