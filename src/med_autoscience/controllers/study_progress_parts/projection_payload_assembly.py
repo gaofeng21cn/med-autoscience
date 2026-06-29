@@ -25,7 +25,6 @@ from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .current_owner_handoff_projection import (
     apply_current_owner_handoff_user_visible_status,
-    current_owner_redrive_domain_transition,
 )
 from .current_executable_owner_action import build_current_executable_owner_action
 from .current_owner_action_projection_reconcile import (
@@ -74,6 +73,9 @@ from .projection_payload_assembly_parts.current_execution_surfaces import (
 )
 from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
+)
+from .projection_payload_assembly_parts.terminal_delivery_status import (
+    apply_terminal_delivery_user_visible_status as _apply_terminal_delivery_user_visible_status,
 )
 from .provider_admission_projection import provider_admission_projection_fields
 from .opl_current_control_state_handoff import refresh_handoff_with_terminal_closeout_candidates
@@ -1190,104 +1192,6 @@ def _merge_blockers(existing: object, blockers: list[str]) -> list[str]:
         if text is not None and text not in merged:
             merged.append(text)
     return merged
-
-
-def _apply_terminal_delivery_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
-    if not _terminal_delivery_closed(payload):
-        return payload
-    user_visible = _mapping_copy(payload.get("user_visible_projection"))
-    updated = dict(payload)
-    updated["current_stage"] = _non_empty_text(user_visible.get("current_stage")) or "parked"
-    updated["current_stage_summary"] = _non_empty_text(user_visible.get("current_stage_summary")) or (
-        _non_empty_text(user_visible.get("state_summary")) or "投稿包已交付，系统已自动停驻。"
-    )
-    if _non_empty_text(user_visible.get("paper_stage_summary")) is not None:
-        updated["paper_stage_summary"] = _non_empty_text(user_visible.get("paper_stage_summary"))
-    updated["current_blockers"] = [
-        str(item)
-        for item in (user_visible.get("current_blockers") or [])
-        if str(item or "").strip()
-    ]
-    updated["next_system_action"] = _non_empty_text(user_visible.get("next_system_action")) or (
-        _non_empty_text(user_visible.get("next_step")) or "投稿包已交付；系统保持自动停驻。"
-    )
-    user_action_required = bool(user_visible.get("user_action_required"))
-    updated["needs_user_decision"] = user_action_required
-    updated["needs_physician_decision"] = user_action_required
-    if not user_action_required:
-        updated["physician_decision_summary"] = None
-        updated["user_decision_summary"] = None
-    updated["operator_status_card"] = _terminal_delivery_operator_status_card(
-        payload=updated,
-        user_visible=user_visible,
-    )
-    status_contract = _mapping_copy(updated.get("status_narration_contract"))
-    if status_contract:
-        stage = _mapping_copy(status_contract.get("stage"))
-        stage["current_stage"] = updated["current_stage"]
-        status_contract["stage"] = stage
-        readiness = _mapping_copy(status_contract.get("readiness"))
-        readiness["needs_physician_decision"] = user_action_required
-        status_contract["readiness"] = readiness
-        status_contract["current_blockers"] = list(updated["current_blockers"])
-        status_contract["latest_update"] = updated["current_stage_summary"]
-        status_contract["next_step"] = updated["next_system_action"]
-        updated["status_narration_contract"] = status_contract
-    return updated
-
-
-def _terminal_delivery_closed(payload: Mapping[str, Any]) -> bool:
-    if current_owner_redrive_domain_transition(payload):
-        return False
-    user_visible = _mapping_copy(payload.get("user_visible_projection"))
-    paper_progress = _mapping_copy(user_visible.get("paper_progress_state"))
-    if user_visible.get("package_delivered") is not True:
-        return False
-    if _non_empty_text(paper_progress.get("state")) != "terminal_delivered":
-        return False
-    delivery = _mapping_copy(payload.get("delivery_inspection"))
-    delivery_freshness = _mapping_copy(delivery.get("freshness"))
-    if _non_empty_text(delivery.get("status")) != "current" and _non_empty_text(
-        delivery_freshness.get("delivery_status")
-    ) != "current":
-        return False
-    followthrough = _mapping_copy(payload.get("gate_clearing_batch_followthrough"))
-    return (
-        _non_empty_text(followthrough.get("gate_replay_status")) == "clear"
-        and int(followthrough.get("failed_unit_count") or 0) == 0
-    )
-
-
-def _terminal_delivery_operator_status_card(
-    *,
-    payload: Mapping[str, Any],
-    user_visible: Mapping[str, Any],
-) -> dict[str, Any]:
-    existing = _mapping_copy(payload.get("operator_status_card"))
-    user_action_required = bool(user_visible.get("user_action_required"))
-    handling_state = "external_metadata_pending" if user_action_required else "package_ready_handoff"
-    label = "外部投稿元数据待补" if user_action_required else "投稿包/人审包交付停驻"
-    focus = _non_empty_text(user_visible.get("next_step")) or _non_empty_text(user_visible.get("state_summary"))
-    if focus is None:
-        focus = "投稿包已与 controller-authorized source 对齐；系统保持自动停驻。"
-    next_signal = (
-        "看外部作者、单位、伦理、基金和声明等投稿元数据是否补齐。"
-        if user_action_required
-        else "看是否出现新的审阅反馈、外部条件解除或显式 resume/rerun/relaunch。"
-    )
-    return {
-        **existing,
-        "surface_kind": "study_operator_status_card",
-        "study_id": _non_empty_text(payload.get("study_id")),
-        "handling_state": handling_state,
-        "handling_state_label": label,
-        "owner_summary": "MAS 已完成 controller-authorized 投稿包交付闭环；自动运行资源已释放。",
-        "current_focus": focus,
-        "human_surface_freshness": "current",
-        "human_surface_summary": "给人看的投稿包镜像已与 controller-authorized source 对齐；当前没有 stale/QC 刷新告警。",
-        "next_confirmation_signal": next_signal,
-        "user_visible_verdict": _non_empty_text(user_visible.get("state_label")) or "投稿包已交付，自动停驻",
-    }
 
 
 def build_projection_refs(
