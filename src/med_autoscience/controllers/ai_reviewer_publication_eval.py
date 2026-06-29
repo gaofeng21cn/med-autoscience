@@ -987,6 +987,7 @@ def materialize_ai_reviewer_publication_eval_record(
         entry_mode=entry_mode,
         source=source,
         record=record,
+        build_production_trace=build_production_trace,
     )
     if _optional_text(guard.get("status")) == "blocked":
         return guard

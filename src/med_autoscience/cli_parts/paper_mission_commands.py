@@ -86,6 +86,7 @@ from med_autoscience.paper_mission_transaction import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
+    stage_closure_signature,
     terminalize_stage_closure,
 )
 
@@ -1287,12 +1288,20 @@ def _build_stage_closure_terminalizer_readback(
             source=f"{source}:terminalize-stage:inspect",
         )
     existing_decision = _mapping(source_readback.get("stage_closure_decision"))
-    if existing_decision and not stage_closure_decision_missing(existing_decision):
+    if (
+        existing_decision
+        and not stage_closure_decision_missing(existing_decision)
+        and not _stage_closure_decision_requires_reterminalize(existing_decision)
+    ):
         decision = existing_decision
         terminalizer_status = "terminalizer_outcome_already_observed"
     else:
         decision = _terminalize_stage_closure_from_readback(source_readback)
-        terminalizer_status = "terminalizer_outcome_materialized"
+        terminalizer_status = (
+            "legacy_terminalizer_outcome_superseded"
+            if existing_decision
+            else "terminalizer_outcome_materialized"
+        )
     output_manifest = None
     resolved_output_root = _stage_closure_terminalizer_output_root(
         profile=profile,
@@ -1370,6 +1379,20 @@ def _stage_closure_terminalizer_output_root(
     )
 
 
+def _stage_closure_decision_requires_reterminalize(
+    decision: Mapping[str, Any],
+) -> bool:
+    outcome = _mapping(decision.get("outcome"))
+    observability_gaps = _text_list(decision.get("observability_gaps"))
+    if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
+        return True
+    if any(gap in observability_gaps for gap in ("duration_ms_missing", "cost_usd_missing")):
+        return True
+    if outcome.get("next_action") == "continue_same_stage":
+        return True
+    return False
+
+
 def _terminalize_stage_closure_from_readback(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -1394,21 +1417,37 @@ def _terminalize_stage_closure_from_readback(
         ),
         "gate_replay_blockers": _stage_closure_readback_blockers(readback),
     }
+    study_id = str(readback.get("study_id") or transaction.get("study_id") or "")
+    stage_id = str(
+        transaction.get("stage_id") or stage_decision.get("target_stage_id") or "paper_mission"
+    )
+    work_unit_id = str(
+        _first_text(
+            transaction.get("stage_id"),
+            stage_decision.get("target_stage_id"),
+            readback.get("objective"),
+            "paper_mission_stage",
+        )
+    )
+    work_unit_fingerprint = _first_text(
+        transaction.get("transaction_id"),
+        readback.get("mission_id"),
+    )
+    semantic_delta = _stage_closure_semantic_delta(readback)
+    previous_signature = _previous_stage_closure_signature_for_reterminalize(
+        readback=readback,
+        study_id=study_id,
+        stage_id=stage_id,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        blockers=gate_replay["gate_replay_blockers"],
+        semantic_delta=semantic_delta,
+    )
     return terminalize_stage_closure(
-        study_id=str(readback.get("study_id") or transaction.get("study_id") or ""),
-        stage_id=str(transaction.get("stage_id") or stage_decision.get("target_stage_id") or "paper_mission"),
-        work_unit_id=str(
-            _first_text(
-                transaction.get("stage_id"),
-                stage_decision.get("target_stage_id"),
-                readback.get("objective"),
-                "paper_mission_stage",
-            )
-        ),
-        work_unit_fingerprint=_first_text(
-            transaction.get("transaction_id"),
-            readback.get("mission_id"),
-        ),
+        study_id=study_id,
+        stage_id=stage_id,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
         identity={
             "mission_id": readback.get("mission_id"),
             "paper_mission_transaction_ref": transaction.get("transaction_id"),
@@ -1423,11 +1462,52 @@ def _terminalize_stage_closure_from_readback(
         gate_replay=gate_replay,
         delivery_readback=_stage_closure_delivery_readback(readback),
         opl_closeout=_stage_closure_opl_closeout(readback),
-        semantic_delta=_stage_closure_semantic_delta(readback),
+        semantic_delta=semantic_delta,
         repair_budget=repair_budget,
-        previous_signature=_optional_text(
-            _mapping(readback.get("stage_closure_decision")).get("decision_signature")
-        ),
+        previous_signature=previous_signature,
+    )
+
+
+def _previous_stage_closure_signature_for_reterminalize(
+    *,
+    readback: Mapping[str, Any],
+    study_id: str,
+    stage_id: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str | None,
+    blockers: list[str],
+    semantic_delta: Mapping[str, Any],
+) -> str | None:
+    existing_decision = _mapping(readback.get("stage_closure_decision"))
+    previous_signature = _optional_text(existing_decision.get("decision_signature"))
+    outcome = _mapping(existing_decision.get("outcome"))
+    if (
+        outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+        and not _stage_closure_semantic_delta_has_refs(semantic_delta)
+    ):
+        return stage_closure_signature(
+            study_id=study_id,
+            stage_id=stage_id,
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=work_unit_fingerprint,
+            blockers=blockers,
+            semantic_delta=semantic_delta,
+        )
+    return previous_signature
+
+
+def _stage_closure_semantic_delta_has_refs(
+    semantic_delta: Mapping[str, Any],
+) -> bool:
+    return any(
+        _text_list(semantic_delta.get(key))
+        for key in (
+            "paper_delta_refs",
+            "reviewer_delta_refs",
+            "gate_delta_refs",
+            "delivery_delta_refs",
+            "owner_decision_refs",
+        )
     )
 
 
