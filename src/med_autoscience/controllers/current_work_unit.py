@@ -113,6 +113,9 @@ from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     normalize_currentness_sources,
     owner_reason_contract,
 )
+from med_autoscience.controllers.study_progress_parts.canonical_next_action_gate import (
+    has_canonical_next_action,
+)
 
 
 GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READINESS_GATE_REPAIR_WORK_UNIT})
@@ -137,6 +140,8 @@ def build_current_work_unit(
 ) -> dict[str, Any]:
     status_payload = _mapping(status)
     progress_payload = _mapping(progress)
+    if has_canonical_next_action(progress_payload):
+        return {}
     route_payload = _mapping(owner_route)
     runtime_health_payload = _mapping(runtime_health)
     resolved_source_refs = _source_refs(status_payload, progress_payload, source_refs)

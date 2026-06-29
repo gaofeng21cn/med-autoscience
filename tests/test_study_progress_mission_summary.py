@@ -410,8 +410,22 @@ def assert_legacy_completion_surfaces_absent(payload: dict[str, object]) -> None
         "provider_admission_terminal_closeout_consumed",
         "transition_request_candidates",
         "transition_request_pending_count",
+        "owner_action_admission",
+        "current_execution_envelope",
+        "current_execution_evidence",
     ):
         assert key not in payload
+    assert payload["legacy_next_action_authority_retired"] == {
+        "status": "retired",
+        "authority": "NextActionEnvelope",
+        "reason": "canonical_next_action_envelope_present",
+        "retired_surfaces": [
+            "current_work_unit",
+            "current_executable_owner_action",
+            "provider_admission",
+            "current_execution_envelope",
+        ],
+    }
 
 
 def _count_surface_kind(value: object, surface_kind: str) -> int:

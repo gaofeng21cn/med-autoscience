@@ -80,6 +80,7 @@ from .current_executable_owner_action_parts.terminal_next_forced_delta import (
     owner_action_from_terminal_next_forced_delta,
 )
 from .current_action_identity import action_matches_canonical_executable_work_unit
+from .canonical_next_action_gate import has_canonical_next_action
 from .shared import _mapping_copy, _non_empty_text
 
 SURFACE_KIND = "current_executable_owner_action"
@@ -87,6 +88,8 @@ GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READ
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    if has_canonical_next_action(payload):
+        return None
     repair_progress_action = _without_canonical_terminal_blocker(
         payload,
         _from_repair_progress_projection(payload),

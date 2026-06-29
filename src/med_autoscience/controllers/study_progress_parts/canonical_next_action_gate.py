@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+from med_autoscience.controllers.next_action_envelope import SURFACE_KIND as NEXT_ACTION_SURFACE_KIND
+
+
+def has_canonical_next_action(payload: Mapping[str, Any]) -> bool:
+    next_action = _mapping(payload.get("next_action"))
+    return _text(next_action.get("surface_kind")) == NEXT_ACTION_SURFACE_KIND
+
+
+def legacy_next_action_authority_retirement() -> dict[str, Any]:
+    return {
+        "status": "retired",
+        "authority": "NextActionEnvelope",
+        "reason": "canonical_next_action_envelope_present",
+        "retired_surfaces": [
+            "current_work_unit",
+            "current_executable_owner_action",
+            "provider_admission",
+            "current_execution_envelope",
+        ],
+    }
+
+
+def _mapping(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text(value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value
+    return None

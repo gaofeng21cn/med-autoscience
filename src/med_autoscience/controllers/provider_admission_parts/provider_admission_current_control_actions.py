@@ -34,6 +34,9 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_ide
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.study_progress_parts.canonical_next_action_gate import (
+    has_canonical_next_action,
+)
 
 OWNER_CALLABLE_ADAPTERS = Path("artifacts/supervision/consumer/owner_callable_adapters")
 PAPER_PROGRESS_TRANSITION_REQUESTS = Path(
@@ -85,6 +88,8 @@ def _study_current_actions_for_provider_admission(payload: Mapping[str, Any]) ->
 
 
 def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> dict[str, Any] | None:
+    if has_canonical_next_action(study):
+        return None
     current = _mapping(study.get("current_executable_owner_action"))
     if not current:
         current = _current_action_from_executable_current_work_unit(study)

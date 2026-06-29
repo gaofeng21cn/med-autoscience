@@ -9,10 +9,15 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     request_owner_for_action_type,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
+from med_autoscience.controllers.study_progress_parts.canonical_next_action_gate import (
+    has_canonical_next_action,
+)
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 def canonical_current_work_unit_action(study: Mapping[str, Any]) -> dict[str, Any] | None:
+    if has_canonical_next_action(study):
+        return None
     study_id = _text(study.get("study_id"))
     if study_id is None:
         return None

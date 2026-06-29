@@ -7,6 +7,9 @@ from med_autoscience.controllers.study_progress_parts.shared import (
     _mapping_copy,
     _non_empty_text,
 )
+from med_autoscience.controllers.study_progress_parts.canonical_next_action_gate import (
+    has_canonical_next_action,
+)
 
 
 def owner_action_from_domain_transition(
@@ -14,6 +17,8 @@ def owner_action_from_domain_transition(
     *,
     surface_kind: str,
 ) -> dict[str, Any] | None:
+    if has_canonical_next_action(payload):
+        return None
     transition = _mapping_copy(payload.get("domain_transition"))
     next_work_unit = _mapping_copy(transition.get("next_work_unit"))
     owner = _non_empty_text(transition.get("owner")) or _non_empty_text(transition.get("route_target"))

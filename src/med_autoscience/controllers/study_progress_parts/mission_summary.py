@@ -31,6 +31,10 @@ from med_autoscience.paper_mission_transaction import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
+from .canonical_next_action_gate import (
+    has_canonical_next_action,
+    legacy_next_action_authority_retirement,
+)
 
 
 PAPER_MISSION_RUN_CONTRACT_VERSION = "paper-mission-run.v1"
@@ -291,10 +295,34 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
         updated["canonical_next_action_source"] = (
             "artifact_first_mission_summary.next_action"
         )
+        updated = without_legacy_next_action_authority(updated)
     updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
     updated["transaction_state"] = summary["transaction_state"]
     updated.update(_top_level_stage_closure_projection(updated))
     updated.update(_top_level_current_package_projection(updated))
+    return updated
+
+
+def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str, Any]:
+    if not has_canonical_next_action(payload):
+        return dict(payload)
+    updated = dict(payload)
+    for key in (
+        "current_work_unit",
+        "current_executable_owner_action",
+        "paper_recovery_state",
+        "progress_first_monitoring_summary",
+        "provider_admission_candidates",
+        "provider_admission_pending_count",
+        "provider_admission_terminal_closeout_consumed",
+        "transition_request_candidates",
+        "transition_request_pending_count",
+        "owner_action_admission",
+        "current_execution_envelope",
+        "current_execution_evidence",
+    ):
+        updated.pop(key, None)
+    updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
 
 
@@ -1249,4 +1277,5 @@ def _compact(value: Mapping[str, Any]) -> dict[str, Any]:
 __all__ = [
     "attach_artifact_first_mission_summary",
     "build_artifact_first_mission_summary",
+    "without_legacy_next_action_authority",
 ]
