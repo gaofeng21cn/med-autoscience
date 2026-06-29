@@ -32,7 +32,20 @@ _PROGRESS_FIRST_STATUS_KEYS = (
     "continuation_state",
     "study_macro_state",
     "ai_repair_lifecycle",
+)
+
+_LEGACY_DEFAULT_COMPLETION_KEYS = (
+    "current_executable_owner_action",
+    "current_work_unit",
+    "paper_recovery_state",
     "progress_first_monitoring_summary",
+    "provider_admission_blocked_by_supervisor_decision",
+    "provider_admission_candidates",
+    "provider_admission_pending_count",
+    "provider_admission_running_proof_consumed",
+    "provider_admission_terminal_closeout_consumed",
+    "transition_request_candidates",
+    "transition_request_pending_count",
 )
 
 _USER_VISIBLE_STATUS_KEYS = (
@@ -193,7 +206,7 @@ def _progress_first_status_payload(
     source_payload = progress_projection if isinstance(progress_projection, dict) else payload
     user_visible = source_payload.get("user_visible_projection")
     if not isinstance(progress_projection, dict) and not _is_current_user_visible_projection(user_visible):
-        return payload
+        return _without_legacy_default_completion_surfaces(payload)
     updated = dict(payload)
     for key in _PROGRESS_FIRST_STATUS_KEYS:
         if key in source_payload:
@@ -215,6 +228,13 @@ def _progress_first_status_payload(
         "runtime_decision_field": "decision",
         "runtime_reason_field": "reason",
     }
+    return _without_legacy_default_completion_surfaces(updated)
+
+
+def _without_legacy_default_completion_surfaces(payload: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    for key in _LEGACY_DEFAULT_COMPLETION_KEYS:
+        updated.pop(key, None)
     return updated
 
 
