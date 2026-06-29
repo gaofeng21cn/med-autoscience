@@ -9,6 +9,22 @@ def _module():
     )
 
 
+def _selection_module():
+    return importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+    )
+
+
+def _next_action_envelope(*, study_id: str, action_type: str) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_next_action_envelope",
+        "action_id": f"next-action::{study_id}::{action_type}",
+        "idempotency_key": f"next-action::{study_id}::{action_type}",
+        "action_family": "runtime.opl_route",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+    }
+
+
 def test_fresh_progress_current_action_reads_without_live_provider_probe(monkeypatch) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
@@ -28,6 +44,60 @@ def test_fresh_progress_current_action_reads_without_live_provider_probe(monkeyp
     assert observed["sync_runtime_summary"] is False
     assert observed["materialize_read_model_artifacts"] is False
     assert observed["enable_opl_live_provider_attempt_probe"] is False
+
+
+def test_current_action_selection_retires_legacy_next_action_without_canonical_envelope() -> None:
+    selection = _selection_module()
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(),
+        scan_payload={
+            "action_queue": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_id": "legacy-stage-native-write",
+                    "action_type": "run_quality_repair_batch",
+                    "authority": "stage_native_workspace_next_action",
+                    "next_action": {
+                        "surface_kind": "mas_next_action_envelope",
+                        "action_id": "incomplete-next-action",
+                    },
+                }
+            ]
+        },
+    )
+
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "action_id": "legacy-stage-native-write",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
+def test_current_action_selection_keeps_complete_next_action_envelope() -> None:
+    selection = _selection_module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action = {
+        "study_id": study_id,
+        "action_id": "canonical-runtime-route",
+        "action_type": "run_gate_clearing_batch",
+        "authority": "stage_native_workspace_next_action",
+        "next_action": _next_action_envelope(study_id=study_id, action_type="run_gate_clearing_batch"),
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(),
+        scan_payload={"action_queue": [action]},
+    )
+
+    assert actions == [action]
+    assert ignored == []
 
 
 def test_canonical_current_work_unit_action_rejects_readiness_typed_blocker_identity() -> None:

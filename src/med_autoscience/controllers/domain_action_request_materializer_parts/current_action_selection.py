@@ -19,11 +19,20 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     repair_progress_currentness,
     stage_native_next_action,
 )
+from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
+from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 READINESS_ACTION_TYPE = current_action_authority.READINESS_ACTION_TYPE
+LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
+    canonical_next_action_gate.legacy_next_action_authority_retirement()["reason"]
+)
+LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
+    "legacy_next_action_authority",
+    "stage_native_workspace_next_action",
+}
 _attach_owner_route_if_missing = current_action_queue.attach_owner_route_if_missing
 _ignored_action = current_action_queue.ignored_action
 _top_level_study_actions = current_action_queue.top_level_study_actions
@@ -39,7 +48,9 @@ def current_actions_for_studies(
     ignored: list[dict[str, Any]] = []
     if not study_ids:
         actions = scan_payload.get("action_queue")
-        return (list(actions), ignored) if isinstance(actions, list) else (None, ignored)
+        if isinstance(actions, list):
+            return _retire_legacy_next_action_authority(actions, ignored)
+        return None, ignored
     per_study_actions: list[dict[str, Any]] = []
     requested = set(study_ids)
     stage_native_actions = stage_native_next_action.stage_native_next_actions(profile=profile, study_ids=study_ids)
@@ -717,12 +728,11 @@ def current_actions_for_studies(
                 )
             )
     if per_study_actions or matched_requested_study:
-        return per_study_actions, _unique_ignored_actions(ignored)
+        return _retire_legacy_next_action_authority(per_study_actions, ignored)
     actions = scan_payload.get("action_queue")
-    return (list(actions), _unique_ignored_actions(ignored)) if isinstance(actions, list) else (
-        None,
-        _unique_ignored_actions(ignored),
-    )
+    if isinstance(actions, list):
+        return _retire_legacy_next_action_authority(actions, ignored)
+    return None, _unique_ignored_actions(ignored)
 
 
 def _current_writer_handoff_actions(
@@ -1138,6 +1148,48 @@ def _unique_ignored_actions(actions: Iterable[Mapping[str, Any]]) -> list[dict[s
         seen.add(identity)
         unique.append(payload)
     return unique
+
+
+def _retire_legacy_next_action_authority(
+    actions: Iterable[Mapping[str, Any]],
+    ignored: Iterable[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    selected: list[dict[str, Any]] = []
+    retired: list[dict[str, Any]] = []
+    for action in actions:
+        payload = dict(action)
+        if _legacy_next_action_authority_requires_envelope(payload):
+            retired.append(_ignored_action(payload, LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON))
+            continue
+        selected.append(payload)
+    return selected, _unique_ignored_actions([*ignored, *retired])
+
+
+def _legacy_next_action_authority_requires_envelope(action: Mapping[str, Any]) -> bool:
+    next_action = _next_action_payload(action)
+    if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+        return False
+    if _text(next_action.get("surface_kind")) == "mas_next_action_envelope":
+        return True
+    authority = _text(action.get("authority")) or _text(_mapping(action.get("handoff_packet")).get("authority"))
+    source = (
+        _text(action.get("source"))
+        or _text(action.get("source_surface"))
+        or _text(action.get("current_action_source"))
+    )
+    return authority in LEGACY_NEXT_ACTION_AUTHORITY_VALUES or source in LEGACY_NEXT_ACTION_AUTHORITY_VALUES
+
+
+def _next_action_payload(action: Mapping[str, Any]) -> dict[str, Any]:
+    handoff = _mapping(action.get("handoff_packet"))
+    prompt_contract = _mapping(action.get("prompt_contract"))
+    source_action = _mapping(action.get("source_action"))
+    return (
+        _mapping(action.get("next_action"))
+        or _mapping(handoff.get("next_action"))
+        or _mapping(prompt_contract.get("next_action"))
+        or _mapping(source_action.get("next_action"))
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -633,8 +633,15 @@ def _top_level_stage_closure_projection(payload: Mapping[str, Any]) -> dict[str,
     decision = _mapping(payload.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
     repair_budget = _stage_closure_repair_budget(payload)
+    next_transition = (
+        _non_empty_text(_mapping(outcome.get("next_transition")).get("transition_kind"))
+        or _non_empty_text(outcome.get("transition_kind"))
+        or _non_empty_text(outcome.get("next_action"))
+    )
+    next_legal_action = _non_empty_text(outcome.get("next_action")) or next_transition
     return {
         "repair_budget": repair_budget or None,
+        "next_legal_action": next_legal_action,
         "stage_closure": _compact(
             {
                 "projection_status": _non_empty_text(decision.get("projection_status")),
@@ -642,11 +649,8 @@ def _top_level_stage_closure_projection(payload: Mapping[str, Any]) -> dict[str,
                 "outcome": outcome or None,
                 "outcome_kind": _non_empty_text(decision.get("outcome_kind"))
                 or _non_empty_text(outcome.get("kind")),
-                "next_transition": _non_empty_text(
-                    _mapping(outcome.get("next_transition")).get("transition_kind")
-                )
-                or _non_empty_text(outcome.get("transition_kind"))
-                or _non_empty_text(outcome.get("next_action")),
+                "next_transition": next_transition,
+                "next_legal_action": next_legal_action,
                 "package_kind": _non_empty_text(decision.get("package_kind"))
                 or _non_empty_text(outcome.get("package_kind")),
                 "known_blockers": _text_list(decision.get("known_blockers")),

@@ -624,6 +624,10 @@ def test_stage_closure_projection_uses_real_followthrough_budget_for_degraded_ha
     }
     assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
     assert payload["stage_closure"]["next_transition"] == "degraded_handoff"
+    assert payload["stage_closure"]["next_legal_action"] == (
+        "review_degraded_handoff_package"
+    )
+    assert payload["next_legal_action"] == "review_degraded_handoff_package"
     assert payload["stage_closure"]["package_kind"] == "degraded_handoff_package"
     assert payload["stage_closure"]["known_blockers"] == [
         "claim_evidence_consistency_failed"
