@@ -777,19 +777,19 @@ def test_stage_route_reconcile_contract_declares_opl_substrate_interface_readbac
 def test_stage_route_reconcile_contract_splits_foreground_manual_work_from_governed_recovery() -> None:
     contract = _contract()
 
-    frontdoor = contract["codex_executor_frontdoor_policy"]
-    assert frontdoor["surface_kind"] == "mas_opl_codex_executor_frontdoor_policy"
-    assert frontdoor["ordinary_executor_route"] == (
+    entry_policy = contract["codex_executor_entry_policy"]
+    assert entry_policy["surface_kind"] == "mas_opl_codex_executor_entry_policy"
+    assert entry_policy["ordinary_executor_route"] == (
         "MAS/OPL-governed recovery route uses a MAS owner callable, MAS domain-handler dispatch, or OPL StageRun provider attempt that may invoke Codex as an internal executor"
     )
-    assert frontdoor["enforcement_model"] == "authority_acceptance_not_filesystem_prevention"
-    assert frontdoor["human_or_foreground_manual_edits_possible"] is True
-    assert frontdoor["explicit_manual_foreground_route_allowed"] is True
+    assert entry_policy["enforcement_model"] == "authority_acceptance_not_filesystem_prevention"
+    assert entry_policy["human_or_foreground_manual_edits_possible"] is True
+    assert entry_policy["explicit_manual_foreground_route_allowed"] is True
     assert {
         "user explicitly selects foreground/manual editing or fast-lane mode",
         "agent labels the output as manual foreground work, not MAS/OPL-governed recovery",
         "agent states which workspace surfaces were edited and which MAS/OPL truth surfaces were not updated",
-    } <= set(frontdoor["manual_foreground_route_requirements"])
+    } <= set(entry_policy["manual_foreground_route_requirements"])
     assert {
         "mas_owner_receipt_ref",
         "quality_gate_receipt_ref",
@@ -798,8 +798,8 @@ def test_stage_route_reconcile_contract_splits_foreground_manual_work_from_gover
         "route_back_evidence_ref",
         "same_current_identity_strict_provider_running_proof",
         "canonical_changed_surface_ref_consumed_by_mas_or_opl",
-    } <= set(frontdoor["manual_foreground_adoption_requires"])
-    assert frontdoor["manual_foreground_without_required_refs_effect"] == (
+    } <= set(entry_policy["manual_foreground_adoption_requires"])
+    assert entry_policy["manual_foreground_without_required_refs_effect"] == (
         "manual_work_product_only_no_mas_opl_recovery_claim"
     )
     assert {
@@ -808,7 +808,7 @@ def test_stage_route_reconcile_contract_splits_foreground_manual_work_from_gover
         "foreground_replay_of_provider_admission_queue",
         "study_workspace_runtime_artifact_mutation",
         "publication_eval_or_controller_decision_manual_write",
-    } <= set(frontdoor["not_accepted_as_governed_recovery"])
+    } <= set(entry_policy["not_accepted_as_governed_recovery"])
     assert {
         "read_live_truth",
         "write_repo_docs_contracts_tests",
@@ -816,8 +816,8 @@ def test_stage_route_reconcile_contract_splits_foreground_manual_work_from_gover
         "run_repo_native_verification",
         "supervise_opl_stage_run_or_provider_attempt",
         "perform_explicit_user_requested_manual_foreground_edit_with_non_authority_label",
-    } <= set(frontdoor["allowed_foreground_roles"])
-    authority = frontdoor["codex_direct_execution_authority"]
+    } <= set(entry_policy["allowed_foreground_roles"])
+    authority = entry_policy["codex_direct_execution_authority"]
     assert authority["can_act_as_internal_owner_callable_executor"] is True
     assert authority["requires_mas_owner_callable_or_stage_run_context"] is True
     assert authority["can_perform_explicit_manual_paper_local_work"] is True
@@ -825,11 +825,11 @@ def test_stage_route_reconcile_contract_splits_foreground_manual_work_from_gover
     assert authority["can_write_study_truth_without_owner_receipt"] is False
     assert authority["can_write_publication_eval_or_controller_decisions"] is False
     assert authority["can_mutate_runtime_or_study_artifacts_from_docs_contract_lane"] is False
-    assert frontdoor["missing_callable_effect"] == (
+    assert entry_policy["missing_callable_effect"] == (
         "governed_recovery_needs_typed_blocker_or_repo_implementation; explicit_manual_work_may_continue_only_as_non_authority_output"
     )
-    assert frontdoor["route_back_owner_when_platform_binding_missing"] == "one-person-lab"
-    assert frontdoor["route_back_owner_when_domain_readiness_callable_missing"] == (
+    assert entry_policy["route_back_owner_when_platform_binding_missing"] == "one-person-lab"
+    assert entry_policy["route_back_owner_when_domain_readiness_callable_missing"] == (
         "MedAutoScience"
     )
 

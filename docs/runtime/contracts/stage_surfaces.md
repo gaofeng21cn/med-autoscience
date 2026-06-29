@@ -34,10 +34,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -113,10 +114,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -192,10 +194,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -270,10 +273,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -348,10 +352,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -429,10 +434,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -509,10 +515,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -588,10 +595,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -666,10 +674,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -745,10 +754,11 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 
 ### Allowed Tools
 - MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
+- paper-mission inspect
+- paper-mission drive
+- paper-mission terminalize-stage
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- paper-mission
-- stage-closure-terminalizer
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`

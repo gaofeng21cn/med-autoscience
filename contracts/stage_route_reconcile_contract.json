@@ -1923,8 +1923,8 @@
     "scripts/verify.sh",
     "make test-meta"
   ],
-  "codex_executor_frontdoor_policy": {
-    "surface_kind": "mas_opl_codex_executor_frontdoor_policy",
+  "codex_executor_entry_policy": {
+    "surface_kind": "mas_opl_codex_executor_entry_policy",
     "scope": [
       "foreground Codex sessions",
       "MAS owner callables",
