@@ -532,7 +532,7 @@ def test_progress_first_monitoring_derives_repair_action_from_cutover_source_pub
     assert action["target_surface"]["gaps"][0]["gap_id"] == "gap-medical-prose"
 
 
-def test_progress_first_monitoring_keeps_stage_native_repair_action_with_current_readiness_blocker() -> None:
+def test_progress_first_monitoring_keeps_stage_native_repair_action_diagnostic_with_current_readiness_blocker() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
     )
@@ -556,9 +556,12 @@ def test_progress_first_monitoring_keeps_stage_native_repair_action_with_current
                 },
             },
             "stage_native_current_owner_action": {
-                "surface_kind": "current_executable_owner_action",
+                "surface_kind": "stage_native_workspace_next_action_diagnostic",
                 "source": "stage_native_workspace_next_action",
-                "status": "ready",
+                "status": "diagnostic_only",
+                "authority": "stage_native_workspace_next_action_diagnostic_only",
+                "legacy_surface_role": "diagnostic_only",
+                "replacement_authority": "NextActionEnvelope.action_family",
                 "next_owner": "write",
                 "work_unit_id": "run_quality_repair_batch",
                 "action_type": "run_quality_repair_batch",
@@ -595,14 +598,11 @@ def test_progress_first_monitoring_keeps_stage_native_repair_action_with_current
         }
     )
 
-    assert monitoring["execution_state_kind"] == "executable_owner_action"
-    assert monitoring["next_owner"] == "write"
-    assert monitoring["controller_action"] == "run_quality_repair_batch"
-    assert monitoring["next_work_unit"] == "run_quality_repair_batch"
-    action = monitoring["current_executable_owner_action"]
-    assert action["source"] == "stage_native_workspace_next_action"
-    assert action["allowed_actions"] == ["run_quality_repair_batch"]
-    assert action["source_ref"].endswith("control/next_action.json")
+    assert monitoring["execution_state_kind"] == "typed_blocker"
+    assert monitoring["next_owner"] == "MedAutoScience"
+    assert monitoring["controller_action"] is None
+    assert monitoring["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert monitoring["current_executable_owner_action"] is None
     assert monitoring["typed_blocker"]["blocker_id"] == "medical_paper_readiness_missing"
 
 

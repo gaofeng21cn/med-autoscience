@@ -237,7 +237,6 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             if next_forced_delta_action is not None:
                 return next_forced_delta_action
     next_forced_delta_action = _from_current_next_forced_delta(payload)
-    stage_native_action = _from_stage_native_current_owner_action(payload)
     if _next_forced_delta_supersedes_gate_followthrough(
         next_forced_delta_action=next_forced_delta_action,
         gate_followthrough_action=gate_followthrough_action,
@@ -252,7 +251,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if _stage_kernel_owner_answer_recorded_without_next_action(payload):
         if gate_followthrough_action is not None:
             return gate_followthrough_action
-        return stage_native_action or _active_domain_transition_action(payload, domain_transition_action)
+        return _active_domain_transition_action(payload, domain_transition_action)
     if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
         if gate_followthrough_action is not None:
             return gate_followthrough_action
@@ -265,8 +264,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         if publication_repair_action is not None:
             return publication_repair_action
         return (
-            stage_native_action
-            or _active_domain_transition_action(payload, domain_transition_action)
+            _active_domain_transition_action(payload, domain_transition_action)
             or _from_stage_kernel_readiness_followup(payload)
         )
     readiness_followup = _from_stage_kernel_readiness_followup(payload)
@@ -1540,35 +1538,6 @@ def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
 
 def _from_stage_artifact_index(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     return owner_action_from_stage_artifact_index(payload, surface_kind=SURFACE_KIND)
-
-
-def _from_stage_native_current_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    action = _mapping_copy(payload.get("stage_native_current_owner_action"))
-    if _non_empty_text(action.get("source")) != "stage_native_workspace_next_action":
-        return None
-    owner = _non_empty_text(action.get("next_owner"))
-    work_unit_id = _non_empty_text(action.get("work_unit_id"))
-    allowed_actions = _text_items(action.get("allowed_actions"))
-    if owner is None and work_unit_id is None and not allowed_actions:
-        return None
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": "stage_native_workspace_next_action",
-            "next_owner": owner,
-            "work_unit_id": work_unit_id,
-            "action_type": _non_empty_text(action.get("action_type")),
-            "allowed_actions": allowed_actions,
-            "owner_receipt_required": action.get("owner_receipt_required") is not False,
-            "required_delta_kind": _non_empty_text(action.get("required_delta_kind")),
-            "target_surface": _mapping_copy(action.get("target_surface")) or None,
-            "source_ref": _non_empty_text(action.get("source_ref")),
-            "authority_boundary": _mapping_copy(action.get("authority_boundary"))
-            or _authority_boundary(),
-        }
-    )
 
 
 def _from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any] | None:

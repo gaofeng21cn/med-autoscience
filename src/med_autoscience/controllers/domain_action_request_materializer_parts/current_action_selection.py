@@ -717,9 +717,12 @@ def current_actions_for_studies(
                 )
             )
     if per_study_actions or matched_requested_study:
-        return per_study_actions, ignored
+        return per_study_actions, _unique_ignored_actions(ignored)
     actions = scan_payload.get("action_queue")
-    return (list(actions), ignored) if isinstance(actions, list) else (None, ignored)
+    return (list(actions), _unique_ignored_actions(ignored)) if isinstance(actions, list) else (
+        None,
+        _unique_ignored_actions(ignored),
+    )
 
 
 def _current_writer_handoff_actions(
@@ -1117,6 +1120,24 @@ def _with_scan_transition_source_eval_id(
         action,
         basis={"source_eval_id": source_eval_id},
     )
+
+
+def _unique_ignored_actions(actions: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    unique: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    for action in actions:
+        payload = dict(action)
+        identity = (
+            _text(payload.get("study_id")),
+            _text(payload.get("action_type")),
+            _text(payload.get("action_id")),
+            _text(payload.get("reason")),
+        )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(payload)
+    return unique
 
 
 def _mapping(value: object) -> dict[str, Any]:
