@@ -3,12 +3,17 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.next_action_envelope import (
+    FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
+    FAMILY_PAPER_WRITE_PROSE_REPAIR,
+)
 
-CANONICAL_ACTION_FAMILY_PAPER_WRITE = "paper_write"
-CANONICAL_ACTION_FAMILY_SUBMISSION_MATERIALIZE = "submission_materialize"
+CANONICAL_ACTION_FAMILY_PAPER_WRITE = FAMILY_PAPER_WRITE_PROSE_REPAIR
+CANONICAL_ACTION_FAMILY_SUBMISSION_MATERIALIZE = FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL
 
 PAPER_WRITE_ACTION_FAMILIES = frozenset(
     {
+        FAMILY_PAPER_WRITE_PROSE_REPAIR,
         "paper_write",
         "write",
         "write_repair",
@@ -23,6 +28,7 @@ PAPER_WRITE_ACTION_FAMILIES = frozenset(
 )
 SUBMISSION_MATERIALIZE_ACTION_FAMILIES = frozenset(
     {
+        FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
         "submission_materialize",
         "submission_package",
         "submission_package_materialize",

@@ -11,6 +11,10 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.next_action_envelope import (
+    FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
+    FAMILY_PAPER_WRITE_PROSE_REPAIR,
+)
 from med_autoscience.controllers.story_surface_work_units import (
     canonical_action_family,
 )
@@ -358,9 +362,9 @@ def _controller_route_allowed_actions(
     work_unit_id: str | None,
     action_family: str | None,
 ) -> frozenset[str] | None:
-    if action_family == "paper_write":
+    if action_family == FAMILY_PAPER_WRITE_PROSE_REPAIR:
         return frozenset({"paper_write"})
-    if action_family == "submission_materialize":
+    if action_family == FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL:
         return frozenset({"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"})
     return _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT.get(work_unit_id or "")
 
@@ -409,7 +413,7 @@ def _controller_route_is_upstream_publishability_repair(
     return (
         action == "paper_write"
         and (
-            _text(controller_route_gate.get("action_family")) == "paper_write"
+            _text(controller_route_gate.get("action_family")) == FAMILY_PAPER_WRITE_PROSE_REPAIR
             or _text(controller_route_gate.get("work_unit_id")) in _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS
         )
     )
@@ -429,9 +433,9 @@ def _controller_route_is_managed_publication_work_unit(
         return False
     work_unit_id = _text(controller_route_gate.get("work_unit_id"))
     action_family = _text(controller_route_gate.get("action_family"))
-    if action_family == "submission_materialize":
+    if action_family == FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL:
         return True
-    if action_family == "paper_write":
+    if action_family == FAMILY_PAPER_WRITE_PROSE_REPAIR:
         return False
     if work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
         return False

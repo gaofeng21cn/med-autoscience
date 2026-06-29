@@ -809,7 +809,7 @@ def test_stage_outcome_paper_write_family_routes_exact_ids_to_paper_write_not_su
             "control_surface": "quality_repair_batch",
             "controller_action_type": "run_quality_repair_batch",
             "work_unit_id": work_unit_id,
-            "action_family": "prose_repair",
+            "action_family": "paper.write.prose_repair",
             "requires_human_confirmation": False,
             "source_eval_id": f"publication-eval::{work_unit_id}::latest",
             "work_unit_fingerprint": f"stage-outcome::{work_unit_id}",
@@ -820,11 +820,11 @@ def test_stage_outcome_paper_write_family_routes_exact_ids_to_paper_write_not_su
     submission_gate = module.authorize_authority_route("submission_materialize", route_context)
 
     assert paper_write_gate["authorized"] is True
-    assert paper_write_gate["controller_route_gate"]["action_family"] == "paper_write"
+    assert paper_write_gate["controller_route_gate"]["action_family"] == "paper.write.prose_repair"
     assert paper_write_gate["controller_route_gate"]["work_unit_id"] == work_unit_id
     assert paper_write_gate["blocking_reasons"] == []
     assert submission_gate["authorized"] is False
-    assert submission_gate["controller_route_gate"]["action_family"] == "paper_write"
+    assert submission_gate["controller_route_gate"]["action_family"] == "paper.write.prose_repair"
     assert "controller_route_action_not_allowed_for_work_unit" in (
         submission_gate["controller_route_gate"]["blocking_reasons"]
     )
