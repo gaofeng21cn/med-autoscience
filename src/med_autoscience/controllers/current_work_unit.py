@@ -88,6 +88,11 @@ from med_autoscience.controllers.current_work_unit_parts.repair_progress_precede
 from med_autoscience.controllers.current_work_unit_parts.repair_progress_action import (
     repair_progress_action_consuming_current_action as _repair_progress_action_consuming_current_action,
 )
+from med_autoscience.controllers.current_work_unit_parts.repair_progress_identity import (
+    progress_has_gate_followthrough_actionable_repair as _progress_has_gate_followthrough_actionable_repair,
+    repair_progress_gate_replay_receipt_ref as _repair_progress_gate_replay_receipt_ref,
+    repair_progress_matches_action as _repair_progress_matches_action,
+)
 from med_autoscience.controllers.current_work_unit_parts.running_provider_attempt import (
     running_attempt_can_supersede_blocker,
     running_attempt_invalidated_by_progress,
@@ -696,60 +701,6 @@ def _repair_progress_owner_receipt_recovery(
         "repair_progress_projection": dict(repair),
         "condition": "repair_progress_owner_receipt_recorded",
     }
-
-
-def _repair_progress_matches_action(
-    *,
-    repair: Mapping[str, Any],
-    action: Mapping[str, Any],
-) -> bool:
-    action_type = _action_type(action)
-    if action_type is not None and action_type != "run_quality_repair_batch":
-        return False
-    repair_work_unit = _work_unit_id(repair.get("work_unit_id"))
-    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
-    if repair_work_unit is None or action_work_unit is None or repair_work_unit != action_work_unit:
-        return False
-    action_fingerprint = _work_unit_fingerprint(
-        action,
-        currentness_basis=_mapping(action.get("owner_route_currentness_basis"))
-        or _mapping(action.get("currentness_basis")),
-    )
-    repair_fingerprint = (
-        _text(repair.get("work_unit_fingerprint"))
-        or _text(repair.get("action_fingerprint"))
-        or _text(repair.get("source_fingerprint"))
-    )
-    if action_fingerprint is None or repair_fingerprint != action_fingerprint:
-        return False
-    action_eval = _text(action.get("source_eval_id"))
-    repair_eval = _text(repair.get("source_eval_id"))
-    if action_eval is not None and repair_eval is not None and action_eval != repair_eval:
-        return False
-    return True
-
-
-def _repair_progress_gate_replay_receipt_ref(repair: Mapping[str, Any]) -> str | None:
-    for ref in _text_items(repair.get("gate_replay_refs")):
-        if "gate_clearing_batch" in ref:
-            return ref
-    return None
-
-
-def _progress_has_gate_followthrough_actionable_repair(progress: Mapping[str, Any]) -> bool:
-    followthrough = _mapping(progress.get("gate_clearing_batch_followthrough"))
-    if _text(followthrough.get("status")) != "executed":
-        return False
-    work_unit_currentness = _mapping(followthrough.get("work_unit_currentness"))
-    if _text(work_unit_currentness.get("current_actionability_status")) != "actionable":
-        return False
-    publication_work_unit = _mapping(followthrough.get("current_publication_work_unit"))
-    unit_id = _work_unit_id(publication_work_unit.get("unit_id")) or _work_unit_id(
-        followthrough.get("work_unit_id")
-    )
-    if unit_id in {None, "publication_gate_replay", "complete_medical_paper_readiness_surface"}:
-        return False
-    return True
 
 
 def _owner_receipt_consumed_by_actionable_successor(
