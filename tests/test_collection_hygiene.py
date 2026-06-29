@@ -29,10 +29,6 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
     },
-    "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py": {
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_anti_loop_owner_gate_cases.py",
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_execution_dispatch_cases.py",
-    },
     "tests/test_cli_cases/ai_reviewer_publication_eval_command.py": {
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_identity_guard_cases.py",
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_payload_currentness_guard_cases.py",
@@ -48,11 +44,6 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
 NESTED_CASE_REEXPORT_SURFACES = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_entry_status_focus.py"]
-    ),
-    "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py": (
-        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES[
-            "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py"
-        ]
     ),
     "tests/test_cli_cases/ai_reviewer_publication_eval_command.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/test_cli_cases/ai_reviewer_publication_eval_command.py"]
@@ -258,7 +249,6 @@ def _aggregate_collection_failure_message(
 def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
         "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
-        "domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_*.py",
         "test_cli_cases/ai_reviewer_publication_eval_command_cases/test_*.py",
         "test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_*.py",
     }

@@ -56,6 +56,8 @@ def current_actions(
             continue
         if not isinstance(progress, Mapping):
             continue
+        if not _has_canonical_next_action(progress):
+            continue
         recovery = _current_recovery_state(progress, build_paper_recovery_state)
         action = action_for_study(
             {
@@ -69,6 +71,8 @@ def current_actions(
 
 
 def action_for_study(study: Mapping[str, Any]) -> dict[str, Any] | None:
+    if not _has_canonical_next_action(study):
+        return None
     recovery = _mapping(study.get("paper_recovery_state"))
     supervisor_decision = _mapping(recovery.get("supervisor_decision"))
     next_action = _mapping(recovery.get("next_safe_action"))
@@ -735,6 +739,11 @@ def _text_items(value: object) -> list[str]:
     if not isinstance(value, list | tuple | set):
         return []
     return [text for item in value if (text := _text(item)) is not None]
+
+
+def _has_canonical_next_action(study: Mapping[str, Any]) -> bool:
+    next_action = _mapping(study.get("next_action"))
+    return _text(next_action.get("surface_kind")) == "mas_next_action_envelope"
 
 
 __all__ = ["action_for_study", "current_actions", "dispatch_matches_progress_successor"]

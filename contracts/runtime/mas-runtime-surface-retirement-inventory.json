@@ -320,7 +320,7 @@
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable_cases/test_anti_loop_owner_gate_cases.py",
+        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
       ]
     },
@@ -1233,7 +1233,7 @@
         "tests/test_stage_outcome_authority_currentness_selectors.py::test_live_provider_attempt_route_accepts_bound_opl_transition_readback",
         "tests/study_progress_cases/opl_current_control_state_handoff_projection_cases/running_attempt_identity.py::test_running_handoff_without_opl_readback_does_not_consume_current_execution",
         "tests/study_progress_cases/provider_admission_projection_cases/opl_running_readback.py::test_provider_admission_projection_consumes_current_identity_running_proof",
-        "tests/test_current_execution_envelope_cases/provider_attempt_priority.py::test_envelope_prefers_running_provider_attempt_over_stale_action_queue"
+        "tests/test_current_execution_envelope_retirement.py::test_current_execution_envelope_default_selector_is_retired_fail_closed"
       ]
     },
     {

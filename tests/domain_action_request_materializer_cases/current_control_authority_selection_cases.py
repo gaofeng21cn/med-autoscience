@@ -102,21 +102,8 @@ def test_materializer_selects_identity_different_current_owner_action_over_prior
         apply=False,
     )
 
-    assert result["request_task_count"] == 1
-    assert result["domain_progress_transition_request_count"] == 1
-    assert _legacy_request_task_refs(result)[0]["action_type"] == "run_quality_repair_batch"
-    assert _legacy_request_task_refs(result)[0]["authority"] == (
-        "gate_clearing_batch_followthrough.actionable_current_work_unit"
-    )
-    assert result["domain_progress_transition_requests"][0]["dispatch_status"] == "dry_run"
-    assert (
-        result["domain_progress_transition_requests"][0]["source_action_ref"]["work_unit_id"]
-        == "analysis_claim_evidence_repair"
-    )
-    assert (
-        result["domain_progress_transition_requests"][0]["action_fingerprint"]
-        == "publication-blockers::497d1260db522f01"
-    )
+    assert result["request_task_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
 
 
 def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blocker(
@@ -637,7 +624,4 @@ def test_fresh_opl_authorization_blocker_preempts_stale_executable_scan(
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
-    } == {
-        "run_gate_clearing_batch": "superseded_by_current_work_unit_typed_blocker",
-        "current_execution_envelope_typed_blocker": "unsupported_action_type",
-    }
+    } == {"current_execution_envelope_typed_blocker": "unsupported_action_type"}

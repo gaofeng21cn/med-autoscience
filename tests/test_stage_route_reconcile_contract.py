@@ -232,14 +232,12 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
 
     lifecycle = contract["lifecycle_state_machine"]
     assert lifecycle["main_chain"] == [
-        "DesiredOwnerDelta",
-        "ProviderAdmissionRequested",
-        "OPLStageRunAdmitted",
-        "ProviderRunning",
-        "ProviderTerminalCloseoutObserved",
-        "MASCloseoutConsumed",
+        "StageOutcomeTerminal",
+        "NextActionEnvelopeCompiled",
+        "OPLTransitionReceiptObserved",
+        "MASOwnerConsumption",
         "DomainAcceptedOrTypedBlocked",
-        "NextOwnerDeltaProjected",
+        "NextStageOutcomeProjected",
     ]
     assert lifecycle["provider_completion_counts_as_domain_accepted"] is False
     assert lifecycle["queue_completion_counts_as_next_owner_delta"] is False
@@ -252,61 +250,53 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
     graph = contract["stage_route_call_graph"]
     assert graph["surface_kind"] == "mas_opl_stage_route_call_graph"
     assert graph["source_code_refs"] == [
-        "src/med_autoscience/controllers/study_progress_parts/current_executable_owner_action.py",
+        "src/med_autoscience/controllers/stage_outcome_authority.py",
+        "src/med_autoscience/paper_mission_opl_readback_parts/next_action_envelope.py",
+        "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py",
         "src/med_autoscience/controllers/current_work_unit.py",
         "src/med_autoscience/controllers/current_execution_envelope.py",
         "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
-        "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
-        "src/med_autoscience/controllers/stage_outcome_authority_parts/persisted_dispatches.py",
     ]
 
     nodes = {item["id"]: item for item in graph["nodes"]}
-    assert nodes["current_owner_delta"]["state_role"] == "desired"
-    assert nodes["current_work_unit"]["state_role"] == "desired_projection"
-    assert nodes["provider_admission_current_control"]["state_role"] == "transport_intent"
-    assert nodes["opl_stage_run_attempt"]["state_role"] == "current"
-    assert nodes["terminal_closeout"]["state_role"] == "terminal_current"
+    assert nodes["stage_outcome"]["state_role"] == "terminal_domain_outcome"
+    assert nodes["next_action_envelope"]["state_role"] == "canonical_next_action"
+    assert nodes["opl_transition_receipt"]["state_role"] == "runtime_receipt"
+    assert nodes["legacy_diagnostics"]["state_role"] == "diagnostic_drilldown"
     assert nodes["stage_route_arbiter_decisions"]["state_role"] == "status"
     assert nodes["trace_span_refs"]["state_role"] == "observability"
     assert nodes["mas_owner_receipt_or_typed_blocker"]["state_role"] == "domain_authority"
 
     edges = {(item["from"], item["to"]): item for item in graph["edges"]}
-    assert edges[("current_owner_delta", "current_work_unit")]["authority_effect"] == (
-        "derive_canonical_operator_surface"
+    assert edges[("stage_outcome", "next_action_envelope")]["authority_effect"] == (
+        "compile_canonical_next_action"
     )
-    assert edges[("current_work_unit", "current_execution_envelope")]["authority_effect"] == (
-        "derive_user_and_operator_execution_state"
+    assert edges[("next_action_envelope", "opl_transition_receipt")]["loop_guard"] == (
+        "same_next_action_identity_required"
     )
-    assert edges[("current_execution_envelope", "provider_admission_current_control")][
-        "loop_guard"
-    ] == "only_when_executable_owner_action_and_strong_provider_admission_identity"
-    assert edges[("provider_admission_current_control", "opl_stage_run_attempt")][
-        "loop_guard"
-    ] == "materialized_pending_only_no_live_attempt_no_terminal_closeout_no_current_typed_blocker"
-    assert edges[("terminal_closeout", "domain_diagnostic_report_apply")]["authority_effect"] == (
-        "consume_closeout_or_materialize_current_control_for_matching_identity"
+    assert edges[("opl_transition_receipt", "mas_owner_consumption")]["authority_effect"] == (
+        "consume_same_identity_result"
     )
-    assert edges[("domain_diagnostic_report_apply", "mas_owner_receipt_or_typed_blocker")][
+    assert edges[("mas_owner_consumption", "mas_owner_receipt_or_typed_blocker")][
         "loop_guard"
     ] == "accepted_owner_answer_or_stable_typed_blocker_required"
-    assert edges[("mas_owner_receipt_or_typed_blocker", "next_current_owner_delta")][
+    assert edges[("mas_owner_receipt_or_typed_blocker", "next_stage_outcome")][
         "authority_effect"
-    ] == "project_successor_or_stop_loss"
+    ] == "terminalize_next_mas_stage_result"
+    assert edges[("legacy_diagnostics", "stage_route_arbiter_decisions")][
+        "authority_effect"
+    ] == "diagnostic_only_cannot_override_next_action"
 
     assert graph["acyclic_same_identity_order"] == [
-        "current_owner_delta",
-        "current_work_unit",
-        "current_execution_envelope",
-        "provider_admission_current_control",
-        "opl_stage_run_attempt",
-        "provider_running",
-        "terminal_closeout",
-        "domain_diagnostic_report_apply",
+        "stage_outcome",
+        "next_action_envelope",
+        "opl_transition_receipt",
+        "mas_owner_consumption",
         "mas_owner_receipt_or_typed_blocker",
-        "next_current_owner_delta",
+        "next_stage_outcome",
     ]
     assert graph["same_identity_feedback_policy"] == {
-        "feedback_edge": "next_current_owner_delta -> current_owner_delta",
+        "feedback_edge": "next_stage_outcome -> stage_outcome",
         "requires_any": [
             "new_work_unit_identity",
             "new_owner_receipt_ref",
@@ -326,12 +316,15 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
     }
 
     forbidden_edges = {(item["from"], item["to"]): item for item in graph["forbidden_edges"]}
-    assert forbidden_edges[("trace_span_refs", "current_owner_delta")]["reason"] == (
-        "observability refs cannot generate desired owner state"
+    assert forbidden_edges[("trace_span_refs", "next_action_envelope")]["reason"] == (
+        "observability refs cannot generate next action"
     )
-    assert forbidden_edges[("active_run_id_or_transport_status", "current_work_unit")][
+    assert forbidden_edges[("active_run_id_or_transport_status", "next_action_envelope")][
         "reason"
-    ] == "transport status cannot become canonical current work unit"
+    ] == "transport status cannot become canonical next action"
+    assert forbidden_edges[("legacy_diagnostics", "next_action_envelope")][
+        "reason"
+    ] == "legacy projections cannot override canonical next action"
     assert forbidden_edges[("typed_blocker_only", "provider_admission_current_control")][
         "reason"
     ] == "typed blocker cannot self-authorize provider admission or readiness execution"

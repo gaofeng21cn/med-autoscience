@@ -91,8 +91,8 @@ def assert_dm002_dm003_recovery_acceptance(contract: dict[str, Any]) -> None:
     } <= set(stop_loss["forbidden_recovery_actions"])
 
     typed_blocker = recovery["current_typed_blocker_recovery_policy"]
-    assert typed_blocker["blocker_source"] == "fresh_current_work_unit_blocker_type_or_reason"
-    assert typed_blocker["owner_source"] == "fresh_current_work_unit_owner"
+    assert typed_blocker["blocker_source"] == "fresh_next_action_envelope_blocker_type_or_reason"
+    assert typed_blocker["owner_source"] == "fresh_next_action_envelope_owner"
     assert {
         "medical_paper_readiness_missing",
         "medical_publication_surface_blocked",
@@ -101,12 +101,12 @@ def assert_dm002_dm003_recovery_acceptance(contract: dict[str, Any]) -> None:
     assert typed_blocker["blocker_only_can_execute_complete_readiness_surface"] is False
     assert {
         "specific_mas_owner_callable",
-        "derived_repair_action_with_current_work_unit_binding",
+        "derived_repair_action_with_next_action_envelope_binding",
         "stable_typed_blocker_with_named_missing_ref_family",
     } <= set(typed_blocker["must_be_consumed_by_any"])
     assert typed_blocker["provider_admission_blocked_when_current_work_unit_is_typed_blocker"] is True
     assert typed_blocker["progress_first_admission_projection_policy"] == (
-        "projection_may_exist_but_admission_requested_false_until_current_typed_blocker_is_consumed_or_superseded"
+        "projection_may_exist_but_admission_requested_false_until_canonical_typed_blocker_is_consumed_or_superseded"
     )
     assert typed_blocker["derived_repair_action_required_fields"] == [
         "stage_typed_blocker_ref",
@@ -203,16 +203,16 @@ def assert_dm002_dm003_conformance_invariants(contract: dict[str, Any]) -> None:
 
     owner_path = conformance["unique_current_owner_path_invariant"]
     assert owner_path["only_chain"] == [
-        "current_owner_delta",
-        "current_work_unit",
-        "current_execution_envelope",
-        "provider_admission_current_control",
-        "OPLStageRun",
-        "terminal_closeout",
-        "MAS_closeout_consume_or_reject",
-        "next_current_owner_delta",
+        "StageOutcome",
+        "NextActionEnvelope",
+        "OPLTransitionReceipt_or_StageRunReadback",
+        "MAS_owner_consumption",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
+        "next_StageOutcome",
     ]
-    assert owner_path["mas_closeout_step"] == "consume_or_reject_required"
+    assert owner_path["mas_closeout_step"] == (
+        "consume_or_reject_required_without_redeciding_stage_semantics"
+    )
     assert owner_path["same_work_unit_feedback_requires_any"] == [
         "new_work_unit_identity",
         "mas_owner_receipt_ref",
@@ -225,6 +225,8 @@ def assert_dm002_dm003_conformance_invariants(contract: dict[str, Any]) -> None:
     ]
     assert owner_path["forbidden_shortcuts"] == [
         "current_work_unit_from_active_run_id",
+        "current_work_unit_as_default_next_action_authority",
+        "current_execution_envelope_as_default_running_authority",
         "provider_admission_from_typed_blocker_only",
         "OPLStageRun_from_stale_dispatch",
         "next_owner_delta_from_provider_completion",
@@ -237,7 +239,7 @@ def assert_dm002_dm003_conformance_invariants(contract: dict[str, Any]) -> None:
     assert self_auth["typed_blocker_can_become_owner_receipt"] is False
     assert self_auth["allowed_exits"] == [
         "specific_mas_owner_callable",
-        "derived_repair_action_with_current_work_unit_binding",
+        "derived_repair_action_with_next_action_envelope_binding",
         "stable_typed_blocker_with_named_missing_ref_family",
         "human_gate_ref_when_domain_owner_cannot_continue",
         "route_back_evidence_ref",
@@ -251,7 +253,7 @@ def assert_dm002_dm003_conformance_invariants(contract: dict[str, Any]) -> None:
     assert selected_dispatch["blocker_classification"] == "OPL_authorization_blocker"
     assert selected_dispatch["must_route_through_any"] == [
         "OPL_authorization_repair_owner_action",
-        "derived_repair_action_with_current_work_unit_binding",
+        "derived_repair_action_with_next_action_envelope_binding",
         "successor_recovery_obligation_ref",
         "human_gate_ref",
         "route_back_evidence_ref",

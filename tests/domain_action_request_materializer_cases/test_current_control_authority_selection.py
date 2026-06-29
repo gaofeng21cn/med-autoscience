@@ -392,11 +392,6 @@ def test_materializer_blocks_stale_domain_transition_when_readiness_blocker_has_
         and item["reason"] == "unsupported_action_type"
         for item in result["ignored_actions"]
     )
-    assert any(
-        item["action_type"] == "run_gate_clearing_batch"
-        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
-        for item in result["ignored_actions"]
-    )
     assert not (
         study_root
         / "artifacts"
@@ -407,7 +402,7 @@ def test_materializer_blocks_stale_domain_transition_when_readiness_blocker_has_
     ).exists()
 
 
-def test_materializer_allows_explicit_readiness_current_action_to_block_stale_domain_transition(
+def test_materializer_rejects_explicit_legacy_readiness_current_action_without_next_action_envelope(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -526,19 +521,8 @@ def test_materializer_allows_explicit_readiness_current_action_to_block_stale_do
         apply=False,
     )
 
-    assert result["request_task_count"] == 1
-    assert result["domain_progress_transition_request_count"] == 1
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
-    assert dispatch["next_executable_owner"] == "MedAutoScience"
-    assert dispatch["source_action_ref"]["authority"] == "mas_owner_surface"
-    assert dispatch["source_action_ref"]["source_surface"] == "stage_kernel_projection.current_owner_delta"
-    assert dispatch["owner_route_ref"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
-    assert any(
-        item["action_type"] == "run_gate_clearing_batch"
-        and item["reason"] == "superseded_by_current_stage_readiness_followup"
-        for item in result["ignored_actions"]
-    )
+    assert result["request_task_count"] == 0
+    assert result["domain_progress_transition_request_count"] == 0
     assert not (
         study_root
         / "artifacts"
@@ -899,4 +883,3 @@ def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_sto
 
 
 from tests.domain_action_request_materializer_cases.current_control_authority_selection_cases import *  # noqa: F403,F401,E402
-from tests.domain_action_request_materializer_cases.test_paper_recovery_owner_callable import *  # noqa: F403,F401,E402

@@ -240,7 +240,10 @@ def test_render_stage_route_contract_guide_points_to_currentness_reconcile_contr
     terminal_closeout = conformance["terminal_closeout_accounting_invariant"]
 
     assert "## Currentness Conformance Invariants" in guide
-    assert "current_owner_delta -> current_work_unit -> current_execution_envelope" in guide
+    assert "StageOutcome -> NextActionEnvelope" in guide
+    assert "stage_outcome -> next_action_envelope -> opl_transition_receipt" in guide
+    assert "legacy current_work_unit / current_execution_envelope" in guide
+    assert "diagnostic_only_cannot_override_next_action" in guide
     assert "queue_empty" in guide
     assert "provider_completion" in guide
     assert selected_dispatch["blocker"] in guide

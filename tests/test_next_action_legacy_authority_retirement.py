@@ -130,8 +130,7 @@ def test_missing_canonical_next_action_does_not_promote_bare_action_queue() -> N
         next_owner="ai_reviewer",
     )
 
-    assert work_unit["status"] == "blocked_current_work_unit"
-    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "domain_transition_ai_reviewer_re_eval"
+    assert work_unit == {}
 
 
 def test_missing_canonical_next_action_does_not_resurrect_current_execution_envelope() -> None:
@@ -147,5 +146,4 @@ def test_missing_canonical_next_action_does_not_resurrect_current_execution_enve
         next_owner="write",
     )
 
-    assert work_unit["status"] == "typed_blocker"
-    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"
+    assert work_unit == {}

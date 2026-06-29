@@ -329,6 +329,7 @@ def assemble_study_progress_payload(
     payload = reconcile_current_owner_action_projection(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
+    payload = _attach_single_next_action_projection(payload)
     handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
     payload = _refresh_current_execution_surfaces(
         payload=payload,

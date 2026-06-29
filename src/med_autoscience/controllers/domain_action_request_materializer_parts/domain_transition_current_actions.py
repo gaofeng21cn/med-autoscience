@@ -20,6 +20,8 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 def current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not _has_canonical_next_action(study):
+        return []
     study_id = _text(study.get("study_id"))
     if study_id is None:
         return []
@@ -60,6 +62,8 @@ def current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def consumed_current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not _has_canonical_next_action(study):
+        return []
     transition = _mapping(study.get("domain_transition"))
     completion = _mapping(transition.get("completion_receipt_consumption"))
     if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
@@ -72,6 +76,8 @@ def consumed_current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def owner_route_for_study(study: Mapping[str, Any]) -> dict[str, Any]:
+    if not _has_canonical_next_action(study):
+        return {}
     study_payload = _mapping(study)
     study_id = _text(study_payload.get("study_id"))
     if study_id is None:
@@ -142,6 +148,11 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _has_canonical_next_action(study: Mapping[str, Any]) -> bool:
+    next_action = _mapping(study.get("next_action"))
+    return _text(next_action.get("surface_kind")) == "mas_next_action_envelope"
 
 
 __all__ = ["consumed_current_actions", "current_actions", "owner_route_for_study"]

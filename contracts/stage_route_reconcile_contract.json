@@ -87,14 +87,14 @@
     ]
   },
   "ordinary_planning_root": {
-    "root": "current_owner_delta",
+    "root": "StageOutcome",
     "derived_operator_surfaces": [
       "current_work_unit",
       "current_execution_envelope",
       "current_executable_owner_action",
       "provider_admission_current_control"
     ],
-    "derived_operator_surfaces_semantics": "legacy_diagnostic_projection_only_when_next_action_envelope_exists",
+    "derived_operator_surfaces_semantics": "diagnostic_provenance_only_when_next_action_envelope_exists",
     "audit_only_surfaces": [
       "raw_worklist",
       "OPL queue history",
@@ -120,7 +120,9 @@
       "OPL queue history",
       "attempt ledger"
     ],
-    "no_second_truth": true
+    "no_second_truth": true,
+    "canonical_default_next_action": "NextActionEnvelope",
+    "legacy_root_status": "current_owner_delta_is_projection_not_planning_root_when_next_action_envelope_exists"
   },
   "identity_policy": {
     "required_owner_identity_fields": [
@@ -422,14 +424,12 @@
   },
   "lifecycle_state_machine": {
     "main_chain": [
-      "DesiredOwnerDelta",
-      "ProviderAdmissionRequested",
-      "OPLStageRunAdmitted",
-      "ProviderRunning",
-      "ProviderTerminalCloseoutObserved",
-      "MASCloseoutConsumed",
+      "StageOutcomeTerminal",
+      "NextActionEnvelopeCompiled",
+      "OPLTransitionReceiptObserved",
+      "MASOwnerConsumption",
       "DomainAcceptedOrTypedBlocked",
-      "NextOwnerDeltaProjected"
+      "NextStageOutcomeProjected"
     ],
     "exception_states": [
       "HumanGateWaiting",
@@ -441,14 +441,13 @@
       "SupervisorOnlyRunningWatch"
     ],
     "transition_authority": {
-      "DesiredOwnerDelta": "MAS current_owner_delta reducer",
-      "ProviderAdmissionRequested": "MAS provider admission identity bound to current owner delta",
-      "OPLStageRunAdmitted": "OPL StageRun Kernel",
-      "ProviderRunning": "OPL liveness plus MAS identity match and no terminal closeout",
-      "ProviderTerminalCloseoutObserved": "OPL/owner-callable closeout packet",
-      "MASCloseoutConsumed": "domain-diagnostic-report apply or equivalent MAS authority consumer",
+      "StageOutcomeTerminal": "MAS stage owner terminal envelope",
+      "NextActionEnvelopeCompiled": "MAS next-action compiler consumes StageOutcome only",
+      "OPLTransitionReceiptObserved": "OPL TransitionReceipt / StageRun live readback for the same next-action identity",
+      "MASOwnerConsumption": "MAS authority consumer accepts or rejects the OPL receipt without re-deciding stage semantics",
       "DomainAcceptedOrTypedBlocked": "MAS owner receipt, quality gate receipt, stable typed blocker, human gate, or route-back evidence",
-      "NextOwnerDeltaProjected": "MAS current_owner_delta/current_work_unit projection"
+      "NextStageOutcomeProjected": "MAS stage owner projects the next terminal outcome / owner delta",
+      "LegacyProjectionObserved": "current_work_unit / current_execution_envelope / provider admission projections are diagnostic-only drilldown"
     },
     "provider_completion_counts_as_domain_accepted": false,
     "queue_completion_counts_as_next_owner_delta": false,
@@ -456,75 +455,57 @@
   },
   "stage_route_call_graph": {
     "surface_kind": "mas_opl_stage_route_call_graph",
-    "purpose": "Machine-readable graph for the MAS/OPL stage-route invocation path, authority direction, and same-identity loop guards.",
+    "purpose": "Machine-readable graph for the canonical MAS/OPL next-action authority path, runtime receipt consumption, legacy diagnostic boundaries, and same-identity loop guards.",
     "source_code_refs": [
-      "src/med_autoscience/controllers/study_progress_parts/current_executable_owner_action.py",
+      "src/med_autoscience/controllers/stage_outcome_authority.py",
+      "src/med_autoscience/paper_mission_opl_readback_parts/next_action_envelope.py",
+      "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py",
       "src/med_autoscience/controllers/current_work_unit.py",
       "src/med_autoscience/controllers/current_execution_envelope.py",
-      "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
-      "src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py",
-      "src/med_autoscience/controllers/stage_outcome_authority_parts/persisted_dispatches.py"
+      "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py"
     ],
     "nodes": [
       {
-        "id": "current_owner_delta",
-        "label": "MAS current_owner_delta",
-        "state_role": "desired",
-        "authority": "MAS domain owner"
+        "id": "stage_outcome",
+        "label": "MAS StageOutcome",
+        "state_role": "terminal_domain_outcome",
+        "authority": "MAS stage owner"
       },
       {
-        "id": "current_work_unit",
-        "label": "canonical current_work_unit",
-        "state_role": "desired_projection",
-        "authority": "MAS currentness reducer"
+        "id": "next_action_envelope",
+        "label": "NextActionEnvelope",
+        "state_role": "canonical_next_action",
+        "authority": "MAS next-action compiler"
       },
       {
-        "id": "current_execution_envelope",
-        "label": "current_execution_envelope",
-        "state_role": "operator_projection",
-        "authority": "MAS projection"
+        "id": "opl_transition_receipt",
+        "label": "OPL TransitionReceipt / StageRun readback",
+        "state_role": "runtime_receipt",
+        "authority": "OPL runtime substrate"
       },
       {
-        "id": "provider_admission_current_control",
-        "label": "provider admission current-control",
-        "state_role": "transport_intent",
-        "authority": "MAS domain diagnostic arbiter"
-      },
-      {
-        "id": "opl_stage_run_attempt",
-        "label": "OPL StageRun attempt",
-        "state_role": "current",
-        "authority": "OPL StageRun Kernel"
-      },
-      {
-        "id": "provider_running",
-        "label": "strict provider running proof",
-        "state_role": "current",
-        "authority": "OPL liveness plus MAS identity match"
-      },
-      {
-        "id": "terminal_closeout",
-        "label": "terminal closeout",
-        "state_role": "terminal_current",
-        "authority": "OPL/owner-callable closeout"
-      },
-      {
-        "id": "domain_diagnostic_report_apply",
-        "label": "domain diagnostic apply / closeout consumer",
+        "id": "mas_owner_consumption",
+        "label": "MAS owner consumption",
         "state_role": "domain_consumer",
         "authority": "MAS authority consumer"
       },
       {
         "id": "mas_owner_receipt_or_typed_blocker",
-        "label": "MAS owner receipt or stable typed blocker",
+        "label": "MAS owner receipt / typed blocker / human gate / route-back",
         "state_role": "domain_authority",
         "authority": "MAS owner surface"
       },
       {
-        "id": "next_current_owner_delta",
-        "label": "next current_owner_delta",
-        "state_role": "desired",
-        "authority": "MAS current owner projection"
+        "id": "next_stage_outcome",
+        "label": "next StageOutcome",
+        "state_role": "next_terminal_domain_outcome",
+        "authority": "MAS stage owner"
+      },
+      {
+        "id": "legacy_diagnostics",
+        "label": "legacy current_work_unit / current_execution_envelope / provider admission projections",
+        "state_role": "diagnostic_drilldown",
+        "authority": "diagnostic only"
       },
       {
         "id": "stage_route_arbiter_decisions",
@@ -541,64 +522,40 @@
     ],
     "edges": [
       {
-        "from": "current_owner_delta",
-        "to": "current_work_unit",
-        "authority_effect": "derive_canonical_operator_surface",
-        "loop_guard": "current owner identity is the only ordinary planning root"
+        "from": "stage_outcome",
+        "to": "next_action_envelope",
+        "authority_effect": "compile_canonical_next_action",
+        "loop_guard": "stage terminal outcome is the only ordinary semantic planning root"
       },
       {
-        "from": "current_work_unit",
-        "to": "current_execution_envelope",
-        "authority_effect": "derive_user_and_operator_execution_state",
-        "loop_guard": "read-model projection cannot create a new desired owner"
+        "from": "next_action_envelope",
+        "to": "opl_transition_receipt",
+        "authority_effect": "transport_request_only",
+        "loop_guard": "same_next_action_identity_required"
       },
       {
-        "from": "current_execution_envelope",
-        "to": "provider_admission_current_control",
-        "authority_effect": "materialize_transport_intent_candidate",
-        "loop_guard": "only_when_executable_owner_action_and_strong_provider_admission_identity"
+        "from": "opl_transition_receipt",
+        "to": "mas_owner_consumption",
+        "authority_effect": "consume_same_identity_result",
+        "loop_guard": "runtime receipt cannot re-decide stage semantics"
       },
       {
-        "from": "provider_admission_current_control",
-        "to": "opl_stage_run_attempt",
-        "authority_effect": "request_opl_stagerun_admission",
-        "loop_guard": "materialized_pending_only_no_live_attempt_no_terminal_closeout_no_current_typed_blocker"
-      },
-      {
-        "from": "opl_stage_run_attempt",
-        "to": "provider_running",
-        "authority_effect": "observe_strict_liveness_for_same_identity",
-        "loop_guard": "same_action_work_unit_or_fingerprint_and_no_terminal_closeout"
-      },
-      {
-        "from": "provider_running",
-        "to": "terminal_closeout",
-        "authority_effect": "produce_terminal_closeout_or_typed_closeout",
-        "loop_guard": "terminal event closes running projection for same identity"
-      },
-      {
-        "from": "terminal_closeout",
-        "to": "domain_diagnostic_report_apply",
-        "authority_effect": "consume_closeout_or_materialize_current_control_for_matching_identity",
-        "loop_guard": "dry_run_identity_match_required_before_apply"
-      },
-      {
-        "from": "domain_diagnostic_report_apply",
+        "from": "mas_owner_consumption",
         "to": "mas_owner_receipt_or_typed_blocker",
-        "authority_effect": "accept_domain_owner_answer_or_stable_blocker",
+        "authority_effect": "accept_domain_answer_or_stable_blocker",
         "loop_guard": "accepted_owner_answer_or_stable_typed_blocker_required"
       },
       {
         "from": "mas_owner_receipt_or_typed_blocker",
-        "to": "next_current_owner_delta",
-        "authority_effect": "project_successor_or_stop_loss",
+        "to": "next_stage_outcome",
+        "authority_effect": "terminalize_next_mas_stage_result",
         "loop_guard": "new_identity_or_stable_stop_loss_required"
       },
       {
-        "from": "provider_admission_current_control",
+        "from": "legacy_diagnostics",
         "to": "stage_route_arbiter_decisions",
-        "authority_effect": "explain_retained_or_suppressed_provider_admission",
-        "loop_guard": "diagnostic_only"
+        "authority_effect": "diagnostic_only_cannot_override_next_action",
+        "loop_guard": "no_owner_delta_no_provider_admission_no_paper_progress"
       },
       {
         "from": "trace_span_refs",
@@ -608,19 +565,15 @@
       }
     ],
     "acyclic_same_identity_order": [
-      "current_owner_delta",
-      "current_work_unit",
-      "current_execution_envelope",
-      "provider_admission_current_control",
-      "opl_stage_run_attempt",
-      "provider_running",
-      "terminal_closeout",
-      "domain_diagnostic_report_apply",
+      "stage_outcome",
+      "next_action_envelope",
+      "opl_transition_receipt",
+      "mas_owner_consumption",
       "mas_owner_receipt_or_typed_blocker",
-      "next_current_owner_delta"
+      "next_stage_outcome"
     ],
     "same_identity_feedback_policy": {
-      "feedback_edge": "next_current_owner_delta -> current_owner_delta",
+      "feedback_edge": "next_stage_outcome -> stage_outcome",
       "requires_any": [
         "new_work_unit_identity",
         "new_owner_receipt_ref",
@@ -641,13 +594,18 @@
     "forbidden_edges": [
       {
         "from": "trace_span_refs",
-        "to": "current_owner_delta",
-        "reason": "observability refs cannot generate desired owner state"
+        "to": "next_action_envelope",
+        "reason": "observability refs cannot generate next action"
       },
       {
         "from": "active_run_id_or_transport_status",
-        "to": "current_work_unit",
-        "reason": "transport status cannot become canonical current work unit"
+        "to": "next_action_envelope",
+        "reason": "transport status cannot become canonical next action"
+      },
+      {
+        "from": "legacy_diagnostics",
+        "to": "next_action_envelope",
+        "reason": "legacy projections cannot override canonical next action"
       },
       {
         "from": "typed_blocker_only",
@@ -1957,7 +1915,7 @@
     "tests/test_stage_route_reconcile_contract.py",
     "tests/paper_mission_owner_surface_cases/test_opl_provider_attempt_projection.py",
     "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
-    "tests/test_current_work_unit.py",
+    "tests/test_current_work_unit_retirement.py",
     "scripts/verify.sh",
     "make test-meta"
   ],
@@ -2104,8 +2062,8 @@
       ]
     },
     "current_typed_blocker_recovery_policy": {
-      "blocker_source": "fresh_current_work_unit_blocker_type_or_reason",
-      "owner_source": "fresh_current_work_unit_owner",
+      "blocker_source": "fresh_next_action_envelope_blocker_type_or_reason",
+      "owner_source": "fresh_next_action_envelope_owner",
       "known_recent_blocker_classes": [
         "medical_paper_readiness_missing",
         "medical_publication_surface_blocked",
@@ -2113,7 +2071,7 @@
       ],
       "must_be_consumed_by_any": [
         "specific_mas_owner_callable",
-        "derived_repair_action_with_current_work_unit_binding",
+        "derived_repair_action_with_next_action_envelope_binding",
         "stable_typed_blocker_with_named_missing_ref_family",
         "human_gate_ref_when_domain_owner_cannot_continue"
       ],
@@ -2140,7 +2098,7 @@
         "paper_local_manuscript_or_package_edit_without_owner_callable"
       ],
       "provider_admission_blocked_when_current_work_unit_is_typed_blocker": true,
-      "progress_first_admission_projection_policy": "projection_may_exist_but_admission_requested_false_until_current_typed_blocker_is_consumed_or_superseded"
+      "progress_first_admission_projection_policy": "projection_may_exist_but_admission_requested_false_until_canonical_typed_blocker_is_consumed_or_superseded"
     },
     "acceptance_requires_any": [
       "mas_owner_receipt_ref",
@@ -2298,16 +2256,14 @@
     },
     "unique_current_owner_path_invariant": {
       "only_chain": [
-        "current_owner_delta",
-        "current_work_unit",
-        "current_execution_envelope",
-        "provider_admission_current_control",
-        "OPLStageRun",
-        "terminal_closeout",
-        "MAS_closeout_consume_or_reject",
-        "next_current_owner_delta"
+        "StageOutcome",
+        "NextActionEnvelope",
+        "OPLTransitionReceipt_or_StageRunReadback",
+        "MAS_owner_consumption",
+        "MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back",
+        "next_StageOutcome"
       ],
-      "mas_closeout_step": "consume_or_reject_required",
+      "mas_closeout_step": "consume_or_reject_required_without_redeciding_stage_semantics",
       "same_work_unit_feedback_requires_any": [
         "new_work_unit_identity",
         "mas_owner_receipt_ref",
@@ -2320,6 +2276,8 @@
       ],
       "forbidden_shortcuts": [
         "current_work_unit_from_active_run_id",
+        "current_work_unit_as_default_next_action_authority",
+        "current_execution_envelope_as_default_running_authority",
         "provider_admission_from_typed_blocker_only",
         "OPLStageRun_from_stale_dispatch",
         "next_owner_delta_from_provider_completion",
@@ -2332,7 +2290,7 @@
       "typed_blocker_can_become_owner_receipt": false,
       "allowed_exits": [
         "specific_mas_owner_callable",
-        "derived_repair_action_with_current_work_unit_binding",
+        "derived_repair_action_with_next_action_envelope_binding",
         "stable_typed_blocker_with_named_missing_ref_family",
         "human_gate_ref_when_domain_owner_cannot_continue",
         "route_back_evidence_ref"
@@ -2344,7 +2302,7 @@
       "blocker_classification": "OPL_authorization_blocker",
       "must_route_through_any": [
         "OPL_authorization_repair_owner_action",
-        "derived_repair_action_with_current_work_unit_binding",
+        "derived_repair_action_with_next_action_envelope_binding",
         "successor_recovery_obligation_ref",
         "human_gate_ref",
         "route_back_evidence_ref"

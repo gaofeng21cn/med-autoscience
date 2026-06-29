@@ -19,7 +19,11 @@ def assert_single_planning_root(contract: dict[str, Any]) -> None:
     )
 
     root = contract["ordinary_planning_root"]
-    assert root["root"] == "current_owner_delta"
+    assert root["root"] == "StageOutcome"
+    assert root["canonical_default_next_action"] == "NextActionEnvelope"
+    assert root["legacy_root_status"] == (
+        "current_owner_delta_is_projection_not_planning_root_when_next_action_envelope_exists"
+    )
     assert {
         "current_work_unit",
         "current_execution_envelope",
@@ -48,7 +52,7 @@ def assert_single_planning_root(contract: dict[str, Any]) -> None:
     } <= set(root["forbidden_default_roots"])
     assert (
         root["derived_operator_surfaces_semantics"]
-        == "legacy_diagnostic_projection_only_when_next_action_envelope_exists"
+        == "diagnostic_provenance_only_when_next_action_envelope_exists"
     )
     assert root["no_second_truth"] is True
 
