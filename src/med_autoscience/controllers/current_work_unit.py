@@ -1220,7 +1220,14 @@ def _action_supersedes_typed_blocker(
     payload = _mapping(blocker)
     if not payload:
         return True
-    blocker_type = _text(payload.get("blocker_type"))
+    blocker_type = (
+        _text(payload.get("blocker_type"))
+        or _text(payload.get("blocker_id"))
+        or _text(payload.get("blocked_reason"))
+        or _text(payload.get("reason"))
+    )
+    if blocker_type == "opl_execution_authorization_required" and _gate_consumption_action_supersedes_readiness_blocker(action):
+        return False
     if gate_replay_action_supersedes_stage_packet_blocker(
         action=action,
         blocker=payload,

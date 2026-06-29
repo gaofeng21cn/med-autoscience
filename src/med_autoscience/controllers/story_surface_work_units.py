@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+)
 from med_autoscience.controllers.next_action_envelope import (
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
     FAMILY_PAPER_WRITE_PROSE_REPAIR,
@@ -66,6 +70,27 @@ CLAIM_EVIDENCE_ALIGNMENT_WRITE_WORK_UNIT_IDS = frozenset(
         "current_manuscript_claim_evidence_alignment_repair",
     }
 )
+SUBMISSION_PACKAGE_WORK_UNIT_IDS = frozenset(
+    {
+        "controller_owned_publication_repair",
+        "submission_authority_sync_closure",
+        "submission_delivery_sync_closure",
+        "submission_minimal_refresh",
+    }
+)
+PUBLICATION_GATE_REPLAY_ROUTE_FAMILY_WORK_UNIT_IDS = frozenset(
+    unit_id
+    for unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+    if unit_id != "ai_reviewer_record_gate_consumption"
+)
+AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
+    {
+        "ai_reviewer_recheck",
+        "ai_reviewer_medical_prose_quality_review",
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    }
+)
 
 
 def is_story_surface_delta_write_work_unit(unit_id: object) -> bool:
@@ -82,6 +107,16 @@ def canonical_action_family(payload: object) -> str | None:
             return CANONICAL_ACTION_FAMILY_PAPER_WRITE
         if action_family_is_submission_materialize(family):
             return CANONICAL_ACTION_FAMILY_SUBMISSION_MATERIALIZE
+    for unit_id in _candidate_work_unit_ids(payload):
+        if unit_id in SUBMISSION_PACKAGE_WORK_UNIT_IDS or unit_id in PUBLICATION_GATE_REPLAY_ROUTE_FAMILY_WORK_UNIT_IDS:
+            return CANONICAL_ACTION_FAMILY_SUBMISSION_MATERIALIZE
+        if (
+            is_story_surface_delta_write_work_unit(unit_id)
+            or is_claim_evidence_alignment_write_work_unit(unit_id)
+            or unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+            or unit_id in AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS
+        ):
+            return CANONICAL_ACTION_FAMILY_PAPER_WRITE
     return None
 
 
@@ -121,6 +156,31 @@ def _candidate_action_families(payload: object) -> list[str]:
     return _dedupe_text(candidates)
 
 
+def _candidate_work_unit_ids(payload: object) -> list[str]:
+    mapping = _mapping(payload)
+    if not mapping:
+        return []
+    candidates: list[str] = []
+    for key in ("work_unit_id", "unit_id", "next_work_unit", "controller_next_work_unit"):
+        value = mapping.get(key)
+        if isinstance(value, Mapping):
+            candidates.extend(_candidate_work_unit_ids(value))
+        elif text := _text(value):
+            candidates.append(text)
+    for key in (
+        "current_work_unit_binding",
+        "current_work_unit",
+        "work_unit",
+        "owner_route",
+        "source_action",
+        "repair_work_unit",
+    ):
+        value = mapping.get(key)
+        if isinstance(value, Mapping):
+            candidates.extend(_candidate_work_unit_ids(value))
+    return _dedupe_text(candidates)
+
+
 def _family_text(value: object) -> str | None:
     text = _text(value)
     return text.replace("-", "_").lower() if text is not None else None
@@ -154,6 +214,9 @@ __all__ = [
     "SUBMISSION_MATERIALIZE_ACTION_FAMILIES",
     "STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS",
     "CLAIM_EVIDENCE_ALIGNMENT_WRITE_WORK_UNIT_IDS",
+    "SUBMISSION_PACKAGE_WORK_UNIT_IDS",
+    "PUBLICATION_GATE_REPLAY_ROUTE_FAMILY_WORK_UNIT_IDS",
+    "AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS",
     "action_family_is_paper_write",
     "action_family_is_story_surface_write",
     "action_family_is_submission_materialize",

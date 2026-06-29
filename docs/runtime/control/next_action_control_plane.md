@@ -114,13 +114,21 @@ StageOutcome
 
 | 旧面 | 当前允许语境 | 禁止语境 |
 | --- | --- | --- |
-| work-unit allowlist | migration audit、no-resurrection guard、测试 fixture、diagnostic detail。 | default next action selector、dispatch authority、paper progress proof。 |
+| work-unit allowlist / exact-id route table | retired tombstone、migration audit、no-resurrection guard、测试 fixture、diagnostic detail；旧 exact id 只能作为 provenance input 解析到 `action_family`，且必须显式 `work_unit_id_authority=false`。 | default next action selector、dispatch authority、paper progress proof、per-study route authorization。 |
 | progress projection scattered next action | read-model detail、human explanation、debug ref。 | current next action SSOT、owner receipt / typed blocker proof、runtime-ready proof。 |
 | OPL queue / attempt 推断 | provider transport observation、TransitionReceipt input、stale/running diagnostic。 | MAS owner action selection、paper progress、publication-ready、submission-ready。 |
 | materializer exact-id registry | historical matching、migration parity、idempotency diagnostic。 | 缺 StageOutcome / Envelope 时自造 dispatch 或 admission。 |
 | domain diagnostic / owner-route / owner-callable legacy chain | history、migration input、consume/readback diagnostic。 | product default paper mainline、active public projection alias、compatibility route。 |
 
-Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前必须先证明没有 active caller，或已有 StageOutcome / NextActionEnvelope / OPL TransitionReceipt replacement parity。未达到物理删除门时，旧面必须显式标注 `diagnostic_only`、`history_provenance_only`、`retired_tombstone` 或 `no_default_caller`。
+Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前必须先证明没有 active caller，或已有 StageOutcome / NextActionEnvelope / OPL TransitionReceipt replacement parity。未达到物理删除门时，旧面必须显式标注 `diagnostic_only`、`history_provenance_only`、`retired_tombstone`、`no_default_caller` 或 `work_unit_id_authority=false`。
+
+## 2026-06-29 源码侧退役切片
+
+- `autonomy_state_surface` 已物理切断 `domain_next_action_projection` 默认返回字段；该 surface 只保留 `authority_snapshot.canonical_next_action`，不再携带旧 projection 作为可读 next-action 候选。
+- `authority_route_gate` 已删除 per-work-unit / per-study exact-id route allowlist。controller route 授权只看 canonical `action_family`；旧 work-unit id 可作为 provenance/currentness input 帮助解析 family，但 gate/readback 字段固定 `work_unit_id_authority=false`。
+- `story_surface_work_units` 仍保留 legacy exact id registry 作为 provenance-to-family resolver 和 no-resurrection guard；它不是 route authority、dispatch authority 或 paper progress proof。
+
+该切片不声明 `domain_next_action_projection.py` 本体物理删除、不声明所有 read model 已投影 `NextActionEnvelope`、不声明 OPL runtime / DM002 / DM003 live readiness。
 
 ## 验收标准
 
@@ -130,11 +138,11 @@ Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前
 | --- | --- |
 | 文档控制面落地 | 本文存在，`docs/decisions.md` 有 2026-06-29 决策，`docs/status.md` / `docs/architecture.md` 有入口引用。 |
 | 默认 next action 单一 | repo/source/control-plane 后续代码或合同能从 StageOutcome 投影唯一 NextActionEnvelope，并让各入口消费同一 envelope。 |
-| 旧面退役 | tombstone / retired docs / caller audit 证明旧 work-unit allowlist、progress projection、queue/attempt 推断、exact-id registry 不再作为 default next action selector。 |
+| 旧面退役 | tombstone / retired docs / caller audit 证明旧 work-unit allowlist、progress projection、queue/attempt 推断、exact-id registry 不再作为 default next action selector；源码切片需证明默认 surface 不再返回 legacy projection，route gate 不再以 exact id 授权。 |
 | MAS / OPL 边界 | OPL TransitionReceipt 只作为 generic runtime receipt；MAS owner consumer 单独给出 owner receipt、typed blocker、human gate、route-back、artifact delta 或 successor handoff。 |
 | read-model parity | `study_progress`、product-entry、domain-handler、MCP / workbench 投影同一 envelope，不从散字段恢复第二 next action。 |
 | live readiness | fresh `paper-mission inspect` / `study_progress`、StageOutcome、OPL TransitionReceipt readback、owner receipt、typed blocker、human gate 或 artifact delta 单独证明；docs / focused tests / queue empty 不可替代。 |
 
 ## 当前状态
 
-当前状态是 `planned_landing`：本文把 StageOutcome 后的 next-action 单一控制面固定为目标设计和退役口径。它不声称现有源码、contract schema、runtime projection、OPL transition runtime 或 DM002/DM003 live evidence 已全部切换完成。
+当前状态是 `planned_landing_with_source_retirement_slice`：本文把 StageOutcome 后的 next-action 单一控制面固定为目标设计和退役口径，并记录 `autonomy_state_surface` legacy projection 默认出口与 `authority_route_gate` exact-id route allowlist 的源码退役切片。它不声称现有 contract schema、全部 runtime projection、OPL transition runtime 或 DM002/DM003 live evidence 已全部切换完成。
