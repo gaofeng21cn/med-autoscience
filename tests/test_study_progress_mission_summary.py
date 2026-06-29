@@ -731,6 +731,75 @@ def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_run
     )
 
 
+def test_top_level_next_legal_action_prefers_canonical_runtime_readback_request() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    payload = module.refresh_top_level_stage_closure_projection(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_id": "next-action::dm002::runtime-route",
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "executor_target": "opl_domain_progress_transition_runtime",
+            },
+            "stage_closure_decision": {
+                "projection_status": "terminalizer_outcome_observed",
+                "decision_ref": "stage-closure::dm002",
+                "outcome": {
+                    "kind": "typed_blocker",
+                    "blocker_type": "route_back_checkpoint_without_semantic_delta",
+                    "next_action": "materialize_typed_blocker_or_route_redesign",
+                    "known_blockers": ["paper_mission_stage_route_domain_gate_pending"],
+                },
+                "known_blockers": ["paper_mission_stage_route_domain_gate_pending"],
+            },
+        }
+    )
+
+    assert payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert payload["stage_closure"]["next_legal_action"] == (
+        "materialize_typed_blocker_or_route_redesign"
+    )
+    assert payload["next_legal_action"] == "request_opl_runtime_readback"
+
+
+def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_replay() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    payload = module.refresh_top_level_stage_closure_projection(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "requires_mas_owner_consumption",
+                "next_legal_action": "consume_opl_transition_receipt",
+                "forbidden_next_action": "synonymous_route_back_redrive",
+            },
+            "stage_closure_decision": {
+                "projection_status": "terminalizer_outcome_observed",
+                "decision_ref": "stage-closure::dm003",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+                },
+            },
+        }
+    )
+
+    assert payload["next_legal_action"] == "consume_opl_transition_receipt"
+    assert payload["stage_closure"]["next_legal_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+
+
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"

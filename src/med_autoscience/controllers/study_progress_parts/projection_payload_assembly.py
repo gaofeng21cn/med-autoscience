@@ -34,6 +34,7 @@ from .current_owner_action_projection_reconcile import (
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .mission_summary import (
     attach_artifact_first_mission_summary,
+    refresh_top_level_stage_closure_projection,
     without_legacy_next_action_authority as _without_legacy_next_action_authority,
 )
 from .opl_supervisor_decision_readback import (
@@ -382,7 +383,9 @@ def assemble_study_progress_payload(
     )
     payload = _sync_supervision_from_user_visible_projection(payload)
     payload = attach_artifact_first_mission_summary(payload)
-    return _without_legacy_next_action_authority(_attach_single_next_action_projection(payload))
+    payload = _attach_single_next_action_projection(payload)
+    payload = refresh_top_level_stage_closure_projection(payload)
+    return _without_legacy_next_action_authority(payload)
 
 
 def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
