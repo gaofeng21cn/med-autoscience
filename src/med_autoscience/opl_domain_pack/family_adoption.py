@@ -671,6 +671,7 @@ def _selected_executor(stage_id: str) -> dict[str, Any] | None:
     return {
         "executor_kind": "codex_cli",
         "owner_callable_adapter": True,
+        "default_executor": True,
         "executor_binding_ref": "default_codex_cli",
         "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
         "required_capabilities": [

@@ -241,8 +241,8 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "owner_callable_adapter_kind": "codex_cli_default",
-          "dispatch_boundary": "mas_guarded_actions_only"
+          "dispatch_boundary": "mas_guarded_actions_only",
+          "owner_callable_adapter_kind": "codex_cli_default"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -441,9 +441,10 @@
       ],
       "selected_executor": {
         "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
-        "owner_callable_adapter": true,
+        "default_executor": true,
         "executor_binding_ref": "default_codex_cli",
         "executor_kind": "codex_cli",
+        "owner_callable_adapter": true,
         "required_capabilities": [
           "repo_context_reading",
           "domain_skill_invocation",
@@ -1139,8 +1140,8 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "owner_callable_adapter_kind": "codex_cli_default",
-          "dispatch_boundary": "mas_guarded_actions_only"
+          "dispatch_boundary": "mas_guarded_actions_only",
+          "owner_callable_adapter_kind": "codex_cli_default"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -2015,8 +2016,8 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "owner_callable_adapter_kind": "codex_cli_default",
-          "dispatch_boundary": "mas_guarded_actions_only"
+          "dispatch_boundary": "mas_guarded_actions_only",
+          "owner_callable_adapter_kind": "codex_cli_default"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -2896,8 +2897,8 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "owner_callable_adapter_kind": "codex_cli_default",
-          "dispatch_boundary": "mas_guarded_actions_only"
+          "dispatch_boundary": "mas_guarded_actions_only",
+          "owner_callable_adapter_kind": "codex_cli_default"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -3816,8 +3817,8 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "owner_callable_adapter_kind": "codex_cli_default",
-          "dispatch_boundary": "mas_guarded_actions_only"
+          "dispatch_boundary": "mas_guarded_actions_only",
+          "owner_callable_adapter_kind": "codex_cli_default"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -4755,8 +4756,8 @@
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
-          "owner_callable_adapter_kind": "codex_cli_default",
-          "dispatch_boundary": "mas_guarded_actions_only"
+          "dispatch_boundary": "mas_guarded_actions_only",
+          "owner_callable_adapter_kind": "codex_cli_default"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
