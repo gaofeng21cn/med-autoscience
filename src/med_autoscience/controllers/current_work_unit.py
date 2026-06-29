@@ -53,7 +53,6 @@ from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successo
 )
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_projection import (
     owner_receipt_recorded_recovery as _owner_receipt_recorded_recovery,
-    paper_recovery_successor_action as _paper_recovery_successor_action,
     paper_recovery_successor_consumes_terminal_stop_loss as _safe_paper_recovery_successor_consumes_terminal_stop_loss,
     repair_progress_proves_safe_successor_delta as _repair_progress_proves_safe_successor_delta,
 )
@@ -180,9 +179,6 @@ def build_current_work_unit(
         )
         if repair_progress_action is not None:
             action = repair_progress_action
-    paper_recovery_successor_action = _paper_recovery_successor_action(progress_payload)
-    if paper_recovery_successor_action is not None:
-        action = paper_recovery_successor_action
     carry_forward_successor = carry_forward_risk.carry_forward_successor_action(progress_payload)
     if action is None and carry_forward_successor is not None:
         action = carry_forward_successor

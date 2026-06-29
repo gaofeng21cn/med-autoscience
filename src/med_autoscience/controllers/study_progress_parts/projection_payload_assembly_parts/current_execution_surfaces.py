@@ -40,7 +40,6 @@ from ..current_executable_owner_action_parts.non_advancing_terminal_closeout imp
     canonical_current_work_unit_terminal_typed_blocker,
 )
 from ..current_executable_owner_action_parts.paper_recovery import (
-    owner_action_from_paper_recovery_state,
     paper_recovery_successor_action_ready,
 )
 from ..current_executable_owner_action_parts.terminal_next_forced_delta import (
@@ -502,11 +501,6 @@ def _paper_recovery_successor_action(payload: Mapping[str, Any]) -> dict[str, An
     if paper_recovery_successor_action_ready(current_action):
         return current_action
     successor_action = build_current_executable_owner_action(payload)
-    if not paper_recovery_successor_action_ready(successor_action):
-        successor_action = owner_action_from_paper_recovery_state(
-            payload,
-            surface_kind="current_executable_owner_action",
-        )
     if paper_recovery_successor_action_ready(successor_action):
         return dict(successor_action)
     return {}
@@ -810,13 +804,7 @@ def _consumed_terminal_typed_blocker_for_execution_refresh(
     )
     progress = _mapping_copy(payload)
     if progress:
-        successor_action = (
-            build_current_executable_owner_action(progress)
-            or owner_action_from_paper_recovery_state(
-                progress,
-                surface_kind="current_executable_owner_action",
-            )
-        )
+        successor_action = build_current_executable_owner_action(progress)
         if successor_action and action_supersedes_terminal_selector_residue(
             action=successor_action,
             blocker=typed_blocker,
@@ -1266,11 +1254,6 @@ def _paper_recovery_successor_action_for_owner_receipt_handoff(
     ):
         return {}
     successor_action = build_current_executable_owner_action(payload)
-    if not paper_recovery_successor_action_ready(successor_action):
-        successor_action = owner_action_from_paper_recovery_state(
-            payload,
-            surface_kind="current_executable_owner_action",
-        )
     if not paper_recovery_successor_action_ready(successor_action):
         return {}
     if paper_recovery_consumed_owner_receipt_successor(recovery):

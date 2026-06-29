@@ -17,7 +17,6 @@ from ...paper_recovery_state_parts.successor_owner_resolution import (
     paper_recovery_successor_consumed_by_gate_followthrough,
 )
 from ..current_executable_owner_action_parts.paper_recovery import (
-    owner_action_from_paper_recovery_state,
     paper_recovery_successor_action_ready,
 )
 from ..shared import _mapping_copy
@@ -198,12 +197,7 @@ def _current_action_for_recovery_refresh(
         and _paper_recovery_successor_state_current(recovery)
         and decision.get("identity_match") is True
     ):
-        recovery_action = owner_action_from_paper_recovery_state(
-            payload,
-            surface_kind="current_executable_owner_action",
-        )
-        if paper_recovery_successor_action_ready(recovery_action):
-            return recovery_action
+        return None
     if (
         _paper_recovery_successor_state_current(recovery)
         and not _terminal_typed_blocker_supersedes_recovery_successor(
@@ -211,12 +205,7 @@ def _current_action_for_recovery_refresh(
             recovery=recovery,
         )
     ):
-        recovery_action = owner_action_from_paper_recovery_state(
-            payload,
-            surface_kind="current_executable_owner_action",
-        )
-        if paper_recovery_successor_action_ready(recovery_action):
-            return recovery_action
+        return None
     return build_current_executable_owner_action(payload)
 
 

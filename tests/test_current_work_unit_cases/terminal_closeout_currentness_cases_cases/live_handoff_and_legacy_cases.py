@@ -103,7 +103,7 @@ def test_current_work_unit_uses_latest_terminal_handoff_domain_blocker_over_repe
     )
 
 
-def test_paper_recovery_successor_supersedes_legacy_unsupported_dispatch_surface_closeout() -> None:
+def test_paper_recovery_successor_does_not_resurrect_legacy_unsupported_dispatch_surface_closeout() -> None:
     module = _module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -166,13 +166,13 @@ def test_paper_recovery_successor_supersedes_legacy_unsupported_dispatch_surface
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["action_type"] == "run_quality_repair_batch"
-    assert work_unit["work_unit_id"] == work_unit_id
-    assert work_unit["work_unit_fingerprint"] == fingerprint
-    assert work_unit["state"]["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["status"] == "blocked_current_work_unit"
+    assert work_unit["owner"] == "med-autoscience"
+    assert work_unit["action_type"] is None
+    assert work_unit["work_unit_id"] is None
+    assert work_unit["work_unit_fingerprint"] is None
+    assert work_unit["state"]["source"] == "blocked_current_work_unit"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"
 
 
 def test_current_work_unit_reports_consumed_gate_replay_blocker_after_fresh_gate_receipt() -> None:

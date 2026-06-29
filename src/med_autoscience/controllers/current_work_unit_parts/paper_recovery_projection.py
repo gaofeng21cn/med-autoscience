@@ -224,36 +224,21 @@ def _paper_recovery_callable_successor(
     owner_callable = _mapping(next_action.get("owner_callable"))
     current_authority = _mapping(recovery.get("current_authority"))
     obligation = _mapping(current_authority.get("obligation"))
-    current_action = _mapping(progress.get("current_executable_owner_action"))
-    current_work_unit = _mapping(progress.get("current_work_unit"))
     action_type = (
         _text(owner_callable.get("action_type"))
         or _text(obligation.get("action_type"))
-        or _text(current_action.get("action_type"))
-        or _text(current_work_unit.get("action_type"))
     )
     work_unit_id = (
         _work_unit_id(obligation.get("work_unit_id"))
-        or _work_unit_id(current_action.get("work_unit_id"))
-        or _work_unit_id(current_action.get("next_work_unit"))
-        or _work_unit_id(current_work_unit.get("work_unit_id"))
-        or _work_unit_id(current_work_unit.get("next_work_unit"))
     )
     fingerprint = (
         _text(obligation.get("work_unit_fingerprint"))
         or _text(obligation.get("action_fingerprint"))
-        or _text(current_action.get("work_unit_fingerprint"))
-        or _text(current_action.get("action_fingerprint"))
-        or _text(current_work_unit.get("work_unit_fingerprint"))
-        or _text(current_work_unit.get("action_fingerprint"))
     )
     owner = (
         _text(next_action.get("owner"))
         or _text(current_authority.get("owner"))
         or _text(obligation.get("owner"))
-        or _text(current_action.get("owner"))
-        or _text(current_action.get("next_owner"))
-        or _text(current_work_unit.get("owner"))
     )
     callable_surface = _text(owner_callable.get("callable_surface"))
     if action_type is None or work_unit_id is None or fingerprint is None or owner is None:
@@ -275,9 +260,6 @@ def _paper_recovery_callable_successor(
         },
         "owner_route_currentness_basis": normalize_currentness_sources(
             _mapping(obligation.get("currentness_basis")),
-            _mapping(current_action.get("owner_route_currentness_basis")),
-            _mapping(current_action.get("currentness_basis")),
-            _mapping(current_work_unit.get("currentness_basis")),
             {
                 "source": "paper_recovery_state.next_safe_action.owner_callable",
                 "source_eval_id": _text(_mapping(progress.get("publication_eval")).get("eval_id")),
