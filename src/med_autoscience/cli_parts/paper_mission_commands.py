@@ -54,12 +54,14 @@ from med_autoscience.cli_parts.paper_mission_output_roots import (
     PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
     PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
     PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH,
+    PAPER_MISSION_RECEIPT_OWNER_CONSUMPTION_RELPATH,
     PAPER_MISSION_STAGE_CLOSURE_RELPATH,
     YANG_WORKSPACE_ROOT,
     _assert_safe_candidate_output_root,
     _assert_safe_candidate_package_output_root,
     _assert_safe_consumption_ledger_output_root,
     _assert_safe_one_shot_output_root,
+    _assert_safe_receipt_owner_consumption_output_root,
     _assert_safe_stage_closure_output_root,
     _is_yang_ops_candidate_package_root,
     _is_yang_ops_candidate_root,
@@ -90,6 +92,9 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
     stage_closure_signature,
     terminalize_stage_closure,
+)
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    materialize_receipt_owner_consumption,
 )
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
@@ -252,6 +257,11 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
     consume_mode.add_argument("--dry-run", action="store_true")
     consume_mode.add_argument("--output-root")
 
+    receipt_parser = mission_subparsers.add_parser("receipt-owner-consumption")
+    _add_common_args(receipt_parser)
+    receipt_parser.add_argument("--paper-mission-readback-file", required=True)
+    receipt_parser.add_argument("--output-root")
+
 
 def handle_paper_mission_command(
     args: argparse.Namespace,
@@ -282,6 +292,11 @@ def handle_paper_mission_command(
         ),
         output_root=getattr(args, "output_root", None),
         paper_facing_delta_ref=getattr(args, "paper_facing_delta_ref", None),
+        paper_mission_readback_file=getattr(
+            args,
+            "paper_mission_readback_file",
+            None,
+        ),
         dry_run=bool(getattr(args, "dry_run", False)),
         source="cli",
         enable_opl_live_probe=bool(
@@ -309,6 +324,7 @@ def build_paper_mission_readback(
     runtime_readback_payload: str | Path | None = None,
     output_root: str | Path | None = None,
     paper_facing_delta_ref: str | Path | None = None,
+    paper_mission_readback_file: str | Path | None = None,
     dry_run: bool = False,
     source: str = "unknown",
     enable_opl_live_probe: bool = False,
@@ -350,6 +366,15 @@ def build_paper_mission_readback(
             study_id=study_id,
             output_root=output_root,
             dry_run=dry_run,
+            source=source,
+        )
+    if paper_mission_command == "receipt-owner-consumption":
+        return _build_receipt_owner_consumption_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_readback_file=paper_mission_readback_file,
+            output_root=output_root,
             source=source,
         )
     if paper_mission_command in {"inspect", "start", "resume"}:
@@ -1388,6 +1413,39 @@ def _build_stage_closure_terminalizer_readback(
         "required_next_owner": _mapping(decision.get("outcome")).get("next_owner"),
         "required_next_action": _mapping(decision.get("outcome")).get("next_action"),
     }
+
+
+def _build_receipt_owner_consumption_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    paper_mission_readback_file: str | Path | None,
+    output_root: str | Path | None,
+    source: str,
+) -> dict[str, Any]:
+    if paper_mission_readback_file is None:
+        return {
+            "surface_kind": "paper_mission_receipt_owner_consumption",
+            "schema_version": 1,
+            "status": "blocked_missing_paper_mission_readback_file",
+            "study_id": study_id,
+            "profile_ref": str(profile_ref),
+            "write_permitted": False,
+            "authority_materialized": False,
+        }
+    readback = _load_json_object(Path(paper_mission_readback_file))
+    resolved_output_root = None
+    if output_root is not None:
+        resolved_output_root = Path(output_root)
+        _assert_safe_receipt_owner_consumption_output_root(resolved_output_root)
+    return materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref=str(profile_ref),
+        output_root=resolved_output_root,
+        source=source,
+    )
 
 
 def _stage_closure_terminalizer_output_root(

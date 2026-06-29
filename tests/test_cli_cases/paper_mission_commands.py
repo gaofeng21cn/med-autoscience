@@ -15,6 +15,7 @@ from tests.test_cli_cases.paper_mission_command_cases.package_candidate import *
 from tests.test_cli_cases.paper_mission_command_cases.drive_and_route_handoff import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.domain_handler_dispatch import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.materialized_readback import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_cases.receipt_owner_consumption import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.submission_milestone_candidate_package import *  # noqa: F401,F403
 
 
@@ -46,6 +47,7 @@ def test_paper_mission_help_exposes_default_commands(capsys) -> None:
         "resume",
         "consume-candidate",
         "package-candidate",
+        "receipt-owner-consumption",
         "drive",
         "terminalize-stage",
     ):
