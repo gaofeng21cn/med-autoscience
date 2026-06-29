@@ -257,6 +257,7 @@ def test_publication_ai_reviewer_record_command_runs_identity_guard_before_write
         expected_work_unit_id: str | None = None,
         expected_work_unit_fingerprint: str | None = None,
         authoring_target_output: Path | None = None,
+        build_production_trace: bool = False,
     ) -> dict:
         called["precheck"] = True
         called["precheck_record"] = record
@@ -265,6 +266,7 @@ def test_publication_ai_reviewer_record_command_runs_identity_guard_before_write
         called["expected_work_unit_id"] = expected_work_unit_id
         called["expected_work_unit_fingerprint"] = expected_work_unit_fingerprint
         called["authoring_target_output"] = authoring_target_output
+        called["build_production_trace"] = build_production_trace
         return {
             "status": "dry_run",
             "identity_guard": {"matched": True},
@@ -429,6 +431,7 @@ def test_publication_ai_reviewer_record_dry_run_dispatches_no_write_plan(
         expected_work_unit_id: str | None = None,
         expected_work_unit_fingerprint: str | None = None,
         authoring_target_output: Path | None = None,
+        build_production_trace: bool = False,
     ) -> dict:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -441,6 +444,7 @@ def test_publication_ai_reviewer_record_dry_run_dispatches_no_write_plan(
         called["expected_work_unit_id"] = expected_work_unit_id
         called["expected_work_unit_fingerprint"] = expected_work_unit_fingerprint
         called["authoring_target_output"] = authoring_target_output
+        called["build_production_trace"] = build_production_trace
         return {
             "status": "dry_run",
             "dry_run": True,
@@ -489,6 +493,7 @@ def test_publication_ai_reviewer_record_dry_run_dispatches_no_write_plan(
     assert called["expected_action_type"] == "run_quality_repair_batch"
     assert called["expected_work_unit_id"] == "analysis_claim_evidence_repair"
     assert called["expected_work_unit_fingerprint"] == "publication-blockers::f11710a114497b27"
+    assert called["build_production_trace"] is True
     assert output["status"] == "dry_run"
     assert output["written_files"] == []
 

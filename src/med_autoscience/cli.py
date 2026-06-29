@@ -489,6 +489,7 @@ def main(argv: list[str] | None = None) -> int:
                 authoring_target_output=Path(args.authoring_target_output)
                 if args.authoring_target_output
                 else None,
+                build_production_trace=bool(args.build_production_trace),
             )
         else:
             expected_identity_args_present = any(
@@ -512,6 +513,7 @@ def main(argv: list[str] | None = None) -> int:
                     expected_action_type=args.expected_action_type,
                     expected_work_unit_id=args.expected_work_unit_id,
                     expected_work_unit_fingerprint=args.expected_work_unit_fingerprint,
+                    build_production_trace=bool(args.build_production_trace),
                 )
                 guard_failed = precheck_result.get("status") == "blocked" or any(
                     isinstance(precheck_result.get(guard_key), dict)

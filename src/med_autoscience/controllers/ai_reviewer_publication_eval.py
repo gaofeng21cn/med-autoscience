@@ -636,6 +636,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
     expected_work_unit_id: str | None = None,
     expected_work_unit_fingerprint: str | None = None,
     authoring_target_output: Path | None = None,
+    build_production_trace: bool = False,
 ) -> dict[str, Any]:
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
@@ -694,6 +695,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         study_root=resolved_study_root,
         record=record_payload,
         enabled=payload_guard.get("matched") is True,
+        build_production_trace=build_production_trace,
     )
     status = (
         "blocked"
@@ -734,7 +736,11 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         "study_root": str(resolved_study_root),
         "owner": "ai_reviewer",
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
-        "owner_callable_mode": "record_only_build_production_trace",
+        "owner_callable_mode": (
+            "record_only_build_production_trace"
+            if build_production_trace
+            else "record_only_raw_payload"
+        ),
         "owner_callable_precheck": {
             "required_payload_field": "record_payload",
             "payload_may_be_absent_for_precheck": True,
@@ -802,7 +808,11 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         "written_files": written_files,
         "next_required_actions": [
             "author_ai_reviewer_record_payload_against_current_input_refs",
-            "rerun_publication_materialize_ai_reviewer_record_with_build_production_trace_without_dry_run",
+            (
+                "rerun_publication_materialize_ai_reviewer_record_with_build_production_trace_without_dry_run"
+                if build_production_trace
+                else "rerun_publication_materialize_ai_reviewer_record_without_dry_run"
+            ),
             "consume_current_record_through_mas_owner_path",
         ],
     }
@@ -827,6 +837,7 @@ def _record_schema_guard_result(
     study_root: Path,
     record: Mapping[str, Any] | None,
     enabled: bool,
+    build_production_trace: bool,
 ) -> dict[str, Any]:
     if not enabled:
         return {
@@ -851,9 +862,13 @@ def _record_schema_guard_result(
             "error": None,
         }
     try:
-        traced_record = _record_with_production_trace(study_root=study_root, record=dict(record))
+        guarded_record = (
+            _record_with_production_trace(study_root=study_root, record=dict(record))
+            if build_production_trace
+            else record_payload
+        )
         canonicalize_ai_reviewer_publication_eval_record(
-            _normalize_publication_eval_record(traced_record)
+            _normalize_publication_eval_record(guarded_record)
         )
     except (TypeError, ValueError) as exc:
         return {
