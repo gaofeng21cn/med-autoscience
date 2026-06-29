@@ -114,7 +114,7 @@ def test_product_entry_progress_projection_defaults_to_current_owner_delta(monke
     assert progress["domain_projection"]["default_read_surface"] == {
         "surface_kind": "study_progress",
         "field_path": "current_owner_delta",
-        "fallback_field_path": "current_executable_owner_action",
+        "fallback_field_path": "next_action_envelope",
         "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
         "ordinary_read_priority": 0,
     }

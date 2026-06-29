@@ -2,14 +2,18 @@
 
 Owner: `MedAutoScience`
 Purpose: `paper_recovery_authority_and_replay_runbook`
-State: `active_control_design`
+State: `superseded_control_design`
 Machine boundary: 本文是人读设计与事故 replay runbook。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、fresh `study_progress`、domain diagnostic dry-run / apply、OPL current-control、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
+
+## Supersession notice
+
+2026-06-29 之后，默认论文 next action authority 已由 [Next Action Control Plane](./next_action_control_plane.md) 持有：`StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt`。本文只保留 PaperRecovery 事故 replay、migration diagnostic、provenance 和 no-resurrection guard 读法；不得再用 PaperRecovery / `paper_recovery_state` 生成 `current_executable_owner_action`、provider admission、默认 next action、paper progress、publication-ready 或 submission-ready claim。
 
 ## 当前结论
 
-`PaperRecovery` 是 MAS authority kernel。OPL 是 recovery obligation 的 execution substrate，负责 StageRun、attempt ledger、provider liveness、terminal closeout transport、queue / retry / dead-letter 与 workbench shell；OPL 不选择 recovery obligation，不签 MAS owner receipt，不声明 paper progress、publication readiness 或 manual foreground adoption。
+`PaperRecovery` 是历史 recovery obligation kernel。OPL 是 recovery obligation 的 execution substrate，负责 StageRun、attempt ledger、provider liveness、terminal closeout transport、queue / retry / dead-letter 与 workbench shell；OPL 不选择 recovery obligation，不签 MAS owner receipt，不声明 paper progress、publication readiness 或 manual foreground adoption。
 
-所有 `study_progress`、domain diagnostic provider admission、operator card、OPL admission 和 human workbench card 都必须从 `paper_recovery_state` 派生。它们只能展示、执行或运输 `PaperRecovery` 当前义务，不能从 queue、active run、transport status、operator card、old handoff 或 docs claim 反向生成 paper recovery truth。
+历史 `study_progress`、domain diagnostic provider admission、operator card、OPL admission 和 human workbench card 曾从 `paper_recovery_state` 派生。当前默认读面只能从 StageOutcome / NextActionEnvelope / OPL TransitionReceipt 派生；本文中的 `paper_recovery_state` 只能展示事故 replay、迁移诊断或历史 recovery obligation，不能从 queue、active run、transport status、operator card、old handoff 或 docs claim 反向生成 current next action。
 
 目标接口详见 [PaperRecovery Obligation 目标架构](../designs/paper_recovery_obligation_target_architecture.md)：`RecoveryObligationKernel` 接收 MAS owner evidence、OPL execution observation、terminal closeout refs、manual / human gate refs 和 read-model projection status，输出唯一 `paper_recovery_state`。所有 operator projection 都必须消费该输出，不能各自重判 currentness。
 

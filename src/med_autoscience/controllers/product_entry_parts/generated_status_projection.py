@@ -219,7 +219,7 @@ def _build_progress_projection_surface(
         runtime_status="ready" if bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids else "blocked",
         progress_surface={
             "surface_kind": "study_progress",
-            "summary": "默认读取 study_progress.current_owner_delta、current_executable_owner_action 和 owner receipt / typed blocker refs。",
+            "summary": "默认读取 study_progress.current_owner_delta、next_action_envelope 和 owner receipt / typed blocker refs。",
             "command": next_step,
             "step_id": "inspect_current_owner_delta",
             "locator_fields": ["profile_ref", "study_id"],
@@ -240,7 +240,7 @@ def _build_progress_projection_surface(
             "default_read_surface": {
                 "surface_kind": "study_progress",
                 "field_path": "current_owner_delta",
-                "fallback_field_path": "current_executable_owner_action",
+                "fallback_field_path": "next_action_envelope",
                 "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
                 "ordinary_read_priority": 0,
             },

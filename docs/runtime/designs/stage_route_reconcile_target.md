@@ -2,9 +2,13 @@
 
 Owner: `MedAutoScience / OPL Framework`
 Purpose: `stage_route_reconcile_target_design`
-State: `active_target_design`
+State: `superseded_target_design`
 Machine boundary: 本文是人读设计说明。机器真相归 `contracts/stage_route_reconcile_contract.json`、`contracts/stage_run_kernel_profile.json`、`contracts/progress_first_safety_envelope.json`、源码、测试、OPL runtime 输出、MAS owner receipt / typed blocker / quality gate receipt / human gate / route-back evidence。
 Date: `2026-06-11`
+
+## Supersession notice
+
+2026-06-29 之后，默认 next action authority 已收敛到 [Next Action Control Plane](../control/next_action_control_plane.md)：`StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt`。本文保留为 identity/currentness、OPL StageRun transport 和历史 reconcile 设计 provenance；`current_work_unit`、provider admission、domain diagnostic、OPL queue / attempt 和 `current_execution_envelope` 不得再作为 default next-action selector 或 paper progress / publication-ready / submission-ready evidence。
 
 ## 目标结论
 

@@ -71,7 +71,7 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
     assert payload["progress_projection"]["progress_surface"] == {
         "surface_kind": "study_progress",
         "summary": (
-            "默认读取 study_progress.current_owner_delta、current_executable_owner_action 和 owner receipt / typed blocker refs。"
+            "默认读取 study_progress.current_owner_delta、next_action_envelope 和 owner receipt / typed blocker refs。"
         ),
         "command": (
             "uv run python -m med_autoscience.cli study progress --profile "
@@ -84,7 +84,7 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
     assert payload["progress_projection"]["domain_projection"]["default_read_surface"] == {
         "surface_kind": "study_progress",
         "field_path": "current_owner_delta",
-        "fallback_field_path": "current_executable_owner_action",
+        "fallback_field_path": "next_action_envelope",
         "receipt_or_blocker_fields": ["owner_receipt_ref", "typed_blocker_ref"],
         "ordinary_read_priority": 0,
     }
