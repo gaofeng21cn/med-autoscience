@@ -502,6 +502,11 @@ def _paper_recovery_successor_action(payload: Mapping[str, Any]) -> dict[str, An
     if paper_recovery_successor_action_ready(current_action):
         return current_action
     successor_action = build_current_executable_owner_action(payload)
+    if not paper_recovery_successor_action_ready(successor_action):
+        successor_action = owner_action_from_paper_recovery_state(
+            payload,
+            surface_kind="current_executable_owner_action",
+        )
     if paper_recovery_successor_action_ready(successor_action):
         return dict(successor_action)
     return {}
