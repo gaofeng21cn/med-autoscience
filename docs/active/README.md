@@ -5,7 +5,7 @@ Purpose: `active_execution_and_gap_index`
 State: `active_support`
 Machine boundary: 人读索引。机器真相继续归 contracts、schemas、source、runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
 
-本目录是 OPL-family canonical 目录中承接 MAS 当前执行、当前计划、当前差距和 active baton 的位置。当前唯一 single Active Truth owner 是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：它维护当前唯一真相、目标态、已落地状态、功能/结构差距、测试/证据差距、近期完善计划和历史索引。dated closeout、过程流水、旧 full record 和 superseded plan 进入 `docs/history/**`。
+本目录是 OPL-family canonical 目录中承接 MAS 当前执行、当前计划、当前差距和 active baton 的位置。当前唯一 single Active Truth owner 是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：它维护当前唯一真相、目标态、已落地状态、功能/结构差距、近期完善计划和历史索引。Ready / publication / production 证据回 owner evidence surface；dated closeout、过程流水、旧 full record 和 superseded plan 进入 `docs/history/**`。
 
 旧 `docs/program/` active-baton 层已物理退役。当前 MAS 执行地图、论文自治目标、产品化依托、stage 形式计划和 landed foundation guard 文档都进入本目录。已完成或被 current owner surface 吸收的 framework migration / retirement 记录进入 history。`program_id` 与 `human_doc:program_*` 只作为语义 ID 保留，不代表物理 `docs/program/` 目录。
 
@@ -34,7 +34,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
-| 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前唯一真相、已落地状态、功能/结构差距、测试/证据差距、完善顺序、历史索引和禁止误写口径。 |
+| 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前唯一真相、已落地状态、功能/结构差距、完善顺序、历史索引和禁止误写口径。 |
 | Stage Native 状态机设计 | [MAS / OPL Stage Native 状态机设计](./mas-opl-stage-native-state-machine.md) | 把 Stage Native 目录产出思路收敛为 `stage folder + manifest + role artifact + OwnerReceipt / TypedBlocker`，并按 ordinary progress spine / audit sidecar 分层读取轻量 progress delta、Stage transition、delivery artifact 和 production evidence；StageRun Kernel foundation 已落到 MAS contract/source/projection 和 OPL refs-only substrate，live DM002/DM003 canary 与补偿链退役仍按 gap plan 推进。 |
 | 下一执行规格 | [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) | 把 Co-Scientist 启发的 Stage-native scientific work system 转成下一 `/goal` 的 runtime-facing 规格、并行 lane、验收门和吸收规则；它不替代 gap plan，也不声明实现已落地。 |
 | 控制面收薄 guard | [MAS Current Development Lines](./current-development-lines.md) + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 当前 active 层只保留 `macro_state + owner_route + receipt_or_blocker + evidence_refs` 行为契约和 production evidence tail；已关闭折返记录进入 history/provenance。 |
