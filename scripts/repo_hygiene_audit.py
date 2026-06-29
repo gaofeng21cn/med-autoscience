@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +25,69 @@ BANNED_FILE_NAMES = frozenset({".DS_Store"})
 BANNED_SUFFIXES = (".egg-info",)
 ALLOWED_ROOT_DIRECTORIES = frozenset({".git", ".worktrees"})
 ALLOWED_ROOT_FILES = frozenset({"RTK.md"})
+ACTIVE_SURFACE_ROOTS = (
+    "src/",
+    "tests/",
+    "contracts/",
+    "profiles/",
+    "agent/",
+    "runtime/authority_functions/",
+)
+ACTIVE_PATH_DENYLIST = (
+    (
+        re.compile(r"(^|/)(dhd|domain[-_]health[-_]diagnostic)(/|\.|_|-|$)", re.I),
+        "retired_dhd_active_path",
+    ),
+    (
+        re.compile(r"(^|/)owner[-_]route[-_]reconcile(/|\.|_|-|$)", re.I),
+        "retired_owner_route_reconcile_active_path",
+    ),
+    (
+        re.compile(r"(^|/)domain[-_]owner[-_]action[-_]dispatch(/|\.|_|-|$)", re.I),
+        "retired_domain_owner_action_dispatch_active_path",
+    ),
+    (
+        re.compile(r"(^|/)default[-_]executor(/|\.|_|-|$)", re.I),
+        "retired_default_executor_active_path",
+    ),
+    (
+        re.compile(r"(^|/)progress[-_]portal(/|\.|_|-|$)", re.I),
+        "retired_progress_portal_active_path",
+    ),
+    (
+        re.compile(r"(^|/)runtime[-_]storage[-_]maintenance(/|\.|_|-|$)", re.I),
+        "retired_runtime_storage_maintenance_active_path",
+    ),
+    (
+        re.compile(r"(^|/)sqlite[-_]sidecars?(/|\.|_|-|$)", re.I),
+        "retired_sqlite_sidecars_active_path",
+    ),
+    (
+        re.compile(
+            r"(^|/)(local[-_]launchd[-_]scheduler|workspace[-_]local[-_]scheduler|"
+            r"mas[-_]supervision[-_]scheduler|supervision[-_]scheduler|"
+            r"mas[-_]default[-_]generic[-_]scheduler|mas[-_]owned[-_]generic[-_]scheduler|"
+            r"mas[-_]runtime[-_]scheduler|scheduler[-_]owner.*(mas|med[-_]autoscience|local|workspace)|"
+            r"(mas|med[-_]autoscience|local|workspace).*scheduler[-_]owner)(/|\.|_|-|$)",
+            re.I,
+        ),
+        "retired_mas_local_scheduler_active_path",
+    ),
+)
+ENTRYPOINT_PATHS = frozenset(
+    {
+        "src/med_autoscience/mcp_server.py",
+        "src/med_autoscience/cli.py",
+        "src/med_autoscience/cli_parts/parser.py",
+    }
+)
+ENTRYPOINT_TOKEN_DENYLIST = {
+    "domain-health-diagnostic": "retired_domain_health_diagnostic_entrypoint",
+    "domain-owner-action-dispatch": "retired_domain_owner_action_dispatch_entrypoint",
+    "owner-route-reconcile": "retired_owner_route_reconcile_entrypoint",
+    "default-executor": "retired_default_executor_entrypoint",
+    "progress-portal": "retired_progress_portal_entrypoint",
+}
 
 
 def _default_repo_root() -> Path:
@@ -97,6 +161,35 @@ def audit_tracked_paths(root: Path) -> list[str]:
             continue
         if _is_banned_file(parts[-1]):
             violations.append(raw_path)
+    return violations
+
+
+def audit_active_surface_residue(root: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    violations: list[str] = []
+    for raw_path in result.stdout.split("\0"):
+        if not raw_path:
+            continue
+        if not raw_path.startswith(ACTIVE_SURFACE_ROOTS):
+            continue
+        for pattern, reason in ACTIVE_PATH_DENYLIST:
+            if pattern.search(raw_path):
+                violations.append(f"{raw_path}: {reason}")
+                break
+        if raw_path in ENTRYPOINT_PATHS:
+            path = root / raw_path
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            for token, reason in ENTRYPOINT_TOKEN_DENYLIST.items():
+                if token in text:
+                    violations.append(f"{raw_path}: {reason}")
     return violations
 
 
@@ -186,9 +279,18 @@ def main(argv: list[str] | None = None) -> int:
         for path in removed:
             print(f"repo hygiene audit removed ignored artifact: {path}")
 
-    violations = sorted(set(audit_filesystem(root) + audit_tracked_paths(root)))
+    violations = sorted(
+        set(
+            audit_filesystem(root)
+            + audit_tracked_paths(root)
+            + audit_active_surface_residue(root)
+        )
+    )
     if violations:
-        print("repo hygiene audit failed: banned checkout artifacts detected", file=sys.stderr)
+        print(
+            "repo hygiene audit failed: banned checkout artifacts or retired active surfaces detected",
+            file=sys.stderr,
+        )
         for violation in violations:
             print(f"  - {violation}", file=sys.stderr)
         return 1

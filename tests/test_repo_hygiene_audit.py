@@ -95,6 +95,117 @@ def test_repo_hygiene_audit_rejects_nested_banned_artifacts(tmp_path: Path) -> N
     assert "src/med_autoscience/__pycache__" in result.stderr
 
 
+def test_repo_hygiene_audit_rejects_retired_active_surface_paths(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    active_file = tmp_path / "src" / "med_autoscience" / "domain_owner_action_dispatch.py"
+    active_file.parent.mkdir(parents=True)
+    active_file.write_text("def main(): pass\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "src/med_autoscience/domain_owner_action_dispatch.py"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = _run_audit(tmp_path)
+
+    assert result.returncode == 1
+    assert "retired_domain_owner_action_dispatch_active_path" in result.stderr
+
+
+def test_repo_hygiene_audit_rejects_retired_mas_local_scheduler_paths(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    active_file = tmp_path / "src" / "med_autoscience" / "mas_runtime_scheduler.py"
+    active_file.parent.mkdir(parents=True)
+    active_file.write_text("def main(): pass\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "src/med_autoscience/mas_runtime_scheduler.py"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = _run_audit(tmp_path)
+
+    assert result.returncode == 1
+    assert "retired_mas_local_scheduler_active_path" in result.stderr
+
+
+def test_repo_hygiene_audit_allows_opl_scheduler_contract_vocabulary(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    contract_file = tmp_path / "contracts" / "runtime" / "opl_scheduler_boundary.json"
+    contract_file.parent.mkdir(parents=True)
+    contract_file.write_text('{"scheduler_owner": "opl_current_control_state"}\n', encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "contracts/runtime/opl_scheduler_boundary.json"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = _run_audit(tmp_path)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_repo_hygiene_audit_rejects_retired_entrypoint_tokens(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    entrypoint = tmp_path / "src" / "med_autoscience" / "cli_parts" / "parser.py"
+    entrypoint.parent.mkdir(parents=True)
+    entrypoint.write_text('parser.add_parser("domain-health-diagnostic")\n', encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "src/med_autoscience/cli_parts/parser.py"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = _run_audit(tmp_path)
+
+    assert result.returncode == 1
+    assert "retired_domain_health_diagnostic_entrypoint" in result.stderr
+
+
+def test_repo_hygiene_audit_allows_retired_terms_in_history_paths(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    history_file = tmp_path / "docs" / "history" / "domain_owner_action_dispatch.md"
+    history_file.parent.mkdir(parents=True)
+    history_file.write_text("domain-owner-action-dispatch tombstone\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "docs/history/domain_owner_action_dispatch.md"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = _run_audit(tmp_path)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_repo_hygiene_audit_allows_retired_terms_in_runtime_docs(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    runtime_doc = tmp_path / "docs" / "runtime" / "contracts" / "runtime_boundary.md"
+    runtime_doc.parent.mkdir(parents=True)
+    runtime_doc.write_text("default-executor is retired; OPL owns scheduler.\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "docs/runtime/contracts/runtime_boundary.md"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = _run_audit(tmp_path)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_repo_hygiene_audit_fix_removes_only_ignored_artifacts(tmp_path: Path) -> None:
     _git_init(tmp_path)
     ignored_cache = tmp_path / "src" / "med_autoscience" / "__pycache__"
