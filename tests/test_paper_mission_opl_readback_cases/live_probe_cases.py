@@ -170,7 +170,7 @@ def test_opl_runtime_readback_accepts_same_route_identity_legacy_receipt_command
     assert readback["can_claim_paper_progress"] is False
 
 
-def test_opl_runtime_readback_rejects_legacy_command_kind_on_task_identity(
+def test_opl_runtime_readback_accepts_legacy_command_kind_on_task_identity(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
@@ -191,12 +191,18 @@ def test_opl_runtime_readback_rejects_legacy_command_kind_on_task_identity(
         enable_opl_live_probe=False,
     )
 
-    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["task_id"] == "frt-stage-route"
+    assert readback["terminal_closeout"]["opl_transition_receipt"]["command_kind"] == (
+        "route_back"
+    )
+    assert readback["mas_receipt_consumption"]["next_legal_action"] == (
+        "record_typed_blocker"
+    )
     assert readback["can_claim_paper_progress"] is False
-    assert "terminal_closeout" not in readback
 
 
-def test_opl_runtime_readback_rejects_legacy_command_kind_on_stage_attempt_identity(
+def test_opl_runtime_readback_accepts_legacy_command_kind_on_stage_attempt_identity(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
@@ -218,9 +224,15 @@ def test_opl_runtime_readback_rejects_legacy_command_kind_on_stage_attempt_ident
         enable_opl_live_probe=False,
     )
 
-    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-completed"
+    assert readback["terminal_closeout"]["opl_transition_receipt"]["command_kind"] == (
+        "route_back"
+    )
+    assert readback["mas_receipt_consumption"]["next_legal_action"] == (
+        "record_typed_blocker"
+    )
     assert readback["can_claim_paper_progress"] is False
-    assert "terminal_closeout" not in readback
 
 
 def test_opl_runtime_readback_prefers_running_terminal_successor_over_old_closeout(

@@ -607,7 +607,10 @@ def _matches_opl_task(
     ):
         return False
     command_kind = _carrier_command_kind(carrier)
-    if command_kind is not None and _text(payload.get("command_kind")) != command_kind:
+    if not _matches_receipt_command_kind(
+        carrier_command_kind=command_kind,
+        observed_command_kind=_text(payload.get("command_kind")),
+    ):
         return False
     route_target = _carrier_route_target(carrier)
     if (
@@ -860,7 +863,10 @@ def _matches_opl_stage_attempt(
         if carrier_value is not None and _text(locator.get(field)) != carrier_value:
             return False
     command_kind = _carrier_command_kind(carrier)
-    if command_kind is not None and _text(locator.get("command_kind")) != command_kind:
+    if not _matches_receipt_command_kind(
+        carrier_command_kind=command_kind,
+        observed_command_kind=_text(locator.get("command_kind")),
+    ):
         return False
     if (
         route_target is not None
