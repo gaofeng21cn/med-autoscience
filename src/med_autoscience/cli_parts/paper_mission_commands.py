@@ -466,6 +466,13 @@ def build_paper_mission_readback(
         if paper_mission_command == "consume-candidate"
         else {}
     )
+    consumption_ledger_readback = (
+        _load_optional_json_object(
+            _mapping(consume_output_manifest).get("consume_readback_ref")
+        )
+        if consume_output_manifest is not None
+        else None
+    )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             **transaction_readback,
@@ -475,6 +482,7 @@ def build_paper_mission_readback(
             ),
         },
         handoff=_mapping(transaction_readback.get("opl_route_handoff")),
+        consumption_ledger_readback=consumption_ledger_readback,
     )
     return {
         "surface_kind": "paper_mission_no_write_readback",
@@ -4486,6 +4494,11 @@ def _load_json_object(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"expected JSON object: {path}")
     return payload
+
+
+def _load_optional_json_object(path: object) -> dict[str, Any] | None:
+    text = _optional_text(path)
+    return _load_json_object(Path(text)) if text is not None else None
 
 
 def _parse_json_object(text: str) -> dict[str, Any]:
