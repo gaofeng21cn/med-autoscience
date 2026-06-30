@@ -372,8 +372,17 @@ def test_domain_handler_export_ignores_stale_consumption_handoff_as_default(
     carrier = task_payload["paper_mission"]["opl_runtime_carrier"]
     assert "opl_route_handoff" not in paper_mission_task
     assert "opl_route_handoff" not in task_payload
+    assert "next_action" not in paper_mission_task
+    assert "next_action" not in task_payload
+    assert "opl_transition_handoff_contract" not in paper_mission_task
+    assert "opl_transition_handoff_contract" not in task_payload
     assert "paper_mission_default_handoff_source" not in paper_mission_task
     assert "paper_mission_default_handoff_source" not in task_payload
+    assert not any(
+        task["task_kind"] == "paper_mission/stage-outcome"
+        and task["study_id"] == study_id
+        for task in payload["pending_family_tasks"]
+    )
     assert task_payload["route_identity_key"] == carrier["route_identity_key"]
     assert task_payload["attempt_idempotency_key"] == carrier[
         "attempt_idempotency_key"
