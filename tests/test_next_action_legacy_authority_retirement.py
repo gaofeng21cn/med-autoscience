@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+from pathlib import Path
 
 
 def _canonical_payload() -> dict[str, object]:
@@ -146,6 +147,30 @@ def test_terminal_next_forced_delta_owner_successor_is_not_canonical_next_action
     assert boundary["canonical_next_action_authority"] is False
     assert boundary["projection_role"] == "legacy_owner_successor_diagnostic"
     assert boundary["can_write_runtime_owned_surfaces"] is False
+
+
+def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> None:
+    root = Path(__file__).resolve().parents[1]
+    producer_dir = (
+        root
+        / "src"
+        / "med_autoscience"
+        / "controllers"
+        / "study_progress_parts"
+        / "current_executable_owner_action_parts"
+    )
+
+    missing: list[str] = []
+    for path in sorted(producer_dir.glob("*.py")):
+        text = path.read_text()
+        if '"authority_boundary": _authority_boundary()' not in text:
+            continue
+        if '"canonical_next_action_authority": False' not in text:
+            missing.append(path.name)
+        if '"projection_role": "legacy_owner_successor_diagnostic"' not in text:
+            missing.append(path.name)
+
+    assert missing == []
 
 
 def test_missing_canonical_next_action_does_not_promote_bare_action_queue() -> None:
