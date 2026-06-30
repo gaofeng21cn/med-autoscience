@@ -13,12 +13,11 @@ from med_autoscience.controllers import (
     paper_progress_stall,
     outer_supervision_slo,
 )
-from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
+from . import existing_projection_refresh as _existing_projection_refresh
 from .delivery_inspection import (
     attach_delivery_inspection_projection as _attach_delivery_inspection_projection,
     read_delivery_inspection_projection as _read_delivery_inspection_projection,
 )
-from . import existing_projection_refresh as _existing_projection_refresh
 from .medical_writing_surfaces import medical_writing_quality_surface_status
 from .mission_summary import attach_artifact_first_mission_summary
 from .parked_projection import (
@@ -61,6 +60,7 @@ from .runtime_medical_publication_surface import build_runtime_medical_publicati
 from .runtime_closeout_invalidation import status_with_invalidated_closed_runtime_attempt
 from .projection_status_context import build_projection_status_context
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
+from .projection_helpers import *
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
@@ -81,31 +81,6 @@ for _module in (
     _module_reexport(_module)
 
 
-def _refresh_existing_projection_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
-    return _existing_projection_refresh.refresh_existing_projection_user_visible_status(payload)
-
-
-def _refresh_existing_projection_batch_followthroughs(
-    *,
-    payload: dict[str, Any],
-    status: dict[str, Any],
-    profile: WorkspaceProfile,
-    profile_ref: str | Path | None,
-    study_id: str,
-    study_root: Path,
-    publication_eval_payload: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return _existing_projection_refresh.refresh_existing_projection_batch_followthroughs(
-        payload=payload,
-        status=status,
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-
-
 def _refresh_existing_projection_current_owner_surfaces(
     *,
     payload: dict[str, Any],
@@ -123,31 +98,6 @@ def _refresh_existing_projection_current_owner_surfaces(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
         attach_delivery_inspection_projection_fn=_attach_delivery_inspection_projection,
-    )
-
-
-_sync_progress_first_owner_action_admission = (
-    _existing_projection_refresh.sync_progress_first_owner_action_admission
-)
-
-
-_current_redrive_top_level_next_action = _existing_projection_refresh.current_redrive_top_level_next_action
-
-
-_current_gate_clearing_eval_ids = _existing_projection_refresh.current_gate_clearing_eval_ids
-
-
-def _stage_artifact_index_projection(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-) -> dict[str, Any] | None:
-    return _existing_projection_refresh.stage_artifact_index_projection(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-        build_stage_artifact_index_fn=build_stage_artifact_index,
     )
 
 
