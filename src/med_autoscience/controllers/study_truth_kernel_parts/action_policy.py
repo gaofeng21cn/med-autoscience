@@ -45,6 +45,12 @@ def canonical_next_action(dominant_event: Mapping[str, Any] | None) -> str:
         return "stop_runtime"
     if event_type in {"task_intake", "explicit_resume"}:
         return _text(payload.get("current_required_action")) or "resume_same_study_line"
+    if (
+        event_type == "human_gate"
+        and _text(payload.get("intervention_intent")) == "owner_gate_decision"
+        and _text(payload.get("owner_gate_kind")) == "submission_authority_gate"
+    ):
+        return "await_submission_authority_or_human_gate_closeout"
     if event_type == "opl_runtime_owner_handoff":
         guard = _mapping(payload.get("execution_owner_guard"))
         if guard.get("supervisor_only") is True:
@@ -75,6 +81,12 @@ def blocking_reasons(events: list[dict[str, Any]]) -> list[str]:
         reasons.append("publication_supervisor_state.bundle_tasks_downstream_only")
     if _latest_event(events, "stop_loss") is not None:
         reasons.append("publishability_stop_loss_recommended")
+    human_gate = _last_payload(events, "human_gate")
+    if (
+        _text(human_gate.get("intervention_intent")) == "owner_gate_decision"
+        and _text(human_gate.get("owner_gate_kind")) == "submission_authority_gate"
+    ):
+        reasons.append("submission_authority_or_human_gate_closeout_required")
     publication = _last_payload(events, "publication_gate_eval")
     provenance = _mapping(publication.get("assessment_provenance"))
     action = _text(publication.get("current_required_action"))

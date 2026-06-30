@@ -116,6 +116,153 @@ def test_study_owner_gate_decision_command_dry_run_does_not_write(tmp_path: Path
     assert payload["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
     assert payload["truth_event_input"]["event_type"] == "human_gate"
     assert not event_log.exists()
+    assert not (
+        workspace_root
+        / "studies"
+        / "002-dm-china-us-mortality-attribution"
+        / "artifacts"
+        / "truth"
+        / "latest.json"
+    ).exists()
+
+
+def test_study_owner_gate_decision_command_apply_materializes_truth_closeout(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+
+    exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--action-type",
+            "materialize_submission_ready_owner_verdict_or_human_gate",
+            "--work-unit-id",
+            "submission_ready_authority_closeout",
+            "--work-unit-fingerprint",
+            "ebf3e5131f6ae95c6ea25409",
+            "--blocker-type",
+            "submission_ready_authority_closeout_required",
+            "--decision",
+            "accept_submission_ready_authority_closeout",
+            "--reason",
+            "current submission-ready package is quality-clear; record owner gate for final authority closeout",
+            "--recorded-at",
+            "2026-06-30T00:00:00+00:00",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    assert payload["record_status"] == "applied"
+    assert payload["truth_event"]["event_type"] == "human_gate"
+    assert payload["truth_event"]["payload"]["owner_gate_kind"] == "submission_authority_gate"
+    assert payload["event"]["payload"]["submission_authority_closeout"]["authority_materialized"] is False
+    assert payload["event"]["payload"]["submission_authority_closeout"]["writes_owner_receipt"] is False
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
+    assert snapshot["blocking_reasons"] == [
+        "submission_authority_or_human_gate_closeout_required"
+    ]
+
+
+def test_study_owner_gate_decision_command_syncs_existing_event_without_reapply(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+
+    apply_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--action-type",
+            "await_human_or_mas_authority_decision_for_submission_blocker",
+            "--work-unit-id",
+            "submission_blocker_human_gate",
+            "--work-unit-fingerprint",
+            "533358e43f6bb6d7378e114d",
+            "--blocker-type",
+            "submission_blocker_human_gate_required",
+            "--decision",
+            "request_submission_blocker_human_gate",
+            "--reason",
+            "current package is not submittable and needs explicit owner or human gate",
+            "--recorded-at",
+            "2026-06-30T00:01:00+00:00",
+            "--apply",
+        ]
+    )
+    capsys.readouterr()
+    truth_log = study_root / "artifacts" / "truth" / "events.jsonl"
+    truth_log.unlink()
+
+    sync_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--sync-truth-from-existing",
+            "--format",
+            "json",
+        ]
+    )
+    first = json.loads(capsys.readouterr().out)
+    second_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm-china-us-mortality-attribution",
+            "--sync-truth-from-existing",
+        ]
+    )
+    second = json.loads(capsys.readouterr().out)
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+    intervention_events = [
+        json.loads(line)
+        for line in (study_root / "artifacts" / "interventions" / "events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+
+    assert apply_exit_code == 0
+    assert sync_exit_code == 0
+    assert second_exit_code == 0
+    assert len(intervention_events) == 1
+    assert first["surface"] == "study_intervention_truth_sync_result"
+    assert first["appended_event_count"] == 1
+    assert second["appended_event_count"] == 0
+    assert first["authority_materialized"] is False
+    assert first["writes_human_gate_authority"] is False
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
+    assert snapshot["blocking_reasons"] == [
+        "submission_authority_or_human_gate_closeout_required"
+    ]
 
 
 def test_study_owner_gate_decision_command_routes_b003_governed_blocker_disposition(

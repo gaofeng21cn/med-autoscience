@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import study_truth_kernel
+
 
 SCHEMA_VERSION = 1
 EVENT_LOG_RELATIVE_PATH = Path("artifacts") / "interventions" / "events.jsonl"
@@ -155,6 +157,21 @@ def owner_gate_decision_record(
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
     truth_event_input = build_truth_event_input(event)
+    truth_event = None
+    truth_snapshot_path = None
+    if apply:
+        truth_event = study_truth_kernel.append_truth_event(
+            study_root=study_root,
+            study_id=truth_event_input["study_id"],
+            event_type=truth_event_input["event_type"],
+            payload=truth_event_input["payload"],
+            recorded_at=truth_event_input["recorded_at"],
+            source_signature=truth_event_input["source_signature"],
+        )
+        truth_snapshot_path = study_truth_kernel.materialize_truth_snapshot(
+            study_root=study_root,
+            study_id=study_id,
+        )
     return {
         "surface": "study_owner_gate_decision_record",
         "schema_version": SCHEMA_VERSION,
@@ -166,14 +183,67 @@ def owner_gate_decision_record(
         "owner_gate_decision_ref": payload["owner_gate_decision_ref"],
         "accepted_answer_shape": {"human_gate_ref": payload["human_gate_ref"]},
         "truth_event_input": truth_event_input,
+        "truth_event": truth_event,
         "refs": {
             "intervention_events_path": str(path),
             "human_gate_ref": payload["human_gate_ref"],
+            **({"truth_snapshot_path": str(truth_snapshot_path)} if truth_snapshot_path else {}),
         },
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "runtime_artifact_mutation_allowed": False,
+    }
+
+
+def materialize_truth_from_intervention_events(
+    *,
+    study_root: Path,
+    study_id: str,
+) -> dict[str, Any]:
+    existing_truth_events = study_truth_kernel.read_truth_events(study_root=study_root)
+    seen_signatures = {
+        _text(event.get("source_signature"))
+        for event in existing_truth_events
+        if _text(event.get("source_signature")) is not None
+    }
+    appended: list[dict[str, Any]] = []
+    for event in read_intervention_events(study_root=study_root):
+        if _text(event.get("study_id")) != study_id:
+            continue
+        if _text(event.get("intent")) != OWNER_GATE_DECISION_INTENT:
+            continue
+        truth_event_input = build_truth_event_input(event)
+        source_signature = truth_event_input["source_signature"]
+        if source_signature in seen_signatures:
+            continue
+        appended_event = study_truth_kernel.append_truth_event(
+            study_root=study_root,
+            study_id=truth_event_input["study_id"],
+            event_type=truth_event_input["event_type"],
+            payload=truth_event_input["payload"],
+            recorded_at=truth_event_input["recorded_at"],
+            source_signature=source_signature,
+        )
+        appended.append(appended_event)
+        seen_signatures.add(source_signature)
+    snapshot_path = study_truth_kernel.materialize_truth_snapshot(
+        study_root=study_root,
+        study_id=study_id,
+    )
+    return {
+        "surface": "study_intervention_truth_sync_result",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": study_id,
+        "appended_event_count": len(appended),
+        "appended_event_ids": [event["event_id"] for event in appended],
+        "snapshot_path": str(snapshot_path),
+        "authority_materialized": False,
+        "writes_owner_receipt": False,
+        "writes_human_gate_authority": False,
+        "writes_current_package": False,
+        "writes_publication_eval": False,
+        "writes_controller_decision": False,
     }
 
 
