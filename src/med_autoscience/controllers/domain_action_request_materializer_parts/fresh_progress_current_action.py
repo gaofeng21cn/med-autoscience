@@ -20,6 +20,12 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+CURRENT_EXECUTION_ENVELOPE_DIAGNOSTIC_AUTHORITY = (
+    "legacy_current_execution_envelope_diagnostic_blocker"
+)
+CURRENT_EXECUTION_ENVELOPE_DIAGNOSTIC_BLOCKED_REASON = (
+    "legacy_current_execution_envelope_is_diagnostic_only"
+)
 DomainTransitionActions = Callable[[Mapping[str, Any]], list[dict[str, Any]]]
 ExplicitReadinessAction = Callable[[Mapping[str, Any]], Mapping[str, Any]]
 
@@ -314,7 +320,11 @@ def _typed_blocker_barrier(
         "owner": owner,
         "request_owner": owner,
         "recommended_owner": owner,
-        "authority": "study_progress.current_execution_envelope",
+        "authority": CURRENT_EXECUTION_ENVELOPE_DIAGNOSTIC_AUTHORITY,
+        "authority_scope": "legacy_queue_blocker_diagnostic_only",
+        "diagnostic_only": True,
+        "default_dispatch_allowed": False,
+        "default_dispatch_blocked_reason": CURRENT_EXECUTION_ENVELOPE_DIAGNOSTIC_BLOCKED_REASON,
         "source_surface": "study_progress.current_execution_envelope",
         "source_ref": _text(blocker.get("source_ref")),
         "work_unit_id": _text(blocker.get("work_unit_id")) or _work_unit_id(envelope.get("next_work_unit")),
@@ -359,7 +369,11 @@ def _owner_receipt_recorded_barrier(
         "owner": owner,
         "request_owner": owner,
         "recommended_owner": owner,
-        "authority": "study_progress.current_execution_envelope",
+        "authority": CURRENT_EXECUTION_ENVELOPE_DIAGNOSTIC_AUTHORITY,
+        "authority_scope": "legacy_queue_blocker_diagnostic_only",
+        "diagnostic_only": True,
+        "default_dispatch_allowed": False,
+        "default_dispatch_blocked_reason": CURRENT_EXECUTION_ENVELOPE_DIAGNOSTIC_BLOCKED_REASON,
         "source_surface": "study_progress.current_execution_envelope",
         "source_ref": owner_receipt_ref,
         "work_unit_id": _text(current_work_unit.get("work_unit_id"))

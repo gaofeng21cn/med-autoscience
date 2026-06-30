@@ -475,6 +475,58 @@ def test_residual_current_work_unit_projection_does_not_default_owner_without_en
     assert work_unit["state"] == {"source": "legacy_current_work_unit_residual"}
 
 
+def test_current_execution_envelope_barriers_are_diagnostic_only() -> None:
+    current_action = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
+    )
+
+    typed_blocker = current_action._fresh_progress_current_action(
+        study_id="legacy-envelope-study",
+        progress={
+            "quest_id": "legacy-envelope-study",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": {
+                    "blocker_id": "same_transaction_opl_runtime_live_readback_required",
+                    "source_ref": "controller/current_execution_envelope.json",
+                },
+            },
+        },
+        domain_transition_actions=lambda _study: [],
+        explicit_readiness_action=lambda _progress: {},
+    )
+
+    assert typed_blocker is not None
+    assert typed_blocker["authority"] == "legacy_current_execution_envelope_diagnostic_blocker"
+    assert typed_blocker["authority_scope"] == "legacy_queue_blocker_diagnostic_only"
+    assert typed_blocker["source_surface"] == "study_progress.current_execution_envelope"
+    assert typed_blocker["diagnostic_only"] is True
+    assert typed_blocker["default_dispatch_allowed"] is False
+    assert typed_blocker["default_dispatch_blocked_reason"] == (
+        "legacy_current_execution_envelope_is_diagnostic_only"
+    )
+
+    owner_receipt_recorded = current_action._fresh_progress_current_action(
+        study_id="legacy-envelope-study",
+        progress={
+            "quest_id": "legacy-envelope-study",
+            "current_execution_envelope": {
+                "state_kind": "owner_receipt_recorded",
+                "owner": "MedAutoScience",
+                "owner_receipt_ref": "controller/owner_receipt.json",
+            },
+        },
+        domain_transition_actions=lambda _study: [],
+        explicit_readiness_action=lambda _progress: {},
+    )
+
+    assert owner_receipt_recorded is not None
+    assert owner_receipt_recorded["authority"] == "legacy_current_execution_envelope_diagnostic_blocker"
+    assert owner_receipt_recorded["diagnostic_only"] is True
+    assert owner_receipt_recorded["default_dispatch_allowed"] is False
+
+
 def test_missing_canonical_next_action_retires_per_study_top_level_fallback() -> None:
     selection = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
