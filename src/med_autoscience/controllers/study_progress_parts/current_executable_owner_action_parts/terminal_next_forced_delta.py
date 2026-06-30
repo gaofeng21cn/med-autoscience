@@ -326,6 +326,8 @@ def _terminal_closeout_next_forced_delta_fingerprint(
 def _authority_boundary() -> dict[str, bool]:
     return {
         "refs_only": True,
+        "canonical_next_action_authority": False,
+        "projection_role": "legacy_owner_successor_diagnostic",
         "can_write_runtime_owned_surfaces": False,
         "can_write_paper_or_package": False,
         "can_authorize_quality_verdict": False,
