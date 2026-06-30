@@ -399,3 +399,59 @@ def test_missing_canonical_next_action_does_not_resurrect_current_execution_enve
     )
 
     assert work_unit == {}
+
+
+def test_missing_canonical_next_action_retires_per_study_top_level_fallback() -> None:
+    selection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+    )
+    study_id = "004-legacy-top-level-fallback"
+    action = {
+        "study_id": study_id,
+        "action_id": "legacy-top-level-write",
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "work_unit_id": "legacy-top-level-write",
+        "work_unit_fingerprint": "legacy-top-level-write::fingerprint",
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(study_id,),
+        scan_payload={
+            "studies": [{"study_id": study_id, "quest_id": study_id}],
+            "action_queue": [action],
+        },
+    )
+
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "action_id": "legacy-top-level-write",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
+def test_paper_recovery_ignores_monitoring_summary_legacy_current_action() -> None:
+    recovery = importlib.import_module(
+        "med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution"
+    )
+
+    progress = {
+        "progress_first_monitoring_summary": {
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "legacy_monitoring_summary",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "legacy-monitoring-write",
+                "work_unit_fingerprint": "legacy-monitoring-write::fingerprint",
+            }
+        }
+    }
+
+    assert recovery.current_executable_owner_action(progress) == {}

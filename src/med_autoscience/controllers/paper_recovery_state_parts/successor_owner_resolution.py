@@ -26,10 +26,7 @@ from .typed_blocker_supersession import (
 
 
 def current_executable_owner_action(progress: Mapping[str, Any]) -> dict[str, Any]:
-    direct = _mapping(progress.get("current_executable_owner_action"))
-    if direct:
-        return direct
-    return _mapping(_mapping(progress.get("progress_first_monitoring_summary")).get("current_executable_owner_action"))
+    return _mapping(progress.get("current_executable_owner_action"))
 
 
 def successor_owner_action_from_terminal_blocker(

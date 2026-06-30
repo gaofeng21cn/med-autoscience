@@ -18,6 +18,9 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
 from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.controllers.domain_action_request_materializer_parts import legacy_next_action_authority
+from med_autoscience.controllers.owner_callable_action_policy import (
+    SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
+)
 
 
 READINESS_ACTION_TYPE = current_action_authority.READINESS_ACTION_TYPE
@@ -199,15 +202,13 @@ def current_actions_for_studies(
             )
             continue
         if not canonical_next_action_available:
-            selectable_actions, retired_actions = _selectable_candidate_actions(
-                [
+            ignored.extend(
+                _ignored_action(action, _noncanonical_action_ignored_reason(action))
+                for action in [
                     *([readiness_followup] if readiness_followup is not None else []),
                     *stale_candidate_actions,
                 ]
             )
-            ignored.extend(retired_actions)
-            if selectable_actions:
-                per_study_actions.extend(selectable_actions)
             continue
         if (
             readiness_followup is not None
@@ -786,6 +787,12 @@ def _selectable_candidate_actions(
     actions: Iterable[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     return _retire_legacy_next_action_authority(actions, [])
+
+
+def _noncanonical_action_ignored_reason(action: Mapping[str, Any]) -> str:
+    if _text(action.get("action_type")) not in SUPPORTED_REQUEST_ACTION_TYPES:
+        return "unsupported_action_type"
+    return LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
 
 
 def _action_has_canonical_next_action(action: Mapping[str, Any] | None) -> bool:
