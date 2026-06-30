@@ -272,6 +272,46 @@ def _submission_delivery_blocking_artifact_refs(
     return refs
 
 
+def _submission_delivery_status_from_authority(
+    *,
+    authority_status: str | None,
+    authority_stale_reason: str | None,
+) -> tuple[str | None, str | None]:
+    if authority_status in {None, "", "current"}:
+        return None, None
+    if authority_status == "missing":
+        return "stale_source_missing", authority_stale_reason or "submission_manifest_missing"
+    if authority_status == "invalid":
+        return "stale_source_invalid", authority_stale_reason or "submission_manifest_invalid"
+    return "stale_source_changed", authority_stale_reason or "submission_source_authority_not_current"
+
+
+def _submission_manifest_is_generated_authority_source(source_root: Path) -> bool:
+    manifest = _load_json_file(audit_path(source_root, "submission_manifest"))
+    if not isinstance(manifest, dict):
+        return False
+    layout = manifest.get("delivery_layout")
+    if not isinstance(layout, dict):
+        return False
+    return (
+        str(layout.get("package_role") or "").strip() == "controller_authorized_package_source"
+        and str(layout.get("legacy_input_status") or "").strip() == "v2_generated"
+    )
+
+
+def _submission_authority_status_overrides_delivery(
+    *,
+    authority_status: str,
+    submission_authority: Mapping[str, Any],
+    source_root: Path,
+) -> bool:
+    if authority_status in {"missing", "invalid"}:
+        return True
+    if not str(submission_authority.get("recorded_source_signature") or "").strip():
+        return False
+    return _submission_manifest_is_generated_authority_source(source_root)
+
+
 def _submission_delivery_handshake(
     *,
     status: str,
@@ -436,6 +476,12 @@ def describe_submission_delivery(
             ),
         }
 
+    from med_autoscience.controllers.submission_minimal import describe_submission_minimal_authority
+
+    submission_authority = describe_submission_minimal_authority(
+        paper_root=resolved_paper_root,
+        publication_profile=normalized_publication_profile,
+    )
     recorded_surface_roles = manifest.get("surface_roles") or {}
     recorded_source_root = (
         str((recorded_surface_roles or {}).get("controller_authorized_package_source_root") or "").strip()
@@ -467,6 +513,20 @@ def describe_submission_delivery(
     if missing_source_paths:
         status = "stale_source_missing"
         stale_reason = "delivery_manifest_sources_missing"
+    elif (
+        (authority_status := str(submission_authority.get("status") or "").strip())
+        and authority_status != "current"
+        and _submission_authority_status_overrides_delivery(
+            authority_status=authority_status,
+            submission_authority=submission_authority,
+            source_root=expected_source_root,
+        )
+    ):
+        status, stale_reason = _submission_delivery_status_from_authority(
+            authority_status=authority_status,
+            authority_stale_reason=str(submission_authority.get("stale_reason") or "").strip() or None,
+        )
+        assert status is not None
     elif not current_package_root.exists() or not current_package_zip.exists():
         status = "stale_projection_missing"
         stale_reason = "delivery_projection_missing"
@@ -490,6 +550,10 @@ def describe_submission_delivery(
         delivery_manifest_path=delivery_manifest_path,
         missing_source_paths=missing_source_paths,
     )
+    if status != "current":
+        for ref in submission_authority.get("blocking_artifact_refs") or []:
+            if isinstance(ref, dict) and ref not in blocking_artifact_refs:
+                blocking_artifact_refs.append(ref)
     return {
         "applicable": True,
         "status": status,
@@ -502,6 +566,7 @@ def describe_submission_delivery(
         "authority_source_signature": recorded_authority_source_signature,
         "delivery_source_signature": recorded_source_signature,
         "source_signature": source_signature,
+        "submission_minimal_authority": submission_authority,
         "blocking_artifact_refs": blocking_artifact_refs,
         "gate_freshness_handshake": _submission_delivery_handshake(
             status=status,

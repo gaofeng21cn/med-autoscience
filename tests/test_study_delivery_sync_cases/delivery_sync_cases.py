@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from . import shared as _shared
+from tests.control_plane_route_helpers import writable_route_context
 
 globals().update({
     name: value
@@ -223,6 +224,61 @@ def test_submission_delivery_manifest_and_status_expose_authority_handshake_sign
 
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert delivery_manifest["authority_source_signature"] == manifest["source_signature"]
+
+
+def test_describe_submission_delivery_marks_current_package_stale_when_source_authority_changed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    submission_module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.package_builder"
+    )
+    paper_root, _study_root = make_delivery_workspace(tmp_path)
+
+    def write_placeholder_export(
+        *,
+        output_docx_path: Path | None = None,
+        output_pdf_path: Path | None = None,
+        **_: object,
+    ) -> None:
+        output_path = output_docx_path or output_pdf_path
+        assert output_path is not None
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"test export placeholder")
+
+    monkeypatch.setattr(package_builder, "export_docx", write_placeholder_export)
+    monkeypatch.setattr(package_builder, "export_pdf", write_placeholder_export)
+
+    submission_module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_route_context(),
+    )
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+    current_status = module.describe_submission_delivery(paper_root=paper_root)
+    assert current_status["status"] == "current"
+
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        "# Updated manuscript\n\nThe compiled submission source changed after the package export.\n",
+    )
+
+    stale_status = module.describe_submission_delivery(paper_root=paper_root)
+    assert stale_status["status"] == "stale_source_changed"
+    assert stale_status["stale_reason"] == "submission_source_signature_mismatch"
+    assert stale_status["submission_minimal_authority"]["status"] == "stale_source_changed"
+    assert stale_status["gate_freshness_handshake"]["status"] == "stale_source_changed"
+    assert stale_status["gate_freshness_handshake"]["replay_after_repair"] is True
+    assert any(
+        ref["blocker"] == "stale_submission_minimal_authority"
+        for ref in stale_status["blocking_artifact_refs"]
+    )
 
 def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
