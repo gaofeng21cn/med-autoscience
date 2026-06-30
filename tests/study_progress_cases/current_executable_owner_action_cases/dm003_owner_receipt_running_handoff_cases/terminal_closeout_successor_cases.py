@@ -1,4 +1,0 @@
-from __future__ import annotations
-
-from tests.study_progress_cases.current_executable_owner_action_cases.dm003_owner_receipt_running_handoff_cases.terminal_closeout_successor_cases_cases.ai_reviewer_transition_cases import *  # noqa: F403,F401
-from tests.study_progress_cases.current_executable_owner_action_cases.dm003_owner_receipt_running_handoff_cases.terminal_closeout_successor_cases_cases.terminal_handoff_successor_cases import *  # noqa: F403,F401

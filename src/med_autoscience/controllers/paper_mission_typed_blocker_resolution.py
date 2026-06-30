@@ -514,7 +514,7 @@ def _executable_owner_route(
         "verification": {
             "repo_focused_tests": [
                 "tests/test_cli_cases/paper_mission_command_cases/typed_blocker_resolution.py",
-                "tests/study_progress_cases/current_executable_owner_action_cases/typed_blocker_resolution_projection.py",
+                "tests/test_current_executable_owner_action_canonical.py",
             ],
             "owner_readback_command": (
                 "paper-mission inspect --request-opl-runtime-readback "

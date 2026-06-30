@@ -363,7 +363,7 @@ When validating a docs-only change in this repo, use documentation review plus g
   - Integration cleanup commit keeps line-budget advisory reporting clean by moving runtime storage maintenance tests to a cases module and extracting artifact-first monitoring helpers.
 - Verification evidence:
   - `rtk scripts/run-pytest-clean.sh tests/test_stage_artifact_index.py -q` -> 4 passed.
-  - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/current_executable_owner_action.py -q` -> 18 passed.
+  - superseded historical evidence: `tests/study_progress_cases/current_executable_owner_action.py` once covered artifact-first owner-action precedence, but that legacy selector aggregation was retired after canonical `NextActionEnvelope` ownership became the current contract.
   - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_review_opl_projection_reference.py -q` -> 5 passed.
   - `rtk scripts/run-pytest-clean.sh tests/test_product_entry.py -q -k stage_control_plane_descriptor` -> 1 passed, 105 deselected.
   - `rtk scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance.py -q` -> 31 passed.

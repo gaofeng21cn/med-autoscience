@@ -1,15 +1,6 @@
 from __future__ import annotations
 
-from .. import shared as _shared
-
-
-def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
-            globals()[name] = value
-
-
-_module_reexport(_shared)
+import importlib
 
 
 def test_current_owner_action_projects_typed_blocker_resolution_next_action() -> None:

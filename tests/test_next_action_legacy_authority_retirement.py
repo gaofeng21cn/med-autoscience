@@ -173,6 +173,16 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
     assert missing == []
 
 
+def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> None:
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "current_executable_owner_action_parts.stage_artifact_index"
+        )
+        is None
+    )
+
+
 def test_materializer_retires_legacy_current_action_even_with_complete_next_action_identity() -> None:
     legacy = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts."
