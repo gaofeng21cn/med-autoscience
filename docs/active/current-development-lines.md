@@ -52,15 +52,9 @@ OPL 层面的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/ac
 
 ## 当前完成信号与未闭合门槛
 
-| 线路 | 完成信号 |
-| --- | --- |
-| `opl_framework_foundation` | 已完成：OPL production proof 可被 MAS manifest / domain-handler ingest，`provider_runtime_residency_read_model` 与 `managed_temporal_state_consistency` 可投影；未闭合：真实 domain activity long soak、restart/re-query 后的 domain receipt 串联、human gate/resume owner chain。 |
-| `mas_framework_migration` | 已完成：MAS direct skill path 与 OPL-hosted path 使用同一 MAS owner receipt envelope，`provider_completion_is_paper_closure=false` 且 OPL 不写 forbidden MAS truth surface；未闭合：真实 live apply owner receipt chain。 |
-| `publication_route_memory_management` | 已完成：人类用户能从 policy/index 进入 Markdown-first Publication Strategy Memory library；新 workspace init 会通过 MAS seed-apply surface 得到默认 pack；stage packet 输出 reference-only prompt block；workspace memory pack 与 receipt/proposal locator 可查；body-free inventory 能查看 card 元数据、locator、receipt summary、operator grouping 和 stale/deprecated review summary。进行中：维护者 workbench landing/对齐，把同一组 refs 组织成 body-free 的 card metadata、receipt summary、stale/deprecated review、workspace/pack coverage 和 writeback refs 读面。未闭合：更多真实论文线通过 MAS router receipt 生成 accepted/rejected reusable lessons。该完成信号不表示 recipe engine、route scorer、matching engine、evidence gate、programmatic recipe controller 或 controller decision source 已存在。 |
-| `standard_agent_purity_projection` | 已完成：current product-entry / domain-handler / read-model 默认只暴露标准 Agent 口径、domain refs、owner receipts 和 typed blockers；未闭合：真实 provider/paper-line evidence tail 和 OPL App/operator drilldown scaleout。 |
-| `stage_surface_standardization` | 已完成：generated stage card、route contract、knowledge/closeout obligations、quality pack contract、OPL projection boundary、独立 stage skill surface、provider projection / typed blocker proof、OPL production proof ingestion、Stage Review / Index workspace locator proof，以及 standard skeleton repo-source anchors；未闭合：provider-hosted live apply 证明 stage closeout / memory / quality / artifact delta 沿 MAS owner surface 闭合。 |
-| `app_runtime_workbench` | 已完成：MAS 可把 workbench 所需 refs、freshness、owner-route handoff refs 和 typed blocker 汇入 read-only projection；未闭合：OPL App / Workbench drilldown 的产品化展示和真实 operator loop。 |
-| `paper_autonomy_acceptance` | 已完成：Read-only evidence 已要求真实论文线 typed closeout projection，guarded apply proof surface 已要求 MAS owner receipt gate，不允许 provider 直接写 workspace truth；未闭合：更多真实 paper line 反复产出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 MAS owner surface 下的 typed blocker scaleout。 |
+本文不再维护第二张完成度表。当前功能/结构完成度、证据尾项、禁止误写口径和下一轮 agent baton 回到 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 与 [当前状态](../status.md)；具体机器完成度和 no-authority boundary 由 contracts、source、tests、runtime/controller readback 与 owner receipts 证明。
+
+按内容线阅读时，本页只说明“这条线由哪个 owner doc 持有、属于哪类 gate、默认下一步看哪里”。如果需要判断某条线是否 still open，应从对应 owner doc 和 live evidence tail 读取，而不是从本索引推断。历史 closeout、receipt/worklist 数字、focused-test pass、branch/SHA 或 dated live sample 不再追加到本页；必要时读 [history/program](../history/program/README.md)、相关 runtime/support 文档或 git history。
 
 ## 验证
 
