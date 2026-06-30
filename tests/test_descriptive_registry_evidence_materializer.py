@@ -220,6 +220,10 @@ def test_materialized_tables_are_consumed_by_display_surface_renderer(tmp_path: 
     assert (paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv").is_file()
     assert (paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv").is_file()
     assert (paper_root / "tables" / "generated" / "T3_transition_site_support_summary.csv").is_file()
+    t3_header = (paper_root / "tables" / "generated" / "T3_transition_site_support_summary.csv").read_text(
+        encoding="utf-8"
+    ).splitlines()[0]
+    assert t3_header == "Domain,Measure,Value"
 
 
 def test_cli_parser_recognizes_descriptive_registry_evidence_command() -> None:

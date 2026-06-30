@@ -90,7 +90,7 @@ def _truthy_binary(value: str) -> bool | None:
     raw = str(value or "").strip().lower()
     if raw in {"1", "true", "yes", "y", "是", "有"}:
         return True
-    if raw in {"0", "false", "no", "n", "否", "无", "unknown", "未知"}:
+    if raw in {"0", "false", "no", "n", "否", "无"}:
         return False
     return None
 
@@ -714,7 +714,7 @@ def _build_materialization_payload(*, study_root: Path, paper_root: Path) -> dic
             "table_shell_id": "table3_transition_site_support_summary",
             "title": "Center completeness and Xiangya2 psychobehavioral support",
             "caption": "Descriptive center completeness and Xiangya2 psychobehavioral availability support.",
-            "group_columns": [{"key": "domain", "label": "Domain"}, {"key": "measure", "label": "Measure"}],
+            "group_columns": [{"key": "domain", "label": "Domain"}],
         },
         Path("tables/baseline_characteristics.shell.json"): _table_shell_payload(
             "baseline_characteristics",
