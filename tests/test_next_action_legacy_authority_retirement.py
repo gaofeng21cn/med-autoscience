@@ -76,6 +76,34 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     )
 
 
+def test_canonical_next_action_cleanup_does_not_back_project_legacy_owner_action() -> None:
+    mission_summary = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+    payload = _canonical_payload()
+    payload["next_action"] = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_family": "paper.package.submission_minimal",
+        "action_type": "materialize_submission_ready_owner_verdict_or_human_gate",
+        "allowed_actions": [
+            "materialize_submission_ready_owner_verdict_or_human_gate"
+        ],
+        "study_id": payload["study_id"],
+        "owner": "mas_authority_kernel",
+        "work_unit_id": "submission_ready_authority_closeout",
+        "work_unit_fingerprint": "sha256:submission-authority",
+    }
+
+    cleaned = mission_summary.without_legacy_next_action_authority(payload)
+
+    assert cleaned["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert "current_executable_owner_action" not in cleaned
+    assert "current_work_unit" not in cleaned
+    assert cleaned["legacy_next_action_authority_retired"]["authority"] == (
+        "NextActionEnvelope"
+    )
+
+
 def test_canonical_next_action_blocks_provider_admission_current_control_candidate() -> None:
     provider_actions = importlib.import_module(
         "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
