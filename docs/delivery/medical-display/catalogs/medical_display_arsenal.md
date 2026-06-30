@@ -7,19 +7,16 @@ Machine boundary: 本文是当前人读能力索引。机器真相继续归 `dis
 
 ## 当前口径
 
-当前默认出图面是 `fenggaolab.org.medical-display-core` 的 canonical Display Pack：
+本文只维护医学展示能力的人读索引、图型家族读法和维护规则，不手写 current template / Gallery / retired alias / analysis responsibility 数量。
 
-- current canonical template：`31`
-- evidence Gallery figure：`28`，全部为 `renderer_family = "r_ggplot2"` 和 `execution_mode = "subprocess"`
-- Python evidence：`0`
-- non-visual canonical inventory：`3`
-- retired alias / duplicate template id：`35`
-- 旧 Python evidence ID 不再维护为当前 pack inventory、Gallery 对比图、agent discover、runtime materialization 或显式请求库存
-- analysis responsibility：`computed_in_template = 3`、`validated_summary_required = 25`、`illustration_shell = 2`、`table_shell = 1`
+动态数量和逐项 truth 按以下 owner 读取：
 
-这里的 `66` 只表示 `31` 个 current canonical template 加 `35` 个 retired alias / duplicate id 的迁移索引，不是当前可调用模板数。默认用户路径、Gallery、agent discover 和 figure plan 只暴露 current canonical surface。
+- current canonical template、Gallery evidence / reporting-flow / design / table-preview figure、retired alias、Python evidence、render/package 状态和 analysis responsibility 计数：生成的 [display_pack_gallery_status.md](../examples/display_pack_gallery_status.md) 与 Gallery manifest；
+- 完整 descriptor inventory、每个模板的 renderer family、input schema、QC profile 和 analysis responsibility：生成的 [medical_display_template_catalog.md](./medical_display_template_catalog.md)；
+- Display Pack v2 current landed status、E2E path、MAS/OPL handoff 和 forbidden-authority boundary：[display_pack_v2_landing_status.md](../contracts/display_pack_v2_landing_status.md)；
+- 人读 Gallery 和可视示例：生成的 [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) 与 `medical_display_gallery.pdf`。
 
-完整逐项目录由 [medical_display_template_catalog.md](./medical_display_template_catalog.md) 生成；干净 Gallery 和可视示例见 [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) 与 `medical_display_gallery.pdf`。该 Gallery 同时展示页面级图页方案、非数据设计/流程图起点和 R/ggplot2 数据证据图起点。
+默认用户路径、Gallery、agent discover 和 figure plan 只暴露 current canonical surface。旧 Python evidence ID 不维护为当前 pack inventory、Gallery 对比图、agent discover、runtime materialization 或显式请求库存。
 
 ## 默认风格
 

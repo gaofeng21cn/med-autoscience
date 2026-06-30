@@ -21,8 +21,8 @@ def build_gallery_reference_markdown(
 
 Owner: `MedAutoScience`
 Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
-State: `active_support`
-Machine boundary: 人读示例文档。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts。
+State: `generated_support_reference`
+Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-docs` 从 Gallery manifest、canonical catalog 和 renderer inventory 生成。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts；本文不持有 artifact authority、publication readiness 或 owner receipt。
 
 - [PDF Gallery](./medical_display_gallery.pdf)：面向人阅读的主文档，用于直观判断 MAS 默认图页组织、非数据设计图起点、数据证据图起点和统一视觉风格。
 - [生成状态](./display_pack_gallery_status.md)：从 manifest 生成的数量、路由和生成口径。

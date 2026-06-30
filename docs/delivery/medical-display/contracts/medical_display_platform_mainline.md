@@ -41,7 +41,7 @@ For the tracked active execution surface that replaces retired project-local run
 
 Historical OMX / Codex materials under [`docs/history/omx/`](../../../history/omx/README.md) remain audit provenance only. They must not be treated as the current execution surface.
 
-Current Display Pack v2 status is intentionally split: MAS has landed the domain pack descriptor, template descriptor, paper-level figure-quality refs, single/batch medical figure grammar, R/ggplot2-first subprocess runtime protocol, Python plugin adapter, AI/VLM polish lifecycle, deterministic E2E render/QC/publication manifest, display lock refs, and submission manifest refs preservation; core pack R/ggplot2 template migration is still tracked separately in [display_pack_renderer_migration_assessment.md](../plans/display_pack_renderer_migration_assessment.md); the OPL repo has landed `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces for this MAS contract; generic OPL Pack OS remains outside MAS ownership.
+Current Display Pack v2 status is intentionally not restated here. Read [display_pack_v2_landing_status.md](./display_pack_v2_landing_status.md) for current landed status, E2E path, MAS/OPL handoff and forbidden-authority boundary; read [display_pack_gallery_status.md](../examples/display_pack_gallery_status.md) for generated template/Gallery counts; read [display_pack_renderer_migration_assessment.md](../plans/display_pack_renderer_migration_assessment.md) for renderer migration support detail. This charter keeps the long-horizon operating model and must not maintain a parallel landed-status checklist.
 
 ## North Star
 

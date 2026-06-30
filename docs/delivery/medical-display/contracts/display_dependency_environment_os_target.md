@@ -11,7 +11,7 @@ Machine boundary: 本文是人读 consumer 设计与当前落地边界。canonic
 
 这条边界解决当前缺口：`renderer_dependency_profile.json` 已能表达 R/ggplot2 模板需要 `Rscript`、`jsonlite`、`ggplot2`、`ggsci`、`Rtsne`、`uwot`、`gridExtra` 等依赖，也能用 scoped profile 表达 `alluvial_transition` 需要 `ggalluvial`，以及 `cohort_flow_figure` 需要 `ggconsort`-capable reporting-flow profile。它是 pack-local dependency intent，不是 OPL environment contract 副本；MAS Display Pack 和 renderer 只声明、引用和消费依赖，不安装依赖。模板作者只选择最合适的 R / Python / SVG / image generation 技术栈；依赖安装、系统包、缓存、锁定、跨平台、诊断和 managed run context 准备由 OPL prepare 负责。
 
-当前本地 landing evidence：OPL 主仓 `opl runtime env prepare --domain mas --profile display --platform macos-arm64 --requirement-profile <MAS renderer_dependency_profile.json> --paper-root /tmp/mas-lidocaineq-opl-env-paper --apply --json` 已对 MAS display aggregate profile 产出 `status=prepared`、`missing_r_packages=[]`、managed `R_LIBS_USER` 和 `dependency_run_context.json`，并验证 `ggalluvial` 位于 OPL managed R library。MAS Gallery forced render 必须提供该 run-context ref/fingerprint；缺失时 fail closed，不再直接使用 host PATH / site library 作为真实渲染路径。
+当前 landing 状态不在本文手写维护。OPL dependency substrate 的可执行 readback 归 OPL 主仓 runtime env 命令和 substrate contract；MAS Gallery 的 render/package 状态、run-context ref/fingerprint、cache hit/miss 和 LidocaineQ coverage 归生成的 Gallery status、manifest、render receipt 与历史 provenance。本文只保留 medical display 的 consumer 规则：真实渲染必须消费 prepared dependency run-context；缺失时 fail closed，不直接使用 host PATH / site library 作为真实渲染路径。
 
 OPL 通用基座设计见 `docs/runtime/designs/opl_dependency_environment_substrate_target.md`；本文只说明 medical display 如何消费该基座。
 
@@ -132,7 +132,7 @@ renderer_dependency_profile.json
 - MAS Gallery R subprocess 和 gallery-only Table 1 preview 都消费 `MAS_DISPLAY_GALLERY_DEPENDENCY_RUN_CONTEXT_PATH/REF/FINGERPRINT`；缺 prepared run-context 时真实渲染 fail closed。
 - `alluvial_transition` 使用 `ggalluvial`，`table1_baseline_characteristics` gallery preview 使用 `gridExtra` grob，`cohort_flow_figure` 使用 `ggconsort`；renderer 不安装包。
 - Gallery manifest 记录 dependency environment readback、render cache summary、force-render/package-only 标记和 LidocaineQ coverage；`--package-only` 只能复用既有资产，不能作为依赖验证证据。
-- 至少一轮 MAS Gallery forced render 在 OPL prepared run-context 下完成，覆盖 LidocaineQ 33/33 reference templates，`cache_miss=37`。
+- MAS Gallery render/package 状态、LidocaineQ coverage 和 cache hit/miss 由生成的 Gallery status、manifest、render receipt 或历史 provenance 读取；本文不维护一次性 forced-render 计数。
 
 仍然不是完成态的后续门槛：
 
