@@ -462,7 +462,7 @@ def _mas_foreground_owner_callable_action(action: Mapping[str, Any]) -> bool:
     if (
         ref_kind != "mas_owner_callable"
         and not (ref_kind == "paper_recovery_successor_owner_action" and current_owner_action)
-        and _paper_recovery_owner_callable_surface(action) is None
+        and _paper_recovery_successor_owner_callable_surface(action) is None
     ):
         return False
     for key in (
@@ -495,10 +495,11 @@ def _owner_callable_surface(action: Mapping[str, Any]) -> str | None:
     return (
         _text(action.get("owner_callable_surface"))
         or _text(target_surface.get("owner_callable_surface"))
-        or _paper_recovery_owner_callable_surface(action)
+        or _paper_recovery_successor_owner_callable_surface(action)
     )
 
-def _paper_recovery_owner_callable_surface(action: Mapping[str, Any]) -> str | None:
+
+def _paper_recovery_successor_owner_callable_surface(action: Mapping[str, Any]) -> str | None:
     for container_key in (
         "next_safe_action",
         "paper_autonomy_supervisor_decision",

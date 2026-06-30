@@ -1409,7 +1409,7 @@
         "src/med_autoscience/controllers/study_progress_parts/opl_current_control_state_handoff.py::_terminal_closeout_matches_action_bound_identity requires strong identity for identity-bound admissions",
         "tests/test_mcp_opl_current_control_state_handoff_projection.py::test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound",
         "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py",
+        "tests/test_stage_outcome_authority_currentness_selectors.py::test_paper_recovery_successor_dispatch_uses_current_successor_surface",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_materialize_domain_action_requests_writes_quality_repair_request_to_canonical_requests_surface",
         "tests/test_progress_first_global_contract.py::test_domain_action_materializer_blocks_new_owner_callable_adapter_task_until_running_provider_or_closeout",

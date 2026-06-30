@@ -320,7 +320,7 @@
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py",
+        "tests/test_stage_outcome_authority_currentness_selectors.py::test_paper_recovery_successor_dispatch_uses_current_successor_surface",
         "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
       ]
     },
@@ -1227,7 +1227,7 @@
       "surface_id": "stage_outcome_authority",
       "verified_by": [
         "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::test_canonical_transition_request_projection_carries_dispatcher_boundary_fields",
-        "tests/domain_action_request_materializer_cases/test_paper_recovery_owner_callable.py",
+        "tests/test_stage_outcome_authority_currentness_selectors.py::test_paper_recovery_successor_dispatch_uses_current_successor_surface",
         "tests/test_stage_outcome_authority_currentness_selectors.py::test_live_provider_attempt_route_requires_opl_execution_proof",
         "tests/test_stage_outcome_authority_currentness_selectors.py::test_live_provider_attempt_route_accepts_trusted_opl_authorization",
         "tests/test_stage_outcome_authority_currentness_selectors.py::test_live_provider_attempt_route_accepts_bound_opl_transition_readback",

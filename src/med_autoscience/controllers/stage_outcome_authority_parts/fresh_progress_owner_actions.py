@@ -4,8 +4,11 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.controllers.domain_action_request_materializer_parts import (
-    paper_recovery_owner_callable,
+from med_autoscience.controllers.current_work_unit_parts import (
+    paper_recovery_projection,
+)
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    paper_recovery_successor_action_ready,
 )
 
 from . import consumed_transition_owner_routes
@@ -36,8 +39,12 @@ def dispatch_matches_paper_recovery_successor(
     progress: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> bool:
-    return paper_recovery_owner_callable.dispatch_matches_progress_successor(
+    action = paper_recovery_projection.paper_recovery_successor_action(progress)
+    if not paper_recovery_successor_action_ready(_mapping(action)):
+        return False
+    return current_owner_action_identity_matches_dispatch(
         progress=progress,
+        action=action,
         dispatch=dispatch,
     )
 
@@ -161,7 +168,9 @@ def owner_action_work_unit_fingerprint_values(action: Mapping[str, Any]) -> set[
 
 def owner_action_source_eval_id(action: Mapping[str, Any]) -> str | None:
     currentness_basis = _mapping(action.get("currentness_basis"))
-    return _text(action.get("source_eval_id")) or _text(currentness_basis.get("source_eval_id"))
+    return _identity_text(action.get("source_eval_id")) or _identity_text(
+        currentness_basis.get("source_eval_id")
+    )
 
 
 def dispatch_work_unit_id(dispatch: Mapping[str, Any]) -> str | None:
@@ -217,13 +226,13 @@ def dispatch_source_eval_id(dispatch: Mapping[str, Any]) -> str | None:
     prompt_basis = _mapping(prompt_contract.get("owner_route_currentness_basis"))
     source_action = _mapping(dispatch.get("source_action"))
     return (
-        _text(dispatch.get("source_eval_id"))
-        or _text(prompt_contract.get("source_eval_id"))
-        or _text(prompt_basis.get("source_eval_id"))
-        or _text(route.get("source_eval_id"))
-        or _text(refs.get("source_eval_id"))
-        or _text(basis.get("source_eval_id"))
-        or _text(source_action.get("source_eval_id"))
+        _identity_text(dispatch.get("source_eval_id"))
+        or _identity_text(prompt_contract.get("source_eval_id"))
+        or _identity_text(prompt_basis.get("source_eval_id"))
+        or _identity_text(route.get("source_eval_id"))
+        or _identity_text(refs.get("source_eval_id"))
+        or _identity_text(basis.get("source_eval_id"))
+        or _identity_text(source_action.get("source_eval_id"))
     )
 
 
@@ -244,6 +253,11 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _identity_text(value: object) -> str | None:
+    text = _text(value)
+    return None if text == "unknown" else text
 
 
 def _first_text(value: object) -> str | None:

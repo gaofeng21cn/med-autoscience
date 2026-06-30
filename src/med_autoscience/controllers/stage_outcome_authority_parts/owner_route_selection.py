@@ -16,7 +16,7 @@ from . import persisted_dispatches
 from . import stage_native_dispatch_selection
 
 
-PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY = (
+PAPER_RECOVERY_SUCCESSOR_LEGACY_BRIDGE_AUTHORITY = (
     "domain_action_request_materializer_paper_recovery_owner_callable"
 )
 
@@ -165,19 +165,19 @@ def execution_owner_route(
         fresh_progress=fresh_progress,
     )
     if request_route is not None:
-        if _paper_recovery_owner_callable_route(
+        if _paper_recovery_successor_legacy_bridge_route(
             dispatch=dispatch,
             current_route=request_route,
         ):
-            return request_route, "paper_recovery_owner_callable"
+            return request_route, "paper_recovery_successor_legacy_bridge"
         return request_route, "owner_request"
     dispatch_route = dispatch_owner_route(dispatch)
     if (
-        _dispatch_bridge_authority(dispatch) == PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY
+        _dispatch_bridge_authority(dispatch) == PAPER_RECOVERY_SUCCESSOR_LEGACY_BRIDGE_AUTHORITY
         and dispatch_route
         and owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
     ):
-        return dispatch_route, "paper_recovery_owner_callable"
+        return dispatch_route, "paper_recovery_successor_legacy_bridge"
     if dispatch_uses_bridge_authority(dispatch):
         scan_route, _scan_route_basis = _current_owner_route(
             profile,
@@ -242,13 +242,13 @@ def _dispatch_bridge_authority(dispatch: Mapping[str, Any]) -> str | None:
     return _text(refs.get("bridge_authority"))
 
 
-def _paper_recovery_owner_callable_route(
+def _paper_recovery_successor_legacy_bridge_route(
     *,
     dispatch: Mapping[str, Any],
     current_route: Mapping[str, Any],
 ) -> bool:
     route_refs = _mapping(current_route.get("source_refs"))
-    return PAPER_RECOVERY_OWNER_CALLABLE_BRIDGE_AUTHORITY in {
+    return PAPER_RECOVERY_SUCCESSOR_LEGACY_BRIDGE_AUTHORITY in {
         _dispatch_bridge_authority(dispatch),
         _text(route_refs.get("bridge_authority")),
     }

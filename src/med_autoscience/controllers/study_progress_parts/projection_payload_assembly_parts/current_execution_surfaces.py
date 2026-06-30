@@ -21,7 +21,7 @@ from .current_execution_surfaces_handoff import (
     _handoff_has_bound_running_provider_attempt,
     _identities_conflict,
     _identity_values,
-    _paper_recovery_owner_callable_action,
+    _paper_recovery_successor_mas_owner_callable_action,
     _provider_admission_supersedes_request_action,
     _running_handoff_conflicts_current_surface,
 )
@@ -120,7 +120,7 @@ def refresh_current_execution_surfaces(
     if (
         payload_executable_action
         and handoff_executable_action
-        and _paper_recovery_owner_callable_action(payload_executable_action)
+        and _paper_recovery_successor_mas_owner_callable_action(payload_executable_action)
         and not _identities_conflict(
             _identity_values(payload_executable_action),
             _identity_values(handoff_executable_action),
@@ -572,7 +572,7 @@ def _payload_executable_action_for_execution_refresh(payload: Mapping[str, Any])
     if _non_empty_text(next_action.get("kind")) != "run_mas_owner_callable":
         return action
     rebuilt = build_canonical_owner_action_projection(payload)
-    if _paper_recovery_owner_callable_action(_mapping_copy(rebuilt)):
+    if _paper_recovery_successor_mas_owner_callable_action(_mapping_copy(rebuilt)):
         return dict(rebuilt)
     return action
 

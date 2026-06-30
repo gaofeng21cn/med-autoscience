@@ -363,7 +363,7 @@ def _identity_values(value: Mapping[str, Any]) -> dict[str, str | None]:
     }
 
 
-def _paper_recovery_owner_callable_action(action: Mapping[str, Any]) -> bool:
+def _paper_recovery_successor_mas_owner_callable_action(action: Mapping[str, Any]) -> bool:
     if _non_empty_text(action.get("source")) != "paper_recovery_state.next_safe_action.successor_owner_action":
         return False
     successor = _mapping_copy(action.get("paper_recovery_successor"))
