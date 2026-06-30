@@ -70,7 +70,7 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     assert (
         importlib.util.find_spec(
             "med_autoscience.controllers.study_progress_parts."
-            "current_executable_owner_action_parts.domain_transition"
+            "owner_action_diagnostics.domain_transition"
         )
         is None
     )
@@ -114,7 +114,7 @@ def test_terminal_next_forced_delta_owner_successor_producer_is_physically_retir
     assert (
         importlib.util.find_spec(
             "med_autoscience.controllers.study_progress_parts."
-            "current_executable_owner_action_parts.terminal_next_forced_delta"
+            "owner_action_diagnostics.terminal_next_forced_delta"
         )
         is None
     )
@@ -128,7 +128,7 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
         / "med_autoscience"
         / "controllers"
         / "study_progress_parts"
-        / "current_executable_owner_action_parts"
+        / "owner_action_diagnostics"
     )
 
     missing: list[str] = []
@@ -138,7 +138,7 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
             continue
         if '"canonical_next_action_authority": False' not in text:
             missing.append(path.name)
-        if '"projection_role": "legacy_owner_successor_diagnostic"' not in text:
+        if '"projection_role": "superseded_successor_diagnostic"' not in text:
             missing.append(path.name)
 
     assert missing == []
@@ -148,7 +148,7 @@ def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> 
     assert (
         importlib.util.find_spec(
             "med_autoscience.controllers.study_progress_parts."
-            "current_executable_owner_action_parts.stage_artifact_index"
+            "owner_action_diagnostics.stage_artifact_index"
         )
         is None
     )

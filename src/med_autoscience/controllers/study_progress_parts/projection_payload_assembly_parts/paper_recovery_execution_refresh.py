@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
+from ..owner_action_diagnostics.non_advancing_terminal_closeout import (
     canonical_current_work_unit_terminal_typed_blocker,
     without_same_identity_terminal_typed_blocker,
 )
@@ -16,7 +16,7 @@ from ...current_work_unit_parts.paper_recovery_successor import (
 from ...paper_recovery_state_parts.successor_owner_resolution import (
     paper_recovery_successor_consumed_by_gate_followthrough,
 )
-from ..current_executable_owner_action_parts.paper_recovery import (
+from ..owner_action_diagnostics.paper_recovery import (
     paper_recovery_successor_action_ready,
 )
 from ..shared import _mapping_copy

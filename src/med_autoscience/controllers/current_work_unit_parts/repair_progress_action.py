@@ -17,7 +17,7 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     paper_recovery_successor_action_ready as _paper_recovery_successor_identity_ready,
 )
-from med_autoscience.controllers.study_progress_parts.current_executable_owner_action_parts.repair_progress import (
+from med_autoscience.controllers.study_progress_parts.owner_action_diagnostics.repair_progress import (
     owner_action_from_repair_progress_projection,
 )
 

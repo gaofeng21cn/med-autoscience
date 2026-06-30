@@ -42,7 +42,7 @@ from ..provider_admission_currentness import (
     with_provider_admission_executable_currentness,
 )
 from ..canonical_owner_action_projection import build_canonical_owner_action_projection
-from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
+from ..owner_action_diagnostics.non_advancing_terminal_closeout import (
     canonical_current_work_unit_terminal_typed_blocker,
 )
 from ..shared import _mapping_copy, _non_empty_text
