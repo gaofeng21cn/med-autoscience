@@ -41,6 +41,10 @@ def top_level_stage_closure_projection(payload: Mapping[str, Any]) -> dict[str, 
 
 
 def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
+    owner_gate_readback = _mapping(payload.get("submission_authority_owner_gate_readback"))
+    owner_gate_action = _non_empty_text(owner_gate_readback.get("next_legal_action"))
+    if owner_gate_action:
+        return owner_gate_action
     receipt_consumption = _mapping(payload.get("mas_receipt_consumption"))
     receipt_action = _non_empty_text(receipt_consumption.get("next_legal_action"))
     if receipt_action and receipt_action != "request_opl_runtime_readback":
