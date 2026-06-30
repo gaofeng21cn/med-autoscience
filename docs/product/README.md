@@ -7,7 +7,7 @@ Machine boundary: 人读索引。可调用真相继续归 MAS app skill、CLI/MC
 
 本目录承接 MAS direct app-skill、product-entry 与 operator 指南。它不持有 study truth、publication verdict、manuscript/package authority 或 OPL framework primitive。
 
-当前 product / skill / workbench 默认叙事是 artifact-first paper mission：用户入口先使用 `paper-mission` / `PaperMissionRun`；用户可见 workbench / display 由 OPL hosted surface 消费 MAS refs-only projection 后呈现 `artifact_first_mission_summary`、owner-route / current-owner-delta / runtime drilldown。`artifact_first_mission_summary.paper_mission_run` 对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1`；domain diagnostic、currentness、storage、owner-route、dispatch 和 PaperRecovery 只作为 diagnostics / import / migration / provenance 读取，不能作为 product、skill 或 domain-handler 的默认论文主线，也不能声明 paper progress、publication-ready、runtime-ready 或 DM002/DM003 完成。
+当前 product / skill / workbench 默认叙事是 artifact-first paper mission：用户 entry surface 先使用 `paper-mission` / `PaperMissionRun`，next-action 展示只允许来自 canonical `NextActionEnvelope`、同 identity 的 OPL receipt 或 MAS owner consumption。用户可见 workbench / display 由 OPL hosted surface 消费 MAS refs-only projection 后呈现 `artifact_first_mission_summary`、owner-route / current-owner-delta / runtime drilldown。`artifact_first_mission_summary.paper_mission_run` 对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1`；domain diagnostic、currentness、storage、owner-route、dispatch 和 PaperRecovery 只作为 observability-only diagnostics / import / migration / provenance 读取，不能作为 product、skill 或 domain-handler 的默认论文主线，也不能声明 paper progress、publication-ready、runtime-ready、`current_package` authority 或 DM002/DM003 完成。
 
 默认可见入口：
 
@@ -48,4 +48,4 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 - 若要判断当前 MAS product/status/workbench 是否已完成 default caller cutover，读 [MAS 理想目标态差距与完善计划](../active/mas-ideal-state-gap-plan.md) 的 `workbench_sidecar_status_cutover`，再读 contracts 和 focused tests；不要从本文或 Portal UI 文案推断完成。
 - 若要实现 App-native MAS study workbench，先读 `opl_app_mas_runtime_workbench_program.md` 和 OPL App 仓合同；本仓只提供 MAS refs、receipt、blocker、source refs 和 forbidden-write 规则。
 - 若要审计用户可见进度展示，按 OPL hosted workbench / App shell 读取：MAS 只提供 refs-only projection、owner receipt / typed blocker refs 和 forbidden-write 规则，长期主用户工作台归 OPL App。
-- 若要判断论文推进，默认读 `artifact_first_mission_summary.paper_mission_run`、`medical_paper_product_entry` 和 domain-handler `paper_mission/start_or_resume` task；不要把 domain diagnostic/currentness/storage/dispatch/PaperRecovery diagnostics、no-write readback、focused tests 或 read-model clean 写成 paper progress。
+- 若要判断论文推进，默认读 `artifact_first_mission_summary.paper_mission_run`、`medical_paper_product_entry`、canonical `NextActionEnvelope`、同 identity 的 OPL receipt 和 MAS owner consumption；不要把 domain diagnostic/currentness/storage/dispatch/PaperRecovery diagnostics、no-write readback、focused tests、queue/attempt 状态或 read-model clean 写成 paper progress、ready evidence 或 `current_package` authority。
