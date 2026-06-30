@@ -12,8 +12,16 @@ from med_autoscience.controllers import study_truth_kernel
 SCHEMA_VERSION = 1
 EVENT_LOG_RELATIVE_PATH = Path("artifacts") / "interventions" / "events.jsonl"
 OWNER_GATE_DECISION_INTENT = "owner_gate_decision"
+SUBMISSION_AUTHORITY_CLOSEOUT_INTENT = "submission_authority_closeout"
 INTERVENTION_INTENTS = frozenset(
-    {"user_decision", "new_plan", "abandon", "submit_info", OWNER_GATE_DECISION_INTENT}
+    {
+        "user_decision",
+        "new_plan",
+        "abandon",
+        "submit_info",
+        OWNER_GATE_DECISION_INTENT,
+        SUBMISSION_AUTHORITY_CLOSEOUT_INTENT,
+    }
 )
 OWNER_GATE_DECISIONS = frozenset(
     {
@@ -34,6 +42,10 @@ SUBMISSION_AUTHORITY_DECISIONS = frozenset(
         "request_submission_blocker_human_gate",
     }
 )
+SUBMISSION_AUTHORITY_CLOSEOUT_STATUSES = {
+    "accept_submission_ready_authority_closeout": "submission_ready_authority_closeout_recorded",
+    "request_submission_blocker_human_gate": "submission_blocker_human_gate_recorded",
+}
 STABLE_BLOCKER_DISPOSITION_DECISIONS = frozenset(
     {
         "preserve_existing_stable_blocker",
@@ -211,7 +223,10 @@ def materialize_truth_from_intervention_events(
     for event in read_intervention_events(study_root=study_root):
         if _text(event.get("study_id")) != study_id:
             continue
-        if _text(event.get("intent")) != OWNER_GATE_DECISION_INTENT:
+        if _text(event.get("intent")) not in {
+            OWNER_GATE_DECISION_INTENT,
+            SUBMISSION_AUTHORITY_CLOSEOUT_INTENT,
+        }:
             continue
         truth_event_input = build_truth_event_input(event)
         source_signature = truth_event_input["source_signature"]
@@ -247,6 +262,146 @@ def materialize_truth_from_intervention_events(
     }
 
 
+def submission_authority_closeout_record(
+    *,
+    study_root: Path,
+    study_id: str,
+    owner_gate_decision_ref: str | None,
+    human_gate_ref: str | None,
+    decision: str,
+    reason: str,
+    recorded_at: str,
+    apply: bool,
+    actor: str = "operator",
+    source: str = "codex",
+    receipt_owner_consumption_ref: str | None = None,
+) -> dict[str, Any]:
+    decision_text = _required_text(decision, field="decision")
+    if decision_text not in SUBMISSION_AUTHORITY_CLOSEOUT_STATUSES:
+        raise ValueError(f"unknown submission authority closeout decision: {decision}")
+    reason_text = _required_text(reason, field="reason")
+    gate_event = _matching_submission_authority_gate_event(
+        study_root=study_root,
+        study_id=study_id,
+        owner_gate_decision_ref=owner_gate_decision_ref,
+        human_gate_ref=human_gate_ref,
+    )
+    gate_payload = _mapping(gate_event.get("payload"))
+    if _text(gate_payload.get("decision")) != decision_text:
+        raise ValueError("submission authority closeout decision must match owner gate decision")
+    if existing := _matching_submission_authority_closeout_event(
+        study_root=study_root,
+        study_id=study_id,
+        owner_gate_decision_ref=_text(gate_payload.get("owner_gate_decision_ref")),
+    ):
+        truth_snapshot_path = None
+        if apply:
+            truth_snapshot_path = study_truth_kernel.materialize_truth_snapshot(
+                study_root=study_root,
+                study_id=study_id,
+            )
+        existing_payload = _mapping(existing.get("payload"))
+        return {
+            "surface": "study_submission_authority_closeout_record",
+            "schema_version": SCHEMA_VERSION,
+            "study_id": study_id,
+            "record_status": "already_applied",
+            "dry_run": not apply,
+            "event": existing,
+            "owner_gate_decision_ref": existing_payload.get("owner_gate_decision_ref"),
+            "human_gate_ref": existing_payload.get("human_gate_ref"),
+            "submission_authority_closeout": _mapping(
+                existing_payload.get("submission_authority_closeout")
+            ),
+            "truth_event": None,
+            "refs": _compact(
+                {
+                    "intervention_events_path": str(
+                        intervention_events_path(study_root=study_root)
+                    ),
+                    "truth_snapshot_path": (
+                        str(truth_snapshot_path) if truth_snapshot_path else None
+                    ),
+                }
+            ),
+            "authority_materialized": True,
+            "writes_owner_receipt": False,
+            "writes_human_gate_authority": False,
+            "writes_current_package": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_runtime_queue_or_provider_attempt": False,
+        }
+    payload = _submission_authority_closeout_payload(
+        gate_payload=gate_payload,
+        decision=decision_text,
+        reason=reason_text,
+        recorded_at=recorded_at,
+        receipt_owner_consumption_ref=receipt_owner_consumption_ref,
+    )
+    path = intervention_events_path(study_root=study_root)
+    sequence = len(read_intervention_events(study_root=study_root)) + 1
+    event = {
+        **_intervention_event(
+            study_id=study_id,
+            intent=SUBMISSION_AUTHORITY_CLOSEOUT_INTENT,
+            payload=payload,
+            recorded_at=recorded_at,
+            sequence=sequence,
+            actor=actor,
+            source=source,
+            agent_handoff=None,
+        ),
+        "payload": payload,
+    }
+    if apply:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+    truth_event_input = build_truth_event_input(event)
+    truth_event = None
+    truth_snapshot_path = None
+    if apply:
+        truth_event = study_truth_kernel.append_truth_event(
+            study_root=study_root,
+            study_id=truth_event_input["study_id"],
+            event_type=truth_event_input["event_type"],
+            payload=truth_event_input["payload"],
+            recorded_at=truth_event_input["recorded_at"],
+            source_signature=truth_event_input["source_signature"],
+        )
+        truth_snapshot_path = study_truth_kernel.materialize_truth_snapshot(
+            study_root=study_root,
+            study_id=study_id,
+        )
+    return {
+        "surface": "study_submission_authority_closeout_record",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": study_id,
+        "record_status": "applied" if apply else "dry_run",
+        "dry_run": not apply,
+        "event": event,
+        "owner_gate_decision_ref": payload["owner_gate_decision_ref"],
+        "human_gate_ref": payload["human_gate_ref"],
+        "submission_authority_closeout": payload["submission_authority_closeout"],
+        "truth_event_input": truth_event_input,
+        "truth_event": truth_event,
+        "refs": _compact(
+            {
+                "intervention_events_path": str(path),
+                "truth_snapshot_path": str(truth_snapshot_path) if truth_snapshot_path else None,
+            }
+        ),
+        "authority_materialized": True,
+        "writes_owner_receipt": False,
+        "writes_human_gate_authority": False,
+        "writes_current_package": False,
+        "writes_publication_eval": False,
+        "writes_controller_decision": False,
+        "writes_runtime_queue_or_provider_attempt": False,
+    }
+
+
 def build_truth_event_input(event: Mapping[str, Any]) -> dict[str, Any]:
     intent = _required_text(event.get("intent"), field="intent")
     if intent not in INTERVENTION_INTENTS:
@@ -266,9 +421,12 @@ def build_truth_event_input(event: Mapping[str, Any]) -> dict[str, Any]:
         truth_payload["agent_handoff"] = agent_handoff
     if intent == "abandon" and _text(truth_payload.get("current_required_action")) is None:
         truth_payload["current_required_action"] = "abandon_study_line"
+    event_type = "task_intake" if intent == "new_plan" else "human_gate"
+    if intent == SUBMISSION_AUTHORITY_CLOSEOUT_INTENT:
+        event_type = "submission_authority_closeout"
     return {
         "study_id": study_id,
-        "event_type": "task_intake" if intent == "new_plan" else "human_gate",
+        "event_type": event_type,
         "payload": truth_payload,
         "recorded_at": _required_text(event.get("recorded_at"), field="recorded_at"),
         "source_signature": f"intervention::{event_id}",
@@ -419,6 +577,102 @@ def _owner_gate_payload(
     return payload
 
 
+def _submission_authority_closeout_payload(
+    *,
+    gate_payload: Mapping[str, Any],
+    decision: str,
+    reason: str,
+    recorded_at: str,
+    receipt_owner_consumption_ref: str | None,
+) -> dict[str, Any]:
+    status = SUBMISSION_AUTHORITY_CLOSEOUT_STATUSES[decision]
+    closeout = {
+        "status": status,
+        "authority_materialized": True,
+        "terminal_gate_materialized": True,
+        "submission_ready_claim_authorized": decision == "accept_submission_ready_authority_closeout",
+        "human_gate_required": decision == "request_submission_blocker_human_gate",
+        "writes_owner_receipt": False,
+        "writes_human_gate_authority": False,
+        "writes_current_package": False,
+        "writes_publication_eval": False,
+        "writes_controller_decision": False,
+        "writes_runtime_queue_or_provider_attempt": False,
+    }
+    receipt_ref = _text(receipt_owner_consumption_ref)
+    if receipt_ref is not None:
+        closeout["receipt_owner_consumption_ref"] = receipt_ref
+    return {
+        "summary": reason,
+        "owner_gate_kind": "submission_authority_gate_closeout",
+        "intervention_intent": SUBMISSION_AUTHORITY_CLOSEOUT_INTENT,
+        "decision": decision,
+        "reason": reason,
+        "current_required_action": status,
+        "owner_gate_decision_ref": _required_text(
+            gate_payload.get("owner_gate_decision_ref"),
+            field="owner_gate_decision_ref",
+        ),
+        "human_gate_ref": _required_text(gate_payload.get("human_gate_ref"), field="human_gate_ref"),
+        "current_owner_identity": _mapping(gate_payload.get("current_owner_identity")),
+        "submission_authority_closeout": closeout,
+        "closed_owner_gate_recorded_at": _text(gate_payload.get("recorded_at")),
+        "recorded_at": recorded_at,
+        "provider_redrive_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "runtime_artifact_mutation_allowed": False,
+        "paper_ready_claim_authorized": decision == "accept_submission_ready_authority_closeout",
+        "publication_ready_claim_authorized": decision == "accept_submission_ready_authority_closeout",
+    }
+
+
+def _matching_submission_authority_gate_event(
+    *,
+    study_root: Path,
+    study_id: str,
+    owner_gate_decision_ref: str | None,
+    human_gate_ref: str | None,
+) -> dict[str, Any]:
+    decision_ref = _text(owner_gate_decision_ref)
+    gate_ref = _text(human_gate_ref)
+    if decision_ref is None and gate_ref is None:
+        raise ValueError("submission authority closeout requires owner_gate_decision_ref or human_gate_ref")
+    for event in reversed(read_intervention_events(study_root=study_root)):
+        if _text(event.get("study_id")) != study_id:
+            continue
+        if _text(event.get("intent")) != OWNER_GATE_DECISION_INTENT:
+            continue
+        payload = _mapping(event.get("payload"))
+        if _text(payload.get("owner_gate_kind")) != "submission_authority_gate":
+            continue
+        if decision_ref is not None and _text(payload.get("owner_gate_decision_ref")) != decision_ref:
+            continue
+        if gate_ref is not None and _text(payload.get("human_gate_ref")) != gate_ref:
+            continue
+        return event
+    raise ValueError("matching submission authority owner gate decision was not found")
+
+
+def _matching_submission_authority_closeout_event(
+    *,
+    study_root: Path,
+    study_id: str,
+    owner_gate_decision_ref: str | None,
+) -> dict[str, Any] | None:
+    decision_ref = _text(owner_gate_decision_ref)
+    if decision_ref is None:
+        return None
+    for event in reversed(read_intervention_events(study_root=study_root)):
+        if _text(event.get("study_id")) != study_id:
+            continue
+        if _text(event.get("intent")) != SUBMISSION_AUTHORITY_CLOSEOUT_INTENT:
+            continue
+        payload = _mapping(event.get("payload"))
+        if _text(payload.get("owner_gate_decision_ref")) == decision_ref:
+            return event
+    return None
+
+
 def _owner_gate_kind(decision: str) -> str:
     if decision in SUBMISSION_AUTHORITY_DECISIONS:
         return "submission_authority_gate"
@@ -491,3 +745,7 @@ def _required_text(value: object, *, field: str) -> str:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _compact(value: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: item for key, item in value.items() if item not in (None, [], {})}

@@ -265,6 +265,79 @@ def test_study_owner_gate_decision_command_syncs_existing_event_without_reapply(
     ]
 
 
+def test_study_owner_gate_decision_command_applies_submission_authority_closeout(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+
+    apply_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--action-type",
+            "materialize_submission_ready_owner_verdict_or_human_gate",
+            "--work-unit-id",
+            "submission_ready_authority_closeout",
+            "--work-unit-fingerprint",
+            "ebf3e5131f6ae95c6ea25409",
+            "--blocker-type",
+            "submission_ready_authority_closeout_required",
+            "--decision",
+            "accept_submission_ready_authority_closeout",
+            "--reason",
+            "current submission-ready package is quality-clear; record owner gate for final authority closeout",
+            "--recorded-at",
+            "2026-06-30T00:00:00+00:00",
+            "--apply",
+        ]
+    )
+    gate = json.loads(capsys.readouterr().out)
+    closeout_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--owner-gate-decision-ref",
+            gate["owner_gate_decision_ref"],
+            "--decision",
+            "accept_submission_ready_authority_closeout",
+            "--reason",
+            "current submission-ready package is quality-clear; close MAS authority gate",
+            "--recorded-at",
+            "2026-06-30T00:02:00+00:00",
+            "--receipt-owner-consumption-ref",
+            "/ops/receipt_owner_consumption.json",
+            "--apply-submission-authority-closeout",
+            "--format",
+            "json",
+        ]
+    )
+    closeout = json.loads(capsys.readouterr().out)
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert apply_exit_code == 0
+    assert closeout_exit_code == 0
+    assert closeout["record_status"] == "applied"
+    assert closeout["authority_materialized"] is True
+    assert closeout["writes_publication_eval"] is False
+    assert closeout["submission_authority_closeout"]["status"] == (
+        "submission_ready_authority_closeout_recorded"
+    )
+    assert snapshot["canonical_next_action"] == "submission_ready_authority_gate_recorded"
+
+
 def test_study_owner_gate_decision_command_routes_b003_governed_blocker_disposition(
     tmp_path: Path,
     capsys,

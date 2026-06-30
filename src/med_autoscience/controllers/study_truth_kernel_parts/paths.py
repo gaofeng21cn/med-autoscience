@@ -18,6 +18,7 @@ TRUTH_EVENT_TYPES = frozenset(
         "package_authority_eval",
         "delivery_sync",
         "human_gate",
+        "submission_authority_closeout",
         "stop_loss",
         "explicit_resume",
         "writer_lock_acquired",
