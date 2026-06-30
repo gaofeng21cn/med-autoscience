@@ -4,9 +4,11 @@ Status: `history archive`
 Owner: `MedAutoScience documentation`
 Purpose: `runtime_history_index`
 State: `history_index`
-Machine boundary: 人读 runtime 历史索引。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、OPL current-control-state / provider attempt refs、MAS runtime/controller durable surfaces 和 owner receipts。
+Machine boundary: 人读 runtime 历史索引。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、OPL current-control-state / StageAttempt refs、MAS runtime/controller durable surfaces 和 owner receipts。
 
 本目录保存运行时 implementation plan、legacy boundary 记录和不再拥有当前运行行为的 provenance。
+
+Superseded read rule：历史 runtime 文档里的旧 producer/gate/transport queue/attempt/current-work-unit 语言只保留 provenance。当前 default next action 只从 [Next Action Control Plane](../../runtime/control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope` 读取；`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。
 
 当前运行时真相从 [runtime 文档入口](../../runtime/README.md) 开始：
 
@@ -32,7 +34,7 @@ Machine boundary: 人读 runtime 历史索引。当前 runtime truth 继续归 `
 | [outer-loop wakeup and decision loop](outer_loop_wakeup_and_decision_loop.md) | 旧 outer-loop wakeup 设计说明；保留术语 provenance。 | [study runtime control surface](../../runtime/control/study_runtime_control_surface.md) 与 [runtime event and outer-loop input contract](../../runtime/contracts/runtime_event_and_outer_loop_input_contract.md)。 |
 | [runtime core convergence and controlled cutover implementation plan](runtime_core_convergence_and_controlled_cutover_implementation_plan.md) | 旧 runtime core convergence / cutover 实施计划。 | [runtime boundary](../../runtime/contracts/runtime_boundary.md)、[study runtime control surface](../../runtime/control/study_runtime_control_surface.md) 与 [runtime core convergence contract](../../runtime/contracts/runtime_core_convergence_and_controlled_cutover.md)。 |
 | [runtime event and outer-loop input implementation plan](runtime_event_and_outer_loop_input_implementation_plan.md) | 已完成的 native runtime truth / outer-loop input 实施计划。 | [runtime event and outer-loop input contract](../../runtime/contracts/runtime_event_and_outer_loop_input_contract.md)。 |
-| [runtime supervision loop](runtime_supervision_loop.md) | 旧 MAS supervision loop tombstone 与 owner receipt provenance。 | OPL current-control-state / provider attempt projection；MAS active 面为 owner receipt、typed blockers、domain authority refs 与 refs-only projection。 |
+| [runtime supervision loop](runtime_supervision_loop.md) | 旧 MAS supervision loop tombstone 与 owner receipt provenance。 | OPL current-control-state / StageAttempt projection；MAS active 面为 owner receipt、typed blockers、domain authority refs 与 refs-only projection。 |
 | [workspace knowledge and literature implementation plan](workspace_knowledge_and_literature_implementation_plan.md) | 已完成的 workspace knowledge / literature 实施计划。 | [workspace knowledge and literature contract](../../runtime/contracts/workspace_knowledge_and_literature_contract.md)。 |
 
 ## Tombstone / Provenance Index
