@@ -4,6 +4,31 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
+from med_autoscience.paper_mission_parts.audit_pack import (
+    authority_touchpoints as _authority_touchpoints,
+    paper_audit_pack as _paper_audit_pack,
+    ref_kind as _ref_kind,
+    source_ref_payloads as _source_ref_payloads,
+)
+from med_autoscience.paper_mission_parts.authority_boundary import (
+    FORBIDDEN_AUTHORITY_CLAIMS as _FORBIDDEN_AUTHORITY_CLAIMS,
+    FORBIDDEN_WRITES as _FORBIDDEN_WRITES,
+    PAPER_AUDIT_PACK_FAMILIES as _PAPER_AUDIT_PACK_FAMILIES,
+    PAPER_MISSION_RUN_BLOCKED_PATHS as _PAPER_MISSION_RUN_BLOCKED_PATHS,
+    authority_boundary as _authority_boundary,
+)
+from med_autoscience.paper_mission_parts.payload_helpers import (
+    compact_mapping as _compact_mapping,
+    dedupe as _dedupe,
+    first_mapping as _first_mapping,
+    first_non_empty as _first_non_empty,
+    first_text as _first_text,
+    int_or_zero as _int_or_zero,
+    mapping as _mapping,
+    mapping_list as _mapping_list,
+    text as _text,
+    text_items as _text_items,
+)
 from med_autoscience.paper_mission_run import CONTRACT_VERSION, PaperMissionRun
 from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
@@ -42,56 +67,6 @@ _DM_MISSION_OBJECTIVES: dict[str, dict[str, Any]] = {
         ),
     },
 }
-
-_FORBIDDEN_WRITES = (
-    "/Users/gaofeng/workspace/Yang/**",
-    "publication_eval/latest.json",
-    "controller_decisions/latest.json",
-    "owner_receipt",
-    "typed_blocker",
-    "human_gate",
-    "current_package",
-    "runtime_queue",
-    "provider_attempt",
-    "provider_start",
-    "hydrate",
-    "tick",
-    "redrive",
-    "apply",
-)
-_PAPER_AUDIT_PACK_FAMILIES = (
-    "analysis_rationale_log",
-    "decision_trace",
-    "evidence_ledger_delta",
-    "review_ledger_delta",
-    "revision_log_delta",
-    "failed_path_ledger",
-    "artifact_lineage",
-    "reproducibility_refs",
-)
-_PAPER_MISSION_RUN_BLOCKED_PATHS = (
-    "publication_eval/latest.json",
-    "controller_decisions/latest.json",
-    "current_package",
-    "runtime queue/provider attempts",
-    "/Users/gaofeng/workspace/Yang/**",
-)
-_FORBIDDEN_AUTHORITY_CLAIMS = (
-    "publication_ready",
-    "submission_ready",
-    "current_package",
-    "owner_receipt_written",
-    "typed_blocker_written",
-    "human_gate_written",
-    "controller_decision_written",
-    "publication_eval_written",
-    "quality_verdict",
-    "artifact_authority",
-    "runtime_queue_written",
-    "provider_attempt_written",
-    "yang_workspace_written",
-)
-
 
 def build_paper_mission_canary_import_pack(
     *,
@@ -1009,201 +984,6 @@ def _artifact_refs(
     return _dedupe(refs)
 
 
-def _source_ref_payloads(refs: list[str]) -> list[dict[str, str]]:
-    payloads = [
-        {
-            "ref_id": f"source_ref::{index}",
-            "ref_kind": _ref_kind(ref),
-            "uri": ref,
-        }
-        for index, ref in enumerate(refs, start=1)
-    ]
-    if payloads:
-        return payloads
-    return [
-        {
-            "ref_id": "source_ref::missing",
-            "ref_kind": "missing_readback_ref",
-            "uri": "mission://source-refs/missing",
-        }
-    ]
-
-
-def _paper_audit_pack(
-    *,
-    study_id: str,
-    objective_id: str,
-    objective_kind: str,
-    artifact_refs: list[str],
-    source_refs: list[dict[str, str]],
-    readback: Mapping[str, Any],
-    current_blocker: Mapping[str, Any],
-    platform_diagnostics: Mapping[str, Any],
-    legacy_import: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    legacy = _mapping(legacy_import)
-    family_refs = {
-        "analysis_rationale_log": _audit_refs(
-            family="analysis_rationale_log",
-            refs=[
-                f"mission://{study_id}/objective/{objective_id}",
-                f"mission://{study_id}/readback/{_text(readback.get('surface_kind')) or 'paper_mission_readback'}",
-            ],
-        ),
-        "decision_trace": _audit_refs(
-            family="decision_trace",
-            refs=_dedupe(
-                [
-                    f"mission://{study_id}/decision/{objective_kind}",
-                    _text(current_blocker.get("source_ref")) or "",
-                    _text(current_blocker.get("work_unit_id")) or "",
-                ]
-            ),
-        ),
-        "evidence_ledger_delta": _audit_refs(
-            family="evidence_ledger_delta",
-            refs=_dedupe(
-                _text_items(legacy.get("evidence_and_review_ledger_refs"))
-                + [item["uri"] for item in source_refs]
-            ),
-        ),
-        "review_ledger_delta": _audit_refs(
-            family="review_ledger_delta",
-            refs=_dedupe(
-                _text_items(legacy.get("legacy_owner_state_refs"))
-                + [
-                    f"mission://{study_id}/quality-audit/{objective_id}",
-                    f"mission://{study_id}/authority-boundary/no-write",
-                ]
-            ),
-        ),
-        "revision_log_delta": _audit_refs(
-            family="revision_log_delta",
-            refs=[
-                f"mission://{study_id}/revision-log/{objective_id}",
-                f"mission://{study_id}/paper-progress/no-write-import",
-            ],
-        ),
-        "failed_path_ledger": _audit_refs(
-            family="failed_path_ledger",
-            refs=_dedupe(
-                [
-                    _text(current_blocker.get("blocker_id")) or "",
-                    _text(current_blocker.get("status")) or "",
-                    f"mission://{study_id}/failed-path/legacy-owner-callable-not-authority",
-                ]
-            ),
-        ),
-        "artifact_lineage": _audit_refs(
-            family="artifact_lineage",
-            refs=_dedupe(
-                artifact_refs
-                + _text_items(legacy.get("current_artifact_refs"))
-                + [f"mission://{study_id}/candidate/{objective_id}"]
-            ),
-        ),
-        "reproducibility_refs": _audit_refs(
-            family="reproducibility_refs",
-            refs=_dedupe(
-                _text_items(legacy.get("opl_current_control_refs"))
-                + [
-                    _text(platform_diagnostics.get("domain_diagnostic_scanned_at")) or "",
-                    f"mission://{study_id}/runtime-diagnostics/read-only",
-                ]
-            ),
-        ),
-    }
-    return {
-        family: {
-            "status": "candidate_ref_chain",
-            "refs": refs,
-        }
-        for family, refs in family_refs.items()
-    }
-
-
-def _audit_refs(*, family: str, refs: list[str]) -> list[dict[str, str]]:
-    clean_refs = _dedupe([ref for ref in refs if ref])
-    if not clean_refs:
-        clean_refs = [f"mission://audit-pack/{family}/missing"]
-    return [
-        {
-            "ref_id": f"{family}::{index}",
-            "ref_kind": _ref_kind(ref),
-            "uri": ref,
-        }
-        for index, ref in enumerate(clean_refs, start=1)
-    ]
-
-
-def _authority_touchpoints(
-    *,
-    study_id: str,
-    source_refs: list[dict[str, str]],
-    platform_diagnostics: Mapping[str, Any],
-) -> list[dict[str, str]]:
-    touchpoints = [
-        {
-            "touchpoint_id": f"touchpoint::{study_id}::study-progress",
-            "owner": "MedAutoScience",
-            "surface": "study progress",
-            "status": "read_only",
-        },
-        {
-            "touchpoint_id": f"touchpoint::{study_id}::runtime-readback",
-            "owner": "MedAutoScience",
-            "surface": "runtime readback",
-            "status": "read_only"
-            if platform_diagnostics.get("runtime_readback_available")
-            else "not_touched",
-        },
-        {
-            "touchpoint_id": f"touchpoint::{study_id}::mas-authority-kernel",
-            "owner": "MedAutoScience",
-            "surface": "MAS Authority Kernel",
-            "status": "not_touched",
-        },
-        {
-            "touchpoint_id": f"touchpoint::{study_id}::opl-runtime",
-            "owner": "one-person-lab",
-            "surface": "OPL runtime/current-control",
-            "status": "read_only"
-            if platform_diagnostics.get("runtime_readback_available")
-            else "not_touched",
-        },
-    ]
-    for source_ref in source_refs:
-        kind = source_ref["ref_kind"]
-        if kind in {"publication_eval", "controller_decision", "owner_answer"}:
-            touchpoints.append(
-                {
-                    "touchpoint_id": f"touchpoint::{study_id}::{kind}",
-                    "owner": "MedAutoScience",
-                    "surface": kind,
-                    "status": "read_only",
-                }
-            )
-    return touchpoints
-
-
-def _ref_kind(ref: str) -> str:
-    if "publication_eval/latest.json" in ref:
-        return "publication_eval"
-    if "controller_decisions/latest.json" in ref:
-        return "controller_decision"
-    if "runtime_readback" in ref:
-        return "runtime_readback"
-    if "runtime_status_summary.json" in ref:
-        return "runtime_status_summary"
-    if "closeout" in ref or "owner_answer" in ref:
-        return "owner_answer"
-    if ref.startswith("supervisor-decision::"):
-        return "supervisor_decision"
-    if ref.startswith("provider_admission_pending_count="):
-        return "provider_admission_readback"
-    return "artifact_ref"
-
-
 def _current_blocker(
     *,
     progress: Mapping[str, Any],
@@ -1700,98 +1480,8 @@ def _progress_payloads_by_study(
     return by_study
 
 
-def _authority_boundary() -> dict[str, Any]:
-    return {
-        "write_mode": "no_write",
-        "can_write_yang_workspace": False,
-        "can_write_publication_eval": False,
-        "can_write_controller_decisions": False,
-        "can_write_owner_receipt": False,
-        "can_write_typed_blocker": False,
-        "can_write_human_gate": False,
-        "can_write_current_package": False,
-        "can_write_runtime_queue_or_provider_attempt": False,
-        "forbidden_writes": list(_FORBIDDEN_WRITES),
-    }
-
-
-def _compact_mapping(payload: Mapping[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key in keys:
-        if key in payload:
-            result[key] = payload[key]
-    return result
-
-
 def _work_unit_ids(items: object) -> list[str]:
     ids: list[str] = []
     for item in _mapping_list(items):
         ids.extend(_text_items((item.get("unit_id"), item.get("work_unit_id"))))
     return _dedupe(ids)
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _mapping_list(value: object) -> list[dict[str, Any]]:
-    if not isinstance(value, list):
-        return []
-    return [_mapping(item) for item in value if isinstance(item, Mapping)]
-
-
-def _first_mapping(*values: object) -> dict[str, Any]:
-    for value in values:
-        mapping = _mapping(value)
-        if mapping:
-            return mapping
-    return {}
-
-
-def _text(value: object) -> str | None:
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None
-
-
-def _text_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        return [value.strip()] if value.strip() else []
-    if not isinstance(value, Iterable):
-        return []
-    items: list[str] = []
-    for item in value:
-        if isinstance(item, str) and item.strip():
-            items.append(item.strip())
-    return items
-
-
-def _first_text(values: Iterable[object]) -> str | None:
-    for value in values:
-        text = _text(value)
-        if text:
-            return text
-    return None
-
-
-def _first_non_empty(*values: object) -> str | None:
-    return _first_text(values)
-
-
-def _dedupe(values: Iterable[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        result.append(value)
-    return result
-
-
-def _int_or_zero(value: object) -> int:
-    if isinstance(value, bool):
-        return int(value)
-    if isinstance(value, int):
-        return value
-    return 0
