@@ -472,23 +472,14 @@ def test_existing_progress_projection_refreshes_stable_repair_delta_over_old_sta
     repair_progress = result["repair_progress_projection"]
     assert repair_progress["paper_delta_observed"] is True
     assert result["paper_progress_delta"]["count"] == 1
-    assert result["current_executable_owner_action"]["source"] == (
-        "repair_progress_projection.mas_owner_repair_execution_evidence"
-    )
-    assert result["current_executable_owner_action"]["action_type"] == "run_gate_clearing_batch"
-    assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_work_unit"]["work_unit_id"] == "publication_gate_replay"
-    assert result["paper_recovery_state"]["phase"] == "owner_action_ready"
-
-
-_RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS = {
-    "test_existing_progress_projection_refreshes_stable_repair_delta_over_old_stage_packet_blocker",
-}
+    assert "current_executable_owner_action" not in result
+    assert "current_work_unit" not in result
+    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert result["legacy_next_action_authority_retired"]["authority"] == "NextActionEnvelope"
 
 __all__ = [
     name
     for name in globals()
     if not name.startswith("__")
     and name != "_module_reexport"
-    and name not in _RETIRED_DEFAULT_NEXT_ACTION_CONTRACT_TESTS
 ]

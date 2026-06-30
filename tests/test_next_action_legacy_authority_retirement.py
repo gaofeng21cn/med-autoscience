@@ -154,6 +154,16 @@ def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> 
     )
 
 
+def test_repair_progress_owner_successor_producer_is_physically_retired() -> None:
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "owner_action_diagnostics.repair_progress"
+        )
+        is None
+    )
+
+
 def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions() -> None:
     root = Path(__file__).resolve().parents[1]
     source = (

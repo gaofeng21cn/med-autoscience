@@ -859,6 +859,52 @@ def test_stage_outcome_paper_write_family_routes_exact_ids_to_paper_write_not_su
     )
 
 
+def test_synthetic_new_study_route_uses_action_family_not_exact_work_unit_mapping() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+    synthetic_work_unit_id = "dm004_never_mapped_stage_outcome_story_repair"
+
+    base_context = {
+        "authority_snapshot": _snapshot(
+            gate_state="blocked",
+            gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+            bundle_build_allowed=False,
+        ),
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": synthetic_work_unit_id,
+            "requires_human_confirmation": False,
+            "source_eval_id": "publication-eval::dm004::latest",
+            "work_unit_fingerprint": "stage-outcome::dm004::story-repair",
+        },
+    }
+    family_context = {
+        **base_context,
+        "controller_route_context": {
+            **base_context["controller_route_context"],
+            "action_family": "paper.write.prose_repair",
+        },
+    }
+
+    exact_id_only_gate = module.authorize_authority_route("paper_write", base_context)
+    family_gate = module.authorize_authority_route("paper_write", family_context)
+
+    assert exact_id_only_gate["authorized"] is False
+    assert "controller_route_work_unit_unsupported" in (
+        exact_id_only_gate["controller_route_gate"]["blocking_reasons"]
+    )
+    assert exact_id_only_gate["controller_route_gate"]["action_family"] is None
+    assert family_gate["authorized"] is True
+    assert family_gate["blocking_reasons"] == []
+    assert family_gate["controller_route_gate"]["action_family"] == "paper.write.prose_repair"
+    assert family_gate["controller_route_gate"]["work_unit_id"] == synthetic_work_unit_id
+    assert family_gate["controller_route_gate"]["action_family_is_authority"] is True
+    assert family_gate["controller_route_gate"]["work_unit_id_authority"] is False
+    assert family_gate["controller_repair_authorization_ref"]["work_unit_id_role"] == (
+        "provenance_currentness_only"
+    )
+
+
 def test_analysis_claim_evidence_route_does_not_authorize_bundle_build_under_downstream_gate() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 
