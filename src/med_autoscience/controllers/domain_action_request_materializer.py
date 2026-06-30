@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable, Mapping
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
-from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import opl_domain_progress_transition_contract as transition_contract
 from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers import progress_first_closeout
@@ -39,8 +36,10 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     owner_callable_prompt,
     evidence_gap_decision as evidence_gap_decision_part,
     execution_gate,
+    materializer_core,
     publication_owner_materialization,
     readiness_dispatch_enrichment,
+    request_refresh,
     request_task_projection,
     supervisor_request_packets,
     transition_request_projection,
@@ -55,13 +54,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     SOURCE_HANDOFF_REF_FIELDS,
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
     owner_callable_search_discipline,
-    request_output_surface_for_action_type,
-    request_output_target_surface_for_action_type,
-    request_owner_for_action_type,
-    request_packet_ref_for_action_type,
-    request_packet_ref_for_dispatch,
 )
-from med_autoscience.controllers.paper_mission_owner_surface import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control.owner_callable_registry import owner_callable_for_action
@@ -71,12 +64,9 @@ from med_autoscience.runtime_control import repeat_suppression
 
 
 SCHEMA_VERSION = 1
-CONSUMER_LATEST_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/latest.json")
-CONSUMER_HISTORY_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/history.jsonl")
-OWNER_CALLABLE_ADAPTER_RELATIVE_ROOT = Path(
-    "artifacts/supervision/consumer/owner_callable_adapters"
-)
-OWNER_CALLABLE_ADAPTER_KIND = "opl_authorized_owner_callable_adapter"
+CONSUMER_LATEST_RELATIVE_PATH = materializer_core.CONSUMER_LATEST_RELATIVE_PATH
+CONSUMER_HISTORY_RELATIVE_PATH = materializer_core.CONSUMER_HISTORY_RELATIVE_PATH
+OWNER_CALLABLE_ADAPTER_KIND = materializer_core.OWNER_CALLABLE_ADAPTER_KIND
 TARGET_RUNTIME_OWNER = transition_contract.RUNTIME_OWNER
 SUPPORTED_MODE = "developer_apply_safe"
 RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
@@ -102,17 +92,18 @@ MERGE_CLEANUP_CHECKLIST = [
     "merge branch into main after parallel worker coordination",
     "remove worktree after absorb",
 ]
+
+
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return materializer_core.utc_now()
 
 
 def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
+    return materializer_core.text(value)
 
 
 def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
+    return materializer_core.mapping(value)
 
 
 def _opl_transition_runtime_postcondition() -> dict[str, Any]:
@@ -141,45 +132,24 @@ def _apply_transition_projection_boundary(payload: dict[str, Any]) -> dict[str, 
     return payload
 
 
-def _nested_mapping(value: Mapping[str, Any], *keys: str) -> dict[str, Any]:
-    payload: Mapping[str, Any] = value
-    for key in keys:
-        payload = _mapping(payload.get(key))
-    return dict(payload)
-
-
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
-    return profile.studies_root / study_id
+    return materializer_core.study_root(profile, study_id)
 
 
 def _request_packet_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
-    if action_type not in SUPPORTED_REQUEST_ACTION_TYPES:
-        raise ValueError(f"unsupported supervisor request action_type: {action_type}")
-    return _study_root(profile, study_id) / _request_packet_ref_for_action_type(action_type)
+    return materializer_core.request_packet_path(profile, study_id, action_type)
 
 
 def _owner_callable_adapter_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
-    return _study_root(profile, study_id) / OWNER_CALLABLE_ADAPTER_RELATIVE_ROOT / f"{action_type}.json"
+    return materializer_core.owner_callable_adapter_path(profile, study_id, action_type)
 
 
 def _scan_latest_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
-
-
-def _consumer_latest_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / CONSUMER_LATEST_RELATIVE_PATH
-
-
-def _consumer_history_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / CONSUMER_HISTORY_RELATIVE_PATH
+    return materializer_core.scan_latest_path(profile)
 
 
 def _current_scan_study(scan_payload: Mapping[str, Any], study_id: str) -> dict[str, Any] | None:
-    for study in scan_payload.get("studies") or []:
-        payload = _mapping(study)
-        if _text(payload.get("study_id")) == study_id:
-            return payload
-    return None
+    return materializer_core.current_scan_study(scan_payload, study_id)
 
 
 def _progress_first_closeout_admission(
@@ -230,47 +200,19 @@ def _required_output_pending(
 
 
 def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | None:
-    if text := _text(developer_mode_payload.get("blocked_reason")):
-        return text
-    gate = _mapping(developer_mode_payload.get("github_user_gate"))
-    if text := _text(gate.get("reason")):
-        return text
-    if _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE:
-        return "developer_apply_safe_required"
-    return None
-
-
-def _request_owner_for_action_type(action_type: str) -> str:
-    return request_owner_for_action_type(action_type)
+    return materializer_core.github_block_reason(developer_mode_payload, supported_mode=SUPPORTED_MODE)
 
 
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
-    handoff_packet = _mapping(action.get("handoff_packet"))
-    return (
-        _text(action.get("owner"))
-        or _text(action.get("request_owner"))
-        or _text(action.get("recommended_owner"))
-        or _text(handoff_packet.get("owner"))
-        or _text(handoff_packet.get("request_owner"))
-        or _text(handoff_packet.get("recommended_owner"))
-        or _request_owner_for_action_type(action_type)
-    )
-
-
-def _request_output_surface_for_action_type(action_type: str) -> str:
-    return request_output_surface_for_action_type(action_type)
+    return materializer_core.owner_from_action(action, action_type)
 
 
 def _request_output_target_surface_for_action_type(action_type: str) -> dict[str, object] | None:
-    return request_output_target_surface_for_action_type(action_type)
-
-
-def _request_packet_ref_for_action_type(action_type: str) -> str:
-    return request_packet_ref_for_action_type(action_type)
+    return materializer_core.request_output_target_surface(action_type)
 
 
 def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
-    return request_packet_ref_for_dispatch(action_type)
+    return materializer_core.request_packet_ref_for_dispatch_action(action_type)
 
 
 def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -311,7 +253,7 @@ def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str
     return (
         _text(action.get("required_output_surface"))
         or _text(handoff_packet.get("required_output_surface"))
-        or _request_output_surface_for_action_type(action_type)
+        or materializer_core.request_output_surface({}, action_type)
     )
 
 
@@ -501,7 +443,7 @@ def _owner_callable_dispatch(
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
         current_study=current_study,
-        existing_dispatch=_read_json_object(dispatch_path),
+        existing_dispatch=request_refresh.read_json_object(dispatch_path),
         required_output_pending=_required_output_pending(
             profile=profile,
             study_id=study_id,
@@ -592,11 +534,6 @@ def _owner_callable_surface(action: Mapping[str, Any]) -> str | None:
         or _text(target_surface.get("owner_callable_surface"))
         or _paper_recovery_owner_callable_surface(action)
     )
-
-
-def _registry_owner_callable_fallback_allowed(action: Mapping[str, Any]) -> bool:
-    return False
-
 
 def _paper_recovery_owner_callable_surface(action: Mapping[str, Any]) -> str | None:
     for container_key in (
@@ -1305,38 +1242,6 @@ def _resolve_study_ids_from_scan(scan_payload: Mapping[str, Any], study_ids: Ite
     return tuple(dict.fromkeys(resolved))
 
 
-def _ai_reviewer_request_refresh(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    apply: bool,
-) -> dict[str, Any] | None:
-    study_root = _study_root(profile, study_id)
-    request_path = domain_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
-    packet = domain_action_request_lifecycle.read_ai_reviewer_request(study_root=study_root)
-    if packet is None:
-        return None
-    refreshed = domain_action_request_lifecycle.ai_reviewer_request_with_latest_record(
-        study_root=study_root,
-        packet=packet,
-    )
-    changed = refreshed != packet
-    if apply and changed:
-        request_path.parent.mkdir(parents=True, exist_ok=True)
-        _write_json(request_path, refreshed)
-    return {
-        "surface": "ai_reviewer_request_refresh",
-        "schema_version": SCHEMA_VERSION,
-        "study_id": study_id,
-        "request_path": str(request_path),
-        "refresh_status": "refreshed" if changed else "unchanged",
-        "written": bool(apply and changed),
-        "publication_eval_record_ref": _text(refreshed.get("publication_eval_record_ref")),
-        "attached_eval_id": _text(_mapping(refreshed.get("ai_reviewer_record")).get("eval_id")),
-        "blocked_reason": _text(_mapping(refreshed.get("request_lifecycle")).get("blocked_reason")),
-    }
-
-
 def _ai_reviewer_request_refreshes(
     *,
     profile: WorkspaceProfile,
@@ -1345,7 +1250,11 @@ def _ai_reviewer_request_refreshes(
 ) -> list[dict[str, Any]]:
     refreshes: list[dict[str, Any]] = []
     for study_id in study_ids:
-        refresh = _ai_reviewer_request_refresh(profile=profile, study_id=study_id, apply=apply)
+        refresh = request_refresh.ai_reviewer_request_refresh(
+            study_root=_study_root(profile, study_id),
+            study_id=study_id,
+            apply=apply,
+        )
         if refresh is not None:
             refreshes.append(refresh)
     return refreshes
@@ -1382,23 +1291,6 @@ def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
 
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-
-
-def _read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return dict(payload) if isinstance(payload, Mapping) else None
-
-
-
 def current_owner_callable_adapters(
     *,
     profile: WorkspaceProfile,
@@ -1415,7 +1307,7 @@ def current_owner_callable_adapters(
         generated_at=_utc_now(),
         supported_mode=SUPPORTED_MODE,
         dispatch_ready_for_execution=dispatch_ready_for_execution,
-        read_json_object=_read_json_object,
+        read_json_object=request_refresh.read_json_object,
         scan_latest_path=_scan_latest_path,
         resolve_study_ids_from_scan=_resolve_study_ids_from_scan,
         selected_actions=_selected_actions,
@@ -1445,7 +1337,7 @@ def materialize_domain_action_requests(
         scheduler_owner="external_queue_consumer",
     )
     developer_mode_payload = developer_mode.to_dict()
-    scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
+    scan_payload = request_refresh.read_json_object(_scan_latest_path(profile)) or {}
     resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_request_actions, ignored_actions = _selected_actions(
         profile=profile,
@@ -1590,8 +1482,8 @@ def materialize_domain_action_requests(
         "merge_cleanup_checklist": list(MERGE_CLEANUP_CHECKLIST),
         "written_files": written_files,
         "refs": {
-            "latest_path": str(_consumer_latest_path(profile)),
-            "history_path": str(_consumer_history_path(profile)),
+            "latest_path": str(materializer_core.consumer_latest_path(profile)),
+            "history_path": str(materializer_core.consumer_history_path(profile)),
         },
     })
     return payload
