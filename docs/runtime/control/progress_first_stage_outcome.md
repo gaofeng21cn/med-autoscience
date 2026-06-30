@@ -235,16 +235,21 @@ Provider-admission readback 被消费后，外层 candidate、action queue、han
 
 Strict running proof 的优先级高于 stale transition request / budget blocker。若 same identity 已有 OPL current-control `running_provider_attempt=true`、active run / stage attempt / workflow ref 至少一种存在、runtime health 为 live/running/attempt_running/provider_admitted，且未被 terminal closeout 消费，operator outcome 必须是 running watch；不得因为旧 `anti_loop_budget_exhausted` 或 stale transition request 再次 materialize 同一 owner action。若缺 running proof但存在 request-only transition，则 outcome 是 `ready_for_owner_action` / OPL transition readback required，而不是 idle、queue empty 或 stop-loss。
 
-recent non-authoritative recovery sample（debug context only）：
+## Historical recovery samples
 
-下表只记录 2026-06-13 的近期样本，用于说明 operator 应如何读 blocker / admission / running proof；它不是当前 truth，也不能用于 acceptance。每次监督、恢复或验收前必须 fresh 读取 `study progress`、domain diagnostic `--dry-run`、OPL current-control / attempt ledger，并按 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy` 的 fresh truth / readback policy 裁决。
+2026-06-13 的 DM002 / DM003 blocker、provider admission、running-proof 样例只保留
+为历史 provenance，不再在本 active runbook 里维护样例表。需要追溯时读
+[Program 历史归档](../../history/program/README.md)、对应 workspace receipt 或
+git history。
 
-| study | recent sample | owner | ordinary recovery |
-| --- | --- | --- | --- |
-| DM002 | `anti_loop_budget_exhausted`，`provider_admission_pending_count=0` | `one-person-lab` | 当前样本 stop-loss 已生效；不得同 work-unit redrive。理想后续不是默认安全截停，而是 severity-based decision：fatal -> stable typed blocker / human gate / route redesign；nonfatal -> successor work-unit / `CarryForwardRiskReceipt` / owner receipt / quality gate receipt / route-back evidence。 |
-| DM003 | `medical_paper_readiness_missing`，`provider_admission_pending_count=0` | `MedAutoScience` | readiness blocker 必须被具体 MAS owner callable、带 current-work-unit binding 的 derived repair action、命名缺失 ref family 的 stable typed blocker，或 human gate 消费。blocker-only 不得自授权执行 `complete_medical_paper_readiness_surface`。 |
-
-不能被写成 governed recovery 的路径包括：未声明 manual/fast-lane mode 的 paper-local edit、把 foreground edit 直接声明为 MAS/OPL recovery、重放旧 provider admission、同 work-unit owner-callable dispatch、旧 gate replay、用 `active_run_id` / provider completion / queue empty 证明恢复、手写 runtime/study artifact，或把 docs-only 结论当 live paper progress。
+当前监督、恢复或验收必须 fresh 读取 `study progress`、domain diagnostic
+`--dry-run`、OPL current-control / attempt ledger，并按
+`contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy`
+的 fresh truth / readback policy 裁决。不能被写成 governed recovery 的路径包括：
+未声明 manual/fast-lane mode 的 paper-local edit、把 foreground edit 直接声明为
+MAS/OPL recovery、重放旧 provider admission、同 work-unit owner-callable dispatch、
+旧 gate replay、用 `active_run_id` / provider completion / queue empty 证明恢复、
+手写 runtime/study artifact，或把 docs-only 结论当 live paper progress。
 
 recovery 验收必须至少读回以下证据族之一：MAS owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate、route-back evidence，或同一 current identity 的 strict provider running proof。验收 readback 必须包含 DM002/DM003 fresh `study progress`、domain diagnostic `--dry-run`、`provider_admission_pending_count`，以及 owner receipt / typed blocker refs；缺这些证据时只能说 docs/contracts 已更新，不能说 paper-line 已恢复。机器合同见 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy`。
 
@@ -344,55 +349,13 @@ When validating a docs-only change in this repo, use documentation review plus g
   - <main session fill>
 ```
 
-### Artifact-first MVP closeout - 2026-06-03 repo integration
-
-- Scope:
-  - Updated docs: `docs/active/stage_surface_standardization_program.md`, `docs/runtime/control/progress_first_stage_outcome.md`, `docs/active/opl_app_mas_runtime_workbench_program.md`.
-  - Source-of-truth surfaces read: `agent/stages/stage_route_contract.yaml`, `contracts/stage_control_plane.json`, progress-first controller/projection tests.
-  - Explicit non-write surfaces: no live study truth, runtime-owned state, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, `paper/submission_minimal/`, `manuscript/current_package/`, or submission package was edited.
-- Artifact-first rule landed:
-  - Stage artifact refs / `stage_artifact_index` are the MVP progress core and are projected into `study_progress` refs consumed by OPL hosted workbench descriptors.
-  - typed closeout / read-model / currentness / evidence-tail / provider liveness are enhancement, audit, or scheduling layers.
-  - OPL App / workbench surfaces display refs-only stage artifacts and cannot write MAS truth, publication readiness, quality verdict, paper body, or package outputs.
-  - 2026-06-03 stage-native contract follow-through: `stage_artifact_index` now projects stage folder contract, manifest requirements, receipt requirements, and fail-closed artifact classification. 2026-06-03 physical kernel follow-through: MAS now declares and consumes the OPL physical Stage Folder Kernel locator from `contracts/mas-paper-study-stage-pack.json`, reading `current.json`, stage `latest`, attempt `manifest.json`, receipt file, manifest hash refs, lineage refs, and conformance refs from `OPL_STATE_DIR/runtime-state/domains/med-autoscience/deliverables/mas-paper-study/<study_id>/paper-study`. Legacy declared refs can still seed migration / historical projection, but missing OPL physical manifest, receipt, hash, or pointer keeps the artifact out of current progress.
-- Landed commits:
-  - `1878effb` Add artifact-first stage index kernel.
-  - `43e80918` Prioritize artifact-first owner actions in progress monitoring.
-  - `792b2230` Project artifact-first stage index to workbench surfaces.
-  - `49d43aa3` Document artifact-first MVP runtime rules.
-  - Integration cleanup commit keeps line-budget advisory reporting clean by moving runtime storage maintenance tests to a cases module and extracting artifact-first monitoring helpers.
-- Verification evidence:
-  - `rtk scripts/run-pytest-clean.sh tests/test_stage_artifact_index.py -q` -> 4 passed.
-  - superseded historical evidence: `tests/study_progress_cases/current_executable_owner_action.py` once covered artifact-first owner-action precedence, but that legacy selector aggregation was retired after canonical `NextActionEnvelope` ownership became the current contract.
-  - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_review_opl_projection_reference.py -q` -> 5 passed.
-  - `rtk scripts/run-pytest-clean.sh tests/test_product_entry.py -q -k stage_control_plane_descriptor` -> 1 passed, 105 deselected.
-  - `rtk scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance.py -q` -> 31 passed.
-  - `rtk make test-meta` -> 282 passed, 4193 deselected.
-  - `rtk scripts/verify.sh` -> repo hygiene audit passed; smoke entrypoints / line budget advisory tests passed.
-- Residual risk / next owner:
-  - This closeout does not declare any study publication ready, submission ready, or final paper quality ready.
-  - DM002/DM003 live-study smoke remains read-only follow-through evidence, not a prerequisite for the repo-level artifact-first MVP integration.
-
-### Stage-Native Artifact Operating Layer closeout - 2026-06-04 repo integration
-
-- Scope:
-  - Updated docs: `docs/active/mas-ideal-state-gap-plan.md`, `docs/active/stage_surface_standardization_program.md`, `docs/runtime/control/progress_first_stage_outcome.md`.
-  - Updated contract: `contracts/stage_artifact_kernel_adoption.json`.
-  - Updated source/projection: state index kernel, semantic receipt validator, promotion audit helper, lineage / retention drilldown, study progress `stage_kernel_projection`, and OPL-hosted workbench `stage_operating_layer` projection.
-  - Explicit non-write surfaces: no live study truth, runtime-owned state, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, `paper/submission_minimal/`, `manuscript/current_package/`, memory body, artifact body, submission package, or OPL `current.json` was edited.
-- Operating-layer rule landed:
-  - `stage_artifact_index` remains a rebuildable derived locator projection.
-  - `stage_kernel_projection` is the primary Workbench progress source and now exposes `state_index`, `promotion`, and `lineage_retention` drilldowns.
-  - Semantic receipt validation is body-free and fail-closed; typed blocker is a domain outcome, not runtime failure.
-  - Promotion audit is read-only and cannot promote or rewrite current pointer.
-  - Lineage / retention drilldown never authorizes cleanup; cleanup / restore still needs owner-authorized receipt.
-  - Workbench cross-domain soak is display-only and cannot authorize MAS/MAG/OMA/RCA readiness or artifact mutation.
-- Verification evidence:
-  - `rtk scripts/run-pytest-clean.sh tests/test_opl_state_index_kernel.py tests/test_opl_stage_promotion_runtime.py tests/test_mas_stage_semantic_receipts.py tests/test_opl_stage_lineage_retention.py tests/study_progress_cases/stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_kernel_cross_domain_soak_projection.py tests/test_stage_artifact_kernel_adoption_contract.py -q` -> 25 passed.
-  - Full verification and final commit id are recorded by the main session after absorb / cleanup.
-- Residual risk / next owner:
-  - This closeout does not declare any study publication ready, submission ready, final paper quality ready, memory writeback success, artifact mutation authorization, or live provider long-soak completion.
-  - Remaining evidence tail is real paper-line owner delta, independent reviewer/auditor scaleout, live cross-domain soak, human gate / resume and owner-authorized artifact lifecycle apply.
+Historical 2026-06-03 artifact-first MVP and 2026-06-04 Stage-Native Artifact
+Operating Layer closeouts are compressed into
+[Program 历史归档](../../history/program/README.md). This active runbook keeps
+only the durable rule: stage locator/read-model updates are platform /
+operating-layer evidence unless they reference a fresh owner receipt, canonical
+paper/artifact delta, reviewer/gate delta, stable typed blocker, human gate,
+route-back, stop-loss, or same-current-identity strict running proof.
 
 ## 错误路径
 
