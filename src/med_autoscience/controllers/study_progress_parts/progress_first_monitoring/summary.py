@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.next_action_envelope import SURFACE_KIND as NEXT_ACTION_SURFACE_KIND
+
 from ..current_action_identity import action_matches_canonical_executable_work_unit
 from ..owner_action_admission import (
     build_owner_action_admission_projection,
@@ -73,6 +75,7 @@ from .summary_provider_attempts import (
 
 
 def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    canonical_next_action = _canonical_next_action(payload)
     handoff = _mapping(payload.get("opl_current_control_state_handoff"))
     launch_policy = _mapping(payload.get("product_entry_launch_policy"))
     execution = _mapping(payload.get("current_execution_envelope"))
@@ -323,6 +326,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     next_work_unit = (
         hydration_work_unit
+        or _text(canonical_next_action.get("work_unit_id"))
         or _work_unit_projection(canonical_work_unit_for_aliases.get("work_unit_id"))
         or _work_unit_from_current_action(current_action)
         or _work_unit_from_action(handoff_owner_action)
@@ -494,6 +498,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         ),
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
+            or _text(canonical_next_action.get("owner"))
             or (
                 None
                 if (
@@ -520,7 +525,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or _text(progress_state.get("next_owner"))
         ),
         "route_target": (
-            _text(canonical_current_work_unit.get("route_target"))
+            _text(canonical_next_action.get("route_target"))
+            or _text(canonical_current_work_unit.get("route_target"))
             or _text(current_action.get("route_target"))
             or (
                 _text(handoff_owner_action.get("route_target"))
@@ -533,7 +539,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             )
         ),
         "controller_action": (
-            (
+            _first_text(canonical_next_action.get("allowed_actions"))
+            or _text(canonical_next_action.get("action_type"))
+            or _text(canonical_next_action.get("action_kind"))
+            or (
                 None
                 if (
                     current_action_supersedes_canonical_work_unit
@@ -616,6 +625,13 @@ def _current_work_unit_owner_action_current(
     if current_work_unit:
         return _text(current_work_unit.get("status")) == "executable_owner_action"
     return state_kind == "executable_owner_action" and bool(current_action)
+
+
+def _canonical_next_action(payload: Mapping[str, Any]) -> dict[str, Any]:
+    next_action = _mapping(payload.get("next_action"))
+    if _text(next_action.get("surface_kind")) != NEXT_ACTION_SURFACE_KIND:
+        return {}
+    return next_action
 
 
 def _current_action_supersedes_canonical_typed_blocker(

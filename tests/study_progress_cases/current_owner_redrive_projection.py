@@ -302,6 +302,43 @@ def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_re
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
+def test_progress_first_monitoring_uses_canonical_next_action_over_legacy_current_work_unit() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_id": "next-action::003::runtime-route",
+            "action_family": "runtime.opl_route",
+            "action_kind": "submit_to_opl_runtime",
+            "action_type": "request_opl_stage_attempt",
+            "owner": "one-person-lab",
+            "executor_target": "opl_domain_progress_transition_runtime",
+            "work_unit_id": "canonical-runtime-route",
+        },
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "owner": "legacy-writer",
+            "action_type": "legacy_writer_repair",
+            "work_unit_id": "legacy-writer-work-unit",
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "next_owner": "legacy-writer",
+            "action_type": "legacy_writer_repair",
+            "work_unit_id": "legacy-writer-work-unit",
+        },
+    }
+
+    projection = module.build_progress_first_monitoring_summary(payload)
+
+    assert projection["next_owner"] == "one-person-lab"
+    assert projection["controller_action"] == "request_opl_stage_attempt"
+    assert projection["next_work_unit"] == "canonical-runtime-route"
+    assert projection["current_work_unit"]["owner"] == "legacy-writer"
+
+
 def test_progress_first_monitoring_redrives_consumed_ai_reviewer_record_with_different_identity() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
     payload = {

@@ -46,6 +46,9 @@ def work_unit_from_current_action(action: Mapping[str, Any]) -> dict[str, Any] |
 
 def work_unit_projection(value: object) -> dict[str, Any] | str | None:
     if isinstance(value, Mapping):
+        unit_id = _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
+        if unit_id is not None:
+            return unit_id
         return _compact_mapping(
             value,
             (
