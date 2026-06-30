@@ -35,7 +35,7 @@ from .canonical_next_action_gate import (
     has_canonical_next_action,
     legacy_next_action_authority_retirement,
 )
-from .current_executable_owner_action import build_current_executable_owner_action
+from .canonical_owner_action_projection import build_canonical_owner_action_projection
 from .mission_summary_parts.stage_closure_projection import (
     top_level_stage_closure_projection,
 )
@@ -374,7 +374,7 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "current_execution_evidence",
     ):
         updated.pop(key, None)
-    canonical_action = build_current_executable_owner_action(updated)
+    canonical_action = build_canonical_owner_action_projection(updated)
     if canonical_action is not None:
         updated["current_executable_owner_action"] = canonical_action
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()

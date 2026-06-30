@@ -29,7 +29,7 @@ def normalize_paper_recovery_execution_projection(
     handoff: Mapping[str, Any],
     runtime_health_snapshot: Mapping[str, Any],
     study_root: object,
-    build_current_executable_owner_action: Callable[[Mapping[str, Any]], dict[str, Any] | None],
+    build_canonical_owner_action_projection: Callable[[Mapping[str, Any]], dict[str, Any] | None],
     refresh_current_execution_surfaces: Callable[..., dict[str, Any]],
     provider_admission_projection_fields: Callable[..., dict[str, Any]],
     sync_progress_first_owner_action_admission: Callable[[dict[str, Any]], dict[str, Any]],
@@ -40,13 +40,13 @@ def normalize_paper_recovery_execution_projection(
         updated,
         handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     updated = _with_recovery_supervisor_decision(updated)
     recovery_current_action = _current_action_for_recovery_refresh(
         updated,
         handoff=handoff,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = refresh_current_execution_surfaces(
         payload={**updated, "current_executable_owner_action": recovery_current_action},
@@ -58,14 +58,14 @@ def normalize_paper_recovery_execution_projection(
         refreshed,
         handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = _with_recovery_supervisor_decision(refreshed)
     refreshed = _without_stale_provider_supervisor_block(refreshed)
     normalized_current_action = _current_action_for_recovery_refresh(
         refreshed,
         handoff=handoff,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = refresh_current_execution_surfaces(
         payload={**refreshed, "current_executable_owner_action": normalized_current_action},
@@ -77,7 +77,7 @@ def normalize_paper_recovery_execution_projection(
         refreshed,
         handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = _with_recovery_supervisor_decision(refreshed)
     refreshed = _without_stale_provider_supervisor_block(refreshed)
@@ -92,7 +92,7 @@ def normalize_paper_recovery_execution_projection(
         refreshed,
         handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = _with_recovery_supervisor_decision(refreshed)
     if "provider_admission_blocked_by_supervisor_decision" not in provider_fields:
@@ -100,7 +100,7 @@ def normalize_paper_recovery_execution_projection(
     final_current_action = _current_action_for_recovery_refresh(
         refreshed,
         handoff=handoff,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = refresh_current_execution_surfaces(
         payload={**refreshed, "current_executable_owner_action": final_current_action},
@@ -121,13 +121,13 @@ def normalize_paper_recovery_execution_projection(
         refreshed,
         handoff=handoff,
         build_paper_recovery_state=build_paper_recovery_state,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     refreshed = _with_recovery_supervisor_decision(refreshed)
     final_current_action = _current_action_for_recovery_refresh(
         refreshed,
         handoff=handoff,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
     )
     if final_current_action != _mapping_copy(refreshed.get("current_executable_owner_action")):
         refreshed = refresh_current_execution_surfaces(
@@ -149,7 +149,7 @@ def normalize_paper_recovery_execution_projection(
             refreshed,
             handoff=handoff,
             build_paper_recovery_state=build_paper_recovery_state,
-            build_current_executable_owner_action=build_current_executable_owner_action,
+            build_canonical_owner_action_projection=build_canonical_owner_action_projection,
         )
         refreshed = _with_recovery_supervisor_decision(refreshed)
     refreshed["paper_recovery_execution_projection"] = {
@@ -181,7 +181,7 @@ def _current_action_for_recovery_refresh(
     payload: Mapping[str, Any],
     *,
     handoff: Mapping[str, Any],
-    build_current_executable_owner_action: Callable[[Mapping[str, Any]], dict[str, Any] | None],
+    build_canonical_owner_action_projection: Callable[[Mapping[str, Any]], dict[str, Any] | None],
 ) -> dict[str, Any] | None:
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if (
@@ -206,7 +206,7 @@ def _current_action_for_recovery_refresh(
         )
     ):
         return None
-    return build_current_executable_owner_action(payload)
+    return build_canonical_owner_action_projection(payload)
 
 
 def _handoff_current_work_unit_is_owner_receipt(handoff: Mapping[str, Any]) -> bool:
@@ -270,11 +270,11 @@ def _build_recovery_state_unless_successor_current(
     *,
     handoff: Mapping[str, Any],
     build_paper_recovery_state: Callable[[Mapping[str, Any]], dict[str, Any]],
-    build_current_executable_owner_action: Callable[[Mapping[str, Any]], dict[str, Any] | None],
+    build_canonical_owner_action_projection: Callable[[Mapping[str, Any]], dict[str, Any] | None],
 ) -> dict[str, Any]:
     recovery_payload = _payload_with_handoff(payload, handoff=handoff)
     recovery = _mapping_copy(recovery_payload.get("paper_recovery_state"))
-    current_action = build_current_executable_owner_action(recovery_payload)
+    current_action = build_canonical_owner_action_projection(recovery_payload)
     if _recovery_successor_supersedes_terminal_selector_residue(
         recovery_payload,
         recovery=recovery,

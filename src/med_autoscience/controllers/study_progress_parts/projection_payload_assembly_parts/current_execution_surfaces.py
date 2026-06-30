@@ -41,7 +41,7 @@ from ..provider_admission_currentness import (
     current_control_provider_admission_action,
     with_provider_admission_executable_currentness,
 )
-from ..current_executable_owner_action import build_current_executable_owner_action
+from ..canonical_owner_action_projection import build_canonical_owner_action_projection
 from ..current_executable_owner_action_parts.non_advancing_terminal_closeout import (
     canonical_current_work_unit_terminal_typed_blocker,
 )
@@ -223,7 +223,7 @@ def refresh_current_execution_surfaces(
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
         updated["current_execution_envelope"] = {}
-        successor_action = build_current_executable_owner_action(updated)
+        successor_action = build_canonical_owner_action_projection(updated)
         if current_control_typed_blocker_successor_action(
             successor_action,
             typed_blocker=_canonical_current_control_typed_blocker(handoff),
@@ -571,7 +571,7 @@ def _payload_executable_action_for_execution_refresh(payload: Mapping[str, Any])
     next_action = _mapping_copy(recovery.get("next_safe_action"))
     if _non_empty_text(next_action.get("kind")) != "run_mas_owner_callable":
         return action
-    rebuilt = build_current_executable_owner_action(payload)
+    rebuilt = build_canonical_owner_action_projection(payload)
     if _paper_recovery_owner_callable_action(_mapping_copy(rebuilt)):
         return dict(rebuilt)
     return action

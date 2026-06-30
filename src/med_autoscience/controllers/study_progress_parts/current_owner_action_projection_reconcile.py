@@ -10,7 +10,7 @@ from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successo
     paper_recovery_successor_action_ready,
 )
 
-from .current_executable_owner_action import owner_action_next_step
+from .canonical_owner_action_projection import owner_action_next_step
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .shared import _mapping_copy, _non_empty_text
 from ..stage_route_currentness_identity import currentness_identities_match

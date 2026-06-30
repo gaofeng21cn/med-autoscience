@@ -6,7 +6,7 @@ from typing import Any
 SURFACE_KIND = "current_executable_owner_action"
 
 
-def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     next_action = _mapping(payload.get("next_action"))
     if _non_empty_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None
@@ -127,7 +127,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             "verification": verification,
             "executable_owner_route": executable_owner_route,
             "owner_receipt_required": True,
-            "authority": "study_progress.current_executable_owner_action",
+            "authority": "study_progress.canonical_owner_action_projection",
             "authority_boundary": {
                 "projection_only": True,
                 "can_write_owner_receipt": False,
@@ -387,7 +387,7 @@ def _submission_authority_closeout_events(payload: Mapping[str, Any]) -> list[di
 
 __all__ = [
     "SURFACE_KIND",
-    "build_current_executable_owner_action",
+    "build_canonical_owner_action_projection",
     "owner_action_next_step",
     "submission_authority_owner_gate_readback",
 ]

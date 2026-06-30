@@ -180,7 +180,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     terminalize_stage_closure,
 )
 from med_autoscience.controllers.study_interventions import read_intervention_events
-from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
+from med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection import (
     submission_authority_owner_gate_readback,
 )
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"

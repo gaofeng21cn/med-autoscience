@@ -56,14 +56,10 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     payload = _canonical_payload()
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
     current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
-    domain_transition = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action_parts.domain_transition"
-    )
-
-    assert current_action.build_current_executable_owner_action(payload) is None
+    assert current_action.build_canonical_owner_action_projection(payload) is None
     assert current_work_unit.build_current_work_unit(progress=payload) == {}
     assert (
         importlib.util.find_spec(
@@ -72,9 +68,9 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
         is None
     )
     assert (
-        domain_transition.owner_action_from_domain_transition(
-            payload,
-            surface_kind="current_executable_owner_action",
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "current_executable_owner_action_parts.domain_transition"
         )
         is None
     )
@@ -95,10 +91,10 @@ def test_missing_canonical_next_action_does_not_resurrect_legacy_default_owner_a
     payload.pop("canonical_next_action_source")
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
 
-    assert current_action.build_current_executable_owner_action(payload) is None
+    assert current_action.build_canonical_owner_action_projection(payload) is None
 
 
 def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() -> None:
@@ -107,46 +103,21 @@ def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() 
     payload.pop("canonical_next_action_source")
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
 
-    assert current_action.build_current_executable_owner_action(payload) is None
+    assert current_action.build_canonical_owner_action_projection(payload) is None
     assert not hasattr(current_action, "legacy_current_executable_owner_action_diagnostic")
 
 
-def test_terminal_next_forced_delta_owner_successor_is_not_canonical_next_action_authority() -> None:
-    terminal_delta = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts."
-        "current_executable_owner_action_parts.terminal_next_forced_delta"
+def test_terminal_next_forced_delta_owner_successor_producer_is_physically_retired() -> None:
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "current_executable_owner_action_parts.terminal_next_forced_delta"
+        )
+        is None
     )
-
-    action = terminal_delta.owner_action_from_terminal_next_forced_delta(
-        {
-            "study_id": "synthetic-study",
-            "latest_terminal_stage_log": {
-                "status": "blocked",
-                "next_forced_delta": {
-                    "action_type": "run_gate_clearing_batch",
-                    "work_unit_id": "publication_gate_replay",
-                    "source_eval_id": "publication-eval::synthetic-study::current",
-                    "owner_action": {
-                        "next_owner": "gate_clearing_batch",
-                        "work_unit_id": "publication_gate_replay",
-                        "owner_receipt_required": True,
-                    },
-                },
-            },
-        },
-        surface_kind="current_executable_owner_action",
-    )
-
-    assert action is not None
-    assert action["source"] == "study_progress.next_forced_delta.owner_action"
-    boundary = action["authority_boundary"]
-    assert boundary["refs_only"] is True
-    assert boundary["canonical_next_action_authority"] is False
-    assert boundary["projection_role"] == "legacy_owner_successor_diagnostic"
-    assert boundary["can_write_runtime_owned_surfaces"] is False
 
 
 def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> None:

@@ -5,8 +5,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
-    build_current_executable_owner_action,
+from med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection import (
+    build_canonical_owner_action_projection,
     owner_action_next_step,
 )
 
@@ -200,7 +200,7 @@ def paper_facing_action_fields(*, readback: Mapping[str, Any]) -> dict[str, Any]
         return {
             "paper_facing_action": _submission_gate_paper_facing_action(submission_gate)
         }
-    current_action = build_current_executable_owner_action(readback)
+    current_action = build_canonical_owner_action_projection(readback)
     if current_action is None:
         return {}
     return {

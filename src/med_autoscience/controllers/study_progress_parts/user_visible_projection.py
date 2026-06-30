@@ -6,7 +6,7 @@ from typing import Any
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
 from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
 
-from .current_executable_owner_action import owner_action_next_step
+from .canonical_owner_action_projection import owner_action_next_step
 from .current_owner_handoff_projection import current_owner_handoff_action, current_owner_redrive_domain_transition
 from .shared import _mapping_copy, _non_empty_text
 from .user_visible_projection_text import (

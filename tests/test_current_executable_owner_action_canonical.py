@@ -5,10 +5,10 @@ import importlib
 
 def test_current_owner_action_projects_typed_blocker_resolution_next_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
 
-    action = module.build_current_executable_owner_action(
+    action = module.build_canonical_owner_action_projection(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "next_action": {
@@ -84,10 +84,10 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
 
 def test_current_owner_action_projects_submission_authority_owner_gate_surface() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
 
-    action = module.build_current_executable_owner_action(
+    action = module.build_canonical_owner_action_projection(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "next_action": {
@@ -130,7 +130,7 @@ def test_current_owner_action_projects_submission_authority_owner_gate_surface()
 
 def test_current_owner_action_retired_after_matching_submission_authority_gate_event() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
 
     payload = {
@@ -188,7 +188,7 @@ def test_current_owner_action_retired_after_matching_submission_authority_gate_e
         ],
     }
 
-    assert module.build_current_executable_owner_action(payload) is None
+    assert module.build_canonical_owner_action_projection(payload) is None
     readback = module.submission_authority_owner_gate_readback(
         payload,
         next_action=payload["next_action"],
@@ -206,7 +206,7 @@ def test_current_owner_action_retired_after_matching_submission_authority_gate_e
 
 def test_submission_authority_gate_readback_projects_terminal_closeout_event() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
 
     payload = {
@@ -296,7 +296,7 @@ def test_submission_authority_gate_readback_projects_terminal_closeout_event() -
         ],
     }
 
-    assert module.build_current_executable_owner_action(payload) is None
+    assert module.build_canonical_owner_action_projection(payload) is None
     readback = module.submission_authority_owner_gate_readback(
         payload,
         next_action=payload["next_action"],

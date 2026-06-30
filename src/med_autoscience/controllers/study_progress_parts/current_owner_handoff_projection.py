@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .current_executable_owner_action import owner_action_next_step
+from .canonical_owner_action_projection import owner_action_next_step
 from .shared import _mapping_copy, _non_empty_text, _paper_stage_label, _timestamp_is_newer
 
 

@@ -15,7 +15,7 @@ from med_autoscience.controllers.opl_transition_readback import (
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from med_autoscience.profiles import WorkspaceProfile
 
-from .current_executable_owner_action import build_current_executable_owner_action
+from .canonical_owner_action_projection import build_canonical_owner_action_projection
 from .current_owner_action_projection_reconcile import (
     current_execution_evidence_actions,
     current_execution_envelope_actions,
@@ -697,7 +697,7 @@ def _refresh_existing_handoff_with_terminal_closeout(
 def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -> dict[str, Any]:
     recovery = _mapping_copy(payload.get("paper_recovery_state"))
     if _non_empty_text(recovery.get("phase")) == "owner_action_ready":
-        current_action = build_current_executable_owner_action(payload)
+        current_action = build_canonical_owner_action_projection(payload)
         if _non_empty_text(_mapping_copy(current_action).get("source")) == (
             "paper_recovery_state.next_safe_action.successor_owner_action"
         ) and not paper_recovery_successor_consumed_by_gate_followthrough(
@@ -729,7 +729,7 @@ def _typed_blocker_stop_projection(
     recovery = build_paper_recovery_state(updated)
     if _paper_recovery_supersedes_typed_blocker_stop(recovery):
         updated["paper_recovery_state"] = recovery
-        updated["current_executable_owner_action"] = build_current_executable_owner_action(updated)
+        updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
         updated["current_work_unit"] = current_work_unit.build_current_work_unit(
             status={},
             progress=updated,
@@ -937,12 +937,12 @@ def refresh_paper_recovery_successor_surfaces(
     if _repair_progress_gate_followup_current(payload):
         return payload
     recovery_payload = dict(payload)
-    current_action = build_current_executable_owner_action(recovery_payload)
+    current_action = build_canonical_owner_action_projection(recovery_payload)
     if _non_empty_text(_mapping_copy(current_action).get("source")) != (
         "paper_recovery_state.next_safe_action.successor_owner_action"
     ):
         recovery_payload["paper_recovery_state"] = build_paper_recovery_state(recovery_payload)
-        current_action = build_current_executable_owner_action(recovery_payload)
+        current_action = build_canonical_owner_action_projection(recovery_payload)
     if _non_empty_text(_mapping_copy(current_action).get("source")) != (
         "paper_recovery_state.next_safe_action.successor_owner_action"
     ):

@@ -17,7 +17,8 @@ from .action_types import (
     GATE_CLEARING_WORK_UNIT,
     REPAIR_PROGRESS_SOURCE,
 )
-from .stage_kernel_readiness import READINESS_ACTION
+
+READINESS_ACTION = "complete_medical_paper_readiness_surface"
 
 
 def owner_action_from_repair_progress_projection(

@@ -28,8 +28,8 @@ from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .current_owner_handoff_projection import (
     apply_current_owner_handoff_user_visible_status,
 )
-from .current_executable_owner_action import (
-    build_current_executable_owner_action,
+from .canonical_owner_action_projection import (
+    build_canonical_owner_action_projection,
     submission_authority_owner_gate_readback,
 )
 from .current_owner_action_projection_reconcile import (
@@ -363,7 +363,7 @@ def assemble_study_progress_payload(
         handoff=handoff,
         runtime_health_snapshot=runtime_health_snapshot,
         study_root=study_root,
-        build_current_executable_owner_action=build_current_executable_owner_action,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
         refresh_current_execution_surfaces=_refresh_current_execution_surfaces,
         provider_admission_projection_fields=provider_admission_projection_fields,
         sync_progress_first_owner_action_admission=_sync_progress_first_owner_action_admission,
@@ -521,7 +521,7 @@ def _attach_typed_blocker_resolution_successor_projection(
     updated["typed_blocker_resolution_readback"] = readback
     updated["next_action"] = envelope
     updated["canonical_next_action_source"] = "paper_mission_typed_blocker_resolution"
-    updated["current_executable_owner_action"] = build_current_executable_owner_action(updated)
+    updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
     return updated
 
 
