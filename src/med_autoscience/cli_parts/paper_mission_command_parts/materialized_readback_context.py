@@ -203,10 +203,7 @@ def paper_facing_action_fields(*, readback: Mapping[str, Any]) -> dict[str, Any]
     current_action = build_canonical_owner_action_projection(readback)
     if current_action is None:
         return {}
-    return {
-        "current_executable_owner_action": current_action,
-        "paper_facing_action": _owner_action_paper_facing_action(current_action),
-    }
+    return {"paper_facing_action": _owner_action_paper_facing_action(current_action)}
 
 
 def _submission_gate_paper_facing_action(

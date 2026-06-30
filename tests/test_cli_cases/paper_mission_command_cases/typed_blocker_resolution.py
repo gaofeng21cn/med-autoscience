@@ -451,12 +451,7 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
             "ref": typed_readback["source_ref"],
         }
     ]
-    assert payload["current_executable_owner_action"]["surface_kind"] == (
-        "current_executable_owner_action"
-    )
-    assert payload["current_executable_owner_action"]["action_type"] == (
-        "consume_submission_ready_package_authority_or_human_gate"
-    )
+    assert "current_executable_owner_action" not in payload
     paper_action = payload["paper_facing_action"]
     assert paper_action["status"] == "owner_action_ready"
     assert paper_action["source_surface"] == "paper_mission.next_action"

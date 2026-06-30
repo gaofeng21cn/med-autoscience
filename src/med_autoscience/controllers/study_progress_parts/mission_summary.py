@@ -374,9 +374,6 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "current_execution_evidence",
     ):
         updated.pop(key, None)
-    canonical_action = build_canonical_owner_action_projection(updated)
-    if canonical_action is not None:
-        updated["current_executable_owner_action"] = canonical_action
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
 
