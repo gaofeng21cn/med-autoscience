@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .canonical_owner_action_projection import owner_action_next_step
+from .canonical_owner_action_projection import (
+    is_canonical_owner_action_projection,
+    owner_action_next_step,
+)
 from .shared import _mapping_copy, _non_empty_text, _paper_stage_label, _timestamp_is_newer
 
 
@@ -310,7 +313,7 @@ def current_owner_handoff_next_action(
     *,
     user_visible: Mapping[str, Any],
 ) -> str | None:
-    executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    executable_owner_action = _user_facing_executable_owner_action(payload)
     if not (
         current_owner_redrive_domain_transition(payload)
         and _stage_artifact_index_owner_action(executable_owner_action)
@@ -352,8 +355,15 @@ def _stage_artifact_index_owner_action(action: Mapping[str, Any]) -> bool:
     return _non_empty_text(action.get("source")) == "stage_artifact_index.next_owner_action"
 
 
+def _user_facing_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:
+    action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not is_canonical_owner_action_projection(action):
+        return {}
+    return action
+
+
 def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) -> dict[str, Any]:
-    executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    executable_owner_action = _user_facing_executable_owner_action(payload)
     user_visible = _mapping_copy(payload.get("user_visible_projection"))
     handoff_action = current_owner_handoff_action(payload)
     redrive_transition = current_owner_redrive_domain_transition(payload)

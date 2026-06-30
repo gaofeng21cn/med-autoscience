@@ -10,11 +10,11 @@ Date: `2026-06-11`
 
 2026-06-29 之后，默认 next action authority 已收敛到 [Next Action Control Plane](../control/next_action_control_plane.md)：`StageOutcome -> NextActionEnvelope`。`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。本文保留为 identity/currentness、OPL StageRun transport 和历史 reconcile 设计 provenance；`current_work_unit`、provider admission、domain diagnostic、OPL transport 队列 / StageAttempt 和 `current_execution_envelope` 不得再作为 default next-action selector 或 paper progress / publication-ready / submission-ready evidence。
 
-## 目标结论
+## 历史目标结论（superseded）
 
 MAS / OPL stage-route 的理想态是一条幂等 reconcile 链，而不是多套状态面互相解释：
 
-`current_owner_delta -> provider_admission_identity -> OPL StageRun attempt -> terminal closeout -> MAS consume closeout -> next current_owner_delta`
+`StageOutcome -> NextActionEnvelope -> owner projection/current_owner_delta drilldown -> provider_admission_identity -> OPL StageRun attempt -> terminal closeout -> MAS consume closeout -> next StageOutcome / NextActionEnvelope`
 
 OPL 承接 durable execution、transport backlog、retry、dead-letter、provider liveness、human gate transport、state index、observability 和 workbench；MAS 承接医学 truth、current owner、source/data readiness、publication quality、artifact mutation authority、owner receipt、typed blocker、quality gate receipt 和 human gate 语义接收。
 
@@ -51,7 +51,7 @@ flowchart TD
 
 ## Stage Route Arbiter
 
-`stage_route_arbiter` 是 domain diagnostic current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 `current_owner_delta`；它只解释每个 provider admission identity 为什么被保留或被抑制：
+`stage_route_arbiter` 是 domain diagnostic current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 canonical `NextActionEnvelope`；历史 `current_owner_delta` 只作 owner projection / drilldown。该 arbiter 只解释每个 provider admission identity 为什么被保留或被抑制：
 
 - `weak_provider_admission_identity`：provider admission carrier 缺 `study_id` / `action_type` / work-unit id / fingerprint / dispatch ref / strong currentness basis 时，pending fail-closed，不进入 OPL tick。
 - `running_identity_observed`：同一 identity 已有 strict live provider attempt，pending 被压制。
@@ -101,7 +101,7 @@ stateDiagram-v2
 
 2026-06-13 追加维护规则，2026-06-30 superseded：stage-route 调用关系的机器入口是 `contracts/stage_route_reconcile_contract.json#/stage_route_call_graph`，人读渲染入口是 `docs/runtime/contracts/stage_route_contract.md#stage-route-invocation-graph`。这张图最初把 旧 stage-route/current-work-unit path 固定为同一 identity 的单向链；NextAction hard-retire 后，默认链改为 `StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt / StageRun readback -> MAS owner consumption -> owner receipt / typed blocker / human gate / route-back -> next StageOutcome`，旧链只保留为 diagnostic drilldown。后续修复若要改变 stage-route/currentness 行为，必须先更新这张机器图和 meta test，再落到具体 reducer / selector / projection；不要只靠调整某个分支顺序来隐式改变整体调用图。
 
-## Currentness 优先级
+## 历史 currentness 优先级（diagnostic provenance）
 
 1. 弱 provider admission identity 直接 fail-closed 为 currentness diagnostic，不进入 pending。
 2. 同一 `stage_attempt_id` 的 terminal closeout 压过 OPL live 投影。
@@ -116,7 +116,7 @@ stateDiagram-v2
 
 2026-06-11 追加实现规则：MAS 内部所有“当前 action 是否能压过 stale blocker / handoff / provider admission residue”的判断统一走 `stage_route_currentness_identity` helper。该 helper 只提取 `action_type`、`work_unit_id`、`work_unit_fingerprint` / `action_fingerprint` 与 `owner_route.source_refs.owner_route_currentness_basis`，不做业务优先级裁决。repair-progress follow-up 这类会打开 OPL authorization blocker 的路径必须共享 fingerprint；只有同 action 或同浅层 label 不足以授权 redrive。
 
-2026-06-12 追加实现规则：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 先于旧 `domain_transition` 和 stale current-control backlog 裁决。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。fresh typed blocker 可以阻断旧 transition、backlog 和 persisted dispatch，但不能自我升级为 owner action；`complete_medical_paper_readiness_surface` 只能来自显式 `current_executable_owner_action`、带 authority binding 的 stage-native next action，或 `terminal_closeout_owner_answer_required` closeout dispatch。terminal workflow completed、transport completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
+2026-06-12 追加实现规则，2026-06-30 superseded：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 当时先于旧 `domain_transition` 和 stale current-control backlog 裁决。NextAction hard-retire 后，这些旧 surface 只能作为 diagnostic/provenance 输入；默认 owner/action 必须来自 `StageOutcome -> NextActionEnvelope`。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。fresh typed blocker 可以阻断旧 transition、backlog 和 persisted dispatch，但不能自我升级为 owner action；`complete_medical_paper_readiness_surface` 只能来自显式 `current_executable_owner_action`、带 authority binding 的 stage-native next action，或 `terminal_closeout_owner_answer_required` closeout dispatch。terminal workflow completed、transport completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
 
 2026-06-12 追加实现规则：`study_progress.current_owner_ticket` 只有在 `owner_route.source_refs.owner_route_currentness_basis`、`current_executable_owner_action`、`current_work_unit` 或 ticket work-unit 中带 strong source / work-unit / action fingerprint 或 `source_eval_id` 时，才能生成 owner route 和 dispatch。`study-progress-current-owner-ticket::*` 这类 synthetic id 只能作为 action id，不能当作 currentness fingerprint。缺 strong identity 时输出 `fresh_progress_current_owner_ticket_requires_strong_currentness_identity` diagnostic，`default_dispatch_allowed=false`，并由 selector 作为 ignored diagnostic 处理。
 
@@ -164,7 +164,7 @@ Temporal / queue / workflow state 中只放小 payload：
 
 ## OPL 基座优化
 
-Stage-route reconcile 是 Paper Autonomy Supervisor 的 decision source，不再作为平行的顶层控制面存在。长期读法是：MAS 先生成 `current_owner_delta` 和 `paper_autonomy_obligation`，stage-route arbiter 只负责把 provider admission identity、StageRun current/currentness、terminal closeout、typed blocker、owner gate 和 read-model lag 转译成 supervisor 可消费证据；最终可执行结论必须落到 `execute_current_owner_delta`、`consume_terminal_closeout`、`materialize_recovery_action`、`wait_for_owner_with_resume_token`、`stop_with_stable_typed_blocker` 或 `stop_with_owner_receipt`。机器入口见 `contracts/paper_autonomy_supervisor_contract.json`；本文件和 `contracts/stage_route_reconcile_contract.json` 继续持有 stage-route identity / currentness / closeout 细则，但不得单独声明论文推进、human gate resume、quality verdict 或 owner receipt closure。
+Stage-route reconcile 是 Paper Autonomy Supervisor 的 historical decision-source provenance，不再作为平行的顶层控制面存在。当前长期读法是：MAS 先生成 `StageOutcome -> NextActionEnvelope`，历史 `current_owner_delta` 只作为 owner projection / drilldown；stage-route arbiter 只负责把 provider admission identity、StageRun current/currentness、terminal closeout、typed blocker、owner gate 和 read-model lag 转译成 supervisor 可消费证据；最终可执行结论必须落到 canonical next-action identity 的 transport receipt、owner receipt、typed blocker、human gate、route-back 或下一 StageOutcome。机器入口见 `contracts/paper_autonomy_supervisor_contract.json`；本文件和 `contracts/stage_route_reconcile_contract.json` 继续持有 stage-route identity / currentness / closeout 细则，但不得单独声明论文推进、human gate resume、quality verdict 或 owner receipt closure。
 
 2026-06-15 追加顶层治理规则：理想态是 durable supervisor transaction，而不是更厚的 read-model selector。一次 transaction 以同一 `paper_autonomy_obligation` / `current_owner_delta` identity 为输入，把 stage-route arbiter、domain diagnostic dry-run/readback、OPL StageRun current/currentness、terminal closeout、owner gate、typed blocker 和 read-model lag 收成同一 decision evidence，再输出六类 supervisor decision 之一。transaction 的关闭条件只能是 owner-chain 可消费结果：owner receipt、quality gate receipt、stable typed blocker、human gate / OPL resume token、route-back evidence、terminal closeout consumption、next current owner delta，或同一 current identity strict provider running proof。
 
@@ -179,7 +179,7 @@ OPL 侧应把以下能力做成一等基座接口：
 - `Observability Plane`：trace / metric / log / failure class / no-progress budget，不签 domain verdict。
 - `Workbench Shell`：默认只显示 current owner、paper/evidence/artifact progress、human gate、next safe action；audit detail drilldown。
 
-OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun launch / closeout admission、attempt ledger terminal observation、stop-loss anti-spin foundation、`stage_run_currentness_identity`、terminal closeout precedence、schema-backed no-progress budget 和 `worker_source_stale` supervised restart guard 已经有合同 / 实现 / 回归测试承接面。MAS 侧对应职责是消费这些 refs 与 identity，不再把它们列为 OPL 未落地缺口：
+OPL 只读基座核查显示，StageRun launch / closeout admission、attempt ledger terminal observation、stop-loss anti-spin foundation、`stage_run_currentness_identity`、terminal closeout precedence、schema-backed no-progress budget 和 `worker_source_stale` supervised restart guard 已经有合同 / 实现 / 回归测试承接面。默认 next-action authority 仍是 `StageOutcome -> NextActionEnvelope`；`current_owner_delta` 只是 owner projection / drilldown，MAS 侧对应职责是消费这些 refs 与 identity，不再把它们列为 OPL 未落地缺口：
 
 - `terminal_closeout_precedes_live_projection`：identity matched terminal typed closeout / owner receipt 必须压过 stale running/live projection；identity mismatch fail closed 为 currentness blocker。
 - `stage_run_currentness_identity`：把 `stage_run_id`、generation、manifest/current pointer、source/domain fingerprint、idempotency key、provider attempt、lease、authorization、workflow/task 收成统一 packet，避免各层用散落 label 比对。

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 SURFACE_KIND = "current_executable_owner_action"
+CANONICAL_OWNER_ACTION_AUTHORITY = "study_progress.canonical_owner_action_projection"
 
 
 def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -127,7 +128,7 @@ def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[
             "verification": verification,
             "executable_owner_route": executable_owner_route,
             "owner_receipt_required": True,
-            "authority": "study_progress.canonical_owner_action_projection",
+            "authority": CANONICAL_OWNER_ACTION_AUTHORITY,
             "authority_boundary": {
                 "projection_only": True,
                 "can_write_owner_receipt": False,
@@ -138,6 +139,10 @@ def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[
             },
         }
     )
+
+
+def is_canonical_owner_action_projection(action: Mapping[str, Any]) -> bool:
+    return _non_empty_text(_mapping(action).get("authority")) == CANONICAL_OWNER_ACTION_AUTHORITY
 
 
 def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
@@ -386,8 +391,10 @@ def _submission_authority_closeout_events(payload: Mapping[str, Any]) -> list[di
 
 
 __all__ = [
+    "CANONICAL_OWNER_ACTION_AUTHORITY",
     "SURFACE_KIND",
     "build_canonical_owner_action_projection",
+    "is_canonical_owner_action_projection",
     "owner_action_next_step",
     "submission_authority_owner_gate_readback",
 ]

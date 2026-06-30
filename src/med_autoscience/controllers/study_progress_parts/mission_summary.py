@@ -36,6 +36,10 @@ from .canonical_next_action_gate import (
     legacy_next_action_authority_retirement,
 )
 from .canonical_owner_action_projection import build_canonical_owner_action_projection
+from .mission_summary_parts.receipt_projection import (
+    _opl_transition_receipt,
+    _summary_with_receipt_projection,
+)
 from .mission_summary_parts.stage_closure_projection import (
     top_level_stage_closure_projection,
 )
@@ -342,30 +346,6 @@ def refresh_top_level_stage_closure_projection(payload: Mapping[str, Any]) -> di
     return updated
 
 
-def _summary_with_receipt_projection(
-    summary: Mapping[str, Any],
-    *,
-    progress: Mapping[str, Any] | None = None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    updated = dict(summary)
-    updated.setdefault(
-        "receipt_evidence",
-        _receipt_evidence(
-            progress=progress,
-            consumption_ledger_readback=consumption_ledger_readback,
-        ),
-    )
-    updated.setdefault(
-        "mas_receipt_consumption",
-        _mas_receipt_consumption(
-            progress=progress,
-            consumption_ledger_readback=consumption_ledger_readback,
-        ),
-    )
-    return updated
-
-
 def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
     for key in (
@@ -389,115 +369,6 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
             updated["current_executable_owner_action"] = canonical_action
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
-
-
-def _opl_transition_receipt(
-    *,
-    progress: Mapping[str, Any] | None = None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    for source in (
-        _mapping(progress),
-        _mapping(consumption_ledger_readback),
-        _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
-        _mapping(_mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")),
-        _mapping(
-            _mapping(_mapping(progress).get("opl_runtime_carrier_readback")).get(
-                "terminal_closeout"
-            )
-        ),
-        _mapping(
-            _mapping(
-                _mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")
-            ).get("terminal_closeout")
-        ),
-    ):
-        receipt = _mapping(source.get("opl_transition_receipt"))
-        if _non_empty_text(receipt.get("surface_kind")) == "opl_transition_receipt":
-            return {
-                **dict(receipt),
-                "role": "transport_receipt_only",
-                "can_change_stage_terminal_decision": False,
-                "can_select_next_owner": False,
-                "can_claim_paper_progress": False,
-            }
-    return {
-        "surface_kind": "opl_transition_receipt",
-        "status": "not_requested_from_study_progress",
-        "role": "transport_receipt_only",
-        "can_change_stage_terminal_decision": False,
-        "can_select_next_owner": False,
-    }
-
-
-def _receipt_projection_sources(
-    *,
-    progress: Mapping[str, Any] | None = None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
-) -> tuple[Mapping[str, Any], ...]:
-    return (
-        _mapping(progress),
-        _mapping(consumption_ledger_readback),
-        _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
-        _mapping(_mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")),
-        _mapping(
-            _mapping(_mapping(progress).get("opl_runtime_carrier_readback")).get(
-                "terminal_closeout"
-            )
-        ),
-        _mapping(
-            _mapping(
-                _mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")
-            ).get("terminal_closeout")
-        ),
-    )
-
-
-def _receipt_evidence(
-    *,
-    progress: Mapping[str, Any] | None = None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    for source in _receipt_projection_sources(
-        progress=progress,
-        consumption_ledger_readback=consumption_ledger_readback,
-    ):
-        evidence = _mapping(source.get("receipt_evidence"))
-        if _non_empty_text(evidence.get("surface_kind")) == "mas_receipt_evidence":
-            return dict(evidence)
-    return {
-        "surface_kind": "mas_receipt_evidence",
-        "status": "not_requested_from_study_progress",
-        "can_claim_paper_progress": False,
-        "can_claim_publication_ready": False,
-        "durable_stop_allowed": False,
-    }
-
-
-def _mas_receipt_consumption(
-    *,
-    progress: Mapping[str, Any] | None = None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    for source in _receipt_projection_sources(
-        progress=progress,
-        consumption_ledger_readback=consumption_ledger_readback,
-    ):
-        consumption = _mapping(source.get("mas_receipt_consumption"))
-        if _non_empty_text(consumption.get("surface_kind")) == (
-            "mas_receipt_consumption_projection"
-        ):
-            return dict(consumption)
-    return {
-        "surface_kind": "mas_receipt_consumption_projection",
-        "status": "not_requested_from_study_progress",
-        "next_legal_action": "request_opl_runtime_readback",
-        "forbidden_next_action": "synonymous_route_back_redrive",
-        "durable_stop_allowed": False,
-        "can_claim_paper_progress": False,
-        "can_claim_publication_ready": False,
-        "can_claim_runtime_ready": False,
-    }
 
 
 def _mission_state(
