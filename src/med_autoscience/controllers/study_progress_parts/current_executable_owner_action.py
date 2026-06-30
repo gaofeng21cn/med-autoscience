@@ -13,6 +13,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     action_family = _non_empty_text(next_action.get("action_family"))
     if action_family not in {"blocked.typed", "paper.package.submission_minimal"}:
         return None
+    if submission_authority_owner_gate_readback(payload, next_action=next_action):
+        return None
     study_id = _non_empty_text(next_action.get("study_id")) or _non_empty_text(
         payload.get("study_id")
     )
@@ -210,8 +212,88 @@ def _compact(value: Mapping[str, Any]) -> dict[str, Any]:
     return {key: item for key, item in value.items() if item not in (None, [], {})}
 
 
+def submission_authority_owner_gate_readback(
+    payload: Mapping[str, Any],
+    *,
+    next_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action_type = _non_empty_text(next_action.get("action_type")) or _first_text(
+        next_action.get("allowed_actions")
+    )
+    if action_type not in {
+        "materialize_submission_ready_owner_verdict_or_human_gate",
+        "await_human_or_mas_authority_decision_for_submission_blocker",
+    }:
+        return None
+    expected = {
+        "study_id": _non_empty_text(next_action.get("study_id"))
+        or _non_empty_text(payload.get("study_id")),
+        "action_type": action_type,
+        "work_unit_id": _non_empty_text(next_action.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(next_action.get("work_unit_fingerprint"))
+        or _non_empty_text(next_action.get("semantic_progress_signature"))
+        or _non_empty_text(next_action.get("action_id")),
+    }
+    if any(value is None for value in expected.values()):
+        return None
+    for event in _owner_gate_decision_events(payload):
+        event_payload = _mapping(event.get("payload"))
+        if _non_empty_text(event_payload.get("owner_gate_kind")) != "submission_authority_gate":
+            continue
+        closeout = _mapping(event_payload.get("submission_authority_closeout"))
+        if _non_empty_text(closeout.get("status")) != "owner_gate_recorded":
+            continue
+        if _non_empty_text(event_payload.get("human_gate_ref")) is None:
+            continue
+        identity = _mapping(event_payload.get("current_owner_identity"))
+        if all(_non_empty_text(identity.get(field)) == value for field, value in expected.items()):
+            closeout = _mapping(event_payload.get("submission_authority_closeout"))
+            return _compact(
+                {
+                    "surface_kind": "submission_authority_owner_gate_readback",
+                    "schema_version": 1,
+                    "status": "owner_gate_recorded",
+                    "study_id": expected["study_id"],
+                    "decision": _non_empty_text(event_payload.get("decision")),
+                    "current_required_action": _non_empty_text(
+                        event_payload.get("current_required_action")
+                    ),
+                    "owner_gate_decision_ref": _non_empty_text(
+                        event_payload.get("owner_gate_decision_ref")
+                    ),
+                    "human_gate_ref": _non_empty_text(event_payload.get("human_gate_ref")),
+                    "event_id": _non_empty_text(event.get("event_id")),
+                    "recorded_at": _non_empty_text(event.get("recorded_at")),
+                    "source": _non_empty_text(event.get("source")),
+                    "current_owner_identity": dict(identity),
+                    "submission_authority_closeout": dict(closeout),
+                    "authority_materialized": closeout.get("authority_materialized"),
+                    "writes_owner_receipt": closeout.get("writes_owner_receipt"),
+                    "writes_human_gate_authority": closeout.get("writes_human_gate_authority"),
+                    "writes_current_package": closeout.get("writes_current_package"),
+                    "writes_publication_eval": closeout.get("writes_publication_eval"),
+                    "writes_controller_decision": closeout.get("writes_controller_decision"),
+                    "next_legal_action": "await_submission_authority_or_human_gate_closeout",
+                    "duplicate_owner_gate_action_retired": True,
+                    "projection_only": True,
+                }
+            )
+    return None
+
+
+def _owner_gate_decision_events(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for key in ("study_intervention_events", "intervention_events"):
+        for item in payload.get(key) or []:
+            event = _mapping(item)
+            if _non_empty_text(event.get("intent")) == "owner_gate_decision":
+                events.append(event)
+    return events
+
+
 __all__ = [
     "SURFACE_KIND",
     "build_current_executable_owner_action",
     "owner_action_next_step",
+    "submission_authority_owner_gate_readback",
 ]

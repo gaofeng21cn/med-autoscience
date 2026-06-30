@@ -129,6 +129,10 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_signature,
     terminalize_stage_closure,
 )
+from med_autoscience.controllers.study_interventions import read_intervention_events
+from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
+    submission_authority_owner_gate_readback,
+)
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
 PAPER_MISSION_CONTRACT_COMMIT = "a410db5c0c874187c8b1ddecee79c2e00c8fe691"
@@ -538,6 +542,25 @@ def build_paper_mission_readback(
             **transaction_readback,
             "next_action": next_action_override,
         }
+    submission_gate_readback = _submission_authority_owner_gate_readback(
+        study_root=Path(profile.studies_root) / study_id,
+        study_id=study_id,
+        next_action=_mapping(transaction_output_fields.get("next_action")),
+    )
+    if submission_gate_readback is not None:
+        transaction_output_fields.pop("next_action", None)
+        readback_payload = _mapping(
+            transaction_output_fields.get("paper_mission_transaction_readback")
+        )
+        if readback_payload:
+            readback_payload.pop("next_action", None)
+            transaction_output_fields["paper_mission_transaction_readback"] = readback_payload
+        if typed_blocker_resolution_readback is not None:
+            typed_blocker_resolution_readback = {
+                **typed_blocker_resolution_readback,
+                "next_owner_action": None,
+                "submission_authority_owner_gate_readback": submission_gate_readback,
+            }
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -596,6 +619,11 @@ def build_paper_mission_readback(
         **(
             {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
             if typed_blocker_resolution_readback is not None
+            else {}
+        ),
+        **(
+            {"submission_authority_owner_gate_readback": submission_gate_readback}
+            if submission_gate_readback is not None
             else {}
         ),
         **_paper_mission_consume_non_advancing_fields(
@@ -5175,6 +5203,23 @@ def _transaction_readback_output_fields(
         ),
         "paper_mission_transaction_readback": transaction_readback,
     }
+
+
+def _submission_authority_owner_gate_readback(
+    *,
+    study_root: Path,
+    study_id: str,
+    next_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not next_action:
+        return None
+    return submission_authority_owner_gate_readback(
+        {
+            "study_id": study_id,
+            "study_intervention_events": read_intervention_events(study_root=study_root),
+        },
+        next_action=next_action,
+    )
 
 
 def _durable_mission_stop_guard(

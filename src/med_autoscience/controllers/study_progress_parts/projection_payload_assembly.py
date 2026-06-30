@@ -32,7 +32,10 @@ from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .current_owner_handoff_projection import (
     apply_current_owner_handoff_user_visible_status,
 )
-from .current_executable_owner_action import build_current_executable_owner_action
+from .current_executable_owner_action import (
+    build_current_executable_owner_action,
+    submission_authority_owner_gate_readback,
+)
 from .current_owner_action_projection_reconcile import (
     reconcile_current_owner_action_projection,
 )
@@ -404,8 +407,22 @@ def assemble_study_progress_payload(
         profile=profile,
         study_id=study_id,
     )
+    payload = _attach_submission_authority_owner_gate_readback(payload)
     payload = refresh_top_level_stage_closure_projection(payload)
     return _without_legacy_next_action_authority(payload)
+
+
+def _attach_submission_authority_owner_gate_readback(payload: Mapping[str, Any]) -> dict[str, Any]:
+    readback = submission_authority_owner_gate_readback(
+        payload,
+        next_action=_mapping_copy(payload.get("next_action")),
+    )
+    if readback is None:
+        return dict(payload)
+    updated = dict(payload)
+    updated["submission_authority_owner_gate_readback"] = readback
+    updated["current_executable_owner_action"] = None
+    return updated
 
 
 def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:

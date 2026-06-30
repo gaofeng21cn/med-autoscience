@@ -135,3 +135,79 @@ def test_current_owner_action_projects_submission_authority_owner_gate_surface()
         "submission_authority_owner_gate_decision"
     )
     assert action["acceptance_refs"][-1] == "study_owner_gate_decision_ref"
+
+
+def test_current_owner_action_retired_after_matching_submission_authority_gate_event() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "paper.package.submission_minimal",
+            "action_type": "materialize_submission_ready_owner_verdict_or_human_gate",
+            "allowed_actions": [
+                "materialize_submission_ready_owner_verdict_or_human_gate"
+            ],
+            "action_id": "next-action-submission-authority",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "owner": "mas_authority_kernel",
+            "work_unit_id": "submission_ready_authority_closeout",
+            "work_unit_fingerprint": "ebf3e5131f6ae95c6ea25409",
+        },
+        "study_intervention_events": [
+            {
+                "event_id": "intervention-event-000007-ccabaeed588b377f",
+                "intent": "owner_gate_decision",
+                "recorded_at": "2026-06-30T02:32:16+00:00",
+                "source": "codex",
+                "payload": {
+                    "owner_gate_kind": "submission_authority_gate",
+                    "decision": "accept_submission_ready_authority_closeout",
+                    "current_required_action": (
+                        "materialize_submission_ready_owner_verdict_or_human_gate"
+                    ),
+                    "human_gate_ref": (
+                        "human_gate:owner-gate-decision:6fdb7ea34759cefc9ff10aa9"
+                    ),
+                    "owner_gate_decision_ref": (
+                        "owner-gate-decision:6fdb7ea34759cefc9ff10aa9"
+                    ),
+                    "current_owner_identity": {
+                        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                        "action_type": (
+                            "materialize_submission_ready_owner_verdict_or_human_gate"
+                        ),
+                        "work_unit_id": "submission_ready_authority_closeout",
+                        "work_unit_fingerprint": "ebf3e5131f6ae95c6ea25409",
+                    },
+                    "submission_authority_closeout": {
+                        "status": "owner_gate_recorded",
+                        "authority_materialized": False,
+                        "writes_owner_receipt": False,
+                        "writes_human_gate_authority": False,
+                        "writes_current_package": False,
+                        "writes_publication_eval": False,
+                        "writes_controller_decision": False,
+                    },
+                },
+            }
+        ],
+    }
+
+    assert module.build_current_executable_owner_action(payload) is None
+    readback = module.submission_authority_owner_gate_readback(
+        payload,
+        next_action=payload["next_action"],
+    )
+
+    assert readback is not None
+    assert readback["status"] == "owner_gate_recorded"
+    assert readback["duplicate_owner_gate_action_retired"] is True
+    assert readback["authority_materialized"] is False
+    assert readback["writes_owner_receipt"] is False
+    assert readback["human_gate_ref"] == (
+        "human_gate:owner-gate-decision:6fdb7ea34759cefc9ff10aa9"
+    )
