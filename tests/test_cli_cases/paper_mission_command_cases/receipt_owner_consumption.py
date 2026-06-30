@@ -128,7 +128,10 @@ def test_receipt_owner_consumption_classifies_dm002_typed_blocker_without_author
     assert payload["owner_consumption_verdict"]["verdict_kind"] == (
         "record_typed_blocker_owner_consumption_required"
     )
-    assert payload["owner_consumption_verdict"]["required_authority_surface_exists"] is False
+    assert payload["owner_consumption_verdict"]["required_authority_surface_exists"] is True
+    assert payload["owner_consumption_verdict"]["implemented_surface_role"] == (
+        "mas_owner_consumption_authority_apply_surface"
+    )
     assert payload["owner_consumption_verdict"]["forbidden_next_action"] == (
         "synonymous_route_back_redrive"
     )
@@ -238,6 +241,50 @@ def test_receipt_owner_consumption_fails_closed_without_opl_receipt(
     assert payload["implementation_gap"]["gap_kind"] == (
         "mas_owner_consumption_authority_apply_surface_missing"
     )
+
+
+def test_receipt_owner_consumption_accepts_top_level_receipt_projection(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="typed_blocker",
+        transition_kind=None,
+        package_kind="current_package",
+        can_submit=False,
+    )
+    carrier = readback["opl_runtime_carrier_readback"]
+    assert isinstance(carrier, dict)
+    readback["receipt_evidence"] = carrier.pop("receipt_evidence")
+    readback["opl_transition_receipt"] = carrier.pop("opl_transition_receipt")
+    readback["mas_receipt_consumption"] = carrier.pop("mas_receipt_consumption")
+    readback_file = tmp_path / "top-level-receipt.json"
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_evidence_materialized"
+    assert payload["readback_validation"]["valid"] is True
+    assert payload["owner_consumption_verdict"]["required_authority_surface_exists"] is True
 
 
 def test_receipt_owner_consumption_apply_typed_blocker_writes_safe_consumption_ledger(
