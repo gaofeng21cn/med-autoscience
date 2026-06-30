@@ -828,3 +828,77 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "authoring_runtime_authorization"
     assert dispatch["owner_route_ref"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+
+
+def test_materialize_domain_action_requests_rejects_currentness_action_when_next_action_identity_mismatches(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    action_type = "return_to_ai_reviewer_workflow"
+    currentness_work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    canonical_work_unit_id = "canonical-opl-route"
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=study_id,
+        next_owner="ai_reviewer",
+        owner_reason=currentness_work_unit_id,
+        allowed_actions=[action_type],
+    )
+    route["owner_reason_contract"] = {
+        "required_output": "artifacts/publication_eval/latest.json",
+        "forbidden_surfaces": ["artifacts/publication_eval/latest.json"],
+    }
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "generated_at": "2026-06-07T19:45:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "ai_reviewer",
+                "next_work_unit": currentness_work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source_surface": "ai_reviewer_record_currentness",
+                "status": "ready",
+                "next_owner": "ai_reviewer",
+                "owner": "ai_reviewer",
+                "action_type": action_type,
+                "work_unit_id": currentness_work_unit_id,
+                "work_unit_fingerprint": "ai-reviewer-currentness::stale-carrier",
+                "action_fingerprint": "ai-reviewer-currentness::stale-carrier",
+                "allowed_actions": [action_type],
+                "required_output_surface": "artifacts/publication_eval/latest.json",
+                "owner_route": route,
+            },
+            "owner_route": route,
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="request_opl_stage_attempt",
+                work_unit_id=canonical_work_unit_id,
+            ),
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["domain_progress_transition_requests"] == []
+    assert any(
+        item["action_type"] == action_type
+        and item["reason"] == "next_action_envelope_identity_mismatch"
+        for item in result["ignored_actions"]
+    )

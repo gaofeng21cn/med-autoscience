@@ -292,6 +292,25 @@ def test_paper_recovery_owner_successor_producer_is_physically_retired() -> None
     )
 
 
+def test_stage_outcome_authority_has_no_paper_recovery_legacy_bridge() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root
+        / "src"
+        / "med_autoscience"
+        / "controllers"
+        / "stage_outcome_authority_parts"
+        / "owner_route_selection.py"
+    ).read_text()
+
+    retired_terms = [
+        "domain_action_request_materializer_paper_recovery_owner_callable",
+        "paper_recovery_successor_legacy_bridge",
+    ]
+
+    assert [term for term in retired_terms if term in source] == []
+
+
 def test_current_work_unit_paper_recovery_successor_accepts_mas_owner_callable() -> None:
     successor = importlib.import_module(
         "med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor"

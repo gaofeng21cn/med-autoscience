@@ -27,6 +27,9 @@ READINESS_ACTION_TYPE = current_action_authority.READINESS_ACTION_TYPE
 LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
     legacy_next_action_authority.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
 )
+NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON = (
+    legacy_next_action_authority.NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON
+)
 _attach_owner_route_if_missing = current_action_queue.attach_owner_route_if_missing
 _attach_canonical_next_action_if_missing = current_action_queue.attach_canonical_next_action_if_missing
 _ignored_action = current_action_queue.ignored_action
@@ -95,6 +98,18 @@ def current_actions_for_studies(
         has_next_action_envelope = canonical_next_action_gate.has_canonical_next_action(study_payload)
         readiness_followup = _current_readiness_followup_action(study_payload)
         fresh_progress_action = fresh_progress_by_study.get(study_id)
+        fresh_progress_mismatch = (
+            fresh_progress_action is not None
+            and legacy_next_action_authority.next_action_identity_mismatches(fresh_progress_action)
+        )
+        if fresh_progress_mismatch:
+            ignored.append(
+                _ignored_action(
+                    fresh_progress_action,
+                    NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON,
+                )
+            )
+            fresh_progress_action = None
         top_level_study_actions = _top_level_study_actions(
             study=study_payload,
             top_level_actions=top_level_actions,

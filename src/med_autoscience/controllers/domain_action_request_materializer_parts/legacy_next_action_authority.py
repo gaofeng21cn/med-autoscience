@@ -11,6 +11,7 @@ from med_autoscience.controllers.study_progress_parts import canonical_next_acti
 LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
     canonical_next_action_gate.legacy_next_action_authority_retirement()["reason"]
 )
+NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON = "next_action_envelope_identity_mismatch"
 LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
     "current_executable_owner_action",
     "legacy_next_action_authority",
@@ -37,6 +38,14 @@ def retire_incomplete_authority_actions(
     retired: list[dict[str, Any]] = []
     for action in actions:
         payload = dict(action)
+        if next_action_identity_mismatches(payload):
+            retired.append(
+                current_action_queue.ignored_action(
+                    payload,
+                    NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON,
+                )
+            )
+            continue
         if requires_next_action_envelope(payload):
             retired.append(
                 current_action_queue.ignored_action(
@@ -72,6 +81,21 @@ def requires_next_action_envelope(action: Mapping[str, Any]) -> bool:
     if legacy_authority:
         return True
     return _text(action.get("action_type")) in DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES
+
+
+def next_action_identity_mismatches(action: Mapping[str, Any]) -> bool:
+    next_action = _next_action_payload(action)
+    if not opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+        return False
+    next_action_type = _text(next_action.get("action_type"))
+    action_type = _text(action.get("action_type"))
+    if next_action_type is not None and action_type is not None and next_action_type != action_type:
+        return True
+    next_work_unit = _text(next_action.get("work_unit_id"))
+    action_work_unit = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
+    if next_work_unit is not None and action_work_unit is not None and next_work_unit != action_work_unit:
+        return True
+    return False
 
 
 def _next_action_payload(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -122,7 +146,9 @@ __all__ = [
     "LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON",
     "LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
     "DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES",
+    "NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON",
     "STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
+    "next_action_identity_mismatches",
     "requires_next_action_envelope",
     "retire_incomplete_authority_actions",
 ]

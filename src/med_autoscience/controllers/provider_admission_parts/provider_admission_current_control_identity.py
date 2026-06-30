@@ -386,13 +386,6 @@ def missing_identity_fields(payload: Mapping[str, Any]) -> list[str] | None:
 
 def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(candidate)
-    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
-        payload.get("action_fingerprint")
-    )
-    can_bind_progress_currentness = (
-        _non_empty_text(payload.get("source"))
-        == "opl_current_control_state.study_current_executable_owner_action"
-    )
     readback_keys = _opl_readback_identity_keys(payload)
     transition_request_keys = _transition_request_identity_keys(payload)
     source_refs = _mapping(payload.get("source_refs"))
@@ -402,18 +395,12 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
         or route_identity_key(payload)
         or _non_empty_text(source_refs.get("route_identity_key"))
     )
-    if route_key is None and can_bind_progress_currentness:
-        study_id = _non_empty_text(payload.get("study_id"))
-        if study_id is not None and fingerprint is not None:
-            route_key = f"provider-admission::{study_id}::{fingerprint}"
     attempt_key = (
         _non_empty_text(readback_keys.get("attempt_idempotency_key"))
         or _non_empty_text(transition_request_keys.get("attempt_idempotency_key"))
         or attempt_idempotency_key(payload)
         or _non_empty_text(source_refs.get("attempt_idempotency_key"))
     )
-    if attempt_key is None and can_bind_progress_currentness:
-        attempt_key = route_key
     if route_key is not None:
         payload["route_identity_key"] = route_key
     if attempt_key is not None:

@@ -176,6 +176,31 @@ def test_provider_admission_action_uses_opl_transition_request_identity() -> Non
     assert action["handoff_packet"]["attempt_idempotency_key"] == opl_transition_key
 
 
+def test_provider_admission_identity_does_not_synthesize_route_identity_from_current_control() -> None:
+    identity = importlib.import_module(
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_identity"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+    candidate = {
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "next_executable_owner": "write",
+    }
+
+    resolved = identity.candidate_with_identity(candidate)
+
+    assert "route_identity_key" not in resolved
+    assert "attempt_idempotency_key" not in resolved
+    assert "idempotency_key" not in resolved
+
+
 def test_current_control_provider_admission_candidate_uses_opl_transition_request_identity(
     tmp_path: Path,
 ) -> None:
