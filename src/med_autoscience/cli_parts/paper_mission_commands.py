@@ -85,6 +85,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.materialized_readback
     materialized_study_root as _materialized_study_root,
     normalize_materialized_mission_for_cli_readback as _normalize_materialized_mission_for_cli_readback,
     paper_audit_pack_for_cli_readback as _paper_audit_pack_for_cli_readback,
+    paper_facing_action_fields as _paper_facing_action_fields,
     recommended_domain_command as _recommended_domain_command,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.parser_registration import (
@@ -561,6 +562,14 @@ def build_paper_mission_readback(
                 "next_owner_action": None,
                 "submission_authority_owner_gate_readback": submission_gate_readback,
             }
+    paper_facing_action_fields = _paper_facing_action_fields(
+        readback={
+            "study_id": study_id,
+            **transaction_output_fields,
+            "typed_blocker_resolution_readback": typed_blocker_resolution_readback,
+            "submission_authority_owner_gate_readback": submission_gate_readback,
+        }
+    )
     return {
         "surface_kind": "paper_mission_no_write_readback",
         "schema_version": 1,
@@ -626,6 +635,7 @@ def build_paper_mission_readback(
             if submission_gate_readback is not None
             else {}
         ),
+        **paper_facing_action_fields,
         **_paper_mission_consume_non_advancing_fields(
             paper_mission_command=paper_mission_command,
             transaction_readback=transaction_readback,
@@ -3459,6 +3469,14 @@ def _build_materialized_mission_readback_if_available(
                 "next_owner_action": None,
                 "submission_authority_owner_gate_readback": submission_gate_readback,
             }
+    paper_facing_action_fields = _paper_facing_action_fields(
+        readback={
+            "study_id": resolved_study_id,
+            **transaction_output_fields,
+            "typed_blocker_resolution_readback": typed_blocker_resolution_readback,
+            "submission_authority_owner_gate_readback": submission_gate_readback,
+        }
+    )
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -3507,6 +3525,7 @@ def _build_materialized_mission_readback_if_available(
             if submission_gate_readback is not None
             else {}
         ),
+        **paper_facing_action_fields,
         **(
             {"candidate_manifest_ref": str(candidate_manifest_path)}
             if candidate_manifest_path.exists()

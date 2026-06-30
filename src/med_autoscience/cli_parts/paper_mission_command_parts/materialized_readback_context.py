@@ -5,6 +5,11 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.study_progress_parts.current_executable_owner_action import (
+    build_current_executable_owner_action,
+    owner_action_next_step,
+)
+
 
 def materialized_mission_path_matches(
     path: Path,
@@ -189,6 +194,107 @@ def paper_audit_pack_for_cli_readback(
     }
 
 
+def paper_facing_action_fields(*, readback: Mapping[str, Any]) -> dict[str, Any]:
+    submission_gate = _mapping(readback.get("submission_authority_owner_gate_readback"))
+    if submission_gate:
+        return {
+            "paper_facing_action": _submission_gate_paper_facing_action(submission_gate)
+        }
+    current_action = build_current_executable_owner_action(readback)
+    if current_action is None:
+        return {}
+    return {
+        "current_executable_owner_action": current_action,
+        "paper_facing_action": _owner_action_paper_facing_action(current_action),
+    }
+
+
+def _submission_gate_paper_facing_action(
+    submission_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    status = _optional_text(submission_gate.get("status"))
+    closed = status in {
+        "submission_ready_authority_closeout_recorded",
+        "submission_blocker_human_gate_recorded",
+    }
+    return _compact_mapping(
+        {
+            "surface_kind": "paper_mission_paper_facing_action",
+            "schema_version": 1,
+            "status": (
+                "submission_authority_or_human_gate_closed"
+                if closed
+                else "awaiting_submission_authority_closeout"
+            ),
+            "source_surface": "submission_authority_owner_gate_readback",
+            "study_id": submission_gate.get("study_id"),
+            "decision": submission_gate.get("decision"),
+            "current_required_action": submission_gate.get("current_required_action"),
+            "next_legal_action": submission_gate.get("next_legal_action"),
+            "owner_gate_decision_ref": submission_gate.get("owner_gate_decision_ref"),
+            "human_gate_ref": submission_gate.get("human_gate_ref"),
+            "event_id": submission_gate.get("event_id"),
+            "next_step": (
+                "Submission authority or human gate is closed; rerun "
+                "paper-mission inspect or study progress to verify the terminal gate."
+                if closed
+                else "Await MAS submission authority or legal human-gate closeout; "
+                "do not replay the retired owner action."
+            ),
+            "authority_boundary": _paper_facing_action_authority_boundary(
+                submission_gate
+            ),
+        }
+    )
+
+
+def _owner_action_paper_facing_action(action: Mapping[str, Any]) -> dict[str, Any]:
+    return _compact_mapping(
+        {
+            "surface_kind": "paper_mission_paper_facing_action",
+            "schema_version": 1,
+            "status": "owner_action_ready",
+            "source_surface": "paper_mission.next_action",
+            "study_id": action.get("study_id"),
+            "next_owner": action.get("next_owner") or action.get("owner"),
+            "action_type": action.get("action_type"),
+            "allowed_actions": action.get("allowed_actions"),
+            "work_unit_id": action.get("work_unit_id"),
+            "work_unit_fingerprint": action.get("work_unit_fingerprint"),
+            "required_delta_kind": action.get("required_delta_kind"),
+            "target_surface": action.get("target_surface"),
+            "target_surface_specificity": action.get("target_surface_specificity"),
+            "paper_facing_delta": action.get("paper_facing_delta"),
+            "accepted_answer_shape": action.get("accepted_answer_shape"),
+            "route_back": action.get("route_back"),
+            "verification": action.get("verification"),
+            "next_step": owner_action_next_step(action),
+            "authority_boundary": _paper_facing_action_authority_boundary(action),
+        }
+    )
+
+
+def _paper_facing_action_authority_boundary(
+    source: Mapping[str, Any],
+) -> dict[str, Any]:
+    boundary = _mapping(source.get("authority_boundary"))
+    closeout = _mapping(source.get("submission_authority_closeout"))
+    return {
+        "projection_only": boundary.get("projection_only", True),
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
+        "can_write_human_gate": False,
+        "can_write_current_package": False,
+        "can_start_provider_attempt": False,
+        "can_claim_submission_ready": bool(
+            source.get("submission_ready_claim_authorized") is True
+            or closeout.get("submission_ready_claim_authorized") is True
+        ),
+        "can_claim_publication_ready": False,
+        "can_claim_paper_progress": False,
+    }
+
+
 def study_identity_matches(candidate: str, requested: str) -> bool:
     candidate_text = candidate.strip()
     requested_text = requested.strip()
@@ -216,8 +322,16 @@ def _mapping_list(value: object) -> list[dict[str, Any]]:
     return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
 def _optional_text(value: object) -> str | None:
     if value is None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _compact_mapping(value: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: item for key, item in value.items() if item not in (None, [], {})}

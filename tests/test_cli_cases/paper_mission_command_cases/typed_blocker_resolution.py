@@ -451,6 +451,25 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
             "ref": typed_readback["source_ref"],
         }
     ]
+    assert payload["current_executable_owner_action"]["surface_kind"] == (
+        "current_executable_owner_action"
+    )
+    assert payload["current_executable_owner_action"]["action_type"] == (
+        "consume_submission_ready_package_authority_or_human_gate"
+    )
+    paper_action = payload["paper_facing_action"]
+    assert paper_action["status"] == "owner_action_ready"
+    assert paper_action["source_surface"] == "paper_mission.next_action"
+    assert paper_action["next_owner"] == "mas_authority_kernel"
+    assert paper_action["action_type"] == (
+        "consume_submission_ready_package_authority_or_human_gate"
+    )
+    assert paper_action["paper_facing_delta"]["delta_kind"] == (
+        "submission_authority_owner_verdict"
+    )
+    assert paper_action["next_step"].startswith("等待 mas_authority_kernel owner")
+    assert paper_action["authority_boundary"]["can_write_owner_receipt"] is False
+    assert paper_action["authority_boundary"]["can_claim_submission_ready"] is False
 
 
 def test_paper_mission_inspect_retires_submission_authority_owner_gate_after_matching_event(
@@ -542,6 +561,17 @@ def test_paper_mission_inspect_retires_submission_authority_owner_gate_after_mat
     assert gate_readback["authority_materialized"] is False
     assert gate_readback["writes_owner_receipt"] is False
     assert gate_readback["writes_human_gate_authority"] is False
+    assert payload["paper_facing_action"]["status"] == "awaiting_submission_authority_closeout"
+    assert payload["paper_facing_action"]["source_surface"] == (
+        "submission_authority_owner_gate_readback"
+    )
+    assert payload["paper_facing_action"]["next_legal_action"] == (
+        "await_submission_authority_or_human_gate_closeout"
+    )
+    assert payload["paper_facing_action"]["owner_gate_decision_ref"] == (
+        gate_readback["owner_gate_decision_ref"]
+    )
+    assert payload["paper_facing_action"]["authority_boundary"]["can_claim_submission_ready"] is False
 
 
 def test_typed_blocker_resolution_rejects_forbidden_output_root(
