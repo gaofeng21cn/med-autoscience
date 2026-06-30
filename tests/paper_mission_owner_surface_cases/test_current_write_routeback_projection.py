@@ -302,14 +302,13 @@ def test_scan_routes_accepted_repair_reviewer_queue_overrides_stage_readiness_ty
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert study["owner_route"]["source_refs"]["work_unit_id"] == action["next_work_unit"]
     assert study["why_not_applied"] == "repair_progress_ai_reviewer_recheck_required"
-    assert study["current_work_unit"]["status"] == "executable_owner_action"
-    assert (
-        study["current_work_unit"]["state"]["source"]
-        == "repair_progress_projection.mas_owner_repair_execution_evidence"
-    )
-    assert study["current_executable_owner_action"]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert study["current_executable_owner_action"]["next_owner"] == "ai_reviewer"
-    assert study["current_executable_owner_action"]["work_unit_id"] == action["next_work_unit"]
+    assert study["current_work_unit"] == {}
+    assert study["current_execution_envelope"] == {}
+    assert study["current_executable_owner_action"] is None
+    assert study["legacy_execution_projection_boundary"]["next_action_authority"] is False
+    assert study["current_execution_evidence"]["diagnostic_only"] is True
+    assert study["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert study["current_execution_evidence"]["action_queue"][0]["next_work_unit"] == action["next_work_unit"]
     assert result["provider_admission_pending_count"] == 1
     assert study["provider_admission_pending_count"] == 1
     assert len(result["provider_admission_candidates"]) == 1

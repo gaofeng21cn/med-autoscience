@@ -675,6 +675,13 @@ def test_owner_receipt_consumption_routes_domain_transition_reviewer_successor_o
     )
     assert study["owner_route"]["next_owner"] == "ai_reviewer"
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert study["current_work_unit"]["status"] == "executable_owner_action"
-    assert study["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert study["current_work_unit"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert study["current_work_unit"] == {}
+    assert study["current_execution_envelope"] == {}
+    assert study["current_executable_owner_action"] is None
+    assert study["legacy_execution_projection_boundary"]["next_action_authority"] is False
+    assert study["current_execution_evidence"]["diagnostic_only"] is True
+    assert study["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert (
+        study["current_execution_evidence"]["action_queue"][0]["next_work_unit"]
+        == "ai_reviewer_medical_prose_quality_review"
+    )

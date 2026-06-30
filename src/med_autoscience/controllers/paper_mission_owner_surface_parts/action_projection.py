@@ -26,6 +26,12 @@ from med_autoscience.controllers.paper_mission_owner_surface_parts import recove
 from med_autoscience.controllers.paper_mission_owner_surface_parts import repair_progress_followup
 from med_autoscience.controllers.paper_mission_owner_surface_parts import runtime_facts
 from med_autoscience.controllers.paper_mission_owner_surface_parts import story_surface_delta_actions
+from med_autoscience.controllers.paper_mission_owner_surface_parts.action_projection_helpers import (
+    mapping as _mapping,
+    path as _path,
+    string_items as _string_items,
+    text as _text,
+)
 
 
 def action_queue(
@@ -976,28 +982,6 @@ def blocked_reason_from_scan(
     if ai_reviewer_assessment.get("missing") is True:
         return "ai_reviewer_assessment_required"
     return None
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _string_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
-
-
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
-
-
-def _path(value: str | None) -> Path | None:
-    return Path(value) if value is not None else None
 
 
 __all__ = [
