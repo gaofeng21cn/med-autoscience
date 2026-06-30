@@ -183,6 +183,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
             "route_back_to_publication_owner",
             "explicitly_supersede_stable_blocker",
             "route_back_to_mas_packet_materialization_bug",
+            "accept_submission_ready_authority_closeout",
+            "request_submission_blocker_human_gate",
         ),
         required=True,
     )

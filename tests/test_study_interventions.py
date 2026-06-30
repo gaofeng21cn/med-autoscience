@@ -275,3 +275,73 @@ def test_owner_gate_decision_rejects_admission_without_stage_packet_identity(tmp
         )
 
     assert not module.intervention_events_path(study_root=study_root).exists()
+
+
+def test_submission_ready_authority_closeout_decision_records_non_authority_gate(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "003-dpcc"
+
+    result = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        action_type="materialize_submission_ready_owner_verdict_or_human_gate",
+        work_unit_id="submission_ready_authority_closeout",
+        work_unit_fingerprint="ebf3e5131f6ae95c6ea25409",
+        blocker_type="submission_ready_authority_closeout_required",
+        decision="accept_submission_ready_authority_closeout",
+        reason="current submission-ready package is quality-clear; record owner gate for final authority closeout",
+        recorded_at="2026-06-30T00:00:00+00:00",
+        apply=True,
+    )
+
+    events = module.read_intervention_events(study_root=study_root)
+    payload = events[0]["payload"]
+
+    assert result["record_status"] == "applied"
+    assert payload["owner_gate_kind"] == "submission_authority_gate"
+    assert payload["current_required_action"] == (
+        "materialize_submission_ready_owner_verdict_or_human_gate"
+    )
+    assert payload["submission_authority_closeout"]["authority_materialized"] is False
+    assert payload["submission_authority_closeout"]["writes_owner_receipt"] is False
+    assert payload["submission_authority_closeout"]["writes_current_package"] is False
+    assert payload["provider_redrive_allowed"] is False
+    assert result["accepted_answer_shape"] == {"human_gate_ref": result["human_gate_ref"]}
+
+
+def test_submission_blocker_human_gate_decision_records_current_owner_identity(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+
+    result = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        action_type="await_human_or_mas_authority_decision_for_submission_blocker",
+        work_unit_id="submission_blocker_human_gate",
+        work_unit_fingerprint="533358e43f6bb6d7378e114d",
+        blocker_type="submission_blocker_human_gate_required",
+        decision="request_submission_blocker_human_gate",
+        reason="current package is not submittable and needs explicit owner or human gate",
+        recorded_at="2026-06-30T00:01:00+00:00",
+        apply=True,
+    )
+
+    events = module.read_intervention_events(study_root=study_root)
+    payload = events[0]["payload"]
+
+    assert result["record_status"] == "applied"
+    assert payload["owner_gate_kind"] == "submission_authority_gate"
+    assert payload["current_required_action"] == (
+        "await_human_or_mas_authority_decision_for_submission_blocker"
+    )
+    assert payload["current_owner_identity"]["work_unit_id"] == (
+        "submission_blocker_human_gate"
+    )
+    assert payload["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
+    assert payload["submission_authority_closeout"]["writes_human_gate_authority"] is False
+    assert payload["provider_admission_allowed"] is False
+    assert payload["do_not_redrive_same_work_unit"] is True

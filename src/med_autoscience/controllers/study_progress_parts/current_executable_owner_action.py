@@ -52,6 +52,34 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             or "mas_authority_kernel"
         )
     )
+    target_surface = (
+        {
+            "ref_kind": "mas_study_owner_gate_decision",
+            "surface_ref": "study-owner-gate-decision",
+            **({"source_ref": source_ref} if source_ref is not None else {}),
+        }
+        if not blocked_typed
+        and action_type
+        in {
+            "materialize_submission_ready_owner_verdict_or_human_gate",
+            "await_human_or_mas_authority_decision_for_submission_blocker",
+        }
+        else {
+            "ref_kind": "mas_ops_resolution_packet",
+            "surface_ref": "ops/medautoscience/paper_mission_typed_blocker_resolution",
+            **({"source_ref": source_ref} if source_ref is not None else {}),
+        }
+    )
+    target_surface_specificity = (
+        "submission_authority_owner_gate_decision"
+        if target_surface["ref_kind"] == "mas_study_owner_gate_decision"
+        else "typed_blocker_resolution"
+    )
+    required_delta_kind = (
+        "submission_authority_owner_gate_decision"
+        if target_surface["ref_kind"] == "mas_study_owner_gate_decision"
+        else "typed_blocker_resolution_owner_action"
+    )
     return _compact(
         {
             "surface_kind": SURFACE_KIND,
@@ -71,18 +99,18 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
-            "required_delta_kind": "typed_blocker_resolution_owner_action",
-            "target_surface": {
-                "ref_kind": "mas_ops_resolution_packet",
-                "surface_ref": "ops/medautoscience/paper_mission_typed_blocker_resolution",
-                **({"source_ref": source_ref} if source_ref is not None else {}),
-            },
-            "target_surface_specificity": "typed_blocker_resolution",
+            "required_delta_kind": required_delta_kind,
+            "target_surface": target_surface,
+            "target_surface_specificity": target_surface_specificity,
             "acceptance_refs": [
                 ref
                 for ref in (
                     source_ref,
-                    "typed_blocker_resolution_packet_ref",
+                    (
+                        "study_owner_gate_decision_ref"
+                        if target_surface["ref_kind"] == "mas_study_owner_gate_decision"
+                        else "typed_blocker_resolution_packet_ref"
+                    ),
                 )
                 if ref is not None
             ],

@@ -59,3 +59,49 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
     assert action["authority_boundary"]["can_write_owner_receipt"] is False
     assert action["authority_boundary"]["can_write_typed_blocker"] is False
     assert action["authority_boundary"]["can_write_human_gate"] is False
+
+
+def test_current_owner_action_projects_submission_authority_owner_gate_surface() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "paper.package.submission_minimal",
+                "action_type": "materialize_submission_ready_owner_verdict_or_human_gate",
+                "allowed_actions": [
+                    "materialize_submission_ready_owner_verdict_or_human_gate"
+                ],
+                "action_id": "next-action-submission-authority",
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "owner": "mas_authority_kernel",
+                "outcome_ref": (
+                    "/workspace/ops/medautoscience/"
+                    "paper_mission_typed_blocker_resolution/003/"
+                    "typed_blocker_resolution.json"
+                ),
+                "work_unit_id": "submission_ready_authority_closeout",
+                "work_unit_fingerprint": "sha256:submission-authority",
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["required_delta_kind"] == "submission_authority_owner_gate_decision"
+    assert action["target_surface"] == {
+        "ref_kind": "mas_study_owner_gate_decision",
+        "surface_ref": "study-owner-gate-decision",
+        "source_ref": (
+            "/workspace/ops/medautoscience/"
+            "paper_mission_typed_blocker_resolution/003/"
+            "typed_blocker_resolution.json"
+        ),
+    }
+    assert action["target_surface_specificity"] == (
+        "submission_authority_owner_gate_decision"
+    )
+    assert action["acceptance_refs"][-1] == "study_owner_gate_decision_ref"

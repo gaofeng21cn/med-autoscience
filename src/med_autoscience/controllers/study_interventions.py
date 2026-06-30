@@ -22,6 +22,14 @@ OWNER_GATE_DECISIONS = frozenset(
         "route_back_to_publication_owner",
         "explicitly_supersede_stable_blocker",
         "route_back_to_mas_packet_materialization_bug",
+        "accept_submission_ready_authority_closeout",
+        "request_submission_blocker_human_gate",
+    }
+)
+SUBMISSION_AUTHORITY_DECISIONS = frozenset(
+    {
+        "accept_submission_ready_authority_closeout",
+        "request_submission_blocker_human_gate",
     }
 )
 STABLE_BLOCKER_DISPOSITION_DECISIONS = frozenset(
@@ -290,10 +298,10 @@ def _owner_gate_payload(
     )
     payload: dict[str, Any] = {
         "summary": reason_text,
-        "owner_gate_kind": "opl_owner_gate",
+        "owner_gate_kind": _owner_gate_kind(decision_text),
         "decision": decision_text,
         "reason": reason_text,
-        "current_required_action": "resolve_opl_owner_gate",
+        "current_required_action": _current_required_action(decision_text),
         "current_owner_identity": identity,
         "owner_gate_decision_ref": decision_ref,
         "human_gate_ref": f"human_gate:{decision_ref}",
@@ -328,7 +336,31 @@ def _owner_gate_payload(
         payload["route_back_evidence_ref"] = f"route_back:{decision_ref}"
     if "route_back_evidence_ref" in payload:
         payload["accepted_answer_shapes"].append("route_back_evidence_ref")
+    if decision_text in SUBMISSION_AUTHORITY_DECISIONS:
+        payload["submission_authority_closeout"] = {
+            "status": "owner_gate_recorded",
+            "authority_materialized": False,
+            "writes_owner_receipt": False,
+            "writes_human_gate_authority": False,
+            "writes_current_package": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+        }
     return payload
+
+
+def _owner_gate_kind(decision: str) -> str:
+    if decision in SUBMISSION_AUTHORITY_DECISIONS:
+        return "submission_authority_gate"
+    return "opl_owner_gate"
+
+
+def _current_required_action(decision: str) -> str:
+    if decision == "accept_submission_ready_authority_closeout":
+        return "materialize_submission_ready_owner_verdict_or_human_gate"
+    if decision == "request_submission_blocker_human_gate":
+        return "await_human_or_mas_authority_decision_for_submission_blocker"
+    return "resolve_opl_owner_gate"
 
 
 def _owner_gate_decision_ref(
