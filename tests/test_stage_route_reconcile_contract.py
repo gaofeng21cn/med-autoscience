@@ -18,6 +18,9 @@ from tests.stage_route_reconcile_contract_cases.follow_through_and_operator_poli
 from tests.stage_route_reconcile_contract_cases.planning_root import (
     assert_single_planning_root,
 )
+from tests.stage_route_reconcile_contract_cases.synthetic_new_study import (
+    assert_synthetic_new_study_route_policy,
+)
 
 
 pytestmark = pytest.mark.meta
@@ -34,6 +37,12 @@ def test_stage_route_reconcile_contract_declares_single_planning_root() -> None:
     contract = _contract()
 
     assert_single_planning_root(contract)
+
+
+def test_stage_route_reconcile_contract_allows_synthetic_new_study_action_family_route() -> None:
+    contract = _contract()
+
+    assert_synthetic_new_study_route_policy(contract)
 
 
 def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_sequence() -> None:
