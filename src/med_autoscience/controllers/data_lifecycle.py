@@ -213,7 +213,10 @@ def _candidate(*, workspace_root: Path, path: Path, category: str) -> dict[str, 
 
 def _path_stats(path: Path, *, workspace_root: Path) -> dict[str, int]:
     if path.is_file():
-        return {"bytes": path.stat().st_size, "file_count": 1}
+        try:
+            return {"bytes": path.stat().st_size, "file_count": 1}
+        except FileNotFoundError:
+            return {"bytes": 0, "file_count": 0}
     total_bytes = 0
     file_count = 0
     for current_root, dirnames, filenames in os.walk(path):
@@ -224,7 +227,10 @@ def _path_stats(path: Path, *, workspace_root: Path) -> dict[str, int]:
         dirnames[:] = sorted(dirname for dirname in dirnames if dirname not in _CACHE_DIR_NAMES)
         for filename in filenames:
             file_path = current_path / filename
-            total_bytes += file_path.stat().st_size
+            try:
+                total_bytes += file_path.stat().st_size
+            except FileNotFoundError:
+                continue
             file_count += 1
     return {"bytes": total_bytes, "file_count": file_count}
 

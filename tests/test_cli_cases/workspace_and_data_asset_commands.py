@@ -389,6 +389,42 @@ def test_data_lifecycle_inspect_reports_read_only_categories_and_skips_dataset_b
         assert item["bytes"] > 0
 
 
+def test_data_lifecycle_inspect_skips_broken_archive_symlinks(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    archive_root = workspace_root / "archive" / "legacy_ops_surfaces" / "snapshot"
+    archive_root.mkdir(parents=True)
+    (archive_root / "deepscientist").symlink_to("med-deepscientist")
+    kept_file = archive_root / "receipt.json"
+    kept_file.write_text("{}\n", encoding="utf-8")
+    (workspace_root / "data" / "datasets" / "master" / "v1").mkdir(parents=True)
+    (workspace_root / "memory" / "portfolio" / "data_assets").mkdir(parents=True)
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "inspect",
+            "--workspace-root",
+            str(workspace_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "mas_data_lifecycle_inspection"
+    candidate = next(
+        item for item in payload["cleanup_candidates"] if item["workspace_relative_path"] == "archive/legacy_ops_surfaces"
+    )
+    assert candidate["category"] == "archive"
+    assert candidate["file_count"] == 1
+    assert candidate["bytes"] == kept_file.stat().st_size
+
+
 def test_data_lifecycle_closeout_dry_run_projects_plan_without_workspace_mutation(
     tmp_path: Path,
     capsys,
