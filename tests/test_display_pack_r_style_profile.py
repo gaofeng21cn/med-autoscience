@@ -38,16 +38,18 @@ built <- ggplot2::ggplot_build(plot)
 all_colours <- unique(unlist(lapply(built$data, function(layer) layer$colour %||% character())))
 stopifnot("#123456" %in% all_colours)
 stopifnot("#999999" %in% all_colours)
-theme_obj <- lidocaine_publication_theme(payload)
-stopifnot(identical(theme_obj$plot.title$colour, "#111111"))
 default_no_title_payload <- payload
 default_no_title_payload$render_context$layout_override$show_figure_title <- NULL
 default_no_title_theme <- theme_publication(default_no_title_payload)
 stopifnot(inherits(default_no_title_theme$plot.title, "element_blank"))
+default_lidocaine_theme <- lidocaine_publication_theme(default_no_title_payload)
+stopifnot(inherits(default_lidocaine_theme$plot.title, "element_blank"))
 explicit_title_payload <- payload
 explicit_title_payload$render_context$layout_override$show_figure_title <- TRUE
 explicit_title_theme <- theme_publication(explicit_title_payload)
 stopifnot(inherits(explicit_title_theme$plot.title, "element_text"))
+theme_obj <- lidocaine_publication_theme(explicit_title_payload)
+stopifnot(identical(theme_obj$plot.title$colour, "#111111"))
 stopifnot(inherits(theme_obj$panel.border, "element_rect"))
 stopifnot(isTRUE(abs(theme_obj$panel.border$linewidth - 0.45) < 1e-9))
 layout <- build_layout_sidecar(plot, "roc_curve_binary", payload)
@@ -192,6 +194,68 @@ stopifnot(is_grid_renderable(table_plot))
 table_layout <- build_layout_sidecar(table_plot, "table1_baseline_characteristics", table_payload)
 stopifnot(identical(table_layout$metrics$source_renderer, "LidocaineQ/Figure_Template::baseline_table"))
 stopifnot(identical(table_layout$panel_boxes[[1]]$box_type, "table_region"))
+"""
+
+    result = subprocess.run(
+        ["Rscript", "-e", r_script],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_dpcc_purpose_first_templates_use_metadata_title_policy() -> None:
+    assert shutil.which("Rscript") is not None
+    repo_root = Path(__file__).resolve().parents[1]
+    r_script = r"""
+Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R")
+payload <- list(
+  title = "This manuscript caption title must not be drawn inside the plot",
+  y_label = "DPCC phenotype",
+  rows = list(
+    list(
+      phenotype_label = "Glycemic-dominant diabetes",
+      index_patients = 1000,
+      severe_glycemia_low_intensity_gap_patients = 720,
+      uncontrolled_glycemia_no_drug_gap_patients = 480,
+      hypertension_no_antihypertensive_gap_patients = 580,
+      dyslipidemia_no_lipid_lowering_gap_patients = 660
+    ),
+    list(
+      phenotype_label = "Lower-burden diabetes",
+      index_patients = 800,
+      severe_glycemia_low_intensity_gap_patients = 0,
+      uncontrolled_glycemia_no_drug_gap_patients = 96,
+      hypertension_no_antihypertensive_gap_patients = 128,
+      dyslipidemia_no_lipid_lowering_gap_patients = 168
+    )
+  ),
+  render_context = list(
+    style_profile_id = "probe",
+    style_profile_sha256 = paste(rep("c", 64), collapse = ""),
+    palette = list(primary = "#245A6B", secondary = "#8B3A3A", tertiary = "#D8A24A", quaternary = "#2A9D8F", violet = "#6D5BD0", neutral = "#13293D", neutral_mid = "#64748B", neutral_light = "#B7C4CC", light = "#EEF4F7", text = "#13293D", axis = "#13293D", grid = "#E6EDF2", background = "#FFFFFF", muted = "#64748B", heatmap_seq_low = "#EEF4F7", heatmap_seq_mid = "#86BCC2", heatmap_seq_high = "#245A6B"),
+    semantic_roles = list(model_curve = "primary", comparator_curve = "secondary", reference_line = "neutral_mid", highlight_band = "light", text = "text", axis_line = "axis", grid_line = "grid", figure_background = "background", series_1 = "primary", series_2 = "secondary", series_3 = "tertiary", series_4 = "quaternary", series_5 = "violet", series_6 = "neutral_mid", heatmap_seq_low = "heatmap_seq_low", heatmap_seq_mid = "heatmap_seq_mid", heatmap_seq_high = "heatmap_seq_high"),
+    style_roles = list(model_curve = "#245A6B", comparator_curve = "#8B3A3A", reference_line = "#64748B", text = "#13293D", axis_line = "#13293D", grid_line = "#E6EDF2", heatmap_seq_low = "#EEF4F7", heatmap_seq_mid = "#86BCC2", heatmap_seq_high = "#245A6B"),
+    typography = list(font_family = "sans", base_size = 11, title_size = 12.5, subtitle_size = 9.5, axis_title_size = 10.5, tick_size = 9.2, legend_size = 9, panel_label_size = 11),
+    stroke = list(axis_linewidth = 0.45, primary_linewidth = 2.0, reference_linewidth = 0.9, grid_linewidth = 0.25, marker_size = 3.4),
+    grid = list(major = TRUE, minor = FALSE, major_axis = "both", color = "#E6EDF2"),
+    layout_override = list(output_width_in = 7.2, output_height_in = 4.6)
+  )
+)
+plot <- build_candidate_evidence_plot("treatment_gap_alignment_figure", payload)
+built <- ggplot2::ggplot_build(plot)
+stopifnot(is.null(built$plot$labels$title))
+layout <- build_candidate_layout_override("treatment_gap_alignment_figure", payload)
+stopifnot(identical(layout$metrics$source_renderer, "MAS/DPCC::treatment_gap_alignment_figure"))
+stopifnot(identical(layout$metrics$figure_purpose, "guideline_linked_treatment_gap_burden_small_multiples"))
+stopifnot(identical(layout$metrics$rendered_title_policy, "figure_title_metadata_only_not_drawn_inside_plot"))
+stopifnot(length(layout$panel_boxes) == 4)
 """
 
     result = subprocess.run(

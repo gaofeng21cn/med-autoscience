@@ -74,6 +74,84 @@ def _validate_column_table_payload(path: Path, payload: dict[str, Any]) -> tuple
     return column_labels, normalized_rows
 
 
+def _legacy_table_csv_path(payload_path: Path, template_short_id: str) -> Path:
+    filename_by_template = {
+        "table2_phenotype_gap_summary": "T2_phenotype_gap_summary.csv",
+        "table3_transition_site_support_summary": "T3_transition_site_support_summary.csv",
+    }
+    try:
+        filename = filename_by_template[template_short_id]
+    except KeyError as exc:
+        raise ValueError(f"unsupported DPCC table shell `{template_short_id}`") from exc
+    return payload_path.parent / "tables" / filename
+
+
+def _read_legacy_table_csv(path: Path) -> tuple[list[str], list[list[str]]]:
+    if not path.exists():
+        raise ValueError(f"{path.name} is required to render the DPCC table shell without inventing table values")
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.reader(handle))
+    if len(rows) < 2 or not rows[0]:
+        raise ValueError(f"{path.name} must contain a header row and at least one data row")
+    return [str(item).strip() for item in rows[0]], [[str(item).strip() for item in row] for row in rows[1:]]
+
+
+def _compact_dpcc_wide_table(
+    *,
+    headers: list[str],
+    rows: list[list[str]],
+    group_column_count: int,
+) -> tuple[list[str], list[list[str]]]:
+    if group_column_count < 1 or group_column_count >= len(headers):
+        raise ValueError("DPCC table shell group_column_count must leave at least one measure column")
+    compact_headers = [*headers[:group_column_count], "Measure", "Value"]
+    compact_rows: list[list[str]] = []
+    for row_index, row in enumerate(rows):
+        if len(row) != len(headers):
+            raise ValueError(f"DPCC table shell row {row_index} has {len(row)} cells for {len(headers)} headers")
+        group_values = row[:group_column_count]
+        for measure, value in zip(headers[group_column_count:], row[group_column_count:], strict=True):
+            compact_rows.append([*group_values, measure, value])
+    return compact_headers, compact_rows
+
+
+def _render_dpcc_summary_table(
+    *,
+    template_short_id: str,
+    payload_path: Path,
+    payload: dict[str, Any],
+    output_md_path: Path,
+    output_csv_path: Path | None,
+    title: str,
+    caption: str,
+) -> dict[str, str]:
+    if output_csv_path is None:
+        raise ValueError(f"{template_short_id} requires output_csv_path")
+    group_columns = payload.get("group_columns")
+    if not isinstance(group_columns, list) or not group_columns:
+        raise ValueError(f"{payload_path.name} must contain a non-empty group_columns list")
+    source_csv_path = _legacy_table_csv_path(payload_path, template_short_id)
+    headers, rows = _read_legacy_table_csv(source_csv_path)
+    compact_headers, compact_rows = _compact_dpcc_wide_table(
+        headers=headers,
+        rows=rows,
+        group_column_count=len(group_columns),
+    )
+    _write_rectangular_table_outputs(
+        output_md_path=output_md_path,
+        title=title,
+        headers=compact_headers,
+        table_rows=compact_rows,
+        output_csv_path=output_csv_path,
+    )
+    return {
+        "title": title,
+        "caption": caption,
+        "source_table_path": str(source_csv_path),
+        "table_layout_policy": "long_measure_value_table_to_avoid_pdf_header_overlap",
+    }
+
+
 def _validate_performance_summary_table_generic_payload(
     path: Path,
     payload: dict[str, Any],
@@ -245,6 +323,40 @@ def render_table_shell(
                 payload.get("caption") or "Clinical interpretation anchors for prespecified risk groups and use cases."
             ).strip(),
         }
+
+    if template_short_id == "table2_phenotype_gap_summary":
+        return _render_dpcc_summary_table(
+            template_short_id=template_short_id,
+            payload_path=payload_path,
+            payload=payload,
+            output_md_path=output_md_path,
+            output_csv_path=output_csv_path,
+            title=(
+                str(payload.get("title") or "Phenotype-level clinical characteristics and treatment-gap rates").strip()
+                or "Phenotype-level clinical characteristics and treatment-gap rates"
+            ),
+            caption=str(
+                payload.get("caption")
+                or "Phenotype-level clinical characteristics and treatment-gap rates rendered as a compact measure-value table."
+            ).strip(),
+        )
+
+    if template_short_id == "table3_transition_site_support_summary":
+        return _render_dpcc_summary_table(
+            template_short_id=template_short_id,
+            payload_path=payload_path,
+            payload=payload,
+            output_md_path=output_md_path,
+            output_csv_path=output_csv_path,
+            title=(
+                str(payload.get("title") or "Transition stability and site-held-out support summary").strip()
+                or "Transition stability and site-held-out support summary"
+            ),
+            caption=str(
+                payload.get("caption")
+                or "Transition and held-out-site support rendered as a compact measure-value table."
+            ).strip(),
+        )
 
     if template_short_id == "performance_summary_table_generic":
         if output_csv_path is None:

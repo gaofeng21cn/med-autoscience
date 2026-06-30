@@ -292,3 +292,56 @@ def test_materialize_display_surface_renders_cohort_flow_with_visible_design_sum
     assert "participant_design_summary" in layout_boxes
     assert any(item["box_type"] == "summary_panel" for item in layout["layout_boxes"])
     assert "flow_spine_screened_to_included" in guide_boxes
+
+
+def test_materialize_display_surface_normalizes_dense_participant_flow_sidecar(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "Figure1",
+            "title": "DPCC cohort assembly and analytic support set",
+            "caption": "Participant-accounting flow with repeated-visit support sets.",
+            "steps": [
+                {"step_id": "deidentified_release_visits", "label": "Deidentified release visits", "n": 56420},
+                {"step_id": "processed_patients", "label": "Processed patients", "n": 21384},
+                {"step_id": "index_analysis_cohort", "label": "Index analysis cohort", "n": 16642},
+                {"step_id": "repeated_visit_support_panel", "label": "Repeated visit support panel", "n": 9135},
+                {"step_id": "transition_eligible_support_set", "label": "Transition-eligible support set", "n": 6830},
+            ],
+            "sidecar_blocks": [
+                {
+                    "block_id": "site_support",
+                    "block_type": "wide_top",
+                    "title": "Site-held-out support",
+                    "items": [{"label": "Held-out sites", "detail": "Transportability and treatment-gap evidence"}],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["figures_materialized"] == ["F1"]
+    layout = json.loads((paper_root / "figures" / "generated" / "F1_cohort_flow.layout.json").read_text(encoding="utf-8"))
+    for section in ("layout_boxes", "panel_boxes", "guide_boxes"):
+        for index, box in enumerate(layout[section]):
+            assert 0 <= box["x0"] <= box["x1"] <= 1, (section, index, box)
+            assert 0 <= box["y0"] <= box["y1"] <= 1, (section, index, box)
+    layout_boxes = {item["box_id"]: item for item in layout["layout_boxes"]}
+    assert "title" not in layout_boxes
+    assert layout["metrics"]["source_renderer"] == "MAS/ReportingFlow::cohort_flow_figure"
+    assert layout["metrics"]["figure_purpose"] == "participant_accounting_and_strobe_consort_flow"
+    assert layout["metrics"]["rendered_title_policy"] == "figure_title_metadata_only_not_drawn_inside_plot"
+    assert "generated_fallback_renderer" not in layout["metrics"]
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    entry = figure_catalog["figures"][0]
+    assert entry["source_renderer"] == "MAS/ReportingFlow::cohort_flow_figure"
+    assert entry["figure_purpose"] == "participant_accounting_and_strobe_consort_flow"
+    assert entry["rendered_title_policy"] == "figure_title_metadata_only_not_drawn_inside_plot"

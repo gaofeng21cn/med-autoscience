@@ -40,10 +40,13 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "center_transportability_governance_summary_panel",
         "distribution_violin_box",
         "composition_stacked_bar",
+        "phenotype_gap_structure_figure",
         "correlation_scatter",
         "alluvial_transition",
+        "site_held_out_stability_figure",
         "radar_profile",
         "waterfall_response",
+        "treatment_gap_alignment_figure",
         "pca_scatter_grouped",
         "tsne_scatter_grouped",
         "umap_scatter_grouped",
@@ -72,6 +75,8 @@ _TABLE_SHELL_ORDER = tuple(
     _full_id(item)
     for item in (
         "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
     )
 )
 _SEMANTIC_REGISTRY_ID_ALIASES = {

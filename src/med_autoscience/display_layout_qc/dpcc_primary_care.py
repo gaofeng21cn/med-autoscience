@@ -59,7 +59,6 @@ def _check_publication_dpcc_phenotype_gap_structure(sidecar: LayoutSidecar) -> l
     issues = _check_dpcc_common_layout(
         sidecar,
         required_box_types=(
-            "title",
             "panel_label",
             "subplot_title",
             "x_axis_title",
@@ -87,7 +86,6 @@ def _check_publication_dpcc_transition_site_support(sidecar: LayoutSidecar) -> l
     issues = _check_dpcc_common_layout(
         sidecar,
         required_box_types=(
-            "title",
             "panel_label",
             "subplot_title",
             "x_axis_title",
@@ -116,7 +114,6 @@ def _check_publication_dpcc_treatment_gap_alignment(sidecar: LayoutSidecar) -> l
     issues = _check_dpcc_common_layout(
         sidecar,
         required_box_types=(
-            "title",
             "panel_label",
             "subplot_title",
             "y_axis_title",

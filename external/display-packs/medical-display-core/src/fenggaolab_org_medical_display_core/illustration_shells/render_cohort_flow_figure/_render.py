@@ -125,7 +125,12 @@ def _render_cohort_flow_figure(
     )
     branch_gap_pt = read_float(layout_override, "flow_branch_gap_pt", 18.0)
     side_margin_pt = read_float(layout_override, "figure_side_margin_pt", 34.0)
-    heading_band_pt = read_float(layout_override, "heading_band_pt", 36.0)
+    show_figure_title = bool(layout_override.get("show_figure_title") is True)
+    heading_band_pt = read_float(
+        layout_override,
+        "heading_band_pt",
+        0.0 if not show_figure_title else 36.0,
+    )
     bottom_margin_pt = read_float(layout_override, "bottom_margin_pt", 24.0)
     footer_gap_pt = read_float(layout_override, "footer_gap_pt", 22.0)
     flow_step_gap_pt = read_float(
@@ -960,44 +965,45 @@ def _render_cohort_flow_figure(
         ),
     )
 
-    heading_y = canvas_height_pt - 12.0
-    for panel_id, x0, heading in (
-        ("A", panel_a_x0, "Cohort assembly"),
-        ("B", panel_b_x0, "Validation and model hierarchy"),
-    ):
-        ax.text(
-            x0,
-            heading_y,
-            panel_id,
-            fontsize=base_panel_label_size * scale,
-            fontweight="bold",
-            color=flow_panel_label,
-            ha="left",
-            va="top",
-        )
-        label_width = _measure_flow_text_width_pt(panel_id, font_size=base_panel_label_size * scale, font_weight="bold")
-        layout_boxes.append(
-            _flow_box_to_normalized(
-                x0=x0,
-                y0=heading_y - base_panel_label_size * scale * 1.2,
-                x1=x0 + label_width,
-                y1=heading_y,
-                canvas_width_pt=figure_width_pt,
-                canvas_height_pt=canvas_height_pt,
-                box_id=f"panel_label_{panel_id}",
-                box_type="panel_label",
+    if show_figure_title:
+        heading_y = canvas_height_pt - 12.0
+        for panel_id, x0, heading in (
+            ("A", panel_a_x0, "Cohort assembly"),
+            ("B", panel_b_x0, "Validation and model hierarchy"),
+        ):
+            ax.text(
+                x0,
+                heading_y,
+                panel_id,
+                fontsize=base_panel_label_size * scale,
+                fontweight="bold",
+                color=flow_panel_label,
+                ha="left",
+                va="top",
             )
-        )
-        ax.text(
-            x0 + label_width + 12.0 * scale,
-            heading_y - 1.0,
-            heading,
-            fontsize=base_card_title_size * scale,
-            fontweight="bold",
-            color=flow_title_text,
-            ha="left",
-            va="top",
-        )
+            label_width = _measure_flow_text_width_pt(panel_id, font_size=base_panel_label_size * scale, font_weight="bold")
+            layout_boxes.append(
+                _flow_box_to_normalized(
+                    x0=x0,
+                    y0=heading_y - base_panel_label_size * scale * 1.2,
+                    x1=x0 + label_width,
+                    y1=heading_y,
+                    canvas_width_pt=figure_width_pt,
+                    canvas_height_pt=canvas_height_pt,
+                    box_id=f"panel_label_{panel_id}",
+                    box_type="panel_label",
+                )
+            )
+            ax.text(
+                x0 + label_width + 12.0 * scale,
+                heading_y - 1.0,
+                heading,
+                fontsize=base_card_title_size * scale,
+                fontweight="bold",
+                color=flow_title_text,
+                ha="left",
+                va="top",
+            )
 
     _write_multi_panel_outputs(
         output_svg_path=output_svg_path,

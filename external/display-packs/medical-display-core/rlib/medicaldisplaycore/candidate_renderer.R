@@ -493,10 +493,14 @@ for (.frame_index in rev(seq_len(sys.nframe()))) {
 }
 source(.candidate_publication_renderer_path, local = environment())
 rm(.candidate_renderer_source_file, .candidate_publication_renderer_path, .frame_index, .frame_file)
+source_renderer_helper("dpcc_primary_care_renderers.R")
 
 build_candidate_evidence_plot <- function(template_id, payload) {
   switch(
     template_id,
+    phenotype_gap_structure_figure = dpcc_plot_phenotype_gap_structure(payload),
+    site_held_out_stability_figure = dpcc_plot_transition_site_support(payload),
+    treatment_gap_alignment_figure = dpcc_plot_treatment_gap_alignment(payload),
     time_to_event_discrimination_calibration_panel = candidate_plot_time_to_event_discrimination_calibration(payload),
     time_to_event_decision_curve = candidate_plot_time_to_event_decision_curve(payload),
     time_to_event_multihorizon_calibration_panel = candidate_plot_multihorizon_calibration(payload),
@@ -530,23 +534,23 @@ candidate_box <- function(box_id, box_type, x0, y0, x1, y1) {
   )
 }
 
-candidate_calibration_governance_metric_boxes <- function(items, panel_box) {
+candidate_governance_decision_cell_boxes <- function(items, panel_box) {
   if (is.null(items) || length(items) < 1) {
     return(list())
   }
   count <- length(items)
-  metric_rows <- c("slope", "oe_ratio")
+  decision_columns <- c("cohort", "calibration_check", "owner_action")
   unlist(lapply(seq_along(items), function(index) {
     y <- panel_box$y0 + (count - index + 1) * ((panel_box$y1 - panel_box$y0) / (count + 1))
-    lapply(seq_along(metric_rows), function(metric_index) {
-      x <- panel_box$x0 + 0.12 + (metric_index - 1) * 0.17
+    lapply(seq_along(decision_columns), function(column_index) {
+      x <- panel_box$x0 + 0.04 + (column_index - 1) * ((panel_box$x1 - panel_box$x0) / 3.0)
       candidate_box(
-        sprintf("calibration_governance_%s_%d", metric_rows[[metric_index]], index),
-        "calibration_governance_metric",
+        sprintf("governance_decision_%s_%d", decision_columns[[column_index]], index),
+        "governance_decision_cell",
         x,
-        y - 0.012,
-        min(panel_box$x1 - 0.02, x + 0.024),
-        y + 0.012
+        y - 0.050,
+        min(panel_box$x1 - 0.02, x + ((panel_box$x1 - panel_box$x0) / 3.0) - 0.02),
+        y + 0.050
       )
     })
   }), recursive = FALSE)
@@ -748,6 +752,20 @@ candidate_metrics_with_renderer <- function(template_id, display_payload, base_p
 }
 
 build_candidate_layout_override <- function(template_id, display_payload, base_panel_box = NULL, base_guide_box = NULL) {
+  dpcc_override <- dpcc_layout_override(template_id, display_payload)
+  if (!is.null(dpcc_override)) {
+    return(list(
+      layout_boxes = dpcc_override$layout_boxes,
+      panel_boxes = dpcc_override$panel_boxes,
+      guide_boxes = dpcc_override$guide_boxes,
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        dpcc_override$metrics %||% list()
+      )
+    ))
+  }
   if (identical(template_id, "time_to_event_discrimination_calibration_panel")) {
     panels <- candidate_two_panel_boxes("panel", "panel")
     return(list(
@@ -897,17 +915,17 @@ build_candidate_layout_override <- function(template_id, display_payload, base_p
     return(override)
   }
   if (identical(template_id, "center_transportability_governance_summary_panel")) {
-    panels <- candidate_two_panel_boxes("metric_panel", "calibration_governance_panel")
+    panels <- candidate_two_panel_boxes("metric_panel", "governance_decision_panel")
     centers <- display_payload$centers %|||% list()
     return(list(
       layout_boxes = c(
         candidate_panel_labels(
           candidate_non_empty(display_payload$metric_panel_title, "Cohort discrimination"),
-          candidate_non_empty(display_payload$summary_panel_title, "Calibration governance")
+          candidate_non_empty(display_payload$summary_panel_title, "Transportability action")
         ),
         list(candidate_box("metric_x_axis_title", "subplot_x_axis_title", 0.18, 0.09, 0.40, 0.13)),
         candidate_metric_marker_boxes(centers, panels[[1]], "center", 1),
-        candidate_calibration_governance_metric_boxes(centers, panels[[2]])
+        candidate_governance_decision_cell_boxes(centers, panels[[2]])
       ),
       panel_boxes = panels,
       guide_boxes = list(candidate_box("legend", "legend", 0.24, 0.06, 0.76, 0.13)),
@@ -916,6 +934,10 @@ build_candidate_layout_override <- function(template_id, display_payload, base_p
         display_payload,
         base_panel_box,
         list(
+          source_renderer = "MAS/Transportability::center_transportability_governance_summary_panel",
+          figure_purpose = "transportability_discrimination_plus_recalibration_governance_decision_matrix",
+          rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
+          governance_text_policy = "compact_matrix_labels_no_long_action_sentences",
           centers = centers,
           metric_reference_value = display_payload$metric_reference_value %||% NULL,
           batch_shift_threshold = display_payload$batch_shift_threshold %||% NULL,

@@ -74,7 +74,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 35
+    assert len(r_templates) == 38
 
 
 def test_cohort_flow_materialization_manifest_uses_pack_local_ggconsort_subprocess() -> None:
@@ -189,10 +189,11 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
 
     records_by_template = {item["template_id"]: item for item in records}
     assert sorted(records_by_template) == sorted(manifest_ids)
-    assert ledger["summary"]["current_template_count"] == 38
-    assert ledger["summary"]["current_evidence_template_count"] == 35
-    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 35
-    assert ledger["summary"]["retired_alias_template_count"] == 42
+    assert ledger["summary"]["current_template_count"] == 43
+    assert ledger["summary"]["current_evidence_template_count"] == 38
+    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 38
+    assert ledger["summary"]["current_table_shell_count"] == 3
+    assert ledger["summary"]["retired_alias_template_count"] == 40
     assert ledger["summary"]["python_evidence_retained_count"] == 0
     assert "retired_python_evidence_template_count" not in ledger["summary"]
     assert "retired_python_evidence_template_ids" not in ledger
@@ -205,6 +206,8 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_canonical_template"
     assert records_by_template["time_to_event_decision_curve"]["migration_status"] == "current_canonical_template"
     assert records_by_template["center_transportability_governance_summary_panel"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["table2_phenotype_gap_summary"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["table3_transition_site_support_summary"]["migration_status"] == "current_canonical_template"
 
 
 def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> None:
@@ -216,7 +219,7 @@ def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> Non
         and item["renderer_family"] == "r_ggplot2"
     ]
 
-    assert len(current_records) == 35
+    assert len(current_records) == 38
     for record in current_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
         render_path = template_root / "render.R"

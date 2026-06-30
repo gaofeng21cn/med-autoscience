@@ -23,10 +23,13 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "center_transportability_governance_summary_panel_inputs_v1": "center_transportability_governance_summary_panel_inputs.json",
     "distribution_violin_box_inputs_v1": "distribution_violin_box_inputs.json",
     "composition_stacked_bar_inputs_v1": "composition_stacked_bar_inputs.json",
+    "dpcc_phenotype_gap_structure_v1": "dpcc_phenotype_gap_structure.json",
     "correlation_scatter_inputs_v1": "correlation_scatter_inputs.json",
     "alluvial_transition_inputs_v1": "alluvial_transition_inputs.json",
+    "dpcc_transition_site_support_v1": "dpcc_transition_site_support.json",
     "radar_profile_inputs_v1": "radar_profile_inputs.json",
     "waterfall_response_inputs_v1": "waterfall_response_inputs.json",
+    "dpcc_treatment_gap_alignment_v1": "dpcc_treatment_gap_alignment.json",
     "coefficient_path_panel_inputs_v1": "coefficient_path_panel_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "shap_dependence_panel_inputs_v1": "shap_dependence_panel_inputs.json",
@@ -36,6 +39,8 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
 
 TABLE_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "baseline_characteristics_schema_v1": "baseline_characteristics_schema.json",
+    "phenotype_gap_summary_schema_v1": "phenotype_gap_summary_schema.json",
+    "transition_site_support_summary_schema_v1": "transition_site_support_summary_schema.json",
     "time_to_event_performance_summary_v1": "time_to_event_performance_summary.json",
     "clinical_interpretation_summary_v1": "clinical_interpretation_summary.json",
 }

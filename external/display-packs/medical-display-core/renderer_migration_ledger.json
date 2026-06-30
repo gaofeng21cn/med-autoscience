@@ -4,12 +4,12 @@
   "purpose": "Track current renderer disposition after canonical medical figure catalog shrink. Duplicate input-data variants are retired aliases rather than current templates.",
   "machine_boundary": "Migration ledger only. Current executable truth is template.toml plus render.R and gallery manifest.",
   "summary": {
-    "current_template_count": 38,
-    "current_evidence_template_count": 35,
-    "current_r_ggplot2_subprocess_evidence_count": 35,
+    "current_template_count": 43,
+    "current_evidence_template_count": 38,
+    "current_r_ggplot2_subprocess_evidence_count": 38,
     "current_illustration_shell_count": 2,
-    "current_table_shell_count": 1,
-    "retired_alias_template_count": 42,
+    "current_table_shell_count": 3,
+    "retired_alias_template_count": 40,
     "python_evidence_retained_count": 0,
     "python_evidence_reentry_rule": "Only a current audited template with documented advantage over the R/ggplot2 baseline may re-enter; no hidden legacy Python evidence inventory is retained."
   },
@@ -525,6 +525,48 @@
       "advantage_proof_required_for_python_evidence_reentry": true
     },
     {
+      "template_id": "phenotype_gap_structure_figure",
+      "kind": "evidence_figure",
+      "renderer_family": "r_ggplot2",
+      "execution_mode": "subprocess",
+      "entrypoint": "Rscript render.R --request {request_json}",
+      "render_script_path": "render.R",
+      "canonical_family_id": "phenotype_gap_structure_figure",
+      "migration_lane": "CANONICAL_CURRENT",
+      "migration_status": "current_canonical_template",
+      "retained_in_current_pack": true,
+      "retired_alias_template_ids": [],
+      "advantage_proof_required_for_python_evidence_reentry": true
+    },
+    {
+      "template_id": "site_held_out_stability_figure",
+      "kind": "evidence_figure",
+      "renderer_family": "r_ggplot2",
+      "execution_mode": "subprocess",
+      "entrypoint": "Rscript render.R --request {request_json}",
+      "render_script_path": "render.R",
+      "canonical_family_id": "site_held_out_stability_figure",
+      "migration_lane": "CANONICAL_CURRENT",
+      "migration_status": "current_canonical_template",
+      "retained_in_current_pack": true,
+      "retired_alias_template_ids": [],
+      "advantage_proof_required_for_python_evidence_reentry": true
+    },
+    {
+      "template_id": "treatment_gap_alignment_figure",
+      "kind": "evidence_figure",
+      "renderer_family": "r_ggplot2",
+      "execution_mode": "subprocess",
+      "entrypoint": "Rscript render.R --request {request_json}",
+      "render_script_path": "render.R",
+      "canonical_family_id": "treatment_gap_alignment_figure",
+      "migration_lane": "CANONICAL_CURRENT",
+      "migration_status": "current_canonical_template",
+      "retained_in_current_pack": true,
+      "retired_alias_template_ids": [],
+      "advantage_proof_required_for_python_evidence_reentry": true
+    },
+    {
       "template_id": "correlation_scatter",
       "kind": "evidence_figure",
       "renderer_family": "r_ggplot2",
@@ -602,11 +644,37 @@
       "retired_alias_template_ids": [
         "performance_summary_table_generic",
         "grouped_risk_event_summary_table",
-        "table2_phenotype_gap_summary",
         "table2_time_to_event_performance_summary",
-        "table3_clinical_interpretation_summary",
-        "table3_transition_site_support_summary"
+        "table3_clinical_interpretation_summary"
       ],
+      "advantage_proof_required_for_python_evidence_reentry": false
+    },
+    {
+      "template_id": "table2_phenotype_gap_summary",
+      "kind": "table_shell",
+      "renderer_family": "markdown_table",
+      "execution_mode": "python_plugin",
+      "entrypoint": "fenggaolab_org_medical_display_core.table_shells:render_table_shell",
+      "render_script_path": "src/fenggaolab_org_medical_display_core/table_shells.py",
+      "canonical_family_id": "table2_phenotype_gap_summary",
+      "migration_lane": "CANONICAL_CURRENT",
+      "migration_status": "current_canonical_template",
+      "retained_in_current_pack": true,
+      "retired_alias_template_ids": [],
+      "advantage_proof_required_for_python_evidence_reentry": false
+    },
+    {
+      "template_id": "table3_transition_site_support_summary",
+      "kind": "table_shell",
+      "renderer_family": "markdown_table",
+      "execution_mode": "python_plugin",
+      "entrypoint": "fenggaolab_org_medical_display_core.table_shells:render_table_shell",
+      "render_script_path": "src/fenggaolab_org_medical_display_core/table_shells.py",
+      "canonical_family_id": "table3_transition_site_support_summary",
+      "migration_lane": "CANONICAL_CURRENT",
+      "migration_status": "current_canonical_template",
+      "retained_in_current_pack": true,
+      "retired_alias_template_ids": [],
       "advantage_proof_required_for_python_evidence_reentry": false
     }
   ],
@@ -840,12 +908,6 @@
       "migration_status": "retired_alias"
     },
     {
-      "template_id": "table2_phenotype_gap_summary",
-      "canonical_template_id": "table1_baseline_characteristics",
-      "canonical_family_id": "table1_baseline_characteristics",
-      "migration_status": "retired_alias"
-    },
-    {
       "template_id": "table2_time_to_event_performance_summary",
       "canonical_template_id": "table1_baseline_characteristics",
       "canonical_family_id": "table1_baseline_characteristics",
@@ -853,12 +915,6 @@
     },
     {
       "template_id": "table3_clinical_interpretation_summary",
-      "canonical_template_id": "table1_baseline_characteristics",
-      "canonical_family_id": "table1_baseline_characteristics",
-      "migration_status": "retired_alias"
-    },
-    {
-      "template_id": "table3_transition_site_support_summary",
       "canonical_template_id": "table1_baseline_characteristics",
       "canonical_family_id": "table1_baseline_characteristics",
       "migration_status": "retired_alias"

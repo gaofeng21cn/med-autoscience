@@ -11,12 +11,19 @@ from med_autoscience.display_pack_dependency_environment import (
 
 from med_autoscience.controllers import display_pack_surface_sync
 
-from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
+from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _evidence_payload_path, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
 from .contract_backed_registry import resolve_contract_backed_figure_registry_fields, resolve_contract_backed_layout_sidecar_path
 from .payload_loader import _load_evidence_display_payload
 from .renderers import _load_layout_sidecar_or_raise, _prepare_python_illustration_output_paths, _prepare_python_render_output_paths, _prepare_table_shell_output_paths
 from .submission_graphical_abstract import _materialize_submission_graphical_abstract
 from .validation_tables import _validate_cohort_flow_payload
+
+_PURPOSE_FIRST_RENDERER_FIELDS = (
+    "source_renderer",
+    "figure_purpose",
+    "rendered_title_policy",
+)
+
 
 def _resolve_workspace_path(path_value: object, *, paper_root: Path) -> Path:
     raw_path = str(path_value or "").strip()
@@ -72,6 +79,18 @@ def _is_known_requirement_key(requirement_key: str) -> bool:
         or display_registry.is_evidence_figure_template(requirement_key)
         or display_registry.is_table_shell(requirement_key)
     )
+
+
+def _purpose_first_renderer_fields(layout_sidecar: dict[str, Any]) -> dict[str, str]:
+    metrics = layout_sidecar.get("metrics")
+    if not isinstance(metrics, dict):
+        return {}
+    fields: dict[str, str] = {}
+    for key in _PURPOSE_FIRST_RENDERER_FIELDS:
+        value = str(metrics.get(key) or "").strip()
+        if value:
+            fields[key] = value
+    return fields
 
 
 def _load_display_shell_payload(*, paper_root: Path, item: dict[str, Any]) -> dict[str, Any] | None:
@@ -526,6 +545,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         figure_catalog=figure_catalog,
     ):
         requirement_key = str(item.get("requirement_key") or "").strip()
+        registry_requirement_key = requirement_key
         shell_payload = _load_display_shell_payload(paper_root=resolved_paper_root, item=item)
         requirement_key = _resolve_requirement_key_from_shell(
             requirement_key=requirement_key,
@@ -548,7 +568,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             requirement_short_id = get_template_short_id(display_registry.get_table_shell_spec(requirement_key).shell_id)
 
         contract_path = None
-        if display_kind == "figure" and shell_payload:
+        if (
+            display_kind == "figure"
+            and shell_payload
+            and not display_registry.is_evidence_figure_template(requirement_key)
+        ):
             contract_path = _resolve_contract_backed_figure_contract_path(
                 paper_root=resolved_paper_root,
                 item=item,
@@ -697,6 +721,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "claim_ids": [],
                 "render_context": render_context,
             }
+            entry.update(_purpose_first_renderer_fields(layout_sidecar))
             figure_catalog["figures"] = _replace_catalog_entry(
                 list(figure_catalog.get("figures") or []),
                 key="figure_id",
@@ -776,8 +801,10 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             continue
 
         if requirement_short_id in {
+            "table2_phenotype_gap_summary",
             "table2_time_to_event_performance_summary",
             "table3_clinical_interpretation_summary",
+            "table3_transition_site_support_summary",
             "performance_summary_table_generic",
             "grouped_risk_event_summary_table",
         }:
@@ -793,10 +820,26 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_time_to_event_performance_summary.md"
                 default_title = "Time-to-event model performance summary"
                 default_caption = "Time-to-event discrimination and error metrics across analysis cohorts."
+            elif requirement_short_id == "table2_phenotype_gap_summary":
+                output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_phenotype_gap_summary.md"
+                output_csv_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_phenotype_gap_summary.csv"
+                default_title = "Phenotype-level clinical characteristics and treatment-gap rates"
+                default_caption = (
+                    "Phenotype-level clinical characteristics and treatment-gap rates rendered as a compact measure-value table."
+                )
             elif requirement_short_id == "table3_clinical_interpretation_summary":
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_clinical_interpretation_summary.md"
                 default_title = "Clinical interpretation summary"
                 default_caption = "Clinical interpretation anchors for prespecified risk groups and use cases."
+            elif requirement_short_id == "table3_transition_site_support_summary":
+                output_md_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_transition_site_support_summary.md"
+                )
+                output_csv_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_transition_site_support_summary.csv"
+                )
+                default_title = "Transition stability and site-held-out support summary"
+                default_caption = "Transition and held-out-site support rendered as a compact measure-value table."
             elif requirement_short_id == "performance_summary_table_generic":
                 output_md_path = (
                     resolved_paper_root / "tables" / "generated" / f"{table_id}_performance_summary_table_generic.md"
@@ -868,6 +911,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
                 ],
                 "claim_ids": claim_ids,
+                "render_result": render_result,
             }
             table_catalog["tables"] = _replace_catalog_entry(
                 list(table_catalog.get("tables") or []),
@@ -890,11 +934,20 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     resolved_paper_root / "display_overrides.json"
                 )
             figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
-            payload_path, display_payload = _load_evidence_display_payload(
-                paper_root=resolved_paper_root,
-                spec=spec,
-                display_id=display_id,
-            )
+            try:
+                payload_path, display_payload = _load_evidence_display_payload(
+                    paper_root=resolved_paper_root,
+                    spec=spec,
+                    display_id=display_id,
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                raise ValueError(
+                    "evidence display payload unavailable for "
+                    f"display_id=`{display_id}`, registry_requirement_key=`{registry_requirement_key}`, "
+                    f"requirement_key=`{requirement_key}`, requirement_short_id=`{requirement_short_id}`, "
+                    f"template_id=`{spec.template_id}`, input_schema_id=`{spec.input_schema_id}`; "
+                    f"expected_input_path=`{_evidence_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)}`"
+                ) from exc
             payload_template_id = str(display_payload.get("template_id") or "").strip()
             if payload_template_id and payload_template_id != spec.template_id:
                 spec = display_registry.get_evidence_figure_spec(payload_template_id)
@@ -937,6 +990,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
             layout_sidecar["render_context"] = render_context
             dump_json(layout_sidecar_path, layout_sidecar)
+            purpose_first_fields = _purpose_first_renderer_fields(layout_sidecar)
             qc_result = display_layout_qc.run_display_layout_qc(
                 qc_profile=spec.layout_qc_profile,
                 layout_sidecar=layout_sidecar,
@@ -978,6 +1032,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "claim_ids": [],
                 "render_context": render_context,
                 "render_result": render_result,
+                **purpose_first_fields,
             }
             figure_catalog["figures"] = _replace_catalog_entry(
                 list(figure_catalog.get("figures") or []),

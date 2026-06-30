@@ -27,7 +27,7 @@ def _check_publication_center_transportability_governance_summary_panel(
         "panel_label",
         "subplot_x_axis_title",
         "metric_marker",
-        "calibration_governance_metric",
+        "governance_decision_cell",
         "legend",
     ]
     if _layout_override_flag(sidecar, "show_figure_title", False):
@@ -59,6 +59,36 @@ def _check_publication_center_transportability_governance_summary_panel(
     )
 
     metrics = sidecar.metrics if isinstance(sidecar.metrics, dict) else {}
+    if metrics.get("figure_purpose") != "transportability_discrimination_plus_recalibration_governance_decision_matrix":
+        issues.append(
+            _issue(
+                rule_id="figure_purpose_missing",
+                message="center transportability governance panel must declare its decision-matrix purpose",
+                target="metrics.figure_purpose",
+                expected="transportability_discrimination_plus_recalibration_governance_decision_matrix",
+                observed=metrics.get("figure_purpose"),
+            )
+        )
+    if metrics.get("rendered_title_policy") != "figure_title_metadata_only_not_drawn_inside_plot":
+        issues.append(
+            _issue(
+                rule_id="rendered_title_policy_missing",
+                message="center transportability governance panel must keep the figure title as metadata only",
+                target="metrics.rendered_title_policy",
+                expected="figure_title_metadata_only_not_drawn_inside_plot",
+                observed=metrics.get("rendered_title_policy"),
+            )
+        )
+    if metrics.get("governance_text_policy") != "compact_matrix_labels_no_long_action_sentences":
+        issues.append(
+            _issue(
+                rule_id="governance_text_policy_missing",
+                message="center transportability governance panel must render compact matrix labels instead of long action sentences",
+                target="metrics.governance_text_policy",
+                expected="compact_matrix_labels_no_long_action_sentences",
+                observed=metrics.get("governance_text_policy"),
+            )
+        )
     centers = metrics.get("centers")
     if not isinstance(centers, list) or len(centers) < 2:
         issues.append(
@@ -127,16 +157,16 @@ def _check_publication_center_transportability_governance_summary_panel(
             )
         )
 
-    governance_markers = _boxes_of_type(sidecar.layout_boxes, "calibration_governance_metric")
-    expected_governance_markers = len(centers) * 2
+    governance_markers = _boxes_of_type(sidecar.layout_boxes, "governance_decision_cell")
+    expected_governance_markers = len(centers) * 3
     if len(governance_markers) < expected_governance_markers:
         issues.append(
             _issue(
-                rule_id="calibration_governance_metric_count_incomplete",
-                message="center transportability governance qc requires slope and O/E markers for each center",
-                target="layout_boxes.calibration_governance_metric",
+                rule_id="governance_decision_cell_count_incomplete",
+                message="center transportability governance qc requires cohort, calibration, and owner-action cells for each center",
+                target="layout_boxes.governance_decision_cell",
                 observed={
-                    "calibration_governance_metric_count": len(governance_markers),
+                    "governance_decision_cell_count": len(governance_markers),
                     "expected_count": expected_governance_markers,
                 },
             )
@@ -146,8 +176,8 @@ def _check_publication_center_transportability_governance_summary_panel(
             continue
         issues.append(
             _issue(
-                rule_id="calibration_governance_metric_outside_panel",
-                message="calibration governance markers must stay within the governance panel",
+                rule_id="governance_decision_cell_outside_panel",
+                message="governance decision cells must stay within the governance panel",
                 target=f"layout_boxes.{marker_box.box_id}",
                 box_refs=(marker_box.box_id, governance_panel.box_id),
             )

@@ -1148,8 +1148,34 @@ default_renderer_metrics <- function(template_id, display_payload, panel_box) {
     renderer_family = "r_ggplot2",
     renderer_role = "default",
     template_id = template_id,
+    source_renderer = sprintf("MAS/DisplayPack::%s", template_id),
+    figure_purpose = figure_purpose_for_template(template_id),
+    rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
     data_fields = sort(names(display_payload)),
     panel_box_present = !is.null(panel_box)
+  )
+}
+
+figure_purpose_for_template <- function(template_id) {
+  switch(
+    template_id,
+    roc_curve_binary = "binary_discrimination_curve_with_reference_line",
+    time_dependent_roc_horizon = "time_to_event_discrimination_curve_at_fixed_horizon",
+    time_to_event_discrimination_calibration_panel = "time_to_event_discrimination_plus_calibration_summary",
+    calibration_curve_binary = "observed_vs_predicted_calibration_assessment",
+    pr_curve_binary = "precision_recall_tradeoff_for_imbalanced_binary_outcome",
+    decision_curve_binary = "clinical_net_benefit_threshold_utility_curve",
+    time_to_event_decision_curve = "time_to_event_net_benefit_plus_treated_fraction_summary",
+    risk_layering_monotonic_bars = "risk_stratification_monotonicity_and_event_gradient",
+    time_to_event_risk_group_summary = "time_to_event_risk_group_gradient_plus_event_counts",
+    kaplan_meier_grouped = "grouped_time_to_event_survival_curve",
+    cumulative_incidence_grouped = "grouped_cumulative_incidence_curve",
+    time_to_event_multihorizon_calibration_panel = "multi_horizon_time_to_event_calibration_assessment",
+    center_transportability_governance_summary_panel = "transportability_discrimination_plus_recalibration_governance_decision_matrix",
+    phenotype_gap_structure_figure = "phenotype_composition_plus_treatment_gap_matrix",
+    site_held_out_stability_figure = "phenotype_transition_stability_plus_site_held_out_support",
+    treatment_gap_alignment_figure = "guideline_linked_treatment_gap_burden_small_multiples",
+    sprintf("purpose_first_%s", template_id)
   )
 }
 

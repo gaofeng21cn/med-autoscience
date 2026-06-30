@@ -85,6 +85,20 @@ _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {
         "default_title": "Baseline characteristics",
         "default_caption": "Baseline characteristics across prespecified groups.",
     },
+    "table2_phenotype_gap_summary": {
+        "stem": "phenotype_gap_summary",
+        "needs_csv": True,
+        "default_title": "Phenotype-level clinical characteristics and treatment-gap rates",
+        "default_caption": (
+            "Phenotype-level clinical characteristics and treatment-gap rates rendered as a compact measure-value table."
+        ),
+    },
+    "table3_transition_site_support_summary": {
+        "stem": "transition_site_support_summary",
+        "needs_csv": True,
+        "default_title": "Transition stability and site-held-out support summary",
+        "default_caption": "Transition and held-out-site support rendered as a compact measure-value table.",
+    },
 }
 
 _REPO_ROOT = default_display_pack_repo_root()

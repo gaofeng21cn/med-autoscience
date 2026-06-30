@@ -31,7 +31,7 @@ def test_current_template_descriptors_have_no_python_evidence_inventory() -> Non
         if payload["renderer_family"] == "python"
     ]
 
-    assert len(evidence_templates) == 35
+    assert len(evidence_templates) == 38
     assert python_evidence == []
     assert {payload["renderer_family"] for payload in evidence_templates} == {"r_ggplot2"}
     assert all(payload["execution_mode"] == "subprocess" for payload in evidence_templates)
@@ -56,7 +56,7 @@ def test_current_runtime_surfaces_have_no_python_evidence_inventory() -> None:
     evidence_specs = display_registry.list_evidence_figure_specs()
     illustration_specs = display_registry.list_illustration_shell_specs()
 
-    assert len(evidence_specs) == 35
+    assert len(evidence_specs) == 38
     assert [item.template_id for item in evidence_specs if item.renderer_family == "python"] == []
     assert {
         item.shell_id: item.renderer_family
@@ -84,8 +84,8 @@ def test_current_catalogs_do_not_maintain_retired_python_evidence_id_lists() -> 
     assert "retired_python_evidence_template_ids" not in migration_ledger
     assert "retired_python_evidence_template_count" not in migration_ledger["summary"]
     assert migration_ledger["summary"]["python_evidence_retained_count"] == 0
-    assert migration_ledger["summary"]["current_evidence_template_count"] == 35
-    assert migration_ledger["summary"]["retired_alias_template_count"] == 42
+    assert migration_ledger["summary"]["current_evidence_template_count"] == 38
+    assert migration_ledger["summary"]["retired_alias_template_count"] == 40
     assert canonical_catalog["default_surface_policy"][
         "python_evidence_figures_not_retained_without_advantage_proof"
     ] is True

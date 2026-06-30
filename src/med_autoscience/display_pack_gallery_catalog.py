@@ -163,7 +163,6 @@ def table_preview_gallery_records(records: list[TemplateRecord]) -> list[Templat
         record
         for record in non_visual_canonical_records(records)
         if record.kind == "table_shell"
-        and record.template_id == "table1_baseline_characteristics"
     ]
 
 

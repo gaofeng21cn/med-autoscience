@@ -621,6 +621,53 @@
       ]
     },
     {
+      "family_id": "phenotype_gap_structure_figure",
+      "category": "Population and Baseline",
+      "title": "DPCC Phenotype Gap Structure",
+      "figure_archetype": "phenotype_composition_plus_treatment_gap_heatmap",
+      "canonical_template_id": "phenotype_gap_structure_figure",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "DPCC phenotype-gap structure is a paper-specific evidence intent: cohort composition plus treatment-gap matrix. It must route through a purpose-first R template rather than generic stacked bars or Python legacy figures.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "composition_profile",
+        "annotated_heatmap"
+      ]
+    },
+    {
+      "family_id": "site_held_out_stability_figure",
+      "category": "Longitudinal and Patient Trajectory",
+      "title": "DPCC Transition and Site Support",
+      "figure_archetype": "phenotype_transition_heatmap_plus_site_support_bars",
+      "canonical_template_id": "site_held_out_stability_figure",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "DPCC transition/site support answers stability and held-out-site support, so the current template uses a transition heatmap with a real support panel instead of a decorative alluvial/Sankey fallback.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "alluvial_transition",
+        "composition_profile"
+      ]
+    },
+    {
+      "family_id": "treatment_gap_alignment_figure",
+      "category": "Population and Baseline",
+      "title": "DPCC Treatment Gap Alignment",
+      "figure_archetype": "guideline_linked_treatment_gap_burden_small_multiples",
+      "canonical_template_id": "treatment_gap_alignment_figure",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "DPCC treatment-gap alignment carries four guideline-linked burden comparisons and must render four real burden panels, not an axis-only text card.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "composition_profile"
+      ]
+    },
+    {
       "family_id": "correlation_scatter",
       "category": "Effect Estimate",
       "title": "Correlation Scatter",
@@ -698,12 +745,40 @@
       "aliases": [
         "performance_summary_table_generic",
         "grouped_risk_event_summary_table",
-        "table2_phenotype_gap_summary",
         "table2_time_to_event_performance_summary",
-        "table3_clinical_interpretation_summary",
-        "table3_transition_site_support_summary"
+        "table3_clinical_interpretation_summary"
       ],
       "migration_reason": "Table numbering and downstream table summaries are paper-local surfaces; the default pack exposes one table-shell seed.",
+      "analysis_responsibility": "table_shell",
+      "analysis_input_state": "validated_table_values",
+      "medical_family_ids": [
+        "table_one_baseline"
+      ]
+    },
+    {
+      "family_id": "table2_phenotype_gap_summary",
+      "category": "Publication Shells and Tables",
+      "title": "DPCC Phenotype Gap Summary",
+      "figure_archetype": "compact_phenotype_measure_value_table_shell",
+      "canonical_template_id": "table2_phenotype_gap_summary",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "DPCC phenotype summary is a main-text table shell with a paper-local compact layout contract; it is current rather than a baseline-table alias.",
+      "analysis_responsibility": "table_shell",
+      "analysis_input_state": "validated_table_values",
+      "medical_family_ids": [
+        "table_one_baseline"
+      ]
+    },
+    {
+      "family_id": "table3_transition_site_support_summary",
+      "category": "Publication Shells and Tables",
+      "title": "DPCC Transition and Site Support Summary",
+      "figure_archetype": "compact_transition_support_measure_value_table_shell",
+      "canonical_template_id": "table3_transition_site_support_summary",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "DPCC transition and site support summary is a main-text support table shell with a compact layout contract; it is current rather than a baseline-table alias.",
       "analysis_responsibility": "table_shell",
       "analysis_input_state": "validated_table_values",
       "medical_family_ids": [

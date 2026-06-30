@@ -318,6 +318,8 @@ build_ggconsort_plot <- function(payload) {
   show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
   steps <- required_list(payload, "steps")
   exclusions <- payload$exclusions %||% list()
+  endpoint_inventory <- payload$endpoint_inventory %||% list()
+  design_panels <- payload$design_panels %||% list()
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
   if (length(unique(step_ids)) != length(step_ids)) {
     stop("cohort_flow_figure step ids must be unique after ggconsort normalization")
@@ -329,6 +331,10 @@ build_ggconsort_plot <- function(payload) {
   node_height <- 10
   exclusion_width <- 26
   exclusion_height <- 8
+  plot_y_min <- min(52, min(step_df$y - node_height / 2) - 5)
+  if (nrow(exclusion_df) > 0) {
+    plot_y_min <- min(plot_y_min, min(exclusion_df$y - exclusion_height / 2) - 5)
+  }
   connector_colour <- style_color(payload, "flow_connector", "#7B8794")
   node_fill <- style_color(payload, "flow_main_fill", "#FFFFFF")
   node_edge <- style_color(payload, "flow_main_edge", "#7B8794")
@@ -338,7 +344,7 @@ build_ggconsort_plot <- function(payload) {
 
   plot <- ggplot2::ggplot() +
     ggplot2::theme_void() +
-    ggplot2::coord_cartesian(xlim = c(-18, 78), ylim = c(52, 101), clip = "off")
+    ggplot2::coord_cartesian(xlim = c(-18, 78), ylim = c(plot_y_min, 101), clip = "off")
   if (nrow(step_df) > 1) {
     for (index in seq_len(nrow(step_df) - 1)) {
       plot <- plot +
@@ -416,8 +422,6 @@ build_ggconsort_plot <- function(payload) {
         lineheight = 0.88
       )
   }
-  endpoint_inventory <- payload$endpoint_inventory %||% list()
-  design_panels <- payload$design_panels %||% list()
   if (length(endpoint_inventory) > 0) {
     endpoint <- endpoint_inventory[[1]]
     plot <- add_context_card(
@@ -457,7 +461,14 @@ build_ggconsort_plot <- function(payload) {
 }
 
 sidecar_box <- function(box_id, box_type, x0, y0, x1, y1) {
-  list(box_id = box_id, box_type = box_type, x0 = x0, y0 = y0, x1 = x1, y1 = y1)
+  list(
+    box_id = box_id,
+    box_type = box_type,
+    x0 = min(as.numeric(x0), as.numeric(x1)),
+    y0 = min(as.numeric(y0), as.numeric(y1)),
+    x1 = max(as.numeric(x0), as.numeric(x1)),
+    y1 = max(as.numeric(y0), as.numeric(y1))
+  )
 }
 
 build_layout_sidecar <- function(payload, dependency_environment) {
@@ -466,10 +477,20 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
   steps <- required_list(payload, "steps")
   exclusions <- payload$exclusions %||% list()
+  endpoint_inventory <- payload$endpoint_inventory %||% list()
+  design_panels <- payload$design_panels %||% list()
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
-  node_height <- 0.19
-  y_gap <- if (length(steps) > 1) min(0.19, max(0.12, 0.68 / (length(steps) - 1))) else 0
-  y_top <- 0.74
+  stack_top <- 0.835
+  stack_bottom <- 0.08
+  stack_span <- stack_top - stack_bottom
+  step_count <- length(steps)
+  node_height <- min(0.16, stack_span / max(1, step_count + 0.35 * max(0, step_count - 1)))
+  node_height <- max(0.075, node_height)
+  node_gap <- max(0.024, node_height * 0.35)
+  y_gap <- if (step_count > 1) node_height + node_gap else 0
+  y_top <- stack_top - node_height / 2
+  flow_panel_y0 <- max(0.0, y_top - max(0, step_count - 1) * y_gap - node_height / 2 - 0.02)
+  flow_panel_y1 <- min(1.0, y_top + node_height / 2 + 0.02)
   layout_boxes <- list()
   if (show_figure_title) {
     layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.89, 0.95, 0.96))
@@ -540,8 +561,6 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       )
     }
   }
-  endpoint_inventory <- payload$endpoint_inventory %||% list()
-  design_panels <- payload$design_panels %||% list()
   if (length(endpoint_inventory) > 0) {
     layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
       "participant_endpoint_summary",
@@ -584,14 +603,16 @@ build_layout_sidecar <- function(payload, dependency_environment) {
     template_id = "cohort_flow_figure",
     device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
     layout_boxes = layout_boxes,
-    panel_boxes = list(sidecar_box("participant_flow_main", "subfigure_panel", 0.06, 0.18, 0.98, 0.84)),
+    panel_boxes = list(sidecar_box("participant_flow_main", "subfigure_panel", 0.06, flow_panel_y0, 0.98, flow_panel_y1)),
     guide_boxes = guide_boxes,
     metrics = list(
       layout_mode = "participant_flow",
       reporting_flow_kind = "consort_strobe_participant_flow",
       dependency_profile_ref = "r_ggplot2_ggconsort_reporting_flow_v1",
       mature_dependency_intent = "ggconsort_capable_reporting_flow",
-      generated_fallback_renderer = "python_participant_flow",
+      source_renderer = "MAS/ReportingFlow::cohort_flow_figure",
+      figure_purpose = "participant_accounting_and_strobe_consort_flow",
+      rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
       uses_ggconsort = TRUE,
       ggconsort_capable_prepared_environment_required = TRUE,
       renderer_family = "r_ggplot2",

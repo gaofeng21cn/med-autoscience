@@ -44,9 +44,9 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     assert {item.template_id for item in evidence_specs} == _ids_for_kind("evidence_figure")
     assert {item.shell_id for item in illustration_specs} == _ids_for_kind("illustration_shell")
     assert {item.shell_id for item in table_specs} == _ids_for_kind("table_shell")
-    assert len(evidence_specs) == 35
+    assert len(evidence_specs) == 38
     assert len(illustration_specs) == 2
-    assert len(table_specs) == 1
+    assert len(table_specs) == 3
 
 
 def test_all_current_evidence_templates_are_r_ggplot2_subprocess() -> None:
@@ -188,6 +188,8 @@ def test_illustration_shells_expose_reporting_flow_and_design_renderers(
     ("table_id", "expected_input_schema_id"),
     [
         ("table1_baseline_characteristics", "baseline_characteristics_schema_v1"),
+        ("table2_phenotype_gap_summary", "phenotype_gap_summary_schema_v1"),
+        ("table3_transition_site_support_summary", "transition_site_support_summary_schema_v1"),
     ],
 )
 def test_table_shells_are_registered(table_id: str, expected_input_schema_id: str) -> None:
@@ -196,6 +198,7 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
     assert spec.shell_id == _full_id(table_id)
     assert spec.input_schema_id == expected_input_schema_id
     assert spec.required_exports
+    assert expected_input_schema_id in TABLE_INPUT_FILENAME_BY_SCHEMA_ID
 
 
 @pytest.mark.parametrize(
@@ -229,7 +232,11 @@ def test_live_publication_table_shells_are_available_for_publication_surface_rea
     assert {
         item.shell_id
         for item in display_registry.list_table_shell_specs()
-    } == {_full_id("table1_baseline_characteristics")}
+    } == {
+        _full_id("table1_baseline_characteristics"),
+        _full_id("table2_phenotype_gap_summary"),
+        _full_id("table3_transition_site_support_summary"),
+    }
 
 
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:
