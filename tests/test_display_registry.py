@@ -44,7 +44,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     assert {item.template_id for item in evidence_specs} == _ids_for_kind("evidence_figure")
     assert {item.shell_id for item in illustration_specs} == _ids_for_kind("illustration_shell")
     assert {item.shell_id for item in table_specs} == _ids_for_kind("table_shell")
-    assert len(evidence_specs) == 34
+    assert len(evidence_specs) == 35
     assert len(illustration_specs) == 2
     assert len(table_specs) == 1
 
@@ -96,6 +96,7 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
         ("shap_summary_beeswarm", "shap_summary_inputs_v1", "publication_shap_summary"),
         ("shap_dependence_panel", "shap_dependence_panel_inputs_v1", "publication_shap_dependence_panel"),
         ("generalizability_subgroup_composite_panel", "generalizability_subgroup_composite_inputs_v1", "publication_generalizability_subgroup_composite_panel"),
+        ("center_transportability_governance_summary_panel", "center_transportability_governance_summary_panel_inputs_v1", "publication_center_transportability_governance_summary_panel"),
         ("decision_curve_binary", "binary_prediction_curve_inputs_v1", "publication_evidence_curve"),
         ("risk_layering_monotonic_bars", "risk_layering_monotonic_inputs_v1", "publication_risk_layering_bars"),
     ],

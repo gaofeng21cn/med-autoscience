@@ -20,6 +20,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "genomic_alteration_consequence_panel_inputs_v1": "genomic_alteration_consequence_panel_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
+    "center_transportability_governance_summary_panel_inputs_v1": "center_transportability_governance_summary_panel_inputs.json",
     "distribution_violin_box_inputs_v1": "distribution_violin_box_inputs.json",
     "composition_stacked_bar_inputs_v1": "composition_stacked_bar_inputs.json",
     "correlation_scatter_inputs_v1": "correlation_scatter_inputs.json",

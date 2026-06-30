@@ -74,7 +74,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 34
+    assert len(r_templates) == 35
 
 
 def test_cohort_flow_materialization_manifest_uses_pack_local_ggconsort_subprocess() -> None:
@@ -87,7 +87,7 @@ def test_cohort_flow_materialization_manifest_uses_pack_local_ggconsort_subproce
     assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
 
 
-def test_cohort_flow_checked_in_ggconsort_renderer_asset_does_not_install_packages() -> None:
+def test_cohort_flow_checked_in_renderer_asset_uses_prepared_dependency_gate_without_installs() -> None:
     render_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "render.R"
     source = render_path.read_text(encoding="utf-8")
 
@@ -99,15 +99,21 @@ def test_cohort_flow_checked_in_ggconsort_renderer_asset_does_not_install_packag
     assert "renv::install" not in source
     assert "remotes::install" not in source
     assert "BiocManager::install" not in source
-    for call in (
+    for contract in (
+        "require_prepared_dependency_environment",
+        "require_ggconsort()",
+        "cohort_step_frame",
+        "cohort_exclusion_frame",
+        'ggplot2::annotate(\n      "rect"',
+        "grid::arrow",
+    ):
+        assert contract in source
+    for retired_blank_prone_call in (
         "ggconsort::cohort_start",
-        "ggconsort::cohort_label",
-        "ggconsort::consort_box_add",
-        "ggconsort::consort_arrow_add",
         "ggconsort::geom_consort",
         "ggconsort::theme_consort",
     ):
-        assert call in source
+        assert retired_blank_prone_call not in source
 
 
 def test_alluvial_transition_checked_in_renderer_uses_ggalluvial_without_fallback_or_installs() -> None:
@@ -183,9 +189,9 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
 
     records_by_template = {item["template_id"]: item for item in records}
     assert sorted(records_by_template) == sorted(manifest_ids)
-    assert ledger["summary"]["current_template_count"] == 37
-    assert ledger["summary"]["current_evidence_template_count"] == 34
-    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 34
+    assert ledger["summary"]["current_template_count"] == 38
+    assert ledger["summary"]["current_evidence_template_count"] == 35
+    assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 35
     assert ledger["summary"]["retired_alias_template_count"] == 42
     assert ledger["summary"]["python_evidence_retained_count"] == 0
     assert "retired_python_evidence_template_count" not in ledger["summary"]
@@ -198,6 +204,7 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert records_by_template["time_dependent_roc_horizon"]["migration_status"] == "current_canonical_template"
     assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_canonical_template"
     assert records_by_template["time_to_event_decision_curve"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["center_transportability_governance_summary_panel"]["migration_status"] == "current_canonical_template"
 
 
 def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> None:
@@ -209,7 +216,7 @@ def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> Non
         and item["renderer_family"] == "r_ggplot2"
     ]
 
-    assert len(current_records) == 34
+    assert len(current_records) == 35
     for record in current_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
         render_path = template_root / "render.R"

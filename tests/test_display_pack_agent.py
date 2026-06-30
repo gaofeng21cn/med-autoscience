@@ -113,10 +113,10 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
 
     assert payload["surface_kind"] == "display_pack_agent_capability"
     assert payload["status"] == "available"
-    assert payload["inventory"]["template_count"] == 37
-    assert payload["inventory"]["active_template_count"] == 37
-    assert payload["inventory"]["canonical_family_count"] == 37
-    assert payload["inventory"]["canonical_template_count"] == 37
+    assert payload["inventory"]["template_count"] == 38
+    assert payload["inventory"]["active_template_count"] == 38
+    assert payload["inventory"]["canonical_family_count"] == 38
+    assert payload["inventory"]["canonical_template_count"] == 38
     assert payload["inventory"]["legacy_alias_template_count"] == 0
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
@@ -124,7 +124,7 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
         "computed_in_template": 3,
         "illustration_shell": 1,
         "table_shell": 1,
-        "validated_summary_required": 32,
+        "validated_summary_required": 33,
     }
     assert payload["inventory"]["kind_counts"]["illustration_shell"] == 2
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
@@ -173,7 +173,7 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     assert payload["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert payload["template_surface_policy"]["template_analysis_responsibility_required"] is True
     assert payload["template_surface_policy"]["validated_summary_templates_fail_closed_on_raw_analysis_requests"] is True
-    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 79
+    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 80
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
     assert len(payload["composition_recipe_surface"]["recipes"]) == 6
@@ -257,6 +257,51 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert payload["recommended_template"]["adaptation_required"] is False
     assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_display_pack_figure_plan_requires_purpose_brief_before_template_selection() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={
+            "template_id": "roc_curve_binary",
+        },
+        max_recommendations=3,
+    )
+
+    assert payload["status"] == "blocked"
+    assert payload["recommended_template"] is None
+    assert payload["purpose_first_selection_gate"]["status"] == "blocked"
+    assert payload["purpose_first_selection_gate"]["required_before_template_scoring"] is True
+    assert payload["purpose_first_selection_gate"]["missing_items"] == ["figure_purpose_brief"]
+    assert payload["typed_blocker"]["blocked_reason"] == "purpose_first_figure_brief_required"
+    assert payload["typed_blocker"]["route_hint"] == "provide_figure_purpose_brief_before_template_selection"
+
+
+def test_display_pack_figure_plan_routes_transportability_governance_to_purpose_fit_template() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={
+            "query": "transportability governance calibration slope observed expected center deployment readiness",
+            "analysis_input_state": "validated_display_payload",
+            "preferred_renderer_family": "r_ggplot2",
+        },
+        max_recommendations=5,
+    )
+
+    assert payload["status"] == "display_plan_ready"
+    assert payload["figure_request"]["medical_figure_family_id"] == "external_validation_performance"
+    assert payload["recommended_template"]["template_id"] == "center_transportability_governance_summary_panel"
+    assert "medical_figure_family_route" in payload["recommended_template"]["recommendation_reasons"]
+    gate = payload["purpose_first_selection_gate"]
+    assert gate["status"] == "pass"
+    assert gate["mandatory_visual_evidence_primitives"] == [
+        "center_or_cohort_metric_estimates",
+        "uncertainty_interval_or_reference_line",
+        "center_or_cohort_labels",
+        "calibration_governance_metric_marks",
+    ]
+    assert gate["selected_template_can_render_required_evidence_as_marks"] is True
+    assert "replace_claim_bearing_metrics_with_text_cards" in gate["forbidden_shortcuts"]
 
 
 def test_display_pack_figure_plan_blocks_raw_request_for_summary_only_roc() -> None:

@@ -501,6 +501,7 @@ build_candidate_evidence_plot <- function(template_id, payload) {
     time_to_event_decision_curve = candidate_plot_time_to_event_decision_curve(payload),
     time_to_event_multihorizon_calibration_panel = candidate_plot_multihorizon_calibration(payload),
     time_to_event_risk_group_summary = candidate_plot_time_to_event_risk_group_summary(payload),
+    center_transportability_governance_summary_panel = candidate_plot_center_transportability_governance(payload),
     risk_layering_monotonic_bars = candidate_plot_risk_layering(payload),
     generalizability_subgroup_composite_panel = candidate_plot_generalizability(payload),
     coefficient_path_panel = candidate_plot_coefficient_path(payload),
@@ -527,6 +528,28 @@ candidate_box <- function(box_id, box_type, x0, y0, x1, y1) {
     x1 = as.numeric(x1),
     y1 = as.numeric(y1)
   )
+}
+
+candidate_calibration_governance_metric_boxes <- function(items, panel_box) {
+  if (is.null(items) || length(items) < 1) {
+    return(list())
+  }
+  count <- length(items)
+  metric_rows <- c("slope", "oe_ratio")
+  unlist(lapply(seq_along(items), function(index) {
+    y <- panel_box$y0 + (count - index + 1) * ((panel_box$y1 - panel_box$y0) / (count + 1))
+    lapply(seq_along(metric_rows), function(metric_index) {
+      x <- panel_box$x0 + 0.12 + (metric_index - 1) * 0.17
+      candidate_box(
+        sprintf("calibration_governance_%s_%d", metric_rows[[metric_index]], index),
+        "calibration_governance_metric",
+        x,
+        y - 0.012,
+        min(panel_box$x1 - 0.02, x + 0.024),
+        y + 0.012
+      )
+    })
+  }), recursive = FALSE)
 }
 
 candidate_panel_labels <- function(left_title = "A", right_title = "B") {
@@ -872,6 +895,41 @@ build_candidate_layout_override <- function(template_id, display_payload, base_p
       override$metrics
     )
     return(override)
+  }
+  if (identical(template_id, "center_transportability_governance_summary_panel")) {
+    panels <- candidate_two_panel_boxes("metric_panel", "calibration_governance_panel")
+    centers <- display_payload$centers %|||% list()
+    return(list(
+      layout_boxes = c(
+        candidate_panel_labels(
+          candidate_non_empty(display_payload$metric_panel_title, "Cohort discrimination"),
+          candidate_non_empty(display_payload$summary_panel_title, "Calibration governance")
+        ),
+        list(candidate_box("metric_x_axis_title", "subplot_x_axis_title", 0.18, 0.09, 0.40, 0.13)),
+        candidate_metric_marker_boxes(centers, panels[[1]], "center", 1),
+        candidate_calibration_governance_metric_boxes(centers, panels[[2]])
+      ),
+      panel_boxes = panels,
+      guide_boxes = list(candidate_box("legend", "legend", 0.24, 0.06, 0.76, 0.13)),
+      metrics = candidate_metrics_with_renderer(
+        template_id,
+        display_payload,
+        base_panel_box,
+        list(
+          centers = centers,
+          metric_reference_value = display_payload$metric_reference_value %||% NULL,
+          batch_shift_threshold = display_payload$batch_shift_threshold %||% NULL,
+          slope_acceptance = list(
+            lower = display_payload$slope_acceptance_lower %||% NULL,
+            upper = display_payload$slope_acceptance_upper %||% NULL
+          ),
+          oe_ratio_acceptance = list(
+            lower = display_payload$oe_ratio_acceptance_lower %||% NULL,
+            upper = display_payload$oe_ratio_acceptance_upper %||% NULL
+          )
+        )
+      )
+    ))
   }
   NULL
 }

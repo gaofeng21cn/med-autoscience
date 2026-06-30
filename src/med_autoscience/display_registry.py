@@ -37,6 +37,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "forest_effect_main",
         "coefficient_path_panel",
         "generalizability_subgroup_composite_panel",
+        "center_transportability_governance_summary_panel",
         "distribution_violin_box",
         "composition_stacked_bar",
         "correlation_scatter",

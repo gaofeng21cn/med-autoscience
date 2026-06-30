@@ -9,29 +9,29 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 | 指标 | 数量 |
 | --- | ---: |
-| Gallery evidence figures | 34 |
+| Gallery evidence figures | 35 |
 | Gallery reporting flow figures | 1 |
 | Gallery design figures | 1 |
 | Gallery table preview figures | 1 |
-| Gallery visual templates | 37 |
-| Current canonical templates | 37 |
+| Gallery visual templates | 38 |
+| Current canonical templates | 38 |
 | Current non-visual canonical inventory | 3 |
 | Retired alias / duplicate ids | 42 |
-| Migration index entries | 79 |
+| Migration index entries | 80 |
 | Current Python evidence templates | 0 |
 | Page-level composition recipes | 6 |
 | Composition storyboard gallery pages | 6 |
 | LidocaineQ reference coverage audit | 33/33 |
-| LidocaineQ visual parity audit | /Users/gaofeng/workspace/med-autoscience/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md |
-| LidocaineQ parity contact sheet | /Users/gaofeng/workspace/med-autoscience/outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png |
+| LidocaineQ visual parity audit | /Users/gaofeng/workspace/med-autoscience/.worktrees/dm002-display-pdf-repair-20260630/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md |
+| LidocaineQ parity contact sheet | /Users/gaofeng/workspace/med-autoscience/.worktrees/dm002-display-pdf-repair-20260630/outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png |
 | Render cache hit | 0 |
 | Render cache miss | 0 |
-| Package-only reused assets | 37 |
+| Package-only reused assets | 38 |
 | Render cache untracked | 0 |
 
 `Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
-Package-only 打包复用状态：`synced_from_docs_mirror`；复制资产数：`0`；更新资产数：`2`。代码、payload、style profile 或 dependency receipt 未变化时，Gallery 可从既有 assets 重打包 HTML/PDF/docs；真正的渲染 freshness 仍由 render cache key、layout sidecar、dependency run-context 和真实论文 artifact 审计证明。
+Package-only 打包复用状态：`target_already_complete`；复制资产数：`0`；更新资产数：`0`。代码、payload、style profile 或 dependency receipt 未变化时，Gallery 可从既有 assets 重打包 HTML/PDF/docs；真正的渲染 freshness 仍由 render cache key、layout sidecar、dependency run-context 和真实论文 artifact 审计证明。
 
 ## 渲染器与质量口径
 
@@ -53,14 +53,14 @@ Package-only 打包复用状态：`synced_from_docs_mirror`；复制资产数：
 - package only: `true`
 - blocked evidence templates after current render: `0`
 - blocked gallery visual templates after current render: `0`
-- lower-bound review required: `34`
+- lower-bound review required: `35`
 - gallery lower-bound admission: `gallery_lower_bound_passed_requires_paper_audit`
-- publication quality profile coverage: `37/37` (100%)
+- publication quality profile coverage: `38/38` (100%)
 - publication polish policy: `mas_publication_polish_policy.v1`
 - figure workflow policy: `mas_nature_skills_figure_workflow_lifecycle.v1`
 - composition recipe policy: `mas_medical_figure_composition_recipes.v1`
 - LidocaineQ 33 项参考覆盖完整: `true`
-- LidocaineQ 33 项逐图视觉审计: `/Users/gaofeng/workspace/med-autoscience/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md`
+- LidocaineQ 33 项逐图视觉审计: `/Users/gaofeng/workspace/med-autoscience/.worktrees/dm002-display-pdf-repair-20260630/outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md`
 
 ## LidocaineQ 质量审计面
 
@@ -109,7 +109,7 @@ LidocaineQ 33 项是学习和质量审计输入，不作为 Gallery 永久章节
 | `computed_in_template` | 3 |
 | `illustration_shell` | 1 |
 | `table_shell` | 1 |
-| `validated_summary_required` | 32 |
+| `validated_summary_required` | 33 |
 
 - raw analysis requests fail closed unless the selected template declares `computed_in_template`
 - `validated_summary_required` templates render upstream analysis outputs; they do not fit models, recompute curves, run differential testing, infer SHAP values, or call variants
@@ -174,7 +174,7 @@ LidocaineQ 33 项是学习和质量审计输入，不作为 Gallery 永久章节
 | Clinical Utility | 2 |
 | Data Geometry | 3 |
 | Effect Estimate | 3 |
-| Generalizability | 1 |
+| Generalizability | 2 |
 | Genomic and Omics | 6 |
 | Longitudinal and Patient Trajectory | 1 |
 | Matrix Pattern | 2 |

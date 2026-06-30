@@ -9,21 +9,19 @@
   "force_render": false,
   "package_only": true,
   "asset_reuse": {
-    "status": "synced_from_docs_mirror",
+    "status": "target_already_complete",
     "source_asset_root": "docs/delivery/medical-display/examples/medical_display_gallery_assets",
     "target_asset_root": "outputs/display-pack-gallery/medical_display_gallery_assets",
     "copied_file_count": 0,
-    "updated_file_count": 2,
+    "updated_file_count": 0,
     "missing_source_count": 0,
-    "skipped_existing_count": 184,
-    "extension_counts": {
-      ".json": 2
-    }
+    "skipped_existing_count": 186,
+    "extension_counts": {}
   },
   "render_cache_summary": {
     "cache_hit": 0,
     "cache_miss": 0,
-    "package_only": 37,
+    "package_only": 38,
     "cache_untracked": 0
   },
   "html_path": "outputs/display-pack-gallery/medical_display_gallery.html",
@@ -37,13 +35,13 @@
   "lidocaineq_visual_parity_audit_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md",
   "lidocaineq_visual_parity_audit_json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json",
   "lidocaineq_visual_parity_contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
-  "evidence_gallery_template_count": 34,
+  "evidence_gallery_template_count": 35,
   "reporting_flow_gallery_template_count": 1,
   "design_gallery_template_count": 1,
   "table_preview_gallery_template_count": 1,
-  "visual_gallery_template_count": 37,
+  "visual_gallery_template_count": 38,
   "composition_recipe_gallery_count": 6,
-  "current_template_count": 37,
+  "current_template_count": 38,
   "non_visual_canonical_template_count": 3,
   "retired_alias_template_count": 42,
   "style_profile_id": "student_curated_clinical_publication_v1",
@@ -113,18 +111,18 @@
     "matrix_heatmap_uses_shared_palette_roles": true
   },
   "renderer_policy_completion": {
-    "current_template_count": 37,
-    "current_evidence_template_count": 34,
-    "current_r_ggplot2_evidence_template_count": 34,
+    "current_template_count": 38,
+    "current_evidence_template_count": 35,
+    "current_r_ggplot2_evidence_template_count": 35,
     "current_python_evidence_template_count": 0,
-    "default_visual_template_count": 36,
-    "default_evidence_template_count": 34,
-    "default_r_ggplot2_evidence_template_count": 34,
+    "default_visual_template_count": 37,
+    "default_evidence_template_count": 35,
+    "default_r_ggplot2_evidence_template_count": 35,
     "default_python_evidence_template_count": 0,
     "default_illustration_shell_count": 2,
     "default_surface_r_first_compliant": true,
-    "all_evidence_template_count": 34,
-    "all_r_ggplot2_evidence_template_count": 34,
+    "all_evidence_template_count": 35,
+    "all_r_ggplot2_evidence_template_count": 35,
     "python_evidence_template_count": 0,
     "python_evidence_retained_count": 0,
     "current_inventory_r_first_compliant": true,
@@ -135,7 +133,7 @@
     "computed_in_template": 3,
     "illustration_shell": 1,
     "table_shell": 1,
-    "validated_summary_required": 32
+    "validated_summary_required": 33
   },
   "lidocaineq_reference_coverage": {
     "schema_version": 1,
@@ -1070,18 +1068,18 @@
   "quality_summary": {
     "overall_status": "not_publication_ready",
     "publication_ready_claim_authorized": false,
-    "visual_template_count": 34,
+    "visual_template_count": 35,
     "design_visual_template_count": 1,
     "table_preview_visual_template_count": 1,
-    "total_gallery_visual_template_count": 37,
+    "total_gallery_visual_template_count": 38,
     "non_visual_template_count": 3,
     "blocked_template_count": 0,
-    "lower_bound_review_required_count": 34,
+    "lower_bound_review_required_count": 35,
     "gallery_lower_bound_admission_status": "gallery_lower_bound_passed_requires_paper_audit",
     "publication_quality_profile_coverage": {
       "schema_version": 1,
-      "current_template_count": 37,
-      "complete_profile_template_count": 37,
+      "current_template_count": 38,
+      "complete_profile_template_count": 38,
       "complete_profile_percent": 100,
       "medical_family_missing_template_ids": [],
       "starter_recipe_missing_template_ids": [],
@@ -1843,9 +1841,9 @@
             "panel_role": "threshold_or_complexity_governance",
             "panel_kind": "supporting",
             "evidence_primitive_family_id": "subgroup_interaction_forest",
-            "template_id": "forest_effect_main",
-            "canonical_family_title": "Forest Plot",
-            "canonical_family_category": "Effect Estimate",
+            "template_id": "center_transportability_governance_summary_panel",
+            "canonical_family_title": "Center Transportability Governance Summary",
+            "canonical_family_category": "Generalizability",
             "uses_gallery_proxy": true,
             "visual_status": "preview_template"
           }
@@ -1854,7 +1852,7 @@
           "generalizability_subgroup_composite_panel",
           "shap_summary_beeswarm",
           "shap_waterfall_local_explanation_panel",
-          "forest_effect_main"
+          "center_transportability_governance_summary_panel"
         ],
         "quality_floor_only": true,
         "not_publication_ready": true
@@ -2295,6 +2293,20 @@
       "preview_image_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.png",
       "pdf_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.pdf",
       "layout_ref": "medical_display_gallery_assets/celltype_marker_dotplot_panel.layout.json"
+    },
+    {
+      "template_id": "center_transportability_governance_summary_panel",
+      "canonical_family_id": "center_transportability_governance_summary_panel",
+      "canonical_family_title": "Center Transportability Governance Summary",
+      "canonical_family_category": "Generalizability",
+      "renderer_family": "r_ggplot2",
+      "analysis_responsibility": "validated_summary_required",
+      "medical_family_ids": [
+        "external_validation_performance"
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.png",
+      "pdf_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.pdf",
+      "layout_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.layout.json"
     },
     {
       "template_id": "cnv_recurrence_summary_panel",

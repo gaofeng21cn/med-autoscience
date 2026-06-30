@@ -20,6 +20,7 @@ from .validation_omics_genomic import _validate_genomic_alteration_consequence_p
 from .validation_omics_heatmaps import _validate_confusion_matrix_heatmap_binary_display_payload, _validate_heatmap_display_payload
 from .validation_omics_panels import _validate_celltype_marker_dotplot_panel_display_payload, _validate_cnv_recurrence_summary_panel_display_payload, _validate_pathway_enrichment_dotplot_panel_display_payload
 from .validation_shap_summary import _validate_shap_dependence_panel_display_payload, _validate_shap_summary_display_payload, _validate_shap_waterfall_local_explanation_panel_display_payload
+from .validation_transportability import _validate_center_transportability_governance_summary_panel_display_payload
 
 _EvidenceDisplayValidator = Callable[..., dict[str, Any]]
 
@@ -46,6 +47,7 @@ _VALIDATOR_BY_SCHEMA_ID: dict[str, _EvidenceDisplayValidator] = {
     "shap_dependence_panel_inputs_v1": _validate_shap_dependence_panel_display_payload,
     "shap_waterfall_local_explanation_panel_inputs_v1": _validate_shap_waterfall_local_explanation_panel_display_payload,
     "generalizability_subgroup_composite_inputs_v1": _validate_generalizability_subgroup_composite_display_payload,
+    "center_transportability_governance_summary_panel_inputs_v1": _validate_center_transportability_governance_summary_panel_display_payload,
     "distribution_violin_box_inputs_v1": _validate_distribution_violin_box_display_payload,
     "composition_stacked_bar_inputs_v1": _validate_composition_stacked_bar_display_payload,
     "correlation_scatter_inputs_v1": _validate_correlation_scatter_display_payload,

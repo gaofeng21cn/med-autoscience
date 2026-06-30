@@ -591,6 +591,144 @@ candidate_plot_time_to_event_decision_curve <- function(payload) {
     coord_cartesian(xlim = range(combined$x, na.rm = TRUE))
 }
 
+transportability_verdict_label <- function(value) {
+  normalized <- trimws(as.character(value %||% ""))
+  known <- c(
+    stable = "Stable",
+    recalibration_required = "Recalibration",
+    monitor = "Monitor",
+    blocked = "Blocked"
+  )
+  if (normalized %in% names(known)) {
+    return(known[[normalized]])
+  }
+  candidate_non_empty(normalized, "Review")
+}
+
+candidate_plot_center_transportability_governance <- function(payload) {
+  centers <- payload$centers %|||% list()
+  if (length(centers) < 1) {
+    return(candidate_plot_generalizability(payload))
+  }
+  center_df <- do.call(rbind, lapply(seq_along(centers), function(index) {
+    item <- centers[[index]]
+    data.frame(
+      center_label = candidate_non_empty(item$center_label, sprintf("Center %d", index)),
+      cohort_role = candidate_non_empty(item$cohort_role, ""),
+      support_count = as.integer(candidate_numeric(item$support_count, 0)),
+      event_count = as.integer(candidate_numeric(item$event_count, 0)),
+      metric_estimate = candidate_numeric(item$metric_estimate, 0),
+      metric_lower = candidate_numeric(item$metric_lower, candidate_numeric(item$metric_estimate, 0)),
+      metric_upper = candidate_numeric(item$metric_upper, candidate_numeric(item$metric_estimate, 0)),
+      max_shift = candidate_numeric(item$max_shift, 0),
+      slope = candidate_numeric(item$slope, 1),
+      oe_ratio = candidate_numeric(item$oe_ratio, 1),
+      verdict = transportability_verdict_label(item$verdict),
+      action = candidate_non_empty(item$action, "Review before deployment"),
+      stringsAsFactors = FALSE
+    )
+  }))
+  center_df$center_label <- factor(center_df$center_label, levels = rev(center_df$center_label))
+  palette <- candidate_palette(payload)
+  metric_plot <- ggplot(center_df, aes(x = metric_estimate, y = center_label, colour = verdict)) +
+    geom_vline(
+      xintercept = candidate_numeric(payload$metric_reference_value, median(center_df$metric_estimate)),
+      colour = palette$reference,
+      linetype = "dashed",
+      linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.55
+    ) +
+    geom_errorbarh(aes(xmin = metric_lower, xmax = metric_upper), height = 0.13, linewidth = 0.42, alpha = 0.72) +
+    geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.62) +
+    scale_color_manual(values = style_series_palette(payload, unique(center_df$verdict)), guide = publication_legend_guides(payload, center_df$verdict)) +
+    scale_x_continuous(limits = c(0.70, 0.79), breaks = c(0.70, 0.73, 0.76, 0.79), labels = c("0.70", "0.73", "0.76", "0.79")) +
+    labs(
+      title = NULL,
+      x = candidate_non_empty(payload$metric_x_label, "C-index"),
+      y = ""
+    ) +
+    candidate_theme(payload) +
+    theme(
+      legend.position = "bottom",
+      panel.grid.major.y = element_line(colour = palette$grid, linewidth = 0.18)
+    )
+
+  calibration_df <- rbind(
+    data.frame(
+      center_label = center_df$center_label,
+      verdict = center_df$verdict,
+      metric = "Calibration slope",
+      value = center_df$slope,
+      acceptance_lower = candidate_numeric(payload$slope_acceptance_lower, 0.90),
+      acceptance_upper = candidate_numeric(payload$slope_acceptance_upper, 1.10),
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      center_label = center_df$center_label,
+      verdict = center_df$verdict,
+      metric = "O/E ratio",
+      value = center_df$oe_ratio,
+      acceptance_lower = candidate_numeric(payload$oe_ratio_acceptance_lower, 0.90),
+      acceptance_upper = candidate_numeric(payload$oe_ratio_acceptance_upper, 1.10),
+      stringsAsFactors = FALSE
+    )
+  )
+  calibration_df$center_label <- factor(calibration_df$center_label, levels = levels(center_df$center_label))
+  calibration_df$metric <- factor(calibration_df$metric, levels = c("Calibration slope", "O/E ratio"))
+  acceptance_df <- unique(calibration_df[, c("metric", "acceptance_lower", "acceptance_upper"), drop = FALSE])
+  reference_df <- data.frame(
+    metric = factor(c("Calibration slope", "O/E ratio"), levels = levels(calibration_df$metric)),
+    reference_value = c(1.0, 1.0),
+    stringsAsFactors = FALSE
+  )
+  calibration_plot <- ggplot(calibration_df, aes(x = value, y = center_label, colour = verdict)) +
+    geom_rect(
+      data = acceptance_df,
+      aes(xmin = acceptance_lower, xmax = acceptance_upper, ymin = -Inf, ymax = Inf),
+      inherit.aes = FALSE,
+      fill = palette$light,
+      colour = NA,
+      alpha = 0.58
+    ) +
+    geom_vline(
+      data = reference_df,
+      aes(xintercept = reference_value),
+      inherit.aes = FALSE,
+      colour = palette$reference,
+      linetype = "dashed",
+      linewidth = style_numeric(style_stroke(payload), "reference_linewidth", 1.0) * 0.55
+    ) +
+    geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.58) +
+    facet_wrap(~metric, ncol = 1, scales = "free_x") +
+    scale_color_manual(values = style_series_palette(payload, unique(center_df$verdict)), guide = "none") +
+    scale_x_continuous(expand = expansion(mult = c(0.08, 0.12))) +
+    labs(
+      title = NULL,
+      x = candidate_non_empty(payload$calibration_x_label, "Calibration metric value"),
+      y = ""
+    ) +
+    candidate_theme(payload) +
+    theme(
+      legend.position = "none",
+      panel.grid.major.y = element_line(colour = palette$grid, linewidth = 0.18),
+      strip.background = element_rect(fill = palette$light, colour = NA),
+      strip.text = element_text(face = "bold", hjust = 0)
+    )
+
+  patchwork::wrap_plots(
+    list(metric_plot, calibration_plot),
+    ncol = 2,
+    widths = c(1.00, 1.18)
+  ) +
+    patchwork::plot_annotation(
+      tag_levels = "A",
+      theme = theme(
+        plot.title = element_blank(),
+        plot.subtitle = element_blank(),
+        plot.margin = margin(8, 10, 8, 10)
+      )
+    )
+}
+
 candidate_plot_multihorizon_calibration <- function(payload) {
   panels <- payload$panels %|||% list()
   if (length(panels) < 1) {

@@ -286,6 +286,21 @@
       ]
     },
     {
+      "family_id": "center_transportability_governance_summary_panel",
+      "category": "Generalizability",
+      "title": "Center Transportability Governance Summary",
+      "figure_archetype": "center_level_transportability_governance_summary_panel",
+      "canonical_template_id": "center_transportability_governance_summary_panel",
+      "default_visible": true,
+      "aliases": [],
+      "migration_reason": "Center-level transportability governance carries a distinct deployment-readiness action claim beyond subgroup performance intervals.",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "external_validation_performance"
+      ]
+    },
+    {
       "family_id": "pca_scatter_grouped",
       "category": "Data Geometry",
       "title": "PCA Scatter",

@@ -24,6 +24,7 @@ def _build_workspace_registry_displays(
             "display_id": "Figure1",
             "display_kind": "figure",
             "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
             "shell_path": "paper/figures/Figure1.shell.json",
         },
         {

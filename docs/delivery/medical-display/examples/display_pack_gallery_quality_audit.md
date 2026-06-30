@@ -11,13 +11,13 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 
 - overall_status: `not_publication_ready`
 - publication_ready_claim_authorized: `false`
-- visual template count: `34`
+- visual template count: `35`
 - reporting flow visual template count: `1`
 - design visual template count: `1`
 - table preview visual template count: `1`
-- total Gallery visual template count: `37`
+- total Gallery visual template count: `38`
 - non-visual inventory count: `3`
-- lower-bound review required: `34`
+- lower-bound review required: `35`
 - blocked evidence templates: `0`
 - blocked gallery visual templates: `0`
 - publication polish policy: `mas_publication_polish_policy.v1`
@@ -185,7 +185,7 @@ Reference learning lessons:
 | Warning | Templates |
 | --- | ---: |
 | `coefficient_path_semantic_fit_review` | 1 |
-| `composition_density_risk` | 4 |
+| `composition_density_risk` | 5 |
 | `illustration_shell_style_review_required` | 2 |
 | `km_risk_table_and_censor_mark_review` | 1 |
 | `legend_or_colorbar_overlap_risk` | 5 |
@@ -201,6 +201,7 @@ Reference learning lessons:
 | `alluvial_transition` | Longitudinal and Patient Trajectory | r_ggplot2 | `lower_bound_review_required` | none |
 | `calibration_curve_binary` | Prediction Performance | r_ggplot2 | `lower_bound_review_required` | none |
 | `celltype_marker_dotplot_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
+| `center_transportability_governance_summary_panel` | Generalizability | r_ggplot2 | `lower_bound_review_required` | none |
 | `cnv_recurrence_summary_panel` | Genomic and Omics | r_ggplot2 | `lower_bound_review_required` | none |
 | `coefficient_path_panel` | Effect Estimate | r_ggplot2 | `lower_bound_review_required` | none |
 | `composition_stacked_bar` | Population and Baseline | r_ggplot2 | `lower_bound_review_required` | none |
@@ -241,7 +242,7 @@ Reference learning lessons:
 | Clinical Utility | `done` | 100% | 2 | 2 | 0 |
 | Data Geometry | `done` | 100% | 3 | 3 | 0 |
 | Effect Estimate | `done` | 100% | 3 | 3 | 0 |
-| Generalizability | `done` | 100% | 1 | 1 | 0 |
+| Generalizability | `done` | 100% | 2 | 2 | 0 |
 | Genomic and Omics | `done` | 100% | 6 | 6 | 0 |
 | Longitudinal and Patient Trajectory | `done` | 100% | 1 | 1 | 0 |
 | Matrix Pattern | `done` | 100% | 2 | 2 | 0 |

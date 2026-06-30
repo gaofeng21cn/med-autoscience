@@ -9,11 +9,14 @@ from med_autoscience.display_pack_dependency_environment import (
     dependency_environment_status,
 )
 
+from med_autoscience.controllers import display_pack_surface_sync
+
 from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
 from .contract_backed_registry import resolve_contract_backed_figure_registry_fields, resolve_contract_backed_layout_sidecar_path
 from .payload_loader import _load_evidence_display_payload
 from .renderers import _load_layout_sidecar_or_raise, _prepare_python_illustration_output_paths, _prepare_python_render_output_paths, _prepare_table_shell_output_paths
 from .submission_graphical_abstract import _materialize_submission_graphical_abstract
+from .validation_tables import _validate_cohort_flow_payload
 
 def _resolve_workspace_path(path_value: object, *, paper_root: Path) -> Path:
     raw_path = str(path_value or "").strip()
@@ -233,7 +236,12 @@ def _render_illustration_shell_by_template_runtime(
     if template_manifest.execution_mode == "subprocess":
         if output_pdf_path is None:
             raise ValueError(f"subprocess illustration shell `{template_id}` requires a PDF export path")
-        display_payload = dict(shell_payload)
+        template_short_id = get_template_short_id(template_id)
+        display_payload = (
+            _validate_cohort_flow_payload(payload_path, dict(shell_payload))
+            if template_short_id == "cohort_flow_figure"
+            else dict(shell_payload)
+        )
         display_payload["render_context"] = render_context
         result = _run_subprocess_renderer(
             runtime_template_root=runtime.template_path.parent,
@@ -633,6 +641,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     f"route: {dependency_finding['route_hint']}; "
                     f"reason: {dependency_environment.get('blocker_reason') or dependency_environment.get('status')}"
                 )
+            preexisting_svg_mtime = output_svg_path.stat().st_mtime if output_svg_path.exists() else None
             render_result = _render_illustration_shell_by_template_runtime(
                 template_id=spec.shell_id,
                 shell_payload=shell_payload,
@@ -658,7 +667,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
             ]
             written_output_paths = [str(output_png_path), str(output_layout_path)]
-            if output_svg_path.exists():
+            svg_was_generated = (
+                output_svg_path.exists()
+                and (preexisting_svg_mtime is None or output_svg_path.stat().st_mtime != preexisting_svg_mtime)
+            )
+            if svg_was_generated:
                 export_paths.insert(0, _paper_relative_path(output_svg_path, paper_root=resolved_paper_root))
                 written_output_paths.append(str(output_svg_path))
             if output_pdf_path is not None:
@@ -930,7 +943,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             qc_result["layout_sidecar_path"] = _paper_relative_path(layout_sidecar_path, paper_root=resolved_paper_root)
             written_files.extend([str(output_png_path), str(output_pdf_path), str(layout_sidecar_path)])
-            if output_svg_path is not None:
+            if output_svg_path is not None and output_svg_path.exists():
                 written_files.append(str(output_svg_path))
             paper_role = str(display_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
             if paper_role not in spec.allowed_paper_roles:
@@ -955,7 +968,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     _paper_relative_path(output_pdf_path, paper_root=resolved_paper_root),
                     *(
                         [_paper_relative_path(output_svg_path, paper_root=resolved_paper_root)]
-                        if output_svg_path is not None
+                        if output_svg_path is not None and output_svg_path.exists()
                         else []
                     ),
                 ],
@@ -1009,14 +1022,22 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         readme_paths.append(str(path))
     dump_json(resolved_paper_root / "figures" / "figure_catalog.json", figure_catalog)
     dump_json(resolved_paper_root / "tables" / "table_catalog.json", table_catalog)
+    display_pack_sync_result = display_pack_surface_sync.sync_display_pack_surface(
+        paper_root=resolved_paper_root,
+    )
     display_pack_lock_path = display_pack_lock.write_display_pack_lock(
         paper_root=resolved_paper_root,
         repo_root=_REPO_ROOT,
     )
+    synced_files = [
+        str((resolved_paper_root.parent / str(path)).resolve())
+        for path in display_pack_sync_result.get("updated_files", [])
+    ]
     written_files.extend(
         [
             str(resolved_paper_root / "figures" / "figure_catalog.json"),
             str(resolved_paper_root / "tables" / "table_catalog.json"),
+            *synced_files,
             str(display_pack_lock_path),
             *readme_paths,
         ]
@@ -1026,6 +1047,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         "paper_root": str(resolved_paper_root),
         "figures_materialized": figures_materialized,
         "tables_materialized": tables_materialized,
+        "display_pack_surface_sync": display_pack_sync_result,
         "pruned_generated_paths": pruned_generated_paths,
         "written_files": written_files,
     }

@@ -14,6 +14,7 @@ from .effects_panels import (
     _check_publication_broader_heterogeneity_summary_panel,
     _check_publication_coefficient_path_panel,
     _check_publication_compact_effect_estimate_panel,
+    _check_publication_center_transportability_governance_summary_panel,
     _check_publication_forest_plot,
     _check_publication_generalizability_subgroup_composite_panel,
 )
@@ -87,6 +88,7 @@ QC_PROFILE_RUNNERS = {
     "publication_landmark_performance_panel": _check_publication_landmark_performance_panel,
     "publication_time_to_event_multihorizon_calibration_panel": _check_publication_time_to_event_multihorizon_calibration_panel,
     "publication_generalizability_subgroup_composite_panel": _check_publication_generalizability_subgroup_composite_panel,
+    "publication_center_transportability_governance_summary_panel": _check_publication_center_transportability_governance_summary_panel,
     "publication_workflow_fact_sheet_panel": _check_publication_workflow_fact_sheet_panel,
     "publication_design_evidence_composite_shell": _check_publication_design_evidence_composite_shell,
     "submission_graphical_abstract": _check_submission_graphical_abstract,

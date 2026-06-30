@@ -99,6 +99,9 @@ def _resolve_illustration_shell_paper_role(
     explicit_paper_role = str((registry_item or {}).get("paper_role") or shell_payload.get("paper_role") or "").strip()
     if explicit_paper_role:
         return explicit_paper_role
+    catalog_id = str((registry_item or {}).get("catalog_id") or shell_payload.get("catalog_id") or "").strip()
+    if catalog_id and _normalize_figure_catalog_id(catalog_id).startswith("F") and "main_text" in allowed_paper_roles:
+        return "main_text"
     story_role = display_story_role_for_requirement_key(requirement_key)
     if story_role == "study_setup" and "supplementary" in allowed_paper_roles:
         return "supplementary"

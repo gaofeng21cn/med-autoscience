@@ -696,6 +696,55 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                         "upper": 0.86,
                     },
                 ],
+                },
+            }
+    if template_short_id == "center_transportability_governance_summary_panel":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.09, "y0": 0.12, "x1": 0.12, "y1": 0.16},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.56, "y0": 0.12, "x1": 0.59, "y1": 0.16},
+                {"box_id": "metric_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.20, "y0": 0.86, "x1": 0.42, "y1": 0.90},
+                {"box_id": "center_china_marker", "box_type": "metric_marker", "x0": 0.30, "y0": 0.32, "x1": 0.33, "y1": 0.36},
+                {"box_id": "center_us_marker", "box_type": "metric_marker", "x0": 0.27, "y0": 0.52, "x1": 0.30, "y1": 0.56},
+                {"box_id": "china_slope_marker", "box_type": "calibration_governance_metric", "x0": 0.64, "y0": 0.35, "x1": 0.66, "y1": 0.38},
+                {"box_id": "china_oe_marker", "box_type": "calibration_governance_metric", "x0": 0.78, "y0": 0.35, "x1": 0.80, "y1": 0.38},
+                {"box_id": "us_slope_marker", "box_type": "calibration_governance_metric", "x0": 0.64, "y0": 0.61, "x1": 0.66, "y1": 0.64},
+                {"box_id": "us_oe_marker", "box_type": "calibration_governance_metric", "x0": 0.78, "y0": 0.61, "x1": 0.80, "y1": 0.64},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_left", "box_type": "metric_panel", "x0": 0.08, "y0": 0.18, "x1": 0.48, "y1": 0.82},
+                {"box_id": "panel_right", "box_type": "calibration_governance_panel", "x0": 0.54, "y0": 0.18, "x1": 0.94, "y1": 0.82},
+            ],
+            "guide_boxes": [
+                {"box_id": "legend", "box_type": "legend", "x0": 0.22, "y0": 0.06, "x1": 0.78, "y1": 0.12},
+            ],
+            "metrics": {
+                "centers": [
+                    {
+                        "center_id": "china",
+                        "center_label": "China validation",
+                        "metric_estimate": 0.74,
+                        "metric_lower": 0.72,
+                        "metric_upper": 0.76,
+                        "slope": 0.96,
+                        "oe_ratio": 1.02,
+                    },
+                    {
+                        "center_id": "us",
+                        "center_label": "US transport",
+                        "metric_estimate": 0.73,
+                        "metric_lower": 0.71,
+                        "metric_upper": 0.75,
+                        "slope": 0.91,
+                        "oe_ratio": 1.08,
+                    },
+                ],
+                "metric_reference_value": 0.74,
+                "batch_shift_threshold": 0.04,
+                "slope_acceptance": {"lower": 0.85, "upper": 1.15},
+                "oe_ratio_acceptance": {"lower": 0.85, "upper": 1.15},
             },
         }
     if template_short_id == "cohort_flow_figure":

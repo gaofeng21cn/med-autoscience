@@ -41,6 +41,9 @@ lidocaine_palette <- function(display_payload, labels) {
 }
 
 lidocaine_publication_theme <- function(display_payload) {
+  render_context <- render_context_from_payload(display_payload)
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
   typography <- style_typography(display_payload)
   stroke <- style_stroke(display_payload)
   grid_spec <- style_grid(display_payload)
@@ -63,17 +66,17 @@ lidocaine_publication_theme <- function(display_payload) {
     base_family = font_family
   ) +
     theme(
-      plot.title = element_text(
+      plot.title = if (show_figure_title) element_text(
         face = "bold",
         colour = text_color,
         size = style_numeric(typography, "title_size", base_size + 1.5),
         margin = margin(b = 6, unit = "pt")
-      ),
-      plot.subtitle = element_text(
+      ) else element_blank(),
+      plot.subtitle = if (show_figure_title) element_text(
         colour = style_color(display_payload, role_name = "subtitle", palette_key = "muted", fallback = "#64748B"),
         size = style_numeric(typography, "subtitle_size", max(7.5, base_size - 1.0)),
         margin = margin(b = 8, unit = "pt")
-      ),
+      ) else element_blank(),
       text = element_text(family = font_family, colour = text_color),
       axis.title = element_text(face = "bold"),
       axis.text = element_text(
@@ -672,7 +675,12 @@ build_lidocaineq_metrics <- function(template_id, display_payload, panel_box) {
     calibration_curve_binary = list(source_renderer = "LidocaineQ/Figure_Template::calibration_curve_binary", series = display_payload$series, points = display_payload$points %||% list()),
     pr_curve_binary = list(source_renderer = "LidocaineQ/Figure_Template::pr_curve_binary", series = display_payload$series, reference_line = display_payload$reference_line),
     decision_curve_binary = list(source_renderer = "LidocaineQ/Figure_Template::decision_curve_binary", series = display_payload$series, reference_line = display_payload$reference_line),
-    time_to_event_decision_curve = list(source_renderer = "LidocaineQ/Figure_Template::time_to_event_decision_curve", series = display_payload$series, reference_line = display_payload$reference_line),
+    time_to_event_decision_curve = list(
+      source_renderer = "LidocaineQ/Figure_Template::time_to_event_decision_curve",
+      series = display_payload$series,
+      reference_line = display_payload$reference_line,
+      treated_fraction_series = display_payload$treated_fraction_series %||% list()
+    ),
     time_to_event_multihorizon_calibration_panel = list(source_renderer = "LidocaineQ/Figure_Template::time_to_event_multihorizon_calibration_panel", panels = display_payload$panels %||% list()),
     risk_layering_monotonic_bars = list(source_renderer = "LidocaineQ/Figure_Template::risk_layering_monotonic_bars", risk_group_summaries = display_payload$risk_group_summaries %||% list(), left_bars = display_payload$left_bars %||% list(), right_bars = display_payload$right_bars %||% list()),
     kaplan_meier_grouped = list(source_renderer = "LidocaineQ/Figure_Template::survival_km", groups = display_payload$groups, risk_table = display_payload$risk_table %||% list()),

@@ -111,6 +111,7 @@ def build_display_surface_workspace(
             "display_id": "Figure1",
             "display_kind": "figure",
             "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
         },
     )
     dump_json(

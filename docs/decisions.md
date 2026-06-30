@@ -778,6 +778,15 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002/DM003 投稿包暴露出图内标题与论文 caption 重复，并且 cohort-flow Figure 1 标题与首个卡片距离过近。把“无图内标题”设为默认，可以减少重复标题、释放竖向空间，并让论文标题层级统一归 submission manuscript / journal caption 管理。
 - 影响：这是 Display Pack 视觉模板默认值与投稿投影排版修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。现有 Python-only 模板仍需按 renderer migration ledger 逐步补 R/ggplot2 覆盖；不能因标题策略修复而声明全 catalog 已由最新版独立画图 skill 重绘。
 
+## 2026-06-30：Display Pack 论文图必须 purpose-first 选图
+
+- 决策：paper-facing Display Pack 生成流程必须先形成 figure-purpose brief，再选模板和布局。brief 至少说明该图要支持的 claim / evidence boundary、核心比较、必须成为图元的指标、哪些内容只能进入 caption/legend，以及不能被图面暗改的 source/statistics refs。
+- 决策：模板选择按 purpose 和 panel semantics 优先，其次才是 renderer family、schema 和版式。若候选模板只能把关键证据画成说明卡片、装饰 panel 或不可审计文字块，必须走 semantic repair / template repair，不能靠缩小文字、挪位置或 PDF 后处理包装成合格图。
+- 决策：`center_transportability_governance_summary_panel` 的右面板从 governance text cards 收敛为 calibration-governance metric panel：每个 center 必须显示 calibration slope 和 O/E ratio 相对 1.0 参考线及 acceptance band；layout QC 要求 `calibration_governance_metric` 图元和对应 numeric metrics，旧 `governance_card` 不能作为合格 Figure 5 右面板。
+- 决策：`materialize-display-surface` 在重绘 display surface 后必须同步 display-pack surface manifests，包括 `figure_semantics_manifest.json`。`figure_catalog.json` 已经是 R/ggplot2 而 semantics manifest 仍标 `python` 的状态是 currentness/manifest drift，不能作为最新版独立画图 skill 已生效的证据。
+- 理由：DM002 投稿 PDF 暴露出“PDF mtime 可刷新，但图面语义和 manifest 不一定一致”的流程缺口；同时 Figure 5 的 B panel 旧设计把 recalibration governance 写成文字卡片，不足以表达 NHANES calibration failure。purpose-first 选图把“这张图要表达什么”提前到模板选择前，并用 renderer/layout/QC/PDF 实物验收闭环阻断同类问题。
+- 影响：这是 Display Pack 出图流程、模板语义和 readback manifest 同步修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker authority、human gate authority、OPL queue 或 provider attempt。PDF 是否最新必须用 `paper.pdf` mtime/CreationDate、figure 顺序、渲染页视觉检查和 renderer/manifest readback 分账验证；`current_package` freshness、focused tests 或 catalog 字段不能单独代替。
+
 ## 2026-06-10：accepted typed closeout 必须压过同一 current-control handoff action
 
 - 决策：当 MAS 从 `owner_callable_adapter_receipt/*.closeout.json` 读到 accepted / blocked typed closeout，并且 closeout 与 OPL current-control handoff 的 action queue 在同一 stage attempt、work-unit fingerprint，或 `action_type + work_unit_id` 上匹配时，handoff projection 必须生成显式 `typed_blocker`，并把同一 handoff action 标记为 `consumed_by_typed_owner_callable_adapter_closeout` 后移出 current action queue。

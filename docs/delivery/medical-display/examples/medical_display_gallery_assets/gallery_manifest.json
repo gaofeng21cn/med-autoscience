@@ -6,14 +6,14 @@
   "render_cache_summary": {
     "cache_hit": 0,
     "cache_miss": 0,
-    "package_only": 37,
+    "package_only": 38,
     "cache_untracked": 0
   },
   "dependency_environment_readback": {
     "schema_version": 1,
-    "tracked_template_count": 36,
+    "tracked_template_count": 37,
     "status_counts": {
-      "gallery_preview": 36
+      "gallery_preview": 37
     },
     "prepared_template_count": 0,
     "prepared_template_ids": [],
@@ -30,6 +30,11 @@
         "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
       },
       "celltype_marker_dotplot_panel": {
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
+      },
+      "center_transportability_governance_summary_panel": {
         "status": "gallery_preview",
         "run_context_ref": "gallery_preview:local_render_only",
         "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
@@ -209,35 +214,35 @@
   "docs_quality_audit_path": "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md",
   "docs_status_path": "docs/delivery/medical-display/examples/display_pack_gallery_status.md",
   "docs_manifest_path": "docs/delivery/medical-display/examples/gallery_manifest.json",
-  "template_count": 37,
-  "active_template_count": 34,
-  "evidence_gallery_template_count": 34,
+  "template_count": 38,
+  "active_template_count": 35,
+  "evidence_gallery_template_count": 35,
   "lidocaineq_reference_template_count": 33,
   "reporting_flow_gallery_template_count": 1,
   "design_gallery_template_count": 1,
   "table_preview_gallery_template_count": 1,
-  "visual_gallery_template_count": 37,
+  "visual_gallery_template_count": 38,
   "composition_recipe_gallery_count": 6,
   "non_visual_canonical_template_count": 3,
-  "current_template_count": 37,
-  "migration_inventory_template_count": 37,
+  "current_template_count": 38,
+  "migration_inventory_template_count": 38,
   "retired_alias_template_count": 42,
   "canonical_family_count": 74,
-  "gallery_template_family_count": 34,
-  "canonical_representative_template_count": 34,
-  "canonical_template_count": 37,
-  "catalog_default_visible_template_count": 37,
-  "default_visible_template_count": 37,
+  "gallery_template_family_count": 35,
+  "canonical_representative_template_count": 35,
+  "canonical_template_count": 38,
+  "catalog_default_visible_template_count": 38,
+  "default_visible_template_count": 38,
   "default_surface_excluded_template_count": 0,
   "legacy_alias_template_count": 0,
-  "rendered_image_template_count": 34,
+  "rendered_image_template_count": 35,
   "rendered_design_image_template_count": 3,
-  "rendered_visual_gallery_template_count": 37,
-  "internal_rendered_image_template_count": 37,
+  "rendered_visual_gallery_template_count": 38,
+  "internal_rendered_image_template_count": 38,
   "renderer_family_counts": {
     "n/a": 1,
     "python": 1,
-    "r_ggplot2": 35
+    "r_ggplot2": 36
   },
   "style_profile_id": "student_curated_clinical_publication_v1",
   "journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
@@ -284,12 +289,12 @@
     "Longitudinal and Patient Trajectory": 1,
     "Prediction Performance": 3,
     "Genomic and Omics": 6,
+    "Generalizability": 2,
     "Effect Estimate": 3,
     "Population and Baseline": 3,
     "Matrix Pattern": 2,
     "Time-to-Event": 5,
     "Clinical Utility": 2,
-    "Generalizability": 1,
     "Model Audit": 1,
     "Data Geometry": 3,
     "Model Explanation": 3,
@@ -346,18 +351,18 @@
     ]
   },
   "renderer_policy_completion": {
-    "current_template_count": 37,
-    "current_evidence_template_count": 34,
-    "current_r_ggplot2_evidence_template_count": 34,
+    "current_template_count": 38,
+    "current_evidence_template_count": 35,
+    "current_r_ggplot2_evidence_template_count": 35,
     "current_python_evidence_template_count": 0,
-    "default_visual_template_count": 36,
-    "default_evidence_template_count": 34,
-    "default_r_ggplot2_evidence_template_count": 34,
+    "default_visual_template_count": 37,
+    "default_evidence_template_count": 35,
+    "default_r_ggplot2_evidence_template_count": 35,
     "default_python_evidence_template_count": 0,
     "default_illustration_shell_count": 2,
     "default_surface_r_first_compliant": true,
-    "all_evidence_template_count": 34,
-    "all_r_ggplot2_evidence_template_count": 34,
+    "all_evidence_template_count": 35,
+    "all_r_ggplot2_evidence_template_count": 35,
     "python_evidence_template_count": 0,
     "python_evidence_retained_count": 0,
     "current_inventory_r_first_compliant": true,
@@ -368,7 +373,7 @@
     "computed_in_template": 3,
     "illustration_shell": 1,
     "table_shell": 1,
-    "validated_summary_required": 32
+    "validated_summary_required": 33
   },
   "analysis_responsibility_policy": {
     "computed_in_template": "Template renderer computes a bounded analysis workflow from declared raw input.",
@@ -379,8 +384,8 @@
   },
   "publication_quality_profile_coverage": {
     "schema_version": 1,
-    "current_template_count": 37,
-    "complete_profile_template_count": 37,
+    "current_template_count": 38,
+    "complete_profile_template_count": 38,
     "complete_profile_percent": 100,
     "medical_family_missing_template_ids": [],
     "starter_recipe_missing_template_ids": [],
@@ -390,8 +395,8 @@
   },
   "layout_sidecar_readback": {
     "schema_version": 1,
-    "rendered_layout_sidecar_count": 34,
-    "renderer_metrics_template_count": 34,
+    "rendered_layout_sidecar_count": 35,
+    "renderer_metrics_template_count": 35,
     "expected_renderer_family": "r_ggplot2",
     "expected_renderer_role": "default",
     "required_renderer_metric_fields": [
@@ -404,16 +409,17 @@
     ],
     "missing_renderer_metrics": [],
     "unexpected_renderer_metrics": [],
-    "style_profile_template_count": 34,
+    "style_profile_template_count": 35,
     "expected_style_profile_id": "student_curated_clinical_publication_v1",
     "expected_journal_palette_ref": "lidocaineq_figure_template_palette_20260621",
     "missing_style_profile": [],
     "mismatched_style_profile": [],
-    "native_ratio_preview_template_count": 34,
+    "native_ratio_preview_template_count": 35,
     "native_ratio_previews": [
       "alluvial_transition",
       "calibration_curve_binary",
       "celltype_marker_dotplot_panel",
+      "center_transportability_governance_summary_panel",
       "cnv_recurrence_summary_panel",
       "coefficient_path_panel",
       "composition_stacked_bar",
@@ -1613,9 +1619,9 @@
             "panel_role": "threshold_or_complexity_governance",
             "panel_kind": "supporting",
             "evidence_primitive_family_id": "subgroup_interaction_forest",
-            "template_id": "forest_effect_main",
-            "canonical_family_title": "Forest Plot",
-            "canonical_family_category": "Effect Estimate",
+            "template_id": "center_transportability_governance_summary_panel",
+            "canonical_family_title": "Center Transportability Governance Summary",
+            "canonical_family_category": "Generalizability",
             "uses_gallery_proxy": true,
             "visual_status": "preview_template"
           }
@@ -1624,7 +1630,7 @@
           "generalizability_subgroup_composite_panel",
           "shap_summary_beeswarm",
           "shap_waterfall_local_explanation_panel",
-          "forest_effect_main"
+          "center_transportability_governance_summary_panel"
         ],
         "quality_floor_only": true,
         "not_publication_ready": true
@@ -3085,20 +3091,20 @@
     "overall_status": "not_publication_ready",
     "publication_ready_claim_authorized": false,
     "quality_surface": "gallery_lower_bound_visual_audit",
-    "visual_template_count": 34,
+    "visual_template_count": 35,
     "reporting_flow_visual_template_count": 1,
     "design_visual_template_count": 1,
     "table_preview_visual_template_count": 1,
-    "total_gallery_visual_template_count": 37,
+    "total_gallery_visual_template_count": 38,
     "non_visual_template_count": 3,
-    "lower_bound_review_required_count": 34,
+    "lower_bound_review_required_count": 35,
     "blocked_template_count": 0,
     "gallery_visual_blocked_template_count": 0,
     "gallery_lower_bound_admission_status": "gallery_lower_bound_passed_requires_paper_audit",
     "publication_quality_profile_coverage": {
       "schema_version": 1,
-      "current_template_count": 37,
-      "complete_profile_template_count": 37,
+      "current_template_count": 38,
+      "complete_profile_template_count": 38,
       "complete_profile_percent": 100,
       "medical_family_missing_template_ids": [],
       "starter_recipe_missing_template_ids": [],
@@ -3107,18 +3113,18 @@
       "qa_gate_missing_template_ids": []
     },
     "renderer_policy_completion": {
-      "current_template_count": 37,
-      "current_evidence_template_count": 34,
-      "current_r_ggplot2_evidence_template_count": 34,
+      "current_template_count": 38,
+      "current_evidence_template_count": 35,
+      "current_r_ggplot2_evidence_template_count": 35,
       "current_python_evidence_template_count": 0,
-      "default_visual_template_count": 36,
-      "default_evidence_template_count": 34,
-      "default_r_ggplot2_evidence_template_count": 34,
+      "default_visual_template_count": 37,
+      "default_evidence_template_count": 35,
+      "default_r_ggplot2_evidence_template_count": 35,
       "default_python_evidence_template_count": 0,
       "default_illustration_shell_count": 2,
       "default_surface_r_first_compliant": true,
-      "all_evidence_template_count": 34,
-      "all_r_ggplot2_evidence_template_count": 34,
+      "all_evidence_template_count": 35,
+      "all_r_ggplot2_evidence_template_count": 35,
       "python_evidence_template_count": 0,
       "python_evidence_retained_count": 0,
       "current_inventory_r_first_compliant": true,
@@ -3174,8 +3180,8 @@
         "category": "Generalizability",
         "status": "done",
         "completion_percent": 100,
-        "default_visual_families": 1,
-        "default_r_ggplot2_evidence_families": 1,
+        "default_visual_families": 2,
+        "default_r_ggplot2_evidence_families": 2,
         "default_non_visual_families": 0,
         "default_surface_excluded_templates": 0,
         "retained_python_evidence_templates": 0,
@@ -3284,7 +3290,7 @@
     "blocker_counts": {},
     "warning_counts": {
       "coefficient_path_semantic_fit_review": 1,
-      "composition_density_risk": 4,
+      "composition_density_risk": 5,
       "illustration_shell_style_review_required": 2,
       "km_risk_table_and_censor_mark_review": 1,
       "legend_or_colorbar_overlap_risk": 5,
@@ -4603,9 +4609,9 @@
               "panel_role": "threshold_or_complexity_governance",
               "panel_kind": "supporting",
               "evidence_primitive_family_id": "subgroup_interaction_forest",
-              "template_id": "forest_effect_main",
-              "canonical_family_title": "Forest Plot",
-              "canonical_family_category": "Effect Estimate",
+              "template_id": "center_transportability_governance_summary_panel",
+              "canonical_family_title": "Center Transportability Governance Summary",
+              "canonical_family_category": "Generalizability",
               "uses_gallery_proxy": true,
               "visual_status": "preview_template"
             }
@@ -4614,7 +4620,7 @@
             "generalizability_subgroup_composite_panel",
             "shap_summary_beeswarm",
             "shap_waterfall_local_explanation_panel",
-            "forest_effect_main"
+            "center_transportability_governance_summary_panel"
           ],
           "quality_floor_only": true,
           "not_publication_ready": true
@@ -5608,6 +5614,137 @@
         ],
         "blockers": [],
         "warnings": [],
+        "figure_contract_policy_ref": "mas_nature_skills_informed_figure_contract.v1",
+        "figure_workflow_policy_ref": "mas_nature_skills_figure_workflow_lifecycle.v1",
+        "publication_polish_policy_ref": "mas_publication_polish_policy.v1",
+        "recommended_next_actions": [
+          "Use this template as a lower-bound starting point; AI may freely alter structure, layout, labels, scale, and composition for the paper-specific claim.",
+          "Render-inspect-revise before any paper-facing use; do not accept the synthetic Gallery preview as final artwork."
+        ]
+      },
+      {
+        "template_id": "center_transportability_governance_summary_panel",
+        "canonical_family_id": "center_transportability_governance_summary_panel",
+        "canonical_family_title": "Center Transportability Governance Summary",
+        "category": "Generalizability",
+        "renderer_family": "r_ggplot2",
+        "renderer_policy": {
+          "surface_class": "programmatic_data_evidence",
+          "default_surface_allowed": true,
+          "default_surface_reason": "r_ggplot2_evidence_first_class",
+          "statistical_evidence_authority": true,
+          "programmatic_precision_required": true,
+          "first_class_renderer_family": "r_ggplot2",
+          "python_renderer_role": "not_retained_for_data_evidence_without_advantage_proof"
+        },
+        "medical_family_ids": [
+          "external_validation_performance"
+        ],
+        "publication_quality_profile": {
+          "medical_family_ids": [
+            "external_validation_performance"
+          ],
+          "primary_medical_family_id": "external_validation_performance",
+          "medical_category_ids": [
+            "diagnosis_and_prediction"
+          ],
+          "starter_recipe_ids": [
+            "multi_cohort_performance_panel"
+          ],
+          "starter_recipe_titles": [
+            "External Validation Performance starter"
+          ],
+          "starter_recipe_panel_grammars": [
+            "counted_flow_diagram"
+          ],
+          "style_profile_ids": [
+            "clinical_journal"
+          ],
+          "palette_token_ids": [
+            "categorical_accessible",
+            "sequential_perceptual"
+          ],
+          "qa_gate_ids": [
+            "statistical_semantics_preserved",
+            "layout_readability",
+            "source_data_traceability",
+            "figure_contract_before_render",
+            "backend_exclusive_export_receipt",
+            "publication_polish_visual_audit",
+            "paper_use_polish_lifecycle"
+          ],
+          "required_data_roles": [
+            "cohort",
+            "metric",
+            "estimate",
+            "lower_ci",
+            "upper_ci",
+            "model"
+          ],
+          "ai_adaptation_notes": [
+            "AI may combine heatmap and forest when both metric spread and uncertainty matter."
+          ],
+          "policy_id": "medical_starter_recipe_policy.v1",
+          "starter_templates_are_floor_not_ceiling": true,
+          "ai_may_change": [
+            "figure_family",
+            "variant",
+            "geoms",
+            "layout",
+            "panel_structure",
+            "annotation_strategy",
+            "palette",
+            "legend_placement",
+            "scale_transform",
+            "rendering_backend",
+            "multi_family_composition"
+          ],
+          "ai_must_preserve": [
+            "scientific_claim_semantics",
+            "data_role_meaning",
+            "statistical_estimand",
+            "cohort_endpoint_model_bindings",
+            "source_data_and_statistics_refs",
+            "target_journal_export_constraints",
+            "auditability"
+          ],
+          "required_request_refs": [
+            "claim_ref",
+            "data_ref",
+            "paper_target",
+            "publication_style_profile_ref"
+          ],
+          "quality_gate_route": [
+            "figure_brief_storyboard_workflow_packet",
+            "schema_validation",
+            "deterministic_qc",
+            "rendered_visual_audit",
+            "owner_or_reviewer_gate_when_claim_bearing"
+          ]
+        },
+        "status": "lower_bound_review_required",
+        "publication_ready_claim_authorized": false,
+        "quality_gates": [
+          "template_family_canonicalized",
+          "medical_figure_family_mapped",
+          "starter_recipe_profile_present",
+          "style_palette_qa_profile_present",
+          "reference_ratio_gallery_preview",
+          "vector_export_available",
+          "semantic_palette_context",
+          "synthetic_payload_only",
+          "requires_ai_local_adaptation",
+          "core_conclusion_before_plotting",
+          "evidence_chain_maps_panels_to_claim",
+          "journal_export_contract_before_paper_use",
+          "final_visual_qa_required",
+          "ggplot2_publication_theme",
+          "r_ggplot2_default_evidence_backend"
+        ],
+        "blockers": [],
+        "warnings": [
+          "composition_density_risk"
+        ],
         "figure_contract_policy_ref": "mas_nature_skills_informed_figure_contract.v1",
         "figure_workflow_policy_ref": "mas_nature_skills_figure_workflow_lifecycle.v1",
         "publication_polish_policy_ref": "mas_publication_polish_policy.v1",
@@ -11468,7 +11605,8 @@
       "template_seed_ids": [
         "multicenter_generalizability_overview",
         "performance_heatmap",
-        "generalizability_subgroup_composite_panel"
+        "generalizability_subgroup_composite_panel",
+        "center_transportability_governance_summary_panel"
       ],
       "style_tokens": [
         "clinical_journal"
@@ -11485,6 +11623,9 @@
       "loose_match_terms": [
         "external validation",
         "transportability",
+        "transportability governance",
+        "center transportability governance",
+        "calibration governance",
         "multi cohort",
         "generalizability"
       ],
@@ -13153,6 +13294,110 @@
         ],
         "ai_adaptation_notes": [
           "AI may facet by lineage or collapse markers into gene sets when labels are too dense."
+        ],
+        "policy_id": "medical_starter_recipe_policy.v1",
+        "starter_templates_are_floor_not_ceiling": true,
+        "ai_may_change": [
+          "figure_family",
+          "variant",
+          "geoms",
+          "layout",
+          "panel_structure",
+          "annotation_strategy",
+          "palette",
+          "legend_placement",
+          "scale_transform",
+          "rendering_backend",
+          "multi_family_composition"
+        ],
+        "ai_must_preserve": [
+          "scientific_claim_semantics",
+          "data_role_meaning",
+          "statistical_estimand",
+          "cohort_endpoint_model_bindings",
+          "source_data_and_statistics_refs",
+          "target_journal_export_constraints",
+          "auditability"
+        ],
+        "required_request_refs": [
+          "claim_ref",
+          "data_ref",
+          "paper_target",
+          "publication_style_profile_ref"
+        ],
+        "quality_gate_route": [
+          "figure_brief_storyboard_workflow_packet",
+          "schema_validation",
+          "deterministic_qc",
+          "rendered_visual_audit",
+          "owner_or_reviewer_gate_when_claim_bearing"
+        ]
+      },
+      "renderer_policy": {
+        "surface_class": "programmatic_data_evidence",
+        "default_surface_allowed": true,
+        "default_surface_reason": "r_ggplot2_evidence_first_class",
+        "statistical_evidence_authority": true,
+        "programmatic_precision_required": true,
+        "first_class_renderer_family": "r_ggplot2",
+        "python_renderer_role": "not_retained_for_data_evidence_without_advantage_proof"
+      }
+    },
+    {
+      "family_id": "center_transportability_governance_summary_panel",
+      "title": "Center Transportability Governance Summary",
+      "category": "Generalizability",
+      "canonical_template_id": "center_transportability_governance_summary_panel",
+      "figure_archetype": "center_level_transportability_governance_summary_panel",
+      "canonical_family_wording": "Center Transportability Governance Summary (Generalizability): center_level_transportability_governance_summary_panel",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "external_validation_performance"
+      ],
+      "publication_quality_profile": {
+        "medical_family_ids": [
+          "external_validation_performance"
+        ],
+        "primary_medical_family_id": "external_validation_performance",
+        "medical_category_ids": [
+          "diagnosis_and_prediction"
+        ],
+        "starter_recipe_ids": [
+          "multi_cohort_performance_panel"
+        ],
+        "starter_recipe_titles": [
+          "External Validation Performance starter"
+        ],
+        "starter_recipe_panel_grammars": [
+          "counted_flow_diagram"
+        ],
+        "style_profile_ids": [
+          "clinical_journal"
+        ],
+        "palette_token_ids": [
+          "categorical_accessible",
+          "sequential_perceptual"
+        ],
+        "qa_gate_ids": [
+          "statistical_semantics_preserved",
+          "layout_readability",
+          "source_data_traceability",
+          "figure_contract_before_render",
+          "backend_exclusive_export_receipt",
+          "publication_polish_visual_audit",
+          "paper_use_polish_lifecycle"
+        ],
+        "required_data_roles": [
+          "cohort",
+          "metric",
+          "estimate",
+          "lower_ci",
+          "upper_ci",
+          "model"
+        ],
+        "ai_adaptation_notes": [
+          "AI may combine heatmap and forest when both metric spread and uncertainty matter."
         ],
         "policy_id": "medical_starter_recipe_policy.v1",
         "starter_templates_are_floor_not_ceiling": true,
@@ -16927,6 +17172,146 @@
       "svg_ref": ".",
       "render_cache_status": "package_only",
       "render_cache_key": "sha256:7ed6a3b950f098777708bfa12e9483d8dba9dff925638bac4fce9fe3b253d48c"
+    },
+    {
+      "template_id": "center_transportability_governance_summary_panel",
+      "display_name": "Center Transportability Governance Summary Panel",
+      "audit_family": "Generalizability",
+      "canonical_family_id": "center_transportability_governance_summary_panel",
+      "canonical_family_title": "Center Transportability Governance Summary",
+      "canonical_family_category": "Generalizability",
+      "canonical_template_id": "center_transportability_governance_summary_panel",
+      "figure_archetype": "center_level_transportability_governance_summary_panel",
+      "canonical_family_wording": "Center Transportability Governance Summary (Generalizability): center_level_transportability_governance_summary_panel",
+      "analysis_responsibility": "validated_summary_required",
+      "analysis_input_state": "validated_display_payload",
+      "medical_family_ids": [
+        "external_validation_performance"
+      ],
+      "publication_quality_profile": {
+        "medical_family_ids": [
+          "external_validation_performance"
+        ],
+        "primary_medical_family_id": "external_validation_performance",
+        "medical_category_ids": [
+          "diagnosis_and_prediction"
+        ],
+        "starter_recipe_ids": [
+          "multi_cohort_performance_panel"
+        ],
+        "starter_recipe_titles": [
+          "External Validation Performance starter"
+        ],
+        "starter_recipe_panel_grammars": [
+          "counted_flow_diagram"
+        ],
+        "style_profile_ids": [
+          "clinical_journal"
+        ],
+        "palette_token_ids": [
+          "categorical_accessible",
+          "sequential_perceptual"
+        ],
+        "qa_gate_ids": [
+          "statistical_semantics_preserved",
+          "layout_readability",
+          "source_data_traceability",
+          "figure_contract_before_render",
+          "backend_exclusive_export_receipt",
+          "publication_polish_visual_audit",
+          "paper_use_polish_lifecycle"
+        ],
+        "required_data_roles": [
+          "cohort",
+          "metric",
+          "estimate",
+          "lower_ci",
+          "upper_ci",
+          "model"
+        ],
+        "ai_adaptation_notes": [
+          "AI may combine heatmap and forest when both metric spread and uncertainty matter."
+        ],
+        "policy_id": "medical_starter_recipe_policy.v1",
+        "starter_templates_are_floor_not_ceiling": true,
+        "ai_may_change": [
+          "figure_family",
+          "variant",
+          "geoms",
+          "layout",
+          "panel_structure",
+          "annotation_strategy",
+          "palette",
+          "legend_placement",
+          "scale_transform",
+          "rendering_backend",
+          "multi_family_composition"
+        ],
+        "ai_must_preserve": [
+          "scientific_claim_semantics",
+          "data_role_meaning",
+          "statistical_estimand",
+          "cohort_endpoint_model_bindings",
+          "source_data_and_statistics_refs",
+          "target_journal_export_constraints",
+          "auditability"
+        ],
+        "required_request_refs": [
+          "claim_ref",
+          "data_ref",
+          "paper_target",
+          "publication_style_profile_ref"
+        ],
+        "quality_gate_route": [
+          "figure_brief_storyboard_workflow_packet",
+          "schema_validation",
+          "deterministic_qc",
+          "rendered_visual_audit",
+          "owner_or_reviewer_gate_when_claim_bearing"
+        ]
+      },
+      "migration_status": "canonical",
+      "default_visible": true,
+      "visual_gallery_visible": true,
+      "migrated_alias_template_ids": [],
+      "migration_reason": "Center-level transportability governance carries a distinct deployment-readiness action claim beyond subgroup performance intervals.",
+      "kind": "evidence_figure",
+      "renderer_family": "r_ggplot2",
+      "execution_mode": "subprocess",
+      "paper_proven": true,
+      "renderer_policy": {
+        "surface_class": "programmatic_data_evidence",
+        "default_surface_allowed": true,
+        "default_surface_reason": "r_ggplot2_evidence_first_class",
+        "statistical_evidence_authority": true,
+        "programmatic_precision_required": true,
+        "first_class_renderer_family": "r_ggplot2",
+        "python_renderer_role": "not_retained_for_data_evidence_without_advantage_proof"
+      },
+      "dependency_requirements": [],
+      "dependency_environment": {
+        "status": "gallery_preview",
+        "run_context_ref": "gallery_preview:local_render_only",
+        "run_context_fingerprint": "gallery-preview-not-publication-runtime-receipt"
+      },
+      "render_status": "rendered",
+      "render_reason": ".",
+      "image_size_px": [
+        1600,
+        1600
+      ],
+      "image_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.png",
+      "preview_image_size_px": [
+        1600,
+        1600
+      ],
+      "preview_image_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.png",
+      "payload_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.payload.json",
+      "layout_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.layout.json",
+      "pdf_ref": "medical_display_gallery_assets/center_transportability_governance_summary_panel.pdf",
+      "svg_ref": ".",
+      "render_cache_status": "package_only",
+      "render_cache_key": "sha256:ab83b06762f273760649045f49ac9309e959eda7c865d02a901fcbffffccd158"
     },
     {
       "template_id": "cnv_recurrence_summary_panel",
@@ -22606,6 +22991,24 @@
       }
     },
     {
+      "template_id": "center_transportability_governance_summary_panel",
+      "canonical_family_id": "center_transportability_governance_summary_panel",
+      "canonical_template_id": "center_transportability_governance_summary_panel",
+      "migration_status": "canonical",
+      "default_visible": true,
+      "visual_gallery_visible": true,
+      "migration_reason": "Center-level transportability governance carries a distinct deployment-readiness action claim beyond subgroup performance intervals.",
+      "renderer_policy": {
+        "surface_class": "programmatic_data_evidence",
+        "default_surface_allowed": true,
+        "default_surface_reason": "r_ggplot2_evidence_first_class",
+        "statistical_evidence_authority": true,
+        "programmatic_precision_required": true,
+        "first_class_renderer_family": "r_ggplot2",
+        "python_renderer_role": "not_retained_for_data_evidence_without_advantage_proof"
+      }
+    },
+    {
       "template_id": "cnv_recurrence_summary_panel",
       "canonical_family_id": "cnv_recurrence_summary_panel",
       "canonical_template_id": "cnv_recurrence_summary_panel",
@@ -23602,16 +24005,14 @@
   "lidocaineq_visual_parity_audit_json_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.json",
   "lidocaineq_visual_parity_contact_sheet_path": "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png",
   "asset_reuse": {
-    "status": "synced_from_docs_mirror",
+    "status": "target_already_complete",
     "source_asset_root": "docs/delivery/medical-display/examples/medical_display_gallery_assets",
     "target_asset_root": "outputs/display-pack-gallery/medical_display_gallery_assets",
     "copied_file_count": 0,
-    "updated_file_count": 2,
+    "updated_file_count": 0,
     "missing_source_count": 0,
-    "skipped_existing_count": 184,
-    "extension_counts": {
-      ".json": 2
-    }
+    "skipped_existing_count": 186,
+    "extension_counts": {}
   },
   "lidocaineq_visual_parity_audit": {
     "schema_version": 1,

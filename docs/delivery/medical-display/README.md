@@ -55,10 +55,12 @@ Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/
 Display Pack 是 MAS agent 使用的能力包，不要求用户理解每个模板。主路径是：
 
 1. agent 从 `contracts/agent_tool_arsenal.json` 或 MCP `agent_tool_arsenal mode=resolve` 发现 `display_pack_*` candidates；缺 `paper_root` / `claim_ref` / `data_ref` 只进入 `missing_refs` 和 `next_safe_actions`，不把 Display Pack 候选过滤掉；
-2. agent 调 MCP `display_pack_agent`，用 `mode=orchestrate` 和 `current_owner_delta` / claim refs / data refs / intent 编译 `figure_intent`、结构化 `figure_request`、推荐 plan、preflight、quality floor、typed repair routes 和下一步 callable；
-3. agent 只在需要诊断或分步执行时调 `mode=plan` / `mode=preflight`；`adaptable_baseline_not_exact_contract` 只表示可作为 quality-floor baseline，不表示 publication readiness、artifact authority、owner receipt 或 visual-audit replacement；
-4. agent 调 MCP `display_pack_agent` 的 `mode=render` 物化 display artifacts、visual-audit receipt、polish lifecycle、display_pack_lock 和 publication manifest refs；
-5. visual audit finding、owner receipt、publication gate 继续由 MAS authority 决定，不由 Display Pack 自签。
+2. agent 先把 `intent` 写成 figure-purpose brief：该图要支持哪条 claim、核心比较或 evidence boundary 是什么、哪些指标必须成为图元、哪些文字只应进入 caption/legend。缺这个 brief 时不能直接按模板名闭眼出图；
+3. agent 调 MCP `display_pack_agent`，用 `mode=orchestrate` 和 `current_owner_delta` / claim refs / data refs / intent 编译 `figure_intent`、结构化 `figure_request`、推荐 plan、preflight、quality floor、typed repair routes 和下一步 callable；
+4. 选择模板时先按 purpose 和 panel semantics 判断图型，再按 renderer family、schema、layout/QC 选择布局。若模板只能把关键证据画成说明卡片、装饰 panel 或不可审计文字块，必须走 semantic repair / template repair，而不是靠缩小文字或后处理；
+5. agent 只在需要诊断或分步执行时调 `mode=plan` / `mode=preflight`；`adaptable_baseline_not_exact_contract` 只表示可作为 quality-floor baseline，不表示 publication readiness、artifact authority、owner receipt 或 visual-audit replacement；
+6. agent 调 MCP `display_pack_agent` 的 `mode=render` 物化 display artifacts、visual-audit receipt、polish lifecycle、display_pack_lock 和 publication manifest refs；
+7. visual audit finding、owner receipt、publication gate 继续由 MAS authority 决定，不由 Display Pack 自签。paper-facing PDF 必须用实际渲染页复核 figure 顺序、表格/文字重叠、图内标题重复和图元语义；`current_package` freshness 或 renderer catalog 不能替代 PDF 实物验收。
 
 稳定机器入口：
 

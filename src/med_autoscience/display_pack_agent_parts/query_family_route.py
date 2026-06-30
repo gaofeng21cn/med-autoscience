@@ -79,6 +79,29 @@ def resolve_query_family_route(
     query = _text(request.get("query") or request.get("figure_goal") or request.get("claim_role"))
     if not query:
         return None
+    normalized_query = _normalized(query)
+    if "transportability" in normalized_query and any(
+        token in normalized_query for token in ("governance", "calibration", "center", "deployment")
+    ):
+        family = catalog.families_by_id.get("external_validation_performance")
+        if family is not None:
+            matched_terms = tuple(
+                term
+                for term in (
+                    "transportability governance",
+                    "calibration governance",
+                    "external validation",
+                )
+                if term in normalized_query
+            )
+            return FigureFamilyQueryRoute(
+                family_id=family.family_id,
+                family_title=family.title,
+                category_id=family.category_id,
+                template_seed_ids=family.template_seed_ids,
+                matched_terms=matched_terms or ("transportability governance",),
+                score=140,
+            )
 
     routes: list[FigureFamilyQueryRoute] = []
     for family_id, family in catalog.families_by_id.items():

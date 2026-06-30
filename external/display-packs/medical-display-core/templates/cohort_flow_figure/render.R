@@ -72,6 +72,15 @@ style_bool <- function(mapping, field_name, fallback) {
   isTRUE(fallback)
 }
 
+style_color <- function(payload, role, fallback) {
+  render_context <- payload$render_context %||% list()
+  style_roles <- render_context$style_roles %||% list()
+  palette <- render_context$palette %||% list()
+  value <- style_roles[[role]] %||% palette[[role]] %||% fallback
+  text <- trimws(as.character(value %||% ""))
+  if (nzchar(text)) text else fallback
+}
+
 require_prepared_dependency_environment <- function(request) {
   dependency_environment <- request$dependency_environment %||% list()
   status <- trimws(as.character(dependency_environment$status %||% ""))
@@ -135,6 +144,173 @@ wrap_node_label <- function(label, width) {
   paste(lines, collapse = "<br>")
 }
 
+wrap_plain_label <- function(label, width) {
+  lines <- strwrap(trimws(as.character(label %||% "")), width = width, simplify = FALSE)[[1]]
+  paste(lines, collapse = "\n")
+}
+
+cohort_design_line_label <- function(item) {
+  label <- trimws(as.character(item$label %||% ""))
+  detail <- trimws(as.character(item$detail %||% ""))
+  if (nzchar(label) && nzchar(detail)) {
+    return(sprintf("%s: %s", label, detail))
+  }
+  if (nzchar(label)) {
+    return(label)
+  }
+  detail
+}
+
+cohort_design_panel_label <- function(panel) {
+  title <- trimws(as.character(panel$title %||% panel$label %||% "Design"))
+  lines <- panel$lines %||% panel$items %||% list()
+  line_labels <- vapply(lines, cohort_design_line_label, character(1))
+  line_labels <- line_labels[nzchar(trimws(line_labels))]
+  if (length(line_labels) > 5) {
+    line_labels <- c(line_labels[seq_len(5)], sprintf("+%d more", length(line_labels) - 5))
+  }
+  body <- paste(vapply(line_labels, wrap_plain_label, character(1), width = 24), collapse = "\n")
+  paste(c(title, body), collapse = "\n")
+}
+
+cohort_design_panel_body <- function(panel) {
+  lines <- panel$lines %||% panel$items %||% list()
+  if (length(lines) < 1) {
+    return("")
+  }
+  labels <- vapply(lines, function(item) trimws(as.character(item$label %||% "")), character(1))
+  details <- vapply(lines, function(item) trimws(as.character(item$detail %||% "")), character(1))
+  labels <- labels[nzchar(labels)]
+  if (length(labels) > 0 && !any(nzchar(details))) {
+    joined <- paste(labels, collapse = ", ")
+    return(paste(strwrap(joined, width = 32, simplify = FALSE)[[1]], collapse = "\n"))
+  }
+  line_labels <- vapply(lines, cohort_design_line_label, character(1))
+  line_labels <- line_labels[nzchar(trimws(line_labels))]
+  if (length(line_labels) > 4) {
+    line_labels <- c(line_labels[seq_len(4)], sprintf("+%d more", length(line_labels) - 4))
+  }
+  paste(vapply(line_labels, wrap_plain_label, character(1), width = 28), collapse = "\n")
+}
+
+cohort_endpoint_label <- function(endpoint) {
+  label <- trimws(as.character(endpoint$label %||% endpoint$endpoint %||% "Endpoint"))
+  event_n <- endpoint$n %||% endpoint$event_n
+  event_text <- ""
+  if (!is.null(event_n)) {
+    event_text <- sprintf("Events: %s", format(as.integer(event_n), big.mark = ",", scientific = FALSE))
+  }
+  detail <- trimws(as.character(endpoint$detail %||% endpoint$status %||% ""))
+  cohort_events <- character(0)
+  event_match <- regexec("([0-9,]+)\\s+China events?\\s+and\\s+([0-9,]+)\\s+NHANES events?", detail, ignore.case = TRUE)
+  event_parts <- regmatches(detail, event_match)[[1]]
+  if (length(event_parts) == 3) {
+    cohort_events <- sprintf("China %s; NHANES %s", event_parts[[2]], event_parts[[3]])
+  } else if (nzchar(detail)) {
+    cohort_events <- strwrap(detail, width = 42, simplify = FALSE)[[1]][[1]]
+  }
+  paste(
+    c(
+      wrap_plain_label(label, width = 28),
+      wrap_plain_label(event_text, width = 28),
+      wrap_plain_label(cohort_events, width = 30)
+    )[nzchar(c(label, event_text, cohort_events))],
+    collapse = "\n"
+  )
+}
+
+add_context_card <- function(plot, payload, xmin, xmax, ymin, ymax, title, body, role = "flow_secondary") {
+  fill <- style_color(payload, paste0(role, "_fill"), "#F4EFE8")
+  edge <- style_color(payload, paste0(role, "_edge"), "#7B8794")
+  text_colour <- style_color(payload, "flow_body_text", "#4B5563")
+  title_colour <- style_color(payload, "flow_title_text", text_colour)
+  plot +
+    ggplot2::annotate(
+      "rect",
+      xmin = xmin,
+      xmax = xmax,
+      ymin = ymin,
+      ymax = ymax,
+      fill = fill,
+      colour = edge,
+      linewidth = 0.34
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = xmin + 1.6,
+      y = ymax - 2.8,
+      label = wrap_plain_label(title, width = 24),
+      hjust = 0,
+      vjust = 1,
+      fontface = "bold",
+      size = 3.25,
+      colour = title_colour,
+      lineheight = 0.92
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = xmin + 1.6,
+      y = ymax - 9.0,
+      label = body,
+      hjust = 0,
+      vjust = 1,
+      size = 2.62,
+      colour = text_colour,
+      lineheight = 0.88
+    )
+}
+
+cohort_step_plot_label <- function(step, index) {
+  label <- trimws(as.character(step$label %||% ""))
+  n <- suppressWarnings(as.integer(step$n))
+  if (!nzchar(label) || is.na(n)) {
+    stop(sprintf("cohort_flow_figure steps[%d] requires label and integer n", index))
+  }
+  paste(
+    c(
+      strwrap(label, width = 24, simplify = FALSE)[[1]],
+      sprintf("n=%s", format(n, big.mark = ",", scientific = FALSE))
+    ),
+    collapse = "\n"
+  )
+}
+
+cohort_step_frame <- function(steps, step_ids) {
+  y_top <- 90
+  y_gap <- if (length(steps) > 1) min(22, max(14, 70 / (length(steps) - 1))) else 0
+  data.frame(
+    step_id = step_ids,
+    label = vapply(seq_along(steps), function(index) cohort_step_plot_label(steps[[index]], index), character(1)),
+    x = rep(4, length(steps)),
+    y = y_top - (seq_along(steps) - 1) * y_gap,
+    stringsAsFactors = FALSE
+  )
+}
+
+cohort_exclusion_frame <- function(exclusions, step_df, step_ids) {
+  if (length(exclusions) < 1) {
+    return(data.frame())
+  }
+  rows <- list()
+  for (index in seq_along(exclusions)) {
+    exclusion <- exclusions[[index]]
+    from_step_raw <- trimws(as.character(exclusion$from_step_id %||% ""))
+    from_index <- match(make.names(from_step_raw), step_ids)
+    if (is.na(from_index)) {
+      stop(sprintf("cohort_flow_figure exclusions[%d].from_step_id does not reference a declared step", index))
+    }
+    rows[[length(rows) + 1]] <- data.frame(
+      exclusion_id = make.names(trimws(as.character(exclusion$exclusion_id %||% exclusion$branch_id %||% sprintf("exclusion_%d", index)))),
+      from_step_id = step_ids[[from_index]],
+      label = cohort_exclusion_label(exclusion, index),
+      x = 26,
+      y = step_df$y[[from_index]] - 6,
+      stringsAsFactors = FALSE
+    )
+  }
+  do.call(rbind, rows)
+}
+
 build_ggconsort_plot <- function(payload) {
   require_ggconsort()
   render_context <- payload$render_context %||% list()
@@ -147,57 +323,129 @@ build_ggconsort_plot <- function(payload) {
     stop("cohort_flow_figure step ids must be unique after ggconsort normalization")
   }
 
-  cohort_data <- data.frame(.row_id = seq_len(max(1, length(steps))), stringsAsFactors = FALSE)
-  consort <- ggconsort::cohort_start(cohort_data, cohort_step_label(steps[[1]], 1))
-  define_args <- setNames(rep(list(quote(.full)), length(step_ids)), step_ids)
-  consort <- do.call(ggconsort::cohort_define, c(list(consort), define_args))
-  label_args <- list()
-  for (index in seq_along(steps)) {
-    label_args[[step_ids[[index]]]] <- cohort_step_label(steps[[index]], index)
-  }
-  consort <- do.call(ggconsort::cohort_label, c(list(consort), label_args))
+  step_df <- cohort_step_frame(steps, step_ids)
+  exclusion_df <- cohort_exclusion_frame(exclusions, step_df, step_ids)
+  node_width <- 32
+  node_height <- 10
+  exclusion_width <- 26
+  exclusion_height <- 8
+  connector_colour <- style_color(payload, "flow_connector", "#7B8794")
+  node_fill <- style_color(payload, "flow_main_fill", "#FFFFFF")
+  node_edge <- style_color(payload, "flow_main_edge", "#7B8794")
+  exclusion_fill <- style_color(payload, "flow_exclusion_fill", "#F5ECE8")
+  exclusion_edge <- style_color(payload, "flow_exclusion_edge", "#B57F7F")
+  text_colour <- style_color(payload, "flow_body_text", "#111827")
 
-  y_top <- 90
-  y_gap <- if (length(steps) > 1) min(22, max(10, 70 / (length(steps) - 1))) else 0
-  diagram <- ggconsort::consort_box_add(consort, step_ids[[1]], 0, y_top, label_args[[step_ids[[1]]]])
-  if (length(steps) > 1) {
-    for (index in seq(2, length(steps))) {
-      y_value <- y_top - (index - 1) * y_gap
-      diagram <- ggconsort::consort_box_add(diagram, step_ids[[index]], 0, y_value, label_args[[step_ids[[index]]]])
-      diagram <- ggconsort::consort_arrow_add(
-        diagram,
-        start = step_ids[[index - 1]],
-        start_side = "bottom",
-        end = step_ids[[index]],
-        end_side = "top"
-      )
+  plot <- ggplot2::ggplot() +
+    ggplot2::theme_void() +
+    ggplot2::coord_cartesian(xlim = c(-18, 78), ylim = c(52, 101), clip = "off")
+  if (nrow(step_df) > 1) {
+    for (index in seq_len(nrow(step_df) - 1)) {
+      plot <- plot +
+        ggplot2::annotate(
+          "segment",
+          x = step_df$x[[index]],
+          xend = step_df$x[[index + 1]],
+          y = step_df$y[[index]] - node_height / 2,
+          yend = step_df$y[[index + 1]] + node_height / 2 + 1.2,
+          colour = connector_colour,
+          linewidth = 0.35,
+          arrow = grid::arrow(type = "closed", length = grid::unit(0.09, "in"))
+        )
     }
   }
-
-  if (length(exclusions) > 0) {
-    for (index in seq_along(exclusions)) {
-      exclusion <- exclusions[[index]]
-      from_step_raw <- trimws(as.character(exclusion$from_step_id %||% ""))
-      from_index <- match(make.names(from_step_raw), step_ids)
-      if (is.na(from_index)) {
-        stop(sprintf("cohort_flow_figure exclusions[%d].from_step_id does not reference a declared step", index))
-      }
-      exclusion_id <- make.names(trimws(as.character(exclusion$exclusion_id %||% exclusion$branch_id %||% sprintf("exclusion_%d", index))))
-      y_value <- y_top - max(0, from_index - 0.5) * y_gap
-      diagram <- ggconsort::consort_box_add(diagram, exclusion_id, 24, y_value, cohort_exclusion_label(exclusion, index))
-      diagram <- ggconsort::consort_arrow_add(
-        diagram,
-        end = exclusion_id,
-        end_side = "left",
-        start_x = 0,
-        start_y = y_value
-      )
+  if (nrow(exclusion_df) > 0) {
+    for (index in seq_len(nrow(exclusion_df))) {
+      from_row <- step_df[step_df$step_id == exclusion_df$from_step_id[[index]], , drop = FALSE]
+      plot <- plot +
+        ggplot2::annotate(
+          "segment",
+          x = from_row$x[[1]] + node_width / 2,
+          xend = exclusion_df$x[[index]] - exclusion_width / 2 + 1,
+          y = exclusion_df$y[[index]],
+          yend = exclusion_df$y[[index]],
+          colour = exclusion_edge,
+          linewidth = 0.32,
+          arrow = grid::arrow(type = "closed", length = grid::unit(0.08, "in"))
+        )
     }
   }
-
-  plot <- ggplot2::ggplot(diagram) +
-    ggconsort::geom_consort() +
-    ggconsort::theme_consort(margin_h = 8, margin_v = 2)
+  plot <- plot +
+    ggplot2::annotate(
+      "rect",
+      xmin = step_df$x - node_width / 2,
+      xmax = step_df$x + node_width / 2,
+      ymin = step_df$y - node_height / 2,
+      ymax = step_df$y + node_height / 2,
+      fill = node_fill,
+      colour = node_edge,
+      linewidth = 0.34
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = step_df$x,
+      y = step_df$y,
+      label = step_df$label,
+      hjust = 0.5,
+      vjust = 0.5,
+      size = 3.15,
+      colour = text_colour,
+      lineheight = 0.9
+    )
+  if (nrow(exclusion_df) > 0) {
+    plot <- plot +
+      ggplot2::annotate(
+        "rect",
+        xmin = exclusion_df$x - exclusion_width / 2,
+        xmax = exclusion_df$x + exclusion_width / 2,
+        ymin = exclusion_df$y - exclusion_height / 2,
+        ymax = exclusion_df$y + exclusion_height / 2,
+        fill = exclusion_fill,
+        colour = exclusion_edge,
+        linewidth = 0.32
+      ) +
+      ggplot2::annotate(
+        "text",
+        x = exclusion_df$x,
+        y = exclusion_df$y,
+        label = exclusion_df$label,
+        hjust = 0.5,
+        vjust = 0.5,
+        size = 2.7,
+        colour = text_colour,
+        lineheight = 0.88
+      )
+  }
+  endpoint_inventory <- payload$endpoint_inventory %||% list()
+  design_panels <- payload$design_panels %||% list()
+  if (length(endpoint_inventory) > 0) {
+    endpoint <- endpoint_inventory[[1]]
+    plot <- add_context_card(
+      plot,
+      payload,
+      xmin = 30,
+      xmax = 76,
+      ymin = 76,
+      ymax = 96,
+      title = "Endpoint",
+      body = cohort_endpoint_label(endpoint),
+      role = "flow_context"
+    )
+  }
+  if (length(design_panels) > 0) {
+    panel <- design_panels[[1]]
+    plot <- add_context_card(
+      plot,
+      payload,
+      xmin = 30,
+      xmax = 76,
+      ymin = 56,
+      ymax = 74,
+      title = trimws(as.character(panel$title %||% panel$label %||% "Shared design")),
+      body = cohort_design_panel_body(panel),
+      role = "flow_secondary"
+    )
+  }
   if (show_figure_title) {
     plot <- plot +
       ggplot2::labs(title = trimws(as.character(payload$title %||% "Participant flow"))) +
@@ -219,9 +467,9 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   steps <- required_list(payload, "steps")
   exclusions <- payload$exclusions %||% list()
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
-  node_height <- 0.105
+  node_height <- 0.19
   y_gap <- if (length(steps) > 1) min(0.19, max(0.12, 0.68 / (length(steps) - 1))) else 0
-  y_top <- 0.82
+  y_top <- 0.74
   layout_boxes <- list()
   if (show_figure_title) {
     layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.89, 0.95, 0.96))
@@ -233,10 +481,10 @@ build_layout_sidecar <- function(payload, dependency_environment) {
     box_id <- paste0("participant_step_", step_ids[[index]])
     layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
       box_id,
-      "main_step",
-      0.20,
+        "main_step",
+      0.10,
       y_center - node_height / 2,
-      0.62,
+      0.40,
       y_center + node_height / 2
     )
     flow_nodes[[length(flow_nodes) + 1]] <- list(
@@ -292,11 +540,51 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       )
     }
   }
+  endpoint_inventory <- payload$endpoint_inventory %||% list()
+  design_panels <- payload$design_panels %||% list()
+  if (length(endpoint_inventory) > 0) {
+    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+      "participant_endpoint_summary",
+        "summary_panel",
+      0.50,
+      0.56,
+      0.96,
+      0.80
+    )
+    flow_nodes[[length(flow_nodes) + 1]] <- list(
+      box_id = "participant_endpoint_summary",
+      box_type = "summary_panel",
+      line_count = 3L,
+      max_line_chars = 30L,
+      rendered_height_pt = 96.0,
+      rendered_width_pt = 210.0,
+      padding_pt = 9.0
+    )
+  }
+  if (length(design_panels) > 0) {
+    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+      "participant_design_summary",
+        "summary_panel",
+      0.50,
+      0.26,
+      0.96,
+      0.52
+    )
+    flow_nodes[[length(flow_nodes) + 1]] <- list(
+      box_id = "participant_design_summary",
+      box_type = "summary_panel",
+      line_count = 3L,
+      max_line_chars = 32L,
+      rendered_height_pt = 108.0,
+      rendered_width_pt = 210.0,
+      padding_pt = 9.0
+    )
+  }
   list(
     template_id = "cohort_flow_figure",
     device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
     layout_boxes = layout_boxes,
-    panel_boxes = list(sidecar_box("participant_flow_main", "subfigure_panel", 0.16, 0.08, 0.98, 0.88)),
+    panel_boxes = list(sidecar_box("participant_flow_main", "subfigure_panel", 0.06, 0.18, 0.98, 0.84)),
     guide_boxes = guide_boxes,
     metrics = list(
       layout_mode = "participant_flow",
@@ -314,8 +602,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       gallery_preview_dependency_context = identical(dependency_environment$status %||% "", "gallery_preview"),
       steps = steps,
       exclusions = exclusions,
-      endpoint_inventory = payload$endpoint_inventory %||% list(),
-      design_panels = payload$design_panels %||% list(),
+      endpoint_inventory = endpoint_inventory,
+      design_panels = design_panels,
       comparison_summary = payload$comparison_summary %||% list(),
       flow_nodes = flow_nodes
     ),
@@ -344,7 +632,7 @@ render_cohort_flow_request <- function(request_path) {
   layout_sidecar <- build_layout_sidecar(payload, dependency_environment)
   write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
   output_width <- render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
-  output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.0)
+  output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.8)
   ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
   ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
   invisible(list(template_id = template_id, output_png_path = output_png, output_pdf_path = output_pdf, layout_sidecar_path = output_layout))

@@ -9,7 +9,6 @@ from .shared import *
         "publication_baseline_missingness_qc_panel",
         "publication_center_coverage_batch_transportability_panel",
         "publication_transportability_recalibration_governance_panel",
-        "publication_center_transportability_governance_summary_panel",
     ],
 )
 def test_run_display_layout_qc_rejects_retired_python_data_shell_profiles(qc_profile: str) -> None:
@@ -27,6 +26,115 @@ def test_run_display_layout_qc_rejects_retired_python_data_shell_profiles(qc_pro
                 "metrics": {},
             },
         )
+
+
+def _center_transportability_governance_sidecar(
+    *,
+    missing_governance_metric: bool = False,
+    governance_metric_outside_panel: bool = False,
+    legacy_card_only: bool = False,
+) -> dict[str, object]:
+    governance_metrics = [
+        make_box("china_slope_marker", "calibration_governance_metric", x0=0.64, y0=0.35, x1=0.66, y1=0.38),
+        make_box("china_oe_marker", "calibration_governance_metric", x0=0.78, y0=0.35, x1=0.80, y1=0.38),
+        make_box("nhanes_slope_marker", "calibration_governance_metric", x0=0.64, y0=0.61, x1=0.66, y1=0.64),
+        make_box("nhanes_oe_marker", "calibration_governance_metric", x0=0.78, y0=0.61, x1=0.80, y1=0.64),
+    ]
+    if missing_governance_metric:
+        governance_metrics = governance_metrics[:-1]
+    if governance_metric_outside_panel:
+        governance_metrics[-1] = make_box(
+            "nhanes_oe_marker",
+            "calibration_governance_metric",
+            x0=0.47,
+            y0=0.61,
+            x1=0.49,
+            y1=0.64,
+        )
+    if legacy_card_only:
+        governance_metrics = [
+            make_box("governance_card_1", "governance_card", x0=0.60, y0=0.28, x1=0.90, y1=0.45),
+            make_box("governance_card_2", "governance_card", x0=0.60, y0=0.57, x1=0.90, y1=0.74),
+        ]
+    return {
+        "template_id": "center_transportability_governance_summary_panel",
+        "device": make_device(),
+        "layout_boxes": [
+            make_box("panel_label_A", "panel_label", x0=0.10, y0=0.77, x1=0.13, y1=0.81),
+            make_box("panel_label_B", "panel_label", x0=0.58, y0=0.77, x1=0.61, y1=0.81),
+            make_box("panel_left_title", "panel_title", x0=0.15, y0=0.86, x1=0.42, y1=0.90),
+            make_box("panel_right_title", "panel_title", x0=0.63, y0=0.86, x1=0.90, y1=0.90),
+            make_box("metric_x_axis_title", "subplot_x_axis_title", x0=0.18, y0=0.09, x1=0.40, y1=0.13),
+            make_box("center_marker_1", "metric_marker", x0=0.26, y0=0.37, x1=0.28, y1=0.39),
+            make_box("center_marker_2", "metric_marker", x0=0.26, y0=0.62, x1=0.28, y1=0.64),
+            *governance_metrics,
+        ],
+        "panel_boxes": [
+            make_box("panel_left", "metric_panel", x0=0.08, y0=0.20, x1=0.46, y1=0.82),
+            make_box("panel_right", "calibration_governance_panel", x0=0.56, y0=0.20, x1=0.94, y1=0.82),
+        ],
+        "guide_boxes": [
+            make_box("legend", "legend", x0=0.24, y0=0.06, x1=0.76, y1=0.13),
+        ],
+        "metrics": {
+            "centers": [
+                {"center_label": "China", "metric_estimate": 0.76, "slope": 1.0, "oe_ratio": 1.0},
+                {"center_label": "NHANES", "metric_estimate": 0.73, "slope": 0.01, "oe_ratio": 5.33},
+            ],
+            "metric_reference_value": 0.76,
+            "slope_acceptance": {"lower": 0.90, "upper": 1.10},
+            "oe_ratio_acceptance": {"lower": 0.90, "upper": 1.10},
+        },
+        "render_context": {"layout_override": {}},
+    }
+
+
+def test_run_display_layout_qc_passes_for_center_transportability_governance_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_center_transportability_governance_summary_panel",
+        layout_sidecar=_center_transportability_governance_sidecar(),
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_without_calibration_governance_metrics() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_center_transportability_governance_summary_panel",
+        layout_sidecar=_center_transportability_governance_sidecar(missing_governance_metric=True),
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "calibration_governance_metric_count_incomplete" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_rejects_legacy_governance_cards_as_center_transportability_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_center_transportability_governance_summary_panel",
+        layout_sidecar=_center_transportability_governance_sidecar(legacy_card_only=True),
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "missing_box" and issue["target"] == "calibration_governance_metric" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_calibration_governance_metric_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_center_transportability_governance_summary_panel",
+        layout_sidecar=_center_transportability_governance_sidecar(governance_metric_outside_panel=True),
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "calibration_governance_metric_outside_panel" for issue in result["issues"])
 
 
 def test_run_display_layout_qc_fails_for_overlapping_legend_and_panel() -> None:

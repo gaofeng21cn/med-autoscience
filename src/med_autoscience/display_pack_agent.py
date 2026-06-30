@@ -109,6 +109,18 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+_PURPOSE_BRIEF_ANCHOR_KEYS = (
+    "intent",
+    "figure_goal",
+    "claim_role",
+    "core_conclusion",
+    "query",
+    "audit_family",
+    "medical_figure_family_id",
+    "input_schema_ref",
+)
+
+
 def _full_template_id(record: LoadedDisplayTemplate) -> str:
     return record.template_manifest.full_template_id
 
@@ -356,6 +368,99 @@ def _canonicalized_request(
     return updated, None
 
 
+def _has_purpose_brief_anchor(raw_request: Mapping[str, Any]) -> bool:
+    return any(_text(raw_request.get(key)) for key in _PURPOSE_BRIEF_ANCHOR_KEYS)
+
+
+def _purpose_visual_primitives(request: Mapping[str, Any]) -> list[str]:
+    tokens = " ".join(
+        _text(request.get(key))
+        for key in (
+            "query",
+            "claim_role",
+            "audit_family",
+            "medical_figure_family_id",
+            "medical_figure_family_title",
+        )
+    ).lower()
+    if any(token in tokens for token in ("transportability", "generalizability", "external validation")):
+        primitives = [
+            "center_or_cohort_metric_estimates",
+            "uncertainty_interval_or_reference_line",
+            "center_or_cohort_labels",
+        ]
+        if any(token in tokens for token in ("governance", "calibration", "slope", "o/e", "observed")):
+            primitives.append("calibration_governance_metric_marks")
+        return primitives
+    if any(token in tokens for token in ("roc", "auc", "discrimination")):
+        return ["discrimination_curve", "reference_line", "model_or_cohort_labels"]
+    if any(token in tokens for token in ("calibration", "slope", "observed", "predicted")):
+        return ["observed_vs_predicted_marks", "calibration_reference", "sample_or_bin_context"]
+    if any(token in tokens for token in ("decision curve", "dca", "utility")):
+        return ["net_benefit_curve", "threshold_axis", "treat_all_or_none_reference"]
+    if any(token in tokens for token in ("forest", "subgroup", "effect")):
+        return ["effect_estimate_marks", "confidence_intervals", "null_reference_line"]
+    return ["claim_bearing_evidence_marks", "source_data_or_statistics_refs", "readable_labels"]
+
+
+def _purpose_first_selection_gate(
+    *,
+    raw_request: Mapping[str, Any],
+    request: Mapping[str, Any],
+    figure_intent: Mapping[str, Any],
+    recommended_template: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    contract = _mapping(figure_intent.get("figure_contract"))
+    purpose_anchor_present = _has_purpose_brief_anchor(raw_request)
+    template = _mapping(recommended_template)
+    selected_template_id = _text(template.get("template_id") or template.get("full_template_id"))
+    template_supports_visual_evidence = bool(
+        not template
+        or template.get("kind") != "evidence_figure"
+        or (
+            _text(template.get("analysis_responsibility")) != "illustration_shell"
+            and _text(template.get("figure_archetype"))
+            and (template.get("medical_family_ids") or template.get("canonical_family_id"))
+        )
+    )
+    status = "pass" if purpose_anchor_present and template_supports_visual_evidence else "blocked"
+    missing_items: list[str] = []
+    if not purpose_anchor_present:
+        missing_items.append("figure_purpose_brief")
+    if not template_supports_visual_evidence:
+        missing_items.append("template_visual_evidence_mapping")
+    return {
+        "surface_kind": "display_pack_purpose_first_selection_gate",
+        "status": status,
+        "required_before_template_scoring": True,
+        "purpose_brief_present": purpose_anchor_present,
+        "missing_items": missing_items,
+        "core_conclusion": _text(contract.get("core_conclusion")),
+        "medical_question": _text(request.get("query") or request.get("claim_role")),
+        "medical_figure_family_id": _text(request.get("medical_figure_family_id")),
+        "medical_figure_family_title": _text(request.get("medical_figure_family_title")),
+        "mandatory_visual_evidence_primitives": _purpose_visual_primitives(request),
+        "selected_template_id": selected_template_id,
+        "selected_template_figure_archetype": _text(template.get("figure_archetype")),
+        "selected_template_medical_family_ids": list(template.get("medical_family_ids") or []),
+        "selected_template_can_render_required_evidence_as_marks": template_supports_visual_evidence,
+        "selection_basis": [
+            "figure_purpose_brief",
+            "medical_figure_family_catalog",
+            "template_semantic_fit",
+            "renderer_contract",
+            "layout_qc_profile",
+        ],
+        "forbidden_shortcuts": [
+            "select_template_by_name_without_purpose_brief",
+            "replace_claim_bearing_metrics_with_text_cards",
+            "use_decorative_panel_for_required_evidence",
+            "treat_template_gallery_style_as_publication_verdict",
+        ],
+        "blocks_render": status != "pass",
+    }
+
+
 def display_pack_figure_plan(
     *,
     repo_root: Path | str | None = None,
@@ -365,9 +470,51 @@ def display_pack_figure_plan(
 ) -> dict[str, Any]:
     normalized_repo_root = _normal_repo_root(repo_root)
     normalized_paper_root = _normal_optional_path(paper_root)
+    raw_request = dict(figure_request or {})
     explicit_audit_family = bool(_text((figure_request or {}).get("audit_family")))
     intent_payload = compile_display_figure_intent(figure_request=figure_request)
     request = dict(intent_payload["compiled_figure_request"])
+    pre_selection_gate = _purpose_first_selection_gate(
+        raw_request=raw_request,
+        request=request,
+        figure_intent=intent_payload,
+    )
+    if pre_selection_gate["status"] != "pass":
+        blocker = {
+            "blocked_reason": "purpose_first_figure_brief_required",
+            "owner": "MedAutoScience",
+            "route_hint": "provide_figure_purpose_brief_before_template_selection",
+            "minimum_fit_floor": minimum_fit_floor(),
+            "purpose_first_selection_gate": pre_selection_gate,
+        }
+        return {
+            "schema_version": 1,
+            "surface_kind": "display_pack_agent_figure_plan",
+            "status": "blocked",
+            "repo_root": str(normalized_repo_root),
+            "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
+            "figure_request": request,
+            "figure_intent": intent_payload,
+            "purpose_first_selection_gate": pre_selection_gate,
+            "figure_workflow_packet": build_planning_figure_workflow_packet(
+                request=request,
+                figure_intent=intent_payload,
+                recommended_template=None,
+                status="blocked",
+            ),
+            "recommended_template": None,
+            "recommendations": [],
+            "candidate_count": 0,
+            "requested_template_migration": None,
+            "minimum_fit_floor": minimum_fit_floor(),
+            **figure_policy_surfaces(),
+            "next_callable": "",
+            "typed_blocker": blocker,
+            "agent_manual_template_selection_required": False,
+            "template_fit_policy": "",
+            "publication_readiness_verdict": False,
+            "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+        }
     records = load_enabled_local_display_template_records(
         normalized_repo_root,
         paper_root=normalized_paper_root,
@@ -410,9 +557,27 @@ def display_pack_figure_plan(
     candidates.sort(key=template_sort_key, reverse=True)
     recommendations = candidates[: max(1, max_recommendations)]
     recommended = recommendations[0] if recommendations else None
+    purpose_first_gate = _purpose_first_selection_gate(
+        raw_request=raw_request,
+        request=request,
+        figure_intent=intent_payload,
+        recommended_template=recommended,
+    )
     analysis_blocker = analysis_blocker_for_template_summary(recommended, request)
-    status = "display_plan_ready" if recommended and analysis_blocker is None else "blocked"
-    if analysis_blocker is not None:
+    status = (
+        "display_plan_ready"
+        if recommended and analysis_blocker is None and purpose_first_gate["status"] == "pass"
+        else "blocked"
+    )
+    if purpose_first_gate["status"] != "pass":
+        blocker = {
+            "blocked_reason": "purpose_first_template_mapping_failed",
+            "owner": "MedAutoScience",
+            "route_hint": "revise_figure_purpose_or_template_semantic_mapping",
+            "minimum_fit_floor": minimum_fit_floor(),
+            "purpose_first_selection_gate": purpose_first_gate,
+        }
+    elif analysis_blocker is not None:
         blocker = analysis_blocker
     elif recommended is None:
         blocker = {
@@ -432,6 +597,7 @@ def display_pack_figure_plan(
         "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
         "figure_request": request,
         "figure_intent": intent_payload,
+        "purpose_first_selection_gate": purpose_first_gate,
         "figure_workflow_packet": build_planning_figure_workflow_packet(
             request=request,
             figure_intent=intent_payload,

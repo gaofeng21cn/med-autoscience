@@ -84,6 +84,10 @@ def test_materialize_display_surface_renders_cohort_flow_with_exclusions_and_des
     assert qc_result["status"] == "pass"
     assert qc_result["engine_id"] == "display_layout_qc_v1"
     assert qc_result["layout_sidecar_path"].endswith(".layout.json")
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
+    assert "participant_endpoint_summary" in layout_boxes
+    assert "participant_design_summary" in layout_boxes
 
 
 def test_materialize_display_surface_renders_exclusion_aware_cohort_flow_shell(tmp_path: Path) -> None:
@@ -155,6 +159,9 @@ def test_materialize_display_surface_renders_exclusion_aware_cohort_flow_shell(t
     assert layout_sidecar["metrics"]["exclusions"]
     assert layout_sidecar["metrics"]["steps"]
     assert layout_sidecar["metrics"]["design_panels"]
+    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
+    assert "participant_endpoint_summary" in layout_boxes
+    assert "participant_design_summary" in layout_boxes
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     qc_result = figure_catalog["figures"][0]["qc_result"]
     assert qc_result["status"] == "pass"
@@ -210,7 +217,7 @@ def test_materialize_display_surface_accepts_legacy_full_right_sidecar_role(tmp_
     assert "full_right" not in panel_roles
 
 
-def test_materialize_display_surface_renders_cohort_flow_with_two_subfigure_panels_and_role_aware_grid(
+def test_materialize_display_surface_renders_cohort_flow_with_visible_design_summary_panels(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
@@ -279,17 +286,9 @@ def test_materialize_display_surface_renders_cohort_flow_with_two_subfigure_pane
     layout_boxes = {item["box_id"]: item for item in layout["layout_boxes"]}
     guide_boxes = {item["box_id"]: item for item in layout["guide_boxes"]}
 
-    assert "subfigure_panel_A" in panel_boxes
-    assert "subfigure_panel_B" in panel_boxes
+    assert layout["metrics"]["layout_mode"] == "participant_flow"
+    assert "participant_flow_main" in panel_boxes
     assert "title" not in layout_boxes
-    assert "panel_label_A" in layout_boxes
-    assert "panel_label_B" in layout_boxes
-    assert panel_boxes["secondary_panel_validation"]["x0"] <= panel_boxes["secondary_panel_core"]["x0"]
-    assert panel_boxes["secondary_panel_validation"]["x1"] >= panel_boxes["secondary_panel_primary"]["x1"]
-    assert panel_boxes["secondary_panel_core"]["x1"] < panel_boxes["secondary_panel_primary"]["x0"]
-    assert panel_boxes["secondary_panel_audit"]["x1"] < panel_boxes["secondary_panel_context"]["x0"]
-    assert panel_boxes["secondary_panel_core"]["y0"] > panel_boxes["secondary_panel_audit"]["y1"]
-    assert "hierarchy_root_trunk" in guide_boxes
-    assert "hierarchy_root_branch" in guide_boxes
-    assert "hierarchy_connector_left_middle_to_left_bottom" in guide_boxes
-    assert "hierarchy_connector_right_middle_to_right_bottom" in guide_boxes
+    assert "participant_design_summary" in layout_boxes
+    assert any(item["box_type"] == "summary_panel" for item in layout["layout_boxes"])
+    assert "flow_spine_screened_to_included" in guide_boxes

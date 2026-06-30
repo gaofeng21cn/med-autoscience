@@ -267,6 +267,9 @@
       "loose_match_terms": [
         "external validation",
         "transportability",
+        "transportability governance",
+        "center transportability governance",
+        "calibration governance",
         "multi cohort",
         "generalizability"
       ],
@@ -274,7 +277,8 @@
       "template_seed_ids": [
         "multicenter_generalizability_overview",
         "performance_heatmap",
-        "generalizability_subgroup_composite_panel"
+        "generalizability_subgroup_composite_panel",
+        "center_transportability_governance_summary_panel"
       ],
       "ai_adaptation_notes": "AI may combine heatmap and forest when both metric spread and uncertainty matter."
     },

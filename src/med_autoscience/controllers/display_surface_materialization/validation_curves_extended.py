@@ -487,30 +487,38 @@ def _validate_time_to_event_display_payload(
                 raise ValueError(
                     f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].events_5y must not exceed .sample_size"
                 )
-            normalized_summaries.append(
-                {
-                    "label": _require_non_empty_string(
-                        item.get("label"),
-                        label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].label",
+            normalized_summary: dict[str, Any] = {
+                "label": _require_non_empty_string(
+                    item.get("label"),
+                    label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].label",
+                ),
+                "sample_size": sample_size,
+                "events_5y": events_5y,
+                "mean_predicted_risk_5y": _require_numeric_value(
+                    item.get("mean_predicted_risk_5y"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` "
+                        f"risk_group_summaries[{index}].mean_predicted_risk_5y"
                     ),
-                    "sample_size": sample_size,
-                    "events_5y": events_5y,
-                    "mean_predicted_risk_5y": _require_numeric_value(
-                        item.get("mean_predicted_risk_5y"),
+                ),
+                "observed_km_risk_5y": _require_numeric_value(
+                    item.get("observed_km_risk_5y"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` "
+                        f"risk_group_summaries[{index}].observed_km_risk_5y"
+                    ),
+                ),
+            }
+            for optional_text_field in ("cohort_id", "cohort_label", "risk_group_label"):
+                if item.get(optional_text_field) is not None:
+                    normalized_summary[optional_text_field] = _require_non_empty_string(
+                        item.get(optional_text_field),
                         label=(
                             f"{path.name} display `{expected_display_id}` "
-                            f"risk_group_summaries[{index}].mean_predicted_risk_5y"
+                            f"risk_group_summaries[{index}].{optional_text_field}"
                         ),
-                    ),
-                    "observed_km_risk_5y": _require_numeric_value(
-                        item.get("observed_km_risk_5y"),
-                        label=(
-                            f"{path.name} display `{expected_display_id}` "
-                            f"risk_group_summaries[{index}].observed_km_risk_5y"
-                        ),
-                    ),
-                }
-            )
+                    )
+            normalized_summaries.append(normalized_summary)
         return {
             "display_id": expected_display_id,
             "template_id": expected_template_id,
