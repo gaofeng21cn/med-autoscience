@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -90,6 +91,11 @@ def test_unit_harmonization_uses_body_free_precise_target_surface(
                     "owner": "analysis_harmonization_owner",
                     "reason": "unit_harmonized_rerun_required",
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type=action_type,
+                        work_unit_id=action_type,
+                    ),
                     "handoff_packet": {
                         "request_kind": action_type,
                         "authority": "observability_only",

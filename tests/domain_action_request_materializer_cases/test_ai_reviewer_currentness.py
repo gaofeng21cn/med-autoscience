@@ -92,6 +92,11 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
                     "study_id": study_id,
                     "owner_route": route,
                     "meaningful_artifact_delta": False,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="ai_reviewer_assessment_required",
+                    ),
                 }
             ],
             "action_queue": [action],
@@ -430,6 +435,11 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
                     "study_id": study_id,
                     "quest_id": quest_id,
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    ),
                     "action_queue": [action],
                     "current_execution_envelope": {
                         "state_kind": "executable_owner_action",
@@ -543,6 +553,11 @@ def test_materialize_domain_action_requests_retires_current_work_unit_over_stale
                         "owner": "ai_reviewer",
                         "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                     },
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    ),
                     "current_work_unit": current_work_unit,
                     "action_queue": [
                         {
@@ -672,6 +687,11 @@ def test_materialize_domain_action_requests_keeps_repair_progress_recheck_queue_
                     "study_id": study_id,
                     "quest_id": quest_id,
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    ),
                     "action_queue": [action],
                 }
             ],
@@ -850,7 +870,18 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                    ),
+                }
+            ],
             "action_queue": [action],
         },
     )

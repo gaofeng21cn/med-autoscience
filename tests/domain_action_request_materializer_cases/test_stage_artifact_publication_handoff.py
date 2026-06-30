@@ -8,6 +8,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import (
     SUPERVISION_LATEST_RELATIVE_PATH,
 )
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -151,6 +152,11 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm002",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="publication_handoff_owner_gate",
+                        work_unit_id="publication_handoff_owner_gate",
+                    ),
                     "owner_route": owner_route,
                     "action_queue": [
                         {
@@ -275,6 +281,11 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm002",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="complete_medical_paper_readiness_surface",
+                        work_unit_id="complete_medical_paper_readiness_surface",
+                    ),
                     "owner_route": owner_route,
                     "action_queue": [
                         {
@@ -430,6 +441,11 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm003",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="complete_medical_paper_readiness_surface",
+                        work_unit_id="complete_medical_paper_readiness_surface",
+                    ),
                     "owner_route": owner_route,
                     "current_executable_owner_action": {
                         "surface_kind": "current_executable_owner_action",
@@ -666,6 +682,11 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm003",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="complete_medical_paper_readiness_surface",
+                        work_unit_id="complete_medical_paper_readiness_surface",
+                    ),
                     "owner_route": owner_route,
                     "current_executable_owner_action": {
                         "surface_kind": "current_executable_owner_action",
@@ -827,6 +848,11 @@ def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm003",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id="readiness_blocker_publication_repair",
+                    ),
                     "owner_route": owner_route,
                     "current_executable_owner_action": {
                         "surface_kind": "current_executable_owner_action",

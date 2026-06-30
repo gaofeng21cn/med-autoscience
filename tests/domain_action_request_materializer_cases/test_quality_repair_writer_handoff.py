@@ -4,7 +4,11 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.paper_mission_owner_surface import (
+    SUPERVISION_LATEST_RELATIVE_PATH,
+)
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -106,7 +110,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         },
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -114,6 +118,11 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm002",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id="dm002_same_line_methods_display_package_repair",
+                    ),
                     "owner_route": route,
                     "action_queue": [action],
                 }
@@ -258,7 +267,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
         {"status": "blocked", "blockers": ["manuscript_story_surface_delta_missing"]},
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -266,6 +275,11 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
                 {
                     "study_id": study_id,
                     "quest_id": quest_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id="medical_prose_currentness_recheck",
+                    ),
                     "owner_route": route,
                     "action_queue": [action],
                 }
@@ -450,7 +464,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
         {"status": "progress_delta_candidate", "blockers": []},
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -458,6 +472,11 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
                 {
                     "study_id": study_id,
                     "quest_id": quest_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id=work_unit_id,
+                    ),
                     "owner_route": route,
                     "action_queue": [action],
                 }
@@ -616,7 +635,7 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
         }
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -624,6 +643,11 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
                 {
                     "study_id": study_id,
                     "quest_id": quest_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id=work_unit_id,
+                    ),
                     "owner_route": stale_reviewer_route,
                     "domain_transition": {
                         "decision_type": "ai_reviewer_re_eval",

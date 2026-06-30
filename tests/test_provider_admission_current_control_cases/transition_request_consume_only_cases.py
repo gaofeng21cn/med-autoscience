@@ -591,7 +591,7 @@ def test_provider_admission_current_control_treats_current_transition_authority_
     assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
 
 
-def test_paper_recovery_successor_request_opl_stage_attempt_without_dispatch_becomes_transition_request(
+def test_paper_recovery_successor_without_explicit_dispatch_fails_closed(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
@@ -716,14 +716,7 @@ def test_paper_recovery_successor_request_opl_stage_attempt_without_dispatch_bec
         status_payload=scanned_study,
     )
 
-    assert len(candidates) == 1
-    [candidate] = candidates
-    assert candidate["status"] == "transition_request_pending"
-    assert candidate["action_type"] == "request_opl_stage_attempt"
-    assert candidate["provider_admission_pending"] is False
-    assert candidate["provider_attempt_or_lease_required"] is False
-    assert candidate["provider_admission_requires_opl_runtime_result"] is True
-    assert "dispatch_path" not in candidate
+    assert candidates == []
 
     result = module.materialize_provider_admission_current_control_state(
         profile=profile,
@@ -736,22 +729,9 @@ def test_paper_recovery_successor_request_opl_stage_attempt_without_dispatch_bec
     assert result is not None
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
-    assert result["transition_request_pending_count"] == 1
-    [transition_request] = result["transition_request_candidates"]
-    assert transition_request["action_type"] == "request_opl_stage_attempt"
-    assert transition_request["work_unit_id"] == work_unit_id
-    assert transition_request["work_unit_fingerprint"] == action_fingerprint
-    assert transition_request["provider_admission_pending"] is False
-    assert transition_request["provider_attempt_or_lease_required"] is False
-    assert transition_request["provider_admission_requires_opl_runtime_result"] is True
-    assert result["stage_route_arbiter"]["pending_count"] == 0
-    assert result["stage_route_arbiter"]["decision_counts"] == {
-        "opl_transition_readback_required": 1,
-    }
-    [decision] = result["stage_route_arbiter_decisions"]
-    assert decision["decision"] == "opl_transition_readback_required"
-    assert decision["effect"] == "suppress_provider_admission_pending"
-    assert decision["evidence_status"] == "NonAdvancingApply"
+    assert result["transition_request_pending_count"] == 0
+    assert result["transition_request_candidates"] == []
+    assert result["stage_route_arbiter_decisions"] == []
 
 
 def test_provider_admission_current_control_consumes_opl_readback_inside_provider_identity(

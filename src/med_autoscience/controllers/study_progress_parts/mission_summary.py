@@ -356,8 +356,6 @@ def _summary_with_receipt_projection(
 
 
 def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str, Any]:
-    if not has_canonical_next_action(payload):
-        return dict(payload)
     updated = dict(payload)
     for key in (
         "current_work_unit",
@@ -374,6 +372,10 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "current_execution_evidence",
     ):
         updated.pop(key, None)
+    if has_canonical_next_action(updated):
+        canonical_action = build_canonical_owner_action_projection(updated)
+        if canonical_action is not None:
+            updated["current_executable_owner_action"] = canonical_action
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
 

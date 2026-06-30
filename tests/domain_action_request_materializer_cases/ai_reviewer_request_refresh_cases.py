@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 from tests.domain_action_request_materializer_cases.ai_reviewer_currentness_helpers import (
     disable_progress_projection as _disable_progress_projection,
@@ -489,7 +490,18 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id=work_unit_id,
+                    ),
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -601,7 +613,18 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id=work_unit_id,
+                    ),
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,

@@ -17,6 +17,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     repair_progress_currentness,
     current_action_selection_predicates,
 )
+from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.controllers.domain_action_request_materializer_parts import legacy_next_action_authority
 
@@ -93,6 +94,7 @@ def current_actions_for_studies(
         if study_id not in requested:
             continue
         matched_requested_study = True
+        has_next_action_envelope = canonical_next_action_gate.has_canonical_next_action(study_payload)
         readiness_followup = _current_readiness_followup_action(study_payload)
         fresh_progress_action = fresh_progress_by_study.get(study_id)
         top_level_study_actions = _top_level_study_actions(
@@ -130,6 +132,11 @@ def current_actions_for_studies(
             *current_route_queue_actions,
         ]
         stale_candidate_actions = _unique_actions(stale_candidate_actions)
+        canonical_next_action_available = (
+            has_next_action_envelope
+            or _action_has_canonical_next_action(fresh_progress_action)
+            or any(_action_has_canonical_next_action(action) for action in stale_candidate_actions)
+        )
         transition_barrier = None
         if (
             readiness_followup is None
@@ -178,6 +185,7 @@ def current_actions_for_studies(
         if (
             paper_recovery_owner_callable_action is not None
             and readiness_followup is None
+            and has_next_action_envelope
         ):
             per_study_actions.append(paper_recovery_owner_callable_action)
             ignored.extend(
@@ -231,6 +239,16 @@ def current_actions_for_studies(
                     *([readiness_followup] if readiness_followup is not None else []),
                 ]
                 if action != transition_barrier
+            )
+            continue
+        if not canonical_next_action_available:
+            ignored.extend(
+                _ignored_action(action, LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON)
+                for action in [
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([paper_recovery_owner_callable_action] if paper_recovery_owner_callable_action is not None else []),
+                    *stale_candidate_actions,
+                ]
             )
             continue
         if (
@@ -442,7 +460,7 @@ def current_actions_for_studies(
             )
             continue
         carry_forward_action = carry_forward_risk.carry_forward_successor_action(study_payload)
-        if carry_forward_action is not None:
+        if carry_forward_action is not None and has_next_action_envelope:
             per_study_actions.append(carry_forward_action)
             ignored.extend(
                 _ignored_action(action, "superseded_by_progress_first_carry_forward_risk_successor")
@@ -501,6 +519,11 @@ def current_actions_for_studies(
         ignored.extend(study_ignored)
     for study_id, action in fresh_paper_recovery_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
+            continue
+        if not _action_has_canonical_next_action(action):
+            ignored.append(
+                _ignored_action(action, LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON)
+            )
             continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
@@ -808,6 +831,12 @@ def _retire_legacy_next_action_authority(
     ignored: Iterable[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     return legacy_next_action_authority.retire_incomplete_authority_actions(actions, ignored)
+
+
+def _action_has_canonical_next_action(action: Mapping[str, Any] | None) -> bool:
+    if action is None:
+        return False
+    return canonical_next_action_gate.has_canonical_next_action(action)
 
 
 def _mapping(value: object) -> dict[str, Any]:

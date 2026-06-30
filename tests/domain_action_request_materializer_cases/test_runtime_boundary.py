@@ -4,6 +4,9 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.paper_mission_owner_surface import SUPERVISION_LATEST_RELATIVE_PATH
+
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -68,7 +71,7 @@ def test_owner_callable_dispatch_materializes_runtime_completion_as_transport_on
         }
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -85,6 +88,11 @@ def test_owner_callable_dispatch_materializes_runtime_completion_as_transport_on
                     "running_worker": True,
                     "queue_status": "succeeded",
                     "retry_budget_remaining": 0,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="ai-reviewer-record-production",
+                    ),
                     "handoff_packet": {
                         "request_kind": "return_to_ai_reviewer_workflow",
                         "authority": "observability_only",

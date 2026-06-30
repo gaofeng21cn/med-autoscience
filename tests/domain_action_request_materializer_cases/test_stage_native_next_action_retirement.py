@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope
 
 
 @pytest.fixture(autouse=True)
@@ -203,7 +204,7 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_an
     assert result["domain_progress_transition_request_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
-        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        and item["reason"] == "legacy_next_action_authority_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
     assert not any(
@@ -243,15 +244,13 @@ def test_materialize_domain_action_requests_keeps_stage_native_write_diagnostic_
     assert result["domain_progress_transition_request_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
-        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        and item["reason"] == "legacy_next_action_authority_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
-    stage_native_ignored = [
-        item
+    assert not any(
+        item["action_type"] == "run_quality_repair_batch"
         for item in result["ignored_actions"]
-        if item["action_type"] == "run_quality_repair_batch"
-    ]
-    assert stage_native_ignored == []
+    )
 
 
 def test_materialize_domain_action_requests_does_not_route_stage_native_write_with_legacy_binding(
@@ -403,6 +402,11 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
                 {
                     "study_id": study_id,
                     "quest_id": study_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id=work_unit_id,
+                    ),
                     "owner_route": owner_route,
                     "action_queue": [
                         {

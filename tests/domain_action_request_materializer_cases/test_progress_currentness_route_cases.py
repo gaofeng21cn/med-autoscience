@@ -58,7 +58,8 @@ def _budget_exhausted_decision(
         },
     }
 
-def test_materialize_domain_action_requests_materializes_nonfatal_budget_exhausted_successor(
+
+def test_materialize_domain_action_requests_retires_nonfatal_budget_exhausted_successor_without_envelope(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -99,21 +100,8 @@ def test_materialize_domain_action_requests_materializes_nonfatal_budget_exhaust
         apply=False,
     )
 
-    assert result["domain_progress_transition_request_count"] == 1
-    request = result["domain_progress_transition_requests"][0]
-    assert request["action_type"] == "run_quality_repair_batch"
-    assert request["study_id"] == study_id
-    assert request["next_executable_owner"] == "write"
-    assert request["dispatch_status"] == "dry_run"
-    assert request["prompt_contract_ref"]["required_output_surface"] == (
-        "canonical manuscript story-surface delta or "
-        "typed blocker:manuscript_story_surface_delta_missing"
-    )
-    source_action = request["source_action_ref"]
-    assert source_action["authority"] == "progress_first_budget_exhausted.carry_forward_risk_receipt"
-    assert source_action["work_unit_id"] == "publishability_repair_sprint"
-    assert source_action["work_unit_fingerprint"].startswith(f"carry-forward-risk::{study_id}::")
-    assert source_action["required_delta_kind"] == "carry_forward_risk_repair_delta_or_typed_blocker"
+    assert result["domain_progress_transition_request_count"] == 0
+    assert result["domain_progress_transition_requests"] == []
 
 
 def test_materialize_domain_action_requests_does_not_materialize_fatal_budget_exhausted_successor(
@@ -260,6 +248,11 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_s
             "owner_route": fresh_route,
             "paper_progress_delta": {"count": 1},
             "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="run_gate_clearing_batch",
+                work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            ),
         }
 
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
@@ -418,7 +411,7 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
         if item["study_id"] == study_id
         } == {
             "complete_medical_paper_readiness_surface": (
-                "superseded_by_fresh_study_progress_current_owner_ticket"
+                "legacy_next_action_authority_retired_use_next_action_envelope"
             ),
         }
 
@@ -740,7 +733,7 @@ def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_wh
     assert result["domain_progress_transition_request_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
-        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        and item["reason"] == "legacy_next_action_authority_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
     assert not any(
@@ -812,6 +805,11 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
                 },
             },
             "owner_route": route,
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="complete_medical_paper_readiness_surface",
+                work_unit_id="complete_medical_paper_readiness_surface",
+            ),
         }
 
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)

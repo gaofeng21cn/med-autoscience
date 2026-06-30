@@ -10,7 +10,7 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_survives_readiness_blocker(
+def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_cannot_self_clear_readiness_blocker(
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
@@ -59,6 +59,21 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
                     "work_unit_fingerprint": action_fingerprint,
                     "stage_packet_ref": str(dispatch_path),
                     "stage_packet_refs": [str(dispatch_path)],
+                    "owner_route": {
+                        "next_owner": "ai_reviewer",
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "stage_packet_ref": str(dispatch_path),
+                            "stage_packet_refs": [str(dispatch_path)],
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
                     "refs": {
                         "dispatch_path": str(dispatch_path),
                         "stage_packet_path": str(dispatch_path),
@@ -109,39 +124,10 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.action_queue"
-    assert candidate["study_id"] == study_id
-    assert candidate["action_type"] == "return_to_ai_reviewer_workflow"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["dispatch_path"] == str(dispatch_path)
-    expected_stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/"
-        "owner_callable_adapters/return_to_ai_reviewer_workflow.json"
-    )
-    assert candidate["stage_packet_ref"] == expected_stage_packet_ref
-    assert candidate["stage_packet_refs"] == [expected_stage_packet_ref]
-    assert candidate["next_executable_owner"] == "ai_reviewer"
-    boundary = candidate["authority_boundary"]
-    assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"
-    assert boundary["stage_authority_role"] == "non_authoritative_observation_and_intent_producer"
-    assert boundary["can_write_stage_current_pointer"] is False
-    assert boundary["can_write_current_owner_delta"] is False
-    assert boundary["can_write_stage_terminal_state"] is False
-    assert boundary["can_mark_provider_attempt_running"] is False
-    stage_boundary = candidate["stage_transition_authority_boundary"]
-    assert stage_boundary["producer_kind"] == "runtime_provider"
-    assert stage_boundary["intent_kind"] == "provider_observation"
-    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
-    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
-    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
-    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
-    assert stage_boundary["intent_can_write_domain_truth"] is False
+    assert result == []
 
 
-def test_provider_admission_candidate_from_current_control_gate_clearing_queue_survives_stale_blocker(
+def test_provider_admission_candidate_from_current_control_gate_clearing_queue_cannot_self_clear_stale_blocker(
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
@@ -188,6 +174,19 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
                     "next_work_unit": work_unit_id,
                     "action_fingerprint": action_fingerprint,
                     "work_unit_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "next_owner": "gate_clearing_batch",
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
                     "refs": {"dispatch_path": str(dispatch_path)},
                 }
             ],
@@ -233,30 +232,7 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.action_queue"
-    assert candidate["study_id"] == study_id
-    assert candidate["action_type"] == "run_gate_clearing_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["dispatch_path"] == str(dispatch_path)
-    assert candidate["next_executable_owner"] == "gate_clearing_batch"
-    boundary = candidate["authority_boundary"]
-    assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"
-    assert boundary["stage_authority_role"] == "non_authoritative_observation_and_intent_producer"
-    assert boundary["can_write_stage_current_pointer"] is False
-    assert boundary["can_write_current_owner_delta"] is False
-    assert boundary["can_write_stage_terminal_state"] is False
-    assert boundary["can_mark_provider_attempt_running"] is False
-    stage_boundary = candidate["stage_transition_authority_boundary"]
-    assert stage_boundary["producer_kind"] == "runtime_provider"
-    assert stage_boundary["intent_kind"] == "provider_observation"
-    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
-    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
-    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
-    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
-    assert stage_boundary["intent_can_write_domain_truth"] is False
+    assert result == []
 
 
 def test_provider_admission_candidate_carries_top_level_work_unit_identity_from_transition_request(

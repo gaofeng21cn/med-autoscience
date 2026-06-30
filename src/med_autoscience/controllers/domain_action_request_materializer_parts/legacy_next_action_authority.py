@@ -4,6 +4,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from med_autoscience.controllers import opl_domain_progress_transition_contract
+from med_autoscience.controllers.owner_callable_action_policy import SUPPORTED_ACTION_TYPES
 from med_autoscience.controllers.domain_action_request_materializer_parts import current_action_queue
 from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 
@@ -51,15 +52,22 @@ def requires_next_action_envelope(action: Mapping[str, Any]) -> bool:
         or _text(action.get("source_surface"))
         or _text(action.get("current_action_source"))
     )
-    if (
+    legacy_authority = (
+        authority in LEGACY_NEXT_ACTION_AUTHORITY_VALUES
+        or source in LEGACY_NEXT_ACTION_AUTHORITY_VALUES
+    )
+    strict_legacy_authority = (
         authority in STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES
         or source in STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES
-    ):
+    )
+    if strict_legacy_authority:
         return True
     next_action = _next_action_payload(action)
     if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
         return False
-    return _text(next_action.get("surface_kind")) == "mas_next_action_envelope"
+    if legacy_authority:
+        return True
+    return _text(action.get("action_type")) in SUPPORTED_ACTION_TYPES
 
 
 def _next_action_payload(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -71,6 +79,11 @@ def _next_action_payload(action: Mapping[str, Any]) -> dict[str, Any]:
         or _mapping(handoff.get("next_action"))
         or _mapping(prompt_contract.get("next_action"))
         or _mapping(source_action.get("next_action"))
+        or (
+            dict(action)
+            if _text(action.get("surface_kind")) == "mas_next_action_envelope"
+            else {}
+        )
     )
 
 

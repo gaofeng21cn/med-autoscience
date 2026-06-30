@@ -738,14 +738,14 @@ def _clear_stale_route_fields(surface: dict[str, Any]) -> None:
 
 def _paper_recovery_lane_title(phase: str) -> str:
     return {
-        "admission_blocked": "PaperRecovery admission blocked",
-        "projection_inconsistent": "PaperRecovery projection inconsistent",
-        "manual_foreground_unadopted": "PaperRecovery manual delta requires adoption",
-        "terminal_closeout_ready": "PaperRecovery terminal closeout ready",
-        "owner_receipt_recorded": "PaperRecovery owner receipt recorded",
-        "domain_blocked": "PaperRecovery owner blocker",
-        "human_gate": "PaperRecovery human gate",
-    }.get(phase, "PaperRecovery recovery diagnostic")
+        "admission_blocked": "MAS owner recovery diagnostic: admission blocked",
+        "projection_inconsistent": "MAS owner recovery diagnostic: projection inconsistent",
+        "manual_foreground_unadopted": "Current owner handoff requires MAS receipt adoption",
+        "terminal_closeout_ready": "Current owner handoff: terminal closeout ready",
+        "owner_receipt_recorded": "Current owner handoff: owner receipt recorded",
+        "domain_blocked": "Current owner handoff: owner blocker",
+        "human_gate": "Current owner handoff: human gate",
+    }.get(phase, "MAS owner recovery diagnostic")
 
 
 def _paper_recovery_lane_severity(phase: str) -> str:
@@ -778,15 +778,15 @@ def paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -
     if kind == "run_mas_owner_callable":
         owner = _non_empty_text(next_safe_action.get("owner")) or "MAS"
         return (
-            f"Route the PaperRecovery diagnostic to the MAS owner callable for {owner}; "
+            f"Route the MAS owner recovery diagnostic to the MAS owner callable for {owner}; "
             "OPL transport retry exhaustion does not create next-action authority."
         )
     if kind == "authorize_opl_transport_recovery_or_stable_typed_blocker":
         return "Authorize OPL transport recovery for the identity-bound provider attempt or record a stable typed blocker."
     if phase == "admission_blocked":
-        return "Provider admission is blocked by the current PaperRecovery recovery diagnostic action."
+        return "Provider admission is blocked by the current MAS owner recovery diagnostic action."
     if phase == "projection_inconsistent":
-        return "Paper recovery projection is inconsistent; repair the MAS recovery state before admission."
+        return "MAS owner recovery diagnostic is inconsistent; repair the MAS recovery state before admission."
     if phase == "manual_foreground_unadopted":
         return "Foreground paper edits require MAS owner receipt adoption before they count as recovery progress."
     if phase == "terminal_closeout_ready":
@@ -795,10 +795,10 @@ def paper_recovery_summary(*, phase: str, next_safe_action: Mapping[str, Any]) -
         return "Consume the current owner receipt through MAS owner authority."
     if phase in {"domain_blocked", "human_gate"}:
         if kind is not None and kind != "resolve_typed_blocker":
-            return f"Paper recovery is waiting on {kind}."
+            return f"Current owner handoff is waiting on {kind}."
         return "Resolve the current typed blocker through its owner before starting another provider attempt."
     if phase == "attempt_running":
-        return "Watch the running provider attempt bound to the current paper recovery obligation."
+        return "Watch the running provider attempt bound to the current MAS owner recovery obligation."
     if kind is not None:
         return kind
     return None

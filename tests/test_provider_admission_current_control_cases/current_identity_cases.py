@@ -254,7 +254,7 @@ def test_provider_admission_current_control_uses_worker_liveness_as_running_gate
     }
 
 
-def test_provider_admission_prefers_canonical_current_work_unit_over_stale_current_action(
+def test_provider_admission_uses_explicit_action_queue_identity_over_stale_status_noise(
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
@@ -300,6 +300,20 @@ def test_provider_admission_prefers_canonical_current_work_unit_over_stale_curre
                     "owner": "gate_clearing_batch",
                     "next_work_unit": work_unit_id,
                     "action_fingerprint": action_fingerprint,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "next_owner": "gate_clearing_batch",
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
                     "refs": {"dispatch_path": str(dispatch_path)},
                 }
             ],

@@ -86,7 +86,7 @@ medautosci paper-mission terminalize-stage \
   --stage-packet <stage_packet.json>
 ```
 
-执行后再用 `medautosci study progress --profile <profile> --study-id <study_id> --format json` 读取 `current_stage`、`current_work_unit`、`current_executable_owner_action`、typed blocker 和 next owner。`runtime domain-health-diagnostic`、`owner-route-reconcile` 与旧 default-executor dispatch 只允许作为显式 diagnostic / tombstone / migration provenance；默认监督、automation 或不确定 current fingerprint 时不得把它们作为推进入口。
+执行后再用 `medautosci study progress --profile <profile> --study-id <study_id> --format json` 确认 canonical `StageOutcome` / `NextActionEnvelope` 消费结果、`current_stage`、typed blocker 和 next owner。旧 `current_work_unit` / `current_executable_owner_action` 只能作为 legacy diagnostic-only / retired drilldown，不得当成正常 readback 或第二权威。`runtime domain-health-diagnostic`、`owner-route-reconcile` 与旧 default-executor dispatch 只允许作为显式 diagnostic / tombstone / migration provenance；默认监督、automation 或不确定 current fingerprint 时不得把它们作为推进入口。
 
 ## Domain runtime 护栏
 

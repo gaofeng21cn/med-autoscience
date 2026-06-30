@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -184,6 +185,11 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
                 "owner-gate-decision:c7027de42ca336cfe0782428",
             ],
         },
+        "next_action": _next_action_envelope(
+            study_id=study_id,
+            action_type="run_quality_repair_batch",
+            work_unit_id="analysis_claim_evidence_repair",
+        ),
     }
     _write_json(
         profile.workspace_root

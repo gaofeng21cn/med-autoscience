@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -130,7 +131,7 @@ def test_materializer_rejects_top_level_action_queue_disallowed_by_current_study
             "study_id": study_id,
             "action_type": "return_to_ai_reviewer_workflow",
             "action_id": f"supervisor-action::{study_id}::stale-ai-reviewer",
-            "reason": "superseded_by_current_owner_route_action_queue",
+            "reason": "legacy_next_action_authority_retired_use_next_action_envelope",
         }
     ]
     assert not (
@@ -218,7 +219,7 @@ def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_iden
             "study_id": study_id,
             "action_type": "return_to_ai_reviewer_workflow",
             "action_id": f"supervisor-action::{study_id}::stale-ai-reviewer",
-            "reason": "superseded_by_current_owner_route_action_queue",
+            "reason": "legacy_next_action_authority_retired_use_next_action_envelope",
         }
     ]
     assert not (
@@ -618,12 +619,6 @@ def test_materializer_does_not_dispatch_weak_progress_current_owner_ticket(
 
     assert result["request_task_count"] == 0
     assert result["domain_progress_transition_request_count"] == 0
-    assert any(
-        item["action_type"] == "run_gate_clearing_batch"
-        and item["reason"]
-        == "fresh_progress_current_owner_ticket_requires_strong_currentness_identity"
-        for item in result["ignored_actions"]
-    )
     assert not (
         study_root
         / "artifacts"
@@ -698,6 +693,11 @@ def test_materializer_dispatches_fresh_progress_ticket_with_strong_currentness_i
                     "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
                 },
             },
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="run_gate_clearing_batch",
+                work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            ),
         }
 
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)

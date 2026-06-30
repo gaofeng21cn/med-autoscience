@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from tests.domain_action_request_materializer_cases.shared import owner_route, write_json
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope, owner_route, write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -49,6 +49,11 @@ def _scan_with_action(tmp_path: Path, *, evidence_gap_inputs: list[dict[str, obj
         "action_fingerprint": route["work_unit_fingerprint"],
         "owner_route": route,
         "evidence_gap_inputs": evidence_gap_inputs,
+        "next_action": next_action_envelope(
+            study_id=study_id,
+            action_type="run_quality_repair_batch",
+            work_unit_id="medical_prose_write_repair",
+        ),
     }
     write_json(
         profile.workspace_root

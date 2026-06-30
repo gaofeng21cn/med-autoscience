@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 import pytest
 
@@ -155,6 +156,11 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
                         "typed blocker:manuscript_story_surface_delta_missing"
                     ),
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id=work_unit_id,
+                    ),
                 }
             ],
         },
@@ -283,6 +289,11 @@ def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "required_output_surface": "artifacts/publication_eval/latest.json",
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id=work_unit_id,
+                    ),
                 }
             ],
         },
@@ -436,6 +447,11 @@ def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_
                         "typed blocker:manuscript_story_surface_delta_missing"
                     ),
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id=work_unit_id,
+                    ),
                 }
             ],
         },
@@ -590,6 +606,11 @@ def test_ai_reviewer_record_stale_after_current_inputs_keeps_ai_reviewer_product
                     "publication_eval_latest_write_allowed": False,
                     "controller_decision_write_allowed": False,
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id=work_unit_id,
+                    ),
                 }
             ],
         },
@@ -739,6 +760,11 @@ def test_current_ai_reviewer_write_routeback_preempts_stale_package_freshness_fo
                     "publication_eval_latest_write_allowed": False,
                     "controller_decision_write_allowed": False,
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id=work_unit_id,
+                    ),
                 }
             ],
         },

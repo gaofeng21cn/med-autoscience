@@ -758,17 +758,29 @@ def test_paper_recovery_human_gate_suppresses_typed_blocker_user_visible_overrid
 
     assert payload["needs_user_decision"] is True
     assert payload["next_step"].startswith(
-        "Paper recovery is waiting on route_back_to_owner_or_repair_materialization."
+        "Current owner handoff is waiting on route_back_to_owner_or_repair_materialization."
     )
     assert "human_gate" in payload["current_blockers"]
     assert payload["next_system_action"] != "等待 one-person-lab 处理当前 typed blocker。"
     assert payload["next_system_action"].startswith(
-        "Paper recovery is waiting on route_back_to_owner_or_repair_materialization."
+        "Current owner handoff is waiting on route_back_to_owner_or_repair_materialization."
     )
     assert payload["user_visible_projection"]["why_not_progressing"] == "human_gate"
     assert payload["user_visible_projection"]["next_step"].startswith(
-        "Paper recovery is waiting on route_back_to_owner_or_repair_materialization."
+        "Current owner handoff is waiting on route_back_to_owner_or_repair_materialization."
     )
+    user_facing_text = "\n".join(
+        str(value)
+        for value in (
+            payload.get("next_step"),
+            payload.get("next_system_action"),
+            payload.get("user_decision_summary"),
+            payload["user_visible_projection"].get("next_step"),
+            payload["user_visible_projection"].get("next_system_action"),
+        )
+    )
+    assert "PaperRecovery" not in user_facing_text
+    assert "Paper recovery" not in user_facing_text
 
 
 def test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner() -> None:

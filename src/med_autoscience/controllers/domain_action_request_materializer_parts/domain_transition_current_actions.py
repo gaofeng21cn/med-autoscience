@@ -57,6 +57,7 @@ def current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
             decorated["quest_id"] = quest_id
         routed = owner_route_part.decorate_actions(actions=[decorated], owner_route=owner_route)[0]
         if current_action_authority.action_allowed_by_owner_route(routed, owner_route):
+            routed["next_action"] = dict(_mapping(study.get("next_action")))
             decorated_actions.append(routed)
     return decorated_actions
 

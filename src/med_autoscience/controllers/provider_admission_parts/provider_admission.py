@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import control_identity
-from med_autoscience.controllers import paper_progress_policy_adapter
 from med_autoscience.controllers.current_work_unit_parts.stage_packet_blockers import (
     is_selected_dispatch_stage_packet_blocker as _is_selected_dispatch_stage_packet_blocker,
 )
@@ -27,13 +26,13 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_cur
     _current_action_identity,
     _current_action_action_type,
     _current_control_action_dispatch_path,
+    _current_control_action_identity,
     _current_control_action_requests_provider_admission,
     _current_control_executable_owner,
     _dispatch_authority_allows_current_control_provider_admission,
     _first_currentness_fingerprint,
     _merge_owner_route_currentness,
     _provider_admission_action_key,
-    _status_with_current_control_study_currentness,
 )
 from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
@@ -55,6 +54,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_pro
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
 )
+from med_autoscience.controllers.provider_admission_parts import provider_admission_policy_projection
 from med_autoscience.controllers.provider_admission_parts.provider_admission_request_only import (
     current_identity_fingerprint_for_action as _current_identity_fingerprint_for_action,
     first_present_text as _first_present_text,
@@ -157,14 +157,13 @@ def current_control_provider_admission_candidates(
         if not isinstance(action, Mapping):
             continue
         study = _mapping(studies_by_id.get(_non_empty_text(action.get("study_id")) or status_study_id))
-        effective_status = _status_with_current_control_study_currentness(status=status, study=study)
-        current_action_identity = _current_action_identity(effective_status)
+        current_action_identity = _current_control_action_identity(action)
         candidate = provider_admission_candidate_from_current_control_action(
             action,
             study_root=study_root,
             status_study_id=status_study_id,
             current_action_identity=current_action_identity,
-            status_payload=effective_status,
+            status_payload=status,
             current_control_ref=current_control_ref,
             study_payload=study,
         )
@@ -199,7 +198,7 @@ def provider_admission_candidate_from_current_control_action(
     if action_type is None:
         return None
     study = _mapping(study_payload)
-    owner_route = _mapping(action.get("owner_route")) or _mapping(study.get("owner_route"))
+    owner_route = _mapping(action.get("owner_route"))
     source_refs = _mapping(owner_route.get("source_refs"))
     currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     work_unit_id = (
@@ -761,7 +760,10 @@ def provider_admission_candidate_from_execution(
     }
     return candidate_with_authority_boundaries(
         _candidate_with_stage_run_admission_identity(
-            _candidate_with_paper_progress_policy_result(candidate, execution=execution),
+            provider_admission_policy_projection.candidate_with_paper_progress_policy_result(
+                candidate,
+                execution=execution,
+            ),
             execution=execution,
             allow_dispatch_ref_stage_packet_identity_recovery=True,
         )
@@ -780,138 +782,11 @@ def _execution_payload_source(
     return "owner_callable_adapter_receipt"
 
 
-def _candidate_with_paper_progress_policy_result(
-    candidate: Mapping[str, Any],
-    *,
-    execution: Mapping[str, Any],
-) -> dict[str, Any]:
-    candidate_with_readback = dict(candidate)
-    for key in (
-        "opl_domain_progress_transition_result",
-        "opl_domain_progress_runtime_result",
-        "opl_runtime_result",
-    ):
-        readback = _mapping(execution.get(key)) or _mapping(candidate.get(key))
-        if readback:
-            candidate_with_readback[key] = dict(readback)
-    existing_policy = _mapping(execution.get("paper_progress_policy_result")) or _mapping(
-        candidate_with_readback.get("paper_progress_policy_result")
-    )
-    existing_transition_request = _mapping(
-        existing_policy.get("opl_domain_progress_transition_request")
-    )
-    has_readback = bool(candidate_opl_transition_readback(candidate_with_readback))
-    existing_transition_kind = _non_empty_text(
-        existing_transition_request.get("recommended_transition_kind")
-    )
-    existing_policy_matches_readback = (
-        not has_readback
-        or existing_transition_kind == paper_progress_policy_adapter.START_PROVIDER_ATTEMPT
-    )
-    if existing_policy and existing_transition_request and existing_policy_matches_readback:
-        policy_result = existing_policy
-    else:
-        policy_result = paper_progress_policy_adapter.build_policy_result(
-            _paper_progress_policy_payload(candidate_with_readback, execution=execution),
-            source="domain_diagnostic.provider_admission_candidate",
-        )
-    if not policy_result:
-        return dict(candidate_with_readback)
-    payload = {
-        **dict(candidate_with_readback),
-        "paper_progress_policy_result": dict(policy_result),
-        "opl_domain_progress_transition_request": _mapping(
-            policy_result.get("opl_domain_progress_transition_request")
-        ),
-    }
-    return _with_readback_backed_status(payload)
-
-
-def _with_readback_backed_status(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    payload = dict(candidate)
-    has_readback = bool(candidate_opl_transition_readback(payload))
-    if has_readback:
-        payload["status"] = "provider_admission_pending"
-        payload["provider_admission_pending"] = True
-        payload["provider_attempt_or_lease_required"] = True
-        payload["provider_admission_requires_opl_runtime_result"] = False
-        return payload
-    payload["status"] = "transition_request_pending"
-    payload["provider_admission_pending"] = False
-    payload["provider_attempt_or_lease_required"] = False
-    payload["provider_admission_requires_opl_runtime_result"] = True
-    payload["opl_transition_runtime_required"] = True
-    return payload
-
-
-def _paper_progress_policy_payload(
-    candidate: Mapping[str, Any],
-    *,
-    execution: Mapping[str, Any],
-) -> dict[str, Any]:
-    currentness_basis = _mapping(candidate.get("currentness_basis"))
-    current_action = {
-        "surface_kind": "current_executable_owner_action",
-        "status": "ready",
-        "source": _non_empty_text(candidate.get("source")) or _non_empty_text(execution.get("source")),
-        "next_owner": _non_empty_text(candidate.get("next_executable_owner"))
-        or _non_empty_text(execution.get("next_executable_owner")),
-        "owner": _non_empty_text(candidate.get("next_executable_owner"))
-        or _non_empty_text(execution.get("next_executable_owner")),
-        "action_type": _non_empty_text(candidate.get("action_type")),
-        "work_unit_id": _non_empty_text(candidate.get("work_unit_id")),
-        "work_unit_fingerprint": _non_empty_text(candidate.get("work_unit_fingerprint")),
-        "action_fingerprint": _non_empty_text(candidate.get("action_fingerprint"))
-        or _non_empty_text(candidate.get("work_unit_fingerprint")),
-        "currentness_basis": dict(currentness_basis) if currentness_basis else None,
-    }
-    current_work_unit = {
-        "surface_kind": "current_work_unit",
-        "status": "executable_owner_action",
-        "owner": current_action["next_owner"],
-        "action_type": current_action["action_type"],
-        "work_unit_id": current_action["work_unit_id"],
-        "work_unit_fingerprint": current_action["work_unit_fingerprint"],
-        "action_fingerprint": current_action["action_fingerprint"],
-        "currentness_basis": dict(currentness_basis) if currentness_basis else None,
-    }
-    return {
-        "study_id": _non_empty_text(candidate.get("study_id")),
-        "quest_id": _non_empty_text(candidate.get("quest_id")),
-        "current_work_unit": current_work_unit,
-        "current_executable_owner_action": current_action,
-        "paper_recovery_state": _provider_admission_recovery(candidate),
-    }
-
-
-def _provider_admission_recovery(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    has_readback = bool(candidate_opl_transition_readback(candidate))
-    if not has_readback:
-        return {
-            "surface_kind": "paper_recovery_state",
-            "phase": "transition_request_pending",
-            "next_safe_action": {
-                "kind": "await_opl_transition_readback",
-                "owner": "one-person-lab",
-                "provider_admission_allowed": False,
-                "provider_admission_requires_opl_runtime_result": True,
-            },
-        }
-    return {
-        "surface_kind": "paper_recovery_state",
-        "phase": "admission_pending",
-        "next_safe_action": {
-            "kind": "admit_provider_attempt",
-            "owner": _non_empty_text(candidate.get("next_executable_owner"))
-            or _non_empty_text(candidate.get("owner")),
-            "provider_admission_allowed": True,
-        },
-    }
-
-
 def candidate_with_authority_boundaries(candidate: Mapping[str, Any]) -> dict[str, Any]:
     return provider_admission_candidate_with_authority_boundaries(
-        _with_readback_backed_status(_candidate_with_transition_request_identity(candidate))
+        provider_admission_policy_projection.with_readback_backed_status(
+            _candidate_with_transition_request_identity(candidate)
+        )
     )
 
 
@@ -1131,6 +1006,8 @@ def _explicit_current_action_execution_matches_current_action(
     if _current_identity_is_opl_authorization_typed_blocker(current_action_identity):
         return False
     if _non_empty_text(current_action_identity.get("source")) == "canonical_current_work_unit":
+        return False
+    if _non_empty_text(current_action_identity.get("source")) == "opl_current_control_state.action_queue":
         return False
     if not _provider_attempt_required(execution) and not _execution_requests_transition_runtime(
         execution

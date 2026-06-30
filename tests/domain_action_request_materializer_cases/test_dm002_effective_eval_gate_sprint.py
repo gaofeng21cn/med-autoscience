@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -205,6 +206,11 @@ def test_dm002_20260529_current_positive_ai_reviewer_archive_replays_gate_withou
                     "work_unit_fingerprint": work_unit_fingerprint,
                     "required_output_surface": "artifacts/publication_eval/latest.json",
                     "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id=work_unit_id,
+                    ),
                 }
             ],
         },

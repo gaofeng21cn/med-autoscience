@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -53,10 +54,15 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
             "schema_version": 1,
             "studies": [
                 {
-                    "study_id": study_id,
-                    "quest_id": quest_id,
-                    "runtime_health_snapshot": {},
-                    "study_truth_snapshot": {
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "runtime_health_snapshot": {},
+                "next_action": _next_action_envelope(
+                    study_id=study_id,
+                    action_type="return_to_ai_reviewer_workflow",
+                    work_unit_id=work_unit_id,
+                ),
+                "study_truth_snapshot": {
                         "truth_epoch": "truth-epoch-dm002-current-inputs",
                         "source_signature": "truth-source-dm002-current-inputs",
                     },

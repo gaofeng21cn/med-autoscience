@@ -4,7 +4,11 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.paper_mission_owner_surface import (
+    SUPERVISION_LATEST_RELATIVE_PATH,
+)
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -57,11 +61,21 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
         allowed_actions=["canonical_paper_inputs_rehydrate_required"],
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="canonical_paper_inputs_rehydrate_required",
+                        work_unit_id="canonical_paper_inputs_rehydrate_required",
+                    ),
+                    "owner_route": route,
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -147,11 +161,21 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
         allowed_actions=["unit_harmonized_external_validation_rerun"],
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="unit_harmonized_external_validation_rerun",
+                        work_unit_id="unit_harmonized_external_validation_rerun",
+                    ),
+                    "owner_route": route,
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -241,11 +265,21 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
         allowed_actions=["recover_transport_model_provenance"],
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="recover_transport_model_provenance",
+                        work_unit_id="recover_transport_model_provenance",
+                    ),
+                    "owner_route": route,
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -335,11 +369,21 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
         allowed_actions=["methodology_reframe_route_decision"],
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="methodology_reframe_route_decision",
+                        work_unit_id="methodology_reframe_route_decision",
+                    ),
+                    "owner_route": route,
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -439,7 +483,7 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
     )
     current_route["source_fingerprint"] = "truth-source::current-write-rehydrate"
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -460,6 +504,11 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
                 {
                     "study_id": study_id,
                     "quest_id": study_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="canonical_paper_inputs_rehydrate_required",
+                        work_unit_id="canonical_paper_inputs_rehydrate_required",
+                    ),
                     "owner_route": current_route,
                     "action_queue": [
                         {
@@ -531,7 +580,7 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
         allowed_actions=["unit_harmonized_external_validation_rerun"],
     )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -552,6 +601,11 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
                 {
                     "study_id": study_id,
                     "quest_id": quest_id,
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="unit_harmonized_external_validation_rerun",
+                        work_unit_id="unit_harmonized_external_validation_rerun",
+                    ),
                     "owner_route": current_route,
                     "current_execution_envelope": {
                         "state_kind": "executable_owner_action",

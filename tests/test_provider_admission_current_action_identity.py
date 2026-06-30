@@ -355,7 +355,7 @@ def test_provider_admission_candidate_inherits_current_action_currentness_basis(
     }
 
 
-def test_provider_admission_candidate_allows_current_action_identity_over_prior_typed_blocker(
+def test_provider_admission_candidate_rejects_action_queue_identity_over_prior_typed_blocker(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
@@ -448,7 +448,7 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
         },
         "current_executable_owner_action": current_action,
     }
-    [candidate] = module.current_control_provider_admission_candidates(
+    candidates = module.current_control_provider_admission_candidates(
         {
             "studies": [status_payload],
             "action_queue": [
@@ -456,6 +456,19 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
                     **current_action,
                     "study_id": study_id,
                     "source_surface": "opl_current_control_state.action_queue",
+                    "owner_route": {
+                        "next_owner": "analysis-campaign",
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                            },
+                        },
+                    },
                 }
             ],
         },
@@ -463,11 +476,7 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
         status_payload=status_payload,
     )
 
-    assert candidate["study_id"] == study_id
-    assert candidate["action_type"] == action_type
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["work_unit_fingerprint"] == fingerprint
-    assert candidate["source"] == "opl_current_control_state.action_queue"
+    assert candidates == []
 
 
 def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity() -> None:

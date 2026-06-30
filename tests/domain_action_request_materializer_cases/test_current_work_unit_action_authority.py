@@ -95,6 +95,34 @@ def test_current_action_selection_keeps_complete_next_action_envelope() -> None:
     assert ignored == []
 
 
+def test_current_action_selection_retires_bare_top_level_action_queue_without_study_envelope() -> None:
+    selection = _selection_module()
+    action = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "action_id": "bare-top-level-gate-replay",
+        "action_type": "run_gate_clearing_batch",
+        "owner": "gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": "sha256:bare-top-level-gate-replay",
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(),
+        scan_payload={"action_queue": [action]},
+    )
+
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "action_type": "run_gate_clearing_batch",
+            "action_id": "bare-top-level-gate-replay",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
 def test_current_work_unit_action_producer_is_physically_retired() -> None:
     assert (
         importlib.util.find_spec(
@@ -255,8 +283,12 @@ def test_current_action_selection_does_not_let_stale_fresh_paper_recovery_callab
         },
     )
 
-    assert actions is not None
-    assert [action["action_type"] for action in actions] == ["run_gate_clearing_batch"]
-    assert actions[0]["authority"] == "paper_recovery_state"
-    assert actions[0]["work_unit_id"] == "publication_gate_replay"
-    assert ignored == []
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "action_id": f"paper-recovery-owner-callable::{study_id}::run_gate_clearing_batch",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]

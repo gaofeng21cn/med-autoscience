@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES,
 )
+from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
     domain_transition_current_actions,
@@ -106,7 +107,12 @@ def study_queue_actions(
                 payload["study_id"] = _text(payload.get("study_id")) or study_id
             if quest_id is not None:
                 payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-            actions.append(attach_owner_route_if_missing(payload, owner_route))
+            actions.append(
+                attach_canonical_next_action_if_missing(
+                    attach_owner_route_if_missing(payload, owner_route),
+                    study,
+                )
+            )
         return actions, "per_study" if actions else "per_study_empty"
     if current_execution_is_authoritative(study):
         return [], "current_execution_envelope"
@@ -114,7 +120,12 @@ def study_queue_actions(
         payload = dict(action)
         if quest_id is not None:
             payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-        actions.append(attach_owner_route_if_missing(payload, owner_route))
+        actions.append(
+            attach_canonical_next_action_if_missing(
+                attach_owner_route_if_missing(payload, owner_route),
+                study,
+            )
+        )
     return actions, "top_level"
 
 
@@ -125,10 +136,25 @@ def top_level_study_actions(
 ) -> list[dict[str, Any]]:
     study_id = _text(study.get("study_id"))
     return [
-        dict(action)
+        attach_canonical_next_action_if_missing(action, study)
         for action in top_level_actions
         if isinstance(action, Mapping) and _text(action.get("study_id")) == study_id
     ]
+
+
+def attach_canonical_next_action_if_missing(
+    action: Mapping[str, Any],
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(action)
+    if opl_domain_progress_transition_contract.next_action_identity_complete(
+        _mapping(payload.get("next_action"))
+    ):
+        return payload
+    next_action = _mapping(study.get("next_action"))
+    if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+        payload["next_action"] = next_action
+    return payload
 
 
 def attach_owner_route_if_missing(action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> dict[str, Any]:

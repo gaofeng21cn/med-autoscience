@@ -72,9 +72,11 @@ def _fresh_progress_current_action(
     domain_transition_actions: DomainTransitionActions,
     explicit_readiness_action: ExplicitReadinessAction,
 ) -> dict[str, Any] | None:
+    next_action = _canonical_next_action(progress)
     accepted_owner_gate_action = _accepted_owner_gate_decision_action(
         study_id=study_id,
         progress=progress,
+        next_action=next_action,
     )
     if accepted_owner_gate_action is not None:
         return accepted_owner_gate_action
@@ -85,8 +87,10 @@ def _fresh_progress_current_action(
     )
     if barrier is not None:
         return barrier
+    if next_action is None:
+        return None
     if not _progress_has_executable_owner_action(progress):
-        return carry_forward_risk.carry_forward_successor_action(progress)
+        return None
     current_action = _mapping(progress.get("current_executable_owner_action"))
     repair_progress_followup = repair_progress_currentness.current_action_is_repair_progress_followup(
         current_action
@@ -166,8 +170,7 @@ def _fresh_progress_current_action(
             current_action=current_action,
             ticket=ticket,
         )
-    next_action = _canonical_next_action(progress)
-    authority = "mas_next_action_envelope" if next_action is not None else source_surface
+    authority = "mas_next_action_envelope"
     action = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -660,7 +663,10 @@ def _accepted_owner_gate_decision_action(
     *,
     study_id: str,
     progress: Mapping[str, Any],
+    next_action: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
+    if next_action is None:
+        return None
     recovery = _mapping(progress.get("paper_recovery_state"))
     if _text(recovery.get("phase")) != "owner_action_ready":
         return None

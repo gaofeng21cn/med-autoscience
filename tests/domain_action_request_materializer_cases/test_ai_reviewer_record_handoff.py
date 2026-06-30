@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -95,7 +96,18 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="paper_authority_clean_migration_required",
+                    ),
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -244,7 +256,18 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="paper_authority_clean_migration_required",
+                    ),
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,
@@ -410,7 +433,18 @@ def test_materialize_ai_reviewer_record_handoff_does_not_suppress_stale_current_
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    ),
+                }
+            ],
             "action_queue": [
                 {
                     "study_id": study_id,

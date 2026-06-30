@@ -24,7 +24,10 @@ def build_active_current_work_unit(
     runtime_health: Mapping[str, Any],
     running_provider_attempt_bound: bool,
 ) -> dict[str, Any]:
-    action = _mapping_copy(current_executable_owner_action)
+    action = _executable_action_when_canonical(
+        progress,
+        current_executable_owner_action,
+    )
     handoff = _mapping_copy(provider_admission)
     running_attempt = _mapping_copy(live_provider_attempt)
     blocker = _mapping_copy(typed_blocker)
@@ -103,7 +106,10 @@ def build_active_current_execution_envelope(
 ) -> dict[str, Any]:
     current_work = _mapping_copy(current_work_unit_payload)
     state = _mapping_copy(current_work.get("state"))
-    action = _mapping_copy(progress.get("current_executable_owner_action"))
+    action = _executable_action_when_canonical(
+        progress,
+        progress.get("current_executable_owner_action"),
+    )
     blocker = _mapping_copy(typed_blocker)
     if not blocker:
         blocker = _mapping_copy(state.get("typed_blocker"))
@@ -257,3 +263,14 @@ def _work_unit_text(key: str, *items: Mapping[str, Any]) -> str | None:
         if value is not None:
             return value
     return None
+
+
+def _executable_action_when_canonical(
+    progress: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload = _mapping_copy(action)
+    next_action = _mapping_copy(progress.get("next_action"))
+    if _non_empty_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return {}
+    return payload
