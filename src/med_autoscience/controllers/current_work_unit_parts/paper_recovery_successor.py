@@ -119,14 +119,18 @@ def paper_recovery_successor_action_ready(action: Mapping[str, Any]) -> bool:
     if (
         successor
         and text(successor.get("source_next_safe_action_kind"))
-        not in {None, "materialize_successor_owner_action"}
+        not in {None, "materialize_successor_owner_action", "run_mas_owner_callable"}
     ):
         return False
     currentness_basis = mapping(action.get("owner_route_currentness_basis"))
     return (
         text(action.get("action_type")) is not None
         and work_unit_id(action.get("work_unit_id")) is not None
-        and work_unit_fingerprint(action, currentness_basis=currentness_basis) is not None
+        and (
+            work_unit_fingerprint(action, currentness_basis=currentness_basis)
+            or text(action.get("action_fingerprint"))
+        )
+        is not None
     )
 
 

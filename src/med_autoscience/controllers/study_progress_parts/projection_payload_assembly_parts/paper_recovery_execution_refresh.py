@@ -11,13 +11,14 @@ from ...current_work_unit_parts.paper_recovery_successor import (
     PAPER_RECOVERY_SUCCESSOR_DELTA_KIND,
     PAPER_RECOVERY_SUCCESSOR_SOURCE,
     action_supersedes_terminal_selector_residue,
+    paper_recovery_successor_action_ready,
     paper_recovery_successor_supersedes_terminal_selector_residue,
+)
+from ...current_work_unit_parts.paper_recovery_projection import (
+    paper_recovery_successor_action,
 )
 from ...paper_recovery_state_parts.successor_owner_resolution import (
     paper_recovery_successor_consumed_by_gate_followthrough,
-)
-from ..owner_action_diagnostics.paper_recovery import (
-    paper_recovery_successor_action_ready,
 )
 from ..shared import _mapping_copy
 
@@ -205,8 +206,14 @@ def _current_action_for_recovery_refresh(
             recovery=recovery,
         )
     ):
-        return None
-    return build_canonical_owner_action_projection(payload)
+        return _paper_recovery_successor_action_for_payload(
+            payload,
+            build_canonical_owner_action_projection=build_canonical_owner_action_projection,
+        )
+    return _paper_recovery_successor_action_for_payload(
+        payload,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
+    )
 
 
 def _handoff_current_work_unit_is_owner_receipt(handoff: Mapping[str, Any]) -> bool:
@@ -274,7 +281,10 @@ def _build_recovery_state_unless_successor_current(
 ) -> dict[str, Any]:
     recovery_payload = _payload_with_handoff(payload, handoff=handoff)
     recovery = _mapping_copy(recovery_payload.get("paper_recovery_state"))
-    current_action = build_canonical_owner_action_projection(recovery_payload)
+    current_action = _paper_recovery_successor_action_for_payload(
+        recovery_payload,
+        build_canonical_owner_action_projection=build_canonical_owner_action_projection,
+    )
     if _recovery_successor_supersedes_terminal_selector_residue(
         recovery_payload,
         recovery=recovery,
@@ -302,6 +312,17 @@ def _build_recovery_state_unless_successor_current(
     ):
         return recovery
     return build_paper_recovery_state(recovery_payload)
+
+
+def _paper_recovery_successor_action_for_payload(
+    payload: Mapping[str, Any],
+    *,
+    build_canonical_owner_action_projection: Callable[[Mapping[str, Any]], dict[str, Any] | None],
+) -> dict[str, Any] | None:
+    action = paper_recovery_successor_action(payload)
+    if paper_recovery_successor_action_ready(_mapping_copy(action)):
+        return action
+    return build_canonical_owner_action_projection(payload)
 
 
 def _payload_with_handoff(

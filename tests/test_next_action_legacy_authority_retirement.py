@@ -184,6 +184,36 @@ def test_owner_action_diagnostic_action_types_are_physically_retired() -> None:
     )
 
 
+def test_paper_recovery_owner_successor_producer_is_physically_retired() -> None:
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "owner_action_diagnostics.paper_recovery"
+        )
+        is None
+    )
+
+
+def test_current_work_unit_paper_recovery_successor_accepts_mas_owner_callable() -> None:
+    successor = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor"
+    )
+
+    assert successor.paper_recovery_successor_action_ready(
+        {
+            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
+            "owner_receipt_required": True,
+            "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
+            "action_type": "complete_medical_paper_readiness_surface",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": "readiness::fingerprint",
+            "paper_recovery_successor": {
+                "source_next_safe_action_kind": "run_mas_owner_callable",
+            },
+        }
+    ) is True
+
+
 def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions() -> None:
     root = Path(__file__).resolve().parents[1]
     source = (
