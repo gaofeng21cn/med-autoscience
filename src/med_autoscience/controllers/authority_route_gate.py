@@ -301,12 +301,45 @@ def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, 
         value = route_context.get(key)
         if isinstance(value, Mapping):
             return value
+    if envelope_route := _route_context_from_next_action_envelope(route_context.get("next_action")):
+        return envelope_route
     if all(
         _text(route_context.get(key)) is not None
         for key in ("work_unit_id", "controller_action_type", "control_surface")
     ):
         return route_context
     return {}
+
+
+def _route_context_from_next_action_envelope(value: object) -> dict[str, Any]:
+    envelope = _mapping(value)
+    if _text(envelope.get("surface_kind")) != "mas_next_action_envelope":
+        return {}
+    boundary = _mapping(envelope.get("authority_boundary"))
+    if boundary.get("action_family_authority") is not True:
+        return {}
+    controller_action_type = _text(envelope.get("action_type"))
+    control_surface = _control_surface_for_controller_action_type(controller_action_type)
+    if controller_action_type is None or control_surface is None:
+        return {}
+    result = {
+        "control_surface": control_surface,
+        "controller_action_type": controller_action_type,
+        "work_unit_id": _text(envelope.get("work_unit_id")),
+        "action_family": _text(envelope.get("action_family")),
+        "requires_human_confirmation": bool(envelope.get("requires_human_confirmation")),
+        "work_unit_fingerprint": _text(envelope.get("work_unit_fingerprint")),
+        "source_eval_id": _text(envelope.get("source_eval_id")),
+    }
+    return {key: item for key, item in result.items() if item is not None}
+
+
+def _control_surface_for_controller_action_type(action_type: str | None) -> str | None:
+    return {
+        "return_to_ai_reviewer_workflow": "ai_reviewer_workflow",
+        "run_gate_clearing_batch": "gate_clearing_batch",
+        "run_quality_repair_batch": "quality_repair_batch",
+    }.get(action_type or "")
 
 
 def _controller_route_allowed_actions(
