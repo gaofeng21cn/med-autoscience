@@ -3440,6 +3440,25 @@ def _build_materialized_mission_readback_if_available(
             **transaction_readback,
             "next_action": next_action_override,
         }
+    submission_gate_readback = _submission_authority_owner_gate_readback(
+        study_root=Path(profile.studies_root) / resolved_study_id,
+        study_id=resolved_study_id,
+        next_action=_mapping(transaction_output_fields.get("next_action")),
+    )
+    if submission_gate_readback is not None:
+        transaction_output_fields.pop("next_action", None)
+        readback_payload = _mapping(
+            transaction_output_fields.get("paper_mission_transaction_readback")
+        )
+        if readback_payload:
+            readback_payload.pop("next_action", None)
+            transaction_output_fields["paper_mission_transaction_readback"] = readback_payload
+        if typed_blocker_resolution_readback is not None:
+            typed_blocker_resolution_readback = {
+                **typed_blocker_resolution_readback,
+                "next_owner_action": None,
+                "submission_authority_owner_gate_readback": submission_gate_readback,
+            }
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -3481,6 +3500,11 @@ def _build_materialized_mission_readback_if_available(
         **(
             {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
             if typed_blocker_resolution_readback is not None
+            else {}
+        ),
+        **(
+            {"submission_authority_owner_gate_readback": submission_gate_readback}
+            if submission_gate_readback is not None
             else {}
         ),
         **(
