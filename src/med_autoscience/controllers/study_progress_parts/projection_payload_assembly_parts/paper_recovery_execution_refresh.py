@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from ..owner_action_diagnostics.non_advancing_terminal_closeout import (
+from med_autoscience.controllers.current_work_unit_parts.non_advancing_terminal_closeout import (
     canonical_current_work_unit_terminal_typed_blocker,
     without_same_identity_terminal_typed_blocker,
 )

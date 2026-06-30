@@ -164,6 +164,26 @@ def test_repair_progress_owner_successor_producer_is_physically_retired() -> Non
     )
 
 
+def test_non_advancing_terminal_closeout_diagnostic_is_physically_retired() -> None:
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "owner_action_diagnostics.non_advancing_terminal_closeout"
+        )
+        is None
+    )
+
+
+def test_owner_action_diagnostic_action_types_are_physically_retired() -> None:
+    assert (
+        importlib.util.find_spec(
+            "med_autoscience.controllers.study_progress_parts."
+            "owner_action_diagnostics.action_types"
+        )
+        is None
+    )
+
+
 def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions() -> None:
     root = Path(__file__).resolve().parents[1]
     source = (

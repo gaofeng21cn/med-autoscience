@@ -17,16 +17,12 @@ from med_autoscience.controllers.current_work_unit_parts.primitives import (
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     paper_recovery_successor_action_ready as _paper_recovery_successor_identity_ready,
 )
-from med_autoscience.controllers.study_progress_parts.owner_action_diagnostics.action_types import (
-    AI_REVIEWER_ACTION,
-    AI_REVIEWER_OWNER,
-    AI_REVIEWER_WORK_UNIT,
-    GATE_CLEARING_ACTION,
-    GATE_CLEARING_OWNER,
-    GATE_CLEARING_WORK_UNIT,
-)
-
-
+AI_REVIEWER_ACTION = "return_to_ai_reviewer_workflow"
+AI_REVIEWER_OWNER = "ai_reviewer"
+AI_REVIEWER_WORK_UNIT = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+GATE_CLEARING_ACTION = "run_gate_clearing_batch"
+GATE_CLEARING_OWNER = "gate_clearing_batch"
+GATE_CLEARING_WORK_UNIT = "publication_gate_replay"
 REPAIR_PROGRESS_EVIDENCE_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
 PAPER_RECOVERY_SUCCESSOR_SOURCE = "paper_recovery_state.next_safe_action.successor_owner_action"
 GATE_FOLLOWTHROUGH_SUCCESSOR_SOURCE = "gate_clearing_batch_followthrough.actionable_current_work_unit"

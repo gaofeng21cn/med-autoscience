@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
+    action_supersedes_terminal_selector_residue,
+)
 from med_autoscience.controllers.current_work_unit_parts.terminal_non_advancing_apply import (
     terminal_non_advancing_apply_identity,
     terminal_stage_non_advancing_apply,
-)
-from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
-    action_supersedes_terminal_selector_residue,
 )
 from med_autoscience.controllers.study_progress_parts.shared import (
     _mapping_copy,
