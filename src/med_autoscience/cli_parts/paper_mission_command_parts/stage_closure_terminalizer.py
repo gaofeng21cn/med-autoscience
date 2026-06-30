@@ -48,6 +48,8 @@ def stage_closure_decision_requires_reterminalize(
     if current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
     if decision.get("source_surface_kind") == "paper_mission_stage_closure_ledger":
+        if _legacy_accepted_status_only_unknown_blocker(decision):
+            return True
         return False
     if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_live_readback":
         return True
@@ -179,12 +181,12 @@ def stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
     return _dedupe_optional_texts(
         [
             readback.get("blocked_reason"),
-            readback.get("consume_candidate_status"),
-            readback.get("transaction_state"),
-            _mapping(readback.get("stage_terminal_decision")).get("reason"),
-            _mapping(readback.get("stage_terminal_decision")).get("blocker_id"),
+            _status_blocker(readback.get("consume_candidate_status")),
+            _status_blocker(readback.get("transaction_state")),
+            _status_blocker(_mapping(readback.get("stage_terminal_decision")).get("reason")),
+            _status_blocker(_mapping(readback.get("stage_terminal_decision")).get("blocker_id")),
             terminal_gate.get("blocked_reason"),
-            *(_text_list(decision.get("known_blockers"))),
+            *(_status_blocker_list(decision.get("known_blockers"))),
         ]
     )
 
@@ -410,6 +412,35 @@ def _dedupe_optional_texts(values: list[object]) -> list[str]:
     return result
 
 
+def _status_blocker(value: object) -> str | None:
+    text = _optional_text(value)
+    if text in {"accepted", "accepted_candidate"}:
+        return None
+    return text
+
+
+def _status_blocker_list(value: object) -> list[str]:
+    return [
+        blocker
+        for item in _text_list(value)
+        if (blocker := _status_blocker(item)) is not None
+    ]
+
+
+def _legacy_accepted_status_only_unknown_blocker(decision: Mapping[str, Any]) -> bool:
+    outcome = _mapping(decision.get("outcome"))
+    identity = _mapping(decision.get("identity"))
+    taxonomy = _mapping(decision.get("blocker_taxonomy"))
+    return (
+        outcome.get("kind") == "typed_blocker"
+        and outcome.get("blocker_type") == "unclassified_stage_closure_blocker"
+        and _text_list(decision.get("known_blockers")) == ["accepted"]
+        and _text_list(taxonomy.get("unknown")) == ["accepted"]
+        and _status_blocker(identity.get("consume_candidate_status")) is None
+        and _status_blocker(identity.get("transaction_state")) is None
+    )
+
+
 def _first_text(*values: object) -> str | None:
     for value in values:
         text = _optional_text(value)
@@ -423,4 +454,3 @@ def _optional_text(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
-

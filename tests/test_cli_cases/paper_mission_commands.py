@@ -512,6 +512,54 @@ def test_stage_closure_terminalizer_reads_nested_closeout_telemetry() -> None:
     assert decision["opl_closeout"]["token_usage"]["total_tokens"] == 1200
 
 
+def test_stage_closure_terminalizer_does_not_treat_accepted_status_as_blocker() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    decision = commands._terminalize_stage_closure_from_readback(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "mission_id": "mission-obesity",
+            "consume_candidate_status": "accepted",
+            "transaction_state": "accepted",
+            "stage_closure_decision": {"known_blockers": ["accepted"]},
+            "stage_terminal_decision": {"reason": "accepted"},
+            "paper_mission_transaction": {
+                "transaction_id": "txn-obesity",
+                "stage_id": "paper_mission_import",
+            },
+        }
+    )
+
+    assert decision.get("known_blockers", []) == []
+    assert decision.get("blocker_taxonomy", {}).get("unknown", []) == []
+    assert decision["outcome"]["kind"] == "owner_receipt"
+
+
+def test_stage_closure_terminalizer_reterminalizes_legacy_accepted_unknown_blocker() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    legacy_decision = {
+        "surface_kind": "mas_stage_closure_decision",
+        "source_surface_kind": "paper_mission_stage_closure_ledger",
+        "known_blockers": ["accepted"],
+        "blocker_taxonomy": {"unknown": ["accepted"]},
+        "identity": {
+            "consume_candidate_status": "accepted",
+            "transaction_state": "accepted",
+        },
+        "outcome": {
+            "kind": "typed_blocker",
+            "blocker_type": "unclassified_stage_closure_blocker",
+        },
+    }
+
+    assert commands._stage_closure_decision_requires_reterminalize(legacy_decision)
+
+
 def test_stage_closure_terminalizer_reads_workspace_consumption_closeout_accounting(
     tmp_path: Path,
     capsys,
