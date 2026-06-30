@@ -125,6 +125,20 @@ For submission package refresh, currentness is not enough. The package is not vi
 `paper/submission_minimal/paper.pdf` or `manuscript/current_package/paper.pdf` has fresh PDF metadata and rendered
 page inspection confirms figure order, table legibility, and absence of obvious text overlap.
 
+For first-draft and submission-package generation, the audit must also confirm the renderer did not silently
+fall back to a mismatched payload shape. For every paper-facing figure, inspect the corresponding layout sidecar
+or display lock entry and check that:
+
+- `renderer_family` and `source_renderer` point to the intended current MAS Display Pack renderer;
+- `figure_purpose` matches the manuscript claim, comparison, or descriptive question;
+- the rendered artifact in the human package is byte-identical to the generated submission figure, unless the
+  package step intentionally converts format and records that conversion.
+
+Table readability follows the same rule. If a table catalog or display surface declares a long-table,
+sideways-table, or measure-value layout to avoid PDF overlap, the submission manuscript source must consume that
+catalog-backed table. A catalog policy that is not visible in the final PDF is a submission builder defect, not a
+visual-audit acceptance.
+
 ## Review Targets
 
 Visual audit should explicitly look for at least the following classes of problems:
