@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-import med_autoscience.controllers.autonomy_ai_doctor as autonomy_ai_doctor
-import med_autoscience.controllers.open_auto_research_projection as open_auto_research_projection
 import med_autoscience.controllers.pi_action_projection as pi_action_projection
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_next_action_envelope,
@@ -21,9 +19,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 from med_autoscience.controllers.evidence_gap_projection import (
     attach_evidence_gap_projection,
 )
-import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 from med_autoscience.controllers import study_domain_transition_table
-import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
 from med_autoscience.controllers.study_interventions import read_intervention_events
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
@@ -53,6 +49,11 @@ from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_payload_assembly_helpers import (
     active_run_id_with_live_handoff as _active_run_id_with_live_handoff,
     runtime_refs_with_live_handoff as _runtime_refs_with_live_handoff,
+)
+from .projection_payload_assembly_refs import build_projection_refs
+from .projection_payload_assembly_status import (
+    apply_runtime_medical_publication_surface_user_visible_status as _apply_runtime_medical_publication_surface_user_visible_status,
+    stage_native_current_owner_action as _stage_native_current_owner_action,
 )
 from .projection_payload_assembly_parts.ai_first_snapshot_fields import (
     progress_ai_first_and_snapshot_fields as _progress_ai_first_and_snapshot_fields,
@@ -100,7 +101,7 @@ from .provider_admission_projection import provider_admission_projection_fields
 from .opl_current_control_state_handoff import refresh_handoff_with_terminal_closeout_candidates
 from .repair_progress_projection import build_repair_progress_projection
 from .research_pack_progress_projection import build_research_pack_progress_summary_projection
-from .shared import _mapping_copy, _non_empty_text, _read_json_object
+from .shared import _mapping_copy, _non_empty_text
 from .stage_kernel_projection import stage_kernel_projection_from_artifact_index
 from .user_visible_projection import build_user_visible_projection
 
@@ -965,230 +966,3 @@ def _typed_blocker_next_step(
     subject = f" work unit {work_unit_id}" if work_unit_id is not None else ""
     action = f" / {action_type}" if action_type is not None else ""
     return f"等待 {owner_text} 处理当前 typed blocker：{reason}{subject}{action}。"
-
-
-def _stage_native_current_owner_action(*, study_root: Path) -> dict[str, Any] | None:
-    next_action = _read_json_object(study_root / "control" / "next_action.json")
-    if not isinstance(next_action, Mapping):
-        return None
-    if _non_empty_text(next_action.get("status")) != "ready_for_owner_action":
-        return None
-    action_type = _non_empty_text(next_action.get("action_id")) or _non_empty_text(
-        next_action.get("action_type")
-    )
-    owner = _non_empty_text(next_action.get("owner")) or _non_empty_text(
-        next_action.get("next_owner")
-    )
-    if action_type is None and owner is None:
-        return None
-    work_unit_id = _non_empty_text(next_action.get("next_work_unit")) or action_type
-    source_ref = study_root / "control" / "next_action.json"
-    return {
-        "surface_kind": "stage_native_workspace_next_action_diagnostic",
-        "schema_version": 1,
-        "status": "diagnostic_only",
-        "source": "stage_native_workspace_next_action",
-        "authority": "stage_native_workspace_next_action_diagnostic_only",
-        "legacy_surface_role": "diagnostic_only",
-        "replacement_authority": "NextActionEnvelope.action_family",
-        "next_owner": owner,
-        "work_unit_id": work_unit_id,
-        "action_type": action_type,
-        "allowed_actions": [action_type] if action_type is not None else [],
-        "owner_receipt_required": False,
-        "required_delta_kind": _non_empty_text(
-            next_action.get("required_delta_kind")
-        )
-        or _non_empty_text(next_action.get("required_output_surface")),
-        "target_surface": {
-            "ref_kind": "stage_native_next_action",
-            "surface_ref": _non_empty_text(next_action.get("source_surface")),
-            "current_stage_id": _non_empty_text(next_action.get("current_stage_id")),
-            "stage_index_ref": _non_empty_text(next_action.get("stage_index_ref")),
-            "required_output_surface": _non_empty_text(
-                next_action.get("required_output_surface")
-            ),
-        },
-        "source_ref": str(source_ref),
-        "authority_boundary": {
-            "refs_only": True,
-            "next_action_authority": False,
-            "can_write_runtime_owned_surfaces": False,
-            "can_write_paper_or_package": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_publication_ready": False,
-            "stage_native_next_action_is_control_projection": True,
-            "stage_native_next_action_is_diagnostic_only": True,
-        },
-    }
-
-
-def _apply_runtime_medical_publication_surface_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
-    blockers = _current_runtime_medical_publication_surface_blockers(payload)
-    if not blockers:
-        return payload
-    updated = dict(payload)
-    updated["current_blockers"] = _merge_blockers(updated.get("current_blockers"), blockers)
-    user_visible = _mapping_copy(updated.get("user_visible_projection"))
-    if user_visible:
-        user_visible["current_blockers"] = _merge_blockers(user_visible.get("current_blockers"), blockers)
-        user_visible["state_summary"] = _non_empty_text(user_visible.get("state_summary")) or blockers[0]
-        user_visible["current_stage_summary"] = (
-            _non_empty_text(user_visible.get("current_stage_summary")) or user_visible["state_summary"]
-        )
-        updated["user_visible_projection"] = user_visible
-    status_contract = _mapping_copy(updated.get("status_narration_contract"))
-    if status_contract:
-        status_contract["current_blockers"] = _merge_blockers(status_contract.get("current_blockers"), blockers)[:8]
-        updated["status_narration_contract"] = status_contract
-    return updated
-
-
-def _current_runtime_medical_publication_surface_blockers(payload: Mapping[str, Any]) -> list[str]:
-    surface = _mapping_copy(payload.get("runtime_medical_publication_surface"))
-    if _non_empty_text(surface.get("status")) != "blocked":
-        return []
-    return [
-        text
-        for item in surface.get("blocker_summaries") or surface.get("blockers") or []
-        if (text := _non_empty_text(item)) is not None
-    ]
-
-
-def _merge_blockers(existing: object, blockers: list[str]) -> list[str]:
-    merged: list[str] = []
-    for item in [*(existing or []), *blockers]:
-        text = _non_empty_text(item)
-        if text is not None and text not in merged:
-            merged.append(text)
-    return merged
-
-
-def build_projection_refs(
-    *,
-    launch_report_path: Path,
-    publication_eval_path: Path,
-    controller_decision_path: Path,
-    controller_confirmation_summary_path: Path,
-    controller_confirmation_summary: dict[str, Any] | None,
-    controller_module_surface: dict[str, Any] | None,
-    opl_runtime_owner_handoff_path: Path,
-    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
-    runtime_escalation_path: Path | None,
-    runtime_readback_report_path: Path | None,
-    runtime_module_surface: dict[str, Any],
-    runtime_efficiency_refs: dict[str, Any],
-    study_root: Path,
-    autonomy_slo_status: dict[str, Any] | None,
-    ai_repair_lifecycle: dict[str, Any] | None,
-    evaluation_module_surface: dict[str, Any] | None,
-    medical_writing_quality_surfaces: dict[str, Any],
-    gate_specificity_request_path: Path | None,
-    gate_specificity_request: dict[str, Any] | None,
-    artifact_runtime_proof_surface: dict[str, Any],
-    submission_hygiene_truth: dict[str, Any],
-    bash_summary_path: Path | None,
-    details_projection_path: Path | None,
-    ai_first_observability_snapshots: dict[str, Any],
-    opl_current_control_state_handoff: dict[str, Any] | None,
-    runtime_medical_publication_surface: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "launch_report_path": str(launch_report_path),
-        "publication_eval_path": str(publication_eval_path),
-        "controller_decision_path": str(controller_decision_path),
-        "controller_confirmation_summary_path": (
-            str(controller_confirmation_summary_path)
-            if controller_confirmation_summary is not None
-            or controller_confirmation_summary_path.exists()
-            else None
-        ),
-        "controller_summary_path": (
-            controller_module_surface["summary_ref"] if controller_module_surface is not None else None
-        ),
-        "opl_runtime_owner_handoff_path": str(opl_runtime_owner_handoff_path) if opl_runtime_owner_handoff_payload is not None else None,
-        "runtime_escalation_path": str(runtime_escalation_path) if runtime_escalation_path is not None else None,
-        "runtime_readback_report_path": str(runtime_readback_report_path) if runtime_readback_report_path is not None else None,
-        "runtime_status_summary_path": runtime_module_surface["summary_ref"],
-        **runtime_efficiency_refs,
-        "autonomy_slo_status_path": (
-            str(autonomy_ai_doctor.stable_slo_status_path(study_root=study_root))
-            if autonomy_slo_status is not None
-            else None
-        ),
-        "ai_repair_lifecycle_path": (
-            str(study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json")
-            if ai_repair_lifecycle is not None
-            else None
-        ),
-        "evaluation_summary_path": (
-            evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
-        ),
-        "medical_manuscript_blueprint_path": medical_writing_quality_surfaces["blueprint"]["path"],
-        "medical_journal_style_corpus_path": medical_writing_quality_surfaces["style_corpus"]["path"],
-        "medical_prose_review_request_path": medical_writing_quality_surfaces["prose_review_request"]["path"],
-        "medical_prose_review_path": medical_writing_quality_surfaces["prose_review"]["path"],
-        "retrospective_medical_prose_audit_request_path": (
-            medical_writing_quality_surfaces["retrospective_audit_request"]["path"]
-        ),
-        "retrospective_medical_prose_audit_path": medical_writing_quality_surfaces["retrospective_audit"]["path"],
-        "medical_paper_readiness_path": str(
-            medical_paper_readiness_path(study_root=study_root)
-        ),
-        "open_auto_research_projection_path": str(
-            open_auto_research_projection.stable_open_auto_research_projection_path(study_root=study_root)
-        ),
-        "opl_current_control_state_handoff_path": (
-            opl_current_control_state_handoff.get("source_path") if opl_current_control_state_handoff is not None else None
-        ),
-        "runtime_medical_publication_surface_report_path": (
-            runtime_medical_publication_surface.get("source_path")
-            if runtime_medical_publication_surface is not None
-            else None
-        ),
-        "repair_execution_evidence_path": str(
-            study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
-        ),
-        "repair_execution_receipt_path": str(
-            study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
-        ),
-        "gate_replay_request_path": str(
-            study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
-        ),
-        "ai_reviewer_recheck_request_path": str(
-            study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
-        ),
-        "publication_gate_specificity_request_path": (
-            str(gate_specificity_request_path) if gate_specificity_request is not None else None
-        ),
-        "artifact_runtime_proof_delivery_manifest_path": (
-            (artifact_runtime_proof_surface.get("refs") or {}).get("delivery_manifest_path")
-        ),
-        "submission_hygiene_submission_manifest_path": (
-            (submission_hygiene_truth.get("refs") or {}).get("submission_manifest_path")
-        ),
-        "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=study_root)),
-        "runtime_health_snapshot_path": str(
-            runtime_health_kernel.runtime_health_snapshot_path(study_root=study_root)
-        ),
-        "promotion_gate_path": (
-            evaluation_module_surface["promotion_gate_ref"] if evaluation_module_surface is not None else None
-        ),
-        "bash_summary_path": str(bash_summary_path) if bash_summary_path is not None else None,
-        "details_projection_path": str(details_projection_path) if details_projection_path is not None else None,
-        "ai_first_observability_publication_eval_path": ai_first_observability_snapshots["refs"][
-            "publication_eval_path"
-        ],
-        "ai_first_observability_runtime_health_path": ai_first_observability_snapshots["refs"][
-            "runtime_health_path"
-        ],
-        "ai_first_observability_delivery_manifest_path": ai_first_observability_snapshots["refs"][
-            "delivery_manifest_path"
-        ],
-    }
-
-
-def medical_paper_readiness_path(*, study_root: Path) -> Path:
-    from med_autoscience.controllers import medical_paper_readiness
-
-    return medical_paper_readiness.stable_medical_paper_readiness_path(study_root=study_root)
