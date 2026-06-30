@@ -191,6 +191,11 @@ def render_lidocaineq_visual_parity_markdown(audit: dict[str, Any]) -> str:
     lines = [
         "# LidocaineQ 33 项逐图视觉审计",
         "",
+        "Owner: `MedAutoScience`",
+        "Purpose: `medical_display_visual_parity_audit`",
+        "State: `generated_support_reference`",
+        "Machine boundary: Generated human-readable visual parity audit support. Machine truth remains in display-pack registry/schema source, gallery manifest/status, generated contact sheet/assets, renderer/QC tests, and MAS publication/artifact owner receipts.",
+        "",
         "本文件是 MAS 绘图模板质量审计面，不作为 Gallery 永久章节。审计目的，是把学生手工确认过的发表级参考图与 MAS 当前模板输出逐一对应，发现图型语法、排版、配色和信息密度偏差。",
         "",
         f"- 参考项目：`{audit['source_project']}`",

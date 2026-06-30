@@ -1,5 +1,10 @@
 # Medical Display Template Catalog
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_template_catalog`
+State: `generated_catalog`
+Machine boundary: Generated human-readable template inventory. Machine truth remains in `med_autoscience.display_registry`, `med_autoscience.display_schema_contract`, renderer/QC source, tests, generated gallery status, manifests, and runtime/controller receipts.
+
 Generated from `med_autoscience.display_registry` and `med_autoscience.display_schema_contract`.
 
 Paper-family labels follow the roadmap in [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).
