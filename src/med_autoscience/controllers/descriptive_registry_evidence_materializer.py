@@ -12,6 +12,7 @@ from med_autoscience.policies.medical_reporting_checklist import (
     BASELINE_CHARACTERISTICS_REPORTING_ITEMS,
     CLINICAL_ACTIONABILITY_ITEMS,
     DATA_QUALITY_REPORTING_ITEMS,
+    MANUSCRIPT_VOICE_REPORTING_ITEMS,
     METHODS_COMPLETENESS_ITEMS,
     PHENOTYPE_DERIVATION_REPORTING_ITEMS,
     STATISTICAL_REPORTING_ITEMS,
@@ -283,12 +284,19 @@ def _build_t3_source_rows(rows: list[dict[str, str]]) -> list[list[str]]:
 
 
 def _build_structured_reporting_contract(evidence_refs: list[str]) -> dict[str, Any]:
-    def close_items(items: tuple[str, ...], *, status: str = "closed", note: str = "") -> dict[str, dict[str, Any]]:
+    def close_items(
+        items: tuple[str, ...],
+        *,
+        status: str = "closed",
+        note: str = "",
+        applicability: str = "",
+    ) -> dict[str, dict[str, Any]]:
         return {
             item: {
                 "status": status,
                 "evidence_refs": evidence_refs,
                 **({"rationale": note} if note else {}),
+                **({"applicability": applicability} if applicability else {}),
             }
             for item in items
         }
@@ -303,8 +311,18 @@ def _build_structured_reporting_contract(evidence_refs: list[str]) -> dict[str, 
         "methods_completeness": close_items(METHODS_COMPLETENESS_ITEMS),
         "statistical_reporting": close_items(STATISTICAL_REPORTING_ITEMS),
         "clinical_actionability_required": True,
-        "clinical_actionability": close_items(CLINICAL_ACTIONABILITY_ITEMS, status=not_applicable, note=no_treatment_note),
-        "treatment_gap_reporting": close_items(TREATMENT_GAP_REPORTING_ITEMS, status=not_applicable, note=no_treatment_note),
+        "clinical_actionability": close_items(
+            CLINICAL_ACTIONABILITY_ITEMS,
+            status=not_applicable,
+            note=no_treatment_note,
+        ),
+        "treatment_gap_reporting": close_items(
+            TREATMENT_GAP_REPORTING_ITEMS,
+            status=not_applicable,
+            note=no_treatment_note,
+        ),
+        "manuscript_voice_reporting_required": True,
+        "manuscript_voice_reporting": close_items(MANUSCRIPT_VOICE_REPORTING_ITEMS),
         "phenotype_derivation_reporting": close_items(PHENOTYPE_DERIVATION_REPORTING_ITEMS),
         "baseline_characteristics_reporting": close_items(BASELINE_CHARACTERISTICS_REPORTING_ITEMS),
         "data_quality_reporting": close_items(DATA_QUALITY_REPORTING_ITEMS),
@@ -511,18 +529,105 @@ def _ledger_claims_from_claims(claims: list[dict[str, Any]]) -> list[dict[str, A
                     "summary": claim["statement"],
                 }
             )
+        claim_id = str(claim["claim_id"])
         ledger_claims.append(
             {
-                "claim_id": claim["claim_id"],
+                "claim_id": claim_id,
                 "statement": claim["statement"],
                 "status": claim["status"],
                 "submission_scope": "main_text_with_limitations",
                 "evidence": evidence,
-                "gaps": [],
-                "recommended_actions": [],
+                "gaps": [
+                    {
+                        "gap_id": f"{claim_id}-descriptive-scope-limitation",
+                        "description": (
+                            "The evidence supports descriptive registry reporting only and does not establish "
+                            "population prevalence, prognosis, causal effects, or treatment effectiveness."
+                        ),
+                        "submission_impact": (
+                            "Keep the claim bounded to available-record denominators and preserve the "
+                            "limitation in Results, Discussion, and Conclusions."
+                        ),
+                    }
+                ],
+                "recommended_actions": [
+                    {
+                        "action_id": f"{claim_id}-maintain-claim-guardrail",
+                        "priority": "required_before_submission",
+                        "description": (
+                            "Bind the claim to its listed display and source paths, and avoid prevalence, "
+                            "causal, prognostic, or treatment-effect wording in the manuscript."
+                        ),
+                    }
+                ],
             }
         )
     return ledger_claims
+
+
+def _results_narrative_map() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "sections": [
+            {
+                "section_id": "cohort_source_layer_accounting",
+                "section_title": "Cohort denominator and source layers",
+                "research_question": (
+                    "What analytic denominator and source-layer structure support the descriptive registry atlas?"
+                ),
+                "direct_answer": (
+                    "F1 and T1 define the available analytic denominator and source-stratified baseline context."
+                ),
+                "supporting_display_items": ["F1", "T1"],
+                "key_quantitative_findings": [
+                    "Analytic records are reported from the QC deidentified registry table.",
+                    "Baseline variables use available-record denominators by registry source.",
+                ],
+                "clinical_meaning": (
+                    "The source-layer accounting defines where the descriptive findings can be interpreted."
+                ),
+                "boundary": "Descriptive denominator accounting only; not a prevalence or causal estimate.",
+            },
+            {
+                "section_id": "bmi_metabolic_comorbidity_burden",
+                "section_title": "BMI category and metabolic comorbidity burden",
+                "research_question": (
+                    "How are metabolic comorbidities distributed across BMI-category strata in available records?"
+                ),
+                "direct_answer": (
+                    "T2 reports metabolic comorbidity burden by BMI category using available-record denominators."
+                ),
+                "supporting_display_items": ["T2"],
+                "key_quantitative_findings": [
+                    "BMI strata are summarized with record counts, BMI medians, and comorbidity denominators.",
+                    "Unknown binary values are excluded from available denominators rather than counted as negative.",
+                ],
+                "clinical_meaning": (
+                    "The table supports descriptive prioritization of phenotype burden within the observed registry."
+                ),
+                "boundary": "No treatment-effect, prognosis, or population prevalence claim is made.",
+            },
+            {
+                "section_id": "center_psychobehavioral_support",
+                "section_title": "Center completeness and Xiangya2 psychobehavioral support",
+                "research_question": (
+                    "What center completeness and Xiangya2 psychobehavioral coverage are available for reporting?"
+                ),
+                "direct_answer": (
+                    "T3 reports exported-center support and Xiangya2 psychobehavioral availability as boundary evidence."
+                ),
+                "supporting_display_items": ["T3"],
+                "key_quantitative_findings": [
+                    "Center counts and analytic-record availability are reported as support surfaces.",
+                    "PHQ-9 and GAD-7 availability are interpreted as Xiangya2 subcohort support only.",
+                ],
+                "clinical_meaning": (
+                    "Psychobehavioral measures can support a subcohort description but not alliance-wide generalization."
+                ),
+                "boundary": "Subcohort availability is not generalized beyond observed coverage.",
+            },
+        ],
+    }
 
 
 def _closed_charter_expectations(now: str) -> list[dict[str, Any]]:
@@ -765,6 +870,7 @@ def _build_materialization_payload(*, study_root: Path, paper_root: Path) -> dic
                 for claim in claims
             ],
         },
+        Path("results_narrative_map.json"): _results_narrative_map(),
         Path("claim_evidence_map.json"): {
             "schema_version": 1,
             "claims": claims,

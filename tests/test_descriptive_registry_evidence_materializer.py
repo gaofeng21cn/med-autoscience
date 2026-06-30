@@ -191,6 +191,7 @@ def test_apply_writes_tables_registry_and_closes_charter_expectations(tmp_path: 
         "tables/baseline_characteristics.shell.json",
         "tables/phenotype_gap_summary.shell.json",
         "tables/transition_site_support_summary.shell.json",
+        "results_narrative_map.json",
     ):
         assert (paper_root / relpath).is_file()
     figure_shell = json.loads((paper_root / "figures" / "cohort_flow.shell.json").read_text(encoding="utf-8"))
@@ -208,6 +209,45 @@ def test_apply_writes_tables_registry_and_closes_charter_expectations(tmp_path: 
     assert closed["xiangya2_psychobehavioral_subcohort_analysis"] == "closed"
     assert ledger["controller_repair_receipts"][0]["controller"] == "descriptive_registry_evidence_materializer"
     assert ledger["controller_repair_receipts"][0]["current_package_write_allowed"] is False
+
+
+def test_materialized_contracts_satisfy_current_reporting_and_publication_validators(tmp_path: Path) -> None:
+    materializer = importlib.import_module("med_autoscience.controllers.descriptive_registry_evidence_materializer")
+    reporting_policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+    publication_policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+    catalog_checks = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.catalog_checks")
+    study_root, paper_root = _write_study_fixture(tmp_path)
+
+    materializer.materialize_descriptive_registry_evidence(study_root=study_root, paper_root=paper_root, apply=True)
+
+    reporting_contract = json.loads((paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8"))
+    reporting_guideline_checklist = json.loads(
+        (paper_root / "reporting_guideline_checklist.json").read_text(encoding="utf-8")
+    )
+    table_figure_claim_map = json.loads((paper_root / "table_figure_claim_map.json").read_text(encoding="utf-8"))
+    structured_checklist = reporting_policy.build_structured_reporting_checklist(
+        reporting_contract,
+        reporting_closure=reporting_guideline_checklist,
+        table_figure_claim_map=table_figure_claim_map,
+    )
+    assert structured_checklist["blockers"] == []
+    assert structured_checklist["clinical_actionability"]["status"] == "clear"
+    assert structured_checklist["treatment_gap_reporting"]["status"] == "clear"
+    assert structured_checklist["manuscript_voice_reporting"]["status"] == "clear"
+
+    evidence_ledger = json.loads((paper_root / "evidence_ledger.json").read_text(encoding="utf-8"))
+    assert publication_policy.validate_evidence_ledger(evidence_ledger) == []
+    assert all(claim["gaps"] for claim in evidence_ledger["claims"])
+    assert all(claim["recommended_actions"] for claim in evidence_ledger["claims"])
+
+    results_narrative_map = json.loads((paper_root / "results_narrative_map.json").read_text(encoding="utf-8"))
+    assert publication_policy.validate_results_narrative_map(results_narrative_map) == []
+    display_story_roles = catalog_checks.load_display_catalog_story_roles(paper_root / "medical_reporting_contract.json")
+    assert catalog_checks.inspect_results_display_surface_coverage(
+        path=paper_root / "results_narrative_map.json",
+        payload=results_narrative_map,
+        display_story_roles=display_story_roles,
+    ) == []
 
 
 def test_materialized_tables_are_consumed_by_display_surface_renderer(tmp_path: Path) -> None:

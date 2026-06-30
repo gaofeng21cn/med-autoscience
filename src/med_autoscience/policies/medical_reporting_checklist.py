@@ -383,9 +383,10 @@ def _truthy_mapping_item(payload: dict[str, Any], key: str) -> bool:
     value = payload.get(key)
     if isinstance(value, dict):
         status = str(value.get("status") or "").strip().lower()
-        return status in {"complete", "clear", "present", "closed"} or value.get("present") is True
+        return status in _CLOSED_REPORTING_STATUSES or value.get("present") is True
     if isinstance(value, str):
-        return value.strip().lower() in {"complete", "clear", "present", "closed", "yes", "true"}
+        normalized = value.strip().lower()
+        return normalized in _CLOSED_REPORTING_STATUSES or normalized in {"yes", "true"}
     return value is True
 
 
