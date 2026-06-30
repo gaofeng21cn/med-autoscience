@@ -223,6 +223,66 @@ def test_create_submission_minimal_package_preserves_existing_package_when_mater
     assert docx_path.read_bytes() == old_docx
 
 
+def test_export_pdf_uses_submission_layout_header_for_fixed_figures_and_wide_tables(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    export_renderers = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.export_renderers"
+    )
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission"
+---
+
+# Main Figures
+
+## Figure 2. Later figure
+
+![](figures/Figure2.png)
+
+## Figure 1. Earlier figure
+
+![](figures/Figure1.png)
+
+# Main Tables
+
+## Table 1. Wide table
+
+| A very long header | Another very long header |
+| --- | --- |
+| A | B |
+""",
+    )
+    output_pdf = tmp_path / "paper.pdf"
+    calls: list[dict[str, Any]] = []
+
+    def fake_run(command, *, cwd, check):
+        calls.append({"command": command, "cwd": cwd, "check": check})
+        output_pdf.write_bytes(b"%PDF-1.4\n")
+
+    monkeypatch.setattr(export_renderers.subprocess, "run", fake_run)
+
+    export_renderers.export_pdf(
+        compiled_markdown_path=source_markdown,
+        paper_root=tmp_path,
+        output_pdf_path=output_pdf,
+        csl_path=tmp_path / "style.csl",
+    )
+
+    assert calls
+    command = calls[0]["command"]
+    assert command[command.index("--include-in-header") + 1] == "submission_pdf_layout.tex"
+    assert "--pdf-engine=xelatex" in command
+    header_text = (tmp_path / "submission_pdf_layout.tex").read_text(encoding="utf-8")
+    assert "\\floatplacement{figure}{H}" in header_text
+    assert "\\AtBeginEnvironment{longtable}{\\footnotesize" in header_text
+    assert "\\setlength{\\tabcolsep}{3pt}" in header_text
+    assert "\\begin{landscape}" not in header_text
+
+
 def test_describe_submission_minimal_authority_detects_changed_compiled_markdown(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)

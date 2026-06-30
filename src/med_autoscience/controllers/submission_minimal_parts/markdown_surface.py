@@ -348,6 +348,135 @@ def parse_figure_id_from_heading(heading: str) -> str | None:
     return None
 
 
+def _natural_figure_sort_key(value: str) -> tuple[int, int, str]:
+    normalized = str(value or "").strip()
+    supplementary_match = re.match(r"^(?:Supplementary\s*Figure\s*S|FS)(\d+)$", normalized, flags=re.IGNORECASE)
+    if supplementary_match:
+        return (1, int(supplementary_match.group(1)), normalized)
+    main_match = re.match(r"^(?:Figure\s*|F)(\d+)$", normalized, flags=re.IGNORECASE)
+    if main_match:
+        return (0, int(main_match.group(1)), normalized)
+    return (2, 0, normalized.casefold())
+
+
+def _natural_table_sort_key(value: str) -> tuple[int, int, str]:
+    normalized = str(value or "").strip()
+    main_match = re.match(r"^(?:Table\s*|T)(\d+)$", normalized, flags=re.IGNORECASE)
+    if main_match:
+        return (0, int(main_match.group(1)), normalized)
+    return (1, 0, normalized.casefold())
+
+
+def _heading_is_table(heading: str) -> bool:
+    return bool(re.match(r"^(?:Table\s*|T)\d+\b", str(heading or "").strip(), flags=re.IGNORECASE))
+
+
+def _split_pipe_table_row(line: str) -> list[str]:
+    stripped = str(line or "").strip()
+    if not stripped.startswith("|") or not stripped.endswith("|"):
+        return []
+    return [cell.strip() for cell in stripped.strip("|").split("|")]
+
+
+def _is_pipe_table_separator(line: str) -> bool:
+    cells = _split_pipe_table_row(line)
+    if not cells:
+        return False
+    return all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
+
+
+def normalize_wide_pipe_table_widths(block_body: str) -> str:
+    lines = str(block_body or "").splitlines()
+    for index in range(len(lines) - 1):
+        headers = _split_pipe_table_row(lines[index])
+        if len(headers) < 6 or not _is_pipe_table_separator(lines[index + 1]):
+            continue
+        widths = [max(3, min(34, len(header.strip()))) for header in headers]
+        if widths:
+            widths[0] = max(widths[0], 24)
+        lines[index + 1] = "| " + " | ".join("-" * width for width in widths) + " |"
+        break
+    return "\n".join(lines).strip()
+
+
+def _latex_escape_cell(value: str) -> str:
+    text = str(value or "")
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(replacements.get(char, char) for char in text)
+
+
+def _parse_pipe_table(block_body: str) -> tuple[list[str], list[list[str]], list[str]]:
+    lines = str(block_body or "").splitlines()
+    for index in range(len(lines) - 1):
+        headers = _split_pipe_table_row(lines[index])
+        if not headers or not _is_pipe_table_separator(lines[index + 1]):
+            continue
+        rows: list[list[str]] = []
+        trailing_lines: list[str] = []
+        for line in lines[index + 2:]:
+            cells = _split_pipe_table_row(line)
+            if cells:
+                rows.append(cells)
+            else:
+                trailing_lines.append(line)
+        return headers, rows, trailing_lines
+    return [], [], lines
+
+
+def _wide_pipe_table_to_latex(block_body: str, *, caption: str) -> str | None:
+    headers, rows, trailing_lines = _parse_pipe_table(block_body)
+    if len(headers) < 8 or not rows:
+        return None
+    column_spec = "p{0.20\\linewidth}" + " ".join("p{0.085\\linewidth}" for _ in headers[1:])
+    latex_lines = [
+        r"\begin{landscape}",
+        r"\begin{table}[p]",
+        r"\centering",
+        rf"\caption*{{{_latex_escape_cell(caption)}}}",
+        r"\scriptsize",
+        r"\setlength{\tabcolsep}{2pt}",
+        r"\renewcommand{\arraystretch}{1.15}",
+        rf"\begin{{tabular}}{{{column_spec}}}",
+        r"\toprule",
+        " & ".join(_latex_escape_cell(header) for header in headers) + r" \\",
+        r"\midrule",
+    ]
+    for row in rows:
+        padded_row = [*row[: len(headers)], *([""] * max(0, len(headers) - len(row)))]
+        latex_lines.append(" & ".join(_latex_escape_cell(cell) for cell in padded_row[: len(headers)]) + r" \\")
+    latex_lines.extend([r"\bottomrule", r"\end{tabular}", r"\end{table}", r"\end{landscape}"])
+    trailing = "\n".join(line for line in trailing_lines if line.strip()).strip()
+    if trailing:
+        latex_lines.extend(["", trailing])
+    return "\n".join(latex_lines).strip()
+
+
+def normalize_submission_table_body(block_body: str, *, heading: str) -> str:
+    latex_table = _wide_pipe_table_to_latex(block_body, caption=heading)
+    if latex_table is not None:
+        return latex_table
+    return normalize_wide_pipe_table_widths(block_body)
+
+
+def _sorted_figure_catalog_entries(figures: list[Any]) -> list[dict[str, Any]]:
+    entries = [entry for entry in figures if isinstance(entry, dict)]
+    return sorted(
+        entries,
+        key=lambda entry: _natural_figure_sort_key(str(entry.get("figure_id") or "")),
+    )
+
+
 def normalize_materialized_figure_heading(heading: str) -> str | None:
     normalized = heading.strip()
     if not normalized:
@@ -380,6 +509,17 @@ def extract_main_figure_blocks(main_figures: str) -> list[tuple[str, str]]:
         if normalized_heading and normalized_heading.lower().startswith("figure "):
             normalized_blocks.append((normalized_heading, block_body))
     return normalized_blocks
+
+
+def sort_main_figure_blocks(main_figures: str) -> str:
+    figure_blocks = extract_main_figure_blocks(main_figures)
+    if not figure_blocks:
+        return main_figures.strip()
+    sorted_blocks = sorted(
+        figure_blocks,
+        key=lambda item: _natural_figure_sort_key(parse_figure_id_from_heading(item[0]) or item[0]),
+    )
+    return "\n\n".join(f"## {heading}\n\n{block_body.strip()}" for heading, block_body in sorted_blocks).strip()
 
 
 def parse_figure_blocks(text: str) -> list[tuple[str, str]]:
@@ -514,9 +654,7 @@ def build_catalog_backed_main_figures(*, paper_root: Path, submission_root: Path
 
     workspace_root = paper_root.parent
     figure_blocks: list[str] = []
-    for entry in figures:
-        if not isinstance(entry, dict):
-            continue
+    for entry in _sorted_figure_catalog_entries(figures):
         if str(entry.get("paper_role") or "").strip().lower() != "main_text":
             continue
         figure_id = str(entry.get("figure_id") or "").strip()
@@ -551,9 +689,7 @@ def build_catalog_backed_submission_figure_image_map(*, paper_root: Path, submis
 
     workspace_root = paper_root.parent
     image_map: dict[str, str] = {}
-    for entry in figures:
-        if not isinstance(entry, dict):
-            continue
+    for entry in _sorted_figure_catalog_entries(figures):
         if str(entry.get("paper_role") or "").strip().lower() != "main_text":
             continue
         figure_id = str(entry.get("figure_id") or "").strip()
@@ -586,9 +722,7 @@ def build_catalog_backed_figure_blocks(*, paper_root: Path, submission_root: Pat
     }
     workspace_root = paper_root.parent
     figure_blocks: list[str] = []
-    for entry in figures:
-        if not isinstance(entry, dict):
-            continue
+    for entry in _sorted_figure_catalog_entries(figures):
         if str(entry.get("paper_role") or "").strip().lower() != "main_text":
             continue
         figure_id = str(entry.get("figure_id") or "").strip()
@@ -777,7 +911,10 @@ def build_submission_figure_blocks(
 ) -> list[str]:
     figure_blocks: list[str] = []
     resolved_catalog_image_map = catalog_image_map or {}
-    for heading, block_body in extract_main_figure_blocks(main_figures):
+    for heading, block_body in sorted(
+        extract_main_figure_blocks(main_figures),
+        key=lambda item: _natural_figure_sort_key(parse_figure_id_from_heading(item[0]) or item[0]),
+    ):
         figure_id = parse_figure_id_from_heading(heading)
         image_lines = rewrite_submission_surface_image_lines(
             image_lines=extract_image_lines(block_body),
@@ -804,10 +941,34 @@ def build_submission_figure_blocks(
 
 def build_table_blocks(*, main_tables: str) -> list[str]:
     table_blocks: list[str] = []
-    for heading, block_body in parse_top_level_blocks(main_tables):
-        table_blocks.append(f"## {heading}\n\n{block_body}")
+    parsed_blocks = [
+        (heading, body)
+        for heading, body in parse_third_level_blocks(main_tables)
+        if _heading_is_table(heading)
+    ]
+    if not parsed_blocks:
+        parsed_blocks = [
+            (heading, body)
+            for heading, body in parse_second_level_blocks(main_tables)
+            if _heading_is_table(heading)
+        ]
+    if not parsed_blocks:
+        parsed_blocks = [
+            (heading, body)
+            for heading, body in parse_top_level_blocks(main_tables)
+            if _heading_is_table(heading)
+        ]
+    for heading, block_body in sorted(
+        parsed_blocks,
+        key=lambda item: _natural_table_sort_key(item[0]),
+    ):
+        normalized_body = normalize_submission_table_body(block_body, heading=heading)
+        if normalized_body.startswith(r"\begin{landscape}"):
+            table_blocks.append(normalized_body)
+        else:
+            table_blocks.append(f"## {heading}\n\n{normalized_body}")
     if not table_blocks and main_tables.strip():
-        table_blocks.append(f"## Table 1\n\n{main_tables.strip()}")
+        table_blocks.append(f"## Table 1\n\n{normalize_submission_table_body(main_tables, heading='Table 1')}")
     return table_blocks
 
 

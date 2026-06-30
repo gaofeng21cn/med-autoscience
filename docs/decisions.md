@@ -771,6 +771,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：Display Pack 要成为可迁移资产包，必须能被发现、能被描述、能快速试跑、能有 deterministic 下限回归，而不是只靠 template 目录和长文档。scaffold 走正式 E2E runtime，能同时验证 renderer、style lock、QC、audit receipt、lifecycle、display lock 和 manifest，不制造第二条“演示用”运行路径。
 - 影响：修改 CLI parser/handler/public aliases、`display_pack_usability`、layout QC router、focused tests 和 Display Pack docs。不修改 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、source readiness、submission package、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。
 
+## 2026-06-30：Display Pack 论文图默认不输出图内标题
+
+- 决策：Display Pack 论文图的默认范式是 `show_figure_title=false`。论文正文、投稿包和期刊系统由 Figure caption / legend 承载图题；图像内部不再默认重复标题。确有独立海报、展示图或非论文场景需要图内标题时，只能通过 `render_context.layout_override.show_figure_title=true` 显式开启。
+- 决策：cohort-flow R/ggplot2 模板和 Python participant-flow shell 均遵守同一默认；关闭图内标题时，layout sidecar 不再声明 title box，画布空间归还给首个流程节点或卡片。
+- 理由：DM002/DM003 投稿包暴露出图内标题与论文 caption 重复，并且 cohort-flow Figure 1 标题与首个卡片距离过近。把“无图内标题”设为默认，可以减少重复标题、释放竖向空间，并让论文标题层级统一归 submission manuscript / journal caption 管理。
+- 影响：这是 Display Pack 视觉模板默认值与投稿投影排版修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。现有 Python-only 模板仍需按 renderer migration ledger 逐步补 R/ggplot2 覆盖；不能因标题策略修复而声明全 catalog 已由最新版独立画图 skill 重绘。
+
 ## 2026-06-10：accepted typed closeout 必须压过同一 current-control handoff action
 
 - 决策：当 MAS 从 `owner_callable_adapter_receipt/*.closeout.json` 读到 accepted / blocked typed closeout，并且 closeout 与 OPL current-control handoff 的 action queue 在同一 stage attempt、work-unit fingerprint，或 `action_type + work_unit_id` 上匹配时，handoff projection 必须生成显式 `typed_blocker`，并把同一 handoff action 标记为 `consumed_by_typed_owner_callable_adapter_closeout` 后移出 current action queue。

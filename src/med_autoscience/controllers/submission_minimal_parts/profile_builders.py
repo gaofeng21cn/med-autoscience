@@ -182,6 +182,7 @@ def build_general_medical_submission_markdown(
             submission_root=submission_root,
             source_figures=main_figures,
         )
+        main_figures = sort_main_figure_blocks(main_figures)
         if main_figures.strip() and not figure_semantics_map:
             figure_semantics_map = load_figure_semantics_map(paper_root)
 

@@ -54,6 +54,24 @@ render_device_dimension <- function(payload, field_name, env_name, fallback) {
   numeric_value
 }
 
+style_bool <- function(mapping, field_name, fallback) {
+  value <- mapping[[field_name]]
+  if (is.null(value)) {
+    return(isTRUE(fallback))
+  }
+  if (is.logical(value)) {
+    return(isTRUE(value))
+  }
+  normalized <- tolower(trimws(as.character(value)))
+  if (normalized %in% c("1", "true", "yes", "y", "on")) {
+    return(TRUE)
+  }
+  if (normalized %in% c("0", "false", "no", "n", "off")) {
+    return(FALSE)
+  }
+  isTRUE(fallback)
+}
+
 require_prepared_dependency_environment <- function(request) {
   dependency_environment <- request$dependency_environment %||% list()
   status <- trimws(as.character(dependency_environment$status %||% ""))
@@ -119,6 +137,9 @@ wrap_node_label <- function(label, width) {
 
 build_ggconsort_plot <- function(payload) {
   require_ggconsort()
+  render_context <- payload$render_context %||% list()
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
   steps <- required_list(payload, "steps")
   exclusions <- payload$exclusions %||% list()
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
@@ -174,11 +195,17 @@ build_ggconsort_plot <- function(payload) {
     }
   }
 
-  ggplot2::ggplot(diagram) +
+  plot <- ggplot2::ggplot(diagram) +
     ggconsort::geom_consort() +
-    ggconsort::theme_consort(margin_h = 8, margin_v = 2) +
-    ggplot2::labs(title = trimws(as.character(payload$title %||% "Participant flow"))) +
-    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 11, hjust = 0))
+    ggconsort::theme_consort(margin_h = 8, margin_v = 2)
+  if (show_figure_title) {
+    plot <- plot +
+      ggplot2::labs(title = trimws(as.character(payload$title %||% "Participant flow"))) +
+      ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 11, hjust = 0))
+  } else {
+    plot <- plot + ggplot2::theme(plot.title = ggplot2::element_blank())
+  }
+  plot
 }
 
 sidecar_box <- function(box_id, box_type, x0, y0, x1, y1) {
@@ -186,13 +213,19 @@ sidecar_box <- function(box_id, box_type, x0, y0, x1, y1) {
 }
 
 build_layout_sidecar <- function(payload, dependency_environment) {
+  render_context <- payload$render_context %||% list()
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
   steps <- required_list(payload, "steps")
   exclusions <- payload$exclusions %||% list()
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
   node_height <- 0.105
   y_gap <- if (length(steps) > 1) min(0.19, max(0.12, 0.68 / (length(steps) - 1))) else 0
   y_top <- 0.82
-  layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.89, 0.95, 0.96))
+  layout_boxes <- list()
+  if (show_figure_title) {
+    layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.89, 0.95, 0.96))
+  }
   guide_boxes <- list()
   flow_nodes <- list()
   for (index in seq_along(steps)) {

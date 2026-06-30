@@ -453,7 +453,7 @@ style_series_palette <- function(display_payload, labels) {
 theme_publication <- function(display_payload = list()) {
   render_context <- render_context_from_payload(display_payload)
   layout_override <- render_context$layout_override %||% list()
-  show_figure_title <- style_bool(layout_override, "show_figure_title", TRUE)
+  show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
   typography <- style_typography(display_payload)
   stroke <- style_stroke(display_payload)
   grid_spec <- style_grid(display_payload)

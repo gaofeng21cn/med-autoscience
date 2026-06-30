@@ -189,14 +189,20 @@ def _render_participant_flow(
         branch_gap_pt *= scale
         summary_width_pt = min(summary_width_pt, step_width_pt)
 
-    title_lines = _participant_text_lines(
-        title or "Participant flow",
-        max_width_pt=content_width_pt,
-        font_size=title_size,
-        font_weight="bold",
-        max_chars=72,
+    show_figure_title = bool(layout_override.get("show_figure_title") is True)
+    title_lines = (
+        _participant_text_lines(
+            title or "Participant flow",
+            max_width_pt=content_width_pt,
+            font_size=title_size,
+            font_weight="bold",
+            max_chars=72,
+        )
+        if show_figure_title
+        else ()
     )
-    title_height_pt = max(1, len(title_lines)) * title_size * 1.2
+    title_height_pt = max(1, len(title_lines)) * title_size * 1.2 if show_figure_title else 0.0
+    title_gap_pt = title_gap_pt if show_figure_title else 0.0
     step_specs: list[dict[str, Any]] = []
     for step in steps:
         node_title = f"{step['label']} (n={step['n']:,})"
@@ -282,28 +288,30 @@ def _render_participant_flow(
     guide_boxes: list[dict[str, Any]] = []
 
     title_y = canvas_height_pt - top_margin_pt
-    ax.text(
-        side_margin_pt,
-        title_y,
-        "\n".join(title_lines),
-        fontsize=title_size,
-        fontweight="bold",
-        color=flow_title_text,
-        ha="left",
-        va="top",
-    )
-    layout_boxes.append(
-        _flow_box_to_normalized(
-            x0=side_margin_pt,
-            y0=title_y - title_height_pt,
-            x1=side_margin_pt + min(content_width_pt, _measure_flow_text_width_pt(title_lines[0], font_size=title_size, font_weight="bold")),
-            y1=title_y,
-            canvas_width_pt=figure_width_pt,
-            canvas_height_pt=canvas_height_pt,
-            box_id="participant_flow_title",
-            box_type="title",
+    if show_figure_title and title_lines:
+        ax.text(
+            side_margin_pt,
+            title_y,
+            "\n".join(title_lines),
+            fontsize=title_size,
+            fontweight="bold",
+            color=flow_title_text,
+            ha="left",
+            va="top",
         )
-    )
+        layout_boxes.append(
+            _flow_box_to_normalized(
+                x0=side_margin_pt,
+                y0=title_y - title_height_pt,
+                x1=side_margin_pt
+                + min(content_width_pt, _measure_flow_text_width_pt(title_lines[0], font_size=title_size, font_weight="bold")),
+                y1=title_y,
+                canvas_width_pt=figure_width_pt,
+                canvas_height_pt=canvas_height_pt,
+                box_id="participant_flow_title",
+                box_type="title",
+            )
+        )
 
     step_x0 = side_margin_pt + (content_width_pt - (step_width_pt + branch_gap_pt + exclusion_width_pt)) / 2.0
     exclusion_x0 = step_x0 + step_width_pt + branch_gap_pt

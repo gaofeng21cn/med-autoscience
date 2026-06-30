@@ -40,6 +40,14 @@ stopifnot("#123456" %in% all_colours)
 stopifnot("#999999" %in% all_colours)
 theme_obj <- lidocaine_publication_theme(payload)
 stopifnot(identical(theme_obj$plot.title$colour, "#111111"))
+default_no_title_payload <- payload
+default_no_title_payload$render_context$layout_override$show_figure_title <- NULL
+default_no_title_theme <- theme_publication(default_no_title_payload)
+stopifnot(inherits(default_no_title_theme$plot.title, "element_blank"))
+explicit_title_payload <- payload
+explicit_title_payload$render_context$layout_override$show_figure_title <- TRUE
+explicit_title_theme <- theme_publication(explicit_title_payload)
+stopifnot(inherits(explicit_title_theme$plot.title, "element_text"))
 stopifnot(inherits(theme_obj$panel.border, "element_rect"))
 stopifnot(isTRUE(abs(theme_obj$panel.border$linewidth - 0.45) < 1e-9))
 layout <- build_layout_sidecar(plot, "roc_curve_binary", payload)

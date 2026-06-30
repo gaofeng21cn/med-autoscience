@@ -1,8 +1,33 @@
 from .shared import *
 
 from dataclasses import asdict
+import re
 
 from med_autoscience.literature_records import LiteratureRecord
+
+
+def _open_submission_route_context() -> dict[str, object]:
+    return {
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
+            "dispatch_gate": {
+                "state": "open",
+                "dispatch_allowed": True,
+                "blocking_reasons": [],
+            },
+            "route_authorization": {
+                "authorized": True,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": True,
+                "runtime_recovery_allowed": True,
+            },
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+        }
+    }
+
 
 def test_inspect_submission_source_markdown_counts_short_f_headings_as_figures(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -279,6 +304,164 @@ Preserved legend for the manuscript-shaped top-level figures block.
     assert manuscript_surface_qc["status"] == "pass"
     assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_images"] == 1
     assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_legends"] == 1
+
+
+def test_create_submission_minimal_package_orders_main_figures_by_figure_number(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_path = paper_root / "draft.md"
+    write_png(paper_root / "figures" / "F2_main.png")
+    write_png(paper_root / "figures" / "F3_main.png")
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F2",
+                    "paper_role": "main_text",
+                    "title": "Second figure",
+                    "export_paths": ["paper/figures/F2_main.png"],
+                },
+                {
+                    "figure_id": "F3",
+                    "paper_role": "main_text",
+                    "title": "Third figure",
+                    "export_paths": ["paper/figures/F3_main.png"],
+                },
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "title": "First figure",
+                    "export_paths": ["paper/figures/F1_main.png"],
+                },
+            ],
+        },
+    )
+    write_text(
+        draft_path,
+        draft_path.read_text(encoding="utf-8")
+        + """
+
+# Figures
+
+## Figure 2. Second figure
+
+![](figures/F2_main.png)
+
+## Figure 3. Third figure
+
+![](figures/F3_main.png)
+
+## Figure 1. First figure
+
+![](figures/F1_main.png)
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=_open_submission_route_context(),
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    figure_headings = re.findall(r"^## (Figure \d+\.[^\n]+)", submission_markdown, flags=re.MULTILINE)
+    assert figure_headings == [
+        "Figure 1. First figure",
+        "Figure 2. Second figure",
+        "Figure 3. Third figure",
+    ]
+
+
+def test_create_submission_minimal_package_splits_nested_tables_and_orders_by_table_number(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_path = paper_root / "draft.md"
+    write_text(
+        draft_path,
+        draft_path.read_text(encoding="utf-8")
+        + """
+
+# Main Tables
+
+## Table 1
+
+### Table 3. Third support table
+
+| Metric | Value |
+| --- | --- |
+| C | 3 |
+
+### Table 1. First support table
+
+| Metric | Value |
+| --- | --- |
+| A | 1 |
+
+### Table 2. Second wide support table
+
+| First long header | Second long header | Third long header | Fourth long header | Fifth long header | Sixth long header |
+| --- | --- | --- | --- | --- | --- |
+| A | B | C | D | E | F |
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=_open_submission_route_context(),
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    table_headings = re.findall(r"^## (Table \d+\.[^\n]+)", submission_markdown, flags=re.MULTILINE)
+    assert table_headings == [
+        "Table 1. First support table",
+        "Table 2. Second wide support table",
+        "Table 3. Third support table",
+    ]
+    wide_separator = re.search(r"\| First long header .+\|\n\| ([^\n]+) \|", submission_markdown)
+    assert wide_separator is not None
+    separator_widths = [len(cell.strip()) for cell in wide_separator.group(1).split("|")]
+    assert separator_widths == [24, 18, 17, 18, 17, 17]
+
+
+def test_create_submission_minimal_package_renders_extra_wide_tables_as_sideways_latex(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_path = paper_root / "draft.md"
+    write_text(
+        draft_path,
+        draft_path.read_text(encoding="utf-8")
+        + """
+
+# Main Tables
+
+## Table 1. Extra-wide support table
+
+| Phenotype | Index patients | Share | Mean age | Mean BMI | Mean HbA1c | Severe glycemia gap | Uncontrolled glycemia no drug | Hypertension no antihypertensive |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cardiometabolic-risk dominant diabetes | 138797 | 20.04% | 68.86 | 21.91 | 5.74 | NA | NA | 60.48% |
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=_open_submission_route_context(),
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "\\begin{landscape}" in submission_markdown
+    assert "\\caption*{Table 1. Extra-wide support table}" in submission_markdown
+    assert "\\begin{tabular}{p{0.20\\linewidth}" in submission_markdown
+    assert "Cardiometabolic-risk dominant diabetes & 138797 & 20.04\\%" in submission_markdown
 
 
 def test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report(
